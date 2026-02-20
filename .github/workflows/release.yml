@@ -18,9 +18,6 @@ jobs:
             goarch: amd64
             archive: tar.gz
           - goos: darwin
-            goarch: amd64
-            archive: tar.gz
-          - goos: darwin
             goarch: arm64
             archive: tar.gz
           - goos: windows
