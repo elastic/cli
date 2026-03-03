@@ -87,6 +87,25 @@ By default, columns where every value is null are omitted. To include them:
 ./elastic kb task-manager health -f json
 ```
 
+### 6) Manage Kibana dashboards
+
+```bash
+./elastic kb dashboard list
+./elastic kb dashboard list "APM"
+./elastic kb dashboard get <id>
+./elastic kb dashboard create --title "My Dashboard"
+./elastic kb dashboard delete <id>
+```
+
+### 7) Search and read Elastic documentation
+
+```bash
+./elastic docs search "elasticsearch getting started"
+./elastic docs read /reference/elasticsearch
+./elastic docs read "ingest pipelines"
+./elastic docs ask "What is Elasticsearch?"
+```
+
 Filter by name or glob pattern:
 
 ```bash
@@ -109,4 +128,6 @@ Short aliases work too (`cfg`, `idx`, `ds`, `rc`):
 - [`docs/api.md`](docs/api.md)
 - [`docs/esql.md`](docs/esql.md)
 - [`docs/get.md`](docs/get.md)
+- [`docs/kb.md`](docs/kb.md) — Kibana commands (`task-manager`, `dashboard`)
+- [`docs/docs.md`](docs/docs.md) — Elastic documentation commands (`search`, `read`, `ask`)
 
