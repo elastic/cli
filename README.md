@@ -110,3 +110,10 @@ Short aliases work too (`cfg`, `idx`, `ds`, `rc`):
 - [`docs/esql.md`](docs/esql.md)
 - [`docs/get.md`](docs/get.md)
 
+## Functional tests
+
+Run the docker-compose functional smoke test suite with:
+
+```bash
+go test -tags functional ./tests/functional -v
+```
