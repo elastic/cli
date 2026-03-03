@@ -18,9 +18,10 @@ import (
 
 // KibanaClient is a minimal client for Kibana's HTTP APIs.
 type KibanaClient struct {
-	baseURL string
-	apiKey  string
-	http    *http.Client
+	baseURL    string
+	apiKey     string
+	authHeader string
+	http       *http.Client
 }
 
 func (c *KibanaClient) BaseURL() string { return c.baseURL }
@@ -55,13 +56,15 @@ func NewKibanaFromContext(ctx config.Context) (*KibanaClient, error) {
 	if u.Scheme == "" || u.Host == "" {
 		return nil, fmt.Errorf("invalid kibana url (must include scheme and host): %q", baseURL)
 	}
-	if strings.TrimSpace(ctx.APIKey) == "" {
-		return nil, errors.New("context missing api_key")
+	authHeader, err := authorizationHeaderFromContext(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	return &KibanaClient{
-		baseURL: strings.TrimRight(baseURL, "/"),
-		apiKey:  strings.TrimSpace(ctx.APIKey),
+		baseURL:    strings.TrimRight(baseURL, "/"),
+		apiKey:     strings.TrimSpace(ctx.APIKey),
+		authHeader: authHeader,
 		http: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -345,7 +348,7 @@ func (c *KibanaClient) post(ctx context.Context, p string, body any) ([]byte, er
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
-	req.Header.Set("Authorization", "ApiKey "+c.apiKey)
+	req.Header.Set("Authorization", c.authHeader)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("kbn-xsrf", "elastic")
@@ -377,7 +380,7 @@ func (c *KibanaClient) del(ctx context.Context, p string) error {
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
 	}
-	req.Header.Set("Authorization", "ApiKey "+c.apiKey)
+	req.Header.Set("Authorization", c.authHeader)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("kbn-xsrf", "elastic")
 	req.Header.Set("Elastic-Api-Version", "1")
@@ -414,7 +417,7 @@ func (c *KibanaClient) getInternal(ctx context.Context, p string, q url.Values) 
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
-	req.Header.Set("Authorization", "ApiKey "+c.apiKey)
+	req.Header.Set("Authorization", c.authHeader)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("kbn-xsrf", "elastic")
 	req.Header.Set("Elastic-Api-Version", "1")
@@ -450,7 +453,7 @@ func (c *KibanaClient) get(ctx context.Context, p string, q url.Values) ([]byte,
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
-	req.Header.Set("Authorization", "ApiKey "+c.apiKey)
+	req.Header.Set("Authorization", c.authHeader)
 	req.Header.Set("Accept", "application/json")
 	// Not required for GET, but harmless and helps with some Kibana setups.
 	req.Header.Set("kbn-xsrf", "elastic")

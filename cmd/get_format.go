@@ -62,3 +62,16 @@ func remoteClustersRows(in map[string]client.RemoteClusterInfo, names []string) 
 	}
 	return rows
 }
+
+func clusterHealthHeaders() []string {
+	return []string{"cluster_name", "status", "number_of_nodes", "active_shards"}
+}
+
+func clusterHealthRows(in client.ClusterHealth) [][]any {
+	return [][]any{{
+		in.ClusterName,
+		in.Status,
+		in.NumberOfNodes,
+		in.ActiveShards,
+	}}
+}

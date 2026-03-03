@@ -13,6 +13,8 @@ import (
 var (
 	setContextCloudID          string
 	setContextAPIKey           string
+	setContextUsername         string
+	setContextPassword         string
 	setContextElasticsearchURL string
 	setContextKibanaURL        string
 )
@@ -44,6 +46,12 @@ var configSetContextCmd = &cobra.Command{
 		if setContextAPIKey != "" {
 			ctx.APIKey = strings.TrimSpace(setContextAPIKey)
 		}
+		if setContextUsername != "" {
+			ctx.Username = strings.TrimSpace(setContextUsername)
+		}
+		if setContextPassword != "" {
+			ctx.Password = strings.TrimSpace(setContextPassword)
+		}
 		if setContextElasticsearchURL != "" {
 			ctx.ElasticsearchURL = strings.TrimSpace(setContextElasticsearchURL)
 		}
@@ -51,8 +59,8 @@ var configSetContextCmd = &cobra.Command{
 			ctx.KibanaURL = strings.TrimSpace(setContextKibanaURL)
 		}
 
-		if ctx.APIKey == "" {
-			return errors.New("--api-key is required (or set previously for this context)")
+		if ctx.APIKey == "" && (ctx.Username == "" || ctx.Password == "") {
+			return errors.New("either --api-key or both --username and --password are required (or set previously for this context)")
 		}
 		if ctx.ElasticsearchURL == "" && ctx.CloudID == "" {
 			return errors.New("either --elasticsearch-url or --cloud-id is required (or set previously for this context)")
@@ -77,6 +85,8 @@ func init() {
 
 	configSetContextCmd.Flags().StringVar(&setContextCloudID, "cloud-id", "", "Elastic Cloud ID for the deployment/project")
 	configSetContextCmd.Flags().StringVar(&setContextAPIKey, "api-key", "", "Elastic API key (stored in config file)")
+	configSetContextCmd.Flags().StringVar(&setContextUsername, "username", "", "Basic auth username (stored in config file)")
+	configSetContextCmd.Flags().StringVar(&setContextPassword, "password", "", "Basic auth password (stored in config file)")
 	configSetContextCmd.Flags().StringVar(&setContextElasticsearchURL, "elasticsearch-url", "", "Direct Elasticsearch URL (overrides cloud-id-derived URL)")
 	configSetContextCmd.Flags().StringVar(&setContextKibanaURL, "kibana-url", "", "Direct Kibana base URL (optional; otherwise derived from cloud-id or elasticsearch-url when possible)")
 }

@@ -17,9 +17,9 @@ import (
 )
 
 type Client struct {
-	baseURL string
-	apiKey  string
-	http    *http.Client
+	baseURL    string
+	authHeader string
+	http       *http.Client
 }
 
 type ResolveIndexItem struct {
@@ -46,6 +46,13 @@ type RemoteClusterInfo struct {
 	NumNodesConnected     int      `json:"num_nodes_connected,omitempty"`
 	InitialConnectTimeout string   `json:"initial_connect_timeout,omitempty"`
 	SkipUnavailable       bool     `json:"skip_unavailable,omitempty"`
+}
+
+type ClusterHealth struct {
+	ClusterName   string `json:"cluster_name,omitempty"`
+	Status        string `json:"status,omitempty"`
+	NumberOfNodes int    `json:"number_of_nodes,omitempty"`
+	ActiveShards  int    `json:"active_shards,omitempty"`
 }
 
 type CatIndex struct {
@@ -110,13 +117,14 @@ func NewFromContext(ctx config.Context) (*Client, error) {
 	if u.Scheme == "" || u.Host == "" {
 		return nil, fmt.Errorf("invalid elasticsearch url (must include scheme and host): %q", baseURL)
 	}
-	if strings.TrimSpace(ctx.APIKey) == "" {
-		return nil, errors.New("context missing api_key")
+	authHeader, err := authorizationHeaderFromContext(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	return &Client{
-		baseURL: strings.TrimRight(baseURL, "/"),
-		apiKey:  strings.TrimSpace(ctx.APIKey),
+		baseURL:    strings.TrimRight(baseURL, "/"),
+		authHeader: authHeader,
 		http: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -133,7 +141,7 @@ func (c *Client) ESQLQuery(ctx context.Context, query string) (ESQLResponse, []b
 	if err != nil {
 		return ESQLResponse{}, nil, fmt.Errorf("create request: %w", err)
 	}
-	req.Header.Set("Authorization", "ApiKey "+c.apiKey)
+	req.Header.Set("Authorization", c.authHeader)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
@@ -200,6 +208,19 @@ func (c *Client) RemoteInfo(ctx context.Context) (map[string]RemoteClusterInfo, 
 	return out, b, nil
 }
 
+func (c *Client) ClusterHealth(ctx context.Context) (ClusterHealth, []byte, error) {
+	b, err := c.get(ctx, "/_cluster/health", nil)
+	if err != nil {
+		return ClusterHealth{}, nil, err
+	}
+
+	var out ClusterHealth
+	if err := json.Unmarshal(b, &out); err != nil {
+		return ClusterHealth{}, b, fmt.Errorf("parse cluster health response: %w", err)
+	}
+	return out, b, nil
+}
+
 func (c *Client) CatIndices(ctx context.Context) ([]CatIndex, []byte, error) {
 	q := url.Values{}
 	q.Set("format", "json")
@@ -247,7 +268,7 @@ func (c *Client) get(ctx context.Context, path string, q url.Values) ([]byte, er
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
-	req.Header.Set("Authorization", "ApiKey "+c.apiKey)
+	req.Header.Set("Authorization", c.authHeader)
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.http.Do(req)

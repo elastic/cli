@@ -115,6 +115,14 @@ func runGet(out io.Writer, resource string, patterns []string, format string) er
 		return output.RenderRows(out, fmtFormat, remoteClustersHeaders(), remoteClustersRows(info, names), nil)
 	}
 
+	if kind == "cluster-health" {
+		health, _, err := cl.ClusterHealth(ctx)
+		if err != nil {
+			return err
+		}
+		return output.RenderRows(out, fmtFormat, clusterHealthHeaders(), clusterHealthRows(health), health)
+	}
+
 	pattern := "*"
 	if len(patterns) > 0 {
 		trimmed := make([]string, 0, len(patterns))
@@ -167,12 +175,14 @@ func normalizeGetResource(s string) (string, error) {
 		return "data-streams", nil
 	case "remote-clusters", "remoteclusters", "remote", "rc":
 		return "remote-clusters", nil
+	case "cluster-health", "clusterhealth", "cluster", "health":
+		return "cluster-health", nil
 	case "slos", "slo":
 		return "slos", nil
 	case "slo-definitions", "slo-definition", "slo-defs", "slo-def":
 		return "slo-definitions", nil
 	default:
-		return "", fmt.Errorf("unknown resource %q (try: indices | data-streams | remote-clusters | slos | slo-definitions | all)", s)
+		return "", fmt.Errorf("unknown resource %q (try: indices | data-streams | remote-clusters | cluster-health | slos | slo-definitions | all)", s)
 	}
 }
 

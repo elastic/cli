@@ -53,6 +53,21 @@ var esRemoteClustersListCmd = &cobra.Command{
 	},
 }
 
+var esClusterCmd = &cobra.Command{
+	Use:   "cluster",
+	Short: "Cluster operations",
+}
+
+var esClusterHealthCmd = &cobra.Command{
+	Use:          "health",
+	Short:        "Get cluster health",
+	Args:         cobra.NoArgs,
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runGet(cmd.OutOrStdout(), "cluster-health", args, rootFormat)
+	},
+}
+
 func init() {
 	esCmd.AddCommand(esIndicesCmd)
 	esIndicesCmd.AddCommand(esIndicesListCmd)
@@ -62,4 +77,7 @@ func init() {
 
 	esCmd.AddCommand(esRemoteClustersCmd)
 	esRemoteClustersCmd.AddCommand(esRemoteClustersListCmd)
+
+	esCmd.AddCommand(esClusterCmd)
+	esClusterCmd.AddCommand(esClusterHealthCmd)
 }

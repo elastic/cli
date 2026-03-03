@@ -22,6 +22,8 @@ const (
 type Context struct {
 	CloudID          string `yaml:"cloud_id,omitempty"`
 	APIKey           string `yaml:"api_key,omitempty"`
+	Username         string `yaml:"username,omitempty"`
+	Password         string `yaml:"password,omitempty"`
 	ElasticsearchURL string `yaml:"elasticsearch_url,omitempty"`
 	KibanaURL        string `yaml:"kibana_url,omitempty"`
 }
@@ -157,7 +159,9 @@ func defaultConfigTemplate() string {
 		"#   local:",
 		"#     elasticsearch_url: \"https://localhost:9200\"",
 		"#     kibana_url: \"https://localhost:5601\"   # optional (needed for Kibana APIs like SLOs)",
-		"#     api_key: \"encoded-api-key\"",
+		"#     api_key: \"encoded-api-key\"              # or set username/password instead",
+		"#     username: \"elastic\"",
+		"#     password: \"...\"",
 		"#",
 		"",
 	}

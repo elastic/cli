@@ -19,14 +19,14 @@ type RawResponse struct {
 }
 
 func (c *Client) DoRaw(ctx context.Context, method, p string, q url.Values, body []byte, headers http.Header) (RawResponse, error) {
-	return doRaw(ctx, c.http, c.baseURL, c.apiKey, false, method, p, q, body, headers)
+	return doRaw(ctx, c.http, c.baseURL, c.authHeader, false, method, p, q, body, headers)
 }
 
 func (c *KibanaClient) DoRaw(ctx context.Context, method, p string, q url.Values, body []byte, headers http.Header) (RawResponse, error) {
-	return doRaw(ctx, c.http, c.baseURL, c.apiKey, true, method, p, q, body, headers)
+	return doRaw(ctx, c.http, c.baseURL, c.authHeader, true, method, p, q, body, headers)
 }
 
-func doRaw(ctx context.Context, hc *http.Client, baseURL, apiKey string, isKibana bool, method, p string, q url.Values, body []byte, headers http.Header) (RawResponse, error) {
+func doRaw(ctx context.Context, hc *http.Client, baseURL, authHeader string, isKibana bool, method, p string, q url.Values, body []byte, headers http.Header) (RawResponse, error) {
 	method = strings.ToUpper(strings.TrimSpace(method))
 	if method == "" {
 		method = http.MethodGet
@@ -54,7 +54,7 @@ func doRaw(ctx context.Context, hc *http.Client, baseURL, apiKey string, isKiban
 		return RawResponse{}, fmt.Errorf("create request: %w", err)
 	}
 
-	req.Header.Set("Authorization", "ApiKey "+apiKey)
+	req.Header.Set("Authorization", authHeader)
 	if isKibana {
 		req.Header.Set("kbn-xsrf", "elastic")
 	}
