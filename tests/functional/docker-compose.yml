@@ -3,7 +3,7 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION:-9.2.1}
     environment:
       - discovery.type=single-node
-      - ELASTIC_PASSWORD=changeme
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - xpack.security.enabled=true
       - xpack.security.enrollment.enabled=false
       - xpack.security.http.ssl.enabled=false
@@ -18,8 +18,8 @@ services:
       - elasticsearch
     command: >
       bash -c '
-        until curl -s http://elasticsearch:9200 >/dev/null; do sleep 5; done;
-        until curl -s -u elastic:changeme -H "Content-Type: application/json" -X POST http://elasticsearch:9200/_security/user/kibana_system/_password -d "{\"password\":\"kibanachangeme\"}" | grep -q "^{}"; do sleep 5; done;
+        for i in $(seq 1 60); do curl -s -u elastic:${ELASTIC_PASSWORD} http://elasticsearch:9200 >/dev/null && break; sleep 5; [ "$i" -eq 60 ] && exit 1; done;
+        for i in $(seq 1 60); do curl -s -u elastic:${ELASTIC_PASSWORD} -H "Content-Type: application/json" -X POST http://elasticsearch:9200/_security/user/kibana_system/_password -d "{\"password\":\"${KIBANA_PASSWORD}\"}" | grep -q "^{}" && break; sleep 5; [ "$i" -eq 60 ] && exit 1; done;
       '
 
   kibana:
@@ -30,7 +30,7 @@ services:
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
       - ELASTICSEARCH_USERNAME=kibana_system
-      - ELASTICSEARCH_PASSWORD=kibanachangeme
+      - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD}
       - XPACK_SECURITY_ENABLED=true
     ports:
       - "5601:5601"

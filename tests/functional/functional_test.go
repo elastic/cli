@@ -17,8 +17,6 @@ import (
 	"time"
 )
 
-const elasticPassword = "changeme"
-
 func TestElasticCLIWithDockerComposeStack(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping functional test in short mode")
@@ -37,10 +35,18 @@ func TestElasticCLIWithDockerComposeStack(t *testing.T) {
 	repoRoot := filepath.Clean(filepath.Join(wd, "..", ".."))
 	composeFile := filepath.Join(wd, "docker-compose.yml")
 	projectName := fmt.Sprintf("elastic-cli-functional-%d", time.Now().UnixNano())
+	elasticPassword := fmt.Sprintf("elastic-%d", time.Now().UnixNano())
+	kibanaPassword := fmt.Sprintf("kibana-%d", time.Now().UnixNano())
+	composeEnv := []string{
+		"ELASTIC_PASSWORD=" + elasticPassword,
+		"KIBANA_PASSWORD=" + kibanaPassword,
+	}
 
-	runCmd(t, repoRoot, nil, "docker", "compose", "-p", projectName, "-f", composeFile, "up", "-d")
+	runCmd(t, repoRoot, composeEnv, "docker", "compose", "-p", projectName, "-f", composeFile, "up", "-d")
 	t.Cleanup(func() {
-		_ = exec.Command("docker", "compose", "-p", projectName, "-f", composeFile, "down", "-v").Run()
+		cmd := exec.Command("docker", "compose", "-p", projectName, "-f", composeFile, "down", "-v")
+		cmd.Env = append(os.Environ(), composeEnv...)
+		_ = cmd.Run()
 	})
 
 	waitForElasticsearch(t, "http://localhost:9200", "elastic", elasticPassword, 3*time.Minute)
@@ -161,7 +167,7 @@ func waitForKibanaStatus(t *testing.T, u string, timeout time.Duration) {
 		resp, err := client.Do(req)
 		if err == nil {
 			resp.Body.Close()
-			if resp.StatusCode < http.StatusInternalServerError {
+			if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices {
 				return
 			}
 		}
@@ -209,7 +215,7 @@ func createElasticsearchAPIKey(t *testing.T, u, username, password string) strin
 	if err != nil {
 		t.Fatalf("read create api key response: %v", err)
 	}
-	if resp.StatusCode >= 400 {
+	if resp.StatusCode >= http.StatusBadRequest {
 		t.Fatalf("create api key failed (%s): %s", resp.Status, string(b))
 	}
 
