@@ -4,6 +4,7 @@ package functional_test
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,6 +16,8 @@ import (
 	"testing"
 	"time"
 )
+
+const elasticPassword = "changeme"
 
 func TestElasticCLIWithDockerComposeStack(t *testing.T) {
 	if testing.Short() {
@@ -40,8 +43,9 @@ func TestElasticCLIWithDockerComposeStack(t *testing.T) {
 		_ = exec.Command("docker", "compose", "-p", projectName, "-f", composeFile, "down", "-v").Run()
 	})
 
-	waitForHTTP(t, "http://localhost:9200", 3*time.Minute)
+	waitForElasticsearch(t, "http://localhost:9200", "elastic", elasticPassword, 3*time.Minute)
 	waitForKibanaStatus(t, "http://localhost:5601/api/status", 3*time.Minute)
+	apiKey := createElasticsearchAPIKey(t, "http://localhost:9200", "elastic", elasticPassword)
 
 	tempHome := t.TempDir()
 	env := []string{
@@ -51,7 +55,7 @@ func TestElasticCLIWithDockerComposeStack(t *testing.T) {
 	runElastic(t, repoRoot, env, "config", "context", "set", "local",
 		"--elasticsearch-url", "http://localhost:9200",
 		"--kibana-url", "http://localhost:5601",
-		"--api-key", "functional-test-key",
+		"--api-key", apiKey,
 	)
 
 	indicesOut := runElastic(t, repoRoot, env, "es", "indices", "list", "-f", "json")
@@ -60,7 +64,7 @@ func TestElasticCLIWithDockerComposeStack(t *testing.T) {
 		t.Fatalf("parse indices JSON output: %v\noutput: %s", err, indicesOut)
 	}
 
-	statusOut := runElastic(t, repoRoot, env, "kb", "raw", "/api/status", "-f", "json")
+	statusOut := waitForKibanaRawStatus(t, repoRoot, env, 3*time.Minute)
 	var status map[string]any
 	if err := json.Unmarshal([]byte(statusOut), &status); err != nil {
 		t.Fatalf("parse kibana status JSON output: %v\noutput: %s", err, statusOut)
@@ -116,6 +120,32 @@ func waitForHTTP(t *testing.T, u string, timeout time.Duration) {
 	}
 }
 
+func waitForElasticsearch(t *testing.T, u, username, password string, timeout time.Duration) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	for {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u+"/_cluster/health", nil)
+		if err != nil {
+			t.Fatalf("create request for %s: %v", u, err)
+		}
+		req.SetBasicAuth(username, password)
+		resp, err := client.Do(req)
+		if err == nil {
+			resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				return
+			}
+		}
+		if ctx.Err() != nil {
+			t.Fatalf("timed out waiting for %s: %v", u, ctx.Err())
+		}
+		time.Sleep(2 * time.Second)
+	}
+}
+
 func waitForKibanaStatus(t *testing.T, u string, timeout time.Duration) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -130,9 +160,8 @@ func waitForKibanaStatus(t *testing.T, u string, timeout time.Duration) {
 		req.Header.Set("kbn-xsrf", "elastic")
 		resp, err := client.Do(req)
 		if err == nil {
-			b, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
-			if resp.StatusCode < 400 && strings.Contains(strings.ToLower(string(b)), "available") {
+			if resp.StatusCode < http.StatusInternalServerError {
 				return
 			}
 		}
@@ -141,4 +170,67 @@ func waitForKibanaStatus(t *testing.T, u string, timeout time.Duration) {
 		}
 		time.Sleep(2 * time.Second)
 	}
+}
+
+func waitForKibanaRawStatus(t *testing.T, repoRoot string, env []string, timeout time.Duration) string {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	for {
+		out, err := runElasticMaybe(repoRoot, env, "kb", "raw", "/api/status", "-f", "json")
+		if err == nil {
+			return out
+		}
+		if ctx.Err() != nil {
+			t.Fatalf("timed out waiting for kibana raw status command: %v", ctx.Err())
+		}
+		time.Sleep(2 * time.Second)
+	}
+}
+
+func createElasticsearchAPIKey(t *testing.T, u, username, password string) string {
+	t.Helper()
+	body := fmt.Sprintf(`{"name":"functional-test-key-%d"}`, time.Now().UnixNano())
+	req, err := http.NewRequest(http.MethodPost, u+"/_security/api_key", strings.NewReader(body))
+	if err != nil {
+		t.Fatalf("create api key request: %v", err)
+	}
+	req.SetBasicAuth(username, password)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
+	if err != nil {
+		t.Fatalf("create api key request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read create api key response: %v", err)
+	}
+	if resp.StatusCode >= 400 {
+		t.Fatalf("create api key failed (%s): %s", resp.Status, string(b))
+	}
+
+	var out struct {
+		ID     string `json:"id"`
+		APIKey string `json:"api_key"`
+	}
+	if err := json.Unmarshal(b, &out); err != nil {
+		t.Fatalf("parse create api key response: %v", err)
+	}
+	if out.ID == "" || out.APIKey == "" {
+		t.Fatalf("unexpected create api key response: %s", string(b))
+	}
+
+	return base64.StdEncoding.EncodeToString([]byte(out.ID + ":" + out.APIKey))
+}
+
+func runElasticMaybe(repoRoot string, env []string, args ...string) (string, error) {
+	cmd := exec.Command("go", append([]string{"run", "./cmd/elastic"}, args...)...)
+	cmd.Dir = repoRoot
+	cmd.Env = append(os.Environ(), env...)
+	b, err := cmd.CombinedOutput()
+	return string(b), err
 }
