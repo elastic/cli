@@ -15,6 +15,7 @@ Resources:
 - `indices` (alias: `idx`)
 - `data-streams` (alias: `ds`)
 - `remote-clusters` (alias: `rc`)
+- `cluster health` (`elastic es cluster health`)
 
 Examples:
 
@@ -22,6 +23,7 @@ Examples:
 elastic es indices list
 elastic es data-streams list
 elastic es remote-clusters list
+elastic es cluster health
 ```
 
 Filter by name or glob pattern:

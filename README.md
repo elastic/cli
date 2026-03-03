@@ -34,6 +34,15 @@ If you previously used `~/.elastic/config.yaml` (or an older `~/.elk/config.yaml
   --api-key '...'
 ```
 
+Or use basic auth instead of an API key:
+
+```bash
+./elastic config context set prod \
+  --cloud-id 'my-deploy:...' \
+  --username 'elastic' \
+  --password '...'
+```
+
 Or use a direct Elasticsearch URL (self-managed or custom endpoint):
 
 ```bash
@@ -76,6 +85,7 @@ By default, columns where every value is null are omitted. To include them:
 ./elastic es indices list
 ./elastic es data-streams list
 ./elastic es remote-clusters list
+./elastic es cluster health
 ./elastic slos list
 ./elastic slos list-definitions
 ```
