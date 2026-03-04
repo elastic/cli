@@ -14,6 +14,7 @@ Examples:
 elastic es query 'FROM logs-* | LIMIT 5'
 elastic es query 'FROM logs-* | WHERE @timestamp > NOW() - 1 hour | LIMIT 10'
 elastic es query 'FROM metrics-* | STATS avg_cpu = AVG(system.cpu.total.pct) BY host.name | SORT avg_cpu DESC | LIMIT 10'
+elastic es query --wait 'length(values) > `0`' --interval 1s --timeout 30s 'FROM logs-* | LIMIT 1'
 ```
 
 ## Selecting a context
@@ -57,3 +58,14 @@ By default, columns where every value is null are omitted from the output. To in
 elastic es query --null 'FROM logs-* | LIMIT 5'
 ```
 
+## Waiting for conditions
+
+Use one or more `--wait` flags to poll until all JMESPath expressions evaluate to `true` against the JSON ES|QL response.
+
+```bash
+elastic es query --wait 'length(values) > `0`' --interval 1s --timeout 30s 'FROM logs-* | LIMIT 1'
+```
+
+- `--wait`: repeatable condition expression
+- `--interval`: polling interval while waiting (only valid with `--wait`)
+- `--timeout`: overall timeout for both one-shot queries and wait polling
