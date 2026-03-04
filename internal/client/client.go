@@ -97,6 +97,13 @@ type ESQLQueryRequest struct {
 	Query string `json:"query"`
 }
 
+func (c *Client) SetTimeout(timeout time.Duration) {
+	if timeout <= 0 {
+		return
+	}
+	c.http.Timeout = timeout
+}
+
 func NewFromContext(ctx config.Context) (*Client, error) {
 	baseURL := strings.TrimSpace(ctx.ElasticsearchURL)
 	if baseURL == "" {
