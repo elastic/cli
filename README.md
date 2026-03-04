@@ -62,6 +62,7 @@ Or use a direct Elasticsearch URL (self-managed or custom endpoint):
 
 ```bash
 ./elastic es query 'FROM logs-* | LIMIT 5'
+./elastic es query --wait 'length(values) > `0`' --interval 1s --timeout 30s 'FROM logs-* | LIMIT 1'
 ```
 
 Output formats:
