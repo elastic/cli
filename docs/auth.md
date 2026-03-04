@@ -1,8 +1,8 @@
 # Authentication
 
-Today `elastic` authenticates to Elasticsearch using a static API key (`api_key`) stored in the config file. This document describes planned support for OAuth2-based authentication via Elastic's **Unified Identity and Access Management (UIAM)** platform.
+Today `elastic` authenticates to Elasticsearch using either a static API key (`api_key`) or basic auth (`username` + `password`) stored in the config file. This document also describes planned support for OAuth2-based authentication via Elastic's **Unified Identity and Access Management (UIAM)** platform.
 
-> **Status**: This is a design document for future work. None of the flows below are implemented yet.
+> **Status**: Current releases support API key and basic auth from context config. The UIAM/OAuth2 flows below are design notes for future work and are not implemented yet. For current configuration examples, see [`docs/config.md`](config.md).
 
 ## Background: UIAM
 
@@ -184,7 +184,7 @@ contexts:
 
 ## Security considerations
 
-- **Credential storage** -- Tokens are stored in a dedicated credentials file with `0600` permissions. The config file itself continues to hold only non-secret configuration (except for `api_key`, which already exists there today).
+- **Credential storage** -- Tokens are stored in a dedicated credentials file with `0600` permissions. The config file itself continues to hold non-token settings, and currently stores static credentials (`api_key`, `username`, and `password`) for context-based auth.
 - **Client secrets** -- For the client-credentials flow, `client_secret` can be supplied via environment variable expansion (`${VAR}`) to avoid writing secrets to disk.
 - **PKCE** -- The authorization-code flow always uses PKCE (`S256`). A plain `code_challenge_method` is not supported.
 - **Token lifetimes** -- `elastic` respects the `expires_in` value from the token response and proactively refreshes tokens before they expire.
