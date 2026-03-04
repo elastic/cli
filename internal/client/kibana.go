@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/elastic/cli/internal/config"
+	"github.com/elastic/cli/internal/telemetry"
 )
 
 // KibanaClient is a minimal client for Kibana's HTTP APIs.
@@ -65,9 +66,7 @@ func NewKibanaFromContext(ctx config.Context) (*KibanaClient, error) {
 		baseURL:    strings.TrimRight(baseURL, "/"),
 		apiKey:     strings.TrimSpace(ctx.APIKey),
 		authHeader: authHeader,
-		http: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+		http:       telemetry.NewHTTPClient(30 * time.Second),
 	}, nil
 }
 

@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/elastic/cli/internal/telemetry"
 )
 
 const docsBaseURL = "https://www.elastic.co/docs"
@@ -65,7 +67,7 @@ func DocsSearch(ctx context.Context, query string, page, size int) (*DocsSearchR
 	req.Header.Set("Accept", "application/json")
 	req.AddCookie(&http.Cookie{Name: "feature_search_or_askai_enabled", Value: "true"})
 
-	hc := &http.Client{Timeout: 30 * time.Second}
+	hc := telemetry.NewHTTPClient(30 * time.Second)
 	resp, err := hc.Do(req)
 	if err != nil {
 		return nil, nil, fmt.Errorf("docs search request failed: %w", err)
@@ -109,7 +111,7 @@ func DocsRead(ctx context.Context, path string) ([]byte, error) {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
-	hc := &http.Client{Timeout: 30 * time.Second}
+	hc := telemetry.NewHTTPClient(30 * time.Second)
 	resp, err := hc.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("docs read request failed: %w", err)
@@ -165,7 +167,7 @@ func DocsAskStream(ctx context.Context, message string, conversationID string) (
 		req.Header.Set("Accept", "text/event-stream")
 		req.AddCookie(&http.Cookie{Name: "feature_search_or_askai_enabled", Value: "true"})
 
-		hc := &http.Client{Timeout: 5 * time.Minute}
+		hc := telemetry.NewHTTPClient(5 * time.Minute)
 		resp, err := hc.Do(req)
 		if err != nil {
 			errc <- fmt.Errorf("docs ask request failed: %w", err)

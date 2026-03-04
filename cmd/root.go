@@ -1,11 +1,15 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/elastic/cli/internal/config"
+	"github.com/elastic/cli/internal/telemetry"
 	"github.com/spf13/cobra"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 var (
@@ -46,12 +50,40 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 		_, err = config.EnsureInitialized(path)
-		return err
+		if err != nil {
+			return err
+		}
+		spanAttrs := []attribute.KeyValue{
+			attribute.String("command.path", cmd.CommandPath()),
+			attribute.String("output.format", strings.ToLower(strings.TrimSpace(rootFormat))),
+		}
+		if rootContext != "" {
+			spanAttrs = append(spanAttrs, attribute.String("context.name", rootContext))
+		}
+		cmd.SetContext(telemetry.StartCommandSpan(cmd.Context(), cmd.CommandPath(), spanAttrs...))
+		return nil
 	},
 }
 
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	baseCtx := telemetry.ExtractContextFromEnvironment(context.Background())
+	shutdown, err := telemetry.Init(baseCtx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Warning: OpenTelemetry disabled:", err)
+	}
+	if shutdown != nil {
+		defer func() {
+			if shutdownErr := shutdown(context.Background()); shutdownErr != nil {
+				fmt.Fprintln(os.Stderr, "Warning: OpenTelemetry shutdown failed:", shutdownErr)
+			}
+		}()
+	}
+	rootCmd.SetContext(baseCtx)
+	cmd, err := rootCmd.ExecuteC()
+	if cmd != nil {
+		telemetry.EndCommandSpan(cmd.Context(), err)
+	}
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
 	}

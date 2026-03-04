@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -54,7 +53,7 @@ same conversation in subsequent calls.`,
 			return err
 		}
 
-		raw, err := kb.Converse(context.Background(), abSpace, b)
+		raw, err := kb.Converse(cmd.Context(), abSpace, b)
 		if err != nil {
 			return err
 		}

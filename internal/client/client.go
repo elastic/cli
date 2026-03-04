@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/elastic/cli/internal/config"
+	"github.com/elastic/cli/internal/telemetry"
 )
 
 type Client struct {
@@ -125,9 +126,7 @@ func NewFromContext(ctx config.Context) (*Client, error) {
 	return &Client{
 		baseURL:    strings.TrimRight(baseURL, "/"),
 		authHeader: authHeader,
-		http: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+		http:       telemetry.NewHTTPClient(30 * time.Second),
 	}, nil
 }
 

@@ -38,7 +38,7 @@ var kbDashboardListCmd = &cobra.Command{
 		if len(args) > 0 {
 			search = args[0]
 		}
-		return runKbDashboardList(cmd.OutOrStdout(), search, dashboardListPage, dashboardListPerPage, rootFormat)
+		return runKbDashboardList(cmd.Context(), cmd.OutOrStdout(), search, dashboardListPage, dashboardListPerPage, rootFormat)
 	},
 }
 
@@ -48,7 +48,7 @@ var kbDashboardGetCmd = &cobra.Command{
 	Args:         cobra.ExactArgs(1),
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runKbDashboardGet(cmd.OutOrStdout(), args[0], rootFormat)
+		return runKbDashboardGet(cmd.Context(), cmd.OutOrStdout(), args[0], rootFormat)
 	},
 }
 
@@ -59,7 +59,7 @@ var kbDashboardDeleteCmd = &cobra.Command{
 	Args:         cobra.ExactArgs(1),
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runKbDashboardDelete(cmd.OutOrStdout(), args[0])
+		return runKbDashboardDelete(cmd.Context(), cmd.OutOrStdout(), args[0])
 	},
 }
 
@@ -79,7 +79,7 @@ Examples:
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runKbDashboardCreate(cmd.OutOrStdout(), dashboardCreateTitle, dashboardCreateData, rootFormat)
+		return runKbDashboardCreate(cmd.Context(), cmd.OutOrStdout(), dashboardCreateTitle, dashboardCreateData, rootFormat)
 	},
 }
 
@@ -125,13 +125,13 @@ func newKibanaClient() (*client.KibanaClient, error) {
 	return client.NewKibanaFromContext(ctxCfg)
 }
 
-func runKbDashboardList(out io.Writer, search string, page, perPage int, format string) error {
+func runKbDashboardList(ctx context.Context, out io.Writer, search string, page, perPage int, format string) error {
 	kb, err := newKibanaClient()
 	if err != nil {
 		return err
 	}
 
-	resp, err := kb.SearchDashboards(context.Background(), search, page, perPage)
+	resp, err := kb.SearchDashboards(ctx, search, page, perPage)
 	if err != nil {
 		return err
 	}
@@ -145,13 +145,13 @@ func runKbDashboardList(out io.Writer, search string, page, perPage int, format 
 	return output.RenderRows(out, fmtFormat, headers, rows, nil)
 }
 
-func runKbDashboardGet(out io.Writer, id string, format string) error {
+func runKbDashboardGet(ctx context.Context, out io.Writer, id string, format string) error {
 	kb, err := newKibanaClient()
 	if err != nil {
 		return err
 	}
 
-	dashboard, err := kb.GetDashboard(context.Background(), id)
+	dashboard, err := kb.GetDashboard(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -165,13 +165,13 @@ func runKbDashboardGet(out io.Writer, id string, format string) error {
 	return output.RenderRows(out, fmtFormat, headers, rows, nil)
 }
 
-func runKbDashboardDelete(out io.Writer, id string) error {
+func runKbDashboardDelete(ctx context.Context, out io.Writer, id string) error {
 	kb, err := newKibanaClient()
 	if err != nil {
 		return err
 	}
 
-	if err := kb.DeleteDashboard(context.Background(), id); err != nil {
+	if err := kb.DeleteDashboard(ctx, id); err != nil {
 		return err
 	}
 
@@ -179,7 +179,7 @@ func runKbDashboardDelete(out io.Writer, id string) error {
 	return nil
 }
 
-func runKbDashboardCreate(out io.Writer, title, data, format string) error {
+func runKbDashboardCreate(ctx context.Context, out io.Writer, title, data, format string) error {
 	var body map[string]any
 
 	if data != "" {
@@ -219,7 +219,7 @@ func runKbDashboardCreate(out io.Writer, title, data, format string) error {
 		return err
 	}
 
-	dashboard, err := kb.CreateDashboard(context.Background(), body)
+	dashboard, err := kb.CreateDashboard(ctx, body)
 	if err != nil {
 		return err
 	}

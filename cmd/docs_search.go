@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"encoding/csv"
 	"fmt"
 	"strings"
@@ -30,7 +29,7 @@ Examples:
 	Args:         cobra.ExactArgs(1),
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		resp, raw, err := client.DocsSearch(context.Background(), args[0], docsSearchPage, docsSearchSize)
+		resp, raw, err := client.DocsSearch(cmd.Context(), args[0], docsSearchPage, docsSearchSize)
 		if err != nil {
 			return err
 		}
