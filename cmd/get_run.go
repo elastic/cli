@@ -14,7 +14,7 @@ import (
 )
 
 // runGet is shared listing logic used by noun-first resource commands.
-func runGet(out io.Writer, resource string, patterns []string, format string) error {
+func runGet(ctx context.Context, out io.Writer, resource string, patterns []string, format string) error {
 	path, err := config.DefaultPath()
 	if err != nil {
 		return err
@@ -46,8 +46,6 @@ func runGet(out io.Writer, resource string, patterns []string, format string) er
 	if fmtFormat == output.FormatCSV && kind == "all" {
 		return fmt.Errorf("format %q requires a specific resource (indices or data-streams), or use -f table", fmtFormat)
 	}
-
-	ctx := context.Background()
 
 	if kind == "slos" {
 		kb, err := client.NewKibanaFromContext(ctxCfg)

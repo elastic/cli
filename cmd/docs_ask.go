@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bufio"
-	"context"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
@@ -77,19 +76,19 @@ Examples:
 type askPhase int
 
 const (
-	askPhaseThinking  askPhase = iota
+	askPhaseThinking askPhase = iota
 	askPhaseReceiving
 )
 
 type askModel struct {
-	spinner      spinner.Model
-	phase        askPhase
-	accumulated  *strings.Builder
-	renderer     *glamour.TermRenderer
-	events       <-chan client.SSEEvent
-	errc         <-chan error
-	streamErr    error
-	done         bool
+	spinner     spinner.Model
+	phase       askPhase
+	accumulated *strings.Builder
+	renderer    *glamour.TermRenderer
+	events      <-chan client.SSEEvent
+	errc        <-chan error
+	streamErr   error
+	done        bool
 	refsStarted bool
 }
 
@@ -283,7 +282,7 @@ func stripReferencesComment(s string) string {
 // --- orchestration ---
 
 func docsAskQuestion(cmd *cobra.Command, renderer *glamour.TermRenderer, question string, conversationID string) error {
-	ctx := context.Background()
+	ctx := cmd.Context()
 	events, errc := client.DocsAskStream(ctx, question, conversationID)
 
 	m := newAskModel(renderer, events, errc)

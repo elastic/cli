@@ -14,7 +14,7 @@ var slosListCmd = &cobra.Command{
 	Args:         cobra.ArbitraryArgs,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runGet(cmd.OutOrStdout(), "slos", args, rootFormat)
+		return runGet(cmd.Context(), cmd.OutOrStdout(), "slos", args, rootFormat)
 	},
 }
 
@@ -24,7 +24,7 @@ var slosListDefinitionsCmd = &cobra.Command{
 	Args:         cobra.ArbitraryArgs,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runGet(cmd.OutOrStdout(), "slo-definitions", args, rootFormat)
+		return runGet(cmd.Context(), cmd.OutOrStdout(), "slo-definitions", args, rootFormat)
 	},
 }
 

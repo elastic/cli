@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -53,7 +52,7 @@ var esQueryCmd = &cobra.Command{
 			return err
 		}
 
-		resp, raw, err := cl.ESQLQuery(context.Background(), query)
+		resp, raw, err := cl.ESQLQuery(cmd.Context(), query)
 		if err != nil {
 			return err
 		}

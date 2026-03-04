@@ -65,9 +65,7 @@ func NewKibanaFromContext(ctx config.Context) (*KibanaClient, error) {
 		baseURL:    strings.TrimRight(baseURL, "/"),
 		apiKey:     strings.TrimSpace(ctx.APIKey),
 		authHeader: authHeader,
-		http: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+		http:       newHTTPClient(30 * time.Second),
 	}, nil
 }
 

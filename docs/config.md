@@ -60,3 +60,8 @@ List contexts:
 ```bash
 elastic config context list
 ```
+
+## OpenTelemetry
+
+`elastic` emits OpenTelemetry spans for command execution and outgoing HTTP requests.
+Tracing uses standard OpenTelemetry environment configuration (for example `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_TRACES_EXPORTER`, and related `OTEL_*` variables), and will join an existing trace when `TRACEPARENT`/`TRACESTATE` (and optional `BAGGAGE`) are set in the environment.

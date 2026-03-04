@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -101,7 +100,7 @@ func newRawCmd(service string) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				resp, err = es.DoRaw(context.Background(), method, pathOnly, q, body, h)
+				resp, err = es.DoRaw(cmd.Context(), method, pathOnly, q, body, h)
 				if err != nil {
 					return err
 				}
@@ -110,7 +109,7 @@ func newRawCmd(service string) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				resp, err = kb.DoRaw(context.Background(), method, pathOnly, q, body, h)
+				resp, err = kb.DoRaw(cmd.Context(), method, pathOnly, q, body, h)
 				if err != nil {
 					return err
 				}

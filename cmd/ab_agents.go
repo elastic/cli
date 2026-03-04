@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -24,7 +23,7 @@ var abAgentsListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		raw, err := kb.ListAgents(context.Background(), abSpace)
+		raw, err := kb.ListAgents(cmd.Context(), abSpace)
 		if err != nil {
 			return err
 		}
@@ -42,7 +41,7 @@ var abAgentsGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		raw, err := kb.GetAgent(context.Background(), abSpace, args[0])
+		raw, err := kb.GetAgent(cmd.Context(), abSpace, args[0])
 		if err != nil {
 			return err
 		}
@@ -63,7 +62,7 @@ var abAgentsCreateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		raw, err := kb.CreateAgent(context.Background(), abSpace, body)
+		raw, err := kb.CreateAgent(cmd.Context(), abSpace, body)
 		if err != nil {
 			return err
 		}
@@ -85,7 +84,7 @@ var abAgentsUpdateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		raw, err := kb.UpdateAgent(context.Background(), abSpace, args[0], body)
+		raw, err := kb.UpdateAgent(cmd.Context(), abSpace, args[0], body)
 		if err != nil {
 			return err
 		}
@@ -104,7 +103,7 @@ var abAgentsDeleteCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		_, err = kb.DeleteAgent(context.Background(), abSpace, args[0])
+		_, err = kb.DeleteAgent(cmd.Context(), abSpace, args[0])
 		if err != nil {
 			return err
 		}
