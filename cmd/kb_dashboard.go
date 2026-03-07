@@ -83,12 +83,23 @@ Examples:
 	},
 }
 
+var kbDashboardSchemaCmd = &cobra.Command{
+	Use:          "schema",
+	Short:        "Get the dashboard create request schema",
+	Args:         cobra.NoArgs,
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runKbDashboardSchema(cmd.OutOrStdout(), rootFormat)
+	},
+}
+
 func init() {
 	kbCmd.AddCommand(kbDashboardCmd)
 	kbDashboardCmd.AddCommand(kbDashboardListCmd)
 	kbDashboardCmd.AddCommand(kbDashboardGetCmd)
 	kbDashboardCmd.AddCommand(kbDashboardDeleteCmd)
 	kbDashboardCmd.AddCommand(kbDashboardCreateCmd)
+	kbDashboardCmd.AddCommand(kbDashboardSchemaCmd)
 
 	kbDashboardListCmd.Flags().IntVar(&dashboardListPage, "page", 0, "Page number to return")
 	kbDashboardListCmd.Flags().IntVar(&dashboardListPerPage, "per-page", 0, "Number of dashboards per page")
@@ -231,4 +242,113 @@ func runKbDashboardCreate(out io.Writer, title, data, format string) error {
 
 	headers, rows := dashboardGetTable(dashboard)
 	return output.RenderRows(out, fmtFormat, headers, rows, nil)
+}
+
+func runKbDashboardSchema(out io.Writer, format string) error {
+	schema := dashboardCreateSchema()
+
+	fmtFormat := output.NormalizeFormat(format)
+	if fmtFormat == output.FormatJSON || fmtFormat == output.FormatYAML {
+		return output.RenderRows(out, fmtFormat, nil, nil, schema)
+	}
+
+	headers := []string{"field", "value"}
+	rows := [][]any{
+		{"schema_version", schema["x-elastic-cli-schema-version"]},
+		{"$id", schema["$id"]},
+		{"$schema", schema["$schema"]},
+		{"required_top_level", "data"},
+		{"note", "use -f json or -f yaml for the full schema"},
+	}
+	return output.RenderRows(out, fmtFormat, headers, rows, nil)
+}
+
+func dashboardCreateSchema() map[string]any {
+	return map[string]any{
+		"$id":      "https://github.com/elastic/cli/schemas/kibana/dashboard-create-v1.json",
+		"$schema":  "https://json-schema.org/draft/2020-12/schema",
+		"title":    "Kibana dashboard create request",
+		"type":     "object",
+		"required": []string{"data"},
+		"properties": map[string]any{
+			"id": map[string]any{
+				"type": "string",
+			},
+			"spaces": map[string]any{
+				"type": "array",
+				"items": map[string]any{
+					"type": "string",
+				},
+			},
+			"data": map[string]any{
+				"type":     "object",
+				"required": []string{"title", "query", "time_range", "refresh_interval"},
+				"properties": map[string]any{
+					"title": map[string]any{
+						"type": "string",
+					},
+					"description": map[string]any{
+						"type": "string",
+					},
+					"query": map[string]any{
+						"type": "object",
+						"required": []string{
+							"query",
+							"language",
+						},
+						"properties": map[string]any{
+							"query": map[string]any{
+								"type": "string",
+							},
+							"language": map[string]any{
+								"type": "string",
+								"enum": []string{
+									"kuery",
+									"lucene",
+									"esql",
+								},
+							},
+						},
+						"additionalProperties": true,
+					},
+					"time_range": map[string]any{
+						"type": "object",
+						"required": []string{
+							"from",
+							"to",
+						},
+						"properties": map[string]any{
+							"from": map[string]any{
+								"type": "string",
+							},
+							"to": map[string]any{
+								"type": "string",
+							},
+						},
+						"additionalProperties": true,
+					},
+					"refresh_interval": map[string]any{
+						"type": "object",
+						"required": []string{
+							"pause",
+							"value",
+						},
+						"properties": map[string]any{
+							"pause": map[string]any{
+								"type": "boolean",
+							},
+							"value": map[string]any{
+								"type": "integer",
+							},
+						},
+						"additionalProperties": true,
+					},
+				},
+				"additionalProperties": true,
+			},
+		},
+		"additionalProperties":           true,
+		"x-elastic-cli-schema-version":   1,
+		"x-elastic-cli-schema-stability": "experimental",
+	}
 }

@@ -105,6 +105,7 @@ By default, columns where every value is null are omitted. To include them:
 ./elastic kb dashboard list "APM"
 ./elastic kb dashboard get <id>
 ./elastic kb dashboard create --title "My Dashboard"
+./elastic kb dashboard schema -f json
 ./elastic kb dashboard delete <id>
 ```
 

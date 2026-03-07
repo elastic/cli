@@ -22,7 +22,7 @@ elastic kb task-manager health -f json
 
 ## dashboard
 
-The `elastic kb dashboard` command group lets you list, get, create, and delete Kibana dashboards.
+The `elastic kb dashboard` command group lets you list, get, create, delete, and inspect the create schema for Kibana dashboards.
 
 ### list
 
@@ -131,6 +131,28 @@ cat body.json | elastic kb dashboard create --data=-
 
 # Output the created dashboard as JSON
 elastic kb dashboard create --title "My Dashboard" -f json
+```
+
+---
+
+### schema
+
+Get the JSON schema for the dashboard create request body accepted by `--data`.
+
+```bash
+elastic kb dashboard schema
+```
+
+Use `-f json` or `-f yaml` for the full machine-readable schema.
+
+#### Examples
+
+```bash
+# Full schema as JSON
+elastic kb dashboard schema -f json
+
+# Full schema as YAML
+elastic kb dashboard schema -f yaml
 ```
 
 ---
