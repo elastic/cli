@@ -1,17 +1,24 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/elastic/cli/internal/config"
+	"github.com/elastic/cli/internal/telemetry"
 	"github.com/spf13/cobra"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var (
 	rootContext string
 	rootFormat  string
 	rootOutput  string
+	rootSpan    trace.Span
 )
 
 const rootBanner = "" +
@@ -41,6 +48,16 @@ var rootCmd = &cobra.Command{
 			return nil
 		}
 
+		spanCtx, span := telemetry.StartCommandSpan(
+			telemetry.ExtractContextFromEnv(cmd.Context()),
+			cmd.CommandPath(),
+			rootContext,
+			rootFormat,
+			args,
+		)
+		rootSpan = span
+		cmd.SetContext(spanCtx)
+
 		path, err := config.DefaultPath()
 		if err != nil {
 			return err
@@ -51,7 +68,33 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
+	var otelYAML []byte
+	if path, err := config.DefaultPath(); err == nil {
+		if cfg, err := config.Load(path); err == nil {
+			otelYAML, _ = cfg.OTelYAML()
+		}
+	}
+
+	shutdown, err := telemetry.Init(context.Background(), otelYAML)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Warning: failed to init telemetry:", err)
+	}
+	defer func() {
+		if rootSpan != nil {
+			rootSpan.End()
+		}
+		if shutdown != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+			_ = shutdown(ctx)
+		}
+	}()
+
 	if err := rootCmd.Execute(); err != nil {
+		if rootSpan != nil {
+			rootSpan.RecordError(err)
+			rootSpan.SetStatus(codes.Error, strings.TrimSpace(err.Error()))
+		}
 		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
 	}

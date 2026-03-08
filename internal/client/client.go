@@ -132,9 +132,7 @@ func NewFromContext(ctx config.Context) (*Client, error) {
 	return &Client{
 		baseURL:    strings.TrimRight(baseURL, "/"),
 		authHeader: authHeader,
-		http: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+		http:       newHTTPClient(30 * time.Second),
 	}, nil
 }
 

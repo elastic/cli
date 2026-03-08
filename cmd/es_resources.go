@@ -15,7 +15,7 @@ var esIndicesListCmd = &cobra.Command{
 	Args:         cobra.ArbitraryArgs,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runGet(cmd.OutOrStdout(), "indices", args, rootFormat)
+		return runGet(cmd.Context(), cmd.OutOrStdout(), "indices", args, rootFormat)
 	},
 }
 
@@ -32,7 +32,7 @@ var esDataStreamsListCmd = &cobra.Command{
 	Args:         cobra.ArbitraryArgs,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runGet(cmd.OutOrStdout(), "data-streams", args, rootFormat)
+		return runGet(cmd.Context(), cmd.OutOrStdout(), "data-streams", args, rootFormat)
 	},
 }
 
@@ -49,7 +49,7 @@ var esRemoteClustersListCmd = &cobra.Command{
 	Args:         cobra.ArbitraryArgs,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runGet(cmd.OutOrStdout(), "remote-clusters", args, rootFormat)
+		return runGet(cmd.Context(), cmd.OutOrStdout(), "remote-clusters", args, rootFormat)
 	},
 }
 
@@ -64,7 +64,7 @@ var esClusterHealthCmd = &cobra.Command{
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runGet(cmd.OutOrStdout(), "cluster-health", args, rootFormat)
+		return runGet(cmd.Context(), cmd.OutOrStdout(), "cluster-health", args, rootFormat)
 	},
 }
 

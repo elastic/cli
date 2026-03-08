@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
@@ -25,7 +24,7 @@ var abToolsListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		raw, err := kb.ListTools(context.Background(), abSpace)
+		raw, err := kb.ListTools(cmd.Context(), abSpace)
 		if err != nil {
 			return err
 		}
@@ -43,7 +42,7 @@ var abToolsGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		raw, err := kb.GetTool(context.Background(), abSpace, args[0])
+		raw, err := kb.GetTool(cmd.Context(), abSpace, args[0])
 		if err != nil {
 			return err
 		}
@@ -64,7 +63,7 @@ var abToolsCreateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		raw, err := kb.CreateTool(context.Background(), abSpace, body)
+		raw, err := kb.CreateTool(cmd.Context(), abSpace, body)
 		if err != nil {
 			return err
 		}
@@ -86,7 +85,7 @@ var abToolsUpdateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		raw, err := kb.UpdateTool(context.Background(), abSpace, args[0], body)
+		raw, err := kb.UpdateTool(cmd.Context(), abSpace, args[0], body)
 		if err != nil {
 			return err
 		}
@@ -105,7 +104,7 @@ var abToolsDeleteCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		_, err = kb.DeleteTool(context.Background(), abSpace, args[0])
+		_, err = kb.DeleteTool(cmd.Context(), abSpace, args[0])
 		if err != nil {
 			return err
 		}
@@ -150,7 +149,7 @@ var abToolsRunCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		raw, err := kb.ExecuteTool(context.Background(), abSpace, b)
+		raw, err := kb.ExecuteTool(cmd.Context(), abSpace, b)
 		if err != nil {
 			return err
 		}

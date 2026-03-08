@@ -24,7 +24,7 @@ var kbTaskManagerHealthCmd = &cobra.Command{
 	Args:         cobra.NoArgs,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runKbTaskManagerHealth(cmd.OutOrStdout(), rootFormat)
+		return runKbTaskManagerHealth(cmd.Context(), cmd.OutOrStdout(), rootFormat)
 	},
 }
 
@@ -33,7 +33,7 @@ func init() {
 	kbTaskManagerCmd.AddCommand(kbTaskManagerHealthCmd)
 }
 
-func runKbTaskManagerHealth(out io.Writer, format string) error {
+func runKbTaskManagerHealth(ctx context.Context, out io.Writer, format string) error {
 	path, err := config.DefaultPath()
 	if err != nil {
 		return err
@@ -61,7 +61,7 @@ func runKbTaskManagerHealth(out io.Writer, format string) error {
 		return err
 	}
 
-	health, err := kb.TaskManagerHealth(context.Background())
+	health, err := kb.TaskManagerHealth(ctx)
 	if err != nil {
 		return err
 	}

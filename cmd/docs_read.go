@@ -37,12 +37,12 @@ Examples:
 			return fmt.Errorf("path, URL, or query is required")
 		}
 
-		path, err := resolveDocsPath(input)
+		path, err := resolveDocsPath(cmd.Context(), input)
 		if err != nil {
 			return err
 		}
 
-		md, err := client.DocsRead(context.Background(), path)
+		md, err := client.DocsRead(cmd.Context(), path)
 		if err != nil {
 			return err
 		}
@@ -71,7 +71,7 @@ Examples:
 
 // resolveDocsPath turns user input into a docs path suitable for DocsRead.
 // Accepts: a /path, a full elastic.co URL, or a free-text search query.
-func resolveDocsPath(input string) (string, error) {
+func resolveDocsPath(ctx context.Context, input string) (string, error) {
 	if strings.HasPrefix(input, "https://www.elastic.co/docs") {
 		return strings.TrimPrefix(input, "https://www.elastic.co"), nil
 	}
@@ -83,7 +83,7 @@ func resolveDocsPath(input string) (string, error) {
 		return input, nil
 	}
 
-	resp, _, err := client.DocsSearch(context.Background(), input, 1, 1)
+	resp, _, err := client.DocsSearch(ctx, input, 1, 1)
 	if err != nil {
 		return "", fmt.Errorf("search for %q: %w", input, err)
 	}

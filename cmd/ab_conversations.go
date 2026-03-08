@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -23,7 +22,7 @@ var abConversationsListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		raw, err := kb.ListConversations(context.Background(), abSpace)
+		raw, err := kb.ListConversations(cmd.Context(), abSpace)
 		if err != nil {
 			return err
 		}
@@ -41,7 +40,7 @@ var abConversationsGetCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		raw, err := kb.GetConversation(context.Background(), abSpace, args[0])
+		raw, err := kb.GetConversation(cmd.Context(), abSpace, args[0])
 		if err != nil {
 			return err
 		}
@@ -60,7 +59,7 @@ var abConversationsDeleteCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		_, err = kb.DeleteConversation(context.Background(), abSpace, args[0])
+		_, err = kb.DeleteConversation(cmd.Context(), abSpace, args[0])
 		if err != nil {
 			return err
 		}

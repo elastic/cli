@@ -60,3 +60,41 @@ List contexts:
 ```bash
 elastic config context list
 ```
+
+## OpenTelemetry
+
+`elastic` can emit OpenTelemetry spans for command execution and outgoing HTTP requests. Telemetry is **opt-in** and configured via the top-level `otel` key in `config.yaml`, using the [OpenTelemetry declarative configuration](https://opentelemetry.io/docs/specs/otel/configuration/) schema (powered by [`otelconf`](https://pkg.go.dev/go.opentelemetry.io/contrib/otelconf)).
+
+When the `otel` key is absent, no telemetry SDK is initialised and no spans are exported.
+
+### Example
+
+```yaml
+current-context: prod
+contexts:
+  prod:
+    cloud_id: "..."
+    api_key: "..."
+otel:
+  file_format: "0.3"
+  propagator:
+    composite:
+      - tracecontext: {}
+      - baggage: {}
+  tracer_provider:
+    processors:
+      - batch:
+          exporter:
+            otlp_http:
+              endpoint: http://localhost:4318
+  resource:
+    attributes:
+      - name: service.name
+        value: elastic-cli
+```
+
+By default, `elastic` sets the `service.name` resource attribute to `elastic-cli`. To override it, add your own `service.name` entry under `resource.attributes` in the `otel` block.
+
+The `otel` block supports `${ENV_VAR}` substitution, so you can use environment variables for dynamic values (e.g. `endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}`).
+
+`elastic` will also join an existing trace when `TRACEPARENT`/`TRACESTATE` (and optional `BAGGAGE`) are set in the environment.

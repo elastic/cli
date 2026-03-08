@@ -70,7 +70,7 @@ var esQueryCmd = &cobra.Command{
 			return err
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), esqlTimeout)
+		ctx, cancel := context.WithTimeout(cmd.Context(), esqlTimeout)
 		defer cancel()
 		resp, raw, err := runESQLQueryWithWait(
 			ctx,

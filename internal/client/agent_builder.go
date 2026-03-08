@@ -110,7 +110,7 @@ func (c *KibanaClient) doMutate(ctx context.Context, method, p string, body []by
 
 // doMutateLong is like doMutate but uses a 5-minute timeout suitable for LLM calls.
 func (c *KibanaClient) doMutateLong(ctx context.Context, method, p string, body []byte) ([]byte, error) {
-	hc := &http.Client{Timeout: 5 * time.Minute}
+	hc := newHTTPClient(5 * time.Minute)
 	return c.doMutateWith(ctx, hc, method, p, body)
 }
 

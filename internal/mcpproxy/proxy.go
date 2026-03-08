@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/elastic/cli/internal/telemetry"
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -28,8 +29,8 @@ type Proxy struct {
 	Stdout io.Writer
 	Stderr io.Writer
 
-	mu             sync.Mutex
-	initializeID   any
+	mu              sync.Mutex
+	initializeID    any
 	protocolVersion string
 
 	sseOnce sync.Once
@@ -359,8 +360,8 @@ func readSSE(r io.Reader, yield func(sseEvent) bool) (retryAfter time.Duration, 
 }
 
 type headerRoundTripper struct {
-	base           http.RoundTripper
-	apiKey         string
+	base            http.RoundTripper
+	apiKey          string
 	protocolVersion func() string
 }
 
@@ -386,7 +387,7 @@ func (rt headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 func (p *Proxy) httpClient() *http.Client {
 	// Important: don't set Client.Timeout for streamable HTTP/SSE.
 	return &http.Client{
-		Transport: headerRoundTripper{
+		Transport: telemetry.NewTransport(headerRoundTripper{
 			base:   http.DefaultTransport,
 			apiKey: p.APIKey,
 			protocolVersion: func() string {
@@ -394,7 +395,7 @@ func (p *Proxy) httpClient() *http.Client {
 				defer p.mu.Unlock()
 				return p.protocolVersion
 			},
-		},
+		}),
 	}
 }
 
