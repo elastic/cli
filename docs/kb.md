@@ -22,7 +22,7 @@ elastic kb task-manager health -f json
 
 ## dashboard
 
-The `elastic kb dashboard` command group lets you list, get, create, delete, and inspect the create schema for Kibana dashboards.
+The `elastic kb dashboard` command group lets you list, get, create, delete, and inspect the schema for Kibana dashboards.
 
 ### list
 
