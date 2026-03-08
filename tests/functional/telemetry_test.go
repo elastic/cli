@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
+	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"google.golang.org/protobuf/proto"
 )
@@ -28,6 +29,7 @@ func TestOTelSpansForCLICommand(t *testing.T) {
 	// Start a fake OTLP HTTP server that collects exported spans.
 	var mu sync.Mutex
 	var collectedSpans []*tracepb.Span
+	var collectedResourceAttrs []*commonpb.KeyValue
 
 	otlpSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/traces" {
@@ -46,6 +48,9 @@ func TestOTelSpansForCLICommand(t *testing.T) {
 		}
 		mu.Lock()
 		for _, rs := range req.GetResourceSpans() {
+			if res := rs.GetResource(); res != nil {
+				collectedResourceAttrs = append(collectedResourceAttrs, res.GetAttributes()...)
+			}
 			for _, ss := range rs.GetScopeSpans() {
 				collectedSpans = append(collectedSpans, ss.GetSpans()...)
 			}
@@ -84,10 +89,25 @@ func TestOTelSpansForCLICommand(t *testing.T) {
 	if err := os.MkdirAll(configDir, 0o700); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	configContent := fmt.Sprintf(
-		"current-context: test\ncontexts:\n  test:\n    elasticsearch_url: %q\n    username: elastic\n    password: elastic\n",
-		esSrv.URL,
-	)
+	configContent := fmt.Sprintf(`current-context: test
+contexts:
+  test:
+    elasticsearch_url: %q
+    username: elastic
+    password: elastic
+otel:
+  file_format: "0.3"
+  propagator:
+    composite:
+      - tracecontext: {}
+      - baggage: {}
+  tracer_provider:
+    processors:
+      - batch:
+          exporter:
+            otlp_http:
+              endpoint: %q
+`, esSrv.URL, otlpSrv.URL)
 	if err := os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(configContent), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
@@ -102,7 +122,6 @@ func TestOTelSpansForCLICommand(t *testing.T) {
 	repoRoot := filepath.Clean(filepath.Join(wd, "..", ".."))
 	env := []string{
 		"XDG_CONFIG_HOME=" + filepath.Join(tempHome, ".config"),
-		"OTEL_EXPORTER_OTLP_ENDPOINT=" + otlpSrv.URL,
 		"TRACEPARENT=00-" + parentTraceID + "-00f067aa0ba902b7-01",
 	}
 	runElastic(t, repoRoot, env, "es", "cluster", "health", "-f", "json")
@@ -135,5 +154,18 @@ func TestOTelSpansForCLICommand(t *testing.T) {
 	// Verify the CLI propagated trace context to the Elasticsearch endpoint.
 	if esTraceparent == "" {
 		t.Error("Elasticsearch request did not carry a traceparent header")
+	}
+
+	// Verify the default service.name resource attribute is present even
+	// though the config does not explicitly set one.
+	var gotServiceName string
+	for _, attr := range collectedResourceAttrs {
+		if attr.GetKey() == "service.name" {
+			gotServiceName = attr.GetValue().GetStringValue()
+			break
+		}
+	}
+	if gotServiceName != "elastic-cli" {
+		t.Errorf("resource service.name = %q, want %q", gotServiceName, "elastic-cli")
 	}
 }

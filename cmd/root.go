@@ -68,10 +68,16 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-	shutdown, err := telemetry.Init(context.Background())
+	var otelYAML []byte
+	if path, err := config.DefaultPath(); err == nil {
+		if cfg, err := config.Load(path); err == nil {
+			otelYAML, _ = cfg.OTelYAML()
+		}
+	}
+
+	shutdown, err := telemetry.Init(context.Background(), otelYAML)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err)
-		os.Exit(1)
+		fmt.Fprintln(os.Stderr, "Warning: failed to init telemetry:", err)
 	}
 	defer func() {
 		if rootSpan != nil {

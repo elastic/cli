@@ -31,6 +31,14 @@ type Context struct {
 type Config struct {
 	CurrentContext string             `yaml:"current-context,omitempty"`
 	Contexts       map[string]Context `yaml:"contexts,omitempty"`
+	otelRaw        []byte
+}
+
+// OTelYAML returns the raw YAML bytes for the otel config section,
+// suitable for passing to otelconf.ParseYAML. Returns nil if no otel
+// config is present.
+func (c Config) OTelYAML() ([]byte, error) {
+	return c.otelRaw, nil
 }
 
 func DefaultPath() (string, error) {
@@ -50,14 +58,11 @@ func Load(path string) (Config, error) {
 		return Config{}, fmt.Errorf("read config: %w", err)
 	}
 
-	var cfg Config
-	if err := yaml.Unmarshal(b, &cfg); err != nil {
-		// Backward-compat: older initial templates included an empty config stub at the end
-		// (current-context + contexts). If a user later added a real config above it,
-		// YAML has duplicate keys and fails to parse. Try stripping that stub.
+	cfg, err := unmarshalConfig(b)
+	if err != nil {
 		if repaired := tryRepairTemplateStub(b); repaired != nil {
-			var cfg2 Config
-			if err2 := yaml.Unmarshal(repaired, &cfg2); err2 == nil {
+			cfg2, err2 := unmarshalConfig(repaired)
+			if err2 == nil {
 				cfg = cfg2
 			} else {
 				return Config{}, fmt.Errorf("parse yaml: %w", err)
@@ -70,6 +75,42 @@ func Load(path string) (Config, error) {
 		cfg.Contexts = map[string]Context{}
 	}
 	return cfg, nil
+}
+
+func unmarshalConfig(b []byte) (Config, error) {
+	var cfg Config
+	if err := yaml.Unmarshal(b, &cfg); err != nil {
+		return Config{}, err
+	}
+	cfg.otelRaw = extractOTelYAML(b)
+	return cfg, nil
+}
+
+// extractOTelYAML parses the raw config bytes as a YAML document tree,
+// finds the "otel" mapping key, and marshals its value back to standalone
+// YAML suitable for otelconf.ParseYAML.
+func extractOTelYAML(b []byte) []byte {
+	var doc yaml.Node
+	if err := yaml.Unmarshal(b, &doc); err != nil {
+		return nil
+	}
+	if doc.Kind != yaml.DocumentNode || len(doc.Content) == 0 {
+		return nil
+	}
+	root := doc.Content[0]
+	if root.Kind != yaml.MappingNode {
+		return nil
+	}
+	for i := 0; i+1 < len(root.Content); i += 2 {
+		if root.Content[i].Value == "otel" {
+			out, err := yaml.Marshal(root.Content[i+1])
+			if err != nil {
+				return nil
+			}
+			return out
+		}
+	}
+	return nil
 }
 
 func Save(path string, cfg Config) error {
@@ -162,6 +203,16 @@ func defaultConfigTemplate() string {
 		"#     api_key: \"encoded-api-key\"              # or set username/password instead",
 		"#     username: \"elastic\"",
 		"#     password: \"...\"",
+		"#",
+		"# OpenTelemetry (opt-in):",
+		"# otel:",
+		"#   file_format: \"0.3\"",
+		"#   tracer_provider:",
+		"#     processors:",
+		"#       - batch:",
+		"#           exporter:",
+		"#             otlp_http:",
+		"#               endpoint: http://localhost:4318",
 		"#",
 		"",
 	}

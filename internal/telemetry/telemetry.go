@@ -2,43 +2,67 @@ package telemetry
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/contrib/otelconf"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/resource"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 )
 
-func Init(ctx context.Context) (func(context.Context) error, error) {
-	exporter, err := otlptracehttp.New(ctx)
-	if err != nil {
-		return nil, err
+const defaultServiceName = "elastic-cli"
+
+// Init initialises the OpenTelemetry SDK from the raw YAML bytes of the
+// "otel" section of the CLI config file. When otelYAML is nil (no config
+// present), telemetry is a no-op.
+func Init(ctx context.Context, otelYAML []byte) (func(context.Context) error, error) {
+	noop := func(context.Context) error { return nil }
+
+	if len(otelYAML) == 0 {
+		return noop, nil
 	}
-	res, err := resource.New(ctx,
-		resource.WithFromEnv(),
-		resource.WithTelemetrySDK(),
-		resource.WithAttributes(attribute.String("service.name", "elastic-cli")),
+
+	cfg, err := otelconf.ParseYAML(otelYAML)
+	if err != nil {
+		return noop, fmt.Errorf("parse otel config: %w", err)
+	}
+
+	ensureDefaultServiceName(cfg)
+
+	sdk, err := otelconf.NewSDK(
+		otelconf.WithContext(ctx),
+		otelconf.WithOpenTelemetryConfiguration(*cfg),
 	)
 	if err != nil {
-		return nil, err
+		return noop, fmt.Errorf("init otel SDK: %w", err)
 	}
-	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithResource(res),
-		sdktrace.WithBatcher(exporter),
-	)
-	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
-		propagation.TraceContext{},
-		propagation.Baggage{},
-	))
-	return tp.Shutdown, nil
+
+	otel.SetTracerProvider(sdk.TracerProvider())
+	otel.SetTextMapPropagator(sdk.Propagator())
+
+	return sdk.Shutdown, nil
+}
+
+// ensureDefaultServiceName sets service.name to the default unless the
+// user already configured one.
+func ensureDefaultServiceName(cfg *otelconf.OpenTelemetryConfiguration) {
+	if cfg.Resource == nil {
+		cfg.Resource = &otelconf.Resource{}
+	}
+	for _, attr := range cfg.Resource.Attributes {
+		if attr.Name == "service.name" {
+			return
+		}
+	}
+	cfg.Resource.Attributes = append(cfg.Resource.Attributes, otelconf.AttributeNameValue{
+		Name:  "service.name",
+		Value: defaultServiceName,
+	})
 }
 
 func ExtractContextFromEnv(ctx context.Context) context.Context {
