@@ -153,12 +153,16 @@ go test -tags functional ./tests/functional -v
 
 ## Agentic scenario tests
 
-Agentic scenario tests are opt-in and run under the `agentic` build tag:
+Agentic scenario tests are opt-in (gated by `ELASTIC_AGENTIC_TESTS=1`).
+They use the [GitHub Copilot SDK](https://github.com/github/copilot-sdk) to
+drive an agentic session against the local stack:
 
 ```bash
 ELASTIC_AGENTIC_TESTS=1 \
-ELASTIC_AGENTIC_COPILOT_CMD='copilot exec --prompt-file "$ELASTIC_AGENTIC_PROMPT_FILE"' \
-go test -tags agentic ./tests/agentic -v
+go test ./tests/agentic -v
 ```
+
+The tests require `copilot` in `PATH`. To use a different CLI path, set
+`ELASTIC_AGENTIC_COPILOT_CLI`.
 
 Scenarios live in `tests/agentic/scenarios/`, and harness code lives in `tests/agentic/harness/`.

@@ -1,23 +1,28 @@
-//go:build agentic
-
 package agentic_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/elastic/cli/tests/agentic/harness"
 )
 
-func TestCopilotScenarioDashboardCreate(t *testing.T) {
+func TestCopilotScenarios(t *testing.T) {
 	if os.Getenv("ELASTIC_AGENTIC_TESTS") != "1" {
 		t.Skip("set ELASTIC_AGENTIC_TESTS=1 to enable agentic scenario tests")
+	}
+	copilotCLI := os.Getenv("ELASTIC_AGENTIC_COPILOT_CLI")
+	if copilotCLI == "" {
+		copilotCLI = "copilot"
+	}
+	if _, err := exec.LookPath(copilotCLI); err != nil {
+		t.Skipf("copilot CLI %q not in PATH", copilotCLI)
 	}
 	if _, err := exec.LookPath("docker"); err != nil {
 		t.Skip("docker not available")
@@ -47,25 +52,47 @@ func TestCopilotScenarioDashboardCreate(t *testing.T) {
 		_ = cmd.Run()
 	})
 
+	// Build the elastic CLI binary so Copilot (and verify steps) use it
+	// directly instead of "go run", which would require source access.
+	binDir := t.TempDir()
+	elasticBin := filepath.Join(binDir, "elastic-bin")
+	buildCmd := exec.Command("go", "build", "-o", elasticBin, "./cmd/elastic")
+	buildCmd.Dir = repoRoot
+	buildCmd.Env = os.Environ()
+	if out, err := buildCmd.CombinedOutput(); err != nil {
+		t.Fatalf("go build elastic: %v\n%s", err, string(out))
+	}
+
+	// Write a wrapper script that sets XDG_CONFIG_HOME before exec'ing the
+	// real binary. This keeps the config override scoped to the elastic CLI
+	// so the Copilot CLI's own config/auth is unaffected.
 	tempHome := t.TempDir()
-	env := []string{"XDG_CONFIG_HOME=" + filepath.Join(tempHome, ".config")}
-	runElastic(t, repoRoot, env, "config", "context", "set", "local",
+	xdgConfigHome := filepath.Join(tempHome, ".config")
+	wrapper := filepath.Join(binDir, "elastic")
+	script := fmt.Sprintf("#!/bin/sh\nexport XDG_CONFIG_HOME=%q\nexec %q \"$@\"\n", xdgConfigHome, elasticBin)
+	if err := os.WriteFile(wrapper, []byte(script), 0o755); err != nil {
+		t.Fatalf("write elastic wrapper: %v", err)
+	}
+
+	env := []string{"XDG_CONFIG_HOME=" + xdgConfigHome}
+	runElastic(t, elasticBin, env, "config", "context", "set", "local",
 		"--elasticsearch-url", "http://localhost:9200",
 		"--kibana-url", "http://localhost:5601",
 		"--username", "elastic",
 		"--password", elasticPassword,
 	)
-	waitForElasticCommand(t, repoRoot, env, 3*time.Minute, "es", "cluster", "health", "-f", "json")
-	waitForElasticCommand(t, repoRoot, env, 3*time.Minute, "kb", "raw", "/api/status", "-f", "json")
+	waitForElasticCommand(t, elasticBin, env, 3*time.Minute, "es", "cluster", "health", "-f", "json")
+	waitForElasticCommand(t, elasticBin, env, 3*time.Minute, "kb", "raw", "/api/status", "-f", "json")
 
-	scenarioPath := filepath.Join(repoRoot, "tests", "agentic", "scenarios", "dashboard-create.md")
-	scenario, err := harness.LoadScenario(scenarioPath)
+	scenarioDir := filepath.Join(repoRoot, "tests", "agentic", "scenarios")
+	scenarioFiles, err := filepath.Glob(filepath.Join(scenarioDir, "*.md"))
 	if err != nil {
-		t.Fatalf("load scenario: %v", err)
+		t.Fatalf("glob scenarios: %v", err)
+	}
+	if len(scenarioFiles) == 0 {
+		t.Fatal("no scenario files found in tests/agentic/scenarios/")
 	}
 
-	dashboardTitle := fmt.Sprintf("agentic-dashboard-%d", time.Now().UnixNano())
-	prompt := harness.RenderPrompt(scenario, dashboardTitle)
 	artifactDir := os.Getenv("ELASTIC_AGENTIC_ARTIFACTS_DIR")
 	if artifactDir == "" {
 		artifactDir = t.TempDir()
@@ -73,65 +100,56 @@ func TestCopilotScenarioDashboardCreate(t *testing.T) {
 	if err := os.MkdirAll(artifactDir, 0o700); err != nil {
 		t.Fatalf("mkdir artifacts: %v", err)
 	}
-	promptPath := filepath.Join(artifactDir, "prompt.md")
-	transcriptPath := filepath.Join(artifactDir, "copilot-transcript.txt")
-	if err := os.WriteFile(promptPath, []byte(prompt), 0o600); err != nil {
-		t.Fatalf("write prompt: %v", err)
-	}
 
-	copilotCommand := os.Getenv("ELASTIC_AGENTIC_COPILOT_CMD")
-	if copilotCommand == "" {
-		t.Skip("set ELASTIC_AGENTIC_COPILOT_CMD to a Copilot CLI command that consumes ELASTIC_AGENTIC_PROMPT_FILE")
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-	defer cancel()
-	if err := harness.RunCopilot(ctx, repoRoot, copilotCommand, promptPath, transcriptPath); err != nil {
-		t.Fatalf("run copilot harness: %v", err)
-	}
+	// Copilot runs in an isolated sandbox directory with only the elastic
+	// binary on PATH, preventing access to the repository source code.
+	sandboxDir := t.TempDir()
+	sandboxEnv := append(os.Environ(), "PATH="+binDir+string(filepath.ListSeparator)+os.Getenv("PATH"))
+	for _, scenarioPath := range scenarioFiles {
+		name := strings.TrimSuffix(filepath.Base(scenarioPath), ".md")
+		t.Run(name, func(t *testing.T) {
+			copilotOpts := &harness.CopilotOptions{
+				CLIPath:    copilotCLI,
+				WorkingDir: sandboxDir,
+				Env:        sandboxEnv,
+				EventLog: func(msg string) {
+					fmt.Fprintln(t.Output(), msg)
+				},
+			}
+			scenario, err := harness.LoadScenario(scenarioPath)
+			if err != nil {
+				t.Fatalf("load scenario: %v", err)
+			}
 
-	listOut := runElastic(t, repoRoot, env, "kb", "dashboard", "list", dashboardTitle, "-f", "json")
-	var list map[string]any
-	if err := json.Unmarshal([]byte(listOut), &list); err != nil {
-		t.Fatalf("parse dashboard list JSON output: %v\noutput: %s", err, listOut)
-	}
-	dashboards, _ := list["dashboards"].([]any)
-	if len(dashboards) == 0 {
-		t.Fatalf("no dashboards found for title %q", dashboardTitle)
-	}
-	var dashboardID string
-	for _, entry := range dashboards {
-		m, ok := entry.(map[string]any)
-		if !ok {
-			continue
-		}
-		title, _ := m["title"].(string)
-		if title != dashboardTitle {
-			continue
-		}
-		dashboardID, _ = m["id"].(string)
-		if dashboardID != "" {
-			break
-		}
-	}
-	if dashboardID == "" {
-		t.Fatalf("dashboard with exact title %q and non-empty id not found", dashboardTitle)
-	}
+			uniqueID := fmt.Sprintf("agentic-%s-%d", name, time.Now().UnixNano())
+			vars := map[string]string{"unique_id": uniqueID}
 
-	getOut := runElastic(t, repoRoot, env, "kb", "dashboard", "get", dashboardID, "-f", "json")
-	var dashboard map[string]any
-	if err := json.Unmarshal([]byte(getOut), &dashboard); err != nil {
-		t.Fatalf("parse dashboard get JSON output: %v\noutput: %s", err, getOut)
-	}
-	title, _ := dashboard["title"].(string)
-	if title != dashboardTitle {
-		t.Fatalf("dashboard title = %q, want %q", title, dashboardTitle)
+			prompt := harness.RenderPrompt(scenario, vars)
+			promptPath := filepath.Join(artifactDir, name+"-prompt.md")
+			transcriptPath := filepath.Join(artifactDir, name+"-transcript.json")
+			if err := os.WriteFile(promptPath, []byte(prompt), 0o600); err != nil {
+				t.Fatalf("write prompt: %v", err)
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			defer cancel()
+			if err := harness.RunCopilot(ctx, prompt, transcriptPath, copilotOpts); err != nil {
+				t.Fatalf("run copilot: %v", err)
+			}
+
+			steps := harness.RenderVerifySteps(scenario, vars)
+			if len(steps) == 0 {
+				t.Log("no verify steps defined; skipping verification")
+				return
+			}
+			harness.RunVerifySteps(t, elasticBin, env, steps)
+		})
 	}
 }
 
-func runElastic(t *testing.T, repoRoot string, env []string, args ...string) string {
+func runElastic(t *testing.T, elasticBin string, env []string, args ...string) string {
 	t.Helper()
-	cmd := exec.Command("go", append([]string{"run", "./cmd/elastic"}, args...)...)
-	cmd.Dir = repoRoot
+	cmd := exec.Command(elasticBin, args...)
 	cmd.Env = append(os.Environ(), env...)
 	b, err := cmd.CombinedOutput()
 	if err != nil {
@@ -140,20 +158,19 @@ func runElastic(t *testing.T, repoRoot string, env []string, args ...string) str
 	return string(b)
 }
 
-func runElasticMaybe(repoRoot string, env []string, args ...string) (string, error) {
-	cmd := exec.Command("go", append([]string{"run", "./cmd/elastic"}, args...)...)
-	cmd.Dir = repoRoot
+func runElasticMaybe(elasticBin string, env []string, args ...string) (string, error) {
+	cmd := exec.Command(elasticBin, args...)
 	cmd.Env = append(os.Environ(), env...)
 	b, err := cmd.CombinedOutput()
 	return string(b), err
 }
 
-func waitForElasticCommand(t *testing.T, repoRoot string, env []string, timeout time.Duration, args ...string) string {
+func waitForElasticCommand(t *testing.T, elasticBin string, env []string, timeout time.Duration, args ...string) string {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	for {
-		out, err := runElasticMaybe(repoRoot, env, args...)
+		out, err := runElasticMaybe(elasticBin, env, args...)
 		if err == nil {
 			return out
 		}

@@ -1,8 +1,15 @@
 # objective
 
-Use Copilot CLI to create a Kibana dashboard titled `{{dashboard_title}}` with the local `elastic` CLI against the running functional stack.
+Create a Kibana dashboard titled `{{unique_id}}` with the local `elastic` CLI against the running functional stack.
 
 # success_criteria
 
-- `elastic kb dashboard list "{{dashboard_title}}" -f json` returns at least one dashboard and one result has a non-empty `id`.
-- `elastic kb dashboard get "{{dashboard_id}}" -f json` returns a dashboard whose title is exactly `{{dashboard_title}}`.
+- A dashboard titled `{{unique_id}}` exists and has a non-empty id.
+
+# verify
+
+```verify
+run: elastic kb dashboard list "{{unique_id}}" -f json
+jmespath: dashboards[?data.title=='{{unique_id}}'] | [0].id
+assert: not_empty
+```

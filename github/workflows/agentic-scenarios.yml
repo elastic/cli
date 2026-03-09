@@ -3,8 +3,8 @@ name: Agentic Scenarios (proposal)
 on:
   workflow_dispatch:
     inputs:
-      copilot_command:
-        description: Copilot CLI command that consumes ELASTIC_AGENTIC_PROMPT_FILE
+      copilot_cli_path:
+        description: Path to the Copilot CLI executable (default "copilot")
         required: false
         type: string
   schedule:
@@ -28,9 +28,9 @@ jobs:
       - name: Run agentic scenario tests (opt-in)
         env:
           ELASTIC_AGENTIC_TESTS: "1"
-          ELASTIC_AGENTIC_COPILOT_CMD: ${{ github.event.inputs.copilot_command || '' }}
+          ELASTIC_AGENTIC_COPILOT_CLI: ${{ github.event.inputs.copilot_cli_path || '' }}
           ELASTIC_AGENTIC_ARTIFACTS_DIR: ${{ runner.temp }}/agentic-artifacts
-        run: go test -tags agentic ./tests/agentic -v
+        run: go test ./tests/agentic -v
       - name: Upload agentic artifacts
         if: always()
         uses: actions/upload-artifact@v4
