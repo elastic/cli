@@ -22,7 +22,7 @@ func TestCopilotScenarios(t *testing.T) {
 		copilotCLI = "copilot"
 	}
 	if _, err := exec.LookPath(copilotCLI); err != nil {
-		t.Skipf("copilot CLI %q not in PATH", copilotCLI)
+		t.Fatalf("copilot CLI %q not in PATH", copilotCLI)
 	}
 	if _, err := exec.LookPath("docker"); err != nil {
 		t.Skip("docker not available")
