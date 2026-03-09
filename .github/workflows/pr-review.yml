@@ -6,6 +6,7 @@ on:
 permissions:
   contents: read
   issues: read
+  actions: write # needed for no-op run tracking issue
   pull-requests: write
 
 jobs:
