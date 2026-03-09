@@ -150,3 +150,15 @@ Run the docker-compose functional smoke test suite with:
 ```bash
 go test -tags functional ./tests/functional -v
 ```
+
+## Agentic scenario tests
+
+Agentic scenario tests are opt-in and run under the `agentic` build tag:
+
+```bash
+ELASTIC_AGENTIC_TESTS=1 \
+ELASTIC_AGENTIC_COPILOT_CMD='copilot exec --prompt-file "$ELASTIC_AGENTIC_PROMPT_FILE"' \
+go test -tags agentic ./tests/agentic -v
+```
+
+Scenarios live in `tests/agentic/scenarios/`, and harness code lives in `tests/agentic/harness/`.
