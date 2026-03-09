@@ -31,6 +31,7 @@ jobs:
           ELASTIC_AGENTIC_TESTS: "1"
           ELASTIC_AGENTIC_COPILOT_CLI: copilot
           ELASTIC_AGENTIC_ARTIFACTS_DIR: ${{ runner.temp }}/agentic-artifacts
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
         run: go test ./tests/agentic -v
       - name: Upload agentic artifacts
         if: always()
