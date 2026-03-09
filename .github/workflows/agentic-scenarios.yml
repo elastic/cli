@@ -1,12 +1,7 @@
-name: Agentic Scenarios (proposal)
+name: Agentic Scenarios
 
 on:
   workflow_dispatch:
-    inputs:
-      copilot_cli_path:
-        description: Path to the Copilot CLI executable (default "copilot")
-        required: false
-        type: string
   schedule:
     - cron: "0 4 * * *"
 
@@ -16,19 +11,25 @@ permissions:
 jobs:
   agentic-scenarios:
     runs-on: ubuntu-latest
-    continue-on-error: true
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Copilot CLI
+        run: npm install -g @github/copilot
+      - name: Verify Copilot CLI
+        run: copilot --version
       - name: Verify Docker daemon
         run: docker info
-      - name: Run agentic scenario tests (opt-in)
+      - name: Run agentic scenario tests
         env:
           ELASTIC_AGENTIC_TESTS: "1"
-          ELASTIC_AGENTIC_COPILOT_CLI: ${{ github.event.inputs.copilot_cli_path || '' }}
+          ELASTIC_AGENTIC_COPILOT_CLI: copilot
           ELASTIC_AGENTIC_ARTIFACTS_DIR: ${{ runner.temp }}/agentic-artifacts
         run: go test ./tests/agentic -v
       - name: Upload agentic artifacts
