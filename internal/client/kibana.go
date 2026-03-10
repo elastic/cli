@@ -277,6 +277,13 @@ type DashboardSearchResponse struct {
 	Page       int              `json:"page"`
 }
 
+// LensSearchResponse is the response from POST /api/lens/search.
+type LensSearchResponse struct {
+	Items []map[string]any `json:"items"`
+	Total int              `json:"total"`
+	Page  int              `json:"page"`
+}
+
 // SearchDashboards searches dashboards via POST /api/dashboards/search.
 func (c *KibanaClient) SearchDashboards(ctx context.Context, search string, page, perPage int) (*DashboardSearchResponse, error) {
 	body := map[string]any{}
@@ -334,6 +341,65 @@ func (c *KibanaClient) CreateDashboard(ctx context.Context, body map[string]any)
 // DeleteDashboard deletes a dashboard by ID via DELETE /api/dashboards/{id}.
 func (c *KibanaClient) DeleteDashboard(ctx context.Context, id string) error {
 	return c.del(ctx, "/api/dashboards/"+url.PathEscape(id))
+}
+
+// SearchLenses searches lens visualizations via POST /api/lens/search.
+func (c *KibanaClient) SearchLenses(ctx context.Context, search string, page, perPage int) (*LensSearchResponse, error) {
+	body := map[string]any{}
+	if search != "" {
+		body["search"] = search
+	}
+	if page > 0 {
+		body["page"] = page
+	}
+	if perPage > 0 {
+		body["per_page"] = perPage
+	}
+
+	b, err := c.post(ctx, "/api/lens/search", body)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp LensSearchResponse
+	if err := json.Unmarshal(b, &resp); err != nil {
+		return nil, fmt.Errorf("parse lens search response: %w", err)
+	}
+	return &resp, nil
+}
+
+// GetLens retrieves a single lens visualization by ID via GET /api/lens/{id}.
+func (c *KibanaClient) GetLens(ctx context.Context, id string) (map[string]any, error) {
+	b, err := c.getInternal(ctx, "/api/lens/"+url.PathEscape(id), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var out map[string]any
+	if err := json.Unmarshal(b, &out); err != nil {
+		return nil, fmt.Errorf("parse lens response: %w", err)
+	}
+	return out, nil
+}
+
+// CreateLens creates a lens visualization via POST /api/lens.
+// The body should be the full request payload (with "data" key and optionally "id"/"spaces").
+func (c *KibanaClient) CreateLens(ctx context.Context, body map[string]any) (map[string]any, error) {
+	b, err := c.post(ctx, "/api/lens", body)
+	if err != nil {
+		return nil, err
+	}
+
+	var out map[string]any
+	if err := json.Unmarshal(b, &out); err != nil {
+		return nil, fmt.Errorf("parse create lens response: %w", err)
+	}
+	return out, nil
+}
+
+// DeleteLens deletes a lens visualization by ID via DELETE /api/lens/{id}.
+func (c *KibanaClient) DeleteLens(ctx context.Context, id string) error {
+	return c.del(ctx, "/api/lens/"+url.PathEscape(id))
 }
 
 func (c *KibanaClient) post(ctx context.Context, p string, body any) ([]byte, error) {

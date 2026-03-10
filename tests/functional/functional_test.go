@@ -69,6 +69,51 @@ func TestElasticCLIWithDockerComposeStack(t *testing.T) {
 	if err := json.Unmarshal([]byte(statusOut), &status); err != nil {
 		t.Fatalf("parse kibana status JSON output: %v\noutput: %s", err, statusOut)
 	}
+
+	_ = runElastic(t, repoRoot, env, "kb", "lens", "schema", "-f", "json")
+	lensTitle := fmt.Sprintf("functional-lens-%d", time.Now().UnixNano())
+	createOut := runElastic(t, repoRoot, env, "kb", "lens", "create", "--title", lensTitle, "-f", "json")
+
+	var createdLens map[string]any
+	if err := json.Unmarshal([]byte(createOut), &createdLens); err != nil {
+		t.Fatalf("parse lens create output: %v\noutput: %s", err, createOut)
+	}
+	lensID, _ := createdLens["id"].(string)
+	if lensID == "" {
+		t.Fatalf("lens create output missing id: %s", createOut)
+	}
+	t.Cleanup(func() {
+		_, _ = runElasticMaybe(repoRoot, env, "kb", "lens", "delete", lensID)
+	})
+
+	listOut := runElastic(t, repoRoot, env, "kb", "lens", "list", lensTitle, "-f", "json")
+	var listed map[string]any
+	if err := json.Unmarshal([]byte(listOut), &listed); err != nil {
+		t.Fatalf("parse lens list output: %v\noutput: %s", err, listOut)
+	}
+	items, _ := listed["items"].([]any)
+	found := false
+	for _, item := range items {
+		entry, _ := item.(map[string]any)
+		if id, _ := entry["id"].(string); id == lensID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("lens %q not found in lens list output: %s", lensID, listOut)
+	}
+
+	getOut := runElastic(t, repoRoot, env, "kb", "lens", "get", lensID, "-f", "json")
+	var gotLens map[string]any
+	if err := json.Unmarshal([]byte(getOut), &gotLens); err != nil {
+		t.Fatalf("parse lens get output: %v\noutput: %s", err, getOut)
+	}
+	if gotID, _ := gotLens["id"].(string); gotID != lensID {
+		t.Fatalf("unexpected lens id from get output: got %q want %q", gotID, lensID)
+	}
+
+	_ = runElastic(t, repoRoot, env, "kb", "lens", "delete", lensID)
 }
 
 func runElastic(t *testing.T, repoRoot string, env []string, args ...string) string {

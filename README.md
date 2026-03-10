@@ -107,6 +107,10 @@ By default, columns where every value is null are omitted. To include them:
 ./elastic kb dashboard create --title "My Dashboard"
 ./elastic kb dashboard schema -f json
 ./elastic kb dashboard delete <id>
+./elastic kb lens list
+./elastic kb lens create --title "My Lens"
+./elastic kb lens schema -f json
+./elastic kb lens delete <id>
 ```
 
 ### 7) Search and read Elastic documentation
@@ -140,7 +144,7 @@ Short aliases work too (`cfg`, `idx`, `ds`, `rc`):
 - [`docs/api.md`](docs/api.md)
 - [`docs/esql.md`](docs/esql.md)
 - [`docs/get.md`](docs/get.md)
-- [`docs/kb.md`](docs/kb.md) — Kibana commands (`task-manager`, `dashboard`)
+- [`docs/kb.md`](docs/kb.md) — Kibana commands (`task-manager`, `dashboard`, `lens`)
 - [`docs/docs.md`](docs/docs.md) — Elastic documentation commands (`search`, `read`, `ask`)
 
 ## Functional tests
