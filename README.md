@@ -118,6 +118,22 @@ By default, columns where every value is null are omitted. To include them:
 ./elastic docs ask "What is Elasticsearch?"
 ```
 
+### 8) Manage Elastic Cloud Serverless projects
+
+```bash
+./elastic cloud serverless projects list
+./elastic cloud serverless projects get <id>
+./elastic cloud serverless projects create --data '{"name":"my-project","region_id":"aws-us-east-1"}'
+./elastic cloud serverless projects update <id> --data '{"name":"my-project-renamed"}'
+./elastic cloud serverless projects delete <id>
+```
+
+Use `--cloud-url` to override the Elastic Cloud API endpoint (defaults to `https://api.elastic-cloud.com`):
+
+```bash
+./elastic cloud serverless projects list --cloud-url 'https://api.elastic-cloud.com'
+```
+
 Filter by name or glob pattern:
 
 ```bash
@@ -141,6 +157,7 @@ Short aliases work too (`cfg`, `idx`, `ds`, `rc`):
 - [`docs/esql.md`](docs/esql.md)
 - [`docs/get.md`](docs/get.md)
 - [`docs/kb.md`](docs/kb.md) — Kibana commands (`task-manager`, `dashboard`)
+- [`docs/cloud.md`](docs/cloud.md) — Elastic Cloud Serverless project commands
 - [`docs/docs.md`](docs/docs.md) — Elastic documentation commands (`search`, `read`, `ask`)
 
 ## Functional tests
