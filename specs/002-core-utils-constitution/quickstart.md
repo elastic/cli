@@ -8,7 +8,7 @@ This guide shows a developer how to build a new `es`-family command using the th
 
 ## 1. Writing a new `es` command
 
-### Register the command with dry-run support
+### Building a command with the newCommand factory
 
 ```go
 // cmd/es_myresource.go
@@ -22,51 +22,43 @@ import (
     "github.com/spf13/cobra"
 )
 
-var esMyResourceListCmd = &cobra.Command{
-    Use:          "list [name|pattern...]",
-    Short:        "List my resources",
-    Args:         cobra.ArbitraryArgs,
-    SilenceUsage: true,
-    RunE: func(cmd *cobra.Command, args []string) error {
-        // Dry-run gate — must come first; performs no I/O.
-        if handled, err := cmdutil.HandleDryRun(cmd, rootFormat, args); handled || err != nil {
-            if err != nil {
-                cmdutil.RenderError(cmd.ErrOrStderr(), rootFormat, err)
-            }
-            return err
-        }
+var esMyResourceListCmd = newCommand(commandSpec{
+	Use:          "list [name|pattern...]",
+	Short:        "List my resources",
+	Args:         cobra.ArbitraryArgs,
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Context resolution — single call, no duplication.
+		cfgPath, err := config.DefaultPath()
+		if err != nil {
+			return err
+		}
+		ctxCfg, err := cmdutil.ResolveContext(cfgPath, rootContext)
+		if err != nil {
+			return err
+		}
 
-        // Context resolution — single call, no duplication.
-        cfgPath, err := config.DefaultPath()
-        if err != nil {
-            cmdutil.RenderError(cmd.ErrOrStderr(), rootFormat, err)
-            return err
-        }
-        ctxCfg, err := cmdutil.ResolveContext(cfgPath, rootContext)
-        if err != nil {
-            cmdutil.RenderError(cmd.ErrOrStderr(), rootFormat, err)
-            return err
-        }
+		// Business logic.
+		cl, err := client.NewFromContext(ctxCfg)
+		if err != nil {
+			return err
+		}
+		resources, _, err := cl.ListMyResources(cmd.Context())
+		if err != nil {
+			return err
+		}
 
-        // Business logic.
-        cl, err := client.NewFromContext(ctxCfg)
-        if err != nil {
-            cmdutil.RenderError(cmd.ErrOrStderr(), rootFormat, err)
-            return err
-        }
-        resources, _, err := cl.ListMyResources(cmd.Context())
-        if err != nil {
-            cmdutil.RenderError(cmd.ErrOrStderr(), rootFormat, err)
-            return err
-        }
+		return output.RenderRows(cmd.OutOrStdout(),
+			output.NormalizeFormat(rootFormat),
+			[]string{"name", "status"},
+			myResourceRows(resources),
+			resources,
+		)
+	},
+})
 
-        return output.RenderRows(cmd.OutOrStdout(),
-            output.NormalizeFormat(rootFormat),
-            []string{"name", "status"},
-            myResourceRows(resources),
-            resources,
-        )
-    },
+func init() {
+	esMyResourceCmd.AddCommand(esMyResourceListCmd)
 }
 
 func init() {
@@ -155,8 +147,7 @@ After this feature ships, the following files are the canonical reference:
 ## 5. Constitution compliance checklist for new `es` commands
 
 - [ ] Uses `cmdutil.ResolveContext` — no inline context-resolution block
-- [ ] Registers `--dry-run` flag in `init()`
-- [ ] Calls `cmdutil.HandleDryRun` as the first statement in `RunE`
+- [ ] Command is built via `newCommand(commandSpec{})` — no manual Cobra command creation
 - [ ] Calls `cmdutil.RenderError` before returning any error
 - [ ] Uses `cmdutil.NewStructuredError` or `cmdutil.WrapError` for all custom errors
 - [ ] Uses an `ErrCode*` constant — no free-form code strings

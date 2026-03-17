@@ -38,12 +38,8 @@ Any command that produces an error **MUST** emit the following JSON when `--form
 
 ## Defined Error Codes
 
-| Code | Constant | Trigger |
-|------|----------|---------|
-| `validation_failed` | `ErrCodeValidation` | A flag or argument fails validation before any I/O |
-| `config_not_found` | `ErrCodeConfigNotFound` | The config file does not exist on disk |
-| `context_not_found` | `ErrCodeContextNotFound` | The named (or current) context is absent from the config |
-| `dry_run_not_supported` | `ErrCodeDryRunNotSupported` | `--dry-run` passed to a command that does not register the flag |
+See [`cmdutil-api.md`](./cmdutil-api.md#error-code-constants) for the canonical list of
+`ErrCode*` constants, their string values, and trigger conditions.
 
 ---
 
@@ -53,12 +49,17 @@ When a command is invoked with `--dry-run --format=json` and inputs are valid:
 
 ```json
 {
-  "dry_run": true,
-  "flags": {
-    "<flag-name>": "<resolved-value>"
+  "dry_run": {
+    "command": "<cobra command Use string>",
+    "flags": {
+      "<flag-name>": "<resolved-value>"
+    }
   }
 }
 ```
+
+> **Note:** Commands with positional arguments (e.g. `es raw`) handle dry-run
+> output themselves and emit a command-specific shape rather than this generic one.
 
 Exit code: **0**
 
@@ -67,7 +68,7 @@ When inputs are invalid under `--dry-run --format=json`:
 ```json
 {
   "error": {
-    "code": "validation_failed",
+    "code": "validation_error",
     "message": "<description of the invalid input>"
   }
 }

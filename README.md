@@ -2,13 +2,114 @@
 
 `elastic` is the CLI for Elastic.
 
-## Install / Build
+## Prerequisites
 
-From the repo root:
+- **Go 1.25+** — check with `go version`. The exact minimum is pinned in
+  [`go.mod`](go.mod).
+- **Docker** — only needed for functional tests (see below).
+
+## Build
+
+### Local development binary
+
+Build a binary into the repo root (the path used by all Quickstart examples):
+
+```bash
+go build -o elastic ./cmd/elastic
+```
+
+### Install to `$GOPATH/bin`
 
 ```bash
 go install ./cmd/elastic
 ```
+
+### Release / optimised build
+
+Strip debug info and symbol tables to produce a smaller binary, as CI does for
+release assets:
+
+```bash
+CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o elastic ./cmd/elastic
+```
+
+### Cross-compile
+
+Set `GOOS` and `GOARCH` to target a different platform:
+
+```bash
+GOOS=darwin  GOARCH=arm64 go build -o elastic-darwin-arm64  ./cmd/elastic
+GOOS=linux   GOARCH=amd64 go build -o elastic-linux-amd64   ./cmd/elastic
+GOOS=windows GOARCH=amd64 go build -o elastic.exe            ./cmd/elastic
+```
+
+## Format and lint
+
+### Format
+
+All Go source must be formatted with `gofmt` before committing. Run it from the
+repo root:
+
+```bash
+gofmt -w cmd/ internal/ tests/
+```
+
+Verify no files are still unformatted (should produce no output):
+
+```bash
+gofmt -l cmd/ internal/ tests/
+```
+
+### Vet
+
+Run the standard Go static-analysis suite:
+
+```bash
+go vet ./...
+```
+
+Both checks are fast and have no external dependencies.
+
+## Test
+
+### Unit tests
+
+Run all unit tests:
+
+```bash
+go test ./...
+```
+
+See [Go testing docs](https://pkg.go.dev/cmd/go#hdr-Testing_flags) for more options.
+
+### Functional tests
+
+Functional tests spin up a real Elasticsearch + Kibana stack via Docker and run
+end-to-end smoke checks. They are gated behind the `functional` build tag so
+they never run during a plain `go test ./...`.
+
+Requirements: Docker daemon running locally.
+
+```bash
+go test -tags functional ./tests/functional -v
+```
+
+### Agentic scenario tests
+
+Agentic tests drive an AI agent session against the local stack and are opt-in,
+gated by the `ELASTIC_AGENTIC_TESTS=1` environment variable. They use the
+[GitHub Copilot SDK](https://github.com/github/copilot-sdk).
+
+Requirements: `copilot` CLI in `PATH` (or set `ELASTIC_AGENTIC_COPILOT_CLI` to
+an explicit path), Docker daemon running, and a `COPILOT_GITHUB_TOKEN` with
+appropriate scopes.
+
+```bash
+ELASTIC_AGENTIC_TESTS=1 go test ./tests/agentic -v
+```
+
+Scenarios live in `tests/agentic/scenarios/` and harness code in
+`tests/agentic/harness/`.
 
 ## Configuration
 
@@ -34,7 +135,7 @@ If you previously used `~/.elastic/config.yaml` (or an older `~/.elk/config.yaml
   --api-key '...'
 ```
 
-Or use basic auth instead of an API key:
+Or use basic auth vs an API key:
 
 ```bash
 ./elastic config context set prod \
@@ -142,27 +243,3 @@ Short aliases work too (`cfg`, `idx`, `ds`, `rc`):
 - [`docs/get.md`](docs/get.md)
 - [`docs/kb.md`](docs/kb.md) — Kibana commands (`task-manager`, `dashboard`)
 - [`docs/docs.md`](docs/docs.md) — Elastic documentation commands (`search`, `read`, `ask`)
-
-## Functional tests
-
-Run the docker-compose functional smoke test suite with:
-
-```bash
-go test -tags functional ./tests/functional -v
-```
-
-## Agentic scenario tests
-
-Agentic scenario tests are opt-in (gated by `ELASTIC_AGENTIC_TESTS=1`).
-They use the [GitHub Copilot SDK](https://github.com/github/copilot-sdk) to
-drive an agentic session against the local stack:
-
-```bash
-ELASTIC_AGENTIC_TESTS=1 \
-go test ./tests/agentic -v
-```
-
-The tests require `copilot` in `PATH`. To use a different CLI path, set
-`ELASTIC_AGENTIC_COPILOT_CLI`.
-
-Scenarios live in `tests/agentic/scenarios/`, and harness code lives in `tests/agentic/harness/`.

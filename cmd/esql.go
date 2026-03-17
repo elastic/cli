@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/elastic/cli/internal/client"
+	"github.com/elastic/cli/internal/cmdutil"
 	"github.com/elastic/cli/internal/config"
 	"github.com/elastic/cli/internal/output"
 
@@ -23,7 +24,7 @@ var (
 	esqlTimeout      time.Duration
 )
 
-var esQueryCmd = &cobra.Command{
+var esQueryCmd = newCommand(commandSpec{
 	Use:          "query <query>",
 	Short:        "Run an ES|QL query",
 	Args:         cobra.ExactArgs(1),
@@ -34,26 +35,13 @@ var esQueryCmd = &cobra.Command{
 			return errors.New("query is required")
 		}
 
-		path, err := config.DefaultPath()
+		cfgPath, err := config.DefaultPath()
 		if err != nil {
 			return err
 		}
-		cfg, err := config.Load(path)
+		ctxCfg, err := cmdutil.LookupContext(cfgPath, rootContext)
 		if err != nil {
 			return err
-		}
-
-		ctxName := strings.TrimSpace(rootContext)
-		if ctxName == "" {
-			ctxName = cfg.CurrentContext
-		}
-		if ctxName == "" {
-			return fmt.Errorf("no context selected; run `elastic config context set <name> ...` and `elastic config context use <name>`")
-		}
-
-		ctxCfg, ok := cfg.Contexts[ctxName]
-		if !ok {
-			return fmt.Errorf("context %q not found; run `elastic config context list`", ctxName)
 		}
 
 		cl, err := client.NewFromContext(ctxCfg)
@@ -91,7 +79,7 @@ var esQueryCmd = &cobra.Command{
 		}
 		return output.Render(cmd.OutOrStdout(), fmtFormat, resp, raw, opts)
 	},
-}
+})
 
 func init() {
 	esCmd.AddCommand(esQueryCmd)

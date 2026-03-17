@@ -16,7 +16,7 @@ description: "Task list for Core Utilities — Constitutional Foundations"
 
 **Purpose**: Create the `internal/cmdutil` package skeleton so all subsequent tasks have a home.
 
-- [ ] T001 Create package directory and blank files: `internal/cmdutil/errors.go`, `internal/cmdutil/context.go`, `internal/cmdutil/dryrun.go`, `internal/cmdutil/render.go`
+- [x] T001 Create package directory and blank files: `internal/cmdutil/errors.go`, `internal/cmdutil/context.go`, `internal/cmdutil/dryrun.go`, `internal/cmdutil/render.go`
 
 ---
 
@@ -24,27 +24,27 @@ description: "Task list for Core Utilities — Constitutional Foundations"
 
 **Purpose**: The `StructuredError` type is the lowest-level primitive. Every other utility and the `es` refactor depends on it. Complete and green before proceeding.
 
-**Goal**: `internal/cmdutil` exports `StructuredError`, four `ErrCode*` constants, `New`, and `Wrap`. Implements `error`. Marshals to `{"error":{"code":"…","message":"…"}}`.
+**Goal**: `internal/cmdutil` exports `StructuredError`, `ErrCode*` constants, `NewStructuredError`, `WrapError`, and `RenderError`. Implements `error`. Marshals to `{"error":{"code":"…","message":"…"}}`.
 
-**Independent Test**: `go test ./internal/cmdutil/... -run TestStructuredError` — all assertions green; `Wrap` idempotency confirmed; JSON shape validated.
+**Independent Test**: `go test ./internal/cmdutil/... -run TestStructuredError` — all assertions green; `WrapError` idempotency confirmed; JSON shape validated.
 
-- [ ] T002 [US1] Write failing tests for `StructuredError`, `New`, `Wrap`, and JSON marshal in `internal/cmdutil/errors_test.go`
-- [ ] T003 [US1] Implement `StructuredError` type, `ErrCode*` constants, `New`, and `Wrap` in `internal/cmdutil/errors.go`
-- [ ] T003a [US1] Write failing tests for `RenderError` in `internal/cmdutil/render_test.go` covering: JSON format output, table/plain text output, plain Go error fallback (non-`StructuredError`)
-- [ ] T003b [US1] Implement `RenderError` in `internal/cmdutil/render.go`
+- [x] T002 [US1] Write failing tests for `StructuredError`, `NewStructuredError`, `WrapError`, and JSON marshal in `internal/cmdutil/errors_test.go`
+- [x] T003 [US1] Implement `StructuredError` type, `ErrCode*` constants, `NewStructuredError`, and `WrapError` in `internal/cmdutil/errors.go`
+- [x] T003a [P] [US1] Write failing tests for `RenderError` in `internal/cmdutil/render_test.go` covering: JSON format output, table/plain text output, plain Go error fallback (non-`StructuredError`)
+- [x] T003b [US1] Implement `RenderError` in `internal/cmdutil/render.go`
 
-**Checkpoint**: `go test ./internal/cmdutil/... -run TestStructuredError` passes. All four error code constants exist and are used in tests.
+**Checkpoint**: `go test ./internal/cmdutil/... -run TestStructuredError` passes. All `ErrCode*` constants exist and are used in tests.
 
 ---
 
 ## Phase 3: User Story 2 — Context Resolution Utility (P1)
 
-**Goal**: `cmdutil.ResolveContext(contextFlag string) (config.Context, error)` replaces the duplicated 10-line context-resolution block found in `get_run.go` and `api.go`.
+**Goal**: `cmdutil.ResolveContext(cfgPath, ctxFlag string) (config.Context, error)` replaces the duplicated context-resolution block found in `cmd/get_run.go`, `cmd/api.go`, and `cmd/esql.go`.
 
 **Independent Test**: `go test ./internal/cmdutil/... -run TestResolveContext` — all table-driven cases pass with a temporary config file; no Elasticsearch connection required.
 
-- [ ] T004 [P] [US2] Write failing unit tests for `ResolveContext` covering: valid context, `--context` override, missing config file (`ErrCodeConfigNotFound`), missing context (`ErrCodeContextNotFound`), empty current-context (`ErrCodeContextNotFound`) in `internal/cmdutil/context_test.go`
-- [ ] T005 [US2] Implement `ResolveContext` in `internal/cmdutil/context.go`
+- [x] T004 [P] [US2] Write failing unit tests for `ResolveContext` covering: valid context, `--context` override, missing config file (`ErrCodeConfigNotFound`), missing context (`ErrCodeContextNotFound`), empty current-context (`ErrCodeNoContextSelected`) in `internal/cmdutil/context_test.go`
+- [x] T005 [US2] Implement `ResolveContext` in `internal/cmdutil/context.go`
 
 **Checkpoint**: `go test ./internal/cmdutil/... -run TestResolveContext` passes with ≥80% coverage.
 
@@ -52,12 +52,12 @@ description: "Task list for Core Utilities — Constitutional Foundations"
 
 ## Phase 4: User Story 3 — Dry-Run Utility (P2)
 
-**Goal**: `cmdutil.HandleDryRun(cmd *cobra.Command, format string) (bool, error)` implements dry-run detection, payload printing, and the `dry_run_not_supported` error for commands that don't register the flag.
+**Goal**: `cmdutil.HandleDryRun(cmd *cobra.Command, format string, args []string) (bool, error)` implements dry-run detection, payload printing, and the `dry_run_not_supported` error for commands that don't register the flag.
 
 **Independent Test**: `go test ./internal/cmdutil/... -run TestHandleDryRun` — flag-not-registered, flag-not-set, flag-set-table-output, flag-set-json-output cases all pass.
 
-- [ ] T006 [P] [US3] Write failing unit tests for `HandleDryRun` in `internal/cmdutil/dryrun_test.go` covering: flag not registered → `ErrCodeDryRunNotSupported`; flag registered but not set → `(false, nil)`; flag set with table format → prints payload, returns `(true, nil)`; flag set with JSON format → JSON payload
-- [ ] T007 [US3] Implement `HandleDryRun` in `internal/cmdutil/dryrun.go`
+- [x] T006 [P] [US3] Write failing unit tests for `HandleDryRun` in `internal/cmdutil/dryrun_test.go` covering: flag not registered → `ErrCodeDryRunNotSupported`; flag registered but not set → `(false, nil)`; flag set with table format → prints payload, returns `(true, nil)`; flag set with JSON format → JSON payload
+- [x] T007 [US3] Implement `HandleDryRun` in `internal/cmdutil/dryrun.go`
 
 **Checkpoint**: `go test ./internal/cmdutil/... -run TestHandleDryRun` passes. `go test ./internal/cmdutil/... -cover` reports ≥80% statement coverage.
 
@@ -65,29 +65,29 @@ description: "Task list for Core Utilities — Constitutional Foundations"
 
 ## Phase 5: User Story 4 — Refactor `es` Family to Use All Utilities (P2)
 
-**Goal**: All five `es` subcommand entry points use `cmdutil.ResolveContext`, emit `*StructuredError` on failure, and register/support `--dry-run` via `cmdutil.HandleDryRun`. No duplicated context-resolution blocks remain. Existing behaviour is preserved.
+**Goal**: All six `es` subcommand entry points use `cmdutil.ResolveContext`, emit `*StructuredError` on failure, and register/support `--dry-run` via `cmdutil.HandleDryRun`. No duplicated context-resolution blocks remain. Existing behaviour is preserved.
 
-**Independent Test**: `go test ./cmd/... -run TestES` passes with no regression; new tests cover error paths and dry-run paths; `go test ./... -race` is clean.
+**Independent Test**: `go test ./cmd/... ./internal/cmdutil/... -run TestES` passes with no regression; new tests cover error paths and dry-run paths; `go test ./... -race` is clean.
 
-### 5a — `get_run.go` (handles `es indices list`, `es data-streams list`, `es remote-clusters list`, `es cluster health`)
+### 5a — `get_run.go` (`es indices list`, `es data-streams list`, `es remote-clusters list`, `es cluster health`)
 
-- [ ] T008 [US4] Write failing tests for refactored `runGet` in `cmd/es_resources_test.go`: `ResolveContext` error propagation (mock config), dry-run path for list commands (valid + invalid inputs)
-- [ ] T009 [US4] Refactor `runGet` in `cmd/get_run.go` to call `cmdutil.ResolveContext(rootContext)` in place of the inline config-load-and-resolve block
-- [ ] T010 [US4] Register `--dry-run` on `esIndicesListCmd`, `esDataStreamsListCmd`, `esRemoteClustersListCmd`, and `esClusterHealthCmd` in `cmd/es_resources.go` and add `cmdutil.HandleDryRun` call at the start of each `RunE`
+- [x] T008 [P] [US4] Write failing tests for refactored `runGet` in `cmd/es_resources_test.go`: `ResolveContext` error propagation (mock config path), dry-run path for each list command (valid + invalid inputs)
+- [x] T009 [US4] Refactor `runGet` in `cmd/get_run.go` to call `cmdutil.ResolveContext(cfgPath, rootContext)` in place of the inline config-load-and-resolve block; P3
+- [x] T010 [US4] Register `--dry-run` on `esIndicesListCmd`, `esDataStreamsListCmd`, `esRemoteClustersListCmd`, and `esClusterHealthCmd` in `cmd/es_resources.go`; add `cmdutil.HandleDryRun` call at the start of each `RunE`
 
-### 5b — `api.go` (handles `es raw`)
+### 5b — `api.go` (`es raw`)
 
-- [ ] T011 [US4] Write failing tests for refactored `newRawCmd("es")` in `cmd/api_test.go`: `ResolveContext` error propagation, dry-run with valid flags, dry-run with JSON format
-- [ ] T012 [US4] Refactor the context-resolution block in `newRawCmd` in `cmd/api.go` to call `cmdutil.ResolveContext(rootContext)`
-- [ ] T013 [US4] Register `--dry-run` on `esRawCmd` in `cmd/api.go` and add `cmdutil.HandleDryRun` call
+- [x] T011 P2 `newRawCmd("es")` in `cmd/api_test.go`: P3 with valid flags, dry-run with `--format=json`
+- [x] T012 [US4] Refactor the context-resolution block in `newRawCmd` in `cmd/api.go` to call `cmdutil.ResolveContext(cfgPath, rootContext)`; P3
+- [x] T013 [US4] Register `--dry-run` on `esRawCmd` in `cmd/api.go`; add `cmdutil.HandleDryRun` call at the start of `RunE`
 
-### 5c — `esql.go` (handles `es query`)
+### 5c — `esql.go` (`es query`)
 
-- [ ] T013a [US4] Write failing tests for refactored `esql.go` `RunE` in `cmd/esql_test.go`: `ResolveContext` error propagation (mock config), dry-run with valid flags, dry-run with `--format=json`
-- [ ] T013b [US4] Refactor the context-resolution block in `esql.go` `RunE` to call `cmdutil.ResolveContext(rootContext)`
-- [ ] T013c [US4] Register `--dry-run` on `esqlCmd` in `cmd/esql.go` and add `cmdutil.HandleDryRun` call at the start of `RunE`
+- [x] T014 [P] [US4] Write failing tests for refactored `esql.go` `RunE` in `cmd/esql_test.go`: `ResolveContext` error propagation (mock config path), dry-run with valid flags, dry-run with `--format=json`
+- [x] T015 [US4] Refactor the context-resolution block in `cmd/esql.go` `RunE` to call `cmdutil.ResolveContext(cfgPath, rootContext)`; P3
+- [x] T016 [US4] Register `--dry-run` on `esqlCmd` in `cmd/esql.go`; add `cmdutil.HandleDryRun` call at the start of `RunE`
 
-**Checkpoint**: `go test ./cmd/... ./internal/cmdutil/...` passes with no regression. `go test ./... -race` is clean. No inline context-resolution block remains in `get_run.go`, `api.go`, or `esql.go`.
+**Checkpoint**: `go test ./cmd/... ./internal/cmdutil/...` passes with no regression. `go test ./... -race` is clean. No inline context-resolution block remains in `cmd/get_run.go`, `cmd/api.go`, or `cmd/esql.go`.
 
 ---
 
@@ -95,11 +95,11 @@ description: "Task list for Core Utilities — Constitutional Foundations"
 
 **Purpose**: Doc comments, coverage gate, final suite validation.
 
-- [ ] T014 [P] Add Go doc comments to all exported symbols in `internal/cmdutil/errors.go`, `internal/cmdutil/context.go`, `internal/cmdutil/dryrun.go`, `internal/cmdutil/render.go`
-- [ ] T015 [P] Verify `go test ./internal/cmdutil/... -cover` reports ≥80% statement coverage; add targeted tests if needed
-- [ ] T016 Run `go test ./... -race` and confirm clean
-- [ ] T017 Run `go vet ./...` and `golangci-lint run` (if configured) and fix any findings
-- [ ] T018 [P] Validate quickstart.md scenarios manually against the built binary
+- [x] T017 [P] Add Go doc comments to all exported symbols in `internal/cmdutil/errors.go`, `internal/cmdutil/context.go`, `internal/cmdutil/dryrun.go`, `internal/cmdutil/render.go`
+- [x] T018 [P] Verify `go test ./internal/cmdutil/... -cover` reports ≥80% statement coverage; add targeted tests to `internal/cmdutil/` if needed
+- [x] T019 Run `go test ./... -race` and confirm clean
+- [x] T020 Run `go vet ./...` and `golangci-lint run` (if configured) and fix any findings
+- [x] T021 [P] Validate `quickstart.md` scenarios manually against the built binary
 
 ---
 
@@ -107,27 +107,45 @@ description: "Task list for Core Utilities — Constitutional Foundations"
 
 ### Phase Dependencies
 
-- **Phase 1 (Setup)**: No dependencies — start immediately
-- **Phase 2 (StructuredError)**: Depends on Phase 1 — **BLOCKS** all subsequent phases
+- **Phase 1 (Setup)**: No dependencies — start now
+- **Phase 2 (StructuredError + RenderError)**: Depends on Phase 1 — **BLOCKS** all subsequent phases
 - **Phase 3 (Context Resolution)**: Depends on Phase 2 (uses `*StructuredError`)
-- **Phase 4 (Dry-Run)**: Depends on Phase 2 (uses `*StructuredError`); Phases 3 and 4 can run in parallel
+- **Phase 4 (Dry-Run)**: Depends on Phase 2 (uses `*StructuredError`); Phases 3 and 4 can run in parallel after Phase 2
 - **Phase 5 (es refactor)**: Depends on Phases 2, 3, and 4 all complete
 - **Phase 6 (Polish)**: Depends on Phase 5
 
+### User Story Dependencies
+
+- **US1 (Phase 2)**: No story dependencies — foundational, blocks all others
+- **US2 (Phase 3)**: Depends on US1 only
+- **US3 (Phase 4)**: Depends on US1 only; can run in parallel with US2
+- **US4 (Phase 5)**: Depends on US1 + US2 + US3 all complete
+
 ### Parallel Opportunities
 
-- T004 (context tests) and T006 (dry-run tests) can be written in parallel after T002/T003 complete
+- T003a (render tests) can be written alongside T003 (errors impl) — different files
+- T004 (context tests) and T006 (dry-run tests) can be written in parallel after Phase 2 completes
 - T005 (context impl) and T007 (dry-run impl) can run in parallel
-- T008+T009+T010 (get_run refactor) and T011+T012+T013 (api.go refactor) can run in parallel
-- T014 and T015 (polish) can run in parallel
+- T008+T009+T010 (get_run refactor), T011+T012+T013 (api.go refactor), and T014+T015+T016 (esql.go refactor) can run in parallel
+- T017 and T018 (polish) can run in parallel
 
-### Parallel Example: Phase 3 + 4
+### Parallel Example: Phases 3 + 4
 
 ```
-After T003 merges:
-  Task A: T004 → T005  (context utility)
+After T003b merges:
+  Task A: T004 → T005  (context resolution utility)
   Task B: T006 → T007  (dry-run utility)
 Both can proceed concurrently.
+```
+
+### Parallel Example: Phase 5 sub-groups
+
+```
+After T007 merges:
+  Task A: T008 → T009 → T010  (get_run.go — four list commands)
+  Task B: T011 → T012 → T013  (api.go — es raw)
+  Task C: T014 → T015 → T016  (esql.go — es query)
+All three can proceed concurrently.
 ```
 
 ---
@@ -136,17 +154,16 @@ Both can proceed concurrently.
 
 ### MVP (US1 + US2 first)
 
-1. Phase 1: Setup (T001)
-2. Phase 2: StructuredError (T002 → T003) ← **STOP, confirm tests green**
-3. Phase 3: Context Resolution (T004 → T005) ← **STOP, confirm tests green**
+1. Phase 1: Setup (T001) ✅
+2. Phase 2: StructuredError + RenderError (T002 → T003b) ✅
+3. Phase 3: Context Resolution (T004 → T005) ✅
 4. **Validate independently**: `go test ./internal/cmdutil/...`
 
 ### Full Delivery
 
 5. Phase 4: Dry-Run (T006 → T007)
-6. Phase 5a: es list commands refactor (T008 → T009 → T010)
-7. Phase 5b: es raw refactor (T011 → T012 → T013)
-8. Phase 6: Polish (T014 → T018)
+6. Phase 5a+b+c: es command refactors (T008–T016, parallelizable)
+7. Phase 6: Polish (T017–T021)
 
 ---
 
@@ -154,13 +171,15 @@ Both can proceed concurrently.
 
 | Metric | Value |
 |--------|-------|
-| Total tasks | 23 |
-| Phase 2 (US1 — StructuredError + RenderError) | 4 tasks (T002, T003, T003a, T003b) |
-| Phase 3 (US2 — Context Resolution) | 2 tasks |
-| Phase 4 (US3 — Dry-Run) | 2 tasks |
-| Phase 5 (US4 — es refactor) | 9 tasks (5a: T008–T010, 5b: T011–T013, 5c: T013a–T013c) |
+| Total tasks | 21 |
+| Completed | 9 (T001–T007, T003a, T003b) |
+| Remaining | 12 (T008–T021) |
+| Phase 2 (US1 — StructuredError + RenderError) | 4 tasks ✅ |
+| Phase 3 (US2 — Context Resolution) | 2 tasks ✅ |
+| Phase 4 (US3 — Dry-Run) | 2 tasks ✅ |
+| Phase 5 (US4 — es refactor, 3 sub-groups) | 9 tasks |
 | Phase 6 (Polish) | 5 tasks |
-| Parallelizable [P] tasks | 7 |
+| Parallelizable [P] tasks | 9 |
 | MVP scope | Phases 1–3 (T001–T005) |
 
-**Format validation**: All tasks follow `- [ ] TXXX [P?] [US?] Description with file path` format. ✅
+**Format validation**: All tasks follow `- [ ] T### [P?] [US?] Description with file path` ✅

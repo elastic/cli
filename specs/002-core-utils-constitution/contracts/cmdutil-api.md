@@ -67,14 +67,14 @@ func ResolveContext(cfgPath, ctxFlag string) (config.Context, error)
 
 ```go
 // HandleDryRun checks whether --dry-run is active on cmd.
-// Returns (true, nil) after printing the resolved payload when --dry-run is set.
+// Returns (true, nil) after writing the resolved payload to w when --dry-run is set.
 // Returns (false, nil) when --dry-run is not active.
 // Returns (false, *StructuredError{ErrCodeDryRunNotSupported}) if the flag is
 // not registered on the command.
 //
-// format is the active output format (e.g. rootFormat); json emits JSON output.
-// args are the positional arguments passed to the command.
-func HandleDryRun(cmd *cobra.Command, format string, args []string) (bool, error)
+// format is the active output format (e.g. "json", "table"); json emits JSON output.
+// w is the writer that receives dry-run output.
+func HandleDryRun(cmd *cobra.Command, format string, w io.Writer) (bool, error)
 ```
 
 ---
@@ -92,36 +92,49 @@ func RenderError(w io.Writer, format string, err error)
 
 ---
 
-## Usage pattern in a command's `RunE`
+## Usage pattern in `PersistentPreRunE`
+
+When `--dry-run` is not disabled via `NoDryRun: true` in the command spec,
+the command factory automatically sets `PersistentPreRunE` to invoke `HandleDryRun`
+before business logic runs. Commands do not need to call it directly.
+
+```go
+// In cmd/factory.go, newCommand automatically wraps the command:
+if !spec.NoDryRun {
+	cmd.Flags().Bool("dry-run", false, "Print resolved command payload and exit without executing")
+	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		dryRun, err := cmdutil.HandleDryRun(cmd, rootFormat, cmd.OutOrStdout())
+		if err != nil {
+			return err
+		}
+		if dryRun {
+			return nil
+		}
+		return nil
+	}
+}
+cmd.RunE = spec.RunE
+```
+
+Commands themselves only need to implement their business logic in `RunE`:
 
 ```go
 RunE: func(cmd *cobra.Command, args []string) error {
-    // 1. Dry-run gate (must be first — no I/O before this)
-    if handled, err := cmdutil.HandleDryRun(cmd, rootFormat, args); handled || err != nil {
-        if err != nil {
-            cmdutil.RenderError(cmd.ErrOrStderr(), rootFormat, err)
-        }
-        return err
-    }
+	// 1. Context resolution
+	cfgPath, err := config.DefaultPath()
+	if err != nil {
+		return err
+	}
+	ctxCfg, err := cmdutil.ResolveContext(cfgPath, rootContext)
+	if err != nil {
+		return err
+	}
 
-    // 2. Context resolution
-    cfgPath, err := config.DefaultPath()
-    if err != nil {
-        cmdutil.RenderError(cmd.ErrOrStderr(), rootFormat, err)
-        return err
-    }
-    ctxCfg, err := cmdutil.ResolveContext(cfgPath, rootContext)
-    if err != nil {
-        cmdutil.RenderError(cmd.ErrOrStderr(), rootFormat, err)
-        return err
-    }
-
-    // 3. Business logic ...
-    result, err := doSomething(cmd.Context(), ctxCfg)
-    if err != nil {
-        cmdutil.RenderError(cmd.ErrOrStderr(), rootFormat, err)
-        return err
-    }
-    return output.RenderRows(cmd.OutOrStdout(), ...)
+	// 2. Business logic ...
+	result, err := doSomething(cmd.Context(), ctxCfg)
+	if err != nil {
+		return err
+	}
+	return output.RenderRows(cmd.OutOrStdout(), ...)
 },
 ```

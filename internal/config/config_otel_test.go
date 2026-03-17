@@ -10,7 +10,7 @@ func TestOTelYAML(t *testing.T) {
 	content := `current-context: test
 contexts:
   test:
-    elasticsearch_url: "http://localhost:9200"
+    elasticsearch_url: "http://testing.invalid:9200"
     username: elastic
     password: elastic
 otel:
@@ -20,7 +20,7 @@ otel:
       - batch:
           exporter:
             otlp:
-              endpoint: http://localhost:4318
+              endpoint: http://testing.invalid:4318
 `
 	tmp := filepath.Join(t.TempDir(), "config.yaml")
 	if err := os.WriteFile(tmp, []byte(content), 0o600); err != nil {
@@ -44,7 +44,7 @@ func TestOTelYAML_absent(t *testing.T) {
 	content := `current-context: test
 contexts:
   test:
-    elasticsearch_url: "http://localhost:9200"
+    elasticsearch_url: "http://testing.invalid:9200"
     username: elastic
     password: elastic
 `

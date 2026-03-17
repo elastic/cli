@@ -21,7 +21,7 @@ func TestKibanaURLFromElasticsearchURL(t *testing.T) {
 		},
 		{
 			name:    "non cloud host cannot derive",
-			esURL:   "https://localhost:9200",
+			esURL:   "https://testing.invalid:9200",
 			wantErr: true,
 		},
 	}

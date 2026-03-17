@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/elastic/cli/internal/client"
+	"github.com/elastic/cli/internal/cmdutil"
 	"github.com/elastic/cli/internal/config"
 
 	"go.yaml.in/yaml/v3"
@@ -17,19 +18,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	apiMethod  string
-	apiData    string
-	apiHeaders []string
-	apiQuery   []string
-)
-
 func newRawCmd(service string) *cobra.Command {
-	return &cobra.Command{
+	var (
+		method  string
+		data    string
+		headers []string
+		query   []string
+	)
+
+	cmd := newCommand(commandSpec{
 		Use:          "raw <path> [key=value...]",
 		Short:        "Make a raw HTTP request",
 		Args:         cobra.MinimumNArgs(1),
 		SilenceUsage: true,
+		NoDryRun:     true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			p := strings.TrimSpace(args[0])
 			if p == "" {
@@ -43,7 +45,7 @@ func newRawCmd(service string) *cobra.Command {
 
 			q := url.Values{}
 			mergeQuery(q, qFromPath)
-			for _, kv := range apiQuery {
+			for _, kv := range query {
 				if err := addQueryKV(q, kv); err != nil {
 					return err
 				}
@@ -55,43 +57,37 @@ func newRawCmd(service string) *cobra.Command {
 			}
 
 			h := http.Header{}
-			for _, hv := range apiHeaders {
+			for _, hv := range headers {
 				k, v, err := splitHeaderKV(hv)
 				if err != nil {
 					return err
 				}
 				h.Add(k, v)
 			}
-			if apiData != "" && h.Get("Content-Type") == "" {
+			if data != "" && h.Get("Content-Type") == "" {
 				h.Set("Content-Type", "application/json")
 			}
 
-			path, err := config.DefaultPath()
+			resolvedMethod := strings.ToUpper(strings.TrimSpace(method))
+			if resolvedMethod == "" {
+				resolvedMethod = http.MethodGet
+			}
+
+			// dry-run: emit resolved request shape and exit before any I/O
+			if f := cmd.Flags().Lookup("dry-run"); f != nil && f.Value.String() == "true" {
+				return renderRawDryRun(cmd, rootFormat, pathOnly, resolvedMethod, q, h, data)
+			}
+
+			cfgPath, err := config.DefaultPath()
 			if err != nil {
 				return err
 			}
-			cfg, err := config.Load(path)
+			ctxCfg, err := cmdutil.LookupContext(cfgPath, rootContext)
 			if err != nil {
 				return err
 			}
 
-			ctxName := strings.TrimSpace(rootContext)
-			if ctxName == "" {
-				ctxName = cfg.CurrentContext
-			}
-			if ctxName == "" {
-				return fmt.Errorf("no context selected; run `elastic config context set <name> ...` and `elastic config context use <name>`")
-			}
-			ctxCfg, ok := cfg.Contexts[ctxName]
-			if !ok {
-				return fmt.Errorf("context %q not found; run `elastic config context list`", ctxName)
-			}
-
-			method := strings.TrimSpace(apiMethod)
-			if method == "" {
-				method = http.MethodGet
-			}
-			body := []byte(apiData)
+			body := []byte(data)
 
 			var resp client.RawResponse
 			switch service {
@@ -100,7 +96,7 @@ func newRawCmd(service string) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				resp, err = es.DoRaw(cmd.Context(), method, pathOnly, q, body, h)
+				resp, err = es.DoRaw(cmd.Context(), resolvedMethod, pathOnly, q, body, h)
 				if err != nil {
 					return err
 				}
@@ -109,7 +105,7 @@ func newRawCmd(service string) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				resp, err = kb.DoRaw(cmd.Context(), method, pathOnly, q, body, h)
+				resp, err = kb.DoRaw(cmd.Context(), resolvedMethod, pathOnly, q, body, h)
 				if err != nil {
 					return err
 				}
@@ -117,7 +113,7 @@ func newRawCmd(service string) *cobra.Command {
 				return fmt.Errorf("unknown service %q (try: es | kb)", service)
 			}
 
-			// Output: raw body by default. If the user selected json/yaml, attempt to parse JSON.
+			// output: raw body by default; parse JSON if format is json/yaml
 			format := strings.ToLower(strings.TrimSpace(rootFormat))
 			switch format {
 			case "json":
@@ -139,7 +135,60 @@ func newRawCmd(service string) *cobra.Command {
 			}
 			return nil
 		},
+	})
+
+	cmd.Flags().Bool("dry-run", false, "Print resolved request and exit without executing")
+	cmd.Flags().StringVarP(&method, "method", "X", "GET", "HTTP method")
+	cmd.Flags().StringVarP(&data, "data", "d", "", "Request body (string). If set, Content-Type defaults to application/json unless overridden with -H.")
+	cmd.Flags().StringArrayVarP(&headers, "header", "H", nil, "Header to add (repeatable), e.g. -H 'k:v'")
+	cmd.Flags().StringArrayVarP(&query, "query", "q", nil, "Query param to add (repeatable), e.g. -q 'k=v'")
+
+	return cmd
+}
+
+// renderRawDryRun writes the resolved request payload to cmd's stdout without
+// making any network calls. Under --format=json it emits structured JSON;
+// otherwise it prints a human-readable summary.
+func renderRawDryRun(cmd *cobra.Command, format, path, method string, q url.Values, h http.Header, body string) error {
+	format = strings.ToLower(strings.TrimSpace(format))
+	if format == "json" {
+		queryMap := map[string]string{}
+		for k, vv := range q {
+			queryMap[k] = strings.Join(vv, ",")
+		}
+		headerMap := map[string]string{}
+		for k, vv := range h {
+			headerMap[k] = strings.Join(vv, ",")
+		}
+		payload := struct {
+			DryRun struct {
+				Path    string            `json:"path"`
+				Method  string            `json:"method"`
+				Query   map[string]string `json:"query"`
+				Headers map[string]string `json:"headers"`
+				Body    string            `json:"body"`
+			} `json:"dry_run"`
+		}{}
+		payload.DryRun.Path = path
+		payload.DryRun.Method = method
+		payload.DryRun.Query = queryMap
+		payload.DryRun.Headers = headerMap
+		payload.DryRun.Body = body
+		b, _ := json.MarshalIndent(payload, "", "  ")
+		fmt.Fprintln(cmd.OutOrStdout(), string(b))
+	} else {
+		fmt.Fprintf(cmd.OutOrStdout(), "Dry run: %s %s\n", method, path)
+		for k, vv := range q {
+			fmt.Fprintf(cmd.OutOrStdout(), "  ?%s=%s\n", k, strings.Join(vv, ","))
+		}
+		for k, vv := range h {
+			fmt.Fprintf(cmd.OutOrStdout(), "  %s: %s\n", k, strings.Join(vv, ","))
+		}
+		if body != "" {
+			fmt.Fprintf(cmd.OutOrStdout(), "  body: %s\n", body)
+		}
 	}
+	return nil
 }
 
 var esRawCmd = newRawCmd("es")
@@ -148,16 +197,6 @@ var kbRawCmd = newRawCmd("kb")
 func init() {
 	esCmd.AddCommand(esRawCmd)
 	kbCmd.AddCommand(kbRawCmd)
-
-	esRawCmd.Flags().StringVarP(&apiMethod, "method", "X", "GET", "HTTP method")
-	esRawCmd.Flags().StringVarP(&apiData, "data", "d", "", "Request body (string). If set, Content-Type defaults to application/json unless overridden with -H.")
-	esRawCmd.Flags().StringArrayVarP(&apiHeaders, "header", "H", nil, "Header to add (repeatable), e.g. -H 'k:v'")
-	esRawCmd.Flags().StringArrayVarP(&apiQuery, "query", "q", nil, "Query param to add (repeatable), e.g. -q 'k=v'")
-
-	kbRawCmd.Flags().StringVarP(&apiMethod, "method", "X", "GET", "HTTP method")
-	kbRawCmd.Flags().StringVarP(&apiData, "data", "d", "", "Request body (string). If set, Content-Type defaults to application/json unless overridden with -H.")
-	kbRawCmd.Flags().StringArrayVarP(&apiHeaders, "header", "H", nil, "Header to add (repeatable), e.g. -H 'k:v'")
-	kbRawCmd.Flags().StringArrayVarP(&apiQuery, "query", "q", nil, "Query param to add (repeatable), e.g. -q 'k=v'")
 }
 
 func splitPathAndQuery(p string) (string, url.Values, error) {
@@ -165,7 +204,7 @@ func splitPathAndQuery(p string) (string, url.Values, error) {
 	if p == "" {
 		return "", nil, errors.New("path is empty")
 	}
-	// Allow users to pass either a pure path, or a path+query like "/_search?q=...".
+	// allow users to pass either a pure path, or a path+query like "/_search?q=..."
 	if strings.HasPrefix(p, "http://") || strings.HasPrefix(p, "https://") {
 		u, err := url.Parse(p)
 		if err != nil {
@@ -234,7 +273,7 @@ func prettyPrintJSON(w io.Writer, b []byte) error {
 	if err := json.Unmarshal(b, &v); err != nil {
 		return err
 	}
-	out, err := json.MarshalIndent(v, "", "  ")
+	out, err := json.MarshalIndent(v, "", " ")
 	if err != nil {
 		return err
 	}
