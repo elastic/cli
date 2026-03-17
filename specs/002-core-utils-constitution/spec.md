@@ -60,11 +60,11 @@ As a user or agent invoking any mutating command, I can pass `--dry-run` to vali
 
 ---
 
-### User Story 4 — Single Command Refactored to Use All Utilities (Priority: P2)
+### User Story 4 — All `es` Commands Refactored to Use All Utilities (Priority: P2)
 
-As a developer reviewing the codebase, I can point to one fully-refactored command as the canonical reference implementation that demonstrates how all the new utilities are composed correctly.
+As a developer reviewing the codebase, I can point to the fully-refactored `es`-family commands as the canonical reference implementations demonstrating how all the new utilities are composed correctly. The first-completed command serves as the template; the remaining five follow the same pattern.
 
-**Why this priority**: Utilities without adoption demonstrate nothing. One end-to-end refactor proves the utilities are ergonomic, complete, and tested. It becomes the template for all future commands.
+**Why this priority**: Utilities without adoption demonstrate nothing. Refactoring all six `es` commands proves the utilities are ergonomic, complete, and tested across the full `es` surface. The first refactor becomes the template for the rest.
 
 **Independent Test**: The chosen command's existing test coverage continues to pass; new tests cover the paths exercised by each utility; no net regression.
 
@@ -94,11 +94,11 @@ As a developer reviewing the codebase, I can point to one fully-refactored comma
 - **FR-004a**: The context-resolution utility MUST return a `StructuredError` with code `config_not_found` and a remediation hint pointing to `elastic config init` when the config file does not exist on disk (distinct from `context_not_found`).
 - **FR-005**: The codebase MUST expose a dry-run utility (function or middleware) that commands built on core utilities can opt into. When `--dry-run` is active, the utility MUST: (1) validate all declared inputs (flags/arguments) against the command's declared spec, (2) on validation failure exit non-zero with a `StructuredError`, and (3) on success print the resolved, validated inputs and exit 0 — without performing any I/O. No per-command payload type is required; the utility derives printable output from the command's declared configuration.
 - **FR-006**: The dry-run utility MUST honour `--format=json` when printing the resolved payload.
-- **FR-007**: One existing command MUST be refactored to use `StructuredError`, the context-resolution utility, and dry-run support, serving as the canonical reference implementation.
+- **FR-007**: All six `es`-family commands (`es indices list`, `es data-streams list`, `es remote-clusters list`, `es cluster health`, `es query`, `es raw`) MUST be refactored to use `StructuredError`, the context-resolution utility, and dry-run support. The first-completed command serves as the canonical reference implementation; the remainder follow the same pattern. (`es raw` is included in this feature's scope as an interim refactor; a future feature will replace it wholesale.)
 - **FR-008**: All new utility code MUST have unit test coverage; the refactored command MUST retain its existing test coverage and add tests for the newly exercised utility paths.
 - **FR-009**: All exported symbols in the utility packages MUST carry complete Go doc comments.
 - **FR-010**: A command that does not register `--dry-run` MUST return a `StructuredError` (code: `dry_run_not_supported`) and exit non-zero if the flag is somehow passed; it MUST NOT silently ignore it.
-- **FR-001** (amended): The `StructuredError` constructor or wrap helper MUST detect when the input error is already a `StructuredError` and return it unchanged rather than wrapping it.
+- **FR-001a** (amends FR-001): The `StructuredError` constructor or wrap helper MUST detect when the input error is already a `StructuredError` and return it unchanged rather than wrapping it.
 - **FR-011**: The utility package MUST define error codes as exported Go string constants (e.g. `ErrCodeValidation`, `ErrCodeConfigNotFound`, `ErrCodeContextNotFound`, `ErrCodeDryRunNotSupported`). Commands MUST use these constants; free-form code strings are not permitted.
 
 ### Key Entities
@@ -113,7 +113,7 @@ As a developer reviewing the codebase, I can point to one fully-refactored comma
 
 ### Measurable Outcomes
 
-- **SC-001**: Zero commands in the codebase duplicate the context-resolution block after the refactor task is complete (verified by code review of the one refactored command and utility extraction).
+- **SC-001**: Zero commands in the `es` family duplicate the context-resolution block after the refactor is complete (verified by code review of all six refactored commands: `es indices list`, `es data-streams list`, `es remote-clusters list`, `es cluster health`, `es query`, `es raw`).
 - **SC-002**: 100% of error responses produced by the refactored command under `--format=json` conform to `{"error":{"code":"...","message":"..."}}` — verifiable by automated test assertions.
 - **SC-003**: The refactored command's `--dry-run` path is covered by at least one unit test that asserts no network calls are made and exit code is 0.
 - **SC-004**: All new utility packages achieve at minimum 80% statement coverage as reported by `go test -cover`.
@@ -121,10 +121,10 @@ As a developer reviewing the codebase, I can point to one fully-refactored comma
 
 ## Assumptions
 
-- The command selected for the refactor task will be chosen by the developer at planning time based on complexity and coverage; the spec does not mandate a specific command.
+- All six `es`-family commands (`es indices list`, `es data-streams list`, `es remote-clusters list`, `es cluster health`, `es query`, `es raw`) are refactored in this feature. `es raw` is an interim refactor only — a future feature will replace it; the refactor here brings it into constitutional compliance in the meantime.
 - The dry-run utility is scoped to printing a human-readable or JSON representation of what *would* be sent — it does not require a formal request-object type common to all commands at this stage.
 - "Core utilities" live under `internal/` following existing project conventions; no new top-level packages are introduced.
-- The feature does not implement JSON Schema command introspection (Principle II) or config-driven command registration (Principle I) — those are deferred to future features. This feature addresses Principles II (agent-first error I/O), III (dry-run + validation errors), and IV (context management).
+- The feature **partially** addresses Principle II: error I/O shape (`StructuredError` + `RenderError`) is delivered; `--data` JSON input, `--help --format=json` schema introspection, and response templating are deferred to a future feature. This feature fully addresses Principles III (dry-run + validation errors) and IV (context management).
 
 
 ## Clarifications

@@ -1,24 +1,31 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: (none) → 1.0.0  (initial ratification)
+Version change: 1.0.0 → 1.0.1  (patch — Principle V intent clarification)
 
-Added sections:
-  - Core Principles (I–VI)
-  - Development Standards
-  - Governance
+Modified principles:
+  - V. Test-First Development: Removed "obtain user approval" step; reframed
+    as an internal agent discipline for reducing implementation churn, not a
+    human gating mechanism. Added rationale sentence explaining the purpose.
 
-Modified principles: N/A (initial version)
-Removed sections: N/A
+Added sections: none
+Removed sections: none
 
 Templates checked:
-  ✅ .specify/templates/plan-template.md — Constitution Check gates align with principles below
-  ✅ .specify/templates/spec-template.md — no conflicting constraints
-  ✅ .specify/templates/tasks-template.md — task categories reflect TDD and validation requirements
-  ✅ .specify/templates/agent-file-template.md — no agent-specific (CLAUDE-only) references that conflict
+  ✅ .specify/templates/plan-template.md — no TDD gate references; no change needed
+  ✅ .specify/templates/spec-template.md — no TDD gate references; no change needed
+  ✅ .specify/templates/tasks-template.md — no TDD gate references; no change needed
+  ✅ .specify/templates/constitution-template.md — example text is illustrative only;
+     no change needed
+  ✅ AGENTS.md — added TDD agent-discipline note explaining red/green cycle purpose
 
 Follow-up TODOs:
-  - TODO(RATIFICATION_DATE): Confirm the official adoption date once team agrees.
+  - TODO(RATIFICATION_DATE): confirm official adoption date
+  - tasks.md for feature 002-core-utils-constitution contains approval gates
+    (⛔ APPROVAL GATE blocks) that were inserted based on the old Principle V
+    wording. Those gates should be removed — they are not required under the
+    clarified principle. See specs/002-core-utils-constitution/tasks.md lines
+    33, 37, 53, 68, 97.
 -->
 
 # elastic CLI Constitution
@@ -82,10 +89,14 @@ defines one or more named contexts, mirroring `kubectl` conventions.
 
 ### V. Test-First Development (NON-NEGOTIABLE)
 
-All code changes MUST follow the red/green TDD cycle:
+All code changes MUST follow the red/green TDD cycle as an internal agent
+discipline. The purpose is to reduce implementation churn: writing tests first
+forces a precise understanding of the required behaviour before any implementation
+code is written, preventing large-scale rewrites caused by discovering
+misunderstood requirements mid-implementation.
 
 1. Write a failing test that captures the intended behaviour (red).
-2. Obtain user approval of the test before writing implementation code.
+2. Confirm the test fails for the right reason before writing implementation code.
 3. Write the minimum implementation to make the test pass (green).
 4. Refactor under green, keeping tests passing.
 
@@ -140,4 +151,4 @@ necessary. Each dependency is a security and maintenance liability.
 - Runtime development guidance for agents lives in `.specify/memory/` alongside
   this file.
 
-**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): confirm adoption date | **Last Amended**: 2026-03-17
+**Version**: 1.0.1 | **Ratified**: TODO(RATIFICATION_DATE): confirm adoption date | **Last Amended**: 2026-03-17

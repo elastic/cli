@@ -19,3 +19,20 @@ This project uses an opinionated local tooling layer to generate the artifacts t
 - Generate a plan: `/speckit-plan` — converts an approved spec into a structured plan.
 - Break into tasks: `/speckit-tasks` — decomposes a plan into trackable tasks.
 - Implement: `/speckit-implement` — works through tasks and updates checklists.
+
+### Agent implementation guidance
+
+#### TDD discipline (Constitution Principle V)
+
+When implementing tasks, follow the red/green cycle autonomously:
+
+1. Write the failing test first and confirm it fails for the right reason.
+2. Write the minimum implementation to make it pass.
+3. Refactor under green.
+
+This is an **internal agent discipline**, not a human checkpoint. The purpose is
+to reduce context churn: reasoning about the required behaviour before touching
+implementation code prevents large rewrites caused by misunderstood requirements.
+Do not stop and ask for human approval between writing a test and writing its
+implementation — proceed through the full red/green/refactor cycle and surface
+results at the task completion boundary.
