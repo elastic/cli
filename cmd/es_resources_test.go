@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"os"
 	"testing"
 
 	"github.com/elastic/cli/internal/cmdutil"
@@ -30,10 +31,12 @@ func TestESListCommandsLookupContextErrors(t *testing.T) {
 		tc := tc
 
 		t.Run(tc.name+"/missing_config_returns_ErrCodeConfigNotFound", func(t *testing.T) {
+			configDir := cmdutiltest.InitUserConfigDir(t)
+			os.RemoveAll(configDir)
+
 			oldCtx := rootContext
 			t.Cleanup(func() { rootContext = oldCtx })
 			rootContext = ""
-			t.Setenv("XDG_CONFIG_HOME", "/nonexistent/xdg/path")
 
 			tc.cmd.SetContext(context.Background())
 			err := tc.cmd.RunE(tc.cmd, nil)

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/elastic/cli/internal/cmdutil"
@@ -17,8 +19,8 @@ func TestRawCmdLookupContextErrors(t *testing.T) {
 	t.Cleanup(func() { rootContext = oldContext })
 
 	t.Run("missing config file returns ErrCodeConfigNotFound", func(t *testing.T) {
-		emptyDir := t.TempDir()
-		t.Setenv("XDG_CONFIG_HOME", emptyDir)
+		configDir := cmdutiltest.InitUserConfigDir(t)
+		os.RemoveAll(filepath.Join(configDir, "elastic"))
 		rootContext = ""
 
 		cmd := newRawCmd("es")
