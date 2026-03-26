@@ -27,3 +27,36 @@ When implementing tasks, follow the red/green cycle autonomously:
 3. Refactor while keeping tests green.
 
 Do not stop and ask for human approval between writing a test and writing its implementation. Proceed through the full red/green/refactor cycle and surface results at the task completion boundary.
+
+
+## Testing Patterns
+
+### Test Helper Packages (`{pkg}test`)
+
+Go tests should store reusable helpers and fixtures in a dedicated package named `{pkg}test`,
+co-located inside the package directory:
+
+```
+internal/factory/
+├── factory.go
+├── path.go
+├── path_test.go          # imports factorytest
+├── config_test.go
+└── factorytest/
+    └── helpers.go        # TempConfigFile(), TempConfigFileUnreadable()
+```
+
+**What belongs in a `{pkg}test` package**: shared *fixture* helpers — creating temp files,
+building test structs, seeding test data. Things that would otherwise be duplicated across
+multiple `_test.go` files.
+
+**What does not belong**: wrappers around `t.Setenv()`. The standard Go idiom for controlling
+environment variables in tests is simply:
+
+```go
+t.Setenv("ELASTIC_CONFIG", tmpFile)  // auto-restored after the test
+```
+
+`t.Setenv` sets the variable and restores the original value automatically on cleanup.
+There is no need for a `Env()` / `FakeEnv()` helper or a `getenv func(string) string`
+injection parameter — that is unnecessary indirection in Go.
