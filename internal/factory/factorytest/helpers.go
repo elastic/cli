@@ -4,6 +4,7 @@ package factorytest
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -35,6 +36,9 @@ func TempDataFile(t *testing.T, content []byte) string {
 // TempConfigFileUnreadable creates a temporary config file with no read permissions.
 // The caller should call Chmod(0644) in cleanup if needed.
 func TempConfigFileUnreadable(t *testing.T, content []byte) string {
+	if runtime.GOOS == "windows" {
+		t.Skip("file permission restrictions via chmod are not enforced on Windows")
+	}
 	tmpFile := TempConfigFile(t, content)
 	if err := os.Chmod(tmpFile, 0000); err != nil {
 		t.Fatal(err)
