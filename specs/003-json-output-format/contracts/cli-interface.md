@@ -30,7 +30,7 @@ elastic version --format=xml
 # JSON error output for Cobra-level failures (unknown command)
 elastic nonexistent-command --format=json
 # Exit code: 1
-# stdout: {"data":null,"error":{"code":"command_failed","message":"unknown command \"nonexistent-command\" for \"elastic\""},"warnings":[]}
+# stdout: {"data":null,"error":{"code":"unknown_command","message":"unknown command \"nonexistent-command\" for \"elastic\""},"warnings":[]}
 ```
 
 ## Output Format Contracts
@@ -73,7 +73,8 @@ elastic nonexistent-command --format=json
 **Examples**:
 ```json
 // Unknown / Cobra-level command error
-{"data": null, "error": {"code": "command_failed", "message": "unknown command \"foo\" for \"elastic\""}, "warnings": []}
+// Unrecognized subcommand
+{"data": null, "error": {"code": "unknown_command", "message": "unknown command \"foo\" for \"elastic\""}, "warnings": []}
 
 // Invalid argument
 {"data": null, "error": {"code": "invalid_argument", "message": "unsupported format \"xml\": supported values are \"text\" and \"json\""}, "warnings": []}

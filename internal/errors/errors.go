@@ -59,6 +59,16 @@ type CommandError struct {
 	Cause error
 }
 
+// UnknownCommandError is returned when a Cobra-level unknown-command error
+// occurs (e.g. the user typed a subcommand that does not exist).
+type UnknownCommandError struct {
+	Cause error
+}
+
+func (e *UnknownCommandError) Error() string     { return e.Cause.Error() }
+func (e *UnknownCommandError) ErrorCode() string { return "unknown_command" }
+func (e *UnknownCommandError) Unwrap() error     { return e.Cause }
+
 func (e *CommandError) Error() string     { return e.Cause.Error() }
 func (e *CommandError) ErrorCode() string { return "command_failed" }
 func (e *CommandError) Unwrap() error     { return e.Cause }

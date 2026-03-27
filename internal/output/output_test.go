@@ -172,8 +172,9 @@ func TestRender_JSONSuccess(t *testing.T) {
 
 func TestRender_JSONError(t *testing.T) {
 	var buf strings.Builder
-	if err := output.Render(&buf, output.FormatJSON, nil, &apperrors.CommandError{Cause: fmt.Errorf("oops")}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	err := output.Render(&buf, output.FormatJSON, nil, &apperrors.CommandError{Cause: fmt.Errorf("oops")})
+	if !errors.Is(err, output.ErrAlreadyRendered) {
+		t.Fatalf("expected ErrAlreadyRendered, got: %v", err)
 	}
 	got := buf.String()
 	var env map[string]any
@@ -284,8 +285,8 @@ func TestTypedErrors_RenderUsesCode(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var buf strings.Builder
-			if err := output.Render(&buf, output.FormatJSON, nil, tc.err); err != nil {
-				t.Fatalf("Render: %v", err)
+			if err := output.Render(&buf, output.FormatJSON, nil, tc.err); !errors.Is(err, output.ErrAlreadyRendered) {
+				t.Fatalf("expected ErrAlreadyRendered, got: %v", err)
 			}
 			var env map[string]any
 			if err := json.Unmarshal([]byte(strings.TrimSpace(buf.String())), &env); err != nil {

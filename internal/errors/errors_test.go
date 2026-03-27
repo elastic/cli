@@ -80,6 +80,21 @@ func TestCommandError(t *testing.T) {
 	}
 }
 
+func TestUnknownCommandError(t *testing.T) {
+	cause := fmt.Errorf(`unknown command "bogus" for "elastic"`)
+	err := &apperrors.UnknownCommandError{Cause: cause}
+
+	if err.ErrorCode() != "unknown_command" {
+		t.Errorf("ErrorCode(): got %q, want %q", err.ErrorCode(), "unknown_command")
+	}
+	if err.Error() != cause.Error() {
+		t.Errorf("Error(): got %q, want %q", err.Error(), cause.Error())
+	}
+	if !errors.Is(err, cause) {
+		t.Error("errors.Is: cause should be reachable via Unwrap")
+	}
+}
+
 // ErrorCode() is defined on all types, satisfying output.OutputError implicitly.
 // This compile-time assertion verifies each type satisfies the interface without
 // importing the output package (interfaces are satisfied implicitly in Go).
@@ -94,4 +109,5 @@ func TestAllTypesImplementOutputError(t *testing.T) {
 	var _ outputError = &apperrors.InputError{}
 	var _ outputError = &apperrors.InvalidArgumentError{}
 	var _ outputError = &apperrors.CommandError{}
+	var _ outputError = &apperrors.UnknownCommandError{}
 }

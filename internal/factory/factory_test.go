@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/elastic/cli/internal/factory/factorytest"
+	"github.com/elastic/cli/internal/output"
 	"github.com/spf13/cobra"
 )
 
@@ -779,8 +780,8 @@ func TestNew_FormatJSON_HandlerError_ProducesErrorEnvelope(t *testing.T) {
 	})
 
 	stdout, _, err := executeCmdCaptureWithStderr(t, cmd, "--format=json")
-	if err != nil {
-		t.Fatalf("unexpected RunE error: %v", err)
+	if !errors.Is(err, output.ErrAlreadyRendered) {
+		t.Fatalf("expected ErrAlreadyRendered, got: %v", err)
 	}
 	var env map[string]any
 	if jsonErr := json.Unmarshal([]byte(strings.TrimSpace(stdout)), &env); jsonErr != nil {
@@ -810,8 +811,8 @@ func TestNew_FormatJSON_HandlerError_NoStderr(t *testing.T) {
 	})
 
 	_, stderr, err := executeCmdCaptureWithStderr(t, cmd, "--format=json")
-	if err != nil {
-		t.Fatalf("unexpected RunE error: %v", err)
+	if !errors.Is(err, output.ErrAlreadyRendered) {
+		t.Fatalf("expected ErrAlreadyRendered, got: %v", err)
 	}
 	if stderr != "" {
 		t.Errorf("stderr: got %q, want empty", stderr)
@@ -851,8 +852,8 @@ func TestNew_FormatJSON_ConfigError_ProducesConfigErrorCode(t *testing.T) {
 	})
 
 	stdout, _, err := executeCmdCaptureWithStderr(t, cmd, "--format=json")
-	if err != nil {
-		t.Fatalf("unexpected RunE error: %v", err)
+	if !errors.Is(err, output.ErrAlreadyRendered) {
+		t.Fatalf("expected ErrAlreadyRendered, got: %v", err)
 	}
 	var env map[string]any
 	if jsonErr := json.Unmarshal([]byte(strings.TrimSpace(stdout)), &env); jsonErr != nil {
@@ -885,8 +886,8 @@ contexts:
 	})
 
 	stdout, _, err := executeCmdCaptureWithStderr(t, cmd, "--format=json", "--context=bogus")
-	if err != nil {
-		t.Fatalf("unexpected RunE error: %v", err)
+	if !errors.Is(err, output.ErrAlreadyRendered) {
+		t.Fatalf("expected ErrAlreadyRendered, got: %v", err)
 	}
 	var env map[string]any
 	if jsonErr := json.Unmarshal([]byte(strings.TrimSpace(stdout)), &env); jsonErr != nil {
@@ -910,8 +911,8 @@ func TestNew_FormatXML_ProducesInvalidArgumentCode(t *testing.T) {
 	})
 
 	stdout, _, err := executeCmdCaptureWithStderr(t, cmd, "--format=xml")
-	if err != nil {
-		t.Fatalf("unexpected RunE error: %v", err)
+	if !errors.Is(err, output.ErrAlreadyRendered) {
+		t.Fatalf("expected ErrAlreadyRendered, got: %v", err)
 	}
 	var env map[string]any
 	if jsonErr := json.Unmarshal([]byte(strings.TrimSpace(stdout)), &env); jsonErr != nil {

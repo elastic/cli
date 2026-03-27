@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	apperrors "github.com/elastic/cli/internal/errors"
 	"github.com/elastic/cli/internal/factory"
@@ -53,8 +55,13 @@ func Execute() {
 // routed to the appropriate output channel based on the --format flag.
 func executeRoot(cmd *cobra.Command, args []string, stdout, stderr io.Writer) int {
 	if err := cmd.Execute(); err != nil {
+		if errors.Is(err, output.ErrAlreadyRendered) {
+			// The error was already written as a JSON envelope to stdout by the
+			// factory's RunE; just exit non-zero without printing anything else.
+			return 1
+		}
 		if isJSONFormat(cmd, args) {
-			_ = output.Render(stdout, output.FormatJSON, nil, &apperrors.CommandError{Cause: err})
+			_ = output.Render(stdout, output.FormatJSON, nil, classifyCobraError(err))
 		} else {
 			fmt.Fprintf(stderr, "Error: %s\n", err)
 		}
@@ -84,4 +91,32 @@ func isJSONFormat(cmd *cobra.Command, rawArgs []string) bool {
 		}
 	}
 	return false
+}
+
+// classifyCobraError converts an error from cmd.Execute() into a typed
+// output.OutputError so the JSON envelope carries an accurate error code.
+//
+// Priority:
+//  1. Errors that already implement output.OutputError are passed through as-is.
+//  2. Cobra "unknown command" errors → unknown_command.
+//  3. pflag flag errors (unknown flag, bad syntax, etc.) → invalid_argument.
+//  4. Everything else → command_failed.
+func classifyCobraError(err error) output.OutputError {
+	var outErr output.OutputError
+	if errors.As(err, &outErr) {
+		return outErr
+	}
+	msg := err.Error()
+	if strings.HasPrefix(msg, "unknown command") {
+		return &apperrors.UnknownCommandError{Cause: err}
+	}
+	if strings.HasPrefix(msg, "unknown flag") ||
+		strings.HasPrefix(msg, "unknown shorthand flag") ||
+		strings.HasPrefix(msg, "bad flag syntax") ||
+		strings.HasPrefix(msg, "flag needs an argument") ||
+		strings.HasPrefix(msg, "invalid argument") ||
+		strings.HasPrefix(msg, "required flag") {
+		return &apperrors.InvalidArgumentError{Cause: err}
+	}
+	return &apperrors.CommandError{Cause: err}
 }

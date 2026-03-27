@@ -1,10 +1,14 @@
 package cmd
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/elastic/cli/cmd/cmdtest"
+	apperrors "github.com/elastic/cli/internal/errors"
+	"github.com/elastic/cli/internal/output"
 )
 
 func TestRootCmd_UseAndShort(t *testing.T) {
@@ -107,8 +111,8 @@ contexts:
 	rootCmd.SetOut(&outBuf)
 
 	err := rootCmd.Execute()
-	if err != nil {
-		t.Fatalf("expected nil error (factory handles JSON rendering), got: %v", err)
+	if !errors.Is(err, output.ErrAlreadyRendered) {
+		t.Fatalf("expected ErrAlreadyRendered, got: %v", err)
 	}
 
 	out := outBuf.String()
@@ -162,8 +166,8 @@ func TestExecuteRoot_CobraError_FormatJSON_WritesJSONToStdout(t *testing.T) {
 	if !strings.Contains(out, `"error"`) {
 		t.Errorf("stdout missing 'error' key: %q", out)
 	}
-	if !strings.Contains(out, "command_failed") {
-		t.Errorf("stdout missing 'command_failed' code: %q", out)
+	if !strings.Contains(out, "unknown_command") {
+		t.Errorf("stdout missing 'unknown_command' code: %q", out)
 	}
 	if stderr.Len() != 0 {
 		t.Errorf("stderr should be empty in JSON mode, got: %q", stderr.String())
@@ -217,5 +221,45 @@ contexts:
 
 	if code != 0 {
 		t.Errorf("exit code = %d; want 0", code)
+	}
+}
+
+// classifyCobraError passes through errors that already implement
+// output.OutputError instead of re-wrapping them.
+func TestClassifyCobraError_OutputError_PassesThrough(t *testing.T) {
+	original := &apperrors.ContextNotFoundError{Name: "prod", Available: []string{"dev"}}
+	got := classifyCobraError(original)
+	if got != original {
+		t.Errorf("expected same pointer; got %T %v", got, got)
+	}
+	if got.ErrorCode() != "context_not_found" {
+		t.Errorf("ErrorCode() = %q; want %q", got.ErrorCode(), "context_not_found")
+	}
+}
+
+// classifyCobraError maps Cobra "unknown command" errors to unknown_command.
+func TestClassifyCobraError_UnknownCommand(t *testing.T) {
+	err := fmt.Errorf(`unknown command "bogus" for "elastic"`)
+	got := classifyCobraError(err)
+	if got.ErrorCode() != "unknown_command" {
+		t.Errorf("ErrorCode() = %q; want %q", got.ErrorCode(), "unknown_command")
+	}
+}
+
+// classifyCobraError maps pflag "unknown flag" errors to invalid_argument.
+func TestClassifyCobraError_UnknownFlag(t *testing.T) {
+	err := fmt.Errorf("unknown flag: --bogus")
+	got := classifyCobraError(err)
+	if got.ErrorCode() != "invalid_argument" {
+		t.Errorf("ErrorCode() = %q; want %q", got.ErrorCode(), "invalid_argument")
+	}
+}
+
+// classifyCobraError maps unrecognised errors to command_failed.
+func TestClassifyCobraError_FallbackCommandFailed(t *testing.T) {
+	err := fmt.Errorf("some internal cobra error")
+	got := classifyCobraError(err)
+	if got.ErrorCode() != "command_failed" {
+		t.Errorf("ErrorCode() = %q; want %q", got.ErrorCode(), "command_failed")
 	}
 }

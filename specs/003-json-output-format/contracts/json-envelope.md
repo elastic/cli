@@ -77,8 +77,9 @@ Both fields are always present and non-empty.
 
 | Code | Description | Example trigger |
 |------|-------------|-----------------|
-| `command_failed` | Unrecognized subcommand or generic handler error | `elastic bogus --format=json`; network timeout |
-| `invalid_argument` | Flag value not supported | `elastic version --format=xml` |
+| `unknown_command` | Unrecognized subcommand | `elastic bogus --format=json` |
+| `command_failed` | Generic handler error (network timeout, unexpected failure) | Handler returns an error |
+| `invalid_argument` | Flag value not supported or unknown flag | `elastic version --format=xml`; `elastic version --bogus-flag` |
 | `config_error` | Config unreadable or malformed | Permission denied on config file |
 | `context_not_found` | `--context` names missing context | `elastic version --context=nope` |
 | `input_error` | Input read failure | `--file` path doesn't exist |
@@ -112,7 +113,7 @@ elastic version --format=json | python3 -c 'import json,sys; json.load(sys.stdin
 
 # Error responses are also valid JSON (note: no stderr redirection needed):
 elastic bogus --format=json | jq -r '.error.code'
-# prints: command_failed
+# prints: unknown_command
 ```
 
 ## Backward Compatibility

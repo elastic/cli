@@ -4,6 +4,7 @@ package output
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 )
@@ -11,6 +12,12 @@ import (
 // FormatText is the default human-readable output format.
 const FormatText = "text"
 
+
+// ErrAlreadyRendered is returned by Render when it successfully writes a JSON
+// error envelope to the output stream. It signals that the error has already
+// been presented to the user and the caller should exit non-zero without
+// printing anything further. Use errors.Is to detect it.
+var ErrAlreadyRendered = errors.New("error already rendered")
 // FormatJSON is the machine-readable JSON envelope output format.
 const FormatJSON = "json"
 
@@ -79,8 +86,13 @@ func Render(w io.Writer, format string, data any, cmdErr OutputError) error {
 		if err != nil {
 			return fmt.Errorf("marshal envelope: %w", err)
 		}
-		_, err = fmt.Fprintf(w, "%s\n", b)
-		return err
+		if _, err = fmt.Fprintf(w, "%s\n", b); err != nil {
+			return err
+		}
+		if cmdErr != nil {
+			return ErrAlreadyRendered
+		}
+		return nil
 	}
 
 	// text mode: surface the original error so Cobra/Execute() can handle it.

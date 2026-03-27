@@ -45,13 +45,16 @@ type RunContext struct {
 //     A missing file is not an error — a zero-value Config is used instead.
 //  3. Resolves ActiveContext from the --context persistent flag (if set and
 //     non-empty) or falls back to Config.CurrentContext.
-//  4. Returns an error if --context names a context that does not exist.
+//  4. Renders a context_not_found error envelope if --context names an unknown context.
 //  5. Reads the request body from --file or piped stdin (see readBody).
-//  6. Returns an error if both --file and piped stdin provide data simultaneously.
+//  6. Renders an input_error envelope if both --file and piped stdin provide data.
 //  7. Calls run with the fully populated RunContext.
 //
-// All errors are returned to Cobra and written to stderr by the root command;
-// no os.Exit is called inside this package.
+// All errors (config, context, input, and RunFunc errors) are handled inside
+// RunE via output.Render and written to cmd.OutOrStdout(). In JSON mode Render
+// writes the error envelope and returns nil, so Cobra never sees the error. In
+// text mode Render returns the error so that executeRoot can write it to stderr.
+// No os.Exit calls appear inside this package.
 func New(name, description string, run RunFunc) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
