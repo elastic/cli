@@ -45,7 +45,7 @@ func init() {
 // If per-command middleware (tracing, audit logging) is needed in the future,
 // migrating to a context-passing + PersistentPostRunE pattern is the right move.
 func Execute() {
-	os.Exit(executeRoot(rootCmd, os.Args[1:], os.Stdout, os.Stderr))
+	os.Exit(executeRoot(rootCmd, os.Args[1:], rootCmd.OutOrStdout(), rootCmd.ErrOrStderr()))
 }
 
 // executeRoot runs the given command and returns an exit code.
