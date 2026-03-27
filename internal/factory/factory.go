@@ -7,13 +7,15 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/elastic/cli/internal/output"
 	"github.com/spf13/cobra"
 )
 
 // RunFunc is the handler type that every subcommand implements.
 // The factory calls it after fully populating RunContext.
-// A non-nil return value propagates to Cobra as a command error.
-type RunFunc func(ctx RunContext) error
+// The first return value is the data payload written to output; the second is
+// any error that occurred. Both nil is valid (produces a null data envelope).
+type RunFunc func(ctx RunContext) (any, error)
 
 // RunContext is the per-invocation execution context passed to every handler.
 type RunContext struct {
@@ -95,7 +97,20 @@ func New(name, description string, run RunFunc) *cobra.Command {
 				ActiveContext: activeContext,
 				Body:          body,
 			}
-			return run(ctx)
+
+			// Resolve output format from root persistent flags.
+			format := output.FormatText
+			if f := cmd.Root().PersistentFlags().Lookup("format"); f != nil {
+				if v := f.Value.String(); v != "" {
+					if err := output.ValidateFormat(v); err != nil {
+						return output.Render(cmd.OutOrStdout(), output.FormatJSON, nil, fmt.Errorf("unsupported format %q: supported values are %q and %q", v, output.FormatText, output.FormatJSON))
+					}
+					format = v
+				}
+			}
+
+			data, runErr := run(ctx)
+			return output.Render(cmd.OutOrStdout(), format, data, runErr)
 		},
 	}
 	cmd.Flags().String("file", "", "Path to an input JSON file")

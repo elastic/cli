@@ -72,3 +72,9 @@ contexts:
 		t.Errorf("error %q should contain 'not found'", err.Error())
 	}
 }
+
+func TestRootCmd_FormatFlag(t *testing.T) {
+	if rootCmd.PersistentFlags().Lookup("format") == nil {
+		t.Error("--format persistent flag not registered on rootCmd")
+	}
+}

@@ -23,9 +23,9 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&contextFlag, "context", "", "Context to use for this command")
-	rootCmd.AddCommand(factory.New("version", "Print version info", func(ctx factory.RunContext) error {
-		fmt.Fprintln(os.Stdout, "elastic version dev")
-		return nil
+	rootCmd.PersistentFlags().String("format", "text", "Output format (text|json)")
+	rootCmd.AddCommand(factory.New("version", "Print version info", func(ctx factory.RunContext) (any, error) {
+		return "elastic version dev", nil
 	}))
 }
 

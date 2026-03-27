@@ -28,14 +28,14 @@ func executeCmd(t *testing.T, sub *cobra.Command, args ...string) error {
 // ---- New() command fields ---------------------------------------------------
 
 func TestNew_Use(t *testing.T) {
-	cmd := New("my-cmd", "short desc", func(ctx RunContext) error { return nil })
+	cmd := New("my-cmd", "short desc", func(ctx RunContext) (any, error) { return nil, nil })
 	if cmd.Use != "my-cmd" {
 		t.Errorf("Use: got %q, want %q", cmd.Use, "my-cmd")
 	}
 }
 
 func TestNew_Short(t *testing.T) {
-	cmd := New("my-cmd", "short desc", func(ctx RunContext) error { return nil })
+	cmd := New("my-cmd", "short desc", func(ctx RunContext) (any, error) { return nil, nil })
 	if cmd.Short != "short desc" {
 		t.Errorf("Short: got %q, want %q", cmd.Short, "short desc")
 	}
@@ -55,9 +55,9 @@ contexts:
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	callCount := 0
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		callCount++
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmd(t, cmd); err != nil {
@@ -84,9 +84,9 @@ contexts:
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmd(t, cmd); err != nil {
@@ -112,9 +112,9 @@ func TestNew_RunContextConfigPath(t *testing.T) {
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmd(t, cmd); err != nil {
@@ -131,7 +131,7 @@ func TestNew_HandlerErrorPropagates(t *testing.T) {
 	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
 
 	want := errors.New("handler failure")
-	cmd := New("sub", "desc", func(ctx RunContext) error { return want })
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) { return nil, want })
 
 	err := executeCmd(t, cmd)
 	if err == nil {
@@ -156,8 +156,8 @@ contexts:
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	var ctx1, ctx2 RunContext
-	cmd1 := New("cmd-one", "first", func(ctx RunContext) error { ctx1 = ctx; return nil })
-	cmd2 := New("cmd-two", "second", func(ctx RunContext) error { ctx2 = ctx; return nil })
+	cmd1 := New("cmd-one", "first", func(ctx RunContext) (any, error) { ctx1 = ctx; return nil, nil })
+	cmd2 := New("cmd-two", "second", func(ctx RunContext) (any, error) { ctx2 = ctx; return nil, nil })
 
 	if err := executeCmd(t, cmd1); err != nil {
 		t.Fatalf("cmd1: %v", err)
@@ -189,9 +189,9 @@ func TestNew_NoConfigFile_XDGEmpty(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", tmpDir)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmd(t, cmd); err != nil {
@@ -219,9 +219,9 @@ func TestNew_NoConfigFile_HomeEmpty(t *testing.T) {
 	t.Setenv("HOME", tmpDir)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmd(t, cmd); err != nil {
@@ -256,9 +256,9 @@ contexts:
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 	if err := executeCmd(t, cmd); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -288,9 +288,9 @@ contexts:
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 	if err := executeCmd(t, cmd); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -326,9 +326,9 @@ contexts:
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 	if err := executeCmd(t, cmd); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -370,7 +370,7 @@ func TestNew_Context_FlagOverridesCurrentContext(t *testing.T) {
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error { received = ctx; return nil })
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) { received = ctx; return nil, nil })
 	if err := executeCmd(t, cmd, "--context=dev"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -384,7 +384,7 @@ func TestNew_Context_DefaultsToCurrentContext(t *testing.T) {
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error { received = ctx; return nil })
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) { received = ctx; return nil, nil })
 	if err := executeCmd(t, cmd); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -397,7 +397,7 @@ func TestNew_Context_UnknownName_ErrorListsAvailable(t *testing.T) {
 	configPath := factorytest.TempConfigFile(t, []byte(twoContextConfig))
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
-	cmd := New("sub", "desc", func(ctx RunContext) error { return nil })
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) { return nil, nil })
 	err := executeCmd(t, cmd, "--context=missing")
 	if err == nil {
 		t.Fatal("expected error for unknown context, got nil")
@@ -418,7 +418,7 @@ func TestNew_Context_NoConfigFile_NoFlag_EmptyActiveContext(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error { received = ctx; return nil })
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) { received = ctx; return nil, nil })
 	if err := executeCmd(t, cmd); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -431,7 +431,7 @@ func TestNew_Context_NoConfigFile_WithFlag_Errors(t *testing.T) {
 	t.Setenv("ELASTIC_CONFIG", "")
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 
-	cmd := New("sub", "desc", func(ctx RunContext) error { return nil })
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) { return nil, nil })
 	err := executeCmd(t, cmd, "--context=anything")
 	if err == nil {
 		t.Fatal("expected error when --context set but no contexts configured, got nil")
@@ -450,9 +450,9 @@ func TestNew_Body_NilWhenNoInputConfigured(t *testing.T) {
 	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmd(t, cmd); err != nil {
@@ -481,9 +481,9 @@ func TestNew_Body_PopulatedFromStdin(t *testing.T) {
 
 	payload := []byte(`{"x":1}`)
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmdWithStdin(t, cmd, bytes.NewReader(payload)); err != nil {
@@ -500,9 +500,9 @@ func TestNew_Body_NilWhenStdinEmpty(t *testing.T) {
 	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmdWithStdin(t, cmd, bytes.NewReader(nil)); err != nil {
@@ -524,9 +524,9 @@ func TestNew_Body_PopulatedFromFile(t *testing.T) {
 	filePath := factorytest.TempDataFile(t, payload)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmd(t, cmd, "--file", filePath); err != nil {
@@ -543,9 +543,9 @@ func TestNew_Body_ErrorWhenFileNotFound(t *testing.T) {
 	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
 
 	handlerCalled := false
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		handlerCalled = true
-		return nil
+		return nil, nil
 	})
 
 	err := executeCmd(t, cmd, "--file", "/nonexistent/path/payload.json")
@@ -568,9 +568,9 @@ func TestNew_Body_ErrorWhenFileUnreadable(t *testing.T) {
 	filePath := factorytest.TempConfigFileUnreadable(t, []byte(`{}`))
 
 	handlerCalled := false
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		handlerCalled = true
-		return nil
+		return nil, nil
 	})
 
 	err := executeCmd(t, cmd, "--file", filePath)
@@ -590,9 +590,9 @@ func TestNew_Body_NilWhenFileEmpty(t *testing.T) {
 	filePath := factorytest.TempDataFile(t, []byte{})
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmd(t, cmd, "--file", filePath); err != nil {
@@ -614,9 +614,9 @@ func TestNew_Body_ErrorWhenBothStdinAndFile(t *testing.T) {
 	stdinData := bytes.NewReader([]byte(`{"source":"stdin"}`))
 
 	handlerCalled := false
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		handlerCalled = true
-		return nil
+		return nil, nil
 	})
 
 	err := executeCmdWithStdin(t, cmd, stdinData, "--file", filePath)
