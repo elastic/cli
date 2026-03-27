@@ -696,6 +696,10 @@ func TestNew_FormatJSON_OutputIsValidJSON(t *testing.T) {
 }
 
 // jsonValid reports whether b is a single valid JSON value with no trailing content.
+// jsonValid reports whether b is a single valid JSON value with no trailing
+// content (whitespace excepted). dec.More() is not used because it peeks the
+// next byte and returns false for trailing } or ], silently accepting malformed
+// input. Instead, a second Decode is attempted: io.EOF means nothing follows.
 func jsonValid(b []byte) bool {
 	if len(b) == 0 {
 		return false
@@ -705,7 +709,38 @@ func jsonValid(b []byte) bool {
 	if err := dec.Decode(&v); err != nil {
 		return false
 	}
-	return !dec.More()
+	var extra any
+	return errors.Is(dec.Decode(&extra), io.EOF)
+}
+
+func TestJsonValid(t *testing.T) {
+	tests := []struct {
+		input string
+		want  bool
+	}{
+		{`{"data":"ok","error":null,"warnings":[]}`, true},
+		{`"just a string"`, true},
+		{`42`, true},
+		{`{}`, true},
+		{``, false},
+		{`not json`, false},
+		// trailing non-whitespace must be rejected
+		{`{} trailing`, false},
+		{`{"a":1} {"b":2}`, false},
+		// trailing } or ] fools dec.More() (it peeks and treats them as
+		// container-end markers, returning false); second-decode catches them
+		{`{"a":1}}`, false},
+		{`[1,2]]`, false},
+		{`{"a":1} ]`, false},
+		// whitespace-only trailing is acceptable
+		{`{"a":1}   `, true},
+	}
+	for _, tt := range tests {
+		got := jsonValid([]byte(tt.input))
+		if got != tt.want {
+			t.Errorf("jsonValid(%q) = %v; want %v", tt.input, got, tt.want)
+		}
+	}
 }
 
 // no --format flag produces unchanged plain-text output (backward compatibility).
