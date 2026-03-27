@@ -2,13 +2,16 @@ package factory
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/elastic/cli/internal/factory/factorytest"
+	"github.com/elastic/cli/internal/output"
 	"github.com/spf13/cobra"
 )
 
@@ -28,14 +31,14 @@ func executeCmd(t *testing.T, sub *cobra.Command, args ...string) error {
 // ---- New() command fields ---------------------------------------------------
 
 func TestNew_Use(t *testing.T) {
-	cmd := New("my-cmd", "short desc", func(ctx RunContext) error { return nil })
+	cmd := New("my-cmd", "short desc", func(ctx RunContext) (any, error) { return nil, nil })
 	if cmd.Use != "my-cmd" {
 		t.Errorf("Use: got %q, want %q", cmd.Use, "my-cmd")
 	}
 }
 
 func TestNew_Short(t *testing.T) {
-	cmd := New("my-cmd", "short desc", func(ctx RunContext) error { return nil })
+	cmd := New("my-cmd", "short desc", func(ctx RunContext) (any, error) { return nil, nil })
 	if cmd.Short != "short desc" {
 		t.Errorf("Short: got %q, want %q", cmd.Short, "short desc")
 	}
@@ -55,9 +58,9 @@ contexts:
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	callCount := 0
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		callCount++
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmd(t, cmd); err != nil {
@@ -84,9 +87,9 @@ contexts:
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmd(t, cmd); err != nil {
@@ -112,9 +115,9 @@ func TestNew_RunContextConfigPath(t *testing.T) {
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmd(t, cmd); err != nil {
@@ -131,7 +134,7 @@ func TestNew_HandlerErrorPropagates(t *testing.T) {
 	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
 
 	want := errors.New("handler failure")
-	cmd := New("sub", "desc", func(ctx RunContext) error { return want })
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) { return nil, want })
 
 	err := executeCmd(t, cmd)
 	if err == nil {
@@ -156,8 +159,8 @@ contexts:
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	var ctx1, ctx2 RunContext
-	cmd1 := New("cmd-one", "first", func(ctx RunContext) error { ctx1 = ctx; return nil })
-	cmd2 := New("cmd-two", "second", func(ctx RunContext) error { ctx2 = ctx; return nil })
+	cmd1 := New("cmd-one", "first", func(ctx RunContext) (any, error) { ctx1 = ctx; return nil, nil })
+	cmd2 := New("cmd-two", "second", func(ctx RunContext) (any, error) { ctx2 = ctx; return nil, nil })
 
 	if err := executeCmd(t, cmd1); err != nil {
 		t.Fatalf("cmd1: %v", err)
@@ -189,9 +192,9 @@ func TestNew_NoConfigFile_XDGEmpty(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", tmpDir)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmd(t, cmd); err != nil {
@@ -219,9 +222,9 @@ func TestNew_NoConfigFile_HomeEmpty(t *testing.T) {
 	t.Setenv("HOME", tmpDir)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmd(t, cmd); err != nil {
@@ -256,9 +259,9 @@ contexts:
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 	if err := executeCmd(t, cmd); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -288,9 +291,9 @@ contexts:
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 	if err := executeCmd(t, cmd); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -326,9 +329,9 @@ contexts:
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 	if err := executeCmd(t, cmd); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -370,7 +373,7 @@ func TestNew_Context_FlagOverridesCurrentContext(t *testing.T) {
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error { received = ctx; return nil })
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) { received = ctx; return nil, nil })
 	if err := executeCmd(t, cmd, "--context=dev"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -384,7 +387,7 @@ func TestNew_Context_DefaultsToCurrentContext(t *testing.T) {
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error { received = ctx; return nil })
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) { received = ctx; return nil, nil })
 	if err := executeCmd(t, cmd); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -397,7 +400,7 @@ func TestNew_Context_UnknownName_ErrorListsAvailable(t *testing.T) {
 	configPath := factorytest.TempConfigFile(t, []byte(twoContextConfig))
 	t.Setenv("ELASTIC_CONFIG", configPath)
 
-	cmd := New("sub", "desc", func(ctx RunContext) error { return nil })
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) { return nil, nil })
 	err := executeCmd(t, cmd, "--context=missing")
 	if err == nil {
 		t.Fatal("expected error for unknown context, got nil")
@@ -418,7 +421,7 @@ func TestNew_Context_NoConfigFile_NoFlag_EmptyActiveContext(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error { received = ctx; return nil })
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) { received = ctx; return nil, nil })
 	if err := executeCmd(t, cmd); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -431,7 +434,7 @@ func TestNew_Context_NoConfigFile_WithFlag_Errors(t *testing.T) {
 	t.Setenv("ELASTIC_CONFIG", "")
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 
-	cmd := New("sub", "desc", func(ctx RunContext) error { return nil })
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) { return nil, nil })
 	err := executeCmd(t, cmd, "--context=anything")
 	if err == nil {
 		t.Fatal("expected error when --context set but no contexts configured, got nil")
@@ -450,9 +453,9 @@ func TestNew_Body_NilWhenNoInputConfigured(t *testing.T) {
 	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmd(t, cmd); err != nil {
@@ -481,9 +484,9 @@ func TestNew_Body_PopulatedFromStdin(t *testing.T) {
 
 	payload := []byte(`{"x":1}`)
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmdWithStdin(t, cmd, bytes.NewReader(payload)); err != nil {
@@ -500,9 +503,9 @@ func TestNew_Body_NilWhenStdinEmpty(t *testing.T) {
 	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmdWithStdin(t, cmd, bytes.NewReader(nil)); err != nil {
@@ -524,9 +527,9 @@ func TestNew_Body_PopulatedFromFile(t *testing.T) {
 	filePath := factorytest.TempDataFile(t, payload)
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmd(t, cmd, "--file", filePath); err != nil {
@@ -543,9 +546,9 @@ func TestNew_Body_ErrorWhenFileNotFound(t *testing.T) {
 	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
 
 	handlerCalled := false
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		handlerCalled = true
-		return nil
+		return nil, nil
 	})
 
 	err := executeCmd(t, cmd, "--file", "/nonexistent/path/payload.json")
@@ -568,9 +571,9 @@ func TestNew_Body_ErrorWhenFileUnreadable(t *testing.T) {
 	filePath := factorytest.TempConfigFileUnreadable(t, []byte(`{}`))
 
 	handlerCalled := false
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		handlerCalled = true
-		return nil
+		return nil, nil
 	})
 
 	err := executeCmd(t, cmd, "--file", filePath)
@@ -590,9 +593,9 @@ func TestNew_Body_NilWhenFileEmpty(t *testing.T) {
 	filePath := factorytest.TempDataFile(t, []byte{})
 
 	var received RunContext
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		received = ctx
-		return nil
+		return nil, nil
 	})
 
 	if err := executeCmd(t, cmd, "--file", filePath); err != nil {
@@ -614,9 +617,9 @@ func TestNew_Body_ErrorWhenBothStdinAndFile(t *testing.T) {
 	stdinData := bytes.NewReader([]byte(`{"source":"stdin"}`))
 
 	handlerCalled := false
-	cmd := New("sub", "desc", func(ctx RunContext) error {
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
 		handlerCalled = true
-		return nil
+		return nil, nil
 	})
 
 	err := executeCmdWithStdin(t, cmd, stdinData, "--file", filePath)
@@ -628,5 +631,421 @@ func TestNew_Body_ErrorWhenBothStdinAndFile(t *testing.T) {
 	}
 	if handlerCalled {
 		t.Error("handler must not be called when input source is ambiguous")
+	}
+}
+
+// ---- JSON output format -----------------------------------------------
+
+// executeCmdCapture runs the subcommand under a fresh root with --format
+// registered as a persistent flag, captures stdout, and returns it along with
+// any error. Extra args follow the subcommand name.
+func executeCmdCapture(t *testing.T, sub *cobra.Command, args ...string) (string, error) {
+	t.Helper()
+	var contextFlag, formatFlag string
+	root := &cobra.Command{Use: "root", SilenceErrors: true, SilenceUsage: true}
+	root.PersistentFlags().StringVar(&contextFlag, "context", "", "")
+	root.PersistentFlags().StringVar(&formatFlag, "format", "text", "")
+	root.AddCommand(sub)
+	root.SetArgs(append([]string{sub.Use}, args...))
+	var buf bytes.Buffer
+	root.SetOut(&buf)
+	sub.SetOut(&buf)
+	err := root.Execute()
+	return buf.String(), err
+}
+
+// --format=json produces valid JSON envelope with "data" field matching handler return.
+func TestNew_FormatJSON_ProducesEnvelopeWithData(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
+
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
+		return "elastic version dev", nil
+	})
+
+	out, err := executeCmdCapture(t, cmd, "--format=json")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out, `"data"`) {
+		t.Errorf("output missing 'data' key: %q", out)
+	}
+	if !strings.Contains(out, "elastic version dev") {
+		t.Errorf("output missing data value: %q", out)
+	}
+	if !strings.Contains(out, `"error":null`) {
+		t.Errorf("output missing null error: %q", out)
+	}
+}
+
+// --format=json stdout output is valid JSON with no preamble or trailing text.
+func TestNew_FormatJSON_OutputIsValidJSON(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
+
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
+		return "hello", nil
+	})
+
+	out, err := executeCmdCapture(t, cmd, "--format=json")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	trimmed := strings.TrimSpace(out)
+	if !jsonValid([]byte(trimmed)) {
+		t.Errorf("output is not valid JSON: %q", out)
+	}
+}
+
+// jsonValid reports whether b is a single valid JSON value with no trailing content.
+// jsonValid reports whether b is a single valid JSON value with no trailing
+// content (whitespace excepted). dec.More() is not used because it peeks the
+// next byte and returns false for trailing } or ], silently accepting malformed
+// input. Instead, a second Decode is attempted: io.EOF means nothing follows.
+func jsonValid(b []byte) bool {
+	if len(b) == 0 {
+		return false
+	}
+	dec := json.NewDecoder(bytes.NewReader(b))
+	var v any
+	if err := dec.Decode(&v); err != nil {
+		return false
+	}
+	var extra any
+	return errors.Is(dec.Decode(&extra), io.EOF)
+}
+
+func TestJsonValid(t *testing.T) {
+	tests := []struct {
+		input string
+		want  bool
+	}{
+		{`{"data":"ok","error":null,"warnings":[]}`, true},
+		{`"just a string"`, true},
+		{`42`, true},
+		{`{}`, true},
+		{``, false},
+		{`not json`, false},
+		// trailing non-whitespace must be rejected
+		{`{} trailing`, false},
+		{`{"a":1} {"b":2}`, false},
+		// trailing } or ] fools dec.More() (it peeks and treats them as
+		// container-end markers, returning false); second-decode catches them
+		{`{"a":1}}`, false},
+		{`[1,2]]`, false},
+		{`{"a":1} ]`, false},
+		// whitespace-only trailing is acceptable
+		{`{"a":1}   `, true},
+	}
+	for _, tt := range tests {
+		got := jsonValid([]byte(tt.input))
+		if got != tt.want {
+			t.Errorf("jsonValid(%q) = %v; want %v", tt.input, got, tt.want)
+		}
+	}
+}
+
+// no --format flag produces unchanged plain-text output (backward compatibility).
+func TestNew_NoFormat_ProducesTextOutput(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
+
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
+		return "plain output", nil
+	})
+
+	out, err := executeCmdCapture(t, cmd)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if strings.TrimSpace(out) != "plain output" {
+		t.Errorf("text output: got %q, want %q", strings.TrimSpace(out), "plain output")
+	}
+}
+
+// --format=text produces identical output to no flag.
+func TestNew_FormatText_IdenticalToNoFlag(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
+
+	makeCmd := func() *cobra.Command {
+		return New("sub", "desc", func(ctx RunContext) (any, error) {
+			return "plain output", nil
+		})
+	}
+
+	outNoFlag, err := executeCmdCapture(t, makeCmd())
+	if err != nil {
+		t.Fatalf("no-flag: unexpected error: %v", err)
+	}
+	outText, err := executeCmdCapture(t, makeCmd(), "--format=text")
+	if err != nil {
+		t.Fatalf("--format=text: unexpected error: %v", err)
+	}
+	if outNoFlag != outText {
+		t.Errorf("--format=text output differs from no-flag output:\n  no-flag: %q\n  text:    %q", outNoFlag, outText)
+	}
+}
+
+// ---- Error output in JSON mode ----------------------------------------
+
+// executeCmdCaptureWithStderr runs the subcommand under a fresh root with
+// --format and --context registered, captures both stdout and stderr, and
+// returns them along with any error.
+func executeCmdCaptureWithStderr(t *testing.T, sub *cobra.Command, args ...string) (stdout, stderr string, err error) {
+	t.Helper()
+	var contextFlag, formatFlag string
+	root := &cobra.Command{Use: "root", SilenceErrors: true, SilenceUsage: true}
+	root.PersistentFlags().StringVar(&contextFlag, "context", "", "")
+	root.PersistentFlags().StringVar(&formatFlag, "format", "text", "")
+	root.AddCommand(sub)
+	root.SetArgs(append([]string{sub.Use}, args...))
+	var outBuf, errBuf bytes.Buffer
+	root.SetOut(&outBuf)
+	root.SetErr(&errBuf)
+	sub.SetOut(&outBuf)
+	sub.SetErr(&errBuf)
+	err = root.Execute()
+	return outBuf.String(), errBuf.String(), err
+}
+
+// handler returning error with --format=json produces JSON envelope with
+// error field and null data on stdout.
+func TestNew_FormatJSON_HandlerError_ProducesErrorEnvelope(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
+
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
+		return nil, errors.New("something went wrong")
+	})
+
+	stdout, _, err := executeCmdCaptureWithStderr(t, cmd, "--format=json")
+	if !errors.Is(err, output.ErrAlreadyRendered) {
+		t.Fatalf("expected ErrAlreadyRendered, got: %v", err)
+	}
+	var env map[string]any
+	if jsonErr := json.Unmarshal([]byte(strings.TrimSpace(stdout)), &env); jsonErr != nil {
+		t.Fatalf("output is not valid JSON: %v\n%s", jsonErr, stdout)
+	}
+	if env["data"] != nil {
+		t.Errorf("data: got %v, want null", env["data"])
+	}
+	errObj, ok := env["error"].(map[string]any)
+	if !ok {
+		t.Fatalf("error field is not an object: %v", env["error"])
+	}
+	if errObj["code"] != "command_failed" {
+		t.Errorf("error.code: got %v, want %q", errObj["code"], "command_failed")
+	}
+	if !strings.Contains(fmt.Sprintf("%v", errObj["message"]), "something went wrong") {
+		t.Errorf("error.message: got %v, want to contain 'something went wrong'", errObj["message"])
+	}
+}
+
+// handler returning error with --format=json writes nothing to stderr.
+func TestNew_FormatJSON_HandlerError_NoStderr(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
+
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
+		return nil, errors.New("oops")
+	})
+
+	_, stderr, err := executeCmdCaptureWithStderr(t, cmd, "--format=json")
+	if !errors.Is(err, output.ErrAlreadyRendered) {
+		t.Fatalf("expected ErrAlreadyRendered, got: %v", err)
+	}
+	if stderr != "" {
+		t.Errorf("stderr: got %q, want empty", stderr)
+	}
+}
+
+// handler returning error without --format=json propagates error to caller
+// (which writes "Error: <msg>" to stderr in the real Execute() path).
+func TestNew_TextMode_HandlerError_PropagatesError(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
+
+	want := errors.New("handler failure text mode")
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
+		return nil, want
+	})
+
+	err := executeCmd(t, cmd)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !errors.Is(err, want) {
+		t.Errorf("got %v, want %v", err, want)
+	}
+}
+
+// config error (unreadable file) with --format=json produces JSON envelope
+// with "code": "config_error".
+func TestNew_FormatJSON_ConfigError_ProducesConfigErrorCode(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("permission check meaningless as root")
+	}
+	configPath := factorytest.TempConfigFileUnreadable(t, []byte("current_context: prod\n"))
+	t.Setenv("ELASTIC_CONFIG", configPath)
+
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
+		return "ok", nil
+	})
+
+	stdout, _, err := executeCmdCaptureWithStderr(t, cmd, "--format=json")
+	if !errors.Is(err, output.ErrAlreadyRendered) {
+		t.Fatalf("expected ErrAlreadyRendered, got: %v", err)
+	}
+	var env map[string]any
+	if jsonErr := json.Unmarshal([]byte(strings.TrimSpace(stdout)), &env); jsonErr != nil {
+		t.Fatalf("output is not valid JSON: %v\n%s", jsonErr, stdout)
+	}
+	errObj, ok := env["error"].(map[string]any)
+	if !ok {
+		t.Fatalf("error field is not an object: %v", env["error"])
+	}
+	if errObj["code"] != "config_error" {
+		t.Errorf("error.code: got %v, want %q", errObj["code"], "config_error")
+	}
+}
+
+// --context=bogus with --format=json produces JSON envelope with
+// "code": "context_not_found".
+func TestNew_FormatJSON_ContextNotFound_ProducesContextNotFoundCode(t *testing.T) {
+	yaml := `
+current_context: prod
+contexts:
+  prod:
+    elasticsearch:
+      url: https://prod.es.io
+`
+	configPath := factorytest.TempConfigFile(t, []byte(yaml))
+	t.Setenv("ELASTIC_CONFIG", configPath)
+
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
+		return "ok", nil
+	})
+
+	stdout, _, err := executeCmdCaptureWithStderr(t, cmd, "--format=json", "--context=bogus")
+	if !errors.Is(err, output.ErrAlreadyRendered) {
+		t.Fatalf("expected ErrAlreadyRendered, got: %v", err)
+	}
+	var env map[string]any
+	if jsonErr := json.Unmarshal([]byte(strings.TrimSpace(stdout)), &env); jsonErr != nil {
+		t.Fatalf("output is not valid JSON: %v\n%s", jsonErr, stdout)
+	}
+	errObj, ok := env["error"].(map[string]any)
+	if !ok {
+		t.Fatalf("error field is not an object: %v", env["error"])
+	}
+	if errObj["code"] != "context_not_found" {
+		t.Errorf("error.code: got %v, want %q", errObj["code"], "context_not_found")
+	}
+}
+
+// --format=xml produces JSON envelope with "code": "invalid_argument".
+func TestNew_FormatXML_ProducesInvalidArgumentCode(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
+
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
+		return "ok", nil
+	})
+
+	stdout, _, err := executeCmdCaptureWithStderr(t, cmd, "--format=xml")
+	if !errors.Is(err, output.ErrAlreadyRendered) {
+		t.Fatalf("expected ErrAlreadyRendered, got: %v", err)
+	}
+	var env map[string]any
+	if jsonErr := json.Unmarshal([]byte(strings.TrimSpace(stdout)), &env); jsonErr != nil {
+		t.Fatalf("output is not valid JSON: %v\n%s", jsonErr, stdout)
+	}
+	errObj, ok := env["error"].(map[string]any)
+	if !ok {
+		t.Fatalf("error field is not an object: %v", env["error"])
+	}
+	if errObj["code"] != "invalid_argument" {
+		t.Errorf("error.code: got %v, want %q", errObj["code"], "invalid_argument")
+	}
+	if !strings.Contains(fmt.Sprintf("%v", errObj["message"]), "text") {
+		t.Errorf("error.message: got %v, want to mention supported values", errObj["message"])
+	}
+}
+
+// command with --format=json returning nil data produces
+// {"data":null,"error":null,"warnings":[]}.
+func TestNew_FormatJSON_NilData_ProducesValidEnvelope(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte(`
+current_context: test
+contexts:
+  test:
+    elasticsearch:
+      url: http://localhost:9200
+`)))
+
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
+		return nil, nil
+	})
+
+	stdout, _, err := executeCmdCaptureWithStderr(t, cmd, "--format=json")
+	if err != nil {
+		t.Fatalf("unexpected RunE error: %v", err)
+	}
+	var env map[string]any
+	if jsonErr := json.Unmarshal([]byte(strings.TrimSpace(stdout)), &env); jsonErr != nil {
+		t.Fatalf("output is not valid JSON: %v\n%s", jsonErr, stdout)
+	}
+	if env["data"] != nil {
+		t.Errorf("data: got %v, want nil/null", env["data"])
+	}
+	if env["error"] != nil {
+		t.Errorf("error: got %v, want nil/null", env["error"])
+	}
+	warnings, ok := env["warnings"]
+	if !ok {
+		t.Fatal("warnings key missing from envelope")
+	}
+	warningSlice, ok := warnings.([]any)
+	if !ok {
+		t.Fatalf("warnings: got %T, want []", warnings)
+	}
+	if len(warningSlice) != 0 {
+		t.Errorf("warnings: got %v, want []", warningSlice)
+	}
+}
+
+// command returning a map as data with no error produces a correct
+// JSON envelope (FR-007 — no-output commands still emit valid envelopes).
+func TestNew_FormatJSON_MapData_ProducesCorrectEnvelope(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte(`
+current_context: test
+contexts:
+  test:
+    elasticsearch:
+      url: http://localhost:9200
+`)))
+
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
+		return map[string]string{"status": "ok"}, nil
+	})
+
+	stdout, _, err := executeCmdCaptureWithStderr(t, cmd, "--format=json")
+	if err != nil {
+		t.Fatalf("unexpected RunE error: %v", err)
+	}
+
+	var env map[string]any
+	if jsonErr := json.Unmarshal([]byte(strings.TrimSpace(stdout)), &env); jsonErr != nil {
+		t.Fatalf("output is not valid JSON: %v\n%s", jsonErr, stdout)
+	}
+	if env["error"] != nil {
+		t.Errorf("error: got %v, want nil", env["error"])
+	}
+	data, ok := env["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("data: got %T (%v), want map", env["data"], env["data"])
+	}
+	if data["status"] != "ok" {
+		t.Errorf("data.status: got %v, want %q", data["status"], "ok")
+	}
+	warnings, ok := env["warnings"].([]any)
+	if !ok {
+		t.Fatalf("warnings should be [] not null; got %v", env["warnings"])
+	}
+	if len(warnings) != 0 {
+		t.Errorf("warnings: got %v, want []", warnings)
 	}
 }

@@ -5,15 +5,17 @@ import (
 	"io"
 	"os"
 	"sort"
-	"strings"
 
+	apperrors "github.com/elastic/cli/internal/errors"
+	"github.com/elastic/cli/internal/output"
 	"github.com/spf13/cobra"
 )
 
 // RunFunc is the handler type that every subcommand implements.
 // The factory calls it after fully populating RunContext.
-// A non-nil return value propagates to Cobra as a command error.
-type RunFunc func(ctx RunContext) error
+// The first return value is the data payload written to output; the second is
+// any error that occurred. Both nil is valid (produces a null data envelope).
+type RunFunc func(ctx RunContext) (any, error)
 
 // RunContext is the per-invocation execution context passed to every handler.
 type RunContext struct {
@@ -43,26 +45,41 @@ type RunContext struct {
 //     A missing file is not an error — a zero-value Config is used instead.
 //  3. Resolves ActiveContext from the --context persistent flag (if set and
 //     non-empty) or falls back to Config.CurrentContext.
-//  4. Returns an error if --context names a context that does not exist.
+//  4. Renders a context_not_found error envelope if --context names an unknown context.
 //  5. Reads the request body from --file or piped stdin (see readBody).
-//  6. Returns an error if both --file and piped stdin provide data simultaneously.
+//  6. Renders an input_error envelope if both --file and piped stdin provide data.
 //  7. Calls run with the fully populated RunContext.
 //
-// All errors are returned to Cobra and written to stderr by the root command;
-// no os.Exit is called inside this package.
+// All errors (config, context, input, and RunFunc errors) are handled inside
+// RunE via output.Render and written to cmd.OutOrStdout(). In JSON mode Render
+// writes the error envelope and returns nil, so Cobra never sees the error. In
+// text mode Render returns the error so that executeRoot can write it to stderr.
+// No os.Exit calls appear inside this package.
 func New(name, description string, run RunFunc) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: description,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Resolve output format first so ALL errors can be routed through Render.
+			format := output.FormatText
+			if f := cmd.Root().PersistentFlags().Lookup("format"); f != nil {
+				if v := f.Value.String(); v != "" {
+					if err := output.ValidateFormat(v); err != nil {
+						return output.Render(cmd.OutOrStdout(), output.FormatJSON, nil,
+							&apperrors.InvalidArgumentError{Cause: fmt.Errorf("unsupported format %q: supported values are %q and %q", v, output.FormatText, output.FormatJSON)})
+					}
+					format = v
+				}
+			}
+
 			path, err := resolveConfigPath()
 			if err != nil {
-				return err
+				return output.Render(cmd.OutOrStdout(), format, nil, &apperrors.ConfigError{Cause: err})
 			}
 
 			cfg, err := Load(path)
 			if err != nil {
-				return err
+				return output.Render(cmd.OutOrStdout(), format, nil, &apperrors.ConfigError{Cause: err})
 			}
 
 			// ConfigPath is empty when the file was not found (defaults in use).
@@ -78,7 +95,12 @@ func New(name, description string, run RunFunc) *cobra.Command {
 			if f := cmd.Root().PersistentFlags().Lookup("context"); f != nil {
 				if contextName := f.Value.String(); contextName != "" {
 					if _, ok := cfg.Contexts[contextName]; !ok {
-						return contextNotFoundError(contextName, cfg.Contexts)
+						keys := make([]string, 0, len(cfg.Contexts))
+						for k := range cfg.Contexts {
+							keys = append(keys, k)
+						}
+						sort.Strings(keys)
+						return output.Render(cmd.OutOrStdout(), format, nil, &apperrors.ContextNotFoundError{Name: contextName, Available: keys})
 					}
 					activeContext = contextName
 				}
@@ -86,7 +108,7 @@ func New(name, description string, run RunFunc) *cobra.Command {
 
 			body, err := readBody(cmd)
 			if err != nil {
-				return err
+				return output.Render(cmd.OutOrStdout(), format, nil, &apperrors.InputError{Cause: err})
 			}
 
 			ctx := RunContext{
@@ -95,7 +117,13 @@ func New(name, description string, run RunFunc) *cobra.Command {
 				ActiveContext: activeContext,
 				Body:          body,
 			}
-			return run(ctx)
+
+			data, runErr := run(ctx)
+			var outErr output.OutputError
+			if runErr != nil {
+				outErr = &apperrors.CommandError{Cause: runErr}
+			}
+			return output.Render(cmd.OutOrStdout(), format, data, outErr)
 		},
 	}
 	cmd.Flags().String("file", "", "Path to an input JSON file")
@@ -165,17 +193,4 @@ func isReaderTTY(r io.Reader) bool {
 		return false
 	}
 	return (info.Mode() & os.ModeCharDevice) != 0
-}
-
-// contextNotFoundError builds a descriptive error for an unknown context name.
-func contextNotFoundError(name string, contexts map[string]Context) error {
-	if len(contexts) == 0 {
-		return fmt.Errorf("context %q not found; no contexts are configured", name)
-	}
-	keys := make([]string, 0, len(contexts))
-	for k := range contexts {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return fmt.Errorf("context %q not found; available: %s", name, strings.Join(keys, ", "))
 }
