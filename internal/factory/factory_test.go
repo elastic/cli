@@ -928,3 +928,88 @@ func TestNew_FormatXML_ProducesInvalidArgumentCode(t *testing.T) {
 		t.Errorf("error.message: got %v, want to mention supported values", errObj["message"])
 	}
 }
+
+// command with --format=json returning nil data produces
+// {"data":null,"error":null,"warnings":[]}.
+func TestNew_FormatJSON_NilData_ProducesValidEnvelope(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte(`
+current_context: test
+contexts:
+  test:
+    elasticsearch:
+      url: http://localhost:9200
+`)))
+
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
+		return nil, nil
+	})
+
+	stdout, _, err := executeCmdCaptureWithStderr(t, cmd, "--format=json")
+	if err != nil {
+		t.Fatalf("unexpected RunE error: %v", err)
+	}
+	var env map[string]any
+	if jsonErr := json.Unmarshal([]byte(strings.TrimSpace(stdout)), &env); jsonErr != nil {
+		t.Fatalf("output is not valid JSON: %v\n%s", jsonErr, stdout)
+	}
+	if env["data"] != nil {
+		t.Errorf("data: got %v, want nil/null", env["data"])
+	}
+	if env["error"] != nil {
+		t.Errorf("error: got %v, want nil/null", env["error"])
+	}
+	warnings, ok := env["warnings"]
+	if !ok {
+		t.Fatal("warnings key missing from envelope")
+	}
+	warningSlice, ok := warnings.([]any)
+	if !ok {
+		t.Fatalf("warnings: got %T, want []", warnings)
+	}
+	if len(warningSlice) != 0 {
+		t.Errorf("warnings: got %v, want []", warningSlice)
+	}
+}
+
+// command returning a map as data with no error produces a correct
+// JSON envelope (FR-007 — no-output commands still emit valid envelopes).
+func TestNew_FormatJSON_MapData_ProducesCorrectEnvelope(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte(`
+current_context: test
+contexts:
+  test:
+    elasticsearch:
+      url: http://localhost:9200
+`)))
+
+	cmd := New("sub", "desc", func(ctx RunContext) (any, error) {
+		return map[string]string{"status": "ok"}, nil
+	})
+
+	stdout, _, err := executeCmdCaptureWithStderr(t, cmd, "--format=json")
+	if err != nil {
+		t.Fatalf("unexpected RunE error: %v", err)
+	}
+
+	var env map[string]any
+	if jsonErr := json.Unmarshal([]byte(strings.TrimSpace(stdout)), &env); jsonErr != nil {
+		t.Fatalf("output is not valid JSON: %v\n%s", jsonErr, stdout)
+	}
+	if env["error"] != nil {
+		t.Errorf("error: got %v, want nil", env["error"])
+	}
+	data, ok := env["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("data: got %T (%v), want map", env["data"], env["data"])
+	}
+	if data["status"] != "ok" {
+		t.Errorf("data.status: got %v, want %q", data["status"], "ok")
+	}
+	warnings, ok := env["warnings"].([]any)
+	if !ok {
+		t.Fatalf("warnings should be [] not null; got %v", env["warnings"])
+	}
+	if len(warnings) != 0 {
+		t.Errorf("warnings: got %v, want []", warnings)
+	}
+}

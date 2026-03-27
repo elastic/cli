@@ -109,14 +109,14 @@
 
 > **Write these tests FIRST, ensure they FAIL, then implement.**
 
-- [ ] T029 [P] [US3] Add test in `cmd/root_test.go`: every registered subcommand inherits `--format` persistent flag (iterate `rootCmd.Commands()` and assert `cmd.Root().PersistentFlags().Lookup("format") != nil`)
-- [ ] T030 [P] [US3] Add test in `cmd/root_test.go`: `elastic version --help` output contains the string `--format`
-- [ ] T031 [P] [US3] Add test in `internal/factory/factory_test.go`: command with `--format=json` returning nil data produces `{"data":null,"error":null,"warnings":[]}` (no-output command still emits valid envelope)
+- [X] T029 [P] [US3] Add test in `cmd/root_test.go`: every registered subcommand inherits `--format` persistent flag (iterate `rootCmd.Commands()` and assert `cmd.Root().PersistentFlags().Lookup("format") != nil`)
+- [X] T030 [P] [US3] Add test in `cmd/root_test.go`: `elastic version --help` output contains the string `--format`
+- [X] T031 [P] [US3] Add test in `internal/factory/factory_test.go`: command with `--format=json` returning nil data produces `{"data":null,"error":null,"warnings":[]}` (no-output command still emits valid envelope)
 
 ### Implementation for US3
 
-- [ ] T032 [US3] Verify `--format` flag description in `cmd/root.go` is clear and mentions supported values (`"Output format (text|json)"` or similar)
-- [ ] T033 [US3] Verify `factory.New()` in `internal/factory/factory.go` handles nil data return from handler gracefully (data field serializes as `null` in JSON, skipped in text)
+- [X] T032 [US3] Verify `--format` flag description in `cmd/root.go` is clear and mentions supported values (`"Output format (text|json)"` or similar)
+- [X] T033 [US3] Verify `factory.New()` in `internal/factory/factory.go` handles nil data return from handler gracefully (data field serializes as `null` in JSON, skipped in text)
 
 **Checkpoint**: T029–T031 all green. All commands show `--format` in help. Nil-data commands produce valid envelopes.
 
@@ -126,12 +126,12 @@
 
 **Purpose**: Edge cases, documentation, and validation across all stories.
 
-- [ ] T034 [P] Add test in `internal/output/output_test.go`: `Envelope.Warnings` marshals as `[]` (not `null`) when no warnings present
-- [ ] T035 [P] Add test in `internal/output/output_test.go`: `Envelope` with warnings marshals as `{"data": ..., "error": null, "warnings": ["msg1", "msg2"]}`
-- [ ] T036 [P] Add test in `internal/factory/factory_test.go`: command returning `{"status": "ok"}` as data with no error produces correct envelope for no-output commands (FR-007)
-- [ ] T037 Verify all exported symbols in `internal/output/output.go` have Go doc comments per constitution Development Standards
-- [ ] T038 Run `go vet ./...` and `go test -race ./...` — fix any issues
-- [ ] T039 Run quickstart.md scenarios manually or as a script to validate end-to-end behavior
+- [X] T034 [P] Add test in `internal/output/output_test.go`: `Envelope.Warnings` marshals as `[]` (not `null`) when no warnings present
+- [X] T035 [P] Add test in `internal/output/output_test.go`: `Envelope` with warnings marshals as `{"data": ..., "error": null, "warnings": ["msg1", "msg2"]}`
+- [X] T036 [P] Add test in `internal/factory/factory_test.go`: command returning `{"status": "ok"}` as data with no error produces correct envelope for no-output commands (FR-007)
+- [X] T037 Verify all exported symbols in `internal/output/output.go` have Go doc comments per constitution Development Standards
+- [X] T038 Run `go vet ./...` and `go test -race ./...` — fix any issues
+- [X] T039 Run quickstart.md scenarios manually or as a script to validate end-to-end behavior
 
 **Checkpoint**: All tests green, all vet/race checks pass, quickstart scenarios validated.
 

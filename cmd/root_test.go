@@ -118,3 +118,28 @@ contexts:
 		t.Errorf("stdout missing 'context_not_found': %q", out)
 	}
 }
+
+// every registered subcommand inherits --format persistent flag via root.
+func TestRootCmd_AllSubcommands_InheritFormatFlag(t *testing.T) {
+	for _, cmd := range rootCmd.Commands() {
+		if cmd.Root().PersistentFlags().Lookup("format") == nil {
+			t.Errorf("subcommand %q: --format persistent flag not found on root", cmd.Use)
+		}
+	}
+}
+
+// --help output contains --format.
+func TestRootCmd_VersionHelp_ContainsFormatFlag(t *testing.T) {
+	var buf strings.Builder
+	rootCmd.SetOut(&buf)
+	t.Cleanup(func() { rootCmd.SetOut(nil) })
+
+	rootCmd.SetArgs([]string{"version", "--help"})
+	t.Cleanup(func() { rootCmd.SetArgs(nil) })
+
+	_ = rootCmd.Execute()
+
+	if !strings.Contains(buf.String(), "--format") {
+		t.Errorf("help output missing --format; got:\n%s", buf.String())
+	}
+}
