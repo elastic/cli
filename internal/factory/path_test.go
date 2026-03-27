@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"runtime"
 	"testing"
 
 	"github.com/elastic/cli/internal/factory/factorytest"
@@ -79,6 +80,9 @@ func TestResolveConfigPath(t *testing.T) {
 				t.Setenv("ELASTIC_CONFIG", "")
 				t.Setenv("XDG_CONFIG_HOME", "")
 				t.Setenv("HOME", t.TempDir())
+				if runtime.GOOS == "windows" {
+					t.Skip("HOME not used for path resolution on Windows")
+				}
 			},
 			pathCheck: func(t *testing.T, got string) {
 				want := filepath.Join(os.Getenv("HOME"), ".config", "elastic", "config.yml")
