@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	apperrors "github.com/elastic/cli/internal/errors"
@@ -44,14 +45,43 @@ func init() {
 // If per-command middleware (tracing, audit logging) is needed in the future,
 // migrating to a context-passing + PersistentPostRunE pattern is the right move.
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		// Cobra-level error (e.g. unknown command). Check --format to decide
-		// whether to write a JSON envelope to stdout or plain text to stderr.
-		if f := rootCmd.PersistentFlags().Lookup("format"); f != nil && f.Value.String() == output.FormatJSON {
-			_ = output.Render(os.Stdout, output.FormatJSON, nil, &apperrors.CommandError{Cause: err})
+	os.Exit(executeRoot(rootCmd, os.Args[1:], os.Stdout, os.Stderr))
+}
+
+// executeRoot runs the given command and returns an exit code.
+// Cobra-level errors (unknown command, flag parse failures) are caught and
+// routed to the appropriate output channel based on the --format flag.
+func executeRoot(cmd *cobra.Command, args []string, stdout, stderr io.Writer) int {
+	if err := cmd.Execute(); err != nil {
+		if isJSONFormat(cmd, args) {
+			_ = output.Render(stdout, output.FormatJSON, nil, &apperrors.CommandError{Cause: err})
 		} else {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			fmt.Fprintf(stderr, "Error: %s\n", err)
 		}
-		os.Exit(1)
+		return 1
 	}
+	return 0
+}
+
+// isJSONFormat checks whether --format=json was requested. It first tries the
+// parsed flag value, then falls back to scanning raw args because Cobra skips
+// flag parsing on certain errors (e.g. unknown command).
+func isJSONFormat(cmd *cobra.Command, rawArgs []string) bool {
+	if f := cmd.PersistentFlags().Lookup("format"); f != nil && f.Changed {
+		return f.Value.String() == output.FormatJSON
+	}
+	// Cobra skips flag parsing on certain errors (e.g. unknown command), so
+	// the flag value may still be the default. Scan the raw args as a fallback.
+	for i, arg := range rawArgs {
+		if arg == "--format=json" {
+			return true
+		}
+		if arg == "--format" && i+1 < len(rawArgs) && rawArgs[i+1] == "json" {
+			return true
+		}
+		if arg == "--" {
+			break
+		}
+	}
+	return false
 }
