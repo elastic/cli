@@ -14,6 +14,29 @@ const FormatText = "text"
 // FormatJSON is the machine-readable JSON envelope output format.
 const FormatJSON = "json"
 
+// OutputError is the error interface required by Render. All errors passed to
+// Render must carry a machine-readable code via ErrorCode(), ensuring the JSON
+// envelope always has a well-defined, non-guessed code field.
+type OutputError interface {
+	error
+	ErrorCode() string
+}
+
+// Error is the structured error type used in the JSON envelope. It implements
+// OutputError, so it can be passed directly to Render and also marshaled into
+// the envelope's "error" field.
+type Error struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	cause   error  // preserved for errors.Is/As traversal; not marshaled
+}
+
+func (e *Error) Error() string     { return e.Message }
+func (e *Error) ErrorCode() string { return e.Code }
+
+// Unwrap preserves the error chain so errors.Is/As work on the wrapped cause.
+func (e *Error) Unwrap() error { return e.cause }
+
 // Envelope is the top-level JSON response structure emitted on stdout when
 // --format=json is active. Exactly one of Data or Error should be non-nil.
 // Warnings is always initialized to an empty slice so JSON output is [] not null.
@@ -21,12 +44,6 @@ type Envelope struct {
 	Data     any      `json:"data"`
 	Error    *Error   `json:"error"`
 	Warnings []string `json:"warnings"`
-}
-
-// Error is a structured error value embedded in an Envelope.
-type Error struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
 }
 
 // ValidateFormat returns nil if s is a supported format value, or an error
@@ -40,12 +57,15 @@ func ValidateFormat(s string) error {
 	}
 }
 
-// Render builds an Envelope from data and err, then writes it to w.
+// Render builds an Envelope from data and cmdErr, then writes it to w.
+// cmdErr must implement OutputError, ensuring the JSON envelope always carries
+// a well-typed error code set explicitly at the call site.
+//
 // When format is FormatJSON, the envelope is written as a single JSON line.
 // When format is FormatText, data is written as plain text (string via
-// fmt.Fprintln, other types via fmt.Fprintf("%v")), and err is returned
+// fmt.Fprintln, other types via fmt.Fprintf("%v")), and cmdErr is returned
 // directly for Cobra to handle.
-func Render(w io.Writer, format string, data any, cmdErr error) error {
+func Render(w io.Writer, format string, data any, cmdErr OutputError) error {
 	if format == FormatJSON {
 		env := Envelope{
 			Data:     data,
@@ -53,7 +73,7 @@ func Render(w io.Writer, format string, data any, cmdErr error) error {
 		}
 		if cmdErr != nil {
 			env.Data = nil
-			env.Error = errorToStructured(cmdErr)
+			env.Error = &Error{Code: cmdErr.ErrorCode(), Message: cmdErr.Error()}
 		}
 		b, err := json.Marshal(env)
 		if err != nil {
@@ -75,48 +95,4 @@ func Render(w io.Writer, format string, data any, cmdErr error) error {
 		}
 	}
 	return nil
-}
-
-// errorToStructured maps a Go error to a structured Error with a machine-readable code.
-func errorToStructured(err error) *Error {
-	return &Error{
-		Code:    classifyError(err),
-		Message: err.Error(),
-	}
-}
-
-// classifyError returns a snake_case error code for the given error.
-// It inspects the error message heuristically; richer typed errors can be
-// added later once more error types are defined.
-func classifyError(err error) string {
-	msg := err.Error()
-	switch {
-	case containsAny(msg, "context", "not found"):
-		return "context_not_found"
-	case containsAny(msg, "config"):
-		return "config_error"
-	case containsAny(msg, "stdin", "--file", "input"):
-		return "input_error"
-	case containsAny(msg, "unsupported format", "invalid_argument"):
-		return "invalid_argument"
-	default:
-		return "command_failed"
-	}
-}
-
-// containsAny reports whether s contains all of the given substrings.
-func containsAny(s string, subs ...string) bool {
-	for _, sub := range subs {
-		found := false
-		for i := 0; i <= len(s)-len(sub); i++ {
-			if s[i:i+len(sub)] == sub {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
 }

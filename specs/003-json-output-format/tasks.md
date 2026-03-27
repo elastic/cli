@@ -56,15 +56,15 @@
 
 > **Write these tests FIRST, ensure they FAIL, then implement.**
 
-- [ ] T012 [P] [US1] Add test in `internal/factory/factory_test.go`: command with `--format=json` produces valid JSON envelope on stdout with `"data"` field matching handler return value
-- [ ] T013 [P] [US1] Add test in `internal/factory/factory_test.go`: command with `--format=json` stdout output parses with `json.Valid()` — no preamble, no trailing text
-- [ ] T014 [P] [US1] Add test in `internal/factory/factory_test.go`: command without `--format` flag produces unchanged text output (backward compatibility)
-- [ ] T015 [P] [US1] Add test in `internal/factory/factory_test.go`: command with `--format=text` produces identical output to no flag (explicit default)
+- [X] T012 [P] [US1] Add test in `internal/factory/factory_test.go`: command with `--format=json` produces valid JSON envelope on stdout with `"data"` field matching handler return value
+- [X] T013 [P] [US1] Add test in `internal/factory/factory_test.go`: command with `--format=json` stdout output parses with `json.Valid()` — no preamble, no trailing text
+- [X] T014 [P] [US1] Add test in `internal/factory/factory_test.go`: command without `--format` flag produces unchanged text output (backward compatibility)
+- [X] T015 [P] [US1] Add test in `internal/factory/factory_test.go`: command with `--format=text` produces identical output to no flag (explicit default)
 
 ### Implementation for US1
 
-- [ ] T016 [US1] Ensure `output.Render()` with `FormatJSON` writes only `json.Marshal(envelope) + "\n"` to the writer — no extra bytes — in `internal/output/output.go`
-- [ ] T017 [US1] Ensure `output.Render()` with `FormatText` writes data via `fmt.Fprintln` (string data) or `fmt.Fprintf("%v")` (other types) — preserving current behavior — in `internal/output/output.go`
+- [X] T016 [US1] Ensure `output.Render()` with `FormatJSON` writes only `json.Marshal(envelope) + "\n"` to the writer — no extra bytes — in `internal/output/output.go`
+- [X] T017 [US1] Ensure `output.Render()` with `FormatText` writes data via `fmt.Fprintln` (string data) or `fmt.Fprintf("%v")` (other types) — preserving current behavior — in `internal/output/output.go`
 
 **Checkpoint**: T012–T015 all green. `elastic version --format=json` emits pure valid JSON. `elastic version` (no flag) is unchanged.
 
@@ -80,20 +80,20 @@
 
 > **Write these tests FIRST, ensure they FAIL, then implement.**
 
-- [ ] T018 [P] [US2] Add test in `internal/factory/factory_test.go`: handler returning error with `--format=json` produces JSON envelope with `"error": {"code": "command_failed", "message": "..."}` and `"data": null` on stdout
-- [ ] T019 [P] [US2] Add test in `internal/factory/factory_test.go`: handler returning error with `--format=json` writes nothing to stderr
-- [ ] T020 [P] [US2] Add test in `internal/factory/factory_test.go`: handler returning error without `--format=json` writes `Error: <msg>` to stderr (existing behavior preserved)
-- [ ] T021 [P] [US2] Add test in `internal/factory/factory_test.go`: config error (e.g., unreadable config file) with `--format=json` produces JSON envelope with `"code": "config_error"`
-- [ ] T022 [P] [US2] Add test in `internal/factory/factory_test.go`: `--context=bogus` with `--format=json` produces JSON envelope with `"code": "context_not_found"`
-- [ ] T023 [P] [US2] Add test in `internal/factory/factory_test.go`: `--format=xml` (unsupported) produces JSON envelope with `"code": "invalid_argument"` listing supported values
-- [ ] T024 [P] [US2] Add test in `cmd/root_test.go`: `Execute()` with `--format=json` and a failing command writes JSON error envelope to stdout instead of plain text to stderr
+- [X] T018 [P] [US2] Add test in `internal/factory/factory_test.go`: handler returning error with `--format=json` produces JSON envelope with `"error": {"code": "command_failed", "message": "..."}` and `"data": null` on stdout
+- [X] T019 [P] [US2] Add test in `internal/factory/factory_test.go`: handler returning error with `--format=json` writes nothing to stderr
+- [X] T020 [P] [US2] Add test in `internal/factory/factory_test.go`: handler returning error without `--format=json` writes `Error: <msg>` to stderr (existing behavior preserved)
+- [X] T021 [P] [US2] Add test in `internal/factory/factory_test.go`: config error (e.g., unreadable config file) with `--format=json` produces JSON envelope with `"code": "config_error"`
+- [X] T022 [P] [US2] Add test in `internal/factory/factory_test.go`: `--context=bogus` with `--format=json` produces JSON envelope with `"code": "context_not_found"`
+- [X] T023 [P] [US2] Add test in `internal/factory/factory_test.go`: `--format=xml` (unsupported) produces JSON envelope with `"code": "invalid_argument"` listing supported values
+- [X] T024 [P] [US2] Add test in `cmd/root_test.go`: `Execute()` with `--format=json` and a failing command writes JSON error envelope to stdout instead of plain text to stderr
 
 ### Implementation for US2
 
-- [ ] T025 [US2] Define typed error types or error-code extraction logic in `internal/output/output.go` — map known factory errors (context-not-found, config error, input error, validation) to specific error codes
-- [ ] T026 [US2] Update `output.Render()` in `internal/output/output.go` to use error-code extraction when building the error envelope — classify errors into `context_not_found`, `config_error`, `input_error`, `invalid_argument`, or fallback `command_failed`
-- [ ] T027 [US2] Update `factory.New()` RunE in `internal/factory/factory.go` to intercept format-validation errors and pre-factory errors (config, context, input) and route them through `output.Render()` instead of returning raw errors to Cobra
-- [ ] T028 [US2] Update `Execute()` in `cmd/root.go` to check `--format` flag on error path — if `json`, write JSON error envelope to stdout; if `text`, preserve existing stderr behavior
+- [X] T025 [US2] Define typed error types or error-code extraction logic in `internal/output/output.go` — map known factory errors (context-not-found, config error, input error, validation) to specific error codes
+- [X] T026 [US2] Update `output.Render()` in `internal/output/output.go` to use error-code extraction when building the error envelope — classify errors into `context_not_found`, `config_error`, `input_error`, `invalid_argument`, or fallback `command_failed`
+- [X] T027 [US2] Update `factory.New()` RunE in `internal/factory/factory.go` to intercept format-validation errors and pre-factory errors (config, context, input) and route them through `output.Render()` instead of returning raw errors to Cobra
+- [X] T028 [US2] Update `Execute()` in `cmd/root.go` to check `--format` flag on error path — if `json`, write JSON error envelope to stdout; if `text`, preserve existing stderr behavior
 
 **Checkpoint**: T018–T024 all green. All error paths produce JSON envelopes with appropriate codes. No plain text leaks to stdout in JSON mode.
 

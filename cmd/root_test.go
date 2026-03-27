@@ -78,3 +78,43 @@ func TestRootCmd_FormatFlag(t *testing.T) {
 		t.Error("--format persistent flag not registered on rootCmd")
 	}
 }
+
+// Execute() with --format=json and a failing command writes JSON error
+// envelope to stdout instead of plain text to stderr.
+func TestRootCmd_FormatJSON_FailingCommand_WritesJSONToStdout(t *testing.T) {
+	yaml := `
+current_context: prod
+contexts:
+  prod:
+    elasticsearch:
+      url: https://prod.es.io
+`
+	configPath := cmdtest.TempConfigFile(t, []byte(yaml))
+	t.Setenv("ELASTIC_CONFIG", configPath)
+
+	rootCmd.SetArgs([]string{"version", "--format=json", "--context=bogus"})
+	t.Cleanup(func() {
+		rootCmd.SetArgs(nil)
+		rootCmd.SetOut(nil)
+		rootCmd.ResetFlags()
+		// Re-register flags after reset.
+		rootCmd.PersistentFlags().StringVar(&contextFlag, "context", "", "Context to use for this command")
+		rootCmd.PersistentFlags().String("format", "text", "Output format (text|json)")
+	})
+
+	var outBuf strings.Builder
+	rootCmd.SetOut(&outBuf)
+
+	err := rootCmd.Execute()
+	if err != nil {
+		t.Fatalf("expected nil error (handled by Render), got: %v", err)
+	}
+
+	out := outBuf.String()
+	if !strings.Contains(out, `"error"`) {
+		t.Errorf("stdout missing 'error' key: %q", out)
+	}
+	if !strings.Contains(out, "context_not_found") {
+		t.Errorf("stdout missing 'context_not_found': %q", out)
+	}
+}

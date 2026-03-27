@@ -2,10 +2,12 @@ package output_test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
 
+	apperrors "github.com/elastic/cli/internal/errors"
 	"github.com/elastic/cli/internal/output"
 )
 
@@ -170,7 +172,7 @@ func TestRender_JSONSuccess(t *testing.T) {
 
 func TestRender_JSONError(t *testing.T) {
 	var buf strings.Builder
-	if err := output.Render(&buf, output.FormatJSON, nil, fmt.Errorf("oops")); err != nil {
+	if err := output.Render(&buf, output.FormatJSON, nil, &apperrors.CommandError{Cause: fmt.Errorf("oops")}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	got := buf.String()
@@ -205,10 +207,11 @@ func TestRender_TextSuccess(t *testing.T) {
 
 func TestRender_TextErrorPassthrough(t *testing.T) {
 	var buf strings.Builder
-	origErr := fmt.Errorf("text error")
-	err := output.Render(&buf, output.FormatText, nil, origErr)
-	if err != origErr {
-		t.Errorf("expected original error returned, got %v", err)
+	cause := fmt.Errorf("text error")
+	outErr := &apperrors.CommandError{Cause: cause}
+	err := output.Render(&buf, output.FormatText, nil, outErr)
+	if !errors.Is(err, cause) {
+		t.Errorf("expected cause in error chain, got %v", err)
 	}
 }
 
@@ -251,5 +254,47 @@ func TestValidateFormat_CaseSensitive(t *testing.T) {
 	}
 	if err := output.ValidateFormat("Text"); err == nil {
 		t.Error("ValidateFormat(\"Text\"): expected error (case sensitive), got nil")
+	}
+}
+// ---- typed errors satisfy OutputError -------------------------------------
+
+// Verify that the apperrors types satisfy output.OutputError at compile time.
+// No imports of internal/errors are needed in output itself; the interface is
+// satisfied implicitly.
+func TestTypedErrors_SatisfyOutputError(t *testing.T) {
+	var _ output.OutputError = &apperrors.ConfigError{Cause: fmt.Errorf("x")}
+	var _ output.OutputError = &apperrors.ContextNotFoundError{Name: "x"}
+	var _ output.OutputError = &apperrors.InputError{Cause: fmt.Errorf("x")}
+	var _ output.OutputError = &apperrors.InvalidArgumentError{Cause: fmt.Errorf("x")}
+	var _ output.OutputError = &apperrors.CommandError{Cause: fmt.Errorf("x")}
+}
+
+func TestTypedErrors_RenderUsesCode(t *testing.T) {
+	cases := []struct {
+		name string
+		err  output.OutputError
+		code string
+	}{
+		{"config", &apperrors.ConfigError{Cause: fmt.Errorf("e")}, "config_error"},
+		{"context", &apperrors.ContextNotFoundError{Name: "x"}, "context_not_found"},
+		{"input", &apperrors.InputError{Cause: fmt.Errorf("e")}, "input_error"},
+		{"invalid_arg", &apperrors.InvalidArgumentError{Cause: fmt.Errorf("e")}, "invalid_argument"},
+		{"command", &apperrors.CommandError{Cause: fmt.Errorf("e")}, "command_failed"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf strings.Builder
+			if err := output.Render(&buf, output.FormatJSON, nil, tc.err); err != nil {
+				t.Fatalf("Render: %v", err)
+			}
+			var env map[string]any
+			if err := json.Unmarshal([]byte(strings.TrimSpace(buf.String())), &env); err != nil {
+				t.Fatalf("unmarshal: %v", err)
+			}
+			errObj := env["error"].(map[string]any)
+			if errObj["code"] != tc.code {
+				t.Errorf("code: got %v, want %q", errObj["code"], tc.code)
+			}
+		})
 	}
 }
