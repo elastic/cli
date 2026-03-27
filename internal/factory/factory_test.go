@@ -1,7 +1,10 @@
 package factory
 
 import (
+	"bytes"
 	"errors"
+	"io"
+	"os"
 	"strings"
 	"testing"
 
@@ -176,7 +179,6 @@ contexts:
 		t.Errorf("URL mismatch: cmd1=%q cmd2=%q", url1, url2)
 	}
 }
-
 
 // ---- no config file: defaults used, ConfigPath empty -----------------------
 
@@ -436,5 +438,195 @@ func TestNew_Context_NoConfigFile_WithFlag_Errors(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "not found") {
 		t.Errorf("error %q should contain 'not found'", err.Error())
+	}
+}
+
+// ---- RunContext.Body -----------------------------------------------
+
+// TestNew_Body_NilWhenNoInputConfigured asserts that RunContext exposes a Body
+// []byte field and that it is nil when the command is invoked with no input
+// source configured (no piped stdin, no --file flag).
+func TestNew_Body_NilWhenNoInputConfigured(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
+
+	var received RunContext
+	cmd := New("sub", "desc", func(ctx RunContext) error {
+		received = ctx
+		return nil
+	})
+
+	if err := executeCmd(t, cmd); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if received.Body != nil {
+		t.Errorf("Body: got %v, want nil", received.Body)
+	}
+}
+
+// ---- RunContext.Body via stdin ------------------------------------
+
+// executecmdWithStdin runs the named subcommand with r wired as the command's
+// stdin via cmd.SetIn, which New() reads via cmd.InOrStdin().
+func executeCmdWithStdin(t *testing.T, sub *cobra.Command, r io.Reader, args ...string) error {
+	t.Helper()
+	sub.SetIn(r)
+	return executeCmd(t, sub, args...)
+}
+
+// TestNew_Body_PopulatedFromStdin verifies that when a non-empty reader is
+// injected as stdin, Body is set to the reader's bytes.
+func TestNew_Body_PopulatedFromStdin(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
+
+	payload := []byte(`{"x":1}`)
+	var received RunContext
+	cmd := New("sub", "desc", func(ctx RunContext) error {
+		received = ctx
+		return nil
+	})
+
+	if err := executeCmdWithStdin(t, cmd, bytes.NewReader(payload)); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !bytes.Equal(received.Body, payload) {
+		t.Errorf("Body: got %q, want %q", received.Body, payload)
+	}
+}
+
+// TestNew_Body_NilWhenStdinEmpty verifies that an injected reader with zero
+// bytes results in a nil Body (not an empty non-nil slice).
+func TestNew_Body_NilWhenStdinEmpty(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
+
+	var received RunContext
+	cmd := New("sub", "desc", func(ctx RunContext) error {
+		received = ctx
+		return nil
+	})
+
+	if err := executeCmdWithStdin(t, cmd, bytes.NewReader(nil)); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if received.Body != nil {
+		t.Errorf("Body: got %q, want nil", received.Body)
+	}
+}
+
+// ---- RunContext.Body via --file ------------------------------------
+
+// TestNew_Body_PopulatedFromFile verifies that --file reads the file and
+// sets Body to its contents.
+func TestNew_Body_PopulatedFromFile(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
+
+	payload := []byte(`{"hello":"world"}`)
+	filePath := factorytest.TempDataFile(t, payload)
+
+	var received RunContext
+	cmd := New("sub", "desc", func(ctx RunContext) error {
+		received = ctx
+		return nil
+	})
+
+	if err := executeCmd(t, cmd, "--file", filePath); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !bytes.Equal(received.Body, payload) {
+		t.Errorf("Body: got %q, want %q", received.Body, payload)
+	}
+}
+
+// TestNew_Body_ErrorWhenFileNotFound verifies that a non-existent --file path
+// returns an error and does not invoke the handler.
+func TestNew_Body_ErrorWhenFileNotFound(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
+
+	handlerCalled := false
+	cmd := New("sub", "desc", func(ctx RunContext) error {
+		handlerCalled = true
+		return nil
+	})
+
+	err := executeCmd(t, cmd, "--file", "/nonexistent/path/payload.json")
+	if err == nil {
+		t.Fatal("expected error for missing file, got nil")
+	}
+	if handlerCalled {
+		t.Error("handler must not be called when --file path does not exist")
+	}
+}
+
+// TestNew_Body_ErrorWhenFileUnreadable verifies that an unreadable --file
+// returns an error and does not invoke the handler.
+func TestNew_Body_ErrorWhenFileUnreadable(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("permission check meaningless as root")
+	}
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
+
+	filePath := factorytest.TempConfigFileUnreadable(t, []byte(`{}`))
+
+	handlerCalled := false
+	cmd := New("sub", "desc", func(ctx RunContext) error {
+		handlerCalled = true
+		return nil
+	})
+
+	err := executeCmd(t, cmd, "--file", filePath)
+	if err == nil {
+		t.Fatal("expected error for unreadable file, got nil")
+	}
+	if handlerCalled {
+		t.Error("handler must not be called when --file is unreadable")
+	}
+}
+
+// TestNew_Body_NilWhenFileEmpty verifies that a zero-byte --file yields nil
+// Body without error.
+func TestNew_Body_NilWhenFileEmpty(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
+
+	filePath := factorytest.TempDataFile(t, []byte{})
+
+	var received RunContext
+	cmd := New("sub", "desc", func(ctx RunContext) error {
+		received = ctx
+		return nil
+	})
+
+	if err := executeCmd(t, cmd, "--file", filePath); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if received.Body != nil {
+		t.Errorf("Body: got %q, want nil for empty file", received.Body)
+	}
+}
+
+// ---- Conflict: both stdin and --file provided ----------------------
+
+// TestNew_Body_ErrorWhenBothStdinAndFile verifies that providing data via both
+// piped stdin and --file is rejected before the handler is invoked.
+func TestNew_Body_ErrorWhenBothStdinAndFile(t *testing.T) {
+	t.Setenv("ELASTIC_CONFIG", factorytest.TempConfigFile(t, []byte("")))
+
+	filePath := factorytest.TempDataFile(t, []byte(`{"source":"file"}`))
+	stdinData := bytes.NewReader([]byte(`{"source":"stdin"}`))
+
+	handlerCalled := false
+	cmd := New("sub", "desc", func(ctx RunContext) error {
+		handlerCalled = true
+		return nil
+	})
+
+	err := executeCmdWithStdin(t, cmd, stdinData, "--file", filePath)
+	if err == nil {
+		t.Fatal("expected error when both stdin and --file provide data, got nil")
+	}
+	if !strings.Contains(err.Error(), "only one") {
+		t.Errorf("error %q should mention 'only one' input source", err.Error())
+	}
+	if handlerCalled {
+		t.Error("handler must not be called when input source is ambiguous")
 	}
 }

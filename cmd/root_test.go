@@ -47,7 +47,6 @@ func TestRootCmd_SilenceErrors(t *testing.T) {
 	}
 }
 
-
 func TestRootCmd_ContextFlag_UnknownContext_ErrorContainsNotFound(t *testing.T) {
 	yaml := `
 current_context: prod

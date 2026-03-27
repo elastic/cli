@@ -10,8 +10,22 @@ import (
 // TempConfigFile creates a temporary config file for testing and returns its path.
 // The caller should use t.Cleanup() or defer os.RemoveAll(tmpDir) to clean up.
 func TempConfigFile(t *testing.T, content []byte) string {
+	t.Helper()
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "config.yml")
+	if err := os.WriteFile(tmpFile, content, 0644); err != nil {
+		t.Fatal(err)
+	}
+	return tmpFile
+}
+
+// TempDataFile creates a temporary file with the given content and returns its
+// path. Unlike TempConfigFile, it uses a generic filename and is intended for
+// non-config test fixtures such as JSON request body payloads.
+func TempDataFile(t *testing.T, content []byte) string {
+	t.Helper()
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "data.json")
 	if err := os.WriteFile(tmpFile, content, 0644); err != nil {
 		t.Fatal(err)
 	}
