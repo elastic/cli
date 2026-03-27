@@ -46,7 +46,7 @@ Every command response when `--format=json` is active conforms to this structure
 
 ```json
 {
-  "data": {"status": "ok"},
+  "data": null,
   "error": null,
   "warnings": []
 }
@@ -77,28 +77,27 @@ Both fields are always present and non-empty.
 
 | Code | Description | Example trigger |
 |------|-------------|-----------------|
-| `unknown_command` | Unrecognized subcommand | `elastic bogus --format=json` |
-| `invalid_argument` | Flag validation failure | `elastic version --format=xml` |
+| `command_failed` | Unrecognized subcommand or generic handler error | `elastic bogus --format=json`; network timeout |
+| `invalid_argument` | Flag value not supported | `elastic version --format=xml` |
 | `config_error` | Config unreadable or malformed | Permission denied on config file |
 | `context_not_found` | `--context` names missing context | `elastic version --context=nope` |
 | `input_error` | Input read failure | `--file` path doesn't exist |
-| `command_failed` | Generic handler error | Network timeout, unexpected failure |
 
 ## Stream Contract
 
 | Stream | `--format=json` | `--format=text` (default) |
 |--------|-----------------|--------------------------|
 | stdout | Single JSON envelope (success or error) | Human-readable text (current behavior) |
-| stderr | Empty (nothing written) | `Error: <message>\n` on failure |
+| stderr | Always empty | `Error: <message>\n` on failure |
 
 ## Validation Contract
 
 ```
 --format=json   ✓  Recognized
 --format=text   ✓  Recognized (default behavior)
---format=xml    ✗  Exit 1, error: "unsupported format \"xml\"; supported: text, json"
---format=JSON   ✗  Exit 1 (case-sensitive)
---format=""     ✗  Exit 1, treated as unsupported value
+--format=xml    ✗  Exit 0, stdout JSON: {"data":null,"error":{"code":"invalid_argument","message":"unsupported format \"xml\": supported values are \"text\" and \"json\""},"warnings":[]}
+--format=JSON   ✗  Same as above (case-sensitive)
+--format=""         Silently treated as --format=text (default)
 ```
 
 When `--format` is not provided at all, default is `text`.
@@ -111,8 +110,9 @@ elastic version --format=json | jq .
 elastic version --format=json | jq -r '.data'
 elastic version --format=json | python3 -c 'import json,sys; json.load(sys.stdin)'
 
-# Error responses are also valid JSON:
-elastic bogus --format=json 2>/dev/null | jq -r '.error.code'
+# Error responses are also valid JSON (note: no stderr redirection needed):
+elastic bogus --format=json | jq -r '.error.code'
+# prints: command_failed
 ```
 
 ## Backward Compatibility

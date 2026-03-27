@@ -14,12 +14,14 @@ requires updating all call sites.
 ### `RunFunc`
 
 ```go
-type RunFunc func(ctx RunContext) error
+type RunFunc func(ctx RunContext) (any, error)
 ```
 
 The handler function type that every subcommand implements. The factory calls the
-`RunFunc` after fully populating `RunContext`. A non-nil return value is propagated
-to Cobra as a command error (root command writes to stderr, exits non-zero).
+`RunFunc` after fully populating `RunContext`. The first return value is the data
+payload written to the output envelope; `nil` is valid and produces a null `data`
+field. A non-nil error is wrapped in a `CommandError` and rendered as a JSON error
+envelope (or returned to Cobra in text mode).
 
 ---
 
@@ -37,6 +39,10 @@ type RunContext struct {
     // ActiveContext is the resolved context name for this invocation.
     // Set from the --context flag if provided; otherwise from Config.CurrentContext.
     ActiveContext string
+
+    // Body is the raw request body supplied by the caller, either piped via
+    // stdin or read from the path given to --file. Nil when no input was provided.
+    Body []byte
 }
 ```
 
@@ -87,16 +93,6 @@ Connection parameters for Elasticsearch. Supports two mutually exclusive auth mo
 - **API key**: `url` + `api_key`
 - **None**: `url` only (open/anonymous cluster)
 
-#### Method: `AuthMode() (string, error)`
-
-```go
-func (e ElasticsearchConfig) AuthMode() (string, error)
-```
-
-Returns `"basic"`, `"api_key"`, or `"none"`. Returns a non-nil error if:
-- Both basic credentials and `api_key` are set (conflict)
-- Only one of `username`/`password` is set (incomplete basic auth)
-
 ---
 
 ## Functions
@@ -117,17 +113,23 @@ Creates a fully wired `*cobra.Command` from a minimal command definition.
    Missing file → zero-value `Config`, empty `ConfigPath`.
 3. Resolves `ActiveContext` from `--context` flag (if set) or `Config.CurrentContext`.
 4. Validates that `ActiveContext` exists in `Config.Contexts` when non-empty.
-5. Calls `run(RunContext{...})` with the fully populated context.
-6. Returns any error from `run` to Cobra.
+5. Reads the request body from `--file` or piped stdin (mutually exclusive).
+6. Calls `run(RunContext{...})` with the fully populated context.
+7. Renders the result via `output.Render` — errors are written as a JSON envelope
+   (or returned to Cobra in text mode). **Errors are never propagated raw to Cobra
+   from inside this package.**
 
-**Error conditions** (all returned as Go `error`, not written directly to stderr):
+**Error conditions** (all routed through `output.Render`, not returned raw to Cobra):
 
-| Condition | Error message pattern |
-|---|---|
-| `$ELASTIC_CONFIG` set, file not found | `$ELASTIC_CONFIG path not found: <path>` |
-| Config file exists, unreadable | `read config <path>: <os error>` |
-| Config file exists, malformed YAML | `parse config <path>: <yaml error>` |
-| `--context` names unknown context | `context "<name>" not found; available: [a, b, c]` |
+| Condition | Error code | Error message pattern |
+|---|---|---|
+| `$ELASTIC_CONFIG` set, file not found | `config_error` | `$ELASTIC_CONFIG path not found: <os error>` |
+| Config file exists, unreadable | `config_error` | `read config <path>: <os error>` |
+| Config file exists, malformed YAML | `config_error` | `parse config <path>: <yaml error>` |
+| `--context` names unknown context | `context_not_found` | `context "<name>" not found; available: [a, b, c]` |
+| Both `--file` and piped stdin provided | `input_error` | `cannot use both stdin and --file as input; provide only one` |
+| `--file` path unreadable | `input_error` | `read --file "<path>": <os error>` |
+| Unsupported `--format` value | `invalid_argument` | `unsupported format "<v>": supported values are "text" and "json"` |
 
 **Not an error**: config file absent or config directory absent → zero-value
 `Config` used silently.
@@ -139,12 +141,12 @@ Creates a fully wired `*cobra.Command` from a minimal command definition.
 Registered on `rootCmd` via `PersistentFlags()` in `cmd/root.go`:
 
 ```go
-var contextOverride string
+var contextFlag string
 
 rootCmd.PersistentFlags().StringVar(
-    &contextOverride,
+    &contextFlag,
     "context", "",
-    "override the active context for this invocation",
+    "Context to use for this command",
 )
 ```
 
@@ -155,10 +157,12 @@ The flag value is passed into the factory's context resolution step. When empty,
 
 ## Error propagation model
 
-All errors from config loading and context resolution are returned as Go `error`
-values from the Cobra `RunE` function. The Cobra root command (already configured
-with `SilenceUsage: true` for error cases) writes the error to stderr and exits
-with code 1. No `os.Exit` calls appear inside `internal/factory`.
+All errors from format validation, config loading, context resolution, input
+reading, and the `RunFunc` itself are handled **inside `RunE`** by calling
+`output.Render`. In JSON mode, a JSON error envelope is written to stdout and
+`RunE` returns `nil` (Cobra sees no error). In text mode, the error is returned
+from `RunE` so that Cobra/`executeRoot` can write it to stderr and exit non-zero.
+No `os.Exit` calls appear inside `internal/factory`.
 
 ---
 
@@ -174,10 +178,9 @@ import (
 )
 
 func newPingCmd() *cobra.Command {
-    return factory.New("ping", "Check Elasticsearch connectivity", func(ctx factory.RunContext) error {
+    return factory.New("ping", "Check Elasticsearch connectivity", func(ctx factory.RunContext) (any, error) {
         es := ctx.Config.Contexts[ctx.ActiveContext].Elasticsearch
-        fmt.Printf("pinging %s (context: %s)\n", es.URL, ctx.ActiveContext)
-        return nil
+        return fmt.Sprintf("pinging %s (context: %s)", es.URL, ctx.ActiveContext), nil
     })
 }
 ```
