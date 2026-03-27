@@ -12,3 +12,4 @@ lint:
 
 lint-fix:
   gofmt -w .
+  go mod tidy
