@@ -194,4 +194,3 @@ func isReaderTTY(r io.Reader) bool {
 	}
 	return (info.Mode() & os.ModeCharDevice) != 0
 }
-

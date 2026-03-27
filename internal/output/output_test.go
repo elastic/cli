@@ -257,6 +257,7 @@ func TestValidateFormat_CaseSensitive(t *testing.T) {
 		t.Error("ValidateFormat(\"Text\"): expected error (case sensitive), got nil")
 	}
 }
+
 // ---- typed errors satisfy OutputError -------------------------------------
 
 // Verify that the apperrors types satisfy output.OutputError at compile time.

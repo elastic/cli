@@ -3,8 +3,8 @@ package factory
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/elastic/cli/internal/factory/factorytest"
