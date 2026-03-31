@@ -13,25 +13,30 @@
 hooks:
   # Fetch all remotes so that branch listings are up-to-date before
   # auto-numbering a new feature branch.
-  # fetch_remotes:
-  #   - git fetch --all --prune
+  fetch_remotes:
+    - git fetch --all --prune
 
   # List branches for auto-numbering. The output of this hook is captured
   # and parsed; each line should be one branch name (git branch -a format).
-  # list_branches:
-  #   - git branch -a
+  list_branches:
+    - git branch -a
 
   # Create the feature branch after a new feature is initialised.
   # {{branch_name}} is replaced with the computed branch name, e.g. 003-user-auth.
-  # create_branch:
-  #   - git checkout -b "{{branch_name}}"
+  create_branch:
+    - git checkout -b "{{branch_name}}"
 
   # Get current feature identifier from VCS.
   # This hook determines what identifies the current feature being worked on.
   # For git, this is the branch name. For other systems, it could be a feature ID from a manifest.
   # Output: feature identifier string (e.g., "001-user-auth", "feat-auth", etc.)
   get_current_feature:
-    - ls specs | tail -n1
+    - |
+      if [[ -n "${SPECIFY_FEATURE:-}" ]]; then
+        echo "$SPECIFY_FEATURE"
+      else
+        git rev-parse --abbrev-ref HEAD
+      fi
 
   # Verify VCS is initialized and ready.
   # Returns: exit code 0 on success, 1 on failure.

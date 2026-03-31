@@ -1,3 +1,33 @@
+<!--
+SYNC IMPACT REPORT
+==================
+Version change: 1.0.0 → 1.1.0 (MINOR — new principle added)
+
+Modified principles:
+  - None renamed or removed.
+
+Added sections:
+  - Principle VII: Cross-Platform Compatibility (NON-NEGOTIABLE)
+
+Removed sections:
+  - None.
+
+Templates reviewed:
+  - .specify/templates/plan-template.md  ✅ no changes required; "Target Platform"
+    field already accommodates multi-OS context.
+  - .specify/templates/spec-template.md  ✅ no changes required.
+  - .specify/templates/tasks-template.md ✅ no changes required; new principle
+    implies platform-matrix testing tasks are expected wherever OS-specific
+    behaviour is exercised — teams should add such tasks explicitly.
+  - .specify/templates/agent-file-template.md ✅ no changes required.
+  - .specify/templates/checklist-template.md  ✅ no changes required.
+  - .specify/templates/constitution-template.md ✅ source template; no update
+    required for the living constitution.
+
+Follow-up TODOs:
+  - TODO(RATIFICATION_DATE): confirm original adoption date.
+-->
+
 # elastic CLI Constitution
 
 ## Core Principles
@@ -25,8 +55,8 @@ The CLI MUST treat automated agents as first-class consumers alongside human use
   introspect valid inputs without running the command.
 - All top-level JSON Schema fields MUST also be addressable as individual CLI flags
   so human users are not forced to compose JSON.
-- Arguments for response templating (e.g. Go `text/template`) and field masks MUST
-  be available on every command so agents can control context growth precisely.
+- Arguments for response templating and field masks MUST be available on every
+  command so agents can control context growth precisely.
 
 ### III. Input Validation & Safety (NON-NEGOTIABLE)
 
@@ -82,13 +112,30 @@ necessary. Each dependency is a security and maintenance liability.
 - Before adding a new module, the team MUST confirm the stdlib cannot satisfy the
   need.
 - Dependencies are reviewed at each PR for transitive additions.
-- Go standard library packages are always preferred over third-party equivalents
+- Standard library packages are always preferred over third-party equivalents
   for JSON handling, HTTP, templating, and flag parsing.
+
+### VII. Cross-Platform Compatibility (NON-NEGOTIABLE)
+
+All functionality MUST work correctly and identically on Windows, Linux, and macOS.
+No feature, command, or internal utility MAY be shipped if it is known to fail or
+behave differently on any of these three platforms.
+
+- File path construction MUST use platform-agnostic APIs (e.g., `path.join`);
+  hard-coded path separators (`/` or `\`) are forbidden in path logic.
+- Config file locations MUST resolve via OS-standard directories
+  (e.g., `os.homedir()`, `process.env.APPDATA`) rather than Unix-only assumptions.
+- Shell-specific behaviour (signal handling, TTY detection, ANSI escape codes)
+  MUST be guarded behind platform capability checks.
+- CI MUST run the full test suite on all three platforms before merge. A test
+  passing only on Linux/macOS does not satisfy the green requirement of Principle V.
+- Any platform-specific code path MUST be clearly isolated and documented with the
+  rationale for the divergence.
 
 ## Development Standards
 
 - **Docstrings**: All exported symbols in reusable core utilities MUST have
-  complete, machine-parseable Go doc comments (`// FunctionName …`). Non-exported
+  complete, machine-parseable doc comments (`/** .. */`). Non-exported
   helpers warrant a comment when their purpose is non-obvious.
 - **Generated documentation**: Because JSON Schema `description` fields are
   exhaustive, CLI reference docs MUST be generated from schema + command metadata
@@ -96,8 +143,8 @@ necessary. Each dependency is a security and maintenance liability.
 - **Error messages**: Errors MUST be structured and distinguishable (error code +
   human message). When `--format=json`, errors MUST serialize to JSON with at
   minimum `{"error": {"code": "…", "message": "…"}}`.
-- **Go ecosystem conventions**: Standard Go idioms, `go vet`, `golangci-lint`, and
-  `go test -race` MUST pass before merge. Any deviation from idiomatic Go MUST be
+- **Node.js ecosystem conventions**: Standard JavaScript/TypeScript idioms, `npm test`,
+  MUST pass before merge. Any deviation from ecosystem idioms MUST be
   explained in a comment or docstring at the point of deviation.
 - **Comments**: Explain *why*, not *what*. Avoid restating code in prose.
 
@@ -120,4 +167,4 @@ necessary. Each dependency is a security and maintenance liability.
 - Runtime development guidance for agents lives in `.specify/memory/` alongside
   this file.
 
-**Version**: 1.0.1 | **Ratified**: TODO(RATIFICATION_DATE): confirm adoption date | **Last Amended**: 2026-03-17
+**Version**: 1.1.0 | **Ratified**: TODO(RATIFICATION_DATE): confirm adoption date | **Last Amended**: 2026-03-30

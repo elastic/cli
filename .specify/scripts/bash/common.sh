@@ -95,15 +95,17 @@ check_dir() { [[ -d "$1" && -n $(ls -A "$1" 2>/dev/null) ]] && echo "  ✓ $2" |
 #==============================================================================
 
 # Parse command list for a named hook from .specify/hooks.yml.
-# Prints one raw command per line (before variable substitution).
+# Prints one command per record, separated by null bytes (\0) to
+# correctly preserve multi-line block-scalar commands.
 _get_hook_commands() {
     local hook_name="$1"
     local hooks_file
     hooks_file="$(get_repo_root)/.specify/hooks.yml"
     [[ -f "$hooks_file" ]] || return 0
 
-    local in_hooks_section=false in_hook=false
-    while IFS= read -r line; do
+    local in_hooks_section=false in_hook=false in_block=false
+    local block_indent=0 block_cmd=""
+    while IFS= read -r line || [[ -n "$line" ]]; do
         # skip comments and blank lines
         [[ "$line" =~ ^[[:space:]]*# ]] && continue
         [[ -z "${line// }" ]] && continue
@@ -111,27 +113,57 @@ _get_hook_commands() {
         if [[ "$line" == "hooks:" ]]; then in_hooks_section=true; continue; fi
         [[ "$in_hooks_section" == false ]] && continue
 
+        # if collecting a block scalar, check whether the line is a continuation
+        if [[ "$in_block" == true ]]; then
+            # measure leading spaces
+            local stripped="${line#"${line%%[! ]*}"}"
+            local indent=$(( ${#line} - ${#stripped} ))
+            if (( indent >= block_indent )); then
+                # continuation line: strip the block indent and append
+                block_cmd+="${line:$block_indent}
+"
+                continue
+            fi
+            # block ended: emit the accumulated command (strip trailing newline)
+            block_cmd="${block_cmd%$'\n'}"
+            printf '%s\0' "$block_cmd"
+            in_block=false block_cmd=""
+        fi
+
         # named hook entry (2-space indent)
         if [[ "$line" =~ ^[[:space:]]{2}([a-zA-Z_][a-zA-Z0-9_]*):[[:space:]]*$ ]]; then
             [[ "${BASH_REMATCH[1]}" == "$hook_name" ]] && in_hook=true || in_hook=false
             continue
         fi
 
-        # command list item under the active hook (4-space indent + "- ")
+        # command list item under the active hook (4-space indent + \"- \")
         if [[ "$in_hook" == true ]] && [[ "$line" =~ ^[[:space:]]{4}-[[:space:]]+(.*) ]]; then
             local cmd="${BASH_REMATCH[1]}"
+            # handle YAML block scalar indicators (| or >)
+            if [[ "$cmd" == "|" || "$cmd" == ">" ]]; then
+                in_block=true
+                block_indent=6
+                block_cmd=""
+                continue
+            fi
             # strip surrounding double quotes only when the entire value is quoted
             if [[ "$cmd" == \"*\" ]]; then
                 cmd="${cmd:1:${#cmd}-2}"
             fi
-            echo "$cmd"
+            printf '%s\0' "$cmd"
         fi
     done < "$hooks_file"
+
+    # flush any trailing block scalar at EOF
+    if [[ "$in_block" == true && -n "$block_cmd" ]]; then
+        block_cmd="${block_cmd%$'\n'}"
+        printf '%s\0' "$block_cmd"
+    fi
 }
 
 # Return true if the named hook has at least one command defined.
 hook_defined() {
-    [[ -n "$(_get_hook_commands "$1")" ]]
+    _get_hook_commands "$1" | read -r -d '' _ 2>/dev/null
 }
 
 # Run all commands for a named hook, substituting {{key}} placeholders.
@@ -139,14 +171,12 @@ hook_defined() {
 # Silently does nothing if the hook is not defined.
 run_hook() {
     local hook_name="$1"; shift
-    local cmds
-    cmds=$(_get_hook_commands "$hook_name")
-    [[ -z "$cmds" ]] && return 0
-    while IFS= read -r cmd; do
-        for kv in "$@"; do
+    local -a args=("$@")
+    _get_hook_commands "$hook_name" | while IFS= read -r -d '' cmd; do
+        for kv in "${args[@]}"; do
             local key="${kv%%=*}" val="${kv#*=}"
             cmd="${cmd//\{\{$key\}\}/$val}"
         done
         eval "$cmd"
-    done <<< "$cmds"
+    done
 }
