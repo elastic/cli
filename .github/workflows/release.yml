@@ -2,63 +2,39 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  build:
-    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          release-type: node
+          package-name: "@elastic/cli"
+          token: ${{ secrets.RELEASE_PLEASE }}
+
+  publish:
+    needs: release-please
+    if: ${{ needs.release-please.outputs['hashline-edit-release-created'] == 'true' }}
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-    strategy:
-      matrix:
-        include:
-          - goos: linux
-            goarch: amd64
-            archive: tar.gz
-          - goos: darwin
-            goarch: arm64
-            archive: tar.gz
-          - goos: windows
-            goarch: amd64
-            archive: zip
-
+      contents: read
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-node@v4
         with:
-          go-version-file: go.mod
-
-      - name: Build binary
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: 0
-        run: |
-          BINARY=elastic
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            BINARY=elastic.exe
-          fi
-          go build -trimpath -ldflags="-s -w" -o "$BINARY" ./cmd/elastic
-
-      - name: Create archive (tar.gz)
-        if: matrix.archive == 'tar.gz'
-        run: |
-          ARCHIVE="elastic-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz"
-          tar -czf "$ARCHIVE" elastic
-          echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
-
-      - name: Create archive (zip)
-        if: matrix.archive == 'zip'
-        run: |
-          ARCHIVE="elastic-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}.zip"
-          zip "$ARCHIVE" elastic.exe
-          echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
-
-      - name: Upload asset to release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: gh release upload "${{ github.ref_name }}" "${{ env.ARCHIVE }}" --clobber
+          persist-credentials: false
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Install
+        run: npm install
+      - name: Run tests
+        run: npm test
+      - name: Publish
+        run: npm publish

@@ -10,20 +10,33 @@ permissions:
   contents: read
 
 jobs:
-  tests:
+  test-node:
+    name: Test Node.js
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: [20.x, 22.x, 24.x, 25.x]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install
+        run: npm install
+      - name: Run unit tests
+        run: npm test
+
+  test-bun:
+    name: Test Bun
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: extractions/setup-just@v3
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
+      - uses: oven-sh/setup-bun@v2
+      - name: Install
+        run: bun install
       - name: Run unit tests
-        run: just test
-      - name: Run linter
-        run: just lint
-      - name: Build binary
-        run: just build
+        run: bun test
