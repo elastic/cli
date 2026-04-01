@@ -22,6 +22,7 @@ program
   .version(version)
   .option('--config <path>', 'path to a config file, bypassing cosmiconfig discovery')
   .option('--context <name>', 'override the active context from the config file')
+  .option('--format <fmt>', 'output format: text (default) or json')
 
 // Before every sub-command action, load and resolve the config file.
 // On error, print a structured message and exit — never let a config failure
@@ -49,11 +50,7 @@ const pingCmd = defineCommand({
   description: 'Verify connectivity to the Elasticsearch cluster',
   handler: (parsed: ParsedResult) => {
     const esUrl = parsed.config?.context.elasticsearch?.url
-    if (esUrl != null) {
-      console.log(`pong (${esUrl})`)
-    } else {
-      console.log('pong')
-    }
+    return esUrl != null ? { status: 'ok', url: esUrl } : { status: 'ok' }
   },
 })
 program.addCommand(pingCmd)
