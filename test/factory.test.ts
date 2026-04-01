@@ -60,7 +60,7 @@ describe('factory types', () => {
     const config: CommandConfig = {
       name: 'health',
       description: 'Check cluster health',
-      handler: (parsed) => { handled.push(parsed) },
+      handler: (parsed) => { handled.push(parsed); return {} },
     }
     assert.equal(config.name, 'health')
     assert.equal(config.description, 'Check cluster health')
@@ -73,7 +73,7 @@ describe('factory types', () => {
       name: 'deploy',
       description: 'Deploy a cluster',
       options: [{ long: 'dry-run', description: 'Preview only', type: 'boolean' }],
-      handler: () => {},
+      handler: () => ({}),
     }
     assert.equal(config.options?.length, 1)
   })
@@ -109,7 +109,7 @@ describe('factory exports / cli.ts integration', () => {
     const healthCmd = defineCommand({
       name: 'health',
       description: 'Check cluster health',
-      handler: () => {},
+      handler: () => ({}),
     })
     assert.doesNotThrow(() => program.addCommand(healthCmd))
     assert.equal(program.commands.length, 1)
@@ -121,8 +121,8 @@ describe('factory exports / cli.ts integration', () => {
     const { defineCommand, defineGroup } = await import('../src/factory.ts')
     const program = new Command()
     program.name('elastic')
-    const healthCmd = defineCommand({ name: 'health', description: 'Health', handler: () => {} })
-    const statsCmd = defineCommand({ name: 'stats', description: 'Stats', handler: () => {} })
+    const healthCmd = defineCommand({ name: 'health', description: 'Health', handler: () => ({}) })
+    const statsCmd = defineCommand({ name: 'stats', description: 'Stats', handler: () => ({}) })
     const clusterGroup = defineGroup(
       { name: 'cluster', description: 'Manage clusters' },
       healthCmd,
@@ -139,10 +139,10 @@ describe('factory exports / cli.ts integration', () => {
     const { defineCommand, defineGroup } = await import('../src/factory.ts')
     const program = new Command()
     program.name('elastic')
-    const cmd1 = defineCommand({ name: 'ping',    description: 'Ping',    handler: () => {} })
-    const cmd2 = defineCommand({ name: 'version', description: 'Version', handler: () => {} })
+    const cmd1 = defineCommand({ name: 'ping',    description: 'Ping',    handler: () => ({}) })
+    const cmd2 = defineCommand({ name: 'version', description: 'Version', handler: () => ({}) })
     const grp  = defineGroup({ name: 'cluster', description: 'Clusters' },
-      defineCommand({ name: 'health', description: 'Health', handler: () => {} }),
+      defineCommand({ name: 'health', description: 'Health', handler: () => ({}) }),
     )
     program.addCommand(cmd1)
     program.addCommand(cmd2)
@@ -158,7 +158,7 @@ describe('defineCommand', () => {
       const handle = defineCommand({
         name: 'health',
         description: 'Check cluster health',
-        handler: () => {},
+        handler: () => ({}),
       })
       assert.equal(handle.name(), 'health')
     })
@@ -167,7 +167,7 @@ describe('defineCommand', () => {
       const handle = defineCommand({
         name: 'status',
         description: 'Show status information',
-        handler: () => {},
+        handler: () => ({}),
       })
       assert.equal(handle.description(), 'Show status information')
     })
@@ -177,7 +177,7 @@ describe('defineCommand', () => {
       const handle = defineCommand({
         name: 'deploy',
         description: 'Deploy a resource',
-        handler: () => {},
+        handler: () => ({}),
       })
       const program = new Command('elastic')
       assert.doesNotThrow(() => program.addCommand(handle))
@@ -186,8 +186,8 @@ describe('defineCommand', () => {
     })
 
     it('each call produces an independent handle', () => {
-      const a = defineCommand({ name: 'cmd-a', description: 'A', handler: () => {} })
-      const b = defineCommand({ name: 'cmd-b', description: 'B', handler: () => {} })
+      const a = defineCommand({ name: 'cmd-a', description: 'A', handler: () => ({}) })
+      const b = defineCommand({ name: 'cmd-b', description: 'B', handler: () => ({}) })
       assert.notEqual(a, b)
       assert.equal(a.name(), 'cmd-a')
       assert.equal(b.name(), 'cmd-b')
@@ -206,7 +206,7 @@ describe('defineCommand', () => {
         name: 'list',
         description: 'List resources',
         options: [{ long: 'verbose', description: 'Show detail', type: 'boolean' }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       invoke(cmd, ['--verbose'])
       assert.equal(received.length, 1)
@@ -219,7 +219,7 @@ describe('defineCommand', () => {
         name: 'list',
         description: 'List resources',
         options: [{ long: 'verbose', description: 'Show detail', type: 'boolean' }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       invoke(cmd, [])
       assert.equal(received.length, 1)
@@ -232,7 +232,7 @@ describe('defineCommand', () => {
         name: 'list',
         description: 'List resources',
         options: [{ long: 'verbose', short: 'v', description: 'Show detail', type: 'boolean' }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       invoke(cmd, ['-v'])
       assert.equal(received.length, 1)
@@ -245,7 +245,7 @@ describe('defineCommand', () => {
         name: 'list',
         description: 'List resources',
         options: [{ long: 'verbose', short: 'v', description: 'Show detail', type: 'boolean' }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       invoke(cmd, [])
       assert.equal(received.length, 1)
@@ -258,7 +258,7 @@ describe('defineCommand', () => {
         name: 'run',
         description: 'Run',
         options: [{ long: 'dry-run', description: 'Preview', type: 'boolean' }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       invoke(cmd, ['--dry-run'])
       assert.equal(received.length, 1)
@@ -280,7 +280,7 @@ describe('defineCommand', () => {
         name: 'build',
         description: 'Build',
         options: [{ long: 'output', description: 'Output path', type: 'string' }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       invoke(cmd, ['--output', '/tmp/out'])
       assert.equal(received.length, 1)
@@ -293,7 +293,7 @@ describe('defineCommand', () => {
         name: 'build',
         description: 'Build',
         options: [{ long: 'output', description: 'Output path', type: 'string' }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       invoke(cmd, [])
       assert.equal(received.length, 1)
@@ -306,7 +306,7 @@ describe('defineCommand', () => {
         name: 'build',
         description: 'Build',
         options: [{ long: 'output', description: 'Output path', type: 'string', defaultValue: './dist' }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       invoke(cmd, [])
       assert.equal(received.length, 1)
@@ -319,7 +319,7 @@ describe('defineCommand', () => {
         name: 'build',
         description: 'Build',
         options: [{ long: 'output', description: 'Output path', type: 'string', defaultValue: './dist' }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       invoke(cmd, ['--output', '/custom'])
       assert.equal(received.length, 1)
@@ -332,7 +332,7 @@ describe('defineCommand', () => {
         name: 'build',
         description: 'Build',
         options: [{ long: 'output', short: 'o', description: 'Output path', type: 'string' }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       invoke(cmd, ['-o', '/tmp'])
       assert.equal(received.length, 1)
@@ -345,7 +345,7 @@ describe('defineCommand', () => {
         name: 'build',
         description: 'Build',
         options: [{ long: 'output-dir', description: 'Output directory', type: 'string' }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       invoke(cmd, ['--output-dir', '/tmp'])
       assert.equal(received.length, 1)
@@ -366,7 +366,7 @@ describe('defineCommand', () => {
         name: 'run',
         description: 'Run',
         options: [{ long: 'count', description: 'Count', type: 'number' }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       invoke(cmd, ['--count', '5'])
       assert.equal(received.length, 1)
@@ -380,7 +380,7 @@ describe('defineCommand', () => {
         name: 'run',
         description: 'Run',
         options: [{ long: 'ratio', description: 'Ratio', type: 'number' }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       invoke(cmd, ['--ratio', '3.14'])
       assert.equal(received.length, 1)
@@ -393,7 +393,7 @@ describe('defineCommand', () => {
         name: 'run',
         description: 'Run',
         options: [{ long: 'timeout', description: 'Timeout', type: 'number', defaultValue: 30 }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       invoke(cmd, [])
       assert.equal(received.length, 1)
@@ -407,7 +407,7 @@ describe('defineCommand', () => {
         name: 'run',
         description: 'Run',
         options: [{ long: 'count', description: 'Count', type: 'number' }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       assert.throws(
         () => invoke(cmd, ['--count', 'abc']),
@@ -426,7 +426,7 @@ describe('defineCommand', () => {
         name: 'run',
         description: 'Run',
         options: [{ long: 'count', description: 'Count', type: 'number' }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       assert.throws(
         () => invoke(cmd, ['--count', 'NaN']),
@@ -451,7 +451,7 @@ describe('defineCommand', () => {
         name: 'deploy',
         description: 'Deploy a resource',
         options: [{ long: 'env', description: 'Target environment', type: 'string', required: true }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       assert.throws(
         () => invoke(cmd, []),
@@ -470,7 +470,7 @@ describe('defineCommand', () => {
         name: 'scale',
         description: 'Scale a resource',
         options: [{ long: 'replicas', description: 'Number of replicas', type: 'number', required: true }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       assert.throws(
         () => invoke(cmd, []),
@@ -489,7 +489,7 @@ describe('defineCommand', () => {
         name: 'deploy',
         description: 'Deploy a resource',
         options: [{ long: 'env', description: 'Target environment', type: 'string', required: true }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       assert.doesNotThrow(() => invoke(cmd, ['--env', 'production']))
       assert.equal(received.length, 1)
@@ -502,7 +502,7 @@ describe('defineCommand', () => {
         name: 'deploy',
         description: 'Deploy a resource',
         options: [{ long: 'env', description: 'Target environment', type: 'string' }],
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       assert.doesNotThrow(() => invoke(cmd, []))
       assert.equal(received.length, 1)
@@ -513,7 +513,7 @@ describe('defineCommand', () => {
         name: 'create',
         description: 'Create a resource',
         options: [{ long: 'name', description: 'Resource name', type: 'string', required: true }],
-        handler: () => {},
+        handler: () => ({}),
       })
       assert.throws(
         () => invoke(cmd, []),
@@ -537,7 +537,7 @@ describe('defineCommand', () => {
           { long: 'output', description: 'Output path', type: 'string' },
           { long: 'count', description: 'Number of items', type: 'number' },
         ],
-        handler: () => {},
+        handler: () => ({}),
       })
       const help = cmd.helpInformation()
       assert.match(help, /--verbose/)
@@ -554,7 +554,7 @@ describe('defineCommand', () => {
           { long: 'output', description: 'Output path', type: 'string' },
           { long: 'count', description: 'Number of items', type: 'number' },
         ],
-        handler: () => {},
+        handler: () => ({}),
       })
       const help = cmd.helpInformation()
       assert.match(help, /Show detail/)
@@ -567,7 +567,7 @@ describe('defineCommand', () => {
         name: 'run',
         description: 'Run',
         options: [{ long: 'output', description: 'Output path', type: 'string' }],
-        handler: () => {},
+        handler: () => ({}),
       })
       const help = cmd.helpInformation()
       assert.match(help, /--output <string>/)
@@ -578,7 +578,7 @@ describe('defineCommand', () => {
         name: 'run',
         description: 'Run',
         options: [{ long: 'count', description: 'Count', type: 'number' }],
-        handler: () => {},
+        handler: () => ({}),
       })
       const help = cmd.helpInformation()
       assert.match(help, /--count <number>/)
@@ -589,7 +589,7 @@ describe('defineCommand', () => {
         name: 'run',
         description: 'Run',
         options: [{ long: 'timeout', description: 'Timeout', type: 'number', defaultValue: 30 }],
-        handler: () => {},
+        handler: () => ({}),
       })
       const help = cmd.helpInformation()
       // must show (default: 30) not (default: "30")
@@ -602,7 +602,7 @@ describe('defineCommand', () => {
         name: 'run',
         description: 'Run',
         options: [{ long: 'format', description: 'Output format', type: 'string', defaultValue: 'json' }],
-        handler: () => {},
+        handler: () => ({}),
       })
       const help = cmd.helpInformation()
       assert.match(help, /default/)
@@ -614,7 +614,7 @@ describe('defineCommand', () => {
         name: 'run',
         description: 'Run',
         options: [{ long: 'output', description: 'Output path', type: 'string' }],
-        handler: () => {},
+        handler: () => ({}),
       })
       const help = cmd.helpInformation()
       assert.doesNotMatch(help, /default/)
@@ -623,36 +623,36 @@ describe('defineCommand', () => {
   describe('name validation', () => {
     it('throws when command name is empty', () => {
       assert.throws(
-        () => defineCommand({ name: '', description: 'Test', handler: () => {} }),
+        () => defineCommand({ name: '', description: 'Test', handler: () => ({}) }),
         (e: unknown) => { assert.ok(e instanceof Error); return true },
       )
     })
 
     it('throws when command name contains uppercase letters', () => {
       assert.throws(
-        () => defineCommand({ name: 'Health', description: 'Test', handler: () => {} }),
+        () => defineCommand({ name: 'Health', description: 'Test', handler: () => ({}) }),
         (e: unknown) => { assert.ok(e instanceof Error); return true },
       )
     })
 
     it('throws when command name contains spaces', () => {
       assert.throws(
-        () => defineCommand({ name: 'my command', description: 'Test', handler: () => {} }),
+        () => defineCommand({ name: 'my command', description: 'Test', handler: () => ({}) }),
         (e: unknown) => { assert.ok(e instanceof Error); return true },
       )
     })
 
     it('throws when command name contains special characters', () => {
       assert.throws(
-        () => defineCommand({ name: 'health_check', description: 'Test', handler: () => {} }),
+        () => defineCommand({ name: 'health_check', description: 'Test', handler: () => ({}) }),
         (e: unknown) => { assert.ok(e instanceof Error); return true },
       )
     })
 
     it('accepts valid lowercase-alphanumeric-hyphen names', () => {
-      assert.doesNotThrow(() => defineCommand({ name: 'health', description: 'Test', handler: () => {} }))
-      assert.doesNotThrow(() => defineCommand({ name: 'dry-run', description: 'Test', handler: () => {} }))
-      assert.doesNotThrow(() => defineCommand({ name: 'cmd123', description: 'Test', handler: () => {} }))
+      assert.doesNotThrow(() => defineCommand({ name: 'health', description: 'Test', handler: () => ({}) }))
+      assert.doesNotThrow(() => defineCommand({ name: 'dry-run', description: 'Test', handler: () => ({}) }))
+      assert.doesNotThrow(() => defineCommand({ name: 'cmd123', description: 'Test', handler: () => ({}) }))
     })
   })
 
@@ -662,7 +662,7 @@ describe('defineCommand', () => {
         () => defineCommand({
           name: 'health', description: 'Test',
           options: [{ long: 'verbose', short: 'vv', description: 'Verbose' }],
-          handler: () => {},
+          handler: () => ({}),
         }),
         (e: unknown) => { assert.ok(e instanceof Error); return true },
       )
@@ -673,7 +673,7 @@ describe('defineCommand', () => {
         () => defineCommand({
           name: 'health', description: 'Test',
           options: [{ long: 'verbose', short: '', description: 'Verbose' }],
-          handler: () => {},
+          handler: () => ({}),
         }),
         (e: unknown) => { assert.ok(e instanceof Error); return true },
       )
@@ -683,7 +683,7 @@ describe('defineCommand', () => {
       assert.doesNotThrow(() => defineCommand({
         name: 'health', description: 'Test',
         options: [{ long: 'verbose', short: 'v', description: 'Verbose' }],
-        handler: () => {},
+        handler: () => ({}),
       }))
     })
   })
@@ -694,7 +694,7 @@ describe('defineCommand', () => {
         () => defineCommand({
           name: 'health', description: 'Test',
           options: [{ long: 'v', description: 'Verbose' }],
-          handler: () => {},
+          handler: () => ({}),
         }),
         (e: unknown) => { assert.ok(e instanceof Error); return true },
       )
@@ -704,7 +704,7 @@ describe('defineCommand', () => {
       assert.doesNotThrow(() => defineCommand({
         name: 'health', description: 'Test',
         options: [{ long: 'vv', description: 'Double-verbose' }],
-        handler: () => {},
+        handler: () => ({}),
       }))
     })
   })
@@ -718,7 +718,7 @@ describe('defineCommand', () => {
             { long: 'verbose', description: 'Verbose' },
             { long: 'verbose', description: 'Also verbose' },
           ],
-          handler: () => {},
+          handler: () => ({}),
         }),
         (e: unknown) => { assert.ok(e instanceof Error); return true },
       )
@@ -732,7 +732,7 @@ describe('defineCommand', () => {
             { long: 'verbose', short: 'v', description: 'Verbose' },
             { long: 'version', short: 'v', description: 'Version' },
           ],
-          handler: () => {},
+          handler: () => ({}),
         }),
         (e: unknown) => { assert.ok(e instanceof Error); return true },
       )
@@ -745,36 +745,36 @@ describe('defineCommand', () => {
           { long: 'verbose', short: 'v', description: 'Verbose' },
           { long: 'timeout', short: 't', description: 'Timeout' },
         ],
-        handler: () => {},
+        handler: () => ({}),
       }))
     })
   })
 
   describe('help text format consistency', () => {
     it('two commands with different options both have a Usage section', () => {
-      const cmd1 = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }], handler: () => {} })
-      const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy resource', options: [{ long: 'env', type: 'string', description: 'Environment' }], handler: () => {} })
+      const cmd1 = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }], handler: () => ({}) })
+      const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy resource', options: [{ long: 'env', type: 'string', description: 'Environment' }], handler: () => ({}) })
       assert.match(cmd1.helpInformation(), /^Usage:/m)
       assert.match(cmd2.helpInformation(), /^Usage:/m)
     })
 
     it('two commands both have an Options section', () => {
-      const cmd1 = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }], handler: () => {} })
-      const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy resource', options: [{ long: 'env', type: 'string', description: 'Environment' }], handler: () => {} })
+      const cmd1 = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }], handler: () => ({}) })
+      const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy resource', options: [{ long: 'env', type: 'string', description: 'Environment' }], handler: () => ({}) })
       assert.match(cmd1.helpInformation(), /^Options:/m)
       assert.match(cmd2.helpInformation(), /^Options:/m)
     })
 
     it('both commands always include -h, --help in the Options section', () => {
-      const cmd1 = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
-      const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy', options: [{ long: 'env', type: 'string', description: 'Env' }], handler: () => {} })
+      const cmd1 = defineCommand({ name: 'health', description: 'Check health', handler: () => ({}) })
+      const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy', options: [{ long: 'env', type: 'string', description: 'Env' }], handler: () => ({}) })
       assert.match(cmd1.helpInformation(), /-h, --help/)
       assert.match(cmd2.helpInformation(), /-h, --help/)
     })
 
     it('sections appear in consistent order: Usage then description then Options', () => {
-      const cmd1 = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }], handler: () => {} })
-      const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy resource', options: [{ long: 'count', type: 'number', description: 'Count' }], handler: () => {} })
+      const cmd1 = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }], handler: () => ({}) })
+      const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy resource', options: [{ long: 'count', type: 'number', description: 'Count' }], handler: () => ({}) })
       for (const help of [cmd1.helpInformation(), cmd2.helpInformation()]) {
         const usagePos = help.indexOf('Usage:')
         const optionsPos = help.indexOf('Options:')
@@ -783,7 +783,7 @@ describe('defineCommand', () => {
     })
 
     it('command description appears between Usage and Options', () => {
-      const cmd = defineCommand({ name: 'health', description: 'Check cluster health', options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }], handler: () => {} })
+      const cmd = defineCommand({ name: 'health', description: 'Check cluster health', options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }], handler: () => ({}) })
       const help = cmd.helpInformation()
       const usagePos = help.indexOf('Usage:')
       const descriptionPos = help.indexOf('Check cluster health')
@@ -803,38 +803,38 @@ describe('defineCommand', () => {
     }
 
     it('unrecognised option error starts with "Error:" (capital E)', () => {
-      const cmd = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
+      const cmd = defineCommand({ name: 'health', description: 'Check health', handler: () => ({}) })
       const err = captureErr(cmd, ['--unknown'])
       assert.match(err, /^Error:/m)
     })
 
     it('missing required option error starts with "Error:" (capital E)', () => {
-      const cmd = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'env', type: 'string', description: 'Env', required: true }], handler: () => {} })
+      const cmd = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'env', type: 'string', description: 'Env', required: true }], handler: () => ({}) })
       const err = captureErr(cmd, [])
       assert.match(err, /^Error:/m)
     })
 
     it('type coercion error starts with "Error:" (capital E)', () => {
-      const cmd = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'count', type: 'number', description: 'Count' }], handler: () => {} })
+      const cmd = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'count', type: 'number', description: 'Count' }], handler: () => ({}) })
       const err = captureErr(cmd, ['--count', 'abc'])
       assert.match(err, /^Error:/m)
     })
 
     it('error output includes a Usage line', () => {
-      const cmd = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
+      const cmd = defineCommand({ name: 'health', description: 'Check health', handler: () => ({}) })
       const err = captureErr(cmd, ['--unknown'])
       assert.match(err, /Usage:/)
     })
 
     it('error output includes a --help hint', () => {
-      const cmd = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
+      const cmd = defineCommand({ name: 'health', description: 'Check health', handler: () => ({}) })
       const err = captureErr(cmd, ['--unknown'])
       assert.match(err, /--help/)
     })
 
     it('two different commands produce the same error structure for unrecognised options', () => {
-      const cmd1 = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
-      const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy', handler: () => {} })
+      const cmd1 = defineCommand({ name: 'health', description: 'Check health', handler: () => ({}) })
+      const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy', handler: () => ({}) })
       const err1 = captureErr(cmd1, ['--unknown'])
       const err2 = captureErr(cmd2, ['--unknown'])
       assert.match(err1, /^Error:/m)
@@ -846,7 +846,7 @@ describe('defineCommand', () => {
     })
 
     it('error output includes the command name in the Usage line', () => {
-      const cmd = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
+      const cmd = defineCommand({ name: 'health', description: 'Check health', handler: () => ({}) })
       const err = captureErr(cmd, ['--unknown'])
       assert.match(err, /Usage:.*health/)
     })
@@ -858,7 +858,7 @@ describe('defineCommand', () => {
         name: 'query',
         description: 'Run a query',
         input: z.object({ q: z.string() }),
-        handler: () => {},
+        handler: () => ({}),
       })
       const helpText = cmd.helpInformation()
       assert.ok(helpText.includes('--file'), `expected --file in help text:\n${helpText}`)
@@ -868,7 +868,7 @@ describe('defineCommand', () => {
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
-        handler: () => {},
+        handler: () => ({}),
       })
       const helpText = cmd.helpInformation()
       assert.ok(!helpText.includes('--file'), `expected no --file in help text:\n${helpText}`)
@@ -881,7 +881,7 @@ describe('defineCommand', () => {
           description: 'Run a query',
           input: z.object({ q: z.string() }),
           options: [{ long: 'file', description: 'A conflicting option' }],
-          handler: () => {},
+          handler: () => ({}),
         }),
         (e: unknown) => { assert.ok(e instanceof Error); return true },
       )
@@ -892,7 +892,7 @@ describe('defineCommand', () => {
         name: 'query',
         description: 'Run a query',
         options: [{ long: 'file', description: 'A file option' }],
-        handler: () => {},
+        handler: () => ({}),
       }))
     })
   })
@@ -901,7 +901,7 @@ describe('defineCommand', () => {
     it('throws when input is a plain object (not a ZodType)', () => {
       assert.throws(
         // @ts-expect-error intentional bad input for runtime validation test
-        () => defineCommand({ name: 'search', description: 'Search', input: { index: 'my-index' }, handler: () => {} }),
+        () => defineCommand({ name: 'search', description: 'Search', input: { index: 'my-index' }, handler: () => ({}) }),
         (e: unknown) => {
           assert.ok(e instanceof Error)
           assert.match(e.message, /command "search": input must be a Zod schema/)
@@ -913,7 +913,7 @@ describe('defineCommand', () => {
     it('throws when input is a string', () => {
       assert.throws(
         // @ts-expect-error intentional bad input for runtime validation test
-        () => defineCommand({ name: 'search', description: 'Search', input: 'schema' as never, handler: () => {} }),
+        () => defineCommand({ name: 'search', description: 'Search', input: 'schema' as never, handler: () => ({}) }),
         (e: unknown) => {
           assert.ok(e instanceof Error)
           assert.match(e.message, /command "search": input must be a Zod schema/)
@@ -925,7 +925,7 @@ describe('defineCommand', () => {
     it('throws when input is a number', () => {
       assert.throws(
         // @ts-expect-error intentional bad input for runtime validation test
-        () => defineCommand({ name: 'search', description: 'Search', input: 42 as never, handler: () => {} }),
+        () => defineCommand({ name: 'search', description: 'Search', input: 42 as never, handler: () => ({}) }),
         (e: unknown) => {
           assert.ok(e instanceof Error)
           assert.match(e.message, /command "search": input must be a Zod schema/)
@@ -962,7 +962,7 @@ describe('defineCommand', () => {
         name: 'query',
         description: 'Run a query',
         input: z.object({ cluster: z.string(), shards: z.number() }),
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       await invokeAsync(cmd, ['--file', filePath])
       assert.equal(received.length, 1)
@@ -975,7 +975,7 @@ describe('defineCommand', () => {
         name: 'query',
         description: 'Run a query',
         input: z.object({ q: z.string() }),
-        handler: () => {},
+        handler: () => ({}),
       })
       const err = await captureErrAsync(cmd, ['--file', nonexistent])
       assert.match(err, /--file: file not found:/)
@@ -988,7 +988,7 @@ describe('defineCommand', () => {
         name: 'query',
         description: 'Run a query',
         input: z.object({ q: z.string() }),
-        handler: () => {},
+        handler: () => ({}),
       })
       const err = await captureErrAsync(cmd, ['--file', filePath])
       assert.match(err, /--file: invalid JSON:/)
@@ -1001,7 +1001,7 @@ describe('defineCommand', () => {
         name: 'query',
         description: 'Run a query',
         input: z.object({ q: z.string() }),
-        handler: () => {},
+        handler: () => ({}),
       })
       const err = await captureErrAsync(cmd, ['--file', filePath])
       assert.match(err, /--file: invalid JSON: empty content/)
@@ -1013,7 +1013,7 @@ describe('defineCommand', () => {
         name: 'query',
         description: 'Run a query',
         input: z.object({ q: z.string() }),
-        handler: (parsed) => { received.push(parsed) },
+        handler: (parsed) => { received.push(parsed); return {} },
       })
       await invokeAsync(cmd, [])
       assert.equal(received.length, 1)
@@ -1039,7 +1039,7 @@ describe('defineCommand', () => {
           name: 'search',
           description: 'Run a search',
         input: z.object({ index: z.string(), size: z.number() }),
-          handler: (parsed) => { received.push(parsed) },
+          handler: (parsed) => { received.push(parsed); return {} },
         })
         await invokeAsync(cmd, [])
         assert.equal(received.length, 1)
@@ -1056,7 +1056,7 @@ describe('defineCommand', () => {
           name: 'search',
           description: 'Run a search',
         input: z.object({ q: z.string() }),
-          handler: () => {},
+          handler: () => ({}),
         })
         const err = await captureErrAsync(cmd, [])
         assert.match(err, /stdin: invalid JSON:/)
@@ -1072,7 +1072,7 @@ describe('defineCommand', () => {
           name: 'search',
           description: 'Run a search',
         input: z.object({ q: z.string() }),
-          handler: () => {},
+          handler: () => ({}),
         })
         const err = await captureErrAsync(cmd, [])
         assert.match(err, /stdin: invalid JSON: empty content/)
@@ -1109,7 +1109,7 @@ describe('defineCommand', () => {
           name: 'search',
           description: 'Run a search',
         input: z.object({ index: z.string() }),
-          handler: () => {},
+          handler: () => ({}),
         })
         const err = await captureErrAsync(cmd, ['--file', filePath])
         assert.match(err, /cannot read input from both --file and stdin/)
@@ -1126,7 +1126,7 @@ describe('defineCommand', () => {
           name: 'search',
           description: 'Search the cluster',
           input: schema,
-          handler: () => {},
+          handler: () => ({}),
         })
       })
     })
@@ -1136,7 +1136,7 @@ describe('defineCommand', () => {
         defineCommand({
           name: 'ping',
           description: 'Ping',
-          handler: () => {},
+          handler: () => ({}),
         })
       })
     })
@@ -1146,7 +1146,7 @@ describe('defineCommand', () => {
     it('throws when input is a plain object (not a ZodType)', () => {
       assert.throws(
         // @ts-expect-error intentional bad input for runtime validation test
-        () => defineCommand({ name: 'search', description: 'Search', input: { index: 'my-index' }, handler: () => {} }),
+        () => defineCommand({ name: 'search', description: 'Search', input: { index: 'my-index' }, handler: () => ({}) }),
         (e: unknown) => {
           assert.ok(e instanceof Error)
           assert.match(e.message, /command "search": input must be a Zod schema/)
@@ -1158,7 +1158,7 @@ describe('defineCommand', () => {
     it('throws when input is a string', () => {
       assert.throws(
         // @ts-expect-error intentional bad input for runtime validation test
-        () => defineCommand({ name: 'search', description: 'Search', input: 'schema' as never, handler: () => {} }),
+        () => defineCommand({ name: 'search', description: 'Search', input: 'schema' as never, handler: () => ({}) }),
         (e: unknown) => {
           assert.ok(e instanceof Error)
           assert.match(e.message, /command "search": input must be a Zod schema/)
@@ -1170,7 +1170,7 @@ describe('defineCommand', () => {
     it('throws when input is a number', () => {
       assert.throws(
         // @ts-expect-error intentional bad input for runtime validation test
-        () => defineCommand({ name: 'search', description: 'Search', input: 42 as never, handler: () => {} }),
+        () => defineCommand({ name: 'search', description: 'Search', input: 42 as never, handler: () => ({}) }),
         (e: unknown) => {
           assert.ok(e instanceof Error)
           assert.match(e.message, /command "search": input must be a Zod schema/)
@@ -1207,7 +1207,7 @@ describe('defineCommand', () => {
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: (parsed) => { received.push(parsed.input) },
+        handler: (parsed) => { received.push(parsed.input); return {} },
       })
       await invokeAsync(cmd, ['--file', filePath])
       assert.deepEqual(received[0], { index: 'logs', size: 10 })
@@ -1223,7 +1223,7 @@ describe('defineCommand', () => {
           name: 'search',
           description: 'Search',
           input: schema,
-          handler: (parsed) => { received.push(parsed.input) },
+          handler: (parsed) => { received.push(parsed.input); return {} },
         })
         await invokeAsync(cmd, [])
         assert.deepEqual(received[0], { index: 'logs', size: 10 })
@@ -1241,7 +1241,7 @@ describe('defineCommand', () => {
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: (parsed) => { received.push(parsed.input) },
+        handler: (parsed) => { received.push(parsed.input); return {} },
       })
       await invokeAsync(cmd, ['--file', filePath])
       assert.deepEqual(received[0], { index: 'logs', size: 10 })
@@ -1256,7 +1256,7 @@ describe('defineCommand', () => {
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: (parsed) => { received.push(parsed.input) },
+        handler: (parsed) => { received.push(parsed.input); return {} },
       })
       await invokeAsync(cmd, ['--file', filePath])
       assert.deepEqual(received[0], { index: 'logs' })
@@ -1269,7 +1269,7 @@ describe('defineCommand', () => {
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: (parsed) => { received.push(parsed.input) },
+        handler: (parsed) => { received.push(parsed.input); return {} },
       })
       // stdin is TTY (set in beforeEach), no --file flag - no input provided
       await invokeAsync(cmd, [])
@@ -1303,7 +1303,7 @@ describe('defineCommand', () => {
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: () => {},
+        handler: () => ({}),
       })
       const err = await captureErrAsync(cmd, ['--file', filePath])
       assert.match(err, /input validation failed/)
@@ -1319,7 +1319,7 @@ describe('defineCommand', () => {
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: () => {},
+        handler: () => ({}),
       })
       const err = await captureErrAsync(cmd, ['--file', filePath])
       assert.match(err, /input validation failed/)
@@ -1334,7 +1334,7 @@ describe('defineCommand', () => {
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: () => {},
+        handler: () => ({}),
       })
       const err = await captureErrAsync(cmd, ['--file', filePath])
       assert.match(err, /input validation failed/)
@@ -1351,7 +1351,7 @@ describe('defineCommand', () => {
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: () => { handlerCalled = true },
+        handler: () => { handlerCalled = true; return {} },
       })
       await captureErrAsync(cmd, ['--file', filePath])
       assert.equal(handlerCalled, false)
@@ -1365,7 +1365,7 @@ describe('defineCommand', () => {
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: () => {},
+        handler: () => ({}),
       })
       const err = await captureErrAsync(cmd, ['--file', filePath])
       assert.match(err, /input validation failed/)
@@ -1378,7 +1378,7 @@ describe('defineCommand', () => {
       const cmd = defineCommand({
         name: 'ping',
         description: 'Ping',
-        handler: () => {},
+        handler: () => ({}),
       })
       assert.ok(
         !cmd.helpInformation().includes('--file'),
@@ -1389,7 +1389,7 @@ describe('defineCommand', () => {
     it('command with input: false throws at definition time', () => {
       assert.throws(
         // @ts-expect-error intentional: false is not a valid input value
-        () => defineCommand({ name: 'ping', description: 'Ping', input: false, handler: () => {} }),
+        () => defineCommand({ name: 'ping', description: 'Ping', input: false, handler: () => ({}) }),
         (e: unknown) => {
           assert.ok(e instanceof Error)
           assert.match(e.message, /input must be a Zod schema/)
@@ -1452,7 +1452,7 @@ describe('defineCommand', () => {
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: () => {},
+        handler: () => ({}),
       })
       const { parsed } = await invokeWithJsonFormat(cmd, ['--file', filePath])
       assert.ok(parsed !== null, 'output was not valid JSON')
@@ -1472,7 +1472,7 @@ describe('defineCommand', () => {
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: () => {},
+        handler: () => ({}),
       })
       const { parsed } = await invokeWithJsonFormat(cmd, ['--file', filePath])
       const issues = ((parsed as Record<string, unknown>)['error'] as Record<string, unknown>)['issues'] as Array<Record<string, unknown>>
@@ -1491,7 +1491,7 @@ describe('defineCommand', () => {
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: () => { handlerCalled = true },
+        handler: () => { handlerCalled = true; return {} },
       })
       await invokeWithJsonFormat(cmd, ['--file', filePath])
       assert.equal(handlerCalled, false)
@@ -1505,14 +1505,114 @@ describe('defineCommand', () => {
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: () => {},
+        handler: () => ({}),
       })
       const err = await captureErrAsync(cmd, ['--file', filePath])
       assert.match(err, /input validation failed/)
       assert.match(err, /index/)
     })
   })
+  describe('global options', () => {
+    async function mountUnderRoot(cmd: OpaqueCommandHandle, argv: string[]): Promise<void> {
+      const { Command } = await import('commander')
+      const prog = new Command('elastic')
+      prog.option('--format <fmt>', 'output format')
+      prog.addCommand(cmd)
+      prog.exitOverride()
+      cmd.exitOverride()
+      await prog.parseAsync(argv, { from: 'user' })
+    }
+
+    it('global options from parent program appear in parsed.options', async () => {
+      const received: ParsedResult[] = []
+      const cmd = defineCommand({
+        name: 'health',
+        description: 'Check health',
+        handler: (parsed) => { received.push(parsed); return {} },
+      })
+      await mountUnderRoot(cmd, ['--format', 'json', 'health'])
+      assert.equal(received.length, 1)
+      assert.equal(received[0]!.options['format'], 'json')
+    })
+
+    it('global options are absent from parsed.options when not provided', async () => {
+      const received: ParsedResult[] = []
+      const cmd = defineCommand({
+        name: 'health',
+        description: 'Check health',
+        handler: (parsed) => { received.push(parsed); return {} },
+      })
+      await mountUnderRoot(cmd, ['health'])
+      assert.equal(received.length, 1)
+      assert.equal(received[0]!.options['format'], undefined)
+    })
+
+    it('command-level options and global options coexist in parsed.options', async () => {
+      const received: ParsedResult[] = []
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        options: [{ long: 'index', type: 'string', description: 'Index name' }],
+        handler: (parsed) => { received.push(parsed); return {} },
+      })
+      await mountUnderRoot(cmd, ['--format', 'json', 'search', '--index', 'logs'])
+      assert.equal(received.length, 1)
+      assert.equal(received[0]!.options['format'], 'json')
+      assert.equal(received[0]!.options['index'], 'logs')
+    })
+  })
+
+  describe('handler return value and output', () => {
+    async function captureOutput(fn: () => Promise<void>): Promise<string> {
+      let out = ''
+      const orig = process.stdout.write.bind(process.stdout)
+      process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
+      try { await fn() } finally { process.stdout.write = orig }
+      return out
+    }
+
+    async function invokeUnderRoot(cmd: OpaqueCommandHandle, rootArgv: string[], cmdArgv: string[]): Promise<string> {
+      const { Command } = await import('commander')
+      const prog = new Command('elastic')
+      prog.option('--format <fmt>', 'output format')
+      prog.addCommand(cmd)
+      prog.exitOverride()
+      cmd.exitOverride()
+      return captureOutput(() => prog.parseAsync([...rootArgv, cmd.name(), ...cmdArgv], { from: 'user' }))
+    }
+
+    it('factory writes handler return value as compact JSON when --format=json', async () => {
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Get status',
+        handler: () => ({ ok: true, count: 3 }),
+      })
+      const out = await invokeUnderRoot(cmd, ['--format', 'json'], [])
+      assert.deepEqual(JSON.parse(out), { ok: true, count: 3 })
+    })
+
+    it('factory writes handler return value as pretty-printed JSON in text mode', async () => {
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Get status',
+        handler: () => ({ ok: true }),
+      })
+      const out = await invokeUnderRoot(cmd, [], [])
+      assert.equal(out, JSON.stringify({ ok: true }, null, 2) + '\n')
+    })
+
+    it('factory handles async handler return value', async () => {
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Get status',
+        handler: async () => ({ async: true }),
+      })
+      const out = await invokeUnderRoot(cmd, ['--format', 'json'], [])
+      assert.deepEqual(JSON.parse(out), { async: true })
+    })
+  })
 })
+
 
 
 describe('defineGroup', () => {
@@ -1532,8 +1632,8 @@ describe('defineGroup', () => {
     })
 
     it('attaches child command handles via addCommand', () => {
-      const health = defineCommand({ name: 'health', description: 'Health check', handler: () => {} })
-      const stats = defineCommand({ name: 'stats', description: 'Stats', handler: () => {} })
+      const health = defineCommand({ name: 'health', description: 'Health check', handler: () => ({}) })
+      const stats = defineCommand({ name: 'stats', description: 'Stats', handler: () => ({}) })
       const group = defineGroup(
         { name: 'cluster', description: 'Manage clusters' },
         health,
@@ -1546,7 +1646,7 @@ describe('defineGroup', () => {
 
     it('returns a handle registerable with a parent program', async () => {
       const { Command } = await import('commander')
-      const child = defineCommand({ name: 'health', description: 'Health', handler: () => {} })
+      const child = defineCommand({ name: 'health', description: 'Health', handler: () => ({}) })
       const group = defineGroup({ name: 'cluster', description: 'Clusters' }, child)
       const program = new Command('elastic')
       assert.doesNotThrow(() => program.addCommand(group))
@@ -1581,12 +1681,12 @@ describe('defineGroup', () => {
       const health = defineCommand({
         name: 'health',
         description: 'Check health',
-        handler: (p) => { healthReceived.push(p) },
+        handler: (p) => { healthReceived.push(p); return {} },
       })
       const stats = defineCommand({
         name: 'stats',
         description: 'Show stats',
-        handler: (p) => { statsReceived.push(p) },
+        handler: (p) => { statsReceived.push(p); return {} },
       })
       const cluster = defineGroup({ name: 'cluster', description: 'Cluster commands' }, health, stats)
       invoke(cluster, ['health'])
@@ -1600,12 +1700,12 @@ describe('defineGroup', () => {
       const health = defineCommand({
         name: 'health',
         description: 'Check health',
-        handler: (p) => { healthReceived.push(p) },
+        handler: (p) => { healthReceived.push(p); return {} },
       })
       const stats = defineCommand({
         name: 'stats',
         description: 'Show stats',
-        handler: (p) => { statsReceived.push(p) },
+        handler: (p) => { statsReceived.push(p); return {} },
       })
       const cluster = defineGroup({ name: 'cluster', description: 'Cluster commands' }, health, stats)
       invoke(cluster, ['stats'])
@@ -1619,7 +1719,7 @@ describe('defineGroup', () => {
         name: 'health',
         description: 'Check health',
         options: [{ long: 'verbose', type: 'boolean', description: 'Verbose output' }],
-        handler: (p) => { received.push(p) },
+        handler: (p) => { received.push(p); return {} },
       })
       const cluster = defineGroup({ name: 'cluster', description: 'Cluster commands' }, health)
       invoke(cluster, ['health', '--verbose'])
@@ -1633,7 +1733,7 @@ describe('defineGroup', () => {
         name: 'health',
         description: 'Check health',
         options: [{ long: 'timeout', type: 'number', description: 'Timeout', defaultValue: 30 }],
-        handler: (p) => { received.push(p) },
+        handler: (p) => { received.push(p); return {} },
       })
       const cluster = defineGroup({ name: 'cluster', description: 'Cluster commands' }, health)
       invoke(cluster, ['health', '--timeout', '60'])
@@ -1647,7 +1747,7 @@ describe('defineGroup', () => {
       const health = defineCommand({
         name: 'health',
         description: 'Check health',
-        handler: (p) => { received.push(p) },
+        handler: (p) => { received.push(p); return {} },
       })
       const cluster = defineGroup({ name: 'cluster', description: 'Cluster commands' }, health)
       invoke(cluster, ['health'])
@@ -1670,8 +1770,8 @@ describe('defineGroup', () => {
     }
 
     it('outputs help listing child command names when invoked without a sub-command', () => {
-      const health = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
-      const stats  = defineCommand({ name: 'stats',  description: 'Show stats',   handler: () => {} })
+      const health = defineCommand({ name: 'health', description: 'Check health', handler: () => ({}) })
+      const stats  = defineCommand({ name: 'stats',  description: 'Show stats',   handler: () => ({}) })
       const cluster = defineGroup({ name: 'cluster', description: 'Cluster commands' }, health, stats)
       const output = invokeCapture(cluster, [])
       assert.match(output, /health/)
@@ -1679,8 +1779,8 @@ describe('defineGroup', () => {
     })
 
     it('outputs help listing child command descriptions when invoked without a sub-command', () => {
-      const health = defineCommand({ name: 'health', description: 'Check cluster health', handler: () => {} })
-      const stats  = defineCommand({ name: 'stats',  description: 'Show cluster stats',   handler: () => {} })
+      const health = defineCommand({ name: 'health', description: 'Check cluster health', handler: () => ({}) })
+      const stats  = defineCommand({ name: 'stats',  description: 'Show cluster stats',   handler: () => ({}) })
       const cluster = defineGroup({ name: 'cluster', description: 'Cluster commands' }, health, stats)
       const output = invokeCapture(cluster, [])
       assert.match(output, /Check cluster health/)
@@ -1688,7 +1788,7 @@ describe('defineGroup', () => {
     })
 
     it('outputs help when --help flag is passed to the group', () => {
-      const health = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
+      const health = defineCommand({ name: 'health', description: 'Check health', handler: () => ({}) })
       const cluster = defineGroup({ name: 'cluster', description: 'Cluster commands' }, health)
       const output = invokeCapture(cluster, ['--help'])
       assert.match(output, /health/)
@@ -1696,14 +1796,14 @@ describe('defineGroup', () => {
     })
 
     it('includes the group description in help output', () => {
-      const health = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
+      const health = defineCommand({ name: 'health', description: 'Check health', handler: () => ({}) })
       const cluster = defineGroup({ name: 'cluster', description: 'Manage Elasticsearch clusters' }, health)
       const output = invokeCapture(cluster, [])
       assert.match(output, /Manage Elasticsearch clusters/)
     })
 
     it('exits with code 0 (not an error) when group is invoked without a sub-command', () => {
-      const health = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
+      const health = defineCommand({ name: 'health', description: 'Check health', handler: () => ({}) })
       const cluster = defineGroup({ name: 'cluster', description: 'Cluster commands' }, health)
       cluster.exitOverride()
       cluster.configureOutput({ writeOut: () => {} })
@@ -1723,7 +1823,7 @@ describe('defineGroup', () => {
         name: 'health',
         description: 'Check cluster health',
         options: [{ long: 'verbose', type: 'boolean', description: 'Show verbose output' }],
-        handler: () => {},
+        handler: () => ({}),
       })
       defineGroup({ name: 'cluster', description: 'Cluster commands' }, health)
       const help = health.helpInformation()
@@ -1734,7 +1834,7 @@ describe('defineGroup', () => {
       const health = defineCommand({
         name: 'health',
         description: 'Check cluster health',
-        handler: () => {},
+        handler: () => ({}),
       })
       defineGroup({ name: 'cluster', description: 'Cluster commands' }, health)
       const help = health.helpInformation()
@@ -1746,13 +1846,13 @@ describe('defineGroup', () => {
         name: 'health',
         description: 'Check cluster health',
         options: [{ long: 'timeout', type: 'number', description: 'Timeout in seconds', defaultValue: 30 }],
-        handler: () => {},
+        handler: () => ({}),
       })
       const stats = defineCommand({
         name: 'stats',
         description: 'Show stats',
         options: [{ long: 'format', type: 'string', description: 'Output format' }],
-        handler: () => {},
+        handler: () => ({}),
       })
       defineGroup({ name: 'cluster', description: 'Cluster commands' }, health, stats)
       const healthHelp = health.helpInformation()
@@ -1768,7 +1868,7 @@ describe('defineGroup', () => {
         name: 'health',
         description: 'Check cluster health',
         options: [{ long: 'verbose', type: 'boolean', description: 'Show verbose output' }],
-        handler: () => {},
+        handler: () => ({}),
       })
       defineGroup({ name: 'cluster', description: 'Cluster commands' }, health)
       health.exitOverride()
@@ -1796,21 +1896,21 @@ describe('defineGroup', () => {
     }
 
     it('emits a clear error message when an unknown sub-command is used', () => {
-      const health = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
+      const health = defineCommand({ name: 'health', description: 'Check health', handler: () => ({}) })
       const cluster = defineGroup({ name: 'cluster', description: 'Cluster commands' }, health)
       const { err } = invokeCapture(cluster, ['nonexistent'])
       assert.match(err, /nonexistent/)
     })
 
     it('error message mentions the unrecognised command name', () => {
-      const health = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
+      const health = defineCommand({ name: 'health', description: 'Check health', handler: () => ({}) })
       const cluster = defineGroup({ name: 'cluster', description: 'Cluster commands' }, health)
       const { err } = invokeCapture(cluster, ['deploy'])
       assert.match(err, /deploy/)
     })
 
     it('exits with a non-zero code on unknown sub-command', () => {
-      const health = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
+      const health = defineCommand({ name: 'health', description: 'Check health', handler: () => ({}) })
       const cluster = defineGroup({ name: 'cluster', description: 'Cluster commands' }, health)
       const { code } = invokeCapture(cluster, ['nonexistent'])
       assert.equal(code, 'commander.error')
@@ -1818,7 +1918,7 @@ describe('defineGroup', () => {
 
     it('does not invoke any child handler on unknown sub-command', () => {
       const received: ParsedResult[] = []
-      const health = defineCommand({ name: 'health', description: 'Check health', handler: (p) => { received.push(p) } })
+      const health = defineCommand({ name: 'health', description: 'Check health', handler: (p) => { received.push(p); return {} } })
       const cluster = defineGroup({ name: 'cluster', description: 'Cluster commands' }, health)
       cluster.exitOverride()
       cluster.configureOutput({ writeErr: () => {} })
@@ -1855,7 +1955,7 @@ describe('no Commander API leaks', () => {
     const handle: OpaqueCommandHandle = defineCommand({
       name: 'ping',
       description: 'Ping the cluster',
-      handler: () => {},
+      handler: () => ({}),
     })
     // they can inspect the name without knowing it is a Commander Command
     assert.equal(typeof handle.name, 'function')
@@ -1863,7 +1963,7 @@ describe('no Commander API leaks', () => {
   })
 
   it('defineGroup return value requires no Commander import to use', () => {
-    const child: OpaqueCommandHandle = defineCommand({ name: 'health', description: 'Health', handler: () => {} })
+    const child: OpaqueCommandHandle = defineCommand({ name: 'health', description: 'Health', handler: () => ({}) })
     const group: OpaqueCommandHandle = defineGroup({ name: 'cluster', description: 'Clusters' }, child)
     assert.equal(typeof group.name, 'function')
     assert.equal(group.name(), 'cluster')
@@ -1875,7 +1975,7 @@ describe('no Commander API leaks', () => {
     function register(handle: OpaqueCommandHandle): string {
       return handle.name()
     }
-    const handle = defineCommand({ name: 'deploy', description: 'Deploy', handler: () => {} })
+    const handle = defineCommand({ name: 'deploy', description: 'Deploy', handler: () => ({}) })
     assert.equal(register(handle), 'deploy')
   })
 })
@@ -1887,7 +1987,7 @@ describe('forward-compatibility and extensibility', () => {
     const cmd = defineCommand({
       name: 'ping',
       description: 'Ping the cluster',
-      handler: () => {},
+      handler: () => ({}),
     })
     assert.equal(cmd.name(), 'ping')
     assert.equal(cmd.description(), 'Ping the cluster')
@@ -1899,7 +1999,7 @@ describe('forward-compatibility and extensibility', () => {
     const base = {
       name: 'health',
       description: 'Check health',
-      handler: () => {},
+      handler: () => ({}),
     }
     // spread ensures no TypeScript error when additional optional properties are present
     const extended = { ...base, options: [] }

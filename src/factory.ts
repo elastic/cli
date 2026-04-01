@@ -6,6 +6,7 @@
 import { Command } from 'commander'
 import { z } from 'zod'
 import { readFileSync } from 'node:fs'
+import assert from 'node:assert/strict'
 import type { ResolvedConfig } from './config/types.ts'
 import { getResolvedConfig } from './config/store.ts'
 
@@ -46,6 +47,12 @@ export interface OptionDefinition {
    */
   defaultValue?: string | number | boolean
 }
+
+/**
+ * Any value that can be round-tripped through `JSON.stringify` / `JSON.parse` without loss.
+ * All command handlers must return a `JsonValue`; the factory serializes it for output.
+ */
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
 
 /**
  * Typed output of option parsing passed to the command handler.
@@ -106,7 +113,7 @@ export interface CommandConfig<T extends z.ZodType = z.ZodType> {
    * invoked after successful parsing and type coercion.
    * errors thrown here propagate to the caller; the factory does not catch handler errors.
    */
-  handler: (parsed: ParsedResult<z.infer<T>>) => void | Promise<void>
+  handler: (parsed: ParsedResult<z.infer<T>>) => JsonValue | Promise<JsonValue>
   /**
    * optional input schema. when a Zod schema is provided, registers `--file` and reads JSON from
    * stdin or file, validates against the schema, then passes the typed result to the handler.
@@ -356,30 +363,13 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
   if (config.input instanceof z.ZodType) {
     cmd.option('--file <path>', 'path to a JSON file to use as command input')
   }
-  // EXTENSION POINT: JSON Schema generation (Principle II)
-  // Future: derive a JSON Schema from `optDefs` here and attach it to the command
-  // handle so `--help --format=json` can emit machine-readable schema.
-
   cmd.action(async () => {
-    // EXTENSION POINT: context-based configuration (Principle IV)
-    // Future: resolve environment/profile config here and merge with parsed options
-    // before passing to the handler, without changing the CommandConfig interface.
-
-    // EXTENSION POINT: authentication (cross-cutting)
-    // Future: check a `requiresAuth?: boolean` field in config and inject credentials
-    // into the parsed result or reject with a structured error before the handler runs.
-
-    // EXTENSION POINT: dry-run (Principle III)
-    // Future: inspect a global `--dry-run` flag (registered by the factory on every
-    // command) and short-circuit handler invocation, printing what would happen instead.
-
-    const raw = cmd.opts()
+    const allRaw = cmd.optsWithGlobals() as Record<string, unknown>
     const options: Record<string, string | number | boolean> = {}
 
     for (const opt of optDefs) {
       const rawKey = camelCase(opt.long)
-      const rawVal = raw[rawKey]
-
+      const rawVal = allRaw[rawKey]
       if (opt.type === 'boolean') {
         options[opt.long] = rawVal === true
       } else if (rawVal !== undefined) {
@@ -388,6 +378,15 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
       }
     }
 
+    const declaredKeys = new Set(optDefs.map((o) => camelCase(o.long)))
+    for (const [camelKey, val] of Object.entries(allRaw)) {
+      if (!declaredKeys.has(camelKey) && (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean')) {
+        const kebabKey = camelKey.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)
+        options[kebabKey] = val
+      }
+    }
+
+    const fmt = allRaw['format']
     let inputValue: unknown
     if (config.input instanceof z.ZodType) {
       const filePath = cmd.getOptionValue('file') as string | undefined
@@ -412,15 +411,12 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
       options,
       ...(resolvedConfig != null ? { config: resolvedConfig } : {}),
     }
-    if (inputValue !== undefined && config.input instanceof z.ZodType) {
+    if (inputValue !== undefined) {
+      assert(config.input instanceof z.ZodType, `command ${JSON.stringify(config.name)}: input must be a Zod schema`)
       const result = config.input.safeParse(inputValue)
       if (result.success) {
         parsed.input = result.data as z.infer<T>
       } else {
-        // walk up to root program to check for --format=json
-        let root: OpaqueCommandHandle = cmd
-        while (root.parent != null) root = root.parent as OpaqueCommandHandle
-        const fmt = (root.opts() as Record<string, unknown>)['format']
         if (fmt === 'json') {
           const issues = result.error.issues
           process.stdout.write(JSON.stringify({
@@ -436,7 +432,13 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
         return cmd.error(`input validation failed:\n${z.prettifyError(result.error)}`)
       }
     }
-    await config.handler(parsed)
+    const handlerResult = await config.handler(parsed)
+    assert(handlerResult !== undefined, `command ${JSON.stringify(config.name)}: handler must return a JsonValue`)
+    if (fmt === 'json') {
+      process.stdout.write(JSON.stringify(handlerResult) + '\n')
+    } else {
+      process.stdout.write(JSON.stringify(handlerResult, null, 2) + '\n')
+    }
   })
 
   return cmd
