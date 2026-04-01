@@ -5,6 +5,7 @@
 
 import { Command } from 'commander'
 import { z } from 'zod'
+import { readFileSync } from 'node:fs'
 import type { ResolvedConfig } from './config/types.ts'
 import { getResolvedConfig } from './config/store.ts'
 
@@ -63,6 +64,8 @@ export interface ParsedResult {
   options: Record<string, string | number | boolean>
   /** resolved configuration from the active context, injected by the preAction hook */
   config?: ResolvedConfig
+  /** parsed JSON content when `input: true` and data is provided via --file or stdin */
+  input?: unknown
 }
 
 /**
@@ -86,13 +89,15 @@ export interface CommandConfig {
   name: string
   /** human-readable description shown in help text */
   description: string
-  /** option and flag definitions; all inputs are named options — positional arguments are not supported */
+  /** option and flag definitions; all inputs are named options - positional arguments are not supported */
   options?: OptionDefinition[]
   /**
    * invoked after successful parsing and type coercion.
    * errors thrown here propagate to the caller; the factory does not catch handler errors.
    */
   handler: (parsed: ParsedResult) => void | Promise<void>
+  /** when `true`, the factory automatically registers --file option and reads JSON from stdin or file */
+  input?: boolean
 }
 
 /**
@@ -121,6 +126,25 @@ export interface GroupConfig {
  * the underlying implementation may change without notice.
  */
 export type OpaqueCommandHandle = import('commander').Command
+
+/**
+ * Module-level stdin reader - swappable in tests via {@link _testSetStdinReader}.
+ * Production default reads all of stdin synchronously using file descriptor 0,
+ * which works cross-platform (Windows, Linux, macOS).
+ */
+let stdinReader: () => string = () => readFileSync(0, 'utf-8')
+
+/**
+ * Test-only seam: replaces the stdin reader with `fn` and returns a restore callback.
+ * Always call the returned function in a `finally` block to avoid test pollution.
+ *
+ * @internal not part of the public API
+ */
+export function _testSetStdinReader(fn: () => string): () => void {
+  const prev = stdinReader
+  stdinReader = fn
+  return () => { stdinReader = prev }
+}
 
 /** converts a kebab-case option name to camelCase to match Commander's opts() keys */
 function camelCase(s: string): string {
@@ -213,6 +237,22 @@ function configureErrorOutput(cmd: OpaqueCommandHandle): void {
 }
 
 /**
+ * Parses `raw` as JSON, routing errors through Commander's error handler.
+ * `source` is the error prefix shown to the user (e.g. `'--file'` or `'stdin'`).
+ * Returns `never` on any error path via `cmd.error()`.
+ */
+function parseJsonContent(raw: string, source: string, cmd: OpaqueCommandHandle): unknown {
+  if (raw.trim().length === 0) {
+    return cmd.error(`${source}: invalid JSON: empty content`)
+  }
+  try {
+    return JSON.parse(raw)
+  } catch (e) {
+    return cmd.error(`${source}: invalid JSON: ${(e as SyntaxError).message}`)
+  }
+}
+
+/**
  * Creates a leaf command from a declarative config and returns an opaque handle.
  *
  * The returned handle can be:
@@ -244,6 +284,12 @@ function configureErrorOutput(cmd: OpaqueCommandHandle): void {
 export function defineCommand(config: CommandConfig): OpaqueCommandHandle {
   validateName(config.name, 'command')
   validateOptions(config.options ?? [])
+  // --file is reserved when input: true; catch collision at definition time
+  if (config.input === true && config.options?.some((o) => o.long === 'file')) {
+    throw new Error(
+      `command ${JSON.stringify(config.name)}: option --file is reserved when input is enabled`
+    )
+  }
   const cmd = new Command(config.name)
   cmd.description(config.description)
   configureErrorOutput(cmd)
@@ -280,6 +326,9 @@ export function defineCommand(config: CommandConfig): OpaqueCommandHandle {
     }
   }
 
+  if (config.input === true) {
+    cmd.option('--file <path>', 'path to a JSON file to use as command input')
+  }
   // EXTENSION POINT: JSON Schema generation (Principle II)
   // Future: derive a JSON Schema from `optDefs` here and attach it to the command
   // handle so `--help --format=json` can emit machine-readable schema.
@@ -312,10 +361,31 @@ export function defineCommand(config: CommandConfig): OpaqueCommandHandle {
       }
     }
 
+    let inputValue: unknown
+    if (config.input === true) {
+      const filePath = cmd.getOptionValue('file') as string | undefined
+      if (filePath !== undefined && !process.stdin.isTTY) {
+        return cmd.error('cannot read input from both --file and stdin; provide one or the other')
+      }
+      if (filePath !== undefined) {
+        let fileContent: string
+        try {
+          fileContent = readFileSync(filePath, 'utf-8')
+        } catch {
+          return cmd.error(`--file: file not found: ${filePath}`)
+        }
+        inputValue = parseJsonContent(fileContent, '--file', cmd)
+      } else if (!process.stdin.isTTY) {
+        inputValue = parseJsonContent(stdinReader(), 'stdin', cmd)
+      }
+    }
+
     const resolvedConfig = getResolvedConfig()
-    const parsed: ParsedResult = resolvedConfig != null
-      ? { options, config: resolvedConfig }
-      : { options }
+    const parsed: ParsedResult = {
+      options,
+      ...(resolvedConfig != null ? { config: resolvedConfig } : {}),
+      ...(inputValue !== undefined ? { input: inputValue } : {}),
+    }
     await config.handler(parsed)
   })
 
