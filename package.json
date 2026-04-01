@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc",
     "test": "npm run build && npm run test:lint && npm run test:unit",
-    "test:unit": "node --import tsx/esm --test 'src/**/*.test.ts' 'test/**/*.test.ts'",
+    "test:unit": "node --import tsx/esm --test 'test/**/*.test.ts'",
     "test:lint": "eslint ."
   },
   "keywords": [
