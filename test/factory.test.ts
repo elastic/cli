@@ -3,8 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it } from 'node:test'
+import { describe, it, before, after, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import type {
   OptionDefinition,
   ParsedResult,
@@ -12,7 +15,7 @@ import type {
   GroupConfig,
   OpaqueCommandHandle,
 } from '../src/factory.ts'
-import { defineCommand, defineGroup } from '../src/factory.ts'
+import { defineCommand, defineGroup, _testSetStdinReader } from '../src/factory.ts'
 
 describe('factory types', () => {
   it('OptionDefinition accepts required fields', () => {
@@ -617,6 +620,477 @@ describe('defineCommand', () => {
       assert.doesNotMatch(help, /default/)
     })
   })
+  describe('name validation', () => {
+    it('throws when command name is empty', () => {
+      assert.throws(
+        () => defineCommand({ name: '', description: 'Test', handler: () => {} }),
+        (e: unknown) => { assert.ok(e instanceof Error); return true },
+      )
+    })
+
+    it('throws when command name contains uppercase letters', () => {
+      assert.throws(
+        () => defineCommand({ name: 'Health', description: 'Test', handler: () => {} }),
+        (e: unknown) => { assert.ok(e instanceof Error); return true },
+      )
+    })
+
+    it('throws when command name contains spaces', () => {
+      assert.throws(
+        () => defineCommand({ name: 'my command', description: 'Test', handler: () => {} }),
+        (e: unknown) => { assert.ok(e instanceof Error); return true },
+      )
+    })
+
+    it('throws when command name contains special characters', () => {
+      assert.throws(
+        () => defineCommand({ name: 'health_check', description: 'Test', handler: () => {} }),
+        (e: unknown) => { assert.ok(e instanceof Error); return true },
+      )
+    })
+
+    it('accepts valid lowercase-alphanumeric-hyphen names', () => {
+      assert.doesNotThrow(() => defineCommand({ name: 'health', description: 'Test', handler: () => {} }))
+      assert.doesNotThrow(() => defineCommand({ name: 'dry-run', description: 'Test', handler: () => {} }))
+      assert.doesNotThrow(() => defineCommand({ name: 'cmd123', description: 'Test', handler: () => {} }))
+    })
+  })
+
+  describe('option short alias validation', () => {
+    it('throws when short alias is more than one character', () => {
+      assert.throws(
+        () => defineCommand({
+          name: 'health', description: 'Test',
+          options: [{ long: 'verbose', short: 'vv', description: 'Verbose' }],
+          handler: () => {},
+        }),
+        (e: unknown) => { assert.ok(e instanceof Error); return true },
+      )
+    })
+
+    it('throws when short alias is empty string', () => {
+      assert.throws(
+        () => defineCommand({
+          name: 'health', description: 'Test',
+          options: [{ long: 'verbose', short: '', description: 'Verbose' }],
+          handler: () => {},
+        }),
+        (e: unknown) => { assert.ok(e instanceof Error); return true },
+      )
+    })
+
+    it('accepts a valid single-character short alias', () => {
+      assert.doesNotThrow(() => defineCommand({
+        name: 'health', description: 'Test',
+        options: [{ long: 'verbose', short: 'v', description: 'Verbose' }],
+        handler: () => {},
+      }))
+    })
+  })
+
+  describe('option long name validation', () => {
+    it('throws when long option name is a single character', () => {
+      assert.throws(
+        () => defineCommand({
+          name: 'health', description: 'Test',
+          options: [{ long: 'v', description: 'Verbose' }],
+          handler: () => {},
+        }),
+        (e: unknown) => { assert.ok(e instanceof Error); return true },
+      )
+    })
+
+    it('accepts a long option name of two or more characters', () => {
+      assert.doesNotThrow(() => defineCommand({
+        name: 'health', description: 'Test',
+        options: [{ long: 'vv', description: 'Double-verbose' }],
+        handler: () => {},
+      }))
+    })
+  })
+
+  describe('duplicate option name validation', () => {
+    it('throws when two options share the same long name', () => {
+      assert.throws(
+        () => defineCommand({
+          name: 'health', description: 'Test',
+          options: [
+            { long: 'verbose', description: 'Verbose' },
+            { long: 'verbose', description: 'Also verbose' },
+          ],
+          handler: () => {},
+        }),
+        (e: unknown) => { assert.ok(e instanceof Error); return true },
+      )
+    })
+
+    it('throws when two options share the same short alias', () => {
+      assert.throws(
+        () => defineCommand({
+          name: 'health', description: 'Test',
+          options: [
+            { long: 'verbose', short: 'v', description: 'Verbose' },
+            { long: 'version', short: 'v', description: 'Version' },
+          ],
+          handler: () => {},
+        }),
+        (e: unknown) => { assert.ok(e instanceof Error); return true },
+      )
+    })
+
+    it('accepts options with distinct names and aliases', () => {
+      assert.doesNotThrow(() => defineCommand({
+        name: 'health', description: 'Test',
+        options: [
+          { long: 'verbose', short: 'v', description: 'Verbose' },
+          { long: 'timeout', short: 't', description: 'Timeout' },
+        ],
+        handler: () => {},
+      }))
+    })
+  })
+
+  describe('help text format consistency', () => {
+    it('two commands with different options both have a Usage section', () => {
+      const cmd1 = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }], handler: () => {} })
+      const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy resource', options: [{ long: 'env', type: 'string', description: 'Environment' }], handler: () => {} })
+      assert.match(cmd1.helpInformation(), /^Usage:/m)
+      assert.match(cmd2.helpInformation(), /^Usage:/m)
+    })
+
+    it('two commands both have an Options section', () => {
+      const cmd1 = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }], handler: () => {} })
+      const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy resource', options: [{ long: 'env', type: 'string', description: 'Environment' }], handler: () => {} })
+      assert.match(cmd1.helpInformation(), /^Options:/m)
+      assert.match(cmd2.helpInformation(), /^Options:/m)
+    })
+
+    it('both commands always include -h, --help in the Options section', () => {
+      const cmd1 = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
+      const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy', options: [{ long: 'env', type: 'string', description: 'Env' }], handler: () => {} })
+      assert.match(cmd1.helpInformation(), /-h, --help/)
+      assert.match(cmd2.helpInformation(), /-h, --help/)
+    })
+
+    it('sections appear in consistent order: Usage then description then Options', () => {
+      const cmd1 = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }], handler: () => {} })
+      const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy resource', options: [{ long: 'count', type: 'number', description: 'Count' }], handler: () => {} })
+      for (const help of [cmd1.helpInformation(), cmd2.helpInformation()]) {
+        const usagePos = help.indexOf('Usage:')
+        const optionsPos = help.indexOf('Options:')
+        assert.ok(usagePos < optionsPos, 'Usage section must precede Options section')
+      }
+    })
+
+    it('command description appears between Usage and Options', () => {
+      const cmd = defineCommand({ name: 'health', description: 'Check cluster health', options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }], handler: () => {} })
+      const help = cmd.helpInformation()
+      const usagePos = help.indexOf('Usage:')
+      const descriptionPos = help.indexOf('Check cluster health')
+      const optionsPos = help.indexOf('Options:')
+      assert.ok(usagePos < descriptionPos, 'description must follow Usage')
+      assert.ok(descriptionPos < optionsPos, 'description must precede Options')
+    })
+  })
+
+  describe('error message consistency', () => {
+    function captureErr(handle: OpaqueCommandHandle, argv: string[]): string {
+      let err = ''
+      handle.exitOverride()
+      handle.configureOutput({ writeErr: (s) => { err += s } })
+      try { handle.parse(argv, { from: 'user' }) } catch { /* CommanderError from exitOverride */ }
+      return err
+    }
+
+    it('unrecognised option error starts with "Error:" (capital E)', () => {
+      const cmd = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
+      const err = captureErr(cmd, ['--unknown'])
+      assert.match(err, /^Error:/m)
+    })
+
+    it('missing required option error starts with "Error:" (capital E)', () => {
+      const cmd = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'env', type: 'string', description: 'Env', required: true }], handler: () => {} })
+      const err = captureErr(cmd, [])
+      assert.match(err, /^Error:/m)
+    })
+
+    it('type coercion error starts with "Error:" (capital E)', () => {
+      const cmd = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'count', type: 'number', description: 'Count' }], handler: () => {} })
+      const err = captureErr(cmd, ['--count', 'abc'])
+      assert.match(err, /^Error:/m)
+    })
+
+    it('error output includes a Usage line', () => {
+      const cmd = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
+      const err = captureErr(cmd, ['--unknown'])
+      assert.match(err, /Usage:/)
+    })
+
+    it('error output includes a --help hint', () => {
+      const cmd = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
+      const err = captureErr(cmd, ['--unknown'])
+      assert.match(err, /--help/)
+    })
+
+    it('two different commands produce the same error structure for unrecognised options', () => {
+      const cmd1 = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
+      const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy', handler: () => {} })
+      const err1 = captureErr(cmd1, ['--unknown'])
+      const err2 = captureErr(cmd2, ['--unknown'])
+      assert.match(err1, /^Error:/m)
+      assert.match(err2, /^Error:/m)
+      assert.match(err1, /Usage:/)
+      assert.match(err2, /Usage:/)
+      assert.match(err1, /--help/)
+      assert.match(err2, /--help/)
+    })
+
+    it('error output includes the command name in the Usage line', () => {
+      const cmd = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
+      const err = captureErr(cmd, ['--unknown'])
+      assert.match(err, /Usage:.*health/)
+    })
+  })
+
+  describe('JSON input support', () => {
+    it('registers --file <path> option when input: true', () => {
+      const cmd = defineCommand({
+        name: 'query',
+        description: 'Run a query',
+        input: true,
+        handler: () => {},
+      })
+      const helpText = cmd.helpInformation()
+      assert.ok(helpText.includes('--file'), `expected --file in help text:\n${helpText}`)
+    })
+
+    it('does NOT register --file option when input is false', () => {
+      const cmd = defineCommand({
+        name: 'query',
+        description: 'Run a query',
+        input: false,
+        handler: () => {},
+      })
+      const helpText = cmd.helpInformation()
+      assert.ok(!helpText.includes('--file'), `expected no --file in help text:\n${helpText}`)
+    })
+
+    it('does NOT register --file option when input is omitted', () => {
+      const cmd = defineCommand({
+        name: 'query',
+        description: 'Run a query',
+        handler: () => {},
+      })
+      const helpText = cmd.helpInformation()
+      assert.ok(!helpText.includes('--file'), `expected no --file in help text:\n${helpText}`)
+    })
+
+    it('throws at definition time when options contains long: \'file\' and input: true', () => {
+      assert.throws(
+        () => defineCommand({
+          name: 'query',
+          description: 'Run a query',
+          input: true,
+          options: [{ long: 'file', description: 'A conflicting option' }],
+          handler: () => {},
+        }),
+        (e: unknown) => { assert.ok(e instanceof Error); return true },
+      )
+    })
+
+    it('does NOT throw when options contains long: \'file\' but input is not true', () => {
+      assert.doesNotThrow(() => defineCommand({
+        name: 'query',
+        description: 'Run a query',
+        options: [{ long: 'file', description: 'A file option' }],
+        handler: () => {},
+      }))
+    })
+  })
+
+  describe('JSON input via --file', () => {
+    let tmpDir: string
+
+    before(() => {
+      tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-test-'))
+    })
+    after(() => {
+      rmSync(tmpDir, { recursive: true })
+    })
+
+    let origIsTTY: boolean | undefined
+    beforeEach(() => {
+      origIsTTY = process.stdin.isTTY
+      Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true, writable: true })
+    })
+    afterEach(() => {
+      Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+    })
+
+    it('handler receives parsed JSON in parsed.input when --file points to a valid JSON file', async () => {
+      const filePath = join(tmpDir, 'valid.json')
+      writeFileSync(filePath, JSON.stringify({ cluster: 'test', shards: 5 }))
+      const received: ParsedResult[] = []
+      const cmd = defineCommand({
+        name: 'query',
+        description: 'Run a query',
+        input: true,
+        handler: (parsed) => { received.push(parsed) },
+      })
+      await invokeAsync(cmd, ['--file', filePath])
+      assert.equal(received.length, 1)
+      assert.deepEqual(received[0].input, { cluster: 'test', shards: 5 })
+    })
+
+    it('errors with descriptive message when --file points to a nonexistent file', async () => {
+      const nonexistent = join(tmpDir, 'does-not-exist.json')
+      const cmd = defineCommand({
+        name: 'query',
+        description: 'Run a query',
+        input: true,
+        handler: () => {},
+      })
+      const err = await captureErrAsync(cmd, ['--file', nonexistent])
+      assert.match(err, /--file: file not found:/)
+    })
+
+    it('errors with descriptive message when --file points to a file with malformed JSON', async () => {
+      const filePath = join(tmpDir, 'bad.json')
+      writeFileSync(filePath, 'not { valid } json ][')
+      const cmd = defineCommand({
+        name: 'query',
+        description: 'Run a query',
+        input: true,
+        handler: () => {},
+      })
+      const err = await captureErrAsync(cmd, ['--file', filePath])
+      assert.match(err, /--file: invalid JSON:/)
+    })
+
+    it('errors with "empty content" message when --file points to an empty file', async () => {
+      const filePath = join(tmpDir, 'empty.json')
+      writeFileSync(filePath, '')
+      const cmd = defineCommand({
+        name: 'query',
+        description: 'Run a query',
+        input: true,
+        handler: () => {},
+      })
+      const err = await captureErrAsync(cmd, ['--file', filePath])
+      assert.match(err, /--file: invalid JSON: empty content/)
+    })
+
+    it('parsed.input is undefined when input: true, no --file provided, and stdin is a TTY', async () => {
+      const received: ParsedResult[] = []
+      const cmd = defineCommand({
+        name: 'query',
+        description: 'Run a query',
+        input: true,
+        handler: (parsed) => { received.push(parsed) },
+      })
+      await invokeAsync(cmd, [])
+      assert.equal(received.length, 1)
+      assert.equal(received[0].input, undefined)
+    })
+  })
+
+  describe('JSON input via stdin', () => {
+    let origIsTTY: boolean | undefined
+    beforeEach(() => {
+      origIsTTY = process.stdin.isTTY
+      Object.defineProperty(process.stdin, 'isTTY', { value: undefined, configurable: true, writable: true })
+    })
+    afterEach(() => {
+      Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+    })
+
+    it('handler receives parsed JSON in parsed.input when valid JSON is piped to stdin', async () => {
+      const restore = _testSetStdinReader(() => JSON.stringify({ index: 'my-index', size: 10 }))
+      try {
+        const received: ParsedResult[] = []
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Run a search',
+          input: true,
+          handler: (parsed) => { received.push(parsed) },
+        })
+        await invokeAsync(cmd, [])
+        assert.equal(received.length, 1)
+        assert.deepEqual(received[0].input, { index: 'my-index', size: 10 })
+      } finally {
+        restore()
+      }
+    })
+
+    it('errors with descriptive message when malformed JSON is piped to stdin', async () => {
+      const restore = _testSetStdinReader(() => 'not { valid json')
+      try {
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Run a search',
+          input: true,
+          handler: () => {},
+        })
+        const err = await captureErrAsync(cmd, [])
+        assert.match(err, /stdin: invalid JSON:/)
+      } finally {
+        restore()
+      }
+    })
+
+    it('errors with "empty content" message when empty data is piped to stdin', async () => {
+      const restore = _testSetStdinReader(() => '')
+      try {
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Run a search',
+          input: true,
+          handler: () => {},
+        })
+        const err = await captureErrAsync(cmd, [])
+        assert.match(err, /stdin: invalid JSON: empty content/)
+      } finally {
+        restore()
+      }
+    })
+  })
+
+  describe('JSON input conflict resolution', () => {
+    let tmpDir: string
+    let origIsTTY: boolean | undefined
+
+    before(() => {
+      tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-test-'))
+    })
+    after(() => {
+      rmSync(tmpDir, { recursive: true })
+    })
+    beforeEach(() => {
+      origIsTTY = process.stdin.isTTY
+      Object.defineProperty(process.stdin, 'isTTY', { value: undefined, configurable: true, writable: true })
+    })
+    afterEach(() => {
+      Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+    })
+
+    it('errors with conflict message when both --file and stdin are provided', async () => {
+      const filePath = join(tmpDir, 'input.json')
+      writeFileSync(filePath, JSON.stringify({ index: 'my-index' }))
+      const restore = _testSetStdinReader(() => JSON.stringify({ index: 'other-index' }))
+      try {
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Run a search',
+          input: true,
+          handler: () => {},
+        })
+        const err = await captureErrAsync(cmd, ['--file', filePath])
+        assert.match(err, /cannot read input from both --file and stdin/)
+      } finally {
+        restore()
+      }
+    })
+  })
 })
 
 describe('defineGroup', () => {
@@ -930,13 +1404,28 @@ describe('defineGroup', () => {
       assert.equal(received.length, 0)
     })
   })
+  describe('name validation', () => {
+    it('throws when group name is empty', () => {
+      assert.throws(
+        () => defineGroup({ name: '', description: 'Test' }),
+        (e: unknown) => { assert.ok(e instanceof Error); return true },
+      )
+    })
+
+    it('throws when group name contains uppercase letters', () => {
+      assert.throws(
+        () => defineGroup({ name: 'Cluster', description: 'Test' }),
+        (e: unknown) => { assert.ok(e instanceof Error); return true },
+      )
+    })
+  })
 })
 
 describe('no Commander API leaks', () => {
-  it('factory module exports only defineCommand and defineGroup at runtime', async () => {
+  it('factory module exports only public API and test seam at runtime', async () => {
     const factory = await import('../src/factory.ts')
     const exported = Object.keys(factory)
-    assert.deepEqual(exported.sort(), ['defineCommand', 'defineGroup'])
+    assert.deepEqual(exported.sort(), ['_testSetStdinReader', 'defineCommand', 'defineGroup'])
   })
 
   it('defineCommand return value requires no Commander import to use', () => {
@@ -969,108 +1458,6 @@ describe('no Commander API leaks', () => {
   })
 })
 
-describe('help text format consistency', () => {
-  it('two commands with different options both have a Usage section', () => {
-    const cmd1 = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }], handler: () => {} })
-    const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy resource', options: [{ long: 'env', type: 'string', description: 'Environment' }], handler: () => {} })
-    assert.match(cmd1.helpInformation(), /^Usage:/m)
-    assert.match(cmd2.helpInformation(), /^Usage:/m)
-  })
-
-  it('two commands both have an Options section', () => {
-    const cmd1 = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }], handler: () => {} })
-    const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy resource', options: [{ long: 'env', type: 'string', description: 'Environment' }], handler: () => {} })
-    assert.match(cmd1.helpInformation(), /^Options:/m)
-    assert.match(cmd2.helpInformation(), /^Options:/m)
-  })
-
-  it('both commands always include -h, --help in the Options section', () => {
-    const cmd1 = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
-    const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy', options: [{ long: 'env', type: 'string', description: 'Env' }], handler: () => {} })
-    assert.match(cmd1.helpInformation(), /-h, --help/)
-    assert.match(cmd2.helpInformation(), /-h, --help/)
-  })
-
-  it('sections appear in consistent order: Usage then description then Options', () => {
-    const cmd1 = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }], handler: () => {} })
-    const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy resource', options: [{ long: 'count', type: 'number', description: 'Count' }], handler: () => {} })
-    for (const help of [cmd1.helpInformation(), cmd2.helpInformation()]) {
-      const usagePos   = help.indexOf('Usage:')
-      const optionsPos = help.indexOf('Options:')
-      assert.ok(usagePos < optionsPos, 'Usage section must precede Options section')
-    }
-  })
-
-  it('command description appears between Usage and Options', () => {
-    const cmd = defineCommand({ name: 'health', description: 'Check cluster health', options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }], handler: () => {} })
-    const help = cmd.helpInformation()
-    const usagePos      = help.indexOf('Usage:')
-    const descriptionPos = help.indexOf('Check cluster health')
-    const optionsPos    = help.indexOf('Options:')
-    assert.ok(usagePos < descriptionPos, 'description must follow Usage')
-    assert.ok(descriptionPos < optionsPos, 'description must precede Options')
-  })
-})
-
-describe('error message consistency', () => {
-  function captureErr(handle: OpaqueCommandHandle, argv: string[]): string {
-    let err = ''
-    handle.exitOverride()
-    handle.configureOutput({ writeErr: (s) => { err += s } })
-    try { handle.parse(argv, { from: 'user' }) } catch { /* CommanderError from exitOverride */ }
-    return err
-  }
-
-  it('unrecognised option error starts with "Error:" (capital E)', () => {
-    const cmd = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
-    const err = captureErr(cmd, ['--unknown'])
-    assert.match(err, /^Error:/m)
-  })
-
-  it('missing required option error starts with "Error:" (capital E)', () => {
-    const cmd = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'env', type: 'string', description: 'Env', required: true }], handler: () => {} })
-    const err = captureErr(cmd, [])
-    assert.match(err, /^Error:/m)
-  })
-
-  it('type coercion error starts with "Error:" (capital E)', () => {
-    const cmd = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'count', type: 'number', description: 'Count' }], handler: () => {} })
-    const err = captureErr(cmd, ['--count', 'abc'])
-    assert.match(err, /^Error:/m)
-  })
-
-  it('error output includes a Usage line', () => {
-    const cmd = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
-    const err = captureErr(cmd, ['--unknown'])
-    assert.match(err, /Usage:/)
-  })
-
-  it('error output includes a --help hint', () => {
-    const cmd = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
-    const err = captureErr(cmd, ['--unknown'])
-    assert.match(err, /--help/)
-  })
-
-  it('two different commands produce the same error structure for unrecognised options', () => {
-    const cmd1 = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
-    const cmd2 = defineCommand({ name: 'deploy', description: 'Deploy', handler: () => {} })
-    const err1 = captureErr(cmd1, ['--unknown'])
-    const err2 = captureErr(cmd2, ['--unknown'])
-    // both must have same structural markers
-    assert.match(err1, /^Error:/m)
-    assert.match(err2, /^Error:/m)
-    assert.match(err1, /Usage:/)
-    assert.match(err2, /Usage:/)
-    assert.match(err1, /--help/)
-    assert.match(err2, /--help/)
-  })
-
-  it('error output includes the command name in the Usage line', () => {
-    const cmd = defineCommand({ name: 'health', description: 'Check health', handler: () => {} })
-    const err = captureErr(cmd, ['--unknown'])
-    assert.match(err, /Usage:.*health/)
-  })
-})
 
 describe('forward-compatibility and extensibility', () => {
   it('CommandConfig with only required fields compiles and works', () => {
@@ -1127,148 +1514,17 @@ describe('forward-compatibility and extensibility', () => {
   })
 })
 
-describe('config validation', () => {
-  describe('command name validation', () => {
-    it('throws when command name is empty', () => {
-      assert.throws(
-        () => defineCommand({ name: '', description: 'Test', handler: () => {} }),
-        (e: unknown) => { assert.ok(e instanceof Error); return true },
-      )
-    })
+/** invokes a command handle via parseAsync; surfaces CommanderError via exitOverride */
+async function invokeAsync(handle: OpaqueCommandHandle, argv: string[]): Promise<void> {
+  handle.exitOverride()
+  await handle.parseAsync(argv, { from: 'user' })
+}
 
-    it('throws when command name contains uppercase letters', () => {
-      assert.throws(
-        () => defineCommand({ name: 'Health', description: 'Test', handler: () => {} }),
-        (e: unknown) => { assert.ok(e instanceof Error); return true },
-      )
-    })
-
-    it('throws when command name contains spaces', () => {
-      assert.throws(
-        () => defineCommand({ name: 'my command', description: 'Test', handler: () => {} }),
-        (e: unknown) => { assert.ok(e instanceof Error); return true },
-      )
-    })
-
-    it('throws when command name contains special characters', () => {
-      assert.throws(
-        () => defineCommand({ name: 'health_check', description: 'Test', handler: () => {} }),
-        (e: unknown) => { assert.ok(e instanceof Error); return true },
-      )
-    })
-
-    it('accepts valid lowercase-alphanumeric-hyphen names', () => {
-      assert.doesNotThrow(() => defineCommand({ name: 'health', description: 'Test', handler: () => {} }))
-      assert.doesNotThrow(() => defineCommand({ name: 'dry-run', description: 'Test', handler: () => {} }))
-      assert.doesNotThrow(() => defineCommand({ name: 'cmd123', description: 'Test', handler: () => {} }))
-    })
-
-    it('throws when group name is empty', () => {
-      assert.throws(
-        () => defineGroup({ name: '', description: 'Test' }),
-        (e: unknown) => { assert.ok(e instanceof Error); return true },
-      )
-    })
-
-    it('throws when group name contains uppercase letters', () => {
-      assert.throws(
-        () => defineGroup({ name: 'Cluster', description: 'Test' }),
-        (e: unknown) => { assert.ok(e instanceof Error); return true },
-      )
-    })
-  })
-
-  describe('option short alias validation', () => {
-    it('throws when short alias is more than one character', () => {
-      assert.throws(
-        () => defineCommand({
-          name: 'health', description: 'Test',
-          options: [{ long: 'verbose', short: 'vv', description: 'Verbose' }],
-          handler: () => {},
-        }),
-        (e: unknown) => { assert.ok(e instanceof Error); return true },
-      )
-    })
-
-    it('throws when short alias is empty string', () => {
-      assert.throws(
-        () => defineCommand({
-          name: 'health', description: 'Test',
-          options: [{ long: 'verbose', short: '', description: 'Verbose' }],
-          handler: () => {},
-        }),
-        (e: unknown) => { assert.ok(e instanceof Error); return true },
-      )
-    })
-
-    it('accepts a valid single-character short alias', () => {
-      assert.doesNotThrow(() => defineCommand({
-        name: 'health', description: 'Test',
-        options: [{ long: 'verbose', short: 'v', description: 'Verbose' }],
-        handler: () => {},
-      }))
-    })
-  })
-
-  describe('option long name validation', () => {
-    it('throws when long option name is a single character', () => {
-      assert.throws(
-        () => defineCommand({
-          name: 'health', description: 'Test',
-          options: [{ long: 'v', description: 'Verbose' }],
-          handler: () => {},
-        }),
-        (e: unknown) => { assert.ok(e instanceof Error); return true },
-      )
-    })
-
-    it('accepts a long option name of two or more characters', () => {
-      assert.doesNotThrow(() => defineCommand({
-        name: 'health', description: 'Test',
-        options: [{ long: 'vv', description: 'Double-verbose' }],
-        handler: () => {},
-      }))
-    })
-  })
-
-  describe('duplicate option name validation', () => {
-    it('throws when two options share the same long name', () => {
-      assert.throws(
-        () => defineCommand({
-          name: 'health', description: 'Test',
-          options: [
-            { long: 'verbose', description: 'Verbose' },
-            { long: 'verbose', description: 'Also verbose' },
-          ],
-          handler: () => {},
-        }),
-        (e: unknown) => { assert.ok(e instanceof Error); return true },
-      )
-    })
-
-    it('throws when two options share the same short alias', () => {
-      assert.throws(
-        () => defineCommand({
-          name: 'health', description: 'Test',
-          options: [
-            { long: 'verbose', short: 'v', description: 'Verbose' },
-            { long: 'version', short: 'v', description: 'Version' },
-          ],
-          handler: () => {},
-        }),
-        (e: unknown) => { assert.ok(e instanceof Error); return true },
-      )
-    })
-
-    it('accepts options with distinct names and aliases', () => {
-      assert.doesNotThrow(() => defineCommand({
-        name: 'health', description: 'Test',
-        options: [
-          { long: 'verbose', short: 'v', description: 'Verbose' },
-          { long: 'timeout', short: 't', description: 'Timeout' },
-        ],
-        handler: () => {},
-      }))
-    })
-  })
-})
+/** invokes a command handle and captures its stderr output */
+async function captureErrAsync(handle: OpaqueCommandHandle, argv: string[]): Promise<string> {
+  let err = ''
+  handle.exitOverride()
+  handle.configureOutput({ writeErr: (s) => { err += s } })
+  try { await handle.parseAsync(argv, { from: 'user' }) } catch { /* CommanderError from exitOverride */ }
+  return err
+}

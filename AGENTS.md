@@ -3,52 +3,67 @@
 This is a CLI that exposes a large surface area of subcommands to interact with Elasticsearch, Elastic Cloud and Elasticsearch Serverless control plane APIs.
 It targets LLM-powered agents as first-class users by providing several guardrails and machine-friendly inputs and outputs.
 
-In order to enforce strong support for agents, most command definitions will be handled by core, reusable utilities that enforce how commands are defined, configured and run.
+## Tech Stack
 
-## Dependencies
+- **Runtime**: Node.js with native TypeScript (using `--experimental-strip-types`)
+- **CLI Framework**: Commander.js
+- **Validation**: Zod v4
+- **Config Management**: cosmiconfig
+- **Config Serialization**: YAML
+- **Testing**: Node.js built-in test runner (node:test)
+- **Linting**: ESLint + TypeScript ESLint
+- **TypeScript**: Strict mode with ESNext + nodenext module resolution
 
-- [Commander.js](https://www.npmjs.com/package/commander) for CLI argument parsing
-- [@elastic/transport](https://github.com/elastic/elastic-transport-js/) for Elasticsearch requests
-- [Zod v4](https://zod.dev/) for schema validation
-- [cosmiconfig](https://www.npmjs.com/package/cosmiconfig) for configuration file management
+Adding other new third-party dependencies is highly discouraged to reduce supply-chain attack surface.
 
-Adding other new third-party dependencies is highly discouraged, in order to reduce the surface area of supply-chain attacks.
+## Architecture
 
-## TDD discipline
+Commands are defined through shared, reusable config structures (see `factory.ts`). Custom logic only permitted for behaviors that cannot be expressed in config.
 
-When writing code, **ALWAYS** follow the red/green cycle autonomously:
+## Code Patterns & Conventions
 
-1. Write the failing test first and confirm it fails for the right reason.
-2. Write the minimum implementation to make it pass.
-3. Refactor while keeping tests green.
+### SPDX Headers
+All code files **MUST** start with:
+```
+/**
+ * Copyright Elasticsearch B.V. and contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+```
 
-Do not stop and ask for human approval between writing a test and writing its implementation.
-Proceed through the full red/green/refactor cycle and surface results at the task completion boundary.
+### Code Standards
+- **Docstrings**: All exported symbols in reusable utilities MUST have complete doc comments
+- **Comments**: Explain WHY, not WHAT. Don't restate code in prose
+- **Naming**: camelCase for functions/variables, PascalCase for types/interfaces
+- **YAML config**: ALL key names use `snake_case` (e.g. `api_key`, `current_context`). Never camelCase or kebab-case
+- **Files**: Proper trailing newline, no trailing whitespace
 
-A task is not complete until it passes `npm test`.
+### TypeScript Configuration
+- Strict mode: `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `strict`, `verbatimModuleSyntax`, `isolatedModules`, `noUncheckedSideEffectImports`, `moduleDetection: force`
+- Source maps and declaration maps enabled
 
-## Code patterns
+## TDD Discipline
 
-- All code files **MUST** have an Apache 2.0 SPDX header comment:
-  ```
-  /**
-   * Copyright Elasticsearch B.V. and contributors
-   * SPDX-License-Identifier: Apache-2.0
-   */
-  ```
-- All key names in config YAML files **MUST** use `snake_case` (e.g. `api_key`, `current_context`). Never use camelCase or kebab-case for YAML config keys.
+**ALWAYS** follow this cycle autonomously:
+1. Write a failing test capturing intended behavior (RED)
+2. Confirm test fails for the right reason
+3. Write minimum implementation to make test pass (GREEN)
+4. Refactor under green, keeping tests passing (REFACTOR)
 
-## Spec-Kit
+Do not stop between writing test and implementation. Proceed through the full cycle.
 
-This repository uses the [spec-kit](https://github.com/github/spec-kit) workflow for AI-assisted feature development.
-Spec-kit is a convention for structuring feature specs, plans, and tasks in a `.specify/` directory so that AI agents can read and act on them.
-This project uses an opinionated local tooling layer to generate the artifacts that live there — the source of truth for the workflow itself is the spec-kit repo linked above.
+**Task completion**: All tests pass (`npm test` exits 0), lint checks pass, no style violations.
 
-### `.specify/` directory
+## Spec-Kit Workflow
+
+The project uses [spec-kit](https://github.com/github/spec-kit) for AI-assisted feature development.
 
 | Path | Purpose |
 |------|---------|
-| `.specify/templates/` | Markdown templates for specs, plans, tasks, and checklists |
-| `.specify/memory/` | Long-lived context files (e.g. `constitution.md`) read by agents |
-| `.specify/scripts/` | Helper shell scripts for common workflow steps |
+| `.specify/specs/` | Feature specifications |
+| `.specify/plans/` | Implementation plans |
+| `.specify/tasks/` | Task definitions |
+| `.specify/memory/` | Long-lived context files (e.g. `constitution.md`) |
+| `.specify/templates/` | Markdown templates |
+| `.specify/scripts/` | Helper shell scripts |
 | `.specify/hooks.yml` | CI/automation hook definitions |

@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc",
     "test": "npm run build && npm run test:lint && npm run test:unit",
-    "test:unit": "node --experimental-strip-types --test 'src/**/*.test.ts' 'test/**/*.test.ts'",
+    "test:unit": "node --import tsx/esm --test",
     "test:lint": "eslint ."
   },
   "keywords": [
@@ -31,6 +31,7 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "^25.5.0",
     "eslint": "^10.1.0",
+    "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.57.3-alpha.6"
   }
