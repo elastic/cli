@@ -51,40 +51,51 @@ export interface OptionDefinition {
  * Typed output of option parsing passed to the command handler.
  * Options are keyed by their `long` name and coerced to their declared types.
  *
+ * The generic parameter `T` carries the validated input type when a Zod schema is provided
+ * via {@link CommandConfig.input}. Defaults to `unknown` when no schema is used.
+ *
  * @example
  * ```ts
- * handler: (parsed: ParsedResult) => {
- *   const verbose = parsed.options['verbose'] as boolean
- *   const timeout = parsed.options['timeout'] as number
- * }
+ * const schema = z.object({ index: z.string(), size: z.number().default(10) })
+ * defineCommand({
+ *   name: 'search',
+ *   input: schema,
+ *   handler: (parsed: ParsedResult<z.infer<typeof schema>>) => {
+ *     // parsed.input is { index: string; size: number } — fully typed
+ *   },
+ * })
  * ```
  */
-export interface ParsedResult {
+export interface ParsedResult<T = unknown> {
   /** parsed and type-coerced options, keyed by long option name */
   options: Record<string, string | number | boolean>
   /** resolved configuration from the active context, injected by the preAction hook */
   config?: ResolvedConfig
-  /** parsed JSON content when `input: true` and data is provided via --file or stdin */
-  input?: unknown
+  /** parsed JSON content when `input` is enabled and data is provided via --file or stdin */
+  input?: T
 }
 
 /**
  * Declarative configuration for a leaf command (a command that has a handler and accepts options).
  *
+ * When `input` is a Zod schema of type `T`, `CommandConfig` is generic over `T` and the handler
+ * receives a strongly-typed `ParsedResult<z.infer<T>>`. When `input` is omitted, the handler
+ * receives `ParsedResult` with `input` typed as `unknown`.
+ *
  * @example
  * ```ts
- * const config: CommandConfig = {
- *   name: 'health',
- *   description: 'Check cluster health status',
- *   options: [
- *     { long: 'verbose', short: 'v', type: 'boolean', description: 'Show detailed output' },
- *     { long: 'timeout', short: 't', type: 'number', description: 'Timeout in seconds', defaultValue: 30 },
- *   ],
- *   handler: (parsed) => { console.log(parsed.options) },
+ * const inputSchema = z.object({ index: z.string(), size: z.number().default(10) })
+ * const searchCmd: CommandConfig<typeof inputSchema> = {
+ *   name: 'search',
+ *   description: 'Search an index',
+ *   input: inputSchema,
+ *   handler: (parsed) => {
+ *     // parsed.input is { index: string; size: number }
+ *   },
  * }
  * ```
  */
-export interface CommandConfig {
+export interface CommandConfig<T extends z.ZodType = z.ZodType> {
   /** command name (lowercase alphanumeric and hyphens only, e.g. `'health'`, `'dry-run'`) */
   name: string
   /** human-readable description shown in help text */
@@ -95,9 +106,12 @@ export interface CommandConfig {
    * invoked after successful parsing and type coercion.
    * errors thrown here propagate to the caller; the factory does not catch handler errors.
    */
-  handler: (parsed: ParsedResult) => void | Promise<void>
-  /** when `true`, the factory automatically registers --file option and reads JSON from stdin or file */
-  input?: boolean
+  handler: (parsed: ParsedResult<z.infer<T>>) => void | Promise<void>
+  /**
+   * optional input schema. when a Zod schema is provided, registers `--file` and reads JSON from
+   * stdin or file, validates against the schema, then passes the typed result to the handler.
+   */
+  input?: T
 }
 
 /**
@@ -201,6 +215,16 @@ function validateOptions(options: OptionDefinition[]): void {
   }
 }
 
+/**
+ * Validates the `input` field of a {@link CommandConfig} at definition time.
+ * @throws {Error} if `input` is defined but is not a `z.ZodType` instance
+ */
+function validateInput(name: string, input: unknown): void {
+  if (input !== undefined && !(input instanceof z.ZodType)) {
+    throw new Error(`command ${JSON.stringify(name)}: input must be a Zod schema`)
+  }
+}
+
 /** builds the full command path by walking the parent chain (e.g. `"elastic cluster health"`) */
 function commandPath(cmd: OpaqueCommandHandle): string {
   const parts: string[] = []
@@ -263,7 +287,9 @@ function parseJsonContent(raw: string, source: string, cmd: OpaqueCommandHandle)
  * 1. Commander parses raw argv into typed option values
  * 2. Number options are coerced and validated via Zod; errors exit before the handler
  * 3. Required option absence is detected by Commander; exits with a structured error
- * 4. Handler is invoked with a {@link ParsedResult} containing the coerced options map
+ * 4. If `input` is a Zod schema and JSON data is provided, it is validated via `safeParse`;
+ *    on failure, an error is emitted and the handler is never invoked
+ * 5. Handler is invoked with a {@link ParsedResult} containing coerced options and typed input
  *
  * @example
  * ```ts
@@ -281,11 +307,12 @@ function parseJsonContent(raw: string, source: string, cmd: OpaqueCommandHandle)
  * })
  * ```
  */
-export function defineCommand(config: CommandConfig): OpaqueCommandHandle {
+export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): OpaqueCommandHandle {
   validateName(config.name, 'command')
   validateOptions(config.options ?? [])
-  // --file is reserved when input: true; catch collision at definition time
-  if (config.input === true && config.options?.some((o) => o.long === 'file')) {
+  validateInput(config.name, config.input)
+  // --file is reserved when input is a schema; catch collision at definition time
+  if (config.input instanceof z.ZodType && config.options?.some((o) => o.long === 'file')) {
     throw new Error(
       `command ${JSON.stringify(config.name)}: option --file is reserved when input is enabled`
     )
@@ -326,7 +353,7 @@ export function defineCommand(config: CommandConfig): OpaqueCommandHandle {
     }
   }
 
-  if (config.input === true) {
+  if (config.input instanceof z.ZodType) {
     cmd.option('--file <path>', 'path to a JSON file to use as command input')
   }
   // EXTENSION POINT: JSON Schema generation (Principle II)
@@ -362,7 +389,7 @@ export function defineCommand(config: CommandConfig): OpaqueCommandHandle {
     }
 
     let inputValue: unknown
-    if (config.input === true) {
+    if (config.input instanceof z.ZodType) {
       const filePath = cmd.getOptionValue('file') as string | undefined
       if (filePath !== undefined && !process.stdin.isTTY) {
         return cmd.error('cannot read input from both --file and stdin; provide one or the other')
@@ -381,10 +408,33 @@ export function defineCommand(config: CommandConfig): OpaqueCommandHandle {
     }
 
     const resolvedConfig = getResolvedConfig()
-    const parsed: ParsedResult = {
+    const parsed: ParsedResult<z.infer<T>> = {
       options,
       ...(resolvedConfig != null ? { config: resolvedConfig } : {}),
-      ...(inputValue !== undefined ? { input: inputValue } : {}),
+    }
+    if (inputValue !== undefined && config.input instanceof z.ZodType) {
+      const result = config.input.safeParse(inputValue)
+      if (result.success) {
+        parsed.input = result.data as z.infer<T>
+      } else {
+        // walk up to root program to check for --format=json
+        let root: OpaqueCommandHandle = cmd
+        while (root.parent != null) root = root.parent as OpaqueCommandHandle
+        const fmt = (root.opts() as Record<string, unknown>)['format']
+        if (fmt === 'json') {
+          const issues = result.error.issues
+          process.stdout.write(JSON.stringify({
+            error: {
+              code: 'input_validation_failed',
+              message: `Input validation failed with ${issues.length} issue(s)`,
+              issues,
+            },
+          }) + '\n')
+          // throw to prevent handler execution - mirrors cmd.error() behaviour
+          throw Object.assign(new Error('input_validation_failed'), { exitCode: 1 })
+        }
+        return cmd.error(`input validation failed:\n${z.prettifyError(result.error)}`)
+      }
     }
     await config.handler(parsed)
   })

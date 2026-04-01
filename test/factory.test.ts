@@ -16,7 +16,7 @@ import type {
   OpaqueCommandHandle,
 } from '../src/factory.ts'
 import { defineCommand, defineGroup, _testSetStdinReader } from '../src/factory.ts'
-
+import { z } from 'zod'
 describe('factory types', () => {
   it('OptionDefinition accepts required fields', () => {
     const opt: OptionDefinition = {
@@ -853,26 +853,15 @@ describe('defineCommand', () => {
   })
 
   describe('JSON input support', () => {
-    it('registers --file <path> option when input: true', () => {
+    it('registers --file <path> option when input is a Zod schema', () => {
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
-        input: true,
+        input: z.object({ q: z.string() }),
         handler: () => {},
       })
       const helpText = cmd.helpInformation()
       assert.ok(helpText.includes('--file'), `expected --file in help text:\n${helpText}`)
-    })
-
-    it('does NOT register --file option when input is false', () => {
-      const cmd = defineCommand({
-        name: 'query',
-        description: 'Run a query',
-        input: false,
-        handler: () => {},
-      })
-      const helpText = cmd.helpInformation()
-      assert.ok(!helpText.includes('--file'), `expected no --file in help text:\n${helpText}`)
     })
 
     it('does NOT register --file option when input is omitted', () => {
@@ -885,12 +874,12 @@ describe('defineCommand', () => {
       assert.ok(!helpText.includes('--file'), `expected no --file in help text:\n${helpText}`)
     })
 
-    it('throws at definition time when options contains long: \'file\' and input: true', () => {
+    it('throws at definition time when options contains long: \'file\' and input is a schema', () => {
       assert.throws(
         () => defineCommand({
           name: 'query',
           description: 'Run a query',
-          input: true,
+          input: z.object({ q: z.string() }),
           options: [{ long: 'file', description: 'A conflicting option' }],
           handler: () => {},
         }),
@@ -898,13 +887,51 @@ describe('defineCommand', () => {
       )
     })
 
-    it('does NOT throw when options contains long: \'file\' but input is not true', () => {
+    it('does NOT throw when options contains long: \'file\' but input is omitted', () => {
       assert.doesNotThrow(() => defineCommand({
         name: 'query',
         description: 'Run a query',
         options: [{ long: 'file', description: 'A file option' }],
         handler: () => {},
       }))
+    })
+  })
+
+  describe('invalid input config', () => {
+    it('throws when input is a plain object (not a ZodType)', () => {
+      assert.throws(
+        // @ts-expect-error intentional bad input for runtime validation test
+        () => defineCommand({ name: 'search', description: 'Search', input: { index: 'my-index' }, handler: () => {} }),
+        (e: unknown) => {
+          assert.ok(e instanceof Error)
+          assert.match(e.message, /command "search": input must be a Zod schema/)
+          return true
+        },
+      )
+    })
+
+    it('throws when input is a string', () => {
+      assert.throws(
+        // @ts-expect-error intentional bad input for runtime validation test
+        () => defineCommand({ name: 'search', description: 'Search', input: 'schema' as never, handler: () => {} }),
+        (e: unknown) => {
+          assert.ok(e instanceof Error)
+          assert.match(e.message, /command "search": input must be a Zod schema/)
+          return true
+        },
+      )
+    })
+
+    it('throws when input is a number', () => {
+      assert.throws(
+        // @ts-expect-error intentional bad input for runtime validation test
+        () => defineCommand({ name: 'search', description: 'Search', input: 42 as never, handler: () => {} }),
+        (e: unknown) => {
+          assert.ok(e instanceof Error)
+          assert.match(e.message, /command "search": input must be a Zod schema/)
+          return true
+        },
+      )
     })
   })
 
@@ -934,7 +961,7 @@ describe('defineCommand', () => {
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
-        input: true,
+        input: z.object({ cluster: z.string(), shards: z.number() }),
         handler: (parsed) => { received.push(parsed) },
       })
       await invokeAsync(cmd, ['--file', filePath])
@@ -947,7 +974,7 @@ describe('defineCommand', () => {
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
-        input: true,
+        input: z.object({ q: z.string() }),
         handler: () => {},
       })
       const err = await captureErrAsync(cmd, ['--file', nonexistent])
@@ -960,7 +987,7 @@ describe('defineCommand', () => {
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
-        input: true,
+        input: z.object({ q: z.string() }),
         handler: () => {},
       })
       const err = await captureErrAsync(cmd, ['--file', filePath])
@@ -973,19 +1000,19 @@ describe('defineCommand', () => {
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
-        input: true,
+        input: z.object({ q: z.string() }),
         handler: () => {},
       })
       const err = await captureErrAsync(cmd, ['--file', filePath])
       assert.match(err, /--file: invalid JSON: empty content/)
     })
 
-    it('parsed.input is undefined when input: true, no --file provided, and stdin is a TTY', async () => {
+    it('parsed.input is undefined when input is a schema, no --file provided, and stdin is a TTY', async () => {
       const received: ParsedResult[] = []
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
-        input: true,
+        input: z.object({ q: z.string() }),
         handler: (parsed) => { received.push(parsed) },
       })
       await invokeAsync(cmd, [])
@@ -1011,7 +1038,7 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'search',
           description: 'Run a search',
-          input: true,
+        input: z.object({ index: z.string(), size: z.number() }),
           handler: (parsed) => { received.push(parsed) },
         })
         await invokeAsync(cmd, [])
@@ -1028,7 +1055,7 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'search',
           description: 'Run a search',
-          input: true,
+        input: z.object({ q: z.string() }),
           handler: () => {},
         })
         const err = await captureErrAsync(cmd, [])
@@ -1044,7 +1071,7 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'search',
           description: 'Run a search',
-          input: true,
+        input: z.object({ q: z.string() }),
           handler: () => {},
         })
         const err = await captureErrAsync(cmd, [])
@@ -1081,7 +1108,7 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'search',
           description: 'Run a search',
-          input: true,
+        input: z.object({ index: z.string() }),
           handler: () => {},
         })
         const err = await captureErrAsync(cmd, ['--file', filePath])
@@ -1091,7 +1118,402 @@ describe('defineCommand', () => {
       }
     })
   })
+  describe('schema input - type acceptance', () => {
+    it('accepts a Zod object schema as input without throwing', () => {
+      const schema = z.object({ index: z.string() })
+      assert.doesNotThrow(() => {
+        defineCommand({
+          name: 'search',
+          description: 'Search the cluster',
+          input: schema,
+          handler: () => {},
+        })
+      })
+    })
+
+    it('accepts input: undefined (no-input command)', () => {
+      assert.doesNotThrow(() => {
+        defineCommand({
+          name: 'ping',
+          description: 'Ping',
+          handler: () => {},
+        })
+      })
+    })
+  })
+
+  describe('schema input - invalid input config', () => {
+    it('throws when input is a plain object (not a ZodType)', () => {
+      assert.throws(
+        // @ts-expect-error intentional bad input for runtime validation test
+        () => defineCommand({ name: 'search', description: 'Search', input: { index: 'my-index' }, handler: () => {} }),
+        (e: unknown) => {
+          assert.ok(e instanceof Error)
+          assert.match(e.message, /command "search": input must be a Zod schema/)
+          return true
+        },
+      )
+    })
+
+    it('throws when input is a string', () => {
+      assert.throws(
+        // @ts-expect-error intentional bad input for runtime validation test
+        () => defineCommand({ name: 'search', description: 'Search', input: 'schema' as never, handler: () => {} }),
+        (e: unknown) => {
+          assert.ok(e instanceof Error)
+          assert.match(e.message, /command "search": input must be a Zod schema/)
+          return true
+        },
+      )
+    })
+
+    it('throws when input is a number', () => {
+      assert.throws(
+        // @ts-expect-error intentional bad input for runtime validation test
+        () => defineCommand({ name: 'search', description: 'Search', input: 42 as never, handler: () => {} }),
+        (e: unknown) => {
+          assert.ok(e instanceof Error)
+          assert.match(e.message, /command "search": input must be a Zod schema/)
+          return true
+        },
+      )
+    })
+  })
+
+  describe('schema input - valid input validation', () => {
+    let tmpDir: string
+    let origIsTTY: boolean | undefined
+
+    before(() => {
+      tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-test-'))
+    })
+    after(() => {
+      rmSync(tmpDir, { recursive: true })
+    })
+    beforeEach(() => {
+      origIsTTY = process.stdin.isTTY
+      Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true, writable: true })
+    })
+    afterEach(() => {
+      Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+    })
+
+    it('handler receives Zod-parsed input when valid JSON is provided via --file', async () => {
+      const schema = z.object({ index: z.string(), size: z.number() })
+      const filePath = join(tmpDir, 'valid.json')
+      writeFileSync(filePath, JSON.stringify({ index: 'logs', size: 10 }))
+      const received: unknown[] = []
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: (parsed) => { received.push(parsed.input) },
+      })
+      await invokeAsync(cmd, ['--file', filePath])
+      assert.deepEqual(received[0], { index: 'logs', size: 10 })
+    })
+
+    it('handler receives Zod-parsed input when valid JSON is piped via stdin', async () => {
+      const schema = z.object({ index: z.string(), size: z.number() })
+      const restore = _testSetStdinReader(() => JSON.stringify({ index: 'logs', size: 10 }))
+      Object.defineProperty(process.stdin, 'isTTY', { value: undefined, configurable: true, writable: true })
+      try {
+        const received: unknown[] = []
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Search',
+          input: schema,
+          handler: (parsed) => { received.push(parsed.input) },
+        })
+        await invokeAsync(cmd, [])
+        assert.deepEqual(received[0], { index: 'logs', size: 10 })
+      } finally {
+        restore()
+      }
+    })
+
+    it('Zod default values are applied to missing optional fields', async () => {
+      const schema = z.object({ index: z.string(), size: z.number().default(10) })
+      const filePath = join(tmpDir, 'no-size.json')
+      writeFileSync(filePath, JSON.stringify({ index: 'logs' }))
+      const received: unknown[] = []
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: (parsed) => { received.push(parsed.input) },
+      })
+      await invokeAsync(cmd, ['--file', filePath])
+      assert.deepEqual(received[0], { index: 'logs', size: 10 })
+    })
+
+    it('extra properties in JSON are stripped by Zod (strip mode default)', async () => {
+      const schema = z.object({ index: z.string() })
+      const filePath = join(tmpDir, 'extra.json')
+      writeFileSync(filePath, JSON.stringify({ index: 'logs', unexpected: 'field' }))
+      const received: unknown[] = []
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: (parsed) => { received.push(parsed.input) },
+      })
+      await invokeAsync(cmd, ['--file', filePath])
+      assert.deepEqual(received[0], { index: 'logs' })
+    })
+
+    it('handler receives undefined for input when schema is configured but no input is provided', async () => {
+      const schema = z.object({ index: z.string() })
+      const received: unknown[] = []
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: (parsed) => { received.push(parsed.input) },
+      })
+      // stdin is TTY (set in beforeEach), no --file flag - no input provided
+      await invokeAsync(cmd, [])
+      assert.equal(received[0], undefined)
+    })
+  })
+
+  describe('schema input - validation error reporting', () => {
+    let tmpDir: string
+    let origIsTTY: boolean | undefined
+
+    before(() => {
+      tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-test-'))
+    })
+    after(() => {
+      rmSync(tmpDir, { recursive: true })
+    })
+    beforeEach(() => {
+      origIsTTY = process.stdin.isTTY
+      Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true, writable: true })
+    })
+    afterEach(() => {
+      Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+    })
+
+    it('type mismatch error includes field path and expected type', async () => {
+      const schema = z.object({ name: z.string() })
+      const filePath = join(tmpDir, 'bad-type.json')
+      writeFileSync(filePath, JSON.stringify({ name: 42 }))
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => {},
+      })
+      const err = await captureErrAsync(cmd, ['--file', filePath])
+      assert.match(err, /input validation failed/)
+      assert.match(err, /name/)
+      assert.match(err, /expected string/)
+    })
+
+    it('missing required field error identifies the field name', async () => {
+      const schema = z.object({ index: z.string() })
+      const filePath = join(tmpDir, 'missing-field.json')
+      writeFileSync(filePath, JSON.stringify({}))
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => {},
+      })
+      const err = await captureErrAsync(cmd, ['--file', filePath])
+      assert.match(err, /input validation failed/)
+      assert.match(err, /index/)
+    })
+
+    it('multiple validation errors are all reported', async () => {
+      const schema = z.object({ name: z.string(), count: z.number() })
+      const filePath = join(tmpDir, 'multi-error.json')
+      writeFileSync(filePath, JSON.stringify({ name: 42, count: 'oops' }))
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => {},
+      })
+      const err = await captureErrAsync(cmd, ['--file', filePath])
+      assert.match(err, /input validation failed/)
+      assert.match(err, /name/)
+      assert.match(err, /count/)
+    })
+
+    it('handler is NOT invoked when validation fails', async () => {
+      const schema = z.object({ index: z.string() })
+      const filePath = join(tmpDir, 'invalid-for-handler.json')
+      writeFileSync(filePath, JSON.stringify({ index: 99 }))
+      let handlerCalled = false
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => { handlerCalled = true },
+      })
+      await captureErrAsync(cmd, ['--file', filePath])
+      assert.equal(handlerCalled, false)
+    })
+
+    it('nested schema validation errors include full dot-separated path', async () => {
+      const schema = z.object({ address: z.object({ zipCode: z.string() }) })
+      const filePath = join(tmpDir, 'nested-error.json')
+      writeFileSync(filePath, JSON.stringify({ address: { zipCode: 99999 } }))
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => {},
+      })
+      const err = await captureErrAsync(cmd, ['--file', filePath])
+      assert.match(err, /input validation failed/)
+      assert.match(err, /address\.zipCode/)
+    })
+  })
+
+  describe('commands without input schema', () => {
+    it('command with no input does not register --file option', () => {
+      const cmd = defineCommand({
+        name: 'ping',
+        description: 'Ping',
+        handler: () => {},
+      })
+      assert.ok(
+        !cmd.helpInformation().includes('--file'),
+        'expected no --file option when input is omitted',
+      )
+    })
+
+    it('command with input: false throws at definition time', () => {
+      assert.throws(
+        // @ts-expect-error intentional: false is not a valid input value
+        () => defineCommand({ name: 'ping', description: 'Ping', input: false, handler: () => {} }),
+        (e: unknown) => {
+          assert.ok(e instanceof Error)
+          assert.match(e.message, /input must be a Zod schema/)
+          return true
+        },
+      )
+    })
+  })
+
+  describe('schema input - JSON format error output', () => {
+    let tmpDir: string
+    let origIsTTY: boolean | undefined
+
+    before(() => {
+      tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-test-'))
+    })
+    after(() => {
+      rmSync(tmpDir, { recursive: true })
+    })
+    beforeEach(() => {
+      origIsTTY = process.stdin.isTTY
+      Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true, writable: true })
+    })
+    afterEach(() => {
+      Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+    })
+
+
+    /** mounts cmd under a root program with --format=json, captures stdout, returns parsed JSON */
+    async function invokeWithJsonFormat(cmd: OpaqueCommandHandle, argv: string[]): Promise<{ out: string, parsed: unknown }> {
+      const { Command } = await import('commander')
+      const prog = new Command('elastic')
+      prog.option('--format <fmt>', 'output format')
+      prog.addCommand(cmd)
+      prog.exitOverride()
+      cmd.exitOverride()
+      let out = ''
+      // intercept process.stdout.write so JSON written directly to stdout is captured
+      const origWrite = process.stdout.write.bind(process.stdout)
+      process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
+      prog.configureOutput({ writeOut: (s) => { out += s }, writeErr: (s) => { out += s } })
+      cmd.configureOutput({ writeOut: (s) => { out += s }, writeErr: (s) => { out += s } })
+      try {
+        await prog.parseAsync(['--format', 'json', cmd.name(), ...argv], { from: 'user' })
+      } catch {
+        // exitOverride throws on cmd.error(); that's expected
+      } finally {
+        process.stdout.write = origWrite
+      }
+      let parsed: unknown = null
+      try { parsed = JSON.parse(out) } catch { /* not JSON - test will fail on assertion */ }
+      return { out, parsed }
+    }
+
+    it('emits structured JSON error to stdout when --format=json and validation fails', async () => {
+      const schema = z.object({ index: z.string() })
+      const filePath = join(tmpDir, 'bad.json')
+      writeFileSync(filePath, JSON.stringify({ index: 42 }))
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => {},
+      })
+      const { parsed } = await invokeWithJsonFormat(cmd, ['--file', filePath])
+      assert.ok(parsed !== null, 'output was not valid JSON')
+      const p = parsed as Record<string, unknown>
+      assert.ok('error' in p, 'expected top-level "error" key')
+      const err = p['error'] as Record<string, unknown>
+      assert.equal(err['code'], 'input_validation_failed')
+      assert.ok(typeof err['message'] === 'string' && err['message'].length > 0)
+      assert.ok(Array.isArray(err['issues']) && (err['issues'] as unknown[]).length > 0)
+    })
+
+    it('error issues array contains field path and message', async () => {
+      const schema = z.object({ index: z.string() })
+      const filePath = join(tmpDir, 'bad2.json')
+      writeFileSync(filePath, JSON.stringify({ index: 42 }))
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => {},
+      })
+      const { parsed } = await invokeWithJsonFormat(cmd, ['--file', filePath])
+      const issues = ((parsed as Record<string, unknown>)['error'] as Record<string, unknown>)['issues'] as Array<Record<string, unknown>>
+      const issue = issues[0]!
+      assert.ok(Array.isArray(issue['path']), 'expected path array')
+      assert.ok(typeof issue['message'] === 'string')
+      assert.deepEqual(issue['path'], ['index'])
+    })
+
+    it('handler is NOT invoked when --format=json and validation fails', async () => {
+      const schema = z.object({ index: z.string() })
+      const filePath = join(tmpDir, 'bad3.json')
+      writeFileSync(filePath, JSON.stringify({ index: 42 }))
+      let handlerCalled = false
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => { handlerCalled = true },
+      })
+      await invokeWithJsonFormat(cmd, ['--file', filePath])
+      assert.equal(handlerCalled, false)
+    })
+
+    it('text mode (no --format flag) still uses cmd.error() with prettified output', async () => {
+      const schema = z.object({ index: z.string() })
+      const filePath = join(tmpDir, 'bad4.json')
+      writeFileSync(filePath, JSON.stringify({ index: 42 }))
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => {},
+      })
+      const err = await captureErrAsync(cmd, ['--file', filePath])
+      assert.match(err, /input validation failed/)
+      assert.match(err, /index/)
+    })
+  })
 })
+
 
 describe('defineGroup', () => {
   describe('skeleton', () => {
