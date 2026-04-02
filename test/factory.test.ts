@@ -2036,6 +2036,169 @@ describe('forward-compatibility and extensibility', () => {
   })
 })
 
+describe('JSON schema in help output', () => {
+  describe('human-readable help text', () => {
+    it('includes Input Schema section when command has an input schema', () => {
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search an index',
+        input: z.object({ index: z.string() }),
+        handler: () => ({}),
+      })
+      const help = cmd.helpInformation()
+      assert.match(help, /Input Schema:/)
+    })
+
+    it('does NOT include Input Schema section when command has no input schema', () => {
+      const cmd = defineCommand({
+        name: 'ping',
+        description: 'Ping the cluster',
+        handler: () => ({}),
+      })
+      const help = cmd.helpInformation()
+      assert.doesNotMatch(help, /Input Schema:/)
+    })
+
+    it('shows JSON schema properties in help text', () => {
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search an index',
+        input: z.object({ index: z.string(), size: z.number() }),
+        handler: () => ({}),
+      })
+      const help = cmd.helpInformation()
+      assert.match(help, /"index"/)
+      assert.match(help, /"size"/)
+      assert.match(help, /"string"/)
+      assert.match(help, /"number"/)
+    })
+
+    it('shows required fields in JSON schema help text', () => {
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search an index',
+        input: z.object({ index: z.string() }),
+        handler: () => ({}),
+      })
+      const help = cmd.helpInformation()
+      assert.match(help, /"required"/)
+      assert.match(help, /"index"/)
+    })
+
+    it('shows nested object schema in help text', () => {
+      const cmd = defineCommand({
+        name: 'create',
+        description: 'Create a resource',
+        input: z.object({ address: z.object({ zipCode: z.string() }) }),
+        handler: () => ({}),
+      })
+      const help = cmd.helpInformation()
+      assert.match(help, /"address"/)
+      assert.match(help, /"zipCode"/)
+    })
+  })
+
+  describe('--format=json help output', () => {
+    let savedArgv: string[]
+    beforeEach(() => {
+      savedArgv = process.argv
+      process.argv = ['node', 'elastic', '--format', 'json']
+    })
+    afterEach(() => {
+      process.argv = savedArgv
+    })
+
+    function captureJsonHelp(cmd: OpaqueCommandHandle): { out: string, parsed: unknown } {
+      let out = ''
+      cmd.exitOverride()
+      cmd.configureOutput({ writeOut: (s) => { out += s } })
+      try { cmd.parse(['--help'], { from: 'user' }) } catch { /* CommanderError from exitOverride */ }
+      let parsed: unknown = null
+      try { parsed = JSON.parse(out) } catch { /* not JSON - test will fail on assertion */ }
+      return { out, parsed }
+    }
+
+    it('emits the raw JSON Schema object when --format=json and --help are used together', () => {
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search an index',
+        input: z.object({ index: z.string() }),
+        handler: () => ({}),
+      })
+      const { parsed } = captureJsonHelp(cmd)
+      assert.ok(parsed !== null, 'output was not valid JSON')
+    })
+
+    it('JSON output is the raw schema with type and properties at the top level', () => {
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search an index',
+        input: z.object({ index: z.string(), size: z.number() }),
+        handler: () => ({}),
+      })
+      const { parsed } = captureJsonHelp(cmd)
+      const schema = parsed as Record<string, unknown>
+      assert.equal(schema['type'], 'object')
+      const props = schema['properties'] as Record<string, unknown>
+      assert.ok('index' in props, 'expected index property')
+      assert.ok('size' in props, 'expected size property')
+    })
+
+    it('JSON output does not wrap the schema in an envelope with name or options', () => {
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search an index',
+        input: z.object({ index: z.string() }),
+        handler: () => ({}),
+      })
+      const { parsed } = captureJsonHelp(cmd)
+      const schema = parsed as Record<string, unknown>
+      assert.ok(!('name' in schema), 'expected no name key at top level')
+      assert.ok(!('options' in schema), 'expected no options key at top level')
+      assert.ok(!('input_schema' in schema), 'expected no input_schema wrapper key')
+    })
+
+    it('prints nothing for commands without an input schema', () => {
+      const cmd = defineCommand({
+        name: 'ping',
+        description: 'Ping the cluster',
+        handler: () => ({}),
+      })
+      const { out } = captureJsonHelp(cmd)
+      assert.equal(out, '', 'expected empty output for command with no input schema')
+    })
+
+    it('required fields appear in the JSON schema required array', () => {
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search an index',
+        input: z.object({ index: z.string() }),
+        handler: () => ({}),
+      })
+      const { parsed } = captureJsonHelp(cmd)
+      const schema = parsed as Record<string, unknown>
+      const required = schema['required'] as string[]
+      assert.ok(Array.isArray(required), 'expected required array')
+      assert.ok(required.includes('index'), 'expected index in required')
+    })
+
+    it('nested object schema produces correct nested JSON schema output', () => {
+      const cmd = defineCommand({
+        name: 'create',
+        description: 'Create a resource',
+        input: z.object({ address: z.object({ zipCode: z.string() }) }),
+        handler: () => ({}),
+      })
+      const { parsed } = captureJsonHelp(cmd)
+      const schema = parsed as Record<string, unknown>
+      const props = schema['properties'] as Record<string, Record<string, unknown>>
+      assert.equal(props['address']!['type'], 'object')
+      const nestedProps = props['address']!['properties'] as Record<string, unknown>
+      assert.ok('zipCode' in nestedProps)
+    })
+  })
+})
+
 /** invokes a command handle via parseAsync; surfaces CommanderError via exitOverride */
 async function invokeAsync(handle: OpaqueCommandHandle, argv: string[]): Promise<void> {
   handle.exitOverride()
