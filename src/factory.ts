@@ -9,6 +9,8 @@ import { readFileSync } from 'node:fs'
 import assert from 'node:assert/strict'
 import type { ResolvedConfig } from './config/types.ts'
 import { getResolvedConfig } from './config/store.ts'
+import { extractSchemaArgs, validateSchemaArgs } from './lib/schema-args.ts'
+import type { SchemaArgDefinition } from './lib/schema-args.ts'
 
 /** pre-built schema for coercing string → number, reused per option invocation */
 const numberSchema = z.coerce.number()
@@ -232,6 +234,31 @@ function validateInput(name: string, input: unknown): void {
   }
 }
 
+/**
+ * Configures help output for a command to include JSON schema information.
+ *
+ * When `--format=json` is present in the parsed global options and the command
+ * has an input schema, help is replaced with the raw JSON Schema object so agents
+ * can parse it directly. Commands without an input schema print nothing in that mode.
+ * In text mode, the input schema is appended to the standard human-readable help.
+ */
+function configureHelpWithSchema(cmd: OpaqueCommandHandle, jsonSchema?: JsonValue): void {
+  const origHelp = cmd.createHelp()
+  cmd.configureHelp({
+    formatHelp: (thisCmd, helper) => {
+      const globalOpts = thisCmd.parent?.optsWithGlobals() as Record<string, unknown> | undefined
+      if (globalOpts?.['format'] === 'json') {
+        return jsonSchema !== undefined ? JSON.stringify(jsonSchema) + '\n' : ''
+      }
+      const base = origHelp.formatHelp(thisCmd, helper)
+      if (jsonSchema !== undefined) {
+        return base + '\nInput Schema:\n' + JSON.stringify(jsonSchema, null, 2) + '\n'
+      }
+      return base
+    },
+  })
+}
+
 /** builds the full command path by walking the parent chain (e.g. `"elastic cluster health"`) */
 function commandPath(cmd: OpaqueCommandHandle): string {
   const parts: string[] = []
@@ -364,10 +391,47 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
     }
   }
 
+  // schema-derived CLI options (registered before --file so help text order is correct)
+  let schemaArgs: SchemaArgDefinition[] = []
+  if (config.input instanceof z.ZodType) {
+    schemaArgs = extractSchemaArgs(config.input)
+    validateSchemaArgs(schemaArgs)
+    for (const arg of schemaArgs) {
+      const suffix = arg.required
+        ? '(required)'
+        : arg.defaultValue !== undefined ? `(default: ${JSON.stringify(arg.defaultValue)})` : undefined
+      const desc = [arg.description, suffix].filter(Boolean).join(' ')
+      if (arg.type === 'boolean') {
+        // booleans omit the suffix; flag-style convention makes it clear
+        cmd.option(`--${arg.cliFlag} [value]`, arg.description)
+      } else if (arg.type === 'number') {
+        const parseNum = (val: string): number => {
+          const r = numberSchema.safeParse(val)
+          if (!r.success) cmd.error(`option --${arg.cliFlag}: expected a number, got: ${val}`)
+          return r.data!
+        }
+        cmd.option(`--${arg.cliFlag} <number>`, desc, parseNum)
+      } else if (arg.type === 'object' || arg.type === 'array') {
+        cmd.option(`--${arg.cliFlag} <json>`, desc)
+      } else if (arg.type === 'enum') {
+        cmd.option(`--${arg.cliFlag} <value>`, desc)
+      } else {
+        // string: passed through as-is, no coercion
+        cmd.option(`--${arg.cliFlag} <string>`, desc)
+      }
+    }
+  }
   if (config.input instanceof z.ZodType) {
     cmd.option('--file <path>', 'path to a JSON file to use as command input')
   }
   cmd.option('--dry-run', 'validate all inputs and exit without performing any action')
+
+  const inputJsonSchema = config.input instanceof z.ZodType
+    ? z.toJSONSchema(config.input) as JsonValue
+    : undefined
+
+  configureHelpWithSchema(cmd, inputJsonSchema)
+
   cmd.action(async () => {
     const allRaw = cmd.optsWithGlobals() as Record<string, unknown>
     const options: Record<string, string | number | boolean> = {}
@@ -409,6 +473,31 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
       } else if (!process.stdin.isTTY) {
         inputValue = parseJsonContent(stdinReader(), 'stdin', cmd)
       }
+
+      // collect explicitly-provided schema-derived CLI arguments and merge over JSON input
+      const cliInput: Record<string, unknown> = {}
+      for (const arg of schemaArgs) {
+        // Commander stores kebab-case flags as camelCase keys in opts()
+        const camelKey = camelCase(arg.cliFlag)
+        const raw = allRaw[camelKey]
+        if (raw === undefined) continue
+        // boolean coercion: --flag (no value) -> true, --flag false -> false
+        if (arg.type === 'boolean') {
+          cliInput[arg.schemaKey] = raw === 'false' ? false : true
+        } else if (arg.type === 'object' || arg.type === 'array') {
+          try {
+            cliInput[arg.schemaKey] = JSON.parse(raw as string)
+          } catch {
+            return cmd.error(`option --${arg.cliFlag}: invalid JSON: ${raw}`)
+          }
+        } else {
+          // string, number (already coerced by parseArg), enum
+          cliInput[arg.schemaKey] = raw
+        }
+      }
+      if (Object.keys(cliInput).length > 0) {
+        inputValue = { ...(inputValue as Record<string, unknown> ?? {}), ...cliInput }
+      }
     }
 
     const resolvedConfig = getResolvedConfig()
@@ -418,7 +507,12 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
     }
     if (inputValue !== undefined) {
       assert(config.input instanceof z.ZodType, `command ${JSON.stringify(config.name)}: input must be a Zod schema`)
-      const result = config.input.safeParse(inputValue)
+      // apply strict mode to reject unknown keys, unless the author explicitly used .passthrough()
+      const validationSchema = (
+        config.input instanceof z.ZodObject &&
+        (config.input.def as unknown as { catchall?: { type: string } }).catchall?.type !== 'unknown'
+      ) ? config.input.strict() : config.input
+      const result = validationSchema.safeParse(inputValue)
       if (result.success) {
         parsed.input = result.data as z.infer<T>
       } else {
