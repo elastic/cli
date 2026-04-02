@@ -2099,44 +2099,42 @@ describe('JSON schema in help output', () => {
   })
 
   describe('--format=json help output', () => {
-    let savedArgv: string[]
-    beforeEach(() => {
-      savedArgv = process.argv
-      process.argv = ['node', 'elastic', '--format', 'json']
-    })
-    afterEach(() => {
-      process.argv = savedArgv
-    })
-
-    function captureJsonHelp(cmd: OpaqueCommandHandle): { out: string, parsed: unknown } {
-      let out = ''
+    async function captureJsonHelp(cmd: OpaqueCommandHandle): Promise<{ out: string, parsed: unknown }> {
+      const { Command } = await import('commander')
+      const prog = new Command('elastic')
+      prog.option('--format <fmt>', 'output format')
+      prog.addCommand(cmd)
+      prog.exitOverride()
       cmd.exitOverride()
+      let out = ''
       cmd.configureOutput({ writeOut: (s) => { out += s } })
-      try { cmd.parse(['--help'], { from: 'user' }) } catch { /* CommanderError from exitOverride */ }
+      try {
+        await prog.parseAsync(['--format', 'json', cmd.name(), '--help'], { from: 'user' })
+      } catch { /* CommanderError from exitOverride on --help */ }
       let parsed: unknown = null
       try { parsed = JSON.parse(out) } catch { /* not JSON - test will fail on assertion */ }
       return { out, parsed }
     }
 
-    it('emits the raw JSON Schema object when --format=json and --help are used together', () => {
+    it('emits the raw JSON Schema object when --format=json and --help are used together', async () => {
       const cmd = defineCommand({
         name: 'search',
         description: 'Search an index',
         input: z.object({ index: z.string() }),
         handler: () => ({}),
       })
-      const { parsed } = captureJsonHelp(cmd)
+      const { parsed } = await captureJsonHelp(cmd)
       assert.ok(parsed !== null, 'output was not valid JSON')
     })
 
-    it('JSON output is the raw schema with type and properties at the top level', () => {
+    it('JSON output is the raw schema with type and properties at the top level', async () => {
       const cmd = defineCommand({
         name: 'search',
         description: 'Search an index',
         input: z.object({ index: z.string(), size: z.number() }),
         handler: () => ({}),
       })
-      const { parsed } = captureJsonHelp(cmd)
+      const { parsed } = await captureJsonHelp(cmd)
       const schema = parsed as Record<string, unknown>
       assert.equal(schema['type'], 'object')
       const props = schema['properties'] as Record<string, unknown>
@@ -2144,52 +2142,52 @@ describe('JSON schema in help output', () => {
       assert.ok('size' in props, 'expected size property')
     })
 
-    it('JSON output does not wrap the schema in an envelope with name or options', () => {
+    it('JSON output does not wrap the schema in an envelope with name or options', async () => {
       const cmd = defineCommand({
         name: 'search',
         description: 'Search an index',
         input: z.object({ index: z.string() }),
         handler: () => ({}),
       })
-      const { parsed } = captureJsonHelp(cmd)
+      const { parsed } = await captureJsonHelp(cmd)
       const schema = parsed as Record<string, unknown>
       assert.ok(!('name' in schema), 'expected no name key at top level')
       assert.ok(!('options' in schema), 'expected no options key at top level')
       assert.ok(!('input_schema' in schema), 'expected no input_schema wrapper key')
     })
 
-    it('prints nothing for commands without an input schema', () => {
+    it('prints nothing for commands without an input schema', async () => {
       const cmd = defineCommand({
         name: 'ping',
         description: 'Ping the cluster',
         handler: () => ({}),
       })
-      const { out } = captureJsonHelp(cmd)
+      const { out } = await captureJsonHelp(cmd)
       assert.equal(out, '', 'expected empty output for command with no input schema')
     })
 
-    it('required fields appear in the JSON schema required array', () => {
+    it('required fields appear in the JSON schema required array', async () => {
       const cmd = defineCommand({
         name: 'search',
         description: 'Search an index',
         input: z.object({ index: z.string() }),
         handler: () => ({}),
       })
-      const { parsed } = captureJsonHelp(cmd)
+      const { parsed } = await captureJsonHelp(cmd)
       const schema = parsed as Record<string, unknown>
       const required = schema['required'] as string[]
       assert.ok(Array.isArray(required), 'expected required array')
       assert.ok(required.includes('index'), 'expected index in required')
     })
 
-    it('nested object schema produces correct nested JSON schema output', () => {
+    it('nested object schema produces correct nested JSON schema output', async () => {
       const cmd = defineCommand({
         name: 'create',
         description: 'Create a resource',
         input: z.object({ address: z.object({ zipCode: z.string() }) }),
         handler: () => ({}),
       })
-      const { parsed } = captureJsonHelp(cmd)
+      const { parsed } = await captureJsonHelp(cmd)
       const schema = parsed as Record<string, unknown>
       const props = schema['properties'] as Record<string, Record<string, unknown>>
       assert.equal(props['address']!['type'], 'object')

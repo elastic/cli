@@ -233,32 +233,19 @@ function validateInput(name: string, input: unknown): void {
 }
 
 /**
- * Checks whether `--format json` or `--format=json` appears in `process.argv`.
- * Help rendering fires before Commander finishes global option parsing, so we
- * inspect argv directly to decide between human-readable and JSON output.
- */
-function isJsonFormatRequested(): boolean {
-  const args = process.argv
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--format=json') return true
-    if (args[i] === '--format' && args[i + 1] === 'json') return true
-  }
-  return false
-}
-
-/**
  * Configures help output for a command to include JSON schema information.
  *
- * When `--format=json` is detected in argv and the command has an input schema,
- * help is replaced with the raw JSON Schema object so agents can parse it directly.
- * Commands without an input schema print nothing in JSON format mode.
+ * When `--format=json` is present in the parsed global options and the command
+ * has an input schema, help is replaced with the raw JSON Schema object so agents
+ * can parse it directly. Commands without an input schema print nothing in that mode.
  * In text mode, the input schema is appended to the standard human-readable help.
  */
 function configureHelpWithSchema(cmd: OpaqueCommandHandle, jsonSchema?: JsonValue): void {
   const origHelp = cmd.createHelp()
   cmd.configureHelp({
     formatHelp: (thisCmd, helper) => {
-      if (isJsonFormatRequested()) {
+      const globalOpts = thisCmd.parent?.optsWithGlobals() as Record<string, unknown> | undefined
+      if (globalOpts?.['format'] === 'json') {
         return jsonSchema !== undefined ? JSON.stringify(jsonSchema) + '\n' : ''
       }
       const base = origHelp.formatHelp(thisCmd, helper)
