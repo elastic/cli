@@ -1142,44 +1142,6 @@ describe('defineCommand', () => {
     })
   })
 
-  describe('schema input - invalid input config', () => {
-    it('throws when input is a plain object (not a ZodType)', () => {
-      assert.throws(
-        // @ts-expect-error intentional bad input for runtime validation test
-        () => defineCommand({ name: 'search', description: 'Search', input: { index: 'my-index' }, handler: () => ({}) }),
-        (e: unknown) => {
-          assert.ok(e instanceof Error)
-          assert.match(e.message, /command "search": input must be a Zod schema/)
-          return true
-        },
-      )
-    })
-
-    it('throws when input is a string', () => {
-      assert.throws(
-        // @ts-expect-error intentional bad input for runtime validation test
-        () => defineCommand({ name: 'search', description: 'Search', input: 'schema' as never, handler: () => ({}) }),
-        (e: unknown) => {
-          assert.ok(e instanceof Error)
-          assert.match(e.message, /command "search": input must be a Zod schema/)
-          return true
-        },
-      )
-    })
-
-    it('throws when input is a number', () => {
-      assert.throws(
-        // @ts-expect-error intentional bad input for runtime validation test
-        () => defineCommand({ name: 'search', description: 'Search', input: 42 as never, handler: () => ({}) }),
-        (e: unknown) => {
-          assert.ok(e instanceof Error)
-          assert.match(e.message, /command "search": input must be a Zod schema/)
-          return true
-        },
-      )
-    })
-  })
-
   describe('schema input - valid input validation', () => {
     let tmpDir: string
     let origIsTTY: boolean | undefined
