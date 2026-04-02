@@ -28,7 +28,7 @@ const numberSchema = z.coerce.number()
  * ```
  */
 export interface OptionDefinition {
-  /** long option name without `--` prefix (e.g. `'timeout'`, `'dry-run'`) */
+  /** long option name without `--` prefix (e.g. `'timeout'`, `'output-dir'`) */
   long: string
   /** single-character short alias without `-` prefix (e.g. `'t'`) */
   short?: string
@@ -318,7 +318,11 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
   validateName(config.name, 'command')
   validateOptions(config.options ?? [])
   validateInput(config.name, config.input)
-  // --file is reserved when input is a schema; catch collision at definition time
+  if (config.options?.some((o) => o.long === 'dry-run')) {
+    throw new Error(
+      `command ${JSON.stringify(config.name)}: option --dry-run is reserved`
+    )
+  }
   if (config.input instanceof z.ZodType && config.options?.some((o) => o.long === 'file')) {
     throw new Error(
       `command ${JSON.stringify(config.name)}: option --file is reserved when input is enabled`
@@ -363,6 +367,7 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
   if (config.input instanceof z.ZodType) {
     cmd.option('--file <path>', 'path to a JSON file to use as command input')
   }
+  cmd.option('--dry-run', 'validate all inputs and exit without performing any action')
   cmd.action(async () => {
     const allRaw = cmd.optsWithGlobals() as Record<string, unknown>
     const options: Record<string, string | number | boolean> = {}
@@ -431,6 +436,10 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
         }
         return cmd.error(`input validation failed:\n${z.prettifyError(result.error)}`)
       }
+    }
+    if (allRaw['dryRun'] === true) {
+      process.stdout.write(JSON.stringify({ success: true }) + '\n')
+      return
     }
     const handlerResult = await config.handler(parsed)
     assert(handlerResult !== undefined, `command ${JSON.stringify(config.name)}: handler must return a JsonValue`)
