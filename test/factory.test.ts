@@ -257,14 +257,14 @@ describe('defineCommand', () => {
       const cmd = defineCommand({
         name: 'run',
         description: 'Run',
-        options: [{ long: 'dry-run', description: 'Preview', type: 'boolean' }],
+        options: [{ long: 'preview', description: 'Preview', type: 'boolean' }],
         handler: (parsed) => { received.push(parsed); return {} },
       })
-      invoke(cmd, ['--dry-run'])
+      invoke(cmd, ['--preview'])
       assert.equal(received.length, 1)
-      assert.equal(received[0].options['dry-run'], true)
+      assert.equal(received[0].options['preview'], true)
       // no unexpected keys from Commander internals
-      assert.deepEqual(Object.keys(received[0].options), ['dry-run'])
+      assert.deepEqual(Object.keys(received[0].options), ['preview'])
     })
   })
 
@@ -1610,6 +1610,100 @@ describe('defineCommand', () => {
       const out = await invokeUnderRoot(cmd, ['--format', 'json'], [])
       assert.deepEqual(JSON.parse(out), { async: true })
     })
+  })
+
+  describe('--dry-run', () => {
+    async function captureStdout(fn: () => Promise<void>): Promise<string> {
+      let out = ''
+      const orig = process.stdout.write.bind(process.stdout)
+      process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
+      try { await fn() } finally { process.stdout.write = orig }
+      return out
+    }
+
+    it('appears in help text for every command', () => {
+      const cmd = defineCommand({
+        name: 'ping',
+        description: 'Ping',
+        handler: () => ({}),
+      })
+      assert.match(cmd.helpInformation(), /--dry-run/)
+    })
+
+    it('outputs {"success":true} and skips the handler when set on a no-input command', async () => {
+      let handlerCalled = false
+      const cmd = defineCommand({
+        name: 'ping',
+        description: 'Ping',
+        handler: () => { handlerCalled = true; return {} },
+      })
+      const out = await captureStdout(() => invokeAsync(cmd, ['--dry-run']))
+      assert.equal(handlerCalled, false, 'handler must not be called with --dry-run')
+      assert.deepEqual(JSON.parse(out), { success: true })
+    })
+
+    it('outputs {"success":true} and skips handler with valid JSON input via --file', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-dryrun-'))
+      const filePath = join(tmpDir, 'valid.json')
+      writeFileSync(filePath, JSON.stringify({ index: 'logs' }))
+      const origIsTTY = process.stdin.isTTY
+      Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true, writable: true })
+      try {
+        let handlerCalled = false
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Search',
+          input: z.object({ index: z.string() }),
+          handler: () => { handlerCalled = true; return {} },
+        })
+        const out = await captureStdout(() => invokeAsync(cmd, ['--dry-run', '--file', filePath]))
+        assert.equal(handlerCalled, false, 'handler must not be called with --dry-run')
+        assert.deepEqual(JSON.parse(out), { success: true })
+      } finally {
+        Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+        rmSync(tmpDir, { recursive: true })
+      }
+    })
+
+    it('still reports validation error when --dry-run is set with invalid input', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-dryrun-'))
+      const filePath = join(tmpDir, 'invalid.json')
+      writeFileSync(filePath, JSON.stringify({ index: 42 }))
+      const origIsTTY = process.stdin.isTTY
+      Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true, writable: true })
+      try {
+        let handlerCalled = false
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Search',
+          input: z.object({ index: z.string() }),
+          handler: () => { handlerCalled = true; return {} },
+        })
+        const err = await captureErrAsync(cmd, ['--dry-run', '--file', filePath])
+        assert.match(err, /input validation failed/)
+        assert.equal(handlerCalled, false, 'handler must not be called when validation fails')
+      } finally {
+        Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+        rmSync(tmpDir, { recursive: true })
+      }
+    })
+
+    it('throws at definition time when user defines a --dry-run option', () => {
+      assert.throws(
+        () => defineCommand({
+          name: 'test',
+          description: 'Test',
+          options: [{ long: 'dry-run', description: 'Preview', type: 'boolean' }],
+          handler: () => ({}),
+        }),
+        (e: unknown) => {
+          assert.ok(e instanceof Error)
+          assert.match(e.message, /--dry-run is reserved/)
+          return true
+        },
+      )
+    })
+
   })
 })
 
