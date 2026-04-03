@@ -42,37 +42,51 @@ function makeDeps(overrides: Partial<EsHandlerDeps> = {}): EsHandlerDeps {
   }
 }
 
+/**
+ * Wraps `fn` and records every call's arguments.
+ * Used instead of `t.mock.fn()` which is not implemented in Bun.
+ */
+function spy<T extends (...args: never[]) => unknown>(fn: T): T & { calls: Parameters<T>[] } {
+  const calls: Parameters<T>[] = []
+  const wrapper = ((...args: Parameters<T>) => {
+    calls.push(args)
+    return fn(...args)
+  }) as T & { calls: Parameters<T>[] }
+  wrapper.calls = calls
+  return wrapper
+}
+
 describe('createEsHandler', () => {
-  it('calls buildRequestParams with the definition and parsed input', async (t) => {
+  it('calls buildRequestParams with the definition and parsed input', async () => {
     const def = makeDef()
     const parsed = parsedInput()
-    const buildSpy = t.mock.fn(() => BUILT_PARAMS)
+    const buildSpy = spy(() => BUILT_PARAMS)
     const deps = makeDeps({ buildRequestParams: buildSpy as EsHandlerDeps['buildRequestParams'] })
 
     const handler = createEsHandler(def, deps)
     await handler(parsed)
 
-    assert.equal(buildSpy.mock.calls.length, 1)
-    assert.equal(buildSpy.mock.calls[0]?.arguments[0], def)
-    assert.equal(buildSpy.mock.calls[0]?.arguments[1], parsed)
+    assert.equal(buildSpy.calls.length, 1)
+    assert.equal(buildSpy.calls[0]?.[0], def)
+    assert.equal(buildSpy.calls[0]?.[1], parsed)
   })
 
-  it('calls transport.request() with the params from buildRequestParams', async (t) => {
-    const requestMock = t.mock.fn(async () => 'green\n')
+  it('calls transport.request() with the params from buildRequestParams', async () => {
+    const requestSpy = spy(async () => 'green\n')
     const deps = makeDeps({
-      getTransport: () => ({ request: requestMock } as unknown as Transport),
+      getTransport: () => ({ request: requestSpy } as unknown as Transport),
     })
 
     const handler = createEsHandler(makeDef(), deps)
     await handler(parsedInput())
 
-    assert.equal(requestMock.mock.calls.length, 1)
-    assert.deepEqual(requestMock.mock.calls[0]?.arguments[0], BUILT_PARAMS)
+    assert.equal(requestSpy.calls.length, 1)
+    assert.deepEqual(requestSpy.calls[0]?.[0], BUILT_PARAMS)
   })
 
-  it('returns raw body string for responseType: text', async (t) => {
+  it('returns raw body string for responseType: text', async () => {
     const deps = makeDeps({
-      getTransport: () => ({ request: t.mock.fn(async () => 'green\n') } as unknown as Transport),
+      getTransport: () => ({ request: async () => 'green\n' } as unknown as Transport),
     })
 
     const handler = createEsHandler(makeDef({ responseType: 'text' }), deps)
@@ -80,10 +94,10 @@ describe('createEsHandler', () => {
     assert.equal(result, 'green\n')
   })
 
-  it('returns parsed body object for responseType: json', async (t) => {
+  it('returns parsed body object for responseType: json', async () => {
     const responseBody = { status: 'green', number_of_nodes: 3 }
     const deps = makeDeps({
-      getTransport: () => ({ request: t.mock.fn(async () => responseBody) } as unknown as Transport),
+      getTransport: () => ({ request: async () => responseBody } as unknown as Transport),
     })
 
     const handler = createEsHandler(makeDef({ responseType: 'json' }), deps)
@@ -91,10 +105,10 @@ describe('createEsHandler', () => {
     assert.deepEqual(result, responseBody)
   })
 
-  it('defaults to json responseType when responseType is omitted', async (t) => {
+  it('defaults to json responseType when responseType is omitted', async () => {
     const responseBody = { status: 'green' }
     const deps = makeDeps({
-      getTransport: () => ({ request: t.mock.fn(async () => responseBody) } as unknown as Transport),
+      getTransport: () => ({ request: async () => responseBody } as unknown as Transport),
     })
 
     const handler = createEsHandler(makeDef({ responseType: undefined }), deps)
@@ -118,7 +132,7 @@ describe('createEsHandler', () => {
     assert.match(err['message'] as string, /missing_config/)
   })
 
-  it('returns transport_error with status code and ES body for ResponseError', async (t) => {
+  it('returns transport_error with status code and ES body for ResponseError', async () => {
     const esErrorBody = { error: { type: 'index_not_found_exception', reason: 'no such index' }, status: 404 }
     const diagResult = {
       body: esErrorBody,
@@ -134,7 +148,7 @@ describe('createEsHandler', () => {
     const responseError = new errors.ResponseError(diagResult as never)
     const deps = makeDeps({
       getTransport: () => ({
-        request: t.mock.fn(async () => { throw responseError }),
+        request: async () => { throw responseError },
       } as unknown as Transport),
     })
 
@@ -147,10 +161,10 @@ describe('createEsHandler', () => {
     assert.deepEqual(err['body'], esErrorBody)
   })
 
-  it('returns transport_error with message for non-ResponseError transport errors', async (t) => {
+  it('returns transport_error with message for non-ResponseError transport errors', async () => {
     const deps = makeDeps({
       getTransport: () => ({
-        request: t.mock.fn(async () => { throw new errors.ConnectionError('Connection refused') }),
+        request: async () => { throw new errors.ConnectionError('Connection refused') },
       } as unknown as Transport),
     })
 
