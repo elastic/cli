@@ -1065,17 +1065,19 @@ describe('defineCommand', () => {
       }
     })
 
-    it('errors with "empty content" message when empty data is piped to stdin', async () => {
+    it('treats empty stdin as no input (does not error)', async () => {
       const restore = _testSetStdinReader(() => '')
       try {
+        const received: unknown[] = []
         const cmd = defineCommand({
           name: 'search',
           description: 'Run a search',
-        input: z.object({ q: z.string() }),
-          handler: () => ({}),
+          input: z.object({ q: z.string().optional() }),
+          handler: (p) => { received.push(p.input); return {} },
         })
-        const err = await captureErrAsync(cmd, [])
-        assert.match(err, /stdin: invalid JSON: empty content/)
+        // empty stdin should not error; handler should be called with no input
+        await invokeAsync(cmd, [])
+        assert.equal(received.length, 1)
       } finally {
         restore()
       }
