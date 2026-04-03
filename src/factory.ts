@@ -466,7 +466,10 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
         }
         inputValue = parseJsonContent(fileContent, '--file', cmd)
       } else if (!process.stdin.isTTY) {
-        inputValue = parseJsonContent(stdinReader(), 'stdin', cmd)
+        const raw = stdinReader()
+        if (raw.trim().length > 0) {
+          inputValue = parseJsonContent(raw, 'stdin', cmd)
+        }
       }
 
       // collect explicitly-provided schema-derived CLI arguments and merge over JSON input
