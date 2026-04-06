@@ -9,6 +9,7 @@ import type {
   ServiceBlockSchema,
   ContextSchema,
   ConfigFileSchema,
+  CommandPolicySchema,
 } from './schema.ts'
 
 /**
@@ -35,6 +36,9 @@ export type Context = z.infer<typeof ContextSchema>
 /** The root configuration file structure. */
 export type ConfigFile = z.infer<typeof ConfigFileSchema>
 
+/** Policy controlling which commands are permitted to run. */
+export type CommandPolicy = z.infer<typeof CommandPolicySchema>
+
 /** The active context after resolution — only its configured service blocks, no extras. */
 export interface ResolvedContext {
   elasticsearch?: ServiceBlock
@@ -45,4 +49,6 @@ export interface ResolvedContext {
 /** Typed configuration object passed to command handlers after loading and context resolution. */
 export interface ResolvedConfig {
   context: ResolvedContext
+  /** Optional command allow/deny policy from the config file. */
+  commands?: CommandPolicy
 }
