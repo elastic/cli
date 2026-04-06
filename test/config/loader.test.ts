@@ -240,3 +240,96 @@ describe('T018: loadConfig — --config override', () => {
     assert.ok(!result.ok, 'loadConfig should fail for a nonexistent explicit config path')
   })
 })
+
+// ---------------------------------------------------------------------------
+// T019 — commands policy threading through loadConfig and resolveContext
+// ---------------------------------------------------------------------------
+
+describe('T019: commands policy in ResolvedConfig', () => {
+  let tmpDir: string
+  after(async () => rm(tmpDir, { recursive: true }))
+  before(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-policy-'))
+  })
+
+  it('resolveContext includes commands policy when present', () => {
+    const config: ConfigFile = {
+      ...VALID_CONFIG_OBJECT,
+      commands: { allowed: ['ping', 'elasticsearch.search'] },
+    }
+    const resolved = resolveContext(config, 'local')
+    assert.deepEqual(resolved.commands, { allowed: ['ping', 'elasticsearch.search'] })
+  })
+
+  it('resolveContext omits commands when not present in config', () => {
+    const resolved = resolveContext(VALID_CONFIG_OBJECT, 'local')
+    assert.equal(resolved.commands, undefined)
+  })
+
+  it('loadConfig threads allowed list into ResolvedConfig', async () => {
+    const yaml = `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: http://localhost:9200
+      auth:
+        api_key: key1
+commands:
+  allowed:
+    - ping
+    - elasticsearch.search
+`.trimStart()
+    const configPath = join(tmpDir, 'allowed.yml')
+    await writeFile(configPath, yaml)
+    const result = await loadConfig({ configPath })
+    assert.ok(result.ok)
+    if (!result.ok) return
+    assert.deepEqual(result.value.commands, { allowed: ['ping', 'elasticsearch.search'] })
+  })
+
+  it('loadConfig threads blocked list into ResolvedConfig', async () => {
+    const yaml = `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: http://localhost:9200
+      auth:
+        api_key: key1
+commands:
+  blocked:
+    - elasticsearch.bulk
+    - config.*
+`.trimStart()
+    const configPath = join(tmpDir, 'blocked.yml')
+    await writeFile(configPath, yaml)
+    const result = await loadConfig({ configPath })
+    assert.ok(result.ok)
+    if (!result.ok) return
+    assert.deepEqual(result.value.commands, { blocked: ['elasticsearch.bulk', 'config.*'] })
+  })
+
+  it('loadConfig returns error for config with both allowed and blocked', async () => {
+    const yaml = `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: http://localhost:9200
+      auth:
+        api_key: key1
+commands:
+  allowed:
+    - ping
+  blocked:
+    - elasticsearch.bulk
+`.trimStart()
+    const configPath = join(tmpDir, 'both.yml')
+    await writeFile(configPath, yaml)
+    const result = await loadConfig({ configPath })
+    assert.ok(!result.ok, 'should fail when both allowed and blocked are present')
+    if (result.ok) return
+    assert.match(result.error.message, /mutually exclusive/)
+  })
+})
