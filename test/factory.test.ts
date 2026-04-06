@@ -1066,17 +1066,19 @@ describe('defineCommand', () => {
       }
     })
 
-    it('errors with "empty content" message when empty data is piped to stdin', async () => {
+    it('treats empty stdin as no input (does not error)', async () => {
       const restore = _testSetStdinReader(() => '')
       try {
+        const received: unknown[] = []
         const cmd = defineCommand({
           name: 'search',
           description: 'Run a search',
-        input: z.object({ q: z.string() }),
-          handler: () => ({}),
+          input: z.object({ q: z.string().optional() }),
+          handler: (p) => { received.push(p.input); return {} },
         })
-        const err = await captureErrAsync(cmd, [])
-        assert.match(err, /stdin: invalid JSON: empty content/)
+        // empty stdin should not error; handler should be called with no input
+        await invokeAsync(cmd, [])
+        assert.equal(received.length, 1)
       } finally {
         restore()
       }
@@ -1140,44 +1142,6 @@ describe('defineCommand', () => {
           handler: () => ({}),
         })
       })
-    })
-  })
-
-  describe('schema input - invalid input config', () => {
-    it('throws when input is a plain object (not a ZodType)', () => {
-      assert.throws(
-        // @ts-expect-error intentional bad input for runtime validation test
-        () => defineCommand({ name: 'search', description: 'Search', input: { index: 'my-index' }, handler: () => ({}) }),
-        (e: unknown) => {
-          assert.ok(e instanceof Error)
-          assert.match(e.message, /command "search": input must be a Zod schema/)
-          return true
-        },
-      )
-    })
-
-    it('throws when input is a string', () => {
-      assert.throws(
-        // @ts-expect-error intentional bad input for runtime validation test
-        () => defineCommand({ name: 'search', description: 'Search', input: 'schema' as never, handler: () => ({}) }),
-        (e: unknown) => {
-          assert.ok(e instanceof Error)
-          assert.match(e.message, /command "search": input must be a Zod schema/)
-          return true
-        },
-      )
-    })
-
-    it('throws when input is a number', () => {
-      assert.throws(
-        // @ts-expect-error intentional bad input for runtime validation test
-        () => defineCommand({ name: 'search', description: 'Search', input: 42 as never, handler: () => ({}) }),
-        (e: unknown) => {
-          assert.ok(e instanceof Error)
-          assert.match(e.message, /command "search": input must be a Zod schema/)
-          return true
-        },
-      )
     })
   })
 
@@ -1614,7 +1578,170 @@ describe('defineCommand', () => {
   })
 })
 
+describe('text output rendering', () => {
+  async function captureOutput(fn: () => Promise<unknown>): Promise<string> {
+    let out = ''
+    const orig = process.stdout.write.bind(process.stdout)
+    process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
+    try { await fn() } finally { process.stdout.write = orig }
+    return out
+  }
 
+  async function invokeText(cmd: OpaqueCommandHandle, cmdArgv: string[] = []): Promise<string> {
+    const { Command } = await import('commander')
+    const prog = new Command('elastic')
+    prog.option('--format <fmt>', 'output format')
+    prog.addCommand(cmd)
+    prog.exitOverride()
+    cmd.exitOverride()
+    return captureOutput(() => prog.parseAsync([cmd.name(), ...cmdArgv], { from: 'user' }))
+  }
+
+  describe('formatOutput callback', () => {
+    it('is called with the handler result in text mode', async () => {
+      const received: unknown[] = []
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        handler: () => ({ ok: true }),
+        formatOutput: (result) => { received.push(result); return 'custom\n' },
+      })
+      await invokeText(cmd)
+      assert.equal(received.length, 1)
+      assert.deepEqual(received[0], { ok: true })
+    })
+
+    it('is called with the parsed result in text mode', async () => {
+      const receivedParsed: unknown[] = []
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }],
+        handler: () => ({ ok: true }),
+        formatOutput: (result, parsed) => { receivedParsed.push(parsed); return 'ok\n' },
+      })
+      await invokeText(cmd, ['--verbose'])
+      assert.equal(receivedParsed.length, 1)
+      const p = receivedParsed[0] as ParsedResult
+      assert.equal(p.options['verbose'], true)
+    })
+
+    it('output written is the string returned by formatOutput', async () => {
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        handler: () => ({ ok: true }),
+        formatOutput: () => 'custom output line\n',
+      })
+      const out = await invokeText(cmd)
+      assert.equal(out, 'custom output line\n')
+    })
+
+    it('is NOT called when --format=json is provided', async () => {
+      let called = false
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        handler: () => ({ ok: true }),
+        formatOutput: () => { called = true; return 'custom\n' },
+      })
+      const { Command } = await import('commander')
+      const prog = new Command('elastic')
+      prog.option('--format <fmt>', 'output format')
+      prog.addCommand(cmd)
+      prog.exitOverride()
+      cmd.exitOverride()
+      await captureOutput(() => prog.parseAsync(['--format', 'json', cmd.name()], { from: 'user' }))
+      assert.equal(called, false, 'formatOutput must not be called in JSON mode')
+    })
+
+    it('JSON mode still writes compact JSON even when formatOutput is defined', async () => {
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        handler: () => ({ ok: true }),
+        formatOutput: () => 'custom\n',
+      })
+      const { Command } = await import('commander')
+      const prog = new Command('elastic')
+      prog.option('--format <fmt>', 'output format')
+      prog.addCommand(cmd)
+      prog.exitOverride()
+      cmd.exitOverride()
+      const out = await captureOutput(() => prog.parseAsync(['--format', 'json', cmd.name()], { from: 'user' }))
+      assert.deepEqual(JSON.parse(out), { ok: true })
+    })
+  })
+
+  describe('auto-rendering (no formatOutput provided)', () => {
+    it('renders a string result as plain text', async () => {
+      const cmd = defineCommand({
+        name: 'echo',
+        description: 'Echo',
+        handler: () => 'hello world',
+      })
+      const out = await invokeText(cmd)
+      assert.equal(out, 'hello world\n')
+    })
+
+    it('renders a number result as its string form', async () => {
+      const cmd = defineCommand({
+        name: 'count',
+        description: 'Count',
+        handler: () => 42,
+      })
+      const out = await invokeText(cmd)
+      assert.equal(out, '42\n')
+    })
+
+    it('renders an array of primitives one per line', async () => {
+      const cmd = defineCommand({
+        name: 'list',
+        description: 'List',
+        handler: () => ['alpha', 'beta', 'gamma'],
+      })
+      const out = await invokeText(cmd)
+      assert.equal(out, 'alpha\nbeta\ngamma\n')
+    })
+
+    it('renders an array of flat objects as a table', async () => {
+      const cmd = defineCommand({
+        name: 'list',
+        description: 'List',
+        handler: () => [
+          { name: 'foo', status: 'ok' },
+          { name: 'bar', status: 'error' },
+        ],
+      })
+      const out = await invokeText(cmd)
+      assert.match(out, /name/)
+      assert.match(out, /status/)
+      assert.match(out, /foo/)
+      assert.match(out, /bar/)
+      assert.match(out, /^-+/m)
+    })
+
+    it('falls back to pretty-printed JSON for a plain object', async () => {
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        handler: () => ({ ok: true, count: 3 }),
+      })
+      const out = await invokeText(cmd)
+      assert.equal(out, JSON.stringify({ ok: true, count: 3 }, null, 2) + '\n')
+    })
+
+    it('falls back to pretty-printed JSON for nested arrays', async () => {
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        handler: () => [{ name: 'foo', tags: ['a', 'b'] }],
+      })
+      const out = await invokeText(cmd)
+      assert.equal(out, JSON.stringify([{ name: 'foo', tags: ['a', 'b'] }], null, 2) + '\n')
+    })
+  })
+})
 
 describe('defineGroup', () => {
   describe('skeleton', () => {

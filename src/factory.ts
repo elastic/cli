@@ -11,6 +11,7 @@ import type { ResolvedConfig, CommandPolicy } from './config/types.ts'
 import { getResolvedConfig } from './config/store.ts'
 import { extractSchemaArgs, validateSchemaArgs } from './lib/schema-args.ts'
 import type { SchemaArgDefinition } from './lib/schema-args.ts'
+import { renderText } from './output.ts'
 
 /** pre-built schema for coercing string → number, reused per option invocation */
 const numberSchema = z.coerce.number()
@@ -121,6 +122,13 @@ export interface CommandConfig<T extends z.ZodType = z.ZodType> {
    * stdin or file, validates against the schema, then passes the typed result to the handler.
    */
   input?: T
+  /**
+   * optional text renderer for non-JSON output mode.
+   * when provided, called with the handler result and the full parsed result to produce a string
+   * written to stdout. when omitted, the factory auto-renders via {@link renderText}.
+   * never called when `--format=json` is active.
+   */
+  formatOutput?: (result: JsonValue, parsed: ParsedResult<z.infer<T>>) => string
 }
 
 /**
@@ -495,7 +503,10 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
         }
         inputValue = parseJsonContent(fileContent, '--file', cmd)
       } else if (!process.stdin.isTTY) {
-        inputValue = parseJsonContent(stdinReader(), 'stdin', cmd)
+        const raw = stdinReader()
+        if (raw.trim().length > 0) {
+          inputValue = parseJsonContent(raw, 'stdin', cmd)
+        }
       }
 
       // collect explicitly-provided schema-derived CLI arguments and merge over JSON input
@@ -580,8 +591,10 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
     assert(handlerResult !== undefined, `command ${JSON.stringify(config.name)}: handler must return a JsonValue`)
     if (fmt === 'json') {
       process.stdout.write(JSON.stringify(handlerResult) + '\n')
+    } else if (config.formatOutput !== undefined) {
+      process.stdout.write(config.formatOutput(handlerResult, parsed))
     } else {
-      process.stdout.write(JSON.stringify(handlerResult, null, 2) + '\n')
+      process.stdout.write(renderText(handlerResult))
     }
   })
 
