@@ -13,25 +13,26 @@ describe('renderTable', () => {
   })
 
   it('renders a single row with a header and separator', () => {
+    // cli-table3 layout: top border / header / separator / data / bottom border = 5 lines
     const out = renderTable([{ name: 'foo', count: 3 }])
     const lines = out.trimEnd().split('\n')
-    assert.equal(lines.length, 3)
-    assert.match(lines[0]!, /name/)
-    assert.match(lines[0]!, /count/)
-    assert.match(lines[1]!, /^-/)
-    assert.match(lines[2]!, /foo/)
-    assert.match(lines[2]!, /3/)
+    assert.equal(lines.length, 5)
+    assert.match(lines[1]!, /name/)
+    assert.match(lines[1]!, /count/)
+    assert.match(lines[3]!, /foo/)
+    assert.match(lines[3]!, /3/)
   })
 
   it('renders multiple rows', () => {
+    // cli-table3 layout: top / header / sep / row / sep / row / bottom = 7 lines
     const out = renderTable([
       { name: 'foo', count: 3 },
       { name: 'bar', count: 12 },
     ])
     const lines = out.trimEnd().split('\n')
-    assert.equal(lines.length, 4)
-    assert.match(lines[2]!, /foo/)
-    assert.match(lines[3]!, /bar/)
+    assert.equal(lines.length, 7)
+    assert.match(lines[3]!, /foo/)
+    assert.match(lines[5]!, /bar/)
   })
 
   it('aligns columns to the widest value', () => {
@@ -40,11 +41,12 @@ describe('renderTable', () => {
       { name: 'a-much-longer-name', count: 999 },
     ])
     const lines = out.trimEnd().split('\n')
-    const headerWidth = lines[0]!.indexOf('count')
-    const dataRow1Width = lines[2]!.indexOf('1')
-    const dataRow2Width = lines[3]!.indexOf('999')
-    assert.equal(headerWidth, dataRow1Width, 'count column starts at same position in both data rows')
-    assert.equal(dataRow1Width, dataRow2Width)
+    // header and data rows start at the same column offset for each column
+    const headerLine = lines[1]!
+    const dataRow1 = lines[3]!
+    const dataRow2 = lines[5]!
+    assert.equal(headerLine.indexOf('count'), dataRow1.indexOf('1'), 'count column starts at same position in both data rows')
+    assert.equal(dataRow1.indexOf('1'), dataRow2.indexOf('999'))
   })
 
   it('uses the first row keys as column headers', () => {
@@ -56,13 +58,14 @@ describe('renderTable', () => {
   it('treats null values as empty strings', () => {
     const out = renderTable([{ name: 'foo', value: null }])
     const lines = out.trimEnd().split('\n')
-    assert.match(lines[2]!, /foo/)
+    assert.match(lines[3]!, /foo/)
   })
 
-  it('separator line uses dashes matching column widths', () => {
+  it('separator line uses box-drawing characters', () => {
     const out = renderTable([{ id: 'abc' }])
     const lines = out.trimEnd().split('\n')
-    assert.match(lines[1]!, /^---/)
+    // line 2 is the separator between header and data
+    assert.match(lines[2]!, /[─├┤┼]/)
   })
 
   it('does not have trailing spaces on each line', () => {
@@ -119,10 +122,10 @@ describe('renderText', () => {
       assert.match(out, /bar/)
     })
 
-    it('table output has a separator line', () => {
+    it('table output has a separator line with box-drawing characters', () => {
       const out = renderText([{ name: 'foo' }])
       const lines = out.trimEnd().split('\n')
-      assert.match(lines[1]!, /^-+$/)
+      assert.match(lines[2]!, /[─├┤┼]/)
     })
   })
 
