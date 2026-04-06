@@ -15,7 +15,8 @@ import type {
   GroupConfig,
   OpaqueCommandHandle,
 } from '../src/factory.ts'
-import { defineCommand, defineGroup, _testSetStdinReader } from '../src/factory.ts'
+import { defineCommand, defineGroup, _testSetStdinReader, isCommandAllowed } from '../src/factory.ts'
+import { setResolvedConfig } from '../src/config/store.ts'
 import { z } from 'zod'
 describe('factory types', () => {
   it('OptionDefinition accepts required fields', () => {
@@ -1943,11 +1944,172 @@ describe('defineGroup', () => {
   })
 })
 
+describe('isCommandAllowed', () => {
+  it('returns true when policy is undefined (no config)', () => {
+    assert.equal(isCommandAllowed('ping', undefined), true)
+  })
+
+  it('returns true when policy has no allowed or blocked list', () => {
+    assert.equal(isCommandAllowed('ping', {}), true)
+  })
+
+  it('allowed list: returns true for an exact match', () => {
+    assert.equal(isCommandAllowed('ping', { allowed: ['ping', 'elasticsearch.search'] }), true)
+  })
+
+  it('allowed list: returns false when command is not in the list', () => {
+    assert.equal(isCommandAllowed('elasticsearch.bulk', { allowed: ['ping', 'elasticsearch.search'] }), false)
+  })
+
+  it('allowed list: returns true for a wildcard match', () => {
+    assert.equal(isCommandAllowed('elasticsearch.search', { allowed: ['elasticsearch.*'] }), true)
+  })
+
+  it('allowed list: returns true for a deeper wildcard match', () => {
+    assert.equal(isCommandAllowed('elasticsearch.indices.get', { allowed: ['elasticsearch.*'] }), true)
+  })
+
+  it('allowed list: wildcard does not match the prefix itself', () => {
+    assert.equal(isCommandAllowed('elasticsearch', { allowed: ['elasticsearch.*'] }), false)
+  })
+
+  it('allowed list: returns false when only a different namespace wildcard is present', () => {
+    assert.equal(isCommandAllowed('config.set', { allowed: ['elasticsearch.*'] }), false)
+  })
+
+  it('blocked list: returns false for an exact match', () => {
+    assert.equal(isCommandAllowed('elasticsearch.bulk', { blocked: ['elasticsearch.bulk'] }), false)
+  })
+
+  it('blocked list: returns true when command is not in the list', () => {
+    assert.equal(isCommandAllowed('ping', { blocked: ['elasticsearch.bulk'] }), true)
+  })
+
+  it('blocked list: returns false for a wildcard match', () => {
+    assert.equal(isCommandAllowed('config.set', { blocked: ['config.*'] }), false)
+  })
+
+  it('blocked list: returns false for a deeper wildcard match', () => {
+    assert.equal(isCommandAllowed('config.context.set', { blocked: ['config.*'] }), false)
+  })
+
+  it('blocked list: wildcard does not block the prefix itself', () => {
+    assert.equal(isCommandAllowed('config', { blocked: ['config.*'] }), true)
+  })
+
+  it('blocked list: returns true for commands outside the blocked namespace', () => {
+    assert.equal(isCommandAllowed('elasticsearch.search', { blocked: ['config.*'] }), true)
+  })
+})
+
+describe('command policy enforcement', () => {
+  afterEach(() => {
+    // reset store between tests so policy doesn't bleed across
+    setResolvedConfig({ context: {} })
+  })
+
+  it('allowed list: blocks a command not in the list and skips handler', async () => {
+    setResolvedConfig({ context: {}, commands: { allowed: ['ping'] } })
+    let handlerCalled = false
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      handler: () => { handlerCalled = true; return {} },
+    })
+    const err = await captureErrAsync(cmd, [])
+    assert.match(err, /not allowed/)
+    assert.equal(handlerCalled, false)
+  })
+
+  it('allowed list: permits a command in the list and runs handler', async () => {
+    setResolvedConfig({ context: {}, commands: { allowed: ['ping'] } })
+    let handlerCalled = false
+    const cmd = defineCommand({
+      name: 'ping',
+      description: 'Ping',
+      handler: () => { handlerCalled = true; return {} },
+    })
+    await invokeAsync(cmd, [])
+    assert.equal(handlerCalled, true)
+  })
+
+  it('allowed list: wildcard permits matching commands', async () => {
+    setResolvedConfig({ context: {}, commands: { allowed: ['elasticsearch.*'] } })
+    let handlerCalled = false
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      handler: () => { handlerCalled = true; return {} },
+    })
+    // mount under a group so the path becomes 'elasticsearch search'
+    const { Command } = await import('commander')
+    const prog = new Command('elastic')
+    const group = new Command('elasticsearch')
+    group.addCommand(cmd)
+    prog.addCommand(group)
+    prog.exitOverride()
+    cmd.exitOverride()
+    await prog.parseAsync(['elasticsearch', 'search'], { from: 'user' })
+    assert.equal(handlerCalled, true)
+  })
+
+  it('blocked list: blocks a matching command and skips handler', async () => {
+    setResolvedConfig({ context: {}, commands: { blocked: ['search'] } })
+    let handlerCalled = false
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      handler: () => { handlerCalled = true; return {} },
+    })
+    const err = await captureErrAsync(cmd, [])
+    assert.match(err, /not allowed/)
+    assert.equal(handlerCalled, false)
+  })
+
+  it('blocked list: permits a command not in the list', async () => {
+    setResolvedConfig({ context: {}, commands: { blocked: ['search'] } })
+    let handlerCalled = false
+    const cmd = defineCommand({
+      name: 'ping',
+      description: 'Ping',
+      handler: () => { handlerCalled = true; return {} },
+    })
+    await invokeAsync(cmd, [])
+    assert.equal(handlerCalled, true)
+  })
+
+  it('no policy: all commands are permitted', async () => {
+    setResolvedConfig({ context: {} })
+    let handlerCalled = false
+    const cmd = defineCommand({
+      name: 'anything',
+      description: 'Anything',
+      handler: () => { handlerCalled = true; return {} },
+    })
+    await invokeAsync(cmd, [])
+    assert.equal(handlerCalled, true)
+  })
+
+  it('emits structured JSON error when --format=json and command is blocked', async () => {
+    setResolvedConfig({ context: {}, commands: { allowed: ['ping'] } })
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      handler: () => ({}),
+    })
+    const out = await invokeUnderRoot(cmd, ['--format', 'json'], [])
+    const parsed = JSON.parse(out) as Record<string, unknown>
+    assert.ok('error' in parsed)
+    const err = parsed['error'] as Record<string, unknown>
+    assert.equal(err['code'], 'command_blocked')
+  })
+})
+
 describe('no Commander API leaks', () => {
   it('factory module exports only public API and test seam at runtime', async () => {
     const factory = await import('../src/factory.ts')
     const exported = Object.keys(factory)
-    assert.deepEqual(exported.sort(), ['_testSetStdinReader', 'defineCommand', 'defineGroup'])
+    assert.deepEqual(exported.sort(), ['_testSetStdinReader', 'defineCommand', 'defineGroup', 'isCommandAllowed'])
   })
 
   it('defineCommand return value requires no Commander import to use', () => {
