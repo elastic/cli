@@ -7,7 +7,7 @@ import { Command } from 'commander'
 import { z } from 'zod'
 import { readFileSync } from 'node:fs'
 import assert from 'node:assert/strict'
-import type { ResolvedConfig } from './config/types.ts'
+import type { ResolvedConfig, CommandPolicy } from './config/types.ts'
 import { getResolvedConfig } from './config/store.ts'
 import { extractSchemaArgs, validateSchemaArgs } from './lib/schema-args.ts'
 import type { SchemaArgDefinition } from './lib/schema-args.ts'
@@ -167,6 +167,35 @@ export function _testSetStdinReader(fn: () => string): () => void {
   const prev = stdinReader
   stdinReader = fn
   return () => { stdinReader = prev }
+}
+
+/**
+ * Returns true if `commandDotPath` is permitted under the given policy.
+ *
+ * Matching rules:
+ * - No policy (or empty policy) → always allowed
+ * - `allowed` list → command must match at least one entry
+ * - `blocked` list → command must NOT match any entry
+ * - Entries ending with `.*` match any command whose dot-path starts with the prefix and a `.`
+ *   (e.g. `elasticsearch.*` matches `elasticsearch.search` and `elasticsearch.indices.get`
+ *    but NOT `elasticsearch` itself)
+ * - All other entries are exact matches
+ */
+export function isCommandAllowed(commandDotPath: string, policy: CommandPolicy | undefined): boolean {
+  if (policy == null) return true
+
+  function matches(pattern: string): boolean {
+    if (pattern.endsWith('.*')) {
+      const prefix = pattern.slice(0, -2)
+      return commandDotPath === prefix + '.' + commandDotPath.slice(prefix.length + 1) &&
+        commandDotPath.startsWith(prefix + '.')
+    }
+    return commandDotPath === pattern
+  }
+
+  if (policy.allowed != null) return policy.allowed.some(matches)
+  if (policy.blocked != null) return !policy.blocked.some(matches)
+  return true
 }
 
 /** converts a kebab-case option name to camelCase to match Commander's opts() keys */
@@ -496,6 +525,27 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
     }
 
     const resolvedConfig = getResolvedConfig()
+
+    // enforce command policy before any other work
+    if (resolvedConfig?.commands != null) {
+      // commandPath returns e.g. "elastic elasticsearch search"; strip root program name and dot-join
+      const parts = commandPath(cmd).split(' ')
+      // if mounted under a root program (e.g. "elastic"), strip that first segment
+      const dotPath = (parts.length > 1 ? parts.slice(1) : parts).join('.')
+      if (!isCommandAllowed(dotPath, resolvedConfig.commands)) {
+        if (fmt === 'json') {
+          process.stdout.write(JSON.stringify({
+            error: {
+              code: 'command_blocked',
+              message: `command "${dotPath}" is not allowed by the current policy`,
+            },
+          }) + '\n')
+          throw Object.assign(new Error('command_blocked'), { exitCode: 1 })
+        }
+        return cmd.error(`command "${dotPath}" is not allowed by the current policy`)
+      }
+    }
+
     const parsed: ParsedResult<z.infer<T>> = {
       options,
       ...(resolvedConfig != null ? { config: resolvedConfig } : {}),
