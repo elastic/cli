@@ -72,36 +72,36 @@ describe('registerEsCommands', () => {
     assert.doesNotThrow(() => registerEsCommands(defs))
   })
 
-  it('registers query params as --flags on leaf commands', () => {
+  it('registers query params as --flags on leaf commands (via input schema)', () => {
     const defs: EsApiDefinition[] = [{
       name: 'health',
       namespace: 'cat',
       description: 'Health',
       method: 'GET',
       path: '/_cat/health',
-      queryParams: [
-        { name: 'v', type: 'boolean', description: 'Verbose' },
-        { name: 'format', cliFlag: 'response-format', type: 'string', description: 'Format' },
-      ],
+      input: z.looseObject({
+        v: z.boolean().optional().describe('Verbose').meta({ found_in: 'query' }),
+        pretty: z.boolean().optional().describe('Pretty').meta({ found_in: 'query' }),
+      }),
     }]
     const handle = registerEsCommands(defs)
     const cmd = handle.commands[0]?.commands[0]
     assert.ok(cmd != null)
     const optionNames = cmd.options.map((o) => o.long)
     assert.ok(optionNames.includes('--v'), `expected --v, got: ${optionNames.join(', ')}`)
-    // cliFlag override causes the flag to be registered as --response-format, not --format
-    assert.ok(optionNames.includes('--response-format'), `expected --response-format, got: ${optionNames.join(', ')}`)
-    assert.ok(!optionNames.includes('--format'), `--format should not appear; cliFlag override is --response-format`)
+    assert.ok(optionNames.includes('--pretty'), `expected --pretty, got: ${optionNames.join(', ')}`)
   })
 
-  it('registers path params as --flags on leaf commands', () => {
+  it('registers path params as --flags on leaf commands (via input schema)', () => {
     const defs: EsApiDefinition[] = [{
       name: 'create',
       namespace: 'indices',
       description: 'Create',
       method: 'PUT',
       path: '/{index}',
-      pathParams: [{ name: 'index', description: 'Index name', required: true }],
+      input: z.looseObject({
+        index: z.string().describe('Index name').meta({ found_in: 'path' }),
+      }),
     }]
     const handle = registerEsCommands(defs)
     const cmd = handle.commands[0]?.commands[0]
@@ -110,15 +110,17 @@ describe('registerEsCommands', () => {
     assert.ok(optionNames.includes('--index'), `expected --index flag, got: ${optionNames.join(', ')}`)
   })
 
-  it('registers a --file flag (body input) when the definition has a body schema', () => {
+  it('registers a --file flag when the definition has an input schema', () => {
     const defs: EsApiDefinition[] = [{
       name: 'create',
       namespace: 'indices',
       description: 'Create',
       method: 'PUT',
       path: '/{index}',
-      pathParams: [{ name: 'index', description: 'Index name', required: true }],
-      body: z.object({ settings: z.record(z.string(), z.unknown()).optional() }),
+      input: z.looseObject({
+        index: z.string().describe('Index name').meta({ found_in: 'path' }),
+        settings: z.record(z.string(), z.unknown()).optional().meta({ found_in: 'body' }),
+      }),
     }]
     const handle = registerEsCommands(defs)
     const cmd = handle.commands[0]?.commands[0]
@@ -131,11 +133,10 @@ describe('registerEsCommands', () => {
 
 describe('registerEsCommands — extensibility', () => {
   it('a definition added to an existing namespace appears in the command tree with no other changes', () => {
-    // simulate adding one entry to the cat namespace
     const defs: EsApiDefinition[] = [
       makeDef('health', 'cat'),
       makeDef('nodes', 'cat'),
-      makeDef('count', 'cat'), // newly added
+      makeDef('count', 'cat'),
     ]
     const handle = registerEsCommands(defs)
     const cat = handle.commands.find((c) => c.name() === 'cat')
@@ -145,10 +146,9 @@ describe('registerEsCommands — extensibility', () => {
   })
 
   it('a new namespace array spread into allApis causes a new group to appear', () => {
-    // simulate a new 'cluster' namespace being added to the barrel
     const defs: EsApiDefinition[] = [
       makeDef('health', 'cat'),
-      makeDef('stats', 'cluster'),  // new namespace
+      makeDef('stats', 'cluster'),
       makeDef('settings', 'cluster'),
     ]
     const handle = registerEsCommands(defs)
@@ -169,13 +169,13 @@ describe('registerEsCommands — extensibility', () => {
     assert.throws(() => registerEsCommands(defs), /path.*must start/i)
   })
 
-  it('rejects a malformed definition (pathParam token with no definition) at registration time', () => {
+  it('rejects a malformed definition (path token with no found_in: "path" field) at registration time', () => {
     const defs: EsApiDefinition[] = [{
       ...makeDef('get', 'indices'),
       path: '/{index}',
-      pathParams: [], // token in path but no matching param defined
+      input: z.looseObject({}),  // {index} token in path but no found_in: "path" field
     }]
-    assert.throws(() => registerEsCommands(defs), /path.*param.*index.*not.*defined|missing.*pathParam/i)
+    assert.throws(() => registerEsCommands(defs), /path.*param.*index/i)
   })
 })
 
@@ -187,10 +187,10 @@ describe('registerEsCommands — body field flattening', () => {
       description: 'Create',
       method: 'PUT',
       path: '/{index}',
-      pathParams: [{ name: 'index', description: 'Index name', required: true }],
-      body: z.object({
-        settings: z.record(z.string(), z.unknown()).optional().describe('Index settings'),
-        mappings: z.record(z.string(), z.unknown()).optional().describe('Index mappings'),
+      input: z.looseObject({
+        index: z.string().describe('Index name').meta({ found_in: 'path' }),
+        settings: z.record(z.string(), z.unknown()).optional().describe('Index settings').meta({ found_in: 'body' }),
+        mappings: z.record(z.string(), z.unknown()).optional().describe('Index mappings').meta({ found_in: 'body' }),
       }),
     }]
     const handle = registerEsCommands(defs)
@@ -200,5 +200,87 @@ describe('registerEsCommands — body field flattening', () => {
     assert.ok(optionNames.includes('--settings'), `expected --settings flag, got: ${optionNames.join(', ')}`)
     assert.ok(optionNames.includes('--mappings'), `expected --mappings flag, got: ${optionNames.join(', ')}`)
     assert.ok(!optionNames.includes('--body'), '--body flag must not appear; body fields are top-level')
+  })
+})
+
+describe('registerEsCommands — unified input schema (US1)', () => {
+  it('registers a command with a unified input schema: flags, help text, and validation all work', () => {
+    const input = z.looseObject({
+      index: z.string().describe('Target index').meta({ found_in: 'path' }),
+      pretty: z.boolean().optional().describe('Pretty-print response').meta({ found_in: 'query' }),
+      settings: z.record(z.string(), z.unknown()).optional().describe('Index settings').meta({ found_in: 'body' }),
+    })
+    const defs: EsApiDefinition[] = [{
+      name: 'create',
+      namespace: 'indices',
+      description: 'Create an index',
+      method: 'PUT',
+      path: '/{index}',
+      input,
+    }]
+    const handle = registerEsCommands(defs)
+    const cmd = handle.commands[0]?.commands[0]
+    assert.ok(cmd != null)
+    const optionNames = cmd.options.map((o) => o.long)
+    assert.ok(optionNames.includes('--index'), `expected --index, got: ${optionNames.join(', ')}`)
+    assert.ok(optionNames.includes('--pretty'), `expected --pretty, got: ${optionNames.join(', ')}`)
+    assert.ok(optionNames.includes('--settings'), `expected --settings, got: ${optionNames.join(', ')}`)
+  })
+})
+
+describe('registerEsCommands — external schema consumption (US2)', () => {
+  // simulates a schema imported from @elastic/zod/indices — defined outside the manifest
+  const externalCreateSchema = z.looseObject({
+    index: z.string().describe('Target index').meta({ found_in: 'path' }),
+    wait_for_active_shards: z.string().optional().describe('Number of active shards to wait for').meta({ found_in: 'query' }),
+    settings: z.record(z.string(), z.unknown()).optional().describe('Index settings').meta({ found_in: 'body' }),
+    mappings: z.record(z.string(), z.unknown()).optional().describe('Index mappings').meta({ found_in: 'body' }),
+  })
+
+  it('registers a command using an externally defined input schema', () => {
+    const defs: EsApiDefinition[] = [{
+      name: 'create',
+      namespace: 'indices',
+      description: 'Creates a new index',
+      method: 'PUT',
+      path: '/{index}',
+      input: externalCreateSchema,
+    }]
+    const handle = registerEsCommands(defs)
+    const cmd = handle.commands[0]?.commands[0]
+    assert.ok(cmd != null)
+    const optionNames = cmd.options.map((o) => o.long)
+    assert.ok(optionNames.includes('--index'), `expected --index, got: ${optionNames.join(', ')}`)
+    assert.ok(optionNames.includes('--wait-for-active-shards'), `expected --wait-for-active-shards, got: ${optionNames.join(', ')}`)
+    assert.ok(optionNames.includes('--settings'), `expected --settings, got: ${optionNames.join(', ')}`)
+    assert.ok(optionNames.includes('--mappings'), `expected --mappings, got: ${optionNames.join(', ')}`)
+  })
+
+  it('validates an externally sourced schema paired with a local manifest without throwing', () => {
+    const defs: EsApiDefinition[] = [{
+      name: 'create',
+      namespace: 'indices',
+      description: 'Creates a new index',
+      method: 'PUT',
+      path: '/{index}',
+      input: externalCreateSchema,
+    }]
+    assert.doesNotThrow(() => registerEsCommands(defs))
+  })
+
+  it('--file flag is registered (external schema enables file/stdin merging)', () => {
+    const defs: EsApiDefinition[] = [{
+      name: 'create',
+      namespace: 'indices',
+      description: 'Creates a new index',
+      method: 'PUT',
+      path: '/{index}',
+      input: externalCreateSchema,
+    }]
+    const handle = registerEsCommands(defs)
+    const cmd = handle.commands[0]?.commands[0]
+    assert.ok(cmd != null)
+    const optionNames = cmd.options.map((o) => o.long)
+    assert.ok(optionNames.includes('--file'), `expected --file flag for stdin/file merging`)
   })
 })

@@ -1,13 +1,14 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.0.0 → 1.1.0 (MINOR — new principle added)
+Version change: 1.1.0 → 1.2.0 (MINOR — new principle added)
 
 Modified principles:
   - None renamed or removed.
 
 Added sections:
   - Principle VII: Cross-Platform Compatibility (NON-NEGOTIABLE)
+  - Principle VIII: Transport-Layer Abstraction
 
 Removed sections:
   - None.
@@ -167,4 +168,20 @@ behave differently on any of these three platforms.
 - Runtime development guidance for agents lives in `.specify/memory/` alongside
   this file.
 
-**Version**: 1.1.0 | **Ratified**: TODO(RATIFICATION_DATE): confirm adoption date | **Last Amended**: 2026-03-30
+### VIII. Transport-Layer Abstraction
+
+The CLI MUST NOT expose HTTP transport implementation details to users in any
+user-facing surface — including help text, flag descriptions, JSON Schema output,
+or error messages.
+
+- Parameters are user-visible by their *semantic purpose* (e.g. "Index to target",
+  "Timeout for the request"), not by their HTTP location (path, query string, body).
+- Internal routing metadata (`found_in`) is an implementation concern of the
+  request-builder layer and MUST remain invisible to CLI consumers.
+- Feature work that would expose routing labels (e.g. `[path]`, `[query]`,
+  `[body]`) in help text or schema output is explicitly out of scope and MUST be
+  declined; it leaks the HTTP transport contract into the user interface.
+- Schema introspection tooling for *developers* of the CLI itself (not end users)
+  may inspect `found_in` values internally, but MUST NOT propagate them outward.
+
+**Version**: 1.2.0 | **Ratified**: TODO(RATIFICATION_DATE): confirm adoption date | **Last Amended**: 2026-04-03

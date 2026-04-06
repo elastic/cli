@@ -242,6 +242,27 @@ function validateInput(name: string, input: unknown): void {
  * can parse it directly. Commands without an input schema print nothing in that mode.
  * In text mode, the input schema is appended to the standard human-readable help.
  */
+
+/**
+ * Recursively removes `found_in` keys from a JSON Schema object.
+ *
+ * `found_in` is internal routing metadata used by the request builder to classify
+ * parameters as path, query, or body. It is an HTTP transport implementation detail
+ * and MUST NOT be exposed in user-facing help text or agent-facing JSON Schema output
+ * (Constitution Principle VIII: Transport-Layer Abstraction).
+ */
+function stripTransportMeta(value: JsonValue): JsonValue {
+  if (Array.isArray(value)) return value.map(stripTransportMeta)
+  if (value !== null && typeof value === 'object') {
+    const out: Record<string, JsonValue> = {}
+    for (const [k, v] of Object.entries(value)) {
+      if (k === 'found_in') continue
+      out[k] = stripTransportMeta(v as JsonValue)
+    }
+    return out
+  }
+  return value
+}
 function configureHelpWithSchema(cmd: OpaqueCommandHandle, jsonSchema?: JsonValue): void {
   const origHelp = cmd.createHelp()
   cmd.configureHelp({
@@ -422,7 +443,7 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
   }
 
   const inputJsonSchema = config.input instanceof z.ZodType
-    ? z.toJSONSchema(config.input) as JsonValue
+    ? stripTransportMeta(z.toJSONSchema(config.input) as JsonValue)
     : undefined
 
   configureHelpWithSchema(cmd, inputJsonSchema)

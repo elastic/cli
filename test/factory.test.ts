@@ -2456,6 +2456,69 @@ describe('JSON schema in help output', () => {
   })
 })
 
+describe('JSON schema in help output — transport meta stripping', () => {
+  async function captureJsonHelp(cmd: OpaqueCommandHandle): Promise<Record<string, unknown>> {
+    const { Command } = await import('commander')
+    const prog = new Command('elastic')
+    prog.option('--format <fmt>', 'output format')
+    prog.addCommand(cmd as unknown as InstanceType<typeof Command>)
+    prog.exitOverride()
+    ;(cmd as unknown as InstanceType<typeof Command>).exitOverride()
+    let out = ''
+    ;(cmd as unknown as InstanceType<typeof Command>).configureOutput({ writeOut: (s: string) => { out += s } })
+    try {
+      await prog.parseAsync(['--format', 'json', cmd.name(), '--help'], { from: 'user' })
+    } catch { /* exitOverride on --help */ }
+    return JSON.parse(out) as Record<string, unknown>
+  }
+
+  it('found_in is not present in JSON schema output for a schema with found_in metadata', async () => {
+    const cmd = defineCommand({
+      name: 'create',
+      description: 'Create an index',
+      input: z.looseObject({
+        index: z.string().describe('Target index').meta({ found_in: 'path' }),
+        master_timeout: z.string().optional().describe('Timeout').meta({ found_in: 'query' }),
+        settings: z.record(z.string(), z.unknown()).optional().describe('Settings').meta({ found_in: 'body' }),
+      }),
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    const props = schema['properties'] as Record<string, Record<string, unknown>>
+    assert.ok(!('found_in' in (props['index'] ?? {})), 'found_in must not appear in index property')
+    assert.ok(!('found_in' in (props['master_timeout'] ?? {})), 'found_in must not appear in master_timeout property')
+    assert.ok(!('found_in' in (props['settings'] ?? {})), 'found_in must not appear in settings property')
+  })
+
+  it('found_in is stripped from nested schema objects too', async () => {
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: z.looseObject({
+        index: z.string().meta({ found_in: 'path' }),
+      }),
+      handler: () => ({}),
+    })
+    const schemaStr = JSON.stringify(await captureJsonHelp(cmd))
+    assert.ok(!schemaStr.includes('found_in'), `found_in must not appear anywhere in schema output; got: ${schemaStr}`)
+  })
+
+  it('stripping found_in does not remove other metadata (description, type, etc.)', async () => {
+    const cmd = defineCommand({
+      name: 'create',
+      description: 'Create',
+      input: z.looseObject({
+        index: z.string().describe('Target index').meta({ found_in: 'path' }),
+      }),
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    const props = schema['properties'] as Record<string, Record<string, unknown>>
+    assert.equal(props['index']?.['description'], 'Target index', 'description must be preserved')
+    assert.equal(props['index']?.['type'], 'string', 'type must be preserved')
+  })
+})
+
 /** invokes a command handle via parseAsync; surfaces CommanderError via exitOverride */
 async function invokeAsync(handle: OpaqueCommandHandle, argv: string[]): Promise<void> {
   handle.exitOverride()

@@ -26,7 +26,13 @@ export interface SchemaArgDefinition {
 
   /** Description from the schema's metadata, used in help text */
   description: string
+
+  /** Routing destination derived from `.meta({found_in: ...})`, or `undefined` if absent */
+  foundIn?: FoundIn
 }
+
+/** Valid routing destinations for a parameter derived from `found_in` Zod metadata. */
+export type FoundIn = 'path' | 'query' | 'body'
 
 /**
  * A bidirectional mapping between kebab-case CLI flag names and original schema keys.
@@ -111,6 +117,7 @@ export function extractSchemaArgs(schema: unknown): SchemaArgDefinition[] {
       // schema types that don't support toJSONSchema get empty description
     }
 
+    const foundIn = extractFoundIn(fieldSchema as z.ZodType)
     return {
       schemaKey: key,
       cliFlag: toKebabCase(key),
@@ -118,6 +125,7 @@ export function extractSchemaArgs(schema: unknown): SchemaArgDefinition[] {
       required: !isOptional && defaultValue === undefined,
       defaultValue,
       description,
+      ...(foundIn !== undefined ? { foundIn } : {}),
     }
   })
 }
@@ -155,4 +163,28 @@ export function validateSchemaArgs(args: SchemaArgDefinition[]): void {
     }
     seen.add(arg.cliFlag)
   }
+}
+
+
+/**
+ * Extracts the `found_in` routing metadata from a Zod field.
+ *
+ * Reads `.meta()` from the outermost type first; if absent, walks one level into
+ * wrapper types (`optional`, `default`) to find it on the inner type.
+ *
+ * @returns the routing destination, or `undefined` if no `found_in` metadata is present
+ */
+export function extractFoundIn(field: z.ZodType): FoundIn | undefined {
+  // check outermost first
+  const outerMeta = field.meta() as Record<string, unknown> | undefined
+  if (outerMeta?.found_in != null) return outerMeta.found_in as FoundIn
+
+  // walk one wrapper level (optional/default) to find meta on inner type
+  const innerType = (field.def as { innerType?: z.ZodType }).innerType
+  if (innerType != null) {
+    const innerMeta = innerType.meta() as Record<string, unknown> | undefined
+    if (innerMeta?.found_in != null) return innerMeta.found_in as FoundIn
+  }
+
+  return undefined
 }
