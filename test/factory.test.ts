@@ -1563,24 +1563,6 @@ describe('defineCommand', () => {
   })
 
   describe('handler return value and output', () => {
-    async function captureOutput(fn: () => Promise<void>): Promise<string> {
-      let out = ''
-      const orig = process.stdout.write.bind(process.stdout)
-      process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
-      try { await fn() } finally { process.stdout.write = orig }
-      return out
-    }
-
-    async function invokeUnderRoot(cmd: OpaqueCommandHandle, rootArgv: string[], cmdArgv: string[]): Promise<string> {
-      const { Command } = await import('commander')
-      const prog = new Command('elastic')
-      prog.option('--format <fmt>', 'output format')
-      prog.addCommand(cmd)
-      prog.exitOverride()
-      cmd.exitOverride()
-      return captureOutput(() => prog.parseAsync([...rootArgv, cmd.name(), ...cmdArgv], { from: 'user' }))
-    }
-
     it('factory writes handler return value as compact JSON when --format=json', async () => {
       const cmd = defineCommand({
         name: 'status',
@@ -1613,14 +1595,6 @@ describe('defineCommand', () => {
   })
 
   describe('--dry-run', () => {
-    async function captureStdout(fn: () => Promise<void>): Promise<string> {
-      let out = ''
-      const orig = process.stdout.write.bind(process.stdout)
-      process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
-      try { await fn() } finally { process.stdout.write = orig }
-      return out
-    }
-
     it('appears in help text for every command', () => {
       const cmd = defineCommand({
         name: 'ping',
@@ -1630,16 +1604,28 @@ describe('defineCommand', () => {
       assert.match(cmd.helpInformation(), /--dry-run/)
     })
 
-    it('outputs {"success":true} and skips the handler when set on a no-input command', async () => {
+    it('outputs {"success":true} when --format=json and skips the handler', async () => {
       let handlerCalled = false
       const cmd = defineCommand({
         name: 'ping',
         description: 'Ping',
         handler: () => { handlerCalled = true; return {} },
       })
-      const out = await captureStdout(() => invokeAsync(cmd, ['--dry-run']))
+      const out = await invokeUnderRoot(cmd, ['--format', 'json'], ['--dry-run'])
       assert.equal(handlerCalled, false, 'handler must not be called with --dry-run')
       assert.deepEqual(JSON.parse(out), { success: true })
+    })
+
+    it('produces no output and skips the handler in text mode', async () => {
+      let handlerCalled = false
+      const cmd = defineCommand({
+        name: 'ping',
+        description: 'Ping',
+        handler: () => { handlerCalled = true; return {} },
+      })
+      const out = await invokeUnderRoot(cmd, [], ['--dry-run'])
+      assert.equal(handlerCalled, false, 'handler must not be called with --dry-run')
+      assert.equal(out, '', 'no output expected in text mode')
     })
 
     it('outputs {"success":true} and skips handler with valid JSON input via --file', async () => {
@@ -1656,7 +1642,7 @@ describe('defineCommand', () => {
           input: z.object({ index: z.string() }),
           handler: () => { handlerCalled = true; return {} },
         })
-        const out = await captureStdout(() => invokeAsync(cmd, ['--dry-run', '--file', filePath]))
+        const out = await invokeUnderRoot(cmd, ['--format', 'json'], ['--dry-run', '--file', filePath])
         assert.equal(handlerCalled, false, 'handler must not be called with --dry-run')
         assert.deepEqual(JSON.parse(out), { success: true })
       } finally {
@@ -2599,4 +2585,24 @@ async function captureErrAsync(handle: OpaqueCommandHandle, argv: string[]): Pro
   handle.configureOutput({ writeErr: (s) => { err += s } })
   try { await handle.parseAsync(argv, { from: 'user' }) } catch { /* CommanderError from exitOverride */ }
   return err
+}
+
+/** captures everything written to process.stdout during fn() */
+async function captureStdout(fn: () => Promise<void>): Promise<string> {
+  let out = ''
+  const orig = process.stdout.write.bind(process.stdout)
+  process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
+  try { await fn() } finally { process.stdout.write = orig }
+  return out
+}
+
+/** mounts a command under a root program with --format and captures stdout */
+async function invokeUnderRoot(cmd: OpaqueCommandHandle, rootArgv: string[], cmdArgv: string[]): Promise<string> {
+  const { Command } = await import('commander')
+  const prog = new Command('elastic')
+  prog.option('--format <fmt>', 'output format')
+  prog.addCommand(cmd)
+  prog.exitOverride()
+  cmd.exitOverride()
+  return captureStdout(() => prog.parseAsync([...rootArgv, cmd.name(), ...cmdArgv], { from: 'user' }))
 }

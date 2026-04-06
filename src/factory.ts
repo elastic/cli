@@ -215,6 +215,10 @@ function validateOptions(options: OptionDefinition[]): void {
     }
     seenLong.add(opt.long)
 
+    if (opt.long === 'dry-run') {
+      throw new Error('option --dry-run is reserved')
+    }
+
     if (opt.short !== undefined) {
       if (seenShort.has(opt.short)) {
         throw new Error(`duplicate option short alias: -${opt.short}`)
@@ -345,11 +349,6 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
   validateName(config.name, 'command')
   validateOptions(config.options ?? [])
   validateInput(config.name, config.input)
-  if (config.options?.some((o) => o.long === 'dry-run')) {
-    throw new Error(
-      `command ${JSON.stringify(config.name)}: option --dry-run is reserved`
-    )
-  }
   if (config.input instanceof z.ZodType && config.options?.some((o) => o.long === 'file')) {
     throw new Error(
       `command ${JSON.stringify(config.name)}: option --file is reserved when input is enabled`
@@ -532,7 +531,9 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
       }
     }
     if (allRaw['dryRun'] === true) {
-      process.stdout.write(JSON.stringify({ success: true }) + '\n')
+      if (fmt === 'json') {
+        process.stdout.write(JSON.stringify({ success: true }) + '\n')
+      }
       return
     }
     const handlerResult = await config.handler(parsed)
