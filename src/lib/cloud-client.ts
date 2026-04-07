@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Buffer } from 'node:buffer'
 import type { HttpMethod } from '../cloud/types.ts'
 import { getResolvedConfig } from '../config/store.ts'
 
@@ -26,12 +25,12 @@ export interface CloudRequestParams {
  */
 export class CloudClient {
   readonly baseUrl: string
-  private readonly authHeader: string
+  private readonly apiKey: string
   private _fetch: typeof fetch = globalThis.fetch
 
-  constructor(baseUrl: string, authHeader: string) {
+  constructor(baseUrl: string, apiKey: string) {
     this.baseUrl = baseUrl.replace(/\/+$/, '')
-    this.authHeader = authHeader
+    this.apiKey = apiKey
   }
 
   /**
@@ -50,7 +49,7 @@ export class CloudClient {
     }
 
     const headers: Record<string, string> = {
-      'Authorization': this.authHeader,
+      'Authorization': `ApiKey ${this.apiKey}`,
       'Accept': 'application/json',
     }
 
@@ -104,20 +103,16 @@ export function getCloudClient(): CloudClient {
   const { url, auth } = cloud
   const authRecord = auth as Record<string, unknown>
 
-  let authHeader: string
-  if (typeof authRecord['api_key'] === 'string') {
-    authHeader = `ApiKey ${authRecord['api_key']}`
-  } else if (typeof authRecord['username'] === 'string' && typeof authRecord['password'] === 'string') {
-    const encoded = Buffer.from(`${authRecord['username']}:${authRecord['password']}`).toString('base64')
-    authHeader = `Basic ${encoded}`
-  } else {
+  const apiKey = typeof authRecord['api_key'] === 'string' ? authRecord['api_key'] : undefined
+
+  if (apiKey == null) {
     throw new Error(
-      'missing_config: Cloud auth requires either an api_key or username/password. ' +
+      'missing_config: Cloud auth requires an api_key. ' +
       'Run `elastic config set` to configure Cloud credentials.'
     )
   }
 
-  _client = new CloudClient(url, authHeader)
+  _client = new CloudClient(url, apiKey)
   return _client
 }
 
