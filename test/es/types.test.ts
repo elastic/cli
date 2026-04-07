@@ -46,6 +46,18 @@ describe('EsApiDefinition types', () => {
   })
 })
 
+  it('accepts a definition without namespace (flat command, no group nesting)', () => {
+    const def: EsApiDefinition = {
+      name: 'search',
+      description: 'Run a search',
+      method: 'GET',
+      path: '/_search',
+    }
+    assert.equal(def.name, 'search')
+    assert.equal(def.namespace, undefined)
+  })
+
+
 describe('HttpMethod', () => {
   it('is a union of the five valid HTTP methods', () => {
     const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD']
@@ -79,6 +91,21 @@ describe('validateApiDefinition', () => {
     assert.doesNotThrow(() => validateApiDefinition(def))
   })
 
+  it('passes a definition without namespace', () => {
+    const def: EsApiDefinition = {
+      name: 'search',
+      description: 'Run a search',
+      method: 'GET',
+      path: '/_search',
+    }
+    assert.doesNotThrow(() => validateApiDefinition(def))
+  })
+
+  it('rejects a namespace with invalid characters when namespace is present', () => {
+    const def = { ...validBase(), namespace: 'My_Namespace' }
+    assert.throws(() => validateApiDefinition(def), /invalid.*namespace/i)
+  })
+
   it('rejects a name with invalid characters', () => {
     const def = { ...validBase(), name: 'Health_Check' }
     assert.throws(() => validateApiDefinition(def), /invalid.*name/i)
@@ -89,10 +116,6 @@ describe('validateApiDefinition', () => {
     assert.throws(() => validateApiDefinition(def), /invalid.*name/i)
   })
 
-  it('rejects a namespace with invalid characters', () => {
-    const def = { ...validBase(), namespace: 'My_Namespace' }
-    assert.throws(() => validateApiDefinition(def), /invalid.*namespace/i)
-  })
 
   it('rejects a path that does not start with /', () => {
     const def = { ...validBase(), path: '_cat/health' }

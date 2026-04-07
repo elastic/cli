@@ -80,7 +80,7 @@ export interface ParsedResult<T = unknown> {
   options: Record<string, string | number | boolean>
   /** resolved configuration from the active context, injected by the preAction hook */
   config?: ResolvedConfig
-  /** parsed JSON content when `input` is enabled and data is provided via --file or stdin */
+  /** parsed JSON content when `input` is enabled and data is provided via --input-file or stdin */
   input?: T
 }
 
@@ -117,7 +117,7 @@ export interface CommandConfig<T extends z.ZodType = z.ZodType> {
    */
   handler: (parsed: ParsedResult<z.infer<T>>) => JsonValue | Promise<JsonValue>
   /**
-   * optional input schema. when a Zod schema is provided, registers `--file` and reads JSON from
+   * optional input schema. when a Zod schema is provided, registers `--input-file` and reads JSON from
    * stdin or file, validates against the schema, then passes the typed result to the handler.
    */
   input?: T
@@ -237,7 +237,7 @@ function validateInput(name: string, input: unknown): void {
 /**
  * Configures help output for a command to include JSON schema information.
  *
- * When `--format=json` is present in the parsed global options and the command
+ * When `--json` is present in the parsed global options and the command
  * has an input schema, help is replaced with the raw JSON Schema object so agents
  * can parse it directly. Commands without an input schema print nothing in that mode.
  * In text mode, the input schema is appended to the standard human-readable help.
@@ -268,7 +268,7 @@ function configureHelpWithSchema(cmd: OpaqueCommandHandle, jsonSchema?: JsonValu
   cmd.configureHelp({
     formatHelp: (thisCmd, helper) => {
       const globalOpts = thisCmd.parent?.optsWithGlobals() as Record<string, unknown> | undefined
-      if (globalOpts?.['format'] === 'json') {
+      if (globalOpts?.['json'] === true) {
         return jsonSchema !== undefined ? JSON.stringify(jsonSchema) + '\n' : ''
       }
       const base = origHelp.formatHelp(thisCmd, helper)
@@ -317,7 +317,7 @@ function configureErrorOutput(cmd: OpaqueCommandHandle): void {
 
 /**
  * Parses `raw` as JSON, routing errors through Commander's error handler.
- * `source` is the error prefix shown to the user (e.g. `'--file'` or `'stdin'`).
+ * `source` is the error prefix shown to the user (e.g. `'--input-file'` or `'stdin'`).
  * Returns `never` on any error path via `cmd.error()`.
  */
 function parseJsonContent(raw: string, source: string, cmd: OpaqueCommandHandle): unknown {
@@ -366,10 +366,10 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
   validateName(config.name, 'command')
   validateOptions(config.options ?? [])
   validateInput(config.name, config.input)
-  // --file is reserved when input is a schema; catch collision at definition time
-  if (config.input instanceof z.ZodType && config.options?.some((o) => o.long === 'file')) {
+  // --input-file is reserved when input is a schema; catch collision at definition time
+  if (config.input instanceof z.ZodType && config.options?.some((o) => o.long === 'input-file')) {
     throw new Error(
-      `command ${JSON.stringify(config.name)}: option --file is reserved when input is enabled`
+      `command ${JSON.stringify(config.name)}: option --input-file is reserved when input is enabled`
     )
   }
   const cmd = new Command(config.name)
@@ -408,7 +408,7 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
     }
   }
 
-  // schema-derived CLI options (registered before --file so help text order is correct)
+  // schema-derived CLI options (registered before --input-file so help text order is correct)
   let schemaArgs: SchemaArgDefinition[] = []
   if (config.input instanceof z.ZodType) {
     schemaArgs = extractSchemaArgs(config.input)
@@ -439,7 +439,7 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
     }
   }
   if (config.input instanceof z.ZodType) {
-    cmd.option('--file <path>', 'path to a JSON file to use as command input')
+    cmd.option('--input-file <path>', 'path to a JSON file to use as command input')
   }
 
   const inputJsonSchema = config.input instanceof z.ZodType
@@ -471,21 +471,21 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
       }
     }
 
-    const fmt = allRaw['format']
+    const jsonFormat = allRaw['json']
     let inputValue: unknown
     if (config.input instanceof z.ZodType) {
-      const filePath = cmd.getOptionValue('file') as string | undefined
+      const filePath = cmd.getOptionValue('inputFile') as string | undefined
       if (filePath !== undefined && !process.stdin.isTTY) {
-        return cmd.error('cannot read input from both --file and stdin; provide one or the other')
+        return cmd.error('cannot read input from both --input-file and stdin; provide one or the other')
       }
       if (filePath !== undefined) {
         let fileContent: string
         try {
           fileContent = readFileSync(filePath, 'utf-8')
         } catch {
-          return cmd.error(`--file: file not found: ${filePath}`)
+          return cmd.error(`--input-file: file not found: ${filePath}`)
         }
-        inputValue = parseJsonContent(fileContent, '--file', cmd)
+        inputValue = parseJsonContent(fileContent, '--input-file', cmd)
       } else if (!process.stdin.isTTY) {
         const raw = stdinReader()
         if (raw.trim().length > 0) {
@@ -535,7 +535,7 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
       if (result.success) {
         parsed.input = result.data as z.infer<T>
       } else {
-        if (fmt === 'json') {
+        if (jsonFormat === true) {
           const issues = result.error.issues
           process.stdout.write(JSON.stringify({
             error: {
@@ -552,7 +552,7 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
     }
     const handlerResult = await config.handler(parsed)
     assert(handlerResult !== undefined, `command ${JSON.stringify(config.name)}: handler must return a JsonValue`)
-    if (fmt === 'json') {
+    if (jsonFormat === true) {
       process.stdout.write(JSON.stringify(handlerResult) + '\n')
     } else {
       process.stdout.write(JSON.stringify(handlerResult, null, 2) + '\n')

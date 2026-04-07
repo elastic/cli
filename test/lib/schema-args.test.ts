@@ -33,6 +33,13 @@ describe('toKebabCase', () => {
     assert.equal(toKebabCase('index_name_config'), 'index-name-config')
     assert.equal(toKebabCase('indexNameConfig'), 'index-name-config')
   })
+
+  it('strips leading underscores (Elasticsearch _source-style keys)', () => {
+    assert.equal(toKebabCase('_source'), 'source')
+    assert.equal(toKebabCase('_source_includes'), 'source-includes')
+    assert.equal(toKebabCase('_meta'), 'meta')
+    assert.equal(toKebabCase('_field_names'), 'field-names')
+  })
 })
 
 describe('extractSchemaArgs', () => {
@@ -161,7 +168,7 @@ describe('buildFlagKeyMap', () => {
 
 describe('validateSchemaArgs', () => {
   it('throws when a schema key collides with a reserved flag', () => {
-    for (const reserved of ['help', 'version', 'format', 'config', 'context', 'file']) {
+    for (const reserved of ['help', 'json', 'config-file', 'use-context', 'input-file']) {
       const args: SchemaArgDefinition[] = [
         { schemaKey: reserved, cliFlag: reserved, type: 'string', required: false, description: '' },
       ]

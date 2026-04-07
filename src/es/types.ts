@@ -19,11 +19,12 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD'
  * routing metadata. The generic handler derives its routing behavior entirely from
  * that metadata at runtime.
  *
- * Definitions are grouped into per-namespace arrays (e.g. `catApis`) and
- * collected by the barrel module (`src/es/apis/index.ts`).
+ * Definitions with a `namespace` are grouped into per-namespace arrays (e.g. `catApis`) and
+ * collected by the barrel module (`src/es/apis.ts`).
  *
  * @example
  * ```ts
+ * // namespaced: registers as `elastic es indices create`
  * const createDef: EsApiDefinition = {
  *   name: 'create',
  *   namespace: 'indices',
@@ -36,13 +37,24 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD'
  *     settings: z.record(z.string(), z.unknown()).optional().meta({ found_in: 'body' }),
  *   }),
  * }
+ *
+ * // namespace-less: registers as `elastic es search`
+ * const searchDef: EsApiDefinition = {
+ *   name: 'search',
+ *   description: 'Run a search',
+ *   method: 'GET',
+ *   path: '/_search',
+ * }
  * ```
  */
 export interface EsApiDefinition {
   /** kebab-case command name (e.g. `"health"`, `"create"`, `"put-mapping"`) */
   name: string
-  /** ES namespace (e.g. `"cat"`, `"indices"`) — determines the parent group in the command tree */
-  namespace: string
+  /**
+   * ES namespace (e.g. `"cat"`, `"indices"`) -- determines the parent group in the command tree.
+   * When omitted, the command is registered as a direct leaf of the `es` group.
+   */
+  namespace?: string
   /** human-readable description for `--help` text */
   description: string
   /** HTTP method */
@@ -50,15 +62,20 @@ export interface EsApiDefinition {
   /** URL path template; path parameters use `{param}` syntax */
   path: string
   /**
-   * Unified Zod object schema. Every top-level field represents one parameter.
+   * Unified Zod object schema (or a no-arg factory that returns one).
+   * Every top-level field represents one parameter.
    * Fields with `.meta({found_in: "path"})` are interpolated into the URL path.
    * Fields with `.meta({found_in: "query"})` are sent as querystring params.
    * Fields with `.meta({found_in: "body"})` (or no `found_in`) are sent in the body.
    *
    * Use `z.looseObject()` when body fields may include underscore-prefixed keys
    * that cannot be valid CLI flags and must be supplied via `--file`/stdin.
+   *
+   * Use the factory form (`() => SomeRequest`) when the schema is imported from a
+   * file that participates in circular module dependencies -- this defers schema
+   * resolution to call time (after all modules have initialised) and avoids TDZ errors.
    */
-  input?: z.ZodObject<z.ZodRawShape>
+  input?: z.ZodObject<z.ZodRawShape> | (() => z.ZodObject<z.ZodRawShape>)
   /** how to handle the response body; defaults to `"json"` */
   responseType?: 'json' | 'text'
 }
@@ -70,7 +87,7 @@ const VALID_NAME = /^[a-z0-9][a-z0-9-]*$/
 const VALID_NAMESPACE = /^[a-z][a-z-]*$/
 
 /** extracts all `{param}` tokens from a path template */
-function extractPathTokens(path: string): string[] {
+function extractPathTokens (path: string): string[] {
   return [...path.matchAll(/\{([^}]+)\}/g)].map((m) => m[1] as string)
 }
 
@@ -79,7 +96,7 @@ function extractPathTokens(path: string): string[] {
  *
  * Checks:
  * - `name` matches `/^[a-z0-9][a-z0-9-]*$/`
- * - `namespace` matches `/^[a-z][a-z-]*$/`
+ * - `namespace`, if present, matches `/^[a-z][a-z-]*$/`
  * - `path` starts with `/`
  * - if `input` is provided:
  *   - every `{param}` token in the path has a corresponding field with `found_in: "path"`
@@ -87,7 +104,7 @@ function extractPathTokens(path: string): string[] {
  *
  * @throws {Error} if any validation rule is violated
  */
-export function validateApiDefinition(def: EsApiDefinition): void {
+export function validateApiDefinition (def: EsApiDefinition): void {
   if (!VALID_NAME.test(def.name)) {
     throw new Error(
       `invalid name ${JSON.stringify(def.name)}: ` +
@@ -95,7 +112,7 @@ export function validateApiDefinition(def: EsApiDefinition): void {
     )
   }
 
-  if (!VALID_NAMESPACE.test(def.namespace)) {
+  if (def.namespace !== undefined && !VALID_NAMESPACE.test(def.namespace)) {
     throw new Error(
       `invalid namespace ${JSON.stringify(def.namespace)}: ` +
       'namespaces must start with a lowercase letter and contain only lowercase letters and hyphens'
@@ -103,19 +120,19 @@ export function validateApiDefinition(def: EsApiDefinition): void {
   }
 
   if (!def.path.startsWith('/')) {
-    throw new Error(`path must start with "/" — got ${JSON.stringify(def.path)}`)
+    throw new Error(`path must start with "/" -- got ${JSON.stringify(def.path)}`)
   }
 
   if (def.input == null) return
 
   const tokens = new Set(extractPathTokens(def.path))
-  const args = extractSchemaArgs(def.input)
+  const args = extractSchemaArgs(resolveInput(def.input))
   const pathFields = new Set(args.filter((a) => a.foundIn === 'path').map((a) => a.schemaKey))
 
   for (const token of tokens) {
     if (!pathFields.has(token)) {
       throw new Error(
-        `path param {${token}} in definition "${def.name}" has no input field with found_in: "path" — ` +
+        `path param {${token}} in definition "${def.name}" has no input field with found_in: "path" -- ` +
         `add .meta({ found_in: "path" }) to the "${token}" field in the input schema`
       )
     }
@@ -128,4 +145,14 @@ export function validateApiDefinition(def: EsApiDefinition): void {
       )
     }
   }
+}
+
+/**
+ * Resolves `def.input` to a concrete `ZodObject`, calling the factory thunk if necessary.
+ * All consumer code should use this instead of accessing `def.input` directly.
+ */
+export function resolveInput (
+  input: z.ZodObject<z.ZodRawShape> | (() => z.ZodObject<z.ZodRawShape>)
+): z.ZodObject<z.ZodRawShape> {
+  return typeof input === 'function' ? input() : input
 }

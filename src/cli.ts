@@ -20,18 +20,17 @@ const program = new Command()
 program
   .name('elastic')
   .description('Interface with Elasticsearch, Elastic Serverless and Elastic Cloud APIs from the command line.')
-  .version(version)
-  .option('--config <path>', 'path to a config file, bypassing cosmiconfig discovery')
-  .option('--context <name>', 'override the active context from the config file')
-  .option('--format <fmt>', 'output format: text (default) or json')
+  .option('--config-file <path>', 'path to a config file, bypassing cosmiconfig discovery')
+  .option('--use-context <name>', 'override the active context from the config file')
+  .option('--json', 'output as JSON')
 
 // Before every sub-command action, load and resolve the config file.
 // On error, print a structured message and exit — never let a config failure
 // silently propagate into the command handler.
 program.hook('preAction', async (thisCommand) => {
-  const { config: configPath, context: contextName } = thisCommand.opts() as {
-    config?: string
-    context?: string
+  const { configFile: configPath, useContext: contextName } = thisCommand.opts() as {
+    configFile?: string
+    useContext?: string
   }
   const result = await loadConfig({
     ...(configPath != null && { configPath }),
@@ -45,6 +44,13 @@ program.hook('preAction', async (thisCommand) => {
 // All sub-commands are defined via the factory and registered here with addCommand().
 // Never use program.command() or new Command() directly for sub-commands — always go
 // through defineCommand() or defineGroup() so cross-cutting concerns are applied uniformly.
+
+const versionCmd = defineCommand({
+  name: 'version',
+  description: 'Print the elastic CLI version',
+  handler: () => ({ version }),
+})
+program.addCommand(versionCmd)
 
 const pingCmd = defineCommand({
   name: 'ping',

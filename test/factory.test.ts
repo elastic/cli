@@ -861,7 +861,7 @@ describe('defineCommand', () => {
         handler: () => ({}),
       })
       const helpText = cmd.helpInformation()
-      assert.ok(helpText.includes('--file'), `expected --file in help text:\n${helpText}`)
+      assert.ok(helpText.includes('--input-file'), `expected --file in help text:\n${helpText}`)
     })
 
     it('does NOT register --file option when input is omitted', () => {
@@ -871,27 +871,27 @@ describe('defineCommand', () => {
         handler: () => ({}),
       })
       const helpText = cmd.helpInformation()
-      assert.ok(!helpText.includes('--file'), `expected no --file in help text:\n${helpText}`)
+      assert.ok(!helpText.includes('--input-file'), `expected no --file in help text:\n${helpText}`)
     })
 
-    it('throws at definition time when options contains long: \'file\' and input is a schema', () => {
+    it('throws at definition time when options contains long: \'input-file\' and input is a schema', () => {
       assert.throws(
         () => defineCommand({
           name: 'query',
           description: 'Run a query',
           input: z.object({ q: z.string() }),
-          options: [{ long: 'file', description: 'A conflicting option' }],
+          options: [{ long: 'input-file', description: 'A conflicting option' }],
           handler: () => ({}),
         }),
         (e: unknown) => { assert.ok(e instanceof Error); return true },
       )
     })
 
-    it('does NOT throw when options contains long: \'file\' but input is omitted', () => {
+    it('does NOT throw when options contains long: \'input-file\' but input is omitted', () => {
       assert.doesNotThrow(() => defineCommand({
         name: 'query',
         description: 'Run a query',
-        options: [{ long: 'file', description: 'A file option' }],
+        options: [{ long: 'input-file', description: 'A file option' }],
         handler: () => ({}),
       }))
     })
@@ -964,7 +964,7 @@ describe('defineCommand', () => {
         input: z.object({ cluster: z.string(), shards: z.number() }),
         handler: (parsed) => { received.push(parsed); return {} },
       })
-      await invokeAsync(cmd, ['--file', filePath])
+      await invokeAsync(cmd, ['--input-file', filePath])
       assert.equal(received.length, 1)
       assert.deepEqual(received[0].input, { cluster: 'test', shards: 5 })
     })
@@ -977,8 +977,8 @@ describe('defineCommand', () => {
         input: z.object({ q: z.string() }),
         handler: () => ({}),
       })
-      const err = await captureErrAsync(cmd, ['--file', nonexistent])
-      assert.match(err, /--file: file not found:/)
+      const err = await captureErrAsync(cmd, ['--input-file', nonexistent])
+      assert.match(err, /--input-file: file not found:/)
     })
 
     it('errors with descriptive message when --file points to a file with malformed JSON', async () => {
@@ -990,8 +990,8 @@ describe('defineCommand', () => {
         input: z.object({ q: z.string() }),
         handler: () => ({}),
       })
-      const err = await captureErrAsync(cmd, ['--file', filePath])
-      assert.match(err, /--file: invalid JSON:/)
+      const err = await captureErrAsync(cmd, ['--input-file', filePath])
+      assert.match(err, /--input-file: invalid JSON:/)
     })
 
     it('errors with "empty content" message when --file points to an empty file', async () => {
@@ -1003,8 +1003,8 @@ describe('defineCommand', () => {
         input: z.object({ q: z.string() }),
         handler: () => ({}),
       })
-      const err = await captureErrAsync(cmd, ['--file', filePath])
-      assert.match(err, /--file: invalid JSON: empty content/)
+      const err = await captureErrAsync(cmd, ['--input-file', filePath])
+      assert.match(err, /--input-file: invalid JSON: empty content/)
     })
 
     it('parsed.input is undefined when input is a schema, no --file provided, and stdin is a TTY', async () => {
@@ -1113,8 +1113,8 @@ describe('defineCommand', () => {
         input: z.object({ index: z.string() }),
           handler: () => ({}),
         })
-        const err = await captureErrAsync(cmd, ['--file', filePath])
-        assert.match(err, /cannot read input from both --file and stdin/)
+        const err = await captureErrAsync(cmd, ['--input-file', filePath])
+        assert.match(err, /cannot read input from both --input-file and stdin/)
       } finally {
         restore()
       }
@@ -1173,7 +1173,7 @@ describe('defineCommand', () => {
         input: schema,
         handler: (parsed) => { received.push(parsed.input); return {} },
       })
-      await invokeAsync(cmd, ['--file', filePath])
+      await invokeAsync(cmd, ['--input-file', filePath])
       assert.deepEqual(received[0], { index: 'logs', size: 10 })
     })
 
@@ -1207,7 +1207,7 @@ describe('defineCommand', () => {
         input: schema,
         handler: (parsed) => { received.push(parsed.input); return {} },
       })
-      await invokeAsync(cmd, ['--file', filePath])
+      await invokeAsync(cmd, ['--input-file', filePath])
       assert.deepEqual(received[0], { index: 'logs', size: 10 })
     })
 
@@ -1221,7 +1221,7 @@ describe('defineCommand', () => {
         input: schema,
         handler: () => ({}),
       })
-      const err = await captureErrAsync(cmd, ['--file', filePath])
+      const err = await captureErrAsync(cmd, ['--input-file', filePath])
       assert.match(err, /input validation failed/i)
       assert.match(err, /unexpected/)
     })
@@ -1269,7 +1269,7 @@ describe('defineCommand', () => {
         input: schema,
         handler: () => ({}),
       })
-      const err = await captureErrAsync(cmd, ['--file', filePath])
+      const err = await captureErrAsync(cmd, ['--input-file', filePath])
       assert.match(err, /input validation failed/)
       assert.match(err, /name/)
       assert.match(err, /expected string/)
@@ -1285,7 +1285,7 @@ describe('defineCommand', () => {
         input: schema,
         handler: () => ({}),
       })
-      const err = await captureErrAsync(cmd, ['--file', filePath])
+      const err = await captureErrAsync(cmd, ['--input-file', filePath])
       assert.match(err, /input validation failed/)
       assert.match(err, /index/)
     })
@@ -1300,7 +1300,7 @@ describe('defineCommand', () => {
         input: schema,
         handler: () => ({}),
       })
-      const err = await captureErrAsync(cmd, ['--file', filePath])
+      const err = await captureErrAsync(cmd, ['--input-file', filePath])
       assert.match(err, /input validation failed/)
       assert.match(err, /name/)
       assert.match(err, /count/)
@@ -1317,7 +1317,7 @@ describe('defineCommand', () => {
         input: schema,
         handler: () => { handlerCalled = true; return {} },
       })
-      await captureErrAsync(cmd, ['--file', filePath])
+      await captureErrAsync(cmd, ['--input-file', filePath])
       assert.equal(handlerCalled, false)
     })
 
@@ -1331,21 +1331,21 @@ describe('defineCommand', () => {
         input: schema,
         handler: () => ({}),
       })
-      const err = await captureErrAsync(cmd, ['--file', filePath])
+      const err = await captureErrAsync(cmd, ['--input-file', filePath])
       assert.match(err, /input validation failed/)
       assert.match(err, /address\.zipCode/)
     })
   })
 
   describe('commands without input schema', () => {
-    it('command with no input does not register --file option', () => {
+    it('command with no input does not register --input-file option', () => {
       const cmd = defineCommand({
         name: 'ping',
         description: 'Ping',
         handler: () => ({}),
       })
       assert.ok(
-        !cmd.helpInformation().includes('--file'),
+        !cmd.helpInformation().includes('--input-file'),
         'expected no --file option when input is omitted',
       )
     })
@@ -1386,7 +1386,7 @@ describe('defineCommand', () => {
     async function invokeWithJsonFormat(cmd: OpaqueCommandHandle, argv: string[]): Promise<{ out: string, parsed: unknown }> {
       const { Command } = await import('commander')
       const prog = new Command('elastic')
-      prog.option('--format <fmt>', 'output format')
+      prog.option('--json', 'output as JSON')
       prog.addCommand(cmd)
       prog.exitOverride()
       cmd.exitOverride()
@@ -1397,7 +1397,7 @@ describe('defineCommand', () => {
       prog.configureOutput({ writeOut: (s) => { out += s }, writeErr: (s) => { out += s } })
       cmd.configureOutput({ writeOut: (s) => { out += s }, writeErr: (s) => { out += s } })
       try {
-        await prog.parseAsync(['--format', 'json', cmd.name(), ...argv], { from: 'user' })
+        await prog.parseAsync(['--json', cmd.name(), ...argv], { from: 'user' })
       } catch {
         // exitOverride throws on cmd.error(); that's expected
       } finally {
@@ -1408,7 +1408,7 @@ describe('defineCommand', () => {
       return { out, parsed }
     }
 
-    it('emits structured JSON error to stdout when --format=json and validation fails', async () => {
+    it('emits structured JSON error to stdout when --json and validation fails', async () => {
       const schema = z.object({ index: z.string() })
       const filePath = join(tmpDir, 'bad.json')
       writeFileSync(filePath, JSON.stringify({ index: 42 }))
@@ -1418,7 +1418,7 @@ describe('defineCommand', () => {
         input: schema,
         handler: () => ({}),
       })
-      const { parsed } = await invokeWithJsonFormat(cmd, ['--file', filePath])
+      const { parsed } = await invokeWithJsonFormat(cmd, ['--input-file', filePath])
       assert.ok(parsed !== null, 'output was not valid JSON')
       const p = parsed as Record<string, unknown>
       assert.ok('error' in p, 'expected top-level "error" key')
@@ -1438,7 +1438,7 @@ describe('defineCommand', () => {
         input: schema,
         handler: () => ({}),
       })
-      const { parsed } = await invokeWithJsonFormat(cmd, ['--file', filePath])
+      const { parsed } = await invokeWithJsonFormat(cmd, ['--input-file', filePath])
       const issues = ((parsed as Record<string, unknown>)['error'] as Record<string, unknown>)['issues'] as Array<Record<string, unknown>>
       const issue = issues[0]!
       assert.ok(Array.isArray(issue['path']), 'expected path array')
@@ -1446,7 +1446,7 @@ describe('defineCommand', () => {
       assert.deepEqual(issue['path'], ['index'])
     })
 
-    it('handler is NOT invoked when --format=json and validation fails', async () => {
+    it('handler is NOT invoked when --json and validation fails', async () => {
       const schema = z.object({ index: z.string() })
       const filePath = join(tmpDir, 'bad3.json')
       writeFileSync(filePath, JSON.stringify({ index: 42 }))
@@ -1457,11 +1457,11 @@ describe('defineCommand', () => {
         input: schema,
         handler: () => { handlerCalled = true; return {} },
       })
-      await invokeWithJsonFormat(cmd, ['--file', filePath])
+      await invokeWithJsonFormat(cmd, ['--input-file', filePath])
       assert.equal(handlerCalled, false)
     })
 
-    it('text mode (no --format flag) still uses cmd.error() with prettified output', async () => {
+    it('text mode (no --json flag) still uses cmd.error() with prettified output', async () => {
       const schema = z.object({ index: z.string() })
       const filePath = join(tmpDir, 'bad4.json')
       writeFileSync(filePath, JSON.stringify({ index: 42 }))
@@ -1471,7 +1471,7 @@ describe('defineCommand', () => {
         input: schema,
         handler: () => ({}),
       })
-      const err = await captureErrAsync(cmd, ['--file', filePath])
+      const err = await captureErrAsync(cmd, ['--input-file', filePath])
       assert.match(err, /input validation failed/)
       assert.match(err, /index/)
     })
@@ -1480,7 +1480,7 @@ describe('defineCommand', () => {
     async function mountUnderRoot(cmd: OpaqueCommandHandle, argv: string[]): Promise<void> {
       const { Command } = await import('commander')
       const prog = new Command('elastic')
-      prog.option('--format <fmt>', 'output format')
+      prog.option('--json', 'output as JSON')
       prog.addCommand(cmd)
       prog.exitOverride()
       cmd.exitOverride()
@@ -1494,9 +1494,9 @@ describe('defineCommand', () => {
         description: 'Check health',
         handler: (parsed) => { received.push(parsed); return {} },
       })
-      await mountUnderRoot(cmd, ['--format', 'json', 'health'])
+      await mountUnderRoot(cmd, ['--json', 'health'])
       assert.equal(received.length, 1)
-      assert.equal(received[0]!.options['format'], 'json')
+      assert.equal(received[0]!.options['json'], true)
     })
 
     it('global options are absent from parsed.options when not provided', async () => {
@@ -1508,7 +1508,7 @@ describe('defineCommand', () => {
       })
       await mountUnderRoot(cmd, ['health'])
       assert.equal(received.length, 1)
-      assert.equal(received[0]!.options['format'], undefined)
+      assert.equal(received[0]!.options['json'], undefined)
     })
 
     it('command-level options and global options coexist in parsed.options', async () => {
@@ -1519,9 +1519,9 @@ describe('defineCommand', () => {
         options: [{ long: 'index', type: 'string', description: 'Index name' }],
         handler: (parsed) => { received.push(parsed); return {} },
       })
-      await mountUnderRoot(cmd, ['--format', 'json', 'search', '--index', 'logs'])
+      await mountUnderRoot(cmd, ['--json', 'search', '--index', 'logs'])
       assert.equal(received.length, 1)
-      assert.equal(received[0]!.options['format'], 'json')
+      assert.equal(received[0]!.options['json'], true)
       assert.equal(received[0]!.options['index'], 'logs')
     })
   })
@@ -1538,20 +1538,20 @@ describe('defineCommand', () => {
     async function invokeUnderRoot(cmd: OpaqueCommandHandle, rootArgv: string[], cmdArgv: string[]): Promise<string> {
       const { Command } = await import('commander')
       const prog = new Command('elastic')
-      prog.option('--format <fmt>', 'output format')
+      prog.option('--json', 'output as JSON')
       prog.addCommand(cmd)
       prog.exitOverride()
       cmd.exitOverride()
       return captureOutput(() => prog.parseAsync([...rootArgv, cmd.name(), ...cmdArgv], { from: 'user' }))
     }
 
-    it('factory writes handler return value as compact JSON when --format=json', async () => {
+    it('factory writes handler return value as compact JSON when --json', async () => {
       const cmd = defineCommand({
         name: 'status',
         description: 'Get status',
         handler: () => ({ ok: true, count: 3 }),
       })
-      const out = await invokeUnderRoot(cmd, ['--format', 'json'], [])
+      const out = await invokeUnderRoot(cmd, ['--json'], [])
       assert.deepEqual(JSON.parse(out), { ok: true, count: 3 })
     })
 
@@ -1571,7 +1571,7 @@ describe('defineCommand', () => {
         description: 'Get status',
         handler: async () => ({ async: true }),
       })
-      const out = await invokeUnderRoot(cmd, ['--format', 'json'], [])
+      const out = await invokeUnderRoot(cmd, ['--json'], [])
       assert.deepEqual(JSON.parse(out), { async: true })
     })
   })
@@ -2095,7 +2095,7 @@ describe('defineCommand schema input - strict validation', () => {
       input: schema,
       handler: (parsed) => { captured = parsed.input; return {} },
     })
-    await invokeAsync(cmd, ['--file', filePath])
+    await invokeAsync(cmd, ['--input-file', filePath])
     assert.deepEqual(captured, { index: 'logs', num_shards: 3 })
   })
 
@@ -2109,7 +2109,7 @@ describe('defineCommand schema input - strict validation', () => {
       input: schema,
       handler: () => ({}),
     })
-    const err = await captureErrAsync(cmd, ['--file', filePath])
+    const err = await captureErrAsync(cmd, ['--input-file', filePath])
     assert.match(err, /input validation failed/i)
     assert.match(err, /bogus/)
   })
@@ -2165,7 +2165,7 @@ describe('defineCommand schema input - JSON + CLI merge', () => {
       input: schema,
       handler: (parsed) => { captured = parsed.input; return {} },
     })
-    await invokeAsync(cmd, ['--file', filePath, '--num-shards', '5'])
+    await invokeAsync(cmd, ['--input-file', filePath, '--num-shards', '5'])
     assert.deepEqual(captured, { index: 'logs', num_shards: 5 })
   })
 
@@ -2183,7 +2183,7 @@ describe('defineCommand schema input - JSON + CLI merge', () => {
       input: schema,
       handler: (parsed) => { captured = parsed.input; return {} },
     })
-    await invokeAsync(cmd, ['--file', filePath, '--num-shards', '2'])
+    await invokeAsync(cmd, ['--input-file', filePath, '--num-shards', '2'])
     assert.deepEqual(captured, { index: 'logs', num_shards: 2 })
   })
 
@@ -2201,7 +2201,7 @@ describe('defineCommand schema input - JSON + CLI merge', () => {
       input: schema,
       handler: (parsed) => { captured = parsed.input; return {} },
     })
-    await invokeAsync(cmd, ['--file', filePath])
+    await invokeAsync(cmd, ['--input-file', filePath])
     assert.deepEqual(captured, { index: 'logs', num_shards: 3 })
   })
 
@@ -2235,7 +2235,7 @@ describe('defineCommand schema input - JSON + CLI merge', () => {
       handler: () => ({}),
     })
     // CLI provides a valid key; JSON has an unknown one, so post-merge strict check fires
-    const err = await captureErrAsync(cmd, ['--file', filePath, '--num-shards', '3'])
+    const err = await captureErrAsync(cmd, ['--input-file', filePath, '--num-shards', '3'])
     assert.match(err, /input validation failed/i)
     assert.match(err, /unknown_key/)
   })
@@ -2357,25 +2357,25 @@ describe('JSON schema in help output', () => {
     })
   })
 
-  describe('--format=json help output', () => {
+  describe('--json help output', () => {
     async function captureJsonHelp(cmd: OpaqueCommandHandle): Promise<{ out: string, parsed: unknown }> {
       const { Command } = await import('commander')
       const prog = new Command('elastic')
-      prog.option('--format <fmt>', 'output format')
+      prog.option('--json', 'output as JSON')
       prog.addCommand(cmd)
       prog.exitOverride()
       cmd.exitOverride()
       let out = ''
       cmd.configureOutput({ writeOut: (s) => { out += s } })
       try {
-        await prog.parseAsync(['--format', 'json', cmd.name(), '--help'], { from: 'user' })
+        await prog.parseAsync(['--json', cmd.name(), '--help'], { from: 'user' })
       } catch { /* CommanderError from exitOverride on --help */ }
       let parsed: unknown = null
       try { parsed = JSON.parse(out) } catch { /* not JSON - test will fail on assertion */ }
       return { out, parsed }
     }
 
-    it('emits the raw JSON Schema object when --format=json and --help are used together', async () => {
+    it('emits the raw JSON Schema object when --json and --help are used together', async () => {
       const cmd = defineCommand({
         name: 'search',
         description: 'Search an index',
@@ -2460,14 +2460,14 @@ describe('JSON schema in help output — transport meta stripping', () => {
   async function captureJsonHelp(cmd: OpaqueCommandHandle): Promise<Record<string, unknown>> {
     const { Command } = await import('commander')
     const prog = new Command('elastic')
-    prog.option('--format <fmt>', 'output format')
+    prog.option('--json', 'output as JSON')
     prog.addCommand(cmd as unknown as InstanceType<typeof Command>)
     prog.exitOverride()
     ;(cmd as unknown as InstanceType<typeof Command>).exitOverride()
     let out = ''
     ;(cmd as unknown as InstanceType<typeof Command>).configureOutput({ writeOut: (s: string) => { out += s } })
     try {
-      await prog.parseAsync(['--format', 'json', cmd.name(), '--help'], { from: 'user' })
+      await prog.parseAsync(['--json', cmd.name(), '--help'], { from: 'user' })
     } catch { /* exitOverride on --help */ }
     return JSON.parse(out) as Record<string, unknown>
   }

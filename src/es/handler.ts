@@ -45,10 +45,10 @@ const defaultDeps: EsHandlerDeps = { getTransport, buildRequestParams }
  * @param deps - injectable dependencies; defaults to production implementations
  * @returns a `(parsed: ParsedResult) => Promise<JsonValue>` handler
  */
-export function createEsHandler(
+export function createEsHandler (
   def: EsApiDefinition,
   schemaArgs: SchemaArgDefinition[],
-  deps: EsHandlerDeps = defaultDeps,
+  deps: EsHandlerDeps = defaultDeps
 ): (parsed: ParsedResult) => Promise<JsonValue> {
   return async (parsed: ParsedResult): Promise<JsonValue> => {
     const params = deps.buildRequestParams(def, parsed, schemaArgs)
@@ -77,20 +77,20 @@ export function createEsHandler(
 }
 
 /** builds a `missing_config` error payload from a thrown error */
-function missingConfigError(err: unknown): JsonValue {
+function missingConfigError (err: unknown): JsonValue {
   const message = err instanceof Error ? err.message : String(err)
   return { error: { code: 'missing_config', message } }
 }
 
 /** builds a `transport_error` payload from a thrown transport error */
-function transportError(err: unknown): JsonValue {
+function transportError (err: unknown): JsonValue {
   if (err instanceof errors.ResponseError) {
     return {
       error: {
         code: 'transport_error',
         status_code: err.statusCode ?? null,
-        body: err.body as JsonValue ?? null,
-      },
+        body: err.body as JsonValue ?? null
+      }
     }
   }
 

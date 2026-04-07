@@ -25,10 +25,10 @@ import type { ParsedResult } from '../factory.ts'
  * @param schemaArgs - arg definitions extracted from `def.input` at registration time
  * @returns `TransportRequestParams` ready to pass to `transport.request()`
  */
-export function buildRequestParams(
+export function buildRequestParams (
   def: EsApiDefinition,
   parsed: ParsedResult,
-  schemaArgs: SchemaArgDefinition[],
+  schemaArgs: SchemaArgDefinition[]
 ): TransportRequestParams {
   const input = (parsed.input ?? {}) as Record<string, unknown>
 
@@ -49,10 +49,10 @@ export function buildRequestParams(
  * The schema key is both the `{token}` name in the template and the lookup key in `input`.
  * For optional params that are absent, trailing `/{param}` segments are stripped.
  */
-function interpolatePath(
+function interpolatePath (
   path: string,
   schemaArgs: SchemaArgDefinition[],
-  input: Record<string, unknown>,
+  input: Record<string, unknown>
 ): string {
   for (const arg of schemaArgs.filter((a) => a.foundIn === 'path')) {
     const value = input[arg.schemaKey]
@@ -71,9 +71,9 @@ function interpolatePath(
  * Builds the querystring record from `SchemaArgDefinition` entries with `foundIn === "query"`.
  * The schema key is used as the ES-native querystring param name.
  */
-function buildQuerystring(
+function buildQuerystring (
   schemaArgs: SchemaArgDefinition[],
-  input: Record<string, unknown>,
+  input: Record<string, unknown>
 ): Record<string, unknown> {
   const qs: Record<string, unknown> = {}
   for (const arg of schemaArgs.filter((a) => a.foundIn === 'query')) {
@@ -87,9 +87,9 @@ function buildQuerystring(
  * Collects request body fields from entries with `foundIn === "body"` or no `foundIn`.
  * Returns `undefined` when no body fields are present in the input.
  */
-function collectBody(
+function collectBody (
   schemaArgs: SchemaArgDefinition[],
-  input: Record<string, unknown>,
+  input: Record<string, unknown>
 ): Record<string, unknown> | undefined {
   const bodyArgs = schemaArgs.filter((a) => a.foundIn === 'body' || a.foundIn === undefined)
   const body: Record<string, unknown> = {}

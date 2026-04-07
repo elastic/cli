@@ -9,13 +9,13 @@
  * Pipeline:
  * 1. Create cosmiconfig explorer with ID 'elastic' for discovery
  * 2. Load and validate config file with Zod schemas
- * 3. Resolve the active context (default or --context override)
+ * 3. Resolve the active context (default or --use-context override)
  * 4. Return typed ResolvedConfig to command handlers
  *
  * Supports:
  * - cosmiconfig discovery (searches standard locations)
- * - --config <path> override (bypass discovery)
- * - --context <name> override (select non-default context)
+ * - --config-file <path> override (bypass discovery)
+ * - --use-context <name> override (select non-default context)
  * - Clear error messages with field paths and context names
  * - Structured error payloads (code + message)
  */
@@ -72,7 +72,7 @@ export interface LoadConfigOptions {
   searchFrom?: string
   /** Explicit path to a config file. Bypasses cosmiconfig discovery when set. */
   configPath?: string
-  /** Context name override (`--context` flag). Overrides `current_context` in the file. */
+  /** Context name override (`--use-context` flag). Overrides `current_context` in the file. */
   contextName?: string
 }
 
@@ -131,7 +131,7 @@ export async function loadConfig(options: LoadConfigOptions = {}): Promise<LoadC
 
   const config = parsed.data
 
-  // Step 3: resolve context name (--context override or current_context from file)
+  // Step 3: resolve context name (--use-context override or current_context from file)
   const resolvedContextName = contextName ?? config['current_context']
 
   if (!(resolvedContextName in config.contexts)) {

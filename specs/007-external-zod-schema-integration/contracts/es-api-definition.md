@@ -13,7 +13,7 @@ interface EsApiDefinition {
   /** kebab-case command name (e.g., "create", "put-mapping") */
   name: string
 
-  /** ES namespace (e.g., "cat", "indices") — determines parent group */
+  /** ES namespace (e.g., "cat", "indices") -- determines parent group */
   namespace: string
 
   /** human-readable description for --help text */
@@ -26,7 +26,8 @@ interface EsApiDefinition {
   path: string
 
   /**
-   * Unified Zod object schema. Every top-level field represents a parameter.
+   * Unified Zod object schema, or a no-arg factory function that returns one.
+   * Every top-level field represents a parameter.
    * Each field MUST have .meta({ found_in: "path" | "query" | "body" }) applied.
    * Fields without found_in metadata default to "body".
    *
@@ -36,8 +37,12 @@ interface EsApiDefinition {
    *
    * Use z.looseObject() when body fields may include underscore-prefixed keys
    * that cannot be valid CLI flags.
+   *
+   * Use the factory form (`() => schema`) when the schema is imported from a file
+   * that participates in circular module dependencies. This defers resolution to
+   * call time (after all modules have initialised) and avoids TDZ errors.
    */
-  input?: z.ZodObject<z.ZodRawShape>
+  input?: z.ZodObject<z.ZodRawShape> | (() => z.ZodObject<z.ZodRawShape>)
 
   /** how to handle the response body; defaults to "json" */
   responseType?: 'json' | 'text'

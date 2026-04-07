@@ -58,6 +58,7 @@ export interface FlagKeyMap {
  */
 export function toKebabCase(key: string): string {
   return key
+    .replace(/^_+/, '')  // strip leading underscores (e.g. Elasticsearch's _source, _meta)
     .replace(/_/g, '-')
     .replace(/([a-z])([A-Z])/g, '$1-$2')
     .toLowerCase()
@@ -145,7 +146,7 @@ export function buildFlagKeyMap(args: SchemaArgDefinition[]): FlagKeyMap {
 }
 
 /** Reserved CLI flag names that schema keys must not collide with. */
-const RESERVED_FLAGS = new Set(['help', 'version', 'format', 'config', 'context', 'file'])
+const RESERVED_FLAGS = new Set(['help', 'json', 'config-file', 'use-context', 'input-file'])
 
 /**
  * Validates schema arguments for naming conflicts.

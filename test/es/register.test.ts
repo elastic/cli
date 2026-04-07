@@ -13,6 +13,11 @@ function makeDef(name: string, namespace: string, description = `${name} descrip
   return { name, namespace, description, method: 'GET', path: `/_${namespace}/${name}` }
 }
 
+/** definition with no namespace - registers as a direct leaf under `es` */
+function makeRootDef(name: string, description = `${name} description`): EsApiDefinition {
+  return { name, description, method: 'GET', path: `/_${name}` }
+}
+
 const testDefs: EsApiDefinition[] = [
   makeDef('health', 'cat'),
   makeDef('indices', 'cat'),
@@ -110,7 +115,7 @@ describe('registerEsCommands', () => {
     assert.ok(optionNames.includes('--index'), `expected --index flag, got: ${optionNames.join(', ')}`)
   })
 
-  it('registers a --file flag when the definition has an input schema', () => {
+  it('registers a --input-file flag when the definition has an input schema', () => {
     const defs: EsApiDefinition[] = [{
       name: 'create',
       namespace: 'indices',
@@ -125,13 +130,66 @@ describe('registerEsCommands', () => {
     const handle = registerEsCommands(defs)
     const cmd = handle.commands[0]?.commands[0]
     assert.ok(cmd != null)
-    // the factory registers --file whenever an input schema is provided
+    // the factory registers --input-file whenever an input schema is provided
     const optionNames = cmd.options.map((o) => o.long)
-    assert.ok(optionNames.includes('--file'), `expected --file flag, got: ${optionNames.join(', ')}`)
+    assert.ok(optionNames.includes('--input-file'), `expected --input-file flag, got: ${optionNames.join(', ')}`)
   })
 })
 
-describe('registerEsCommands — extensibility', () => {
+describe('registerEsCommands - namespace-less (root) definitions', () => {
+  it('a definition without namespace registers as a direct leaf of `es`', () => {
+    const defs: EsApiDefinition[] = [makeRootDef('search')]
+    const handle = registerEsCommands(defs)
+    const child = handle.commands.find((c) => c.name() === 'search')
+    assert.ok(child != null, 'expected `search` as direct child of `es`')
+    assert.equal(child.commands.length, 0, 'search should be a leaf, not a group')
+  })
+
+  it('namespace-less definitions do not create an intermediate group', () => {
+    const defs: EsApiDefinition[] = [makeRootDef('bulk'), makeRootDef('search')]
+    const handle = registerEsCommands(defs)
+    const names = handle.commands.map((c) => c.name()).sort()
+    assert.deepEqual(names, ['bulk', 'search'])
+  })
+
+  it('namespace-less and namespaced definitions coexist under `es`', () => {
+    const defs: EsApiDefinition[] = [
+      makeRootDef('search'),
+      makeDef('health', 'cat'),
+      makeDef('indices', 'cat'),
+    ]
+    const handle = registerEsCommands(defs)
+    // `cat` group and `search` leaf are both direct children of `es`
+    const topNames = handle.commands.map((c) => c.name()).sort()
+    assert.deepEqual(topNames, ['cat', 'search'])
+    const cat = handle.commands.find((c) => c.name() === 'cat')
+    assert.ok(cat != null)
+    assert.deepEqual(cat.commands.map((c) => c.name()).sort(), ['health', 'indices'])
+  })
+
+  it('description from the definition is used on the leaf command', () => {
+    const defs: EsApiDefinition[] = [makeRootDef('search', 'Run a search')]
+    const handle = registerEsCommands(defs)
+    const cmd = handle.commands.find((c) => c.name() === 'search')
+    assert.ok(cmd != null)
+    assert.equal(cmd.description(), 'Run a search')
+  })
+
+  it('throws on duplicate names among namespace-less definitions', () => {
+    const defs: EsApiDefinition[] = [makeRootDef('search'), makeRootDef('search')]
+    assert.throws(() => registerEsCommands(defs), /duplicate.*search|search.*duplicate/i)
+  })
+
+  it('throws when a namespace-less name collides with a namespace group name', () => {
+    const defs: EsApiDefinition[] = [
+      makeRootDef('cat'),
+      makeDef('health', 'cat'),
+    ]
+    assert.throws(() => registerEsCommands(defs), /duplicate.*cat|cat.*duplicate/i)
+  })
+})
+
+describe('registerEsCommands - extensibility', () => {
   it('a definition added to an existing namespace appears in the command tree with no other changes', () => {
     const defs: EsApiDefinition[] = [
       makeDef('health', 'cat'),
@@ -179,7 +237,7 @@ describe('registerEsCommands — extensibility', () => {
   })
 })
 
-describe('registerEsCommands — body field flattening', () => {
+describe('registerEsCommands - body field flattening', () => {
   it('registers body fields as individual --flags, not a --body flag', () => {
     const defs: EsApiDefinition[] = [{
       name: 'create',
@@ -203,7 +261,7 @@ describe('registerEsCommands — body field flattening', () => {
   })
 })
 
-describe('registerEsCommands — unified input schema (US1)', () => {
+describe('registerEsCommands - unified input schema', () => {
   it('registers a command with a unified input schema: flags, help text, and validation all work', () => {
     const input = z.looseObject({
       index: z.string().describe('Target index').meta({ found_in: 'path' }),
@@ -228,8 +286,8 @@ describe('registerEsCommands — unified input schema (US1)', () => {
   })
 })
 
-describe('registerEsCommands — external schema consumption (US2)', () => {
-  // simulates a schema imported from @elastic/zod/indices — defined outside the manifest
+describe('registerEsCommands - external schema consumption', () => {
+  // simulates a schema imported from @elastic/zod/indices - defined outside the manifest
   const externalCreateSchema = z.looseObject({
     index: z.string().describe('Target index').meta({ found_in: 'path' }),
     wait_for_active_shards: z.string().optional().describe('Number of active shards to wait for').meta({ found_in: 'query' }),
@@ -268,7 +326,7 @@ describe('registerEsCommands — external schema consumption (US2)', () => {
     assert.doesNotThrow(() => registerEsCommands(defs))
   })
 
-  it('--file flag is registered (external schema enables file/stdin merging)', () => {
+  it('--input-file flag is registered (external schema enables file/stdin merging)', () => {
     const defs: EsApiDefinition[] = [{
       name: 'create',
       namespace: 'indices',
@@ -281,6 +339,28 @@ describe('registerEsCommands — external schema consumption (US2)', () => {
     const cmd = handle.commands[0]?.commands[0]
     assert.ok(cmd != null)
     const optionNames = cmd.options.map((o) => o.long)
-    assert.ok(optionNames.includes('--file'), `expected --file flag for stdin/file merging`)
+    assert.ok(optionNames.includes('--input-file'), `expected --input-file flag for stdin/file merging`)
+  })
+})
+
+describe('registerEsCommands - built-in API surface', () => {
+  it('all built-in API schemas are JSON-Schema-serializable', () => {
+    assert.doesNotThrow(() => registerEsCommands())
+  })
+
+  it('throws at registration time when a schema contains z.date()', () => {
+    const defs: EsApiDefinition[] = [{
+      name: 'search',
+      description: 'Search',
+      method: 'GET',
+      path: '/_search',
+      input: z.looseObject({
+        timestamp: z.date().optional().describe('A JS Date - not valid in a REST API schema').meta({ found_in: 'query' }),
+      }),
+    }]
+    assert.throws(
+      () => registerEsCommands(defs),
+      /Date cannot be represented in JSON Schema/,
+    )
   })
 })
