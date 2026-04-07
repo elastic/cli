@@ -31,7 +31,7 @@ const numberSchema = z.coerce.number()
  * ```
  */
 export interface OptionDefinition {
-  /** long option name without `--` prefix (e.g. `'timeout'`, `'dry-run'`) */
+  /** long option name without `--` prefix (e.g. `'timeout'`, `'output-dir'`) */
   long: string
   /** single-character short alias without `-` prefix (e.g. `'t'`) */
   short?: string
@@ -223,6 +223,10 @@ function validateOptions(options: OptionDefinition[]): void {
     }
     seenLong.add(opt.long)
 
+    if (opt.long === 'dry-run') {
+      throw new Error('option --dry-run is reserved')
+    }
+
     if (opt.short !== undefined) {
       if (seenShort.has(opt.short)) {
         throw new Error(`duplicate option short alias: -${opt.short}`)
@@ -353,7 +357,6 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
   validateName(config.name, 'command')
   validateOptions(config.options ?? [])
   validateInput(config.name, config.input)
-  // --file is reserved when input is a schema; catch collision at definition time
   if (config.input instanceof z.ZodType && config.options?.some((o) => o.long === 'file')) {
     throw new Error(
       `command ${JSON.stringify(config.name)}: option --file is reserved when input is enabled`
@@ -428,6 +431,7 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
   if (config.input instanceof z.ZodType) {
     cmd.option('--file <path>', 'path to a JSON file to use as command input')
   }
+  cmd.option('--dry-run', 'validate all inputs and exit without performing any action')
 
   const inputJsonSchema = config.input instanceof z.ZodType
     ? z.toJSONSchema(config.input) as JsonValue
@@ -536,6 +540,12 @@ export function defineCommand<T extends z.ZodType>(config: CommandConfig<T>): Op
         }
         return cmd.error(`input validation failed:\n${z.prettifyError(result.error)}`)
       }
+    }
+    if (allRaw['dryRun'] === true) {
+      if (fmt === 'json') {
+        process.stdout.write(JSON.stringify({ success: true }) + '\n')
+      }
+      return
     }
     const handlerResult = await config.handler(parsed)
     assert(handlerResult !== undefined, `command ${JSON.stringify(config.name)}: handler must return a JsonValue`)
