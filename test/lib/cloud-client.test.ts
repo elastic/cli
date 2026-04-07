@@ -6,11 +6,12 @@
 import { describe, it, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { getCloudClient, _testResetCloudClient } from '../../src/lib/cloud-client.ts'
-import { setResolvedConfig, clearResolvedConfig } from '../../src/config/store.ts'
+import { setResolvedConfig } from '../../src/config/store.ts'
+import type { ResolvedConfig } from '../../src/config/types.ts'
 
 afterEach(() => {
   _testResetCloudClient()
-  clearResolvedConfig()
+  setResolvedConfig(undefined as unknown as ResolvedConfig)
 })
 
 describe('getCloudClient', () => {

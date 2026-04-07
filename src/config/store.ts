@@ -33,12 +33,3 @@ export function setResolvedConfig(config: ResolvedConfig): void {
 export function getResolvedConfig(): ResolvedConfig | undefined {
   return _config
 }
-
-/**
- * Clears the resolved configuration.
- *
- * @internal test seam — call in `afterEach` to prevent config leaking across tests
- */
-export function clearResolvedConfig(): void {
-  _config = undefined
-}
