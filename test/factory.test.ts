@@ -1717,7 +1717,7 @@ describe('text output rendering', () => {
       assert.match(out, /status/)
       assert.match(out, /foo/)
       assert.match(out, /bar/)
-      assert.match(out, /^-+/m)
+      assert.match(out, /[─├┤┼]/)
     })
 
     it('falls back to pretty-printed JSON for a plain object', async () => {
