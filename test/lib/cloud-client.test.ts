@@ -127,4 +127,36 @@ describe('getCloudClient', () => {
     await client.request({ method: 'GET', path: '/test' })
     assert.equal(capturedHeaders['Authorization'], 'ApiKey secret-key')
   })
+
+  it('sends Basic authorization header for username/password auth', async () => {
+    setResolvedConfig({ context: { cloud: { url: 'https://api.elastic-cloud.com', auth: { username: 'user', password: 'pass' } } } })
+    const client = getCloudClient()
+
+    let capturedHeaders: Record<string, string> = {}
+    client._testSetFetch(((url: string, init: RequestInit) => {
+      capturedHeaders = init.headers as Record<string, string>
+      return Promise.resolve(new Response('{}', { status: 200 }))
+    }) as typeof fetch)
+
+    await client.request({ method: 'GET', path: '/test' })
+    const expected = `Basic ${Buffer.from('user:pass').toString('base64')}`
+    assert.equal(capturedHeaders['Authorization'], expected)
+  })
+
+  it('throws missing_config when auth has neither api_key nor username/password', () => {
+    setResolvedConfig({ context: { cloud: { url: 'https://api.elastic-cloud.com', auth: {} } } } as unknown as ResolvedConfig)
+    assert.throws(() => getCloudClient(), /missing_config/)
+  })
+
+  it('handles empty response body without throwing', async () => {
+    setResolvedConfig({ context: { cloud: { url: 'https://api.elastic-cloud.com', auth: { api_key: 'k' } } } })
+    const client = getCloudClient()
+
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('', { status: 200 }))
+    ) as typeof fetch)
+
+    const result = await client.request({ method: 'DELETE', path: '/api/v1/something' })
+    assert.deepEqual(result, {})
+  })
 })

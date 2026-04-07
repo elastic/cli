@@ -3,13 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { Buffer } from 'node:buffer'
+import type { HttpMethod } from '../cloud/types.ts'
 import { getResolvedConfig } from '../config/store.ts'
 
 /**
  * Parameters for a single Cloud API request.
  */
 export interface CloudRequestParams {
-  method: string
+  method: HttpMethod
   path: string
   querystring?: Record<string, string>
   body?: unknown
@@ -24,12 +26,12 @@ export interface CloudRequestParams {
  */
 export class CloudClient {
   readonly baseUrl: string
-  private readonly apiKey: string
+  private readonly authHeader: string
   private _fetch: typeof fetch = globalThis.fetch
 
-  constructor(baseUrl: string, apiKey: string) {
+  constructor(baseUrl: string, authHeader: string) {
     this.baseUrl = baseUrl.replace(/\/+$/, '')
-    this.apiKey = apiKey
+    this.authHeader = authHeader
   }
 
   /**
@@ -48,7 +50,7 @@ export class CloudClient {
     }
 
     const headers: Record<string, string> = {
-      'Authorization': `ApiKey ${this.apiKey}`,
+      'Authorization': this.authHeader,
       'Accept': 'application/json',
     }
 
@@ -66,7 +68,8 @@ export class CloudClient {
       throw new Error(`Cloud API error ${response.status}: ${text}`)
     }
 
-    return response.json()
+    const text = await response.text()
+    return text.length > 0 ? JSON.parse(text) : {}
   }
 
   /**
@@ -100,16 +103,21 @@ export function getCloudClient(): CloudClient {
 
   const { url, auth } = cloud
   const authRecord = auth as Record<string, unknown>
-  const apiKey = typeof authRecord['api_key'] === 'string' ? authRecord['api_key'] : undefined
 
-  if (apiKey == null) {
+  let authHeader: string
+  if (typeof authRecord['api_key'] === 'string') {
+    authHeader = `ApiKey ${authRecord['api_key']}`
+  } else if (typeof authRecord['username'] === 'string' && typeof authRecord['password'] === 'string') {
+    const encoded = Buffer.from(`${authRecord['username']}:${authRecord['password']}`).toString('base64')
+    authHeader = `Basic ${encoded}`
+  } else {
     throw new Error(
-      'missing_config: Cloud auth requires an api_key. ' +
-      'Run `elastic config set` to configure a Cloud API key.'
+      'missing_config: Cloud auth requires either an api_key or username/password. ' +
+      'Run `elastic config set` to configure Cloud credentials.'
     )
   }
 
-  _client = new CloudClient(url, apiKey)
+  _client = new CloudClient(url, authHeader)
   return _client
 }
 
