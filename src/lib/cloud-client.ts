@@ -41,8 +41,10 @@ export class CloudClient {
     let url = `${this.baseUrl}${params.path}`
 
     if (params.querystring != null && Object.keys(params.querystring).length > 0) {
-      const qs = new URLSearchParams(params.querystring)
-      url += `?${qs.toString()}`
+      const pieces = Object.entries(params.querystring)
+        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+        .join('&')
+      url += `?${pieces}`
     }
 
     const headers: Record<string, string> = {

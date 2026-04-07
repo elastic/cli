@@ -10,8 +10,7 @@ import { buildCloudRequestParams } from './request-builder.ts'
 import type { JsonValue, ParsedResult } from '../factory.ts'
 
 /**
- * Dependencies for `createCloudHandler`. Production code uses the defaults;
- * callers may supply alternatives for composition or isolation.
+ * Dependencies for `createCloudHandler`. 
  */
 export interface CloudHandlerDeps {
   getCloudClient: () => CloudClient
