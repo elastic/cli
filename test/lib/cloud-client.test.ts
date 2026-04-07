@@ -75,7 +75,7 @@ describe('getCloudClient', () => {
     const client = getCloudClient()
 
     const calls: { url: string }[] = []
-    client._testSetFetch(((url: string, init: RequestInit) => {
+    client._testSetFetch(((url: string) => {
       calls.push({ url })
       return Promise.resolve(new Response('{}', { status: 200 }))
     }) as typeof fetch)
