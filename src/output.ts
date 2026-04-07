@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import Table from 'cli-table3'
 import type { JsonValue } from './factory.ts'
 
 /** A flat object whose values are all JSON primitives — renderable as a table row. */
@@ -20,40 +21,34 @@ function isPrimitive(val: JsonValue): val is string | number | boolean | null {
 }
 
 /**
- * Renders an array of flat objects as a plain-text column-aligned table.
+ * Renders an array of flat objects as a Unicode-bordered table using cli-table3.
  *
- * Column widths are the maximum of the header length and the widest cell value.
- * Columns are separated by two spaces. Trailing whitespace is trimmed from each line.
- * Returns an empty string for an empty array.
+ * Column headers are derived from the keys of the first row. Each subsequent row
+ * is added in the same key order. Returns an empty string for an empty array.
  *
  * @example
  * ```ts
  * renderTable([{ name: 'foo', count: 3 }, { name: 'bar', count: 12 }])
- * // name  count
- * // ----  -----
- * // foo   3
- * // bar   12
+ * // ┌──────┬───────┐
+ * // │ name │ count │
+ * // ├──────┼───────┤
+ * // │ foo  │ 3     │
+ * // ├──────┼───────┤
+ * // │ bar  │ 12    │
+ * // └──────┴───────┘
  * ```
  */
 export function renderTable(rows: FlatRecord[]): string {
   if (rows.length === 0) return ''
 
   const headers = Object.keys(rows[0]!)
-  const colWidths = headers.map((h) => {
-    const maxVal = Math.max(...rows.map((r) => String(r[h] ?? '').length))
-    return Math.max(h.length, maxVal)
-  })
+  const table = new Table({ head: headers })
 
-  const formatRow = (cells: string[]): string =>
-    cells.map((cell, i) => cell.padEnd(colWidths[i]!)).join('  ').trimEnd()
+  for (const row of rows) {
+    table.push(headers.map((h) => String(row[h] ?? '')))
+  }
 
-  const headerRow = formatRow(headers)
-  const separator = colWidths.map((w) => '-'.repeat(w)).join('  ').trimEnd()
-  const dataRows = rows.map((row) =>
-    formatRow(headers.map((h) => String(row[h] ?? '')))
-  )
-
-  return [headerRow, separator, ...dataRows].join('\n') + '\n'
+  return table.toString() + '\n'
 }
 
 /**
