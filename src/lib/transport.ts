@@ -6,6 +6,7 @@
 import { Transport, WeightedConnectionPool, UndiciConnection } from '@elastic/transport'
 import type { ApiKeyAuth } from '@elastic/transport'
 import { getResolvedConfig } from '../config/store.ts'
+import { clientHeaders } from './meta.ts'
 
 /** cached Transport instance — created lazily on first call to `getTransport()` */
 let _transport: Transport | undefined
@@ -62,7 +63,7 @@ export function getTransport(): Transport {
   })
   pool.addConnection(url)
 
-  _transport = new Transport({ connectionPool: pool })
+  _transport = new Transport({ connectionPool: pool, headers: clientHeaders() })
   return _transport
 }
 
