@@ -56,29 +56,29 @@ describe('registerCloudCommands', () => {
   })
 
   describe('default API definitions', () => {
-    it('includes deployments and projects namespaces by default', () => {
+    it('includes all expected namespaces by default', () => {
       const group = registerCloudCommands()
       const subcommands = group.commands.map((c) => c.name())
       assert.ok(subcommands.includes('deployments'), 'should have deployments')
-      assert.ok(subcommands.includes('projects'), 'should have projects')
+      assert.ok(subcommands.includes('accounts'), 'should have accounts')
+      assert.ok(subcommands.includes('extensions'), 'should have extensions')
     })
 
     it('deployments namespace has list, get, and shutdown commands', () => {
       const group = registerCloudCommands()
       const deploymentsGroup = group.commands.find((c) => c.name() === 'deployments')!
       const leafNames = deploymentsGroup.commands.map((c) => c.name())
-      assert.ok(leafNames.includes('list'))
-      assert.ok(leafNames.includes('get'))
-      assert.ok(leafNames.includes('shutdown'))
+      assert.ok(leafNames.includes('list-deployments'))
+      assert.ok(leafNames.includes('get-deployment'))
+      assert.ok(leafNames.includes('shutdown-deployment'))
     })
 
-    it('projects namespace has list, get, and delete commands', () => {
+    it('accounts namespace has get and update commands', () => {
       const group = registerCloudCommands()
-      const projectsGroup = group.commands.find((c) => c.name() === 'projects')!
-      const leafNames = projectsGroup.commands.map((c) => c.name())
-      assert.ok(leafNames.includes('list'))
-      assert.ok(leafNames.includes('get'))
-      assert.ok(leafNames.includes('delete'))
+      const accountsGroup = group.commands.find((c) => c.name() === 'accounts')!
+      const leafNames = accountsGroup.commands.map((c) => c.name())
+      assert.ok(leafNames.includes('get-current-account'))
+      assert.ok(leafNames.includes('update-current-account'))
     })
   })
 })

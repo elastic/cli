@@ -8,7 +8,7 @@ import { defineCommand, defineGroup } from '../factory.ts'
 import type { OpaqueCommandHandle } from '../factory.ts'
 import type { CloudApiDefinition, CloudPathParam, CloudQueryParam } from './types.ts'
 import { validateCloudApiDefinition } from './types.ts'
-import { allCloudApis } from './apis/index.ts'
+import { allCloudApis } from './apis.ts'
 import { createCloudHandler } from './handler.ts'
 
 /**
