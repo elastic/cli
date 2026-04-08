@@ -9,6 +9,7 @@ import type { OpaqueCommandHandle } from '../factory.ts'
 import type { CloudApiDefinition, CloudPathParam, CloudQueryParam } from './types.ts'
 import { validateCloudApiDefinition } from './types.ts'
 import { allCloudApis } from './apis.ts'
+import { allServerlessApis } from './serverless-apis.ts'
 import { createCloudHandler } from './handler.ts'
 
 /**
@@ -70,7 +71,7 @@ function queryParamToZod(q: CloudQueryParam): z.ZodType {
  * @returns an `OpaqueCommandHandle` for the top-level `cloud` group
  */
 export function registerCloudCommands(
-  definitions: CloudApiDefinition[] = allCloudApis,
+  definitions: CloudApiDefinition[] = [...allCloudApis, ...allServerlessApis],
 ): OpaqueCommandHandle {
   for (const def of definitions) {
     validateCloudApiDefinition(def)

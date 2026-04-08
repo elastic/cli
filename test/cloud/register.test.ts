@@ -56,12 +56,15 @@ describe('registerCloudCommands', () => {
   })
 
   describe('default API definitions', () => {
-    it('includes all expected namespaces by default', () => {
+    it('includes cloud and serverless namespaces by default', () => {
       const group = registerCloudCommands()
       const subcommands = group.commands.map((c) => c.name())
       assert.ok(subcommands.includes('deployments'), 'should have deployments')
       assert.ok(subcommands.includes('accounts'), 'should have accounts')
       assert.ok(subcommands.includes('extensions'), 'should have extensions')
+      assert.ok(subcommands.includes('elasticsearch-projects'), 'should have elasticsearch-projects')
+      assert.ok(subcommands.includes('regions'), 'should have regions')
+      assert.ok(subcommands.includes('traffic-filters'), 'should have traffic-filters')
     })
 
     it('deployments namespace has list, get, and shutdown commands', () => {
@@ -79,6 +82,16 @@ describe('registerCloudCommands', () => {
       const leafNames = accountsGroup.commands.map((c) => c.name())
       assert.ok(leafNames.includes('get-current-account'))
       assert.ok(leafNames.includes('update-current-account'))
+    })
+
+    it('elasticsearch-projects namespace has CRUD commands', () => {
+      const group = registerCloudCommands()
+      const esProjects = group.commands.find((c) => c.name() === 'elasticsearch-projects')!
+      const leafNames = esProjects.commands.map((c) => c.name())
+      assert.ok(leafNames.includes('list-elasticsearch-projects'))
+      assert.ok(leafNames.includes('get-elasticsearch-project'))
+      assert.ok(leafNames.includes('delete-elasticsearch-project'))
+      assert.ok(leafNames.includes('create-elasticsearch-project'))
     })
   })
 })
