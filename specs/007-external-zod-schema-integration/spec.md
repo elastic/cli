@@ -111,7 +111,7 @@ All existing hand-authored ES API commands (currently defined via `EsApiDefiniti
 - **SC-001**: All existing CLI commands continue to pass their tests after the schema-handling layer is updated to support `found_in` metadata and hand-authored commands are migrated
 - **SC-002**: A command generated from an `@elastic/zod` schema with path, query, and body parameters produces outbound HTTP requests with each parameter in the correct location, validated by integration tests covering at least 3 distinct routing combinations
 - **SC-003**: Command registration time (from import to CLI-ready) does not increase by more than 10% compared to the baseline when consuming schemas from `@elastic/zod`
-- **SC-004**: Help output for a generated command correctly labels each parameter's routing location, verifiable without executing an actual API request
+- ~~**SC-004**: Help output for a generated command correctly labels each parameter's routing location, verifiable without executing an actual API request~~ *(removed -- FR-006 was removed; routing metadata is not exposed in help output)*
 - **SC-005**: After migration, no references to the old `pathParams[]`, `queryParams[]`, or separate `body` field structure remain in API definitions
 
 ## Assumptions

@@ -56,8 +56,6 @@ describe('EsApiDefinition types', () => {
     assert.equal(def.name, 'search')
     assert.equal(def.namespace, undefined)
   })
-
-
 describe('HttpMethod', () => {
   it('is a union of the five valid HTTP methods', () => {
     const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD']
@@ -115,8 +113,6 @@ describe('validateApiDefinition', () => {
     const def = { ...validBase(), name: '-health' }
     assert.throws(() => validateApiDefinition(def), /invalid.*name/i)
   })
-
-
   it('rejects a path that does not start with /', () => {
     const def = { ...validBase(), path: '_cat/health' }
     assert.throws(() => validateApiDefinition(def), /path.*must start/i)
@@ -165,7 +161,7 @@ describe('validateApiDefinition', () => {
   })
 })
 
-describe('validateApiDefinition — unified input schema (US1)', () => {
+describe('validateApiDefinition -- unified input schema', () => {
   function validBase(): EsApiDefinition {
     return {
       name: 'health',

@@ -853,7 +853,7 @@ describe('defineCommand', () => {
   })
 
   describe('JSON input support', () => {
-    it('registers --file <path> option when input is a Zod schema', () => {
+    it('registers --input-file <path> option when input is a Zod schema', () => {
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
@@ -861,17 +861,17 @@ describe('defineCommand', () => {
         handler: () => ({}),
       })
       const helpText = cmd.helpInformation()
-      assert.ok(helpText.includes('--input-file'), `expected --file in help text:\n${helpText}`)
+      assert.ok(helpText.includes('--input-file'), `expected --input-file in help text:\n${helpText}`)
     })
 
-    it('does NOT register --file option when input is omitted', () => {
+    it('does NOT register --input-file option when input is omitted', () => {
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
         handler: () => ({}),
       })
       const helpText = cmd.helpInformation()
-      assert.ok(!helpText.includes('--input-file'), `expected no --file in help text:\n${helpText}`)
+      assert.ok(!helpText.includes('--input-file'), `expected no --input-file in help text:\n${helpText}`)
     })
 
     it('throws at definition time when options contains long: \'input-file\' and input is a schema', () => {
@@ -935,7 +935,7 @@ describe('defineCommand', () => {
     })
   })
 
-  describe('JSON input via --file', () => {
+  describe('JSON input via --input-file', () => {
     let tmpDir: string
 
     before(() => {
@@ -954,7 +954,7 @@ describe('defineCommand', () => {
       Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
     })
 
-    it('handler receives parsed JSON in parsed.input when --file points to a valid JSON file', async () => {
+    it('handler receives parsed JSON in parsed.input when --input-file points to a valid JSON file', async () => {
       const filePath = join(tmpDir, 'valid.json')
       writeFileSync(filePath, JSON.stringify({ cluster: 'test', shards: 5 }))
       const received: ParsedResult[] = []
@@ -969,7 +969,7 @@ describe('defineCommand', () => {
       assert.deepEqual(received[0].input, { cluster: 'test', shards: 5 })
     })
 
-    it('errors with descriptive message when --file points to a nonexistent file', async () => {
+    it('errors with descriptive message when --input-file points to a nonexistent file', async () => {
       const nonexistent = join(tmpDir, 'does-not-exist.json')
       const cmd = defineCommand({
         name: 'query',
@@ -981,7 +981,7 @@ describe('defineCommand', () => {
       assert.match(err, /--input-file: file not found:/)
     })
 
-    it('errors with descriptive message when --file points to a file with malformed JSON', async () => {
+    it('errors with descriptive message when --input-file points to a file with malformed JSON', async () => {
       const filePath = join(tmpDir, 'bad.json')
       writeFileSync(filePath, 'not { valid } json ][')
       const cmd = defineCommand({
@@ -994,7 +994,7 @@ describe('defineCommand', () => {
       assert.match(err, /--input-file: invalid JSON:/)
     })
 
-    it('errors with "empty content" message when --file points to an empty file', async () => {
+    it('errors with "empty content" message when --input-file points to an empty file', async () => {
       const filePath = join(tmpDir, 'empty.json')
       writeFileSync(filePath, '')
       const cmd = defineCommand({
@@ -1007,7 +1007,7 @@ describe('defineCommand', () => {
       assert.match(err, /--input-file: invalid JSON: empty content/)
     })
 
-    it('parsed.input is undefined when input is a schema, no --file provided, and stdin is a TTY', async () => {
+    it('parsed.input is undefined when input is a schema, no --input-file provided, and stdin is a TTY', async () => {
       const received: ParsedResult[] = []
       const cmd = defineCommand({
         name: 'query',
@@ -1102,7 +1102,7 @@ describe('defineCommand', () => {
       Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
     })
 
-    it('errors with conflict message when both --file and stdin are provided', async () => {
+    it('errors with conflict message when both --input-file and stdin are provided', async () => {
       const filePath = join(tmpDir, 'input.json')
       writeFileSync(filePath, JSON.stringify({ index: 'my-index' }))
       const restore = _testSetStdinReader(() => JSON.stringify({ index: 'other-index' }))
@@ -1162,7 +1162,7 @@ describe('defineCommand', () => {
       Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
     })
 
-    it('handler receives Zod-parsed input when valid JSON is provided via --file', async () => {
+    it('handler receives Zod-parsed input when valid JSON is provided via --input-file', async () => {
       const schema = z.object({ index: z.string(), size: z.number() })
       const filePath = join(tmpDir, 'valid.json')
       writeFileSync(filePath, JSON.stringify({ index: 'logs', size: 10 }))
@@ -1235,7 +1235,7 @@ describe('defineCommand', () => {
         input: schema,
         handler: (parsed) => { received.push(parsed.input); return {} },
       })
-      // stdin is TTY (set in beforeEach), no --file flag - no input provided
+      // stdin is TTY (set in beforeEach), no --input-file flag - no input provided
       await invokeAsync(cmd, [])
       assert.equal(received[0], undefined)
     })
@@ -1346,7 +1346,7 @@ describe('defineCommand', () => {
       })
       assert.ok(
         !cmd.helpInformation().includes('--input-file'),
-        'expected no --file option when input is omitted',
+        'expected no --input-file option when input is omitted',
       )
     })
 
@@ -2176,7 +2176,7 @@ describe('no Commander API leaks', () => {
   })
 
   it('defineCommand return value requires no Commander import to use', () => {
-    // a command author only needs factory imports — they never call new Command() themselves
+    // a command author only needs factory imports -- they never call new Command() themselves
     const handle: OpaqueCommandHandle = defineCommand({
       name: 'ping',
       description: 'Ping the cluster',
@@ -2196,7 +2196,7 @@ describe('no Commander API leaks', () => {
 
   it('OpaqueCommandHandle is sufficient to type a handle without importing from commander', () => {
     // this test is a compile-time assertion: the annotation below must not require
-    // `import type { Command } from 'commander'` — OpaqueCommandHandle covers it
+    // `import type { Command } from 'commander'` -- OpaqueCommandHandle covers it
     function register(handle: OpaqueCommandHandle): string {
       return handle.name()
     }
@@ -2342,7 +2342,7 @@ describe('defineCommand schema input - strict validation', () => {
     Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
   })
 
-  it('valid JSON via --file is accepted when schema has registered CLI args', async () => {
+  it('valid JSON via --input-file is accepted when schema has registered CLI args', async () => {
     const schema = z.object({
       index: z.string().describe('Index'),
       num_shards: z.number().default(1).describe('Shards'),
@@ -2360,7 +2360,7 @@ describe('defineCommand schema input - strict validation', () => {
     assert.deepEqual(captured, { index: 'logs', num_shards: 3 })
   })
 
-  it('JSON via --file with an unknown key is rejected with a validation error', async () => {
+  it('JSON via --input-file with an unknown key is rejected with a validation error', async () => {
     const schema = z.object({ index: z.string().describe('Index') })
     const filePath = join(tmpDir, 'unknown-key.json')
     writeFileSync(filePath, JSON.stringify({ index: 'foo', bogus: 1 }))
@@ -2691,7 +2691,7 @@ describe('JSON schema in help output', () => {
   })
 })
 
-describe('JSON schema in help output — transport meta stripping', () => {
+describe('JSON schema in help output -- transport meta stripping', () => {
   async function captureJsonHelp(cmd: OpaqueCommandHandle): Promise<Record<string, unknown>> {
     const { Command } = await import('commander')
     const prog = new Command('elastic')

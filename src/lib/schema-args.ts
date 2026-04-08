@@ -78,7 +78,7 @@ interface ZodFieldDef {
 function unwrapField (field: z.ZodType): { typeName: string, isOptional: boolean, defaultValue?: unknown } {
   const def = field.def as ZodFieldDef
   // date/bigint/symbol/undefined/void/never cannot be represented in JSON Schema
-  // and would cause z.toJSONSchema() to throw when help is rendered — fail fast here
+  // and would cause z.toJSONSchema() to throw when help is rendered -- fail fast here
   if (def.type === 'date') {
     throw new Error('Date cannot be represented in JSON Schema: use z.string() with an ISO-8601 description instead of z.date()')
   }
@@ -113,7 +113,7 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
     const { typeName, isOptional, defaultValue } = unwrapField(fieldSchema as z.ZodType)
     const type = (CLI_TYPES.has(typeName) ? typeName : 'string') as SchemaArgDefinition['type']
 
-    // Read description from the Zod globalRegistry — much faster than calling
+    // Read description from the Zod globalRegistry -- much faster than calling
     // .toJSONSchema() per field, which would force lazy-schema evaluation.
     // The outer field may carry found_in meta while the inner type (unwrapped from
     // optional/default) carries the description, so we check both levels.

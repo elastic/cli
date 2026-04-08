@@ -12,6 +12,21 @@ import type { SchemaArgDefinition } from '../lib/schema-args.ts'
 import { allApis } from './apis.ts'
 import { createEsHandler } from './handler.ts'
 
+/** Builds a leaf command handle from a definition and its pre-computed schema args. */
+function buildLeafHandle (
+  def: EsApiDefinition,
+  defSchemaArgs: Map<EsApiDefinition, SchemaArgDefinition[]>
+): OpaqueCommandHandle {
+  const schema = def.input != null ? resolveInput(def.input) : z.looseObject({})
+  const schemaArgs = defSchemaArgs.get(def) ?? []
+  return defineCommand({
+    name: def.name,
+    description: def.description,
+    input: schema,
+    handler: createEsHandler(def, schemaArgs)
+  })
+}
+
 /**
  * Registers all Elasticsearch API commands under a top-level `es` group.
  *
@@ -76,18 +91,7 @@ export function registerEsCommands (
       seen.add(def.name)
     }
 
-    const leafHandles = defs.map((def) => {
-      // resolve thunk or direct schema; fall back to empty loose schema when absent
-      const schema = def.input != null ? resolveInput(def.input) : z.looseObject({})
-      // reuse schemaArgs already computed by validateApiDefinition — no second pass
-      const schemaArgs = defSchemaArgs.get(def) ?? []
-      return defineCommand({
-        name: def.name,
-        description: def.description,
-        input: schema,
-        handler: createEsHandler(def, schemaArgs)
-      })
-    })
+    const leafHandles = defs.map((def) => buildLeafHandle(def, defSchemaArgs))
 
     namespaceHandles.push(
       defineGroup({ name: namespace, description: `Elasticsearch ${namespace} API commands` }, ...leafHandles)
@@ -101,15 +105,7 @@ export function registerEsCommands (
       throw new Error(`duplicate command name "${def.name}" at the top level of es`)
     }
     topLevelNames.add(def.name)
-
-    const schema = def.input != null ? resolveInput(def.input) : z.looseObject({})
-    const schemaArgs = defSchemaArgs.get(def) ?? []
-    rootHandles.push(defineCommand({
-      name: def.name,
-      description: def.description,
-      input: schema,
-      handler: createEsHandler(def, schemaArgs)
-    }))
+    rootHandles.push(buildLeafHandle(def, defSchemaArgs))
   }
 
   return defineGroup({ name: 'es', description: 'Interact with the Elasticsearch API' }, ...namespaceHandles, ...rootHandles)

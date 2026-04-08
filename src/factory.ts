@@ -71,7 +71,7 @@ export type JsonValue = string | number | boolean | null | JsonValue[] | { [key:
  *   name: 'search',
  *   input: schema,
  *   handler: (parsed: ParsedResult<z.infer<typeof schema>>) => {
- *     // parsed.input is { index: string; size: number } — fully typed
+ *     // parsed.input is { index: string; size: number } -- fully typed
  *   },
  * })
  * ```
@@ -153,7 +153,7 @@ export interface GroupConfig {
  * Opaque handle returned by {@link defineCommand} and {@link defineGroup}.
  *
  * Callers may pass this handle to {@link defineGroup} or register it with the CLI program
- * via `program.addCommand(handle)`. Do not depend on the internal structure of this type —
+ * via `program.addCommand(handle)`. Do not depend on the internal structure of this type --
  * the underlying implementation may change without notice.
  */
 export type OpaqueCommandHandle = import('commander').Command

@@ -7,7 +7,7 @@ import { Transport, WeightedConnectionPool, UndiciConnection } from '@elastic/tr
 import type { ApiKeyAuth } from '@elastic/transport'
 import { getResolvedConfig } from '../config/store.ts'
 
-/** cached Transport instance — created lazily on first call to `getTransport()` */
+/** cached Transport instance -- created lazily on first call to `getTransport()` */
 let _transport: Transport | undefined
 
 /**
@@ -69,7 +69,7 @@ export function getTransport (): Transport {
 /**
  * Resets the cached Transport instance.
  *
- * @internal test seam — call in `afterEach` to prevent instance reuse across tests
+ * @internal test seam -- call in `afterEach` to prevent instance reuse across tests
  */
 export function _testResetTransport (): void {
   _transport = undefined

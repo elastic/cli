@@ -145,84 +145,15 @@ describe('buildRequestParams', () => {
     const result = buildRequestParams(def, parsedResult({ index: 'logs', v: true }), args(input))
     assert.equal(result.body, undefined)
   })
-})
 
-describe('buildRequestParams — unified input schema (US1)', () => {
-  it('routes a found_in: "path" param into the URL path', () => {
-    const input = z.looseObject({ index: z.string().meta({ found_in: 'path' }) })
-    const def = makeDefinition({ path: '/{index}', input })
-    const result = buildRequestParams(def, parsedResult({ index: 'my-index' }), args(input))
-    assert.equal(result.path, '/my-index')
-  })
-
-  it('routes a found_in: "query" param into the querystring using schema key (snake_case)', () => {
-    const input = z.looseObject({ master_timeout: z.string().optional().meta({ found_in: 'query' }) })
-    const def = makeDefinition({ input })
-    const result = buildRequestParams(def, parsedResult({ master_timeout: '30s' }), args(input))
-    assert.deepEqual(result.querystring, { master_timeout: '30s' })
-  })
-
-  it('routes a found_in: "body" param into the request body', () => {
-    const input = z.looseObject({ settings: z.record(z.string(), z.unknown()).optional().meta({ found_in: 'body' }) })
-    const def = makeDefinition({ method: 'PUT', input })
-    const result = buildRequestParams(def, parsedResult({ settings: { number_of_shards: 1 } }), args(input))
-    assert.deepEqual(result.body, { settings: { number_of_shards: 1 } })
-  })
-
-  it('routes mixed path + query + body params correctly from a single schema', () => {
-    const input = z.looseObject({
-      index: z.string().meta({ found_in: 'path' }),
-      master_timeout: z.string().optional().meta({ found_in: 'query' }),
-      settings: z.record(z.string(), z.unknown()).optional().meta({ found_in: 'body' }),
-    })
-    const def = makeDefinition({ method: 'PUT', path: '/{index}', input })
-    const result = buildRequestParams(def, parsedResult({
-      index: 'logs',
-      master_timeout: '30s',
-      settings: { number_of_shards: 1 },
-    }), args(input))
-    assert.equal(result.path, '/logs')
-    assert.deepEqual(result.querystring, { master_timeout: '30s' })
-    assert.deepEqual(result.body, { settings: { number_of_shards: 1 } })
-  })
-
-  it('defaults params without found_in to body', () => {
+  it('defaults params without found_in metadata to body', () => {
     const input = z.looseObject({ mappings: z.record(z.string(), z.unknown()).optional() })
     const def = makeDefinition({ method: 'PUT', input })
     const result = buildRequestParams(def, parsedResult({ mappings: { dynamic: false } }), args(input))
     assert.deepEqual(result.body, { mappings: { dynamic: false } })
   })
 
-  it('strips optional absent path params from the URL', () => {
-    const input = z.looseObject({ index: z.string().optional().meta({ found_in: 'path' }) })
-    const def = makeDefinition({ path: '/_cat/shards/{index}', input })
-    const result = buildRequestParams(def, parsedResult(), args(input))
-    assert.equal(result.path, '/_cat/shards')
-  })
-})
-
-describe('buildRequestParams — external schema consumption (US2)', () => {
-  it('routes correctly with an externally defined schema with found_in metadata', () => {
-    // simulates a schema imported from @elastic/zod/indices
-    const externalSchema = z.looseObject({
-      index: z.string().describe('Target index').meta({ found_in: 'path' }),
-      master_timeout: z.string().optional().describe('Master timeout').meta({ found_in: 'query' }),
-      settings: z.record(z.string(), z.unknown()).optional().describe('Index settings').meta({ found_in: 'body' }),
-    })
-    const def = makeDefinition({ method: 'PUT', path: '/{index}', input: externalSchema })
-    const schemaArgs = extractSchemaArgs(externalSchema)
-    const result = buildRequestParams(def, parsedResult({
-      index: 'my-index',
-      master_timeout: '30s',
-      settings: { number_of_shards: 1 },
-    }), schemaArgs)
-    assert.equal(result.path, '/my-index')
-    assert.deepEqual(result.querystring, { master_timeout: '30s' })
-    assert.deepEqual(result.body, { settings: { number_of_shards: 1 } })
-  })
-
   it('works with meta applied inside .optional() wrapper (defensive traversal)', () => {
-    // simulates an external schema where .meta() is placed before .optional()
     const externalSchema = z.looseObject({
       index: z.string().meta({ found_in: 'path' }),
       pretty: z.boolean().meta({ found_in: 'query' }).optional(),

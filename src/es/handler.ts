@@ -33,7 +33,7 @@ const defaultDeps: EsHandlerDeps = { getTransport, buildRequestParams }
  * 1. Calls `buildRequestParams(def, parsed, schemaArgs)` to assemble the transport request,
  *    routing each parameter by its `found_in` metadata.
  * 2. Calls `getTransport()` to obtain the cached transport instance (throws `missing_config`
- *    if no Elasticsearch is configured — caught and returned as a structured error).
+ *    if no Elasticsearch is configured -- caught and returned as a structured error).
  * 3. Calls `transport.request(params)` and handles the response based on `def.responseType`:
  *    - `"text"`: returns the raw body string
  *    - `"json"` (default): returns the parsed body object

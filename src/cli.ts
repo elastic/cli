@@ -24,7 +24,7 @@ program
   .option('--json', 'output as JSON')
 
 // Before every sub-command action, load and resolve the config file.
-// On error, print a structured message and exit — never let a config failure
+// On error, print a structured message and exit -- never let a config failure
 // silently propagate into the command handler.
 program.hook('preAction', async (thisCommand) => {
   const { configFile: configPath, useContext: contextName } = thisCommand.opts()
@@ -38,7 +38,7 @@ program.hook('preAction', async (thisCommand) => {
 })
 
 // All sub-commands are defined via the factory and registered here with addCommand().
-// Never use program.command() or new Command() directly for sub-commands — always go
+// Never use program.command() or new Command() directly for sub-commands -- always go
 // through defineCommand() or defineGroup() so cross-cutting concerns are applied uniformly.
 
 const versionCmd = defineCommand({

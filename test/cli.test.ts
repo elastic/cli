@@ -9,7 +9,7 @@ import { Command } from 'commander'
 
 /**
  * Smoke-tests for the top-level program structure in cli.ts.
- * We import the program indirectly by recreating its option set here —
+ * We import the program indirectly by recreating its option set here --
  * the integration point is the flag names and subcommand names that
  * registerEsCommands() and defineCommand() produce.
  */
@@ -23,7 +23,7 @@ function makeProgram(): InstanceType<typeof Command> {
   return prog
 }
 
-describe('elastic CLI — global flags', () => {
+describe('elastic CLI -- global flags', () => {
   it('registers --config-file as a string option', () => {
     const prog = makeProgram()
     const opt = prog.options.find((o) => o.long === '--config-file')

@@ -9,7 +9,7 @@ import { z } from 'zod'
  * Zod schemas for configuration file validation.
  *
  * Schemas are organized from bottom-up:
- * 1. Auth schemas: inferred union (api_key | basic) — type is inferred from present fields
+ * 1. Auth schemas: inferred union (api_key | basic) -- type is inferred from present fields
  * 2. ServiceBlock schema: url + auth
  * 3. Context schema: at least one service block (elasticsearch/kibana/cloud)
  * 4. ConfigFile root schema: current_context + contexts map (z.record) + cross-field refinement
@@ -29,7 +29,7 @@ export const BasicAuthSchema = z.looseObject({
   password: z.string().min(1)
 })
 
-/** Union of all supported auth variants — type is inferred from whichever fields are present. */
+/** Union of all supported auth variants -- type is inferred from whichever fields are present. */
 export const AuthSchema = z.union([ApiKeyAuthSchema, BasicAuthSchema])
 
 /** Endpoint URL and authentication credentials for a single service. */

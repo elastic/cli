@@ -46,7 +46,7 @@ export function createExplorer () {
  * Resolves a named context from a validated config into a `ResolvedConfig`.
  *
  * Only the service blocks that are actually defined in the context are
- * included in the returned object — absent services are not present as
+ * included in the returned object -- absent services are not present as
  * `undefined` keys.
  *
  * Precondition: `contextName` must be a key that exists in `config.contexts`.
@@ -94,7 +94,7 @@ export type LoadConfigResult = LoadConfigOk | LoadConfigErr
  * 3. Resolve the active context (from `contextName` override or `current_context`)
  * 4. Return a typed `ResolvedConfig`
  *
- * All failure modes return `{ ok: false, error: { message } }` — never throw.
+ * All failure modes return `{ ok: false, error: { message } }` -- never throw.
  *
  * @param options - Optional overrides for search root, config path, and context name.
  * @returns A `LoadConfigResult` discriminated union.
