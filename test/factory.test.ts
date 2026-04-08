@@ -2315,14 +2315,14 @@ describe('command policy enforcement', () => {
     assert.equal(handlerCalled, true)
   })
 
-  it('emits structured JSON error when --format=json and command is blocked', async () => {
+  it('emits structured JSON error when --json and command is blocked', async () => {
     setResolvedConfig({ context: {}, commands: { allowed: ['ping'] } })
     const cmd = defineCommand({
       name: 'search',
       description: 'Search',
       handler: () => ({}),
     })
-    const out = await invokeUnderRoot(cmd, ['--format', 'json'], [])
+    const out = await invokeUnderRoot(cmd, ['--json'], [])
     const parsed = JSON.parse(out) as Record<string, unknown>
     assert.ok('error' in parsed)
     const err = parsed['error'] as Record<string, unknown>

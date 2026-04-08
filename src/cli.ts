@@ -6,9 +6,7 @@
 
 import { Command } from 'commander'
 import { createRequire } from 'node:module'
-import { defineCommand, hideBlockedCommands } from './factory.js'
-import type { ParsedResult } from './factory.js'
-import { registerEsCommands } from './es/register.ts'
+import { defineCommand, defineGroup, hideBlockedCommands } from './factory.js'
 import { loadConfig } from './config/loader.ts'
 import { setResolvedConfig } from './config/store.ts'
 

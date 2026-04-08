@@ -207,11 +207,8 @@ export function isCommandAllowed(commandDotPath: string, policy: CommandPolicy |
 }
 
 // Commander checks `_hidden` to exclude commands from --help, but the
-// property isn't in the public typings — these one-line wrappers avoid
-// repeating the cast at every call site.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// property isn't in the public typings —
 function setHidden(cmd: OpaqueCommandHandle, value: boolean): void { (cmd as any)._hidden = value }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isHidden(cmd: OpaqueCommandHandle): boolean { return (cmd as any)._hidden === true }
 
 /**
@@ -595,7 +592,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       // if mounted under a root program (e.g. "elastic"), strip that first segment
       const dotPath = (parts.length > 1 ? parts.slice(1) : parts).join('.')
       if (!isCommandAllowed(dotPath, resolvedConfig.commands)) {
-        if (fmt === 'json') {
+        if (jsonFormat === true) {
           process.stdout.write(JSON.stringify({
             error: {
               code: 'command_blocked',
