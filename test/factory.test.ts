@@ -2876,12 +2876,12 @@ async function captureErrAsync(handle: OpaqueCommandHandle, argv: string[]): Pro
   return err
 }
 
-/** captures everything written to process.stdout during fn() */
-async function captureStdout(fn: () => Promise<void>): Promise<string> {
+/** captures everything written to process.stdout during fn(), even if fn throws */
+async function captureStdout(fn: () => Promise<unknown>): Promise<string> {
   let out = ''
   const orig = process.stdout.write.bind(process.stdout)
   process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
-  try { await fn() } finally { process.stdout.write = orig }
+  try { await fn() } catch { /* swallow — caller inspects captured output */ } finally { process.stdout.write = orig }
   return out
 }
 
