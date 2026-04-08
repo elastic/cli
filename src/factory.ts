@@ -206,6 +206,33 @@ export function isCommandAllowed(commandDotPath: string, policy: CommandPolicy |
   return true
 }
 
+// Commander checks `_hidden` to exclude commands from --help, but the
+// property isn't in the public typings — these one-line wrappers avoid
+// repeating the cast at every call site.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function setHidden(cmd: OpaqueCommandHandle, value: boolean): void { (cmd as any)._hidden = value }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isHidden(cmd: OpaqueCommandHandle): boolean { return (cmd as any)._hidden === true }
+
+/**
+ * Walk the command tree and hide any commands the policy blocks.
+ * Groups where every child is hidden are hidden too.
+ * Call on the root program so dot-paths like `es.cat.health` are built correctly.
+ */
+export function hideBlockedCommands(root: OpaqueCommandHandle, policy: CommandPolicy | undefined, prefix = ''): void {
+  if (policy == null) return
+  for (const child of root.commands as OpaqueCommandHandle[]) {
+    const path = prefix ? `${prefix}.${child.name()}` : child.name()
+    const subs = child.commands as OpaqueCommandHandle[]
+    if (subs.length > 0) {
+      hideBlockedCommands(child, policy, path)
+      if (subs.every(isHidden)) setHidden(child, true)
+    } else {
+      setHidden(child, !isCommandAllowed(path, policy))
+    }
+  }
+}
+
 /** converts a kebab-case option name to camelCase to match Commander's opts() keys */
 function camelCase(s: string): string {
   return s.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())

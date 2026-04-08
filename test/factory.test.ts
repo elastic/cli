@@ -15,8 +15,9 @@ import type {
   GroupConfig,
   OpaqueCommandHandle,
 } from '../src/factory.ts'
-import { defineCommand, defineGroup, _testSetStdinReader, isCommandAllowed } from '../src/factory.ts'
+import { defineCommand, defineGroup, _testSetStdinReader, isCommandAllowed, hideBlockedCommands } from '../src/factory.ts'
 import { setResolvedConfig, _testResetConfig } from '../src/config/store.ts'
+import { Command } from 'commander'
 import { z } from 'zod'
 describe('factory types', () => {
   it('OptionDefinition accepts required fields', () => {
@@ -2311,11 +2312,83 @@ describe('command policy enforcement', () => {
   })
 })
 
+describe('hideBlockedCommands', () => {
+  function makeRoot(...cmds: OpaqueCommandHandle[]): OpaqueCommandHandle {
+    const prog = new Command('elastic')
+    for (const c of cmds) prog.addCommand(c)
+    return prog as OpaqueCommandHandle
+  }
+
+  it('sets _hidden on a blocked leaf command', () => {
+    const cmd = defineCommand({ name: 'search', description: 'Search', handler: () => ({}) })
+    const group = defineGroup({ name: 'es', description: 'ES' }, cmd)
+    const root = makeRoot(group)
+    hideBlockedCommands(root, { blocked: ['es.search'] })
+    assert.equal((cmd as unknown as Record<string, boolean>)['_hidden'], true)
+  })
+
+  it('does not hide an allowed leaf command', () => {
+    const cmd = defineCommand({ name: 'search', description: 'Search', handler: () => ({}) })
+    const group = defineGroup({ name: 'es', description: 'ES' }, cmd)
+    const root = makeRoot(group)
+    hideBlockedCommands(root, { allowed: ['es.search'] })
+    assert.equal((cmd as unknown as Record<string, boolean>)['_hidden'], false)
+  })
+
+  it('hides a group when all its children are blocked', () => {
+    const cmd1 = defineCommand({ name: 'health', description: 'Health', handler: () => ({}) })
+    const cmd2 = defineCommand({ name: 'shards', description: 'Shards', handler: () => ({}) })
+    const group = defineGroup({ name: 'cat', description: 'Cat APIs' }, cmd1, cmd2)
+    const root = makeRoot(group)
+    hideBlockedCommands(root, { blocked: ['cat.health', 'cat.shards'] })
+    assert.equal((group as unknown as Record<string, boolean>)['_hidden'], true)
+  })
+
+  it('does not hide a group when at least one child is allowed', () => {
+    const cmd1 = defineCommand({ name: 'health', description: 'Health', handler: () => ({}) })
+    const cmd2 = defineCommand({ name: 'shards', description: 'Shards', handler: () => ({}) })
+    const group = defineGroup({ name: 'cat', description: 'Cat APIs' }, cmd1, cmd2)
+    const root = makeRoot(group)
+    hideBlockedCommands(root, { blocked: ['cat.health'] })
+    assert.equal((group as unknown as Record<string, boolean>)['_hidden'], false)
+    assert.equal((cmd1 as unknown as Record<string, boolean>)['_hidden'], true)
+    assert.equal((cmd2 as unknown as Record<string, boolean>)['_hidden'], false)
+  })
+
+  it('wildcard pattern hides all children under a namespace', () => {
+    const cmd1 = defineCommand({ name: 'health', description: 'Health', handler: () => ({}) })
+    const cmd2 = defineCommand({ name: 'shards', description: 'Shards', handler: () => ({}) })
+    const group = defineGroup({ name: 'cat', description: 'Cat APIs' }, cmd1, cmd2)
+    const root = makeRoot(group)
+    hideBlockedCommands(root, { blocked: ['cat.*'] })
+    assert.equal((cmd1 as unknown as Record<string, boolean>)['_hidden'], true)
+    assert.equal((cmd2 as unknown as Record<string, boolean>)['_hidden'], true)
+    assert.equal((group as unknown as Record<string, boolean>)['_hidden'], true)
+  })
+
+  it('does nothing when policy is undefined', () => {
+    const cmd = defineCommand({ name: 'ping', description: 'Ping', handler: () => ({}) })
+    const root = makeRoot(cmd)
+    hideBlockedCommands(root, undefined)
+    assert.equal((cmd as unknown as Record<string, boolean>)['_hidden'], false)
+  })
+
+  it('works with nested groups', () => {
+    const leaf = defineCommand({ name: 'get', description: 'Get', handler: () => ({}) })
+    const inner = defineGroup({ name: 'indices', description: 'Indices' }, leaf)
+    const outer = defineGroup({ name: 'es', description: 'ES' }, inner)
+    const root = makeRoot(outer)
+    hideBlockedCommands(root, { blocked: ['es.indices.get'] })
+    assert.equal((leaf as unknown as Record<string, boolean>)['_hidden'], true)
+    assert.equal((inner as unknown as Record<string, boolean>)['_hidden'], true)
+  })
+})
+
 describe('no Commander API leaks', () => {
   it('factory module exports only public API and test seam at runtime', async () => {
     const factory = await import('../src/factory.ts')
     const exported = Object.keys(factory)
-    assert.deepEqual(exported.sort(), ['_testSetStdinReader', 'defineCommand', 'defineGroup', 'isCommandAllowed'])
+    assert.deepEqual(exported.sort(), ['_testSetStdinReader', 'defineCommand', 'defineGroup', 'hideBlockedCommands', 'isCommandAllowed'])
   })
 
   it('defineCommand return value requires no Commander import to use', () => {

@@ -6,7 +6,7 @@
 
 import { Command } from 'commander'
 import { createRequire } from 'node:module'
-import { defineCommand } from './factory.js'
+import { defineCommand, hideBlockedCommands } from './factory.js'
 import type { ParsedResult } from './factory.js'
 import { registerEsCommands } from './es/register.ts'
 import { loadConfig } from './config/loader.ts'
@@ -57,9 +57,18 @@ const pingCmd = defineCommand({
 program.addCommand(pingCmd)
 program.addCommand(registerEsCommands())
 
+// Load config before Commander parses so --help can hide blocked commands.
+// Uses cosmiconfig auto-discovery (the preAction hook re-loads with any
+// --config/--context overrides when an actual command runs).
+const earlyResult = await loadConfig({})
+if (earlyResult.ok) {
+  setResolvedConfig(earlyResult.value)
+  hideBlockedCommands(program, earlyResult.value.commands)
+}
+
 if (process.argv.slice(2).length === 0) {
   program.outputHelp()
   process.exit(0)
 }
 
-program.parseAsync(process.argv)
+await program.parseAsync(process.argv)
