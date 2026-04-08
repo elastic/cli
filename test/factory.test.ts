@@ -16,7 +16,7 @@ import type {
   OpaqueCommandHandle,
 } from '../src/factory.ts'
 import { defineCommand, defineGroup, _testSetStdinReader, isCommandAllowed } from '../src/factory.ts'
-import { setResolvedConfig } from '../src/config/store.ts'
+import { setResolvedConfig, _testResetConfig } from '../src/config/store.ts'
 import { z } from 'zod'
 describe('factory types', () => {
   it('OptionDefinition accepts required fields', () => {
@@ -2211,8 +2211,7 @@ describe('isCommandAllowed', () => {
 
 describe('command policy enforcement', () => {
   afterEach(() => {
-    // reset store between tests so policy doesn't bleed across
-    setResolvedConfig({ context: {} })
+    _testResetConfig()
   })
 
   it('allowed list: blocks a command not in the list and skips handler', async () => {

@@ -33,3 +33,8 @@ export function setResolvedConfig(config: ResolvedConfig): void {
 export function getResolvedConfig(): ResolvedConfig | undefined {
   return _config
 }
+
+/** Resets the store to its initial state. Intended for test cleanup only. */
+export function _testResetConfig(): void {
+  _config = undefined
+}
