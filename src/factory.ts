@@ -208,8 +208,10 @@ export function isCommandAllowed(commandDotPath: string, policy: CommandPolicy |
 
 // Commander checks `_hidden` to exclude commands from --help, but the
 // property isn't in the public typings —
-function setHidden(cmd: OpaqueCommandHandle, value: boolean): void { (cmd as any)._hidden = value }
-function isHidden(cmd: OpaqueCommandHandle): boolean { return (cmd as any)._hidden === true }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function setHidden(cmd: OpaqueCommandHandle, value: boolean): void { (cmd as unknown as any)._hidden = value }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isHidden(cmd: OpaqueCommandHandle): boolean { return (cmd as unknown as any)._hidden === true }
 
 /**
  * Walk the command tree and hide any commands the policy blocks.
