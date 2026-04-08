@@ -8,7 +8,7 @@ import type {
   AuthSchema,
   ServiceBlockSchema,
   ContextSchema,
-  ConfigFileSchema,
+  ConfigFileSchema
 } from './schema.ts'
 
 /**
@@ -23,7 +23,7 @@ import type {
  * - ResolvedConfig: Typed config passed to command handlers, wrapping ResolvedContext
  */
 
-/** Union of all supported authentication variants — inferred from present fields. */
+/** Union of all supported authentication variants -- inferred from present fields. */
 export type Auth = z.infer<typeof AuthSchema>
 
 /** Endpoint URL and authentication credentials for a single service. */
@@ -35,7 +35,7 @@ export type Context = z.infer<typeof ContextSchema>
 /** The root configuration file structure. */
 export type ConfigFile = z.infer<typeof ConfigFileSchema>
 
-/** The active context after resolution — only its configured service blocks, no extras. */
+/** The active context after resolution -- only its configured service blocks, no extras. */
 export interface ResolvedContext {
   elasticsearch?: ServiceBlock
   kibana?: ServiceBlock

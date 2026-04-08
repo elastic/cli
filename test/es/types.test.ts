@@ -6,7 +6,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { z } from 'zod'
-import type { EsApiDefinition, EsPathParam, EsQueryParam, HttpMethod } from '../../src/es/types.ts'
+import type { EsApiDefinition, HttpMethod } from '../../src/es/types.ts'
 import { validateApiDefinition } from '../../src/es/types.ts'
 
 describe('EsApiDefinition types', () => {
@@ -22,62 +22,40 @@ describe('EsApiDefinition types', () => {
     assert.equal(def.namespace, 'cat')
     assert.equal(def.method, 'GET')
     assert.equal(def.path, '/_cat/health')
-    assert.equal(def.pathParams, undefined)
-    assert.equal(def.queryParams, undefined)
-    assert.equal(def.body, undefined)
+    assert.equal(def.input, undefined)
     assert.equal(def.responseType, undefined)
   })
 
-  it('accepts a full definition with all optional fields', () => {
-    const body = z.object({ settings: z.record(z.string(), z.unknown()) })
+  it('accepts a full definition with input schema and responseType', () => {
     const def: EsApiDefinition = {
       name: 'create',
       namespace: 'indices',
       description: 'Creates an index',
       method: 'PUT',
       path: '/{index}',
-      pathParams: [{ name: 'index', description: 'Index name', required: true }],
-      queryParams: [
-        { name: 'wait_for_active_shards', type: 'string', description: 'Wait for shards' },
-      ],
-      body,
+      input: z.looseObject({
+        index: z.string().describe('Index name').meta({ found_in: 'path' }),
+        wait_for_active_shards: z.string().optional().describe('Wait for shards').meta({ found_in: 'query' }),
+        settings: z.record(z.string(), z.unknown()).optional().meta({ found_in: 'body' }),
+      }),
       responseType: 'json',
     }
     assert.equal(def.name, 'create')
-    assert.ok(def.pathParams != null && def.pathParams.length === 1)
-    assert.ok(def.queryParams != null && def.queryParams.length === 1)
-    assert.ok(def.body != null)
+    assert.ok(def.input != null)
     assert.equal(def.responseType, 'json')
   })
 })
 
-describe('EsPathParam', () => {
-  it('has correct shape', () => {
-    const param: EsPathParam = {
-      name: 'index',
-      description: 'Index name',
-      required: true,
+  it('accepts a definition without namespace (flat command, no group nesting)', () => {
+    const def: EsApiDefinition = {
+      name: 'search',
+      description: 'Run a search',
+      method: 'GET',
+      path: '/_search',
     }
-    assert.equal(param.name, 'index')
-    assert.equal(param.description, 'Index name')
-    assert.equal(param.required, true)
+    assert.equal(def.name, 'search')
+    assert.equal(def.namespace, undefined)
   })
-})
-
-describe('EsQueryParam', () => {
-  it('accepts cliFlag override', () => {
-    const param: EsQueryParam = {
-      name: 'format',
-      cliFlag: 'response-format',
-      type: 'string',
-      description: 'Response format',
-    }
-    assert.equal(param.name, 'format')
-    assert.equal(param.cliFlag, 'response-format')
-    assert.equal(param.type, 'string')
-  })
-})
-
 describe('HttpMethod', () => {
   it('is a union of the five valid HTTP methods', () => {
     const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD']
@@ -100,13 +78,30 @@ describe('validateApiDefinition', () => {
     assert.doesNotThrow(() => validateApiDefinition(validBase()))
   })
 
-  it('passes a definition with matching pathParams', () => {
+  it('passes a definition with matching path param in input schema', () => {
     const def: EsApiDefinition = {
       ...validBase(),
       path: '/{index}/_cat/health',
-      pathParams: [{ name: 'index', description: 'Index', required: true }],
+      input: z.looseObject({
+        index: z.string().describe('Index').meta({ found_in: 'path' }),
+      }),
     }
     assert.doesNotThrow(() => validateApiDefinition(def))
+  })
+
+  it('passes a definition without namespace', () => {
+    const def: EsApiDefinition = {
+      name: 'search',
+      description: 'Run a search',
+      method: 'GET',
+      path: '/_search',
+    }
+    assert.doesNotThrow(() => validateApiDefinition(def))
+  })
+
+  it('rejects a namespace with invalid characters when namespace is present', () => {
+    const def = { ...validBase(), namespace: 'My_Namespace' }
+    assert.throws(() => validateApiDefinition(def), /invalid.*namespace/i)
   })
 
   it('rejects a name with invalid characters', () => {
@@ -118,56 +113,96 @@ describe('validateApiDefinition', () => {
     const def = { ...validBase(), name: '-health' }
     assert.throws(() => validateApiDefinition(def), /invalid.*name/i)
   })
-
-  it('rejects a namespace with invalid characters', () => {
-    const def = { ...validBase(), namespace: 'My_Namespace' }
-    assert.throws(() => validateApiDefinition(def), /invalid.*namespace/i)
-  })
-
   it('rejects a path that does not start with /', () => {
     const def = { ...validBase(), path: '_cat/health' }
     assert.throws(() => validateApiDefinition(def), /path.*must start/i)
   })
 
-  it('rejects a path param token with no corresponding pathParams entry', () => {
-    const def: EsApiDefinition = { ...validBase(), path: '/{index}/_cat/health' }
-    assert.throws(() => validateApiDefinition(def), /path.*param.*index.*not.*defined|missing.*pathParam/i)
-  })
-
-  it('rejects a required pathParam with no corresponding {token} in path', () => {
+  it('rejects a path token with no corresponding found_in: "path" field in input', () => {
     const def: EsApiDefinition = {
       ...validBase(),
-      path: '/_cat/health',
-      pathParams: [{ name: 'index', description: 'Index', required: true }],
+      path: '/{index}/_cat/health',
+      input: z.looseObject({
+        index: z.string().meta({ found_in: 'query' }),
+      }),
     }
-    assert.throws(() => validateApiDefinition(def), /pathParam.*index.*not.*path|required.*pathParam.*not in path/i)
+    assert.throws(() => validateApiDefinition(def), /path.*param.*index|index.*found_in.*path/i)
   })
 
-  it('allows an optional pathParam with no corresponding {token} in path', () => {
+  it('rejects a path token when input has no fields at all', () => {
+    const def: EsApiDefinition = {
+      ...validBase(),
+      path: '/{index}',
+      input: z.looseObject({}),
+    }
+    assert.throws(() => validateApiDefinition(def), /path.*param.*index/i)
+  })
+
+  it('rejects a found_in: "path" field with no matching {token} in path', () => {
     const def: EsApiDefinition = {
       ...validBase(),
       path: '/_cat/health',
-      pathParams: [{ name: 'index', description: 'Index', required: false }],
+      input: z.looseObject({
+        index: z.string().meta({ found_in: 'path' }),
+      }),
+    }
+    assert.throws(() => validateApiDefinition(def), /path.*param.*index|found_in.*path.*no.*token/i)
+  })
+
+  it('allows an optional found_in: "path" field if it has a {token} in path', () => {
+    const def: EsApiDefinition = {
+      ...validBase(),
+      path: '/_cat/shards/{index}',
+      input: z.looseObject({
+        index: z.string().optional().meta({ found_in: 'path' }),
+      }),
+    }
+    assert.doesNotThrow(() => validateApiDefinition(def))
+  })
+})
+
+describe('validateApiDefinition -- unified input schema', () => {
+  function validBase(): EsApiDefinition {
+    return {
+      name: 'health',
+      namespace: 'cat',
+      description: 'Returns cluster health',
+      method: 'GET',
+      path: '/_cat/health',
+    }
+  }
+
+  it('passes a valid definition with an input schema', () => {
+    const def: EsApiDefinition = {
+      ...validBase(),
+      path: '/{index}',
+      input: z.looseObject({
+        index: z.string().describe('Target index').meta({ found_in: 'path' }),
+        pretty: z.boolean().optional().meta({ found_in: 'query' }),
+      }),
     }
     assert.doesNotThrow(() => validateApiDefinition(def))
   })
 
-  it('rejects a definition where a body field name collides with a path param schema key', () => {
+  it('rejects a definition where {param} token in path has no found_in: "path" field', () => {
     const def: EsApiDefinition = {
       ...validBase(),
       path: '/{index}',
-      pathParams: [{ name: 'index', description: 'Index', required: true }],
-      body: z.object({ index: z.string().optional().describe('An index field in the body') }),
+      input: z.looseObject({
+        index: z.string().meta({ found_in: 'query' }),
+      }),
     }
-    assert.throws(() => validateApiDefinition(def), /schema key collision.*index|index.*collision/i)
+    assert.throws(() => validateApiDefinition(def), /path.*param.*index|index.*found_in.*path/i)
   })
 
-  it('rejects a definition where a body field name collides with a query param schema key', () => {
+  it('rejects a definition where a found_in: "path" field has no matching {param} in path', () => {
     const def: EsApiDefinition = {
       ...validBase(),
-      queryParams: [{ name: 'filter', type: 'string', description: 'Filter' }],
-      body: z.object({ filter: z.string().optional().describe('A filter in the body') }),
+      path: '/_cat/health',
+      input: z.looseObject({
+        index: z.string().meta({ found_in: 'path' }),
+      }),
     }
-    assert.throws(() => validateApiDefinition(def), /schema key collision.*filter|filter.*collision/i)
+    assert.throws(() => validateApiDefinition(def), /path.*param.*index|found_in.*path.*no.*token/i)
   })
 })
