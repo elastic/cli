@@ -24,7 +24,7 @@ import type {
  * - ResolvedConfig: Typed config passed to command handlers, wrapping ResolvedContext
  */
 
-/** Union of all supported authentication variants — inferred from present fields. */
+/** Union of all supported authentication variants -- inferred from present fields. */
 export type Auth = z.infer<typeof AuthSchema>
 
 /** Endpoint URL and authentication credentials for a single service. */

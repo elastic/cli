@@ -7,7 +7,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { z } from 'zod'
 import type { SchemaArgDefinition } from '../../src/lib/schema-args.ts'
-import { toKebabCase, extractSchemaArgs, buildFlagKeyMap, validateSchemaArgs } from '../../src/lib/schema-args.ts'
+import { toKebabCase, extractSchemaArgs, buildFlagKeyMap, validateSchemaArgs, extractFoundIn } from '../../src/lib/schema-args.ts'
 
 describe('toKebabCase', () => {
   it('converts snake_case to kebab-case', () => {
@@ -32,6 +32,13 @@ describe('toKebabCase', () => {
   it('handles mixed snake_case and camelCase', () => {
     assert.equal(toKebabCase('index_name_config'), 'index-name-config')
     assert.equal(toKebabCase('indexNameConfig'), 'index-name-config')
+  })
+
+  it('strips leading underscores (Elasticsearch _source-style keys)', () => {
+    assert.equal(toKebabCase('_source'), 'source')
+    assert.equal(toKebabCase('_source_includes'), 'source-includes')
+    assert.equal(toKebabCase('_meta'), 'meta')
+    assert.equal(toKebabCase('_field_names'), 'field-names')
   })
 })
 
@@ -161,7 +168,7 @@ describe('buildFlagKeyMap', () => {
 
 describe('validateSchemaArgs', () => {
   it('throws when a schema key collides with a reserved flag', () => {
-    for (const reserved of ['help', 'version', 'format', 'config', 'context', 'file']) {
+    for (const reserved of ['help', 'json', 'config-file', 'use-context', 'input-file']) {
       const args: SchemaArgDefinition[] = [
         { schemaKey: reserved, cliFlag: reserved, type: 'string', required: false, description: '' },
       ]
@@ -183,5 +190,43 @@ describe('validateSchemaArgs', () => {
       { schemaKey: 'size', cliFlag: 'size', type: 'number', required: false, defaultValue: 10, description: '' },
     ]
     assert.doesNotThrow(() => validateSchemaArgs(args))
+  })
+})
+
+describe('extractFoundIn', () => {
+  it('returns "path" when .meta({found_in: "path"}) is outermost', () => {
+    const field = z.string().meta({ found_in: 'path' })
+    assert.equal(extractFoundIn(field), 'path')
+  })
+
+  it('returns "query" when .meta() is inside .optional() wrapper (defensive traversal)', () => {
+    const field = z.string().meta({ found_in: 'query' }).optional()
+    assert.equal(extractFoundIn(field), 'query')
+  })
+
+  it('returns undefined when no .meta() is present', () => {
+    const field = z.string()
+    assert.equal(extractFoundIn(field), undefined)
+  })
+})
+
+describe('extractSchemaArgs foundIn population', () => {
+  it('populates foundIn field on each SchemaArgDefinition', () => {
+    const schema = z.object({
+      index: z.string().meta({ found_in: 'path' }),
+      format: z.string().meta({ found_in: 'query' }).optional(),
+      mappings: z.object({}).meta({ found_in: 'body' }),
+    })
+    const args = extractSchemaArgs(schema)
+    const byKey = new Map(args.map((a) => [a.schemaKey, a]))
+    assert.equal(byKey.get('index')?.foundIn, 'path')
+    assert.equal(byKey.get('format')?.foundIn, 'query')
+    assert.equal(byKey.get('mappings')?.foundIn, 'body')
+  })
+
+  it('defaults foundIn to undefined when .meta() is absent', () => {
+    const schema = z.object({ index: z.string() })
+    const args = extractSchemaArgs(schema)
+    assert.equal(args[0]?.foundIn, undefined)
   })
 })

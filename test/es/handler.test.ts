@@ -63,7 +63,7 @@ describe('createEsHandler', () => {
     const buildSpy = spy(() => BUILT_PARAMS)
     const deps = makeDeps({ buildRequestParams: buildSpy as EsHandlerDeps['buildRequestParams'] })
 
-    const handler = createEsHandler(def, deps)
+    const handler = createEsHandler(def, [], deps)
     await handler(parsed)
 
     assert.equal(buildSpy.calls.length, 1)
@@ -77,7 +77,7 @@ describe('createEsHandler', () => {
       getTransport: () => ({ request: requestSpy } as unknown as Transport),
     })
 
-    const handler = createEsHandler(makeDef(), deps)
+    const handler = createEsHandler(makeDef(), [], deps)
     await handler(parsedInput())
 
     assert.equal(requestSpy.calls.length, 1)
@@ -89,7 +89,7 @@ describe('createEsHandler', () => {
       getTransport: () => ({ request: async () => 'green\n' } as unknown as Transport),
     })
 
-    const handler = createEsHandler(makeDef({ responseType: 'text' }), deps)
+    const handler = createEsHandler(makeDef({ responseType: 'text' }), [], deps)
     const result = await handler(parsedInput())
     assert.equal(result, 'green\n')
   })
@@ -100,7 +100,7 @@ describe('createEsHandler', () => {
       getTransport: () => ({ request: async () => responseBody } as unknown as Transport),
     })
 
-    const handler = createEsHandler(makeDef({ responseType: 'json' }), deps)
+    const handler = createEsHandler(makeDef({ responseType: 'json' }), [], deps)
     const result = await handler(parsedInput())
     assert.deepEqual(result, responseBody)
   })
@@ -111,7 +111,7 @@ describe('createEsHandler', () => {
       getTransport: () => ({ request: async () => responseBody } as unknown as Transport),
     })
 
-    const handler = createEsHandler(makeDef({ responseType: undefined }), deps)
+    const handler = createEsHandler(makeDef({ responseType: undefined }), [], deps)
     const result = await handler(parsedInput())
     assert.deepEqual(result, responseBody)
   })
@@ -123,7 +123,7 @@ describe('createEsHandler', () => {
       },
     })
 
-    const handler = createEsHandler(makeDef(), deps)
+    const handler = createEsHandler(makeDef(), [], deps)
     const result = await handler(parsedInput()) as Record<string, unknown>
 
     const err = result['error'] as Record<string, unknown>
@@ -152,7 +152,7 @@ describe('createEsHandler', () => {
       } as unknown as Transport),
     })
 
-    const handler = createEsHandler(makeDef(), deps)
+    const handler = createEsHandler(makeDef(), [], deps)
     const result = await handler(parsedInput()) as Record<string, unknown>
 
     const err = result['error'] as Record<string, unknown>
@@ -168,7 +168,7 @@ describe('createEsHandler', () => {
       } as unknown as Transport),
     })
 
-    const handler = createEsHandler(makeDef(), deps)
+    const handler = createEsHandler(makeDef(), [], deps)
     const result = await handler(parsedInput()) as Record<string, unknown>
 
     const err = result['error'] as Record<string, unknown>

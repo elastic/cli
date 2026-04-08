@@ -21,7 +21,7 @@ let _config: ResolvedConfig | undefined
  * Stores the resolved configuration for the current CLI invocation.
  * Called by the `preAction` hook in `cli.ts`.
  */
-export function setResolvedConfig(config: ResolvedConfig): void {
+export function setResolvedConfig (config: ResolvedConfig): void {
   _config = config
 }
 
@@ -30,7 +30,7 @@ export function setResolvedConfig(config: ResolvedConfig): void {
  * not yet run or was not available (e.g. no config file found).
  * Called by `factory.ts` when building `ParsedResult`.
  */
-export function getResolvedConfig(): ResolvedConfig | undefined {
+export function getResolvedConfig (): ResolvedConfig | undefined {
   return _config
 }
 
