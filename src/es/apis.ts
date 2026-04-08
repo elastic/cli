@@ -42,7 +42,6 @@ import { msearchApis } from './apis/msearch.ts'
 import { msearchTemplateApis } from './apis/msearch_template.ts'
 import { mtermvectorsApis } from './apis/mtermvectors.ts'
 import { openPointInTimeApis } from './apis/open_point_in_time.ts'
-import { pingApis } from './apis/ping.ts'
 import { projectApis } from './apis/project.ts'
 import { putScriptApis } from './apis/put_script.ts'
 import { queryRulesApis } from './apis/query_rules.ts'
@@ -103,7 +102,6 @@ export const allApis: EsApiDefinition[] = [
   ...msearchTemplateApis,
   ...mtermvectorsApis,
   ...openPointInTimeApis,
-  ...pingApis,
   ...projectApis,
   ...putScriptApis,
   ...queryRulesApis,

@@ -7,7 +7,6 @@
 import { Command } from 'commander'
 import { createRequire } from 'node:module'
 import { defineCommand, defineGroup } from './factory.ts'
-import type { ParsedResult } from './factory.ts'
 import { loadConfig } from './config/loader.ts'
 import { setResolvedConfig } from './config/store.ts'
 
@@ -47,16 +46,6 @@ const versionCmd = defineCommand({
   handler: () => ({ version })
 })
 program.addCommand(versionCmd)
-
-const pingCmd = defineCommand({
-  name: 'ping',
-  description: 'Verify connectivity to the Elasticsearch cluster',
-  handler: (parsed: ParsedResult) => {
-    const esUrl = parsed.config?.context.elasticsearch?.url
-    return esUrl != null ? { status: 'ok', url: esUrl } : { status: 'ok' }
-  }
-})
-program.addCommand(pingCmd)
 
 // Lazily load command trees only when the relevant top-level subcommand is actually
 // invoked. For all other invocations (including `elastic --help`), a lightweight stub
