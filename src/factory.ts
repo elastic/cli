@@ -452,7 +452,10 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
   if (config.input instanceof z.ZodType) {
     cmd.option('--input-file <path>', 'path to a JSON file to use as command input')
   }
-  cmd.option('--dry-run', 'validate all inputs and exit without performing any action')
+  const schemaClaimsDryRun = schemaArgs.some((a) => a.cliFlag === 'dry-run')
+  if (!schemaClaimsDryRun) {
+    cmd.option('--dry-run', 'validate all inputs and exit without performing any action')
+  }
 
   configureHelpWithSchema(cmd, config.input instanceof z.ZodType ? config.input : undefined)
 
@@ -561,7 +564,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       }
     }
     if (allRaw['dryRun'] === true) {
-      if (fmt === 'json') {
+      if (jsonFormat) {
         process.stdout.write(JSON.stringify({ success: true }) + '\n')
       }
       return

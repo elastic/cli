@@ -1382,7 +1382,7 @@ describe('defineCommand', () => {
     })
 
 
-    /** mounts cmd under a root program with --format=json, captures stdout, returns parsed JSON */
+    /** mounts cmd under a root program with --json, captures stdout, returns parsed JSON */
     async function invokeWithJsonFormat(cmd: OpaqueCommandHandle, argv: string[]): Promise<{ out: string, parsed: unknown }> {
       const { Command } = await import('commander')
       const prog = new Command('elastic')
@@ -1586,14 +1586,14 @@ describe('defineCommand', () => {
       assert.match(cmd.helpInformation(), /--dry-run/)
     })
 
-    it('outputs {"success":true} when --format=json and skips the handler', async () => {
+    it('outputs {"success":true} when --json and skips the handler', async () => {
       let handlerCalled = false
       const cmd = defineCommand({
         name: 'ping',
         description: 'Ping',
         handler: () => { handlerCalled = true; return {} },
       })
-      const out = await invokeUnderRoot(cmd, ['--format', 'json'], ['--dry-run'])
+      const out = await invokeUnderRoot(cmd, ['--json'], ['--dry-run'])
       assert.equal(handlerCalled, false, 'handler must not be called with --dry-run')
       assert.deepEqual(JSON.parse(out), { success: true })
     })
@@ -1610,7 +1610,7 @@ describe('defineCommand', () => {
       assert.equal(out, '', 'no output expected in text mode')
     })
 
-    it('outputs {"success":true} and skips handler with valid JSON input via --file', async () => {
+    it('outputs {"success":true} and skips handler with valid JSON input via --input-file', async () => {
       const tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-dryrun-'))
       const filePath = join(tmpDir, 'valid.json')
       writeFileSync(filePath, JSON.stringify({ index: 'logs' }))
@@ -1624,7 +1624,7 @@ describe('defineCommand', () => {
           input: z.object({ index: z.string() }),
           handler: () => { handlerCalled = true; return {} },
         })
-        const out = await invokeUnderRoot(cmd, ['--format', 'json'], ['--dry-run', '--file', filePath])
+        const out = await invokeUnderRoot(cmd, ['--json'], ['--dry-run', '--input-file', filePath])
         assert.equal(handlerCalled, false, 'handler must not be called with --dry-run')
         assert.deepEqual(JSON.parse(out), { success: true })
       } finally {
@@ -1647,7 +1647,7 @@ describe('defineCommand', () => {
           input: z.object({ index: z.string() }),
           handler: () => { handlerCalled = true; return {} },
         })
-        const err = await captureErrAsync(cmd, ['--dry-run', '--file', filePath])
+        const err = await captureErrAsync(cmd, ['--dry-run', '--input-file', filePath])
         assert.match(err, /input validation failed/)
         assert.equal(handlerCalled, false, 'handler must not be called when validation fails')
       } finally {
@@ -1734,7 +1734,7 @@ describe('text output rendering', () => {
       assert.equal(out, 'custom output line\n')
     })
 
-    it('is NOT called when --format=json is provided', async () => {
+    it('is NOT called when --json is provided', async () => {
       let called = false
       const cmd = defineCommand({
         name: 'status',
@@ -1744,11 +1744,11 @@ describe('text output rendering', () => {
       })
       const { Command } = await import('commander')
       const prog = new Command('elastic')
-      prog.option('--format <fmt>', 'output format')
+      prog.option('--json', 'output as JSON')
       prog.addCommand(cmd)
       prog.exitOverride()
       cmd.exitOverride()
-      await captureOutput(() => prog.parseAsync(['--format', 'json', cmd.name()], { from: 'user' }))
+      await captureOutput(() => prog.parseAsync(['--json', cmd.name()], { from: 'user' }))
       assert.equal(called, false, 'formatOutput must not be called in JSON mode')
     })
 
@@ -1761,11 +1761,11 @@ describe('text output rendering', () => {
       })
       const { Command } = await import('commander')
       const prog = new Command('elastic')
-      prog.option('--format <fmt>', 'output format')
+      prog.option('--json', 'output as JSON')
       prog.addCommand(cmd)
       prog.exitOverride()
       cmd.exitOverride()
-      const out = await captureOutput(() => prog.parseAsync(['--format', 'json', cmd.name()], { from: 'user' }))
+      const out = await captureOutput(() => prog.parseAsync(['--json', cmd.name()], { from: 'user' }))
       assert.deepEqual(JSON.parse(out), { ok: true })
     })
   })
@@ -2778,11 +2778,11 @@ async function captureStdout(fn: () => Promise<void>): Promise<string> {
   return out
 }
 
-/** mounts a command under a root program with --format and captures stdout */
+/** mounts a command under a root program with --json and captures stdout */
 async function invokeUnderRoot(cmd: OpaqueCommandHandle, rootArgv: string[], cmdArgv: string[]): Promise<string> {
   const { Command } = await import('commander')
   const prog = new Command('elastic')
-  prog.option('--format <fmt>', 'output format')
+  prog.option('--json', 'output as JSON')
   prog.addCommand(cmd)
   prog.exitOverride()
   cmd.exitOverride()
