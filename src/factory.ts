@@ -11,6 +11,7 @@ import type { ResolvedConfig } from './config/types.ts'
 import { getResolvedConfig } from './config/store.ts'
 import { extractSchemaArgs, validateSchemaArgs } from './lib/schema-args.ts'
 import type { SchemaArgDefinition } from './lib/schema-args.ts'
+import { renderText } from './output.ts'
 
 /** pre-built schema for coercing string → number, reused per option invocation */
 const numberSchema = z.coerce.number()
@@ -30,7 +31,7 @@ const numberSchema = z.coerce.number()
  * ```
  */
 export interface OptionDefinition {
-  /** long option name without `--` prefix (e.g. `'timeout'`, `'dry-run'`) */
+  /** long option name without `--` prefix (e.g. `'timeout'`, `'output-dir'`) */
   long: string
   /** single-character short alias without `-` prefix (e.g. `'t'`) */
   short?: string
@@ -121,6 +122,13 @@ export interface CommandConfig<T extends z.ZodType = z.ZodType> {
    * stdin or file, validates against the schema, then passes the typed result to the handler.
    */
   input?: T
+  /**
+   * optional text renderer for non-JSON output mode.
+   * when provided, called with the handler result and the full parsed result to produce a string
+   * written to stdout. when omitted, the factory auto-renders via {@link renderText}.
+   * never called when `--format=json` is active.
+   */
+  formatOutput?: (result: JsonValue, parsed: ParsedResult<z.infer<T>>) => string
 }
 
 /**
@@ -214,6 +222,10 @@ function validateOptions (options: OptionDefinition[]): void {
       throw new Error(`duplicate option long name: --${opt.long}`)
     }
     seenLong.add(opt.long)
+
+    if (opt.long === 'dry-run') {
+      throw new Error('option --dry-run is reserved')
+    }
 
     if (opt.short !== undefined) {
       if (seenShort.has(opt.short)) {
@@ -440,6 +452,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
   if (config.input instanceof z.ZodType) {
     cmd.option('--input-file <path>', 'path to a JSON file to use as command input')
   }
+  cmd.option('--dry-run', 'validate all inputs and exit without performing any action')
 
   configureHelpWithSchema(cmd, config.input instanceof z.ZodType ? config.input : undefined)
 
@@ -547,12 +560,20 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
         return cmd.error(`input validation failed:\n${z.prettifyError(result.error)}`)
       }
     }
+    if (allRaw['dryRun'] === true) {
+      if (fmt === 'json') {
+        process.stdout.write(JSON.stringify({ success: true }) + '\n')
+      }
+      return
+    }
     const handlerResult = await config.handler(parsed)
     assert(handlerResult !== undefined, `command ${JSON.stringify(config.name)}: handler must return a JsonValue`)
     if (jsonFormat === true) {
       process.stdout.write(JSON.stringify(handlerResult) + '\n')
+    } else if (config.formatOutput !== undefined) {
+      process.stdout.write(config.formatOutput(handlerResult, parsed))
     } else {
-      process.stdout.write(JSON.stringify(handlerResult, null, 2) + '\n')
+      process.stdout.write(renderText(handlerResult))
     }
   })
 

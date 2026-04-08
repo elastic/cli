@@ -257,14 +257,14 @@ describe('defineCommand', () => {
       const cmd = defineCommand({
         name: 'run',
         description: 'Run',
-        options: [{ long: 'dry-run', description: 'Preview', type: 'boolean' }],
+        options: [{ long: 'preview', description: 'Preview', type: 'boolean' }],
         handler: (parsed) => { received.push(parsed); return {} },
       })
-      invoke(cmd, ['--dry-run'])
+      invoke(cmd, ['--preview'])
       assert.equal(received.length, 1)
-      assert.equal(received[0].options['dry-run'], true)
+      assert.equal(received[0].options['preview'], true)
       // no unexpected keys from Commander internals
-      assert.deepEqual(Object.keys(received[0].options), ['dry-run'])
+      assert.deepEqual(Object.keys(received[0].options), ['preview'])
     })
   })
 
@@ -1575,9 +1575,270 @@ describe('defineCommand', () => {
       assert.deepEqual(JSON.parse(out), { async: true })
     })
   })
+
+  describe('--dry-run', () => {
+    it('appears in help text for every command', () => {
+      const cmd = defineCommand({
+        name: 'ping',
+        description: 'Ping',
+        handler: () => ({}),
+      })
+      assert.match(cmd.helpInformation(), /--dry-run/)
+    })
+
+    it('outputs {"success":true} when --format=json and skips the handler', async () => {
+      let handlerCalled = false
+      const cmd = defineCommand({
+        name: 'ping',
+        description: 'Ping',
+        handler: () => { handlerCalled = true; return {} },
+      })
+      const out = await invokeUnderRoot(cmd, ['--format', 'json'], ['--dry-run'])
+      assert.equal(handlerCalled, false, 'handler must not be called with --dry-run')
+      assert.deepEqual(JSON.parse(out), { success: true })
+    })
+
+    it('produces no output and skips the handler in text mode', async () => {
+      let handlerCalled = false
+      const cmd = defineCommand({
+        name: 'ping',
+        description: 'Ping',
+        handler: () => { handlerCalled = true; return {} },
+      })
+      const out = await invokeUnderRoot(cmd, [], ['--dry-run'])
+      assert.equal(handlerCalled, false, 'handler must not be called with --dry-run')
+      assert.equal(out, '', 'no output expected in text mode')
+    })
+
+    it('outputs {"success":true} and skips handler with valid JSON input via --file', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-dryrun-'))
+      const filePath = join(tmpDir, 'valid.json')
+      writeFileSync(filePath, JSON.stringify({ index: 'logs' }))
+      const origIsTTY = process.stdin.isTTY
+      Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true, writable: true })
+      try {
+        let handlerCalled = false
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Search',
+          input: z.object({ index: z.string() }),
+          handler: () => { handlerCalled = true; return {} },
+        })
+        const out = await invokeUnderRoot(cmd, ['--format', 'json'], ['--dry-run', '--file', filePath])
+        assert.equal(handlerCalled, false, 'handler must not be called with --dry-run')
+        assert.deepEqual(JSON.parse(out), { success: true })
+      } finally {
+        Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+        rmSync(tmpDir, { recursive: true })
+      }
+    })
+
+    it('still reports validation error when --dry-run is set with invalid input', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-dryrun-'))
+      const filePath = join(tmpDir, 'invalid.json')
+      writeFileSync(filePath, JSON.stringify({ index: 42 }))
+      const origIsTTY = process.stdin.isTTY
+      Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true, writable: true })
+      try {
+        let handlerCalled = false
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Search',
+          input: z.object({ index: z.string() }),
+          handler: () => { handlerCalled = true; return {} },
+        })
+        const err = await captureErrAsync(cmd, ['--dry-run', '--file', filePath])
+        assert.match(err, /input validation failed/)
+        assert.equal(handlerCalled, false, 'handler must not be called when validation fails')
+      } finally {
+        Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+        rmSync(tmpDir, { recursive: true })
+      }
+    })
+
+    it('throws at definition time when user defines a --dry-run option', () => {
+      assert.throws(
+        () => defineCommand({
+          name: 'test',
+          description: 'Test',
+          options: [{ long: 'dry-run', description: 'Preview', type: 'boolean' }],
+          handler: () => ({}),
+        }),
+        (e: unknown) => {
+          assert.ok(e instanceof Error)
+          assert.match(e.message, /--dry-run is reserved/)
+          return true
+        },
+      )
+    })
+
+  })
 })
 
+describe('text output rendering', () => {
+  async function captureOutput(fn: () => Promise<unknown>): Promise<string> {
+    let out = ''
+    const orig = process.stdout.write.bind(process.stdout)
+    process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
+    try { await fn() } finally { process.stdout.write = orig }
+    return out
+  }
 
+  async function invokeText(cmd: OpaqueCommandHandle, cmdArgv: string[] = []): Promise<string> {
+    const { Command } = await import('commander')
+    const prog = new Command('elastic')
+    prog.option('--format <fmt>', 'output format')
+    prog.addCommand(cmd)
+    prog.exitOverride()
+    cmd.exitOverride()
+    return captureOutput(() => prog.parseAsync([cmd.name(), ...cmdArgv], { from: 'user' }))
+  }
+
+  describe('formatOutput callback', () => {
+    it('is called with the handler result in text mode', async () => {
+      const received: unknown[] = []
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        handler: () => ({ ok: true }),
+        formatOutput: (result) => { received.push(result); return 'custom\n' },
+      })
+      await invokeText(cmd)
+      assert.equal(received.length, 1)
+      assert.deepEqual(received[0], { ok: true })
+    })
+
+    it('is called with the parsed result in text mode', async () => {
+      const receivedParsed: unknown[] = []
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        options: [{ long: 'verbose', type: 'boolean', description: 'Verbose' }],
+        handler: () => ({ ok: true }),
+        formatOutput: (result, parsed) => { receivedParsed.push(parsed); return 'ok\n' },
+      })
+      await invokeText(cmd, ['--verbose'])
+      assert.equal(receivedParsed.length, 1)
+      const p = receivedParsed[0] as ParsedResult
+      assert.equal(p.options['verbose'], true)
+    })
+
+    it('output written is the string returned by formatOutput', async () => {
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        handler: () => ({ ok: true }),
+        formatOutput: () => 'custom output line\n',
+      })
+      const out = await invokeText(cmd)
+      assert.equal(out, 'custom output line\n')
+    })
+
+    it('is NOT called when --format=json is provided', async () => {
+      let called = false
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        handler: () => ({ ok: true }),
+        formatOutput: () => { called = true; return 'custom\n' },
+      })
+      const { Command } = await import('commander')
+      const prog = new Command('elastic')
+      prog.option('--format <fmt>', 'output format')
+      prog.addCommand(cmd)
+      prog.exitOverride()
+      cmd.exitOverride()
+      await captureOutput(() => prog.parseAsync(['--format', 'json', cmd.name()], { from: 'user' }))
+      assert.equal(called, false, 'formatOutput must not be called in JSON mode')
+    })
+
+    it('JSON mode still writes compact JSON even when formatOutput is defined', async () => {
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        handler: () => ({ ok: true }),
+        formatOutput: () => 'custom\n',
+      })
+      const { Command } = await import('commander')
+      const prog = new Command('elastic')
+      prog.option('--format <fmt>', 'output format')
+      prog.addCommand(cmd)
+      prog.exitOverride()
+      cmd.exitOverride()
+      const out = await captureOutput(() => prog.parseAsync(['--format', 'json', cmd.name()], { from: 'user' }))
+      assert.deepEqual(JSON.parse(out), { ok: true })
+    })
+  })
+
+  describe('auto-rendering (no formatOutput provided)', () => {
+    it('renders a string result as plain text', async () => {
+      const cmd = defineCommand({
+        name: 'echo',
+        description: 'Echo',
+        handler: () => 'hello world',
+      })
+      const out = await invokeText(cmd)
+      assert.equal(out, 'hello world\n')
+    })
+
+    it('renders a number result as its string form', async () => {
+      const cmd = defineCommand({
+        name: 'count',
+        description: 'Count',
+        handler: () => 42,
+      })
+      const out = await invokeText(cmd)
+      assert.equal(out, '42\n')
+    })
+
+    it('renders an array of primitives one per line', async () => {
+      const cmd = defineCommand({
+        name: 'list',
+        description: 'List',
+        handler: () => ['alpha', 'beta', 'gamma'],
+      })
+      const out = await invokeText(cmd)
+      assert.equal(out, 'alpha\nbeta\ngamma\n')
+    })
+
+    it('renders an array of flat objects as a table', async () => {
+      const cmd = defineCommand({
+        name: 'list',
+        description: 'List',
+        handler: () => [
+          { name: 'foo', status: 'ok' },
+          { name: 'bar', status: 'error' },
+        ],
+      })
+      const out = await invokeText(cmd)
+      assert.match(out, /name/)
+      assert.match(out, /status/)
+      assert.match(out, /foo/)
+      assert.match(out, /bar/)
+      assert.match(out, /[─├┤┼]/)
+    })
+
+    it('falls back to pretty-printed JSON for a plain object', async () => {
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        handler: () => ({ ok: true, count: 3 }),
+      })
+      const out = await invokeText(cmd)
+      assert.equal(out, JSON.stringify({ ok: true, count: 3 }, null, 2) + '\n')
+    })
+
+    it('falls back to pretty-printed JSON for nested arrays', async () => {
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        handler: () => [{ name: 'foo', tags: ['a', 'b'] }],
+      })
+      const out = await invokeText(cmd)
+      assert.equal(out, JSON.stringify([{ name: 'foo', tags: ['a', 'b'] }], null, 2) + '\n')
+    })
+  })
+})
 
 describe('defineGroup', () => {
   describe('skeleton', () => {
@@ -2506,4 +2767,24 @@ async function captureErrAsync(handle: OpaqueCommandHandle, argv: string[]): Pro
   handle.configureOutput({ writeErr: (s) => { err += s } })
   try { await handle.parseAsync(argv, { from: 'user' }) } catch { /* CommanderError from exitOverride */ }
   return err
+}
+
+/** captures everything written to process.stdout during fn() */
+async function captureStdout(fn: () => Promise<void>): Promise<string> {
+  let out = ''
+  const orig = process.stdout.write.bind(process.stdout)
+  process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
+  try { await fn() } finally { process.stdout.write = orig }
+  return out
+}
+
+/** mounts a command under a root program with --format and captures stdout */
+async function invokeUnderRoot(cmd: OpaqueCommandHandle, rootArgv: string[], cmdArgv: string[]): Promise<string> {
+  const { Command } = await import('commander')
+  const prog = new Command('elastic')
+  prog.option('--format <fmt>', 'output format')
+  prog.addCommand(cmd)
+  prog.exitOverride()
+  cmd.exitOverride()
+  return captureStdout(() => prog.parseAsync([...rootArgv, cmd.name(), ...cmdArgv], { from: 'user' }))
 }
