@@ -8,6 +8,8 @@ import assert from 'node:assert/strict'
 import { getTransport, _testResetTransport } from '../../src/lib/transport.ts'
 import { setResolvedConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
+import { clientHeaders } from '../../src/lib/meta.ts'
+import { kHeaders } from '@elastic/transport/lib/symbols.js'
 
 function makeApiKeyConfig(url: string, apiKey: string): ResolvedConfig {
   return {
@@ -85,5 +87,21 @@ describe('getTransport', () => {
     _testResetTransport()
     const second = getTransport()
     assert.notEqual(first, second)
+  })
+
+  it('sets user-agent header to the CLI identifier', () => {
+    setResolvedConfig(makeApiKeyConfig('http://localhost:9200', 'test-api-key'))
+    const transport = getTransport()
+    const headers = (transport as unknown as Record<symbol, Record<string, string>>)[kHeaders as symbol]
+    const expected = clientHeaders()
+    assert.equal(headers['user-agent'], expected['user-agent'])
+  })
+
+  it('sets x-elastic-client-meta header with CLI telemetry', () => {
+    setResolvedConfig(makeApiKeyConfig('http://localhost:9200', 'test-api-key'))
+    const transport = getTransport()
+    const headers = (transport as unknown as Record<symbol, Record<string, string>>)[kHeaders as symbol]
+    const expected = clientHeaders()
+    assert.equal(headers['x-elastic-client-meta'], expected['x-elastic-client-meta'])
   })
 })
