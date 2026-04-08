@@ -49,10 +49,10 @@ const VALID_CONFIG_OBJECT: ConfigFile = {
 }
 
 // ---------------------------------------------------------------------------
-// T014 — cosmiconfig explorer creation and config file discovery
+
 // ---------------------------------------------------------------------------
 
-describe('T014: createExplorer', () => {
+describe('createExplorer', () => {
   it('exports a createExplorer function', () => {
     assert.equal(typeof createExplorer, 'function')
   })
@@ -101,10 +101,10 @@ describe('T014: createExplorer', () => {
 })
 
 // ---------------------------------------------------------------------------
-// T015 — context resolution
+
 // ---------------------------------------------------------------------------
 
-describe('T015: resolveContext', () => {
+describe('resolveContext', () => {
   it('exports a resolveContext function', () => {
     assert.equal(typeof resolveContext, 'function')
   })
@@ -142,10 +142,10 @@ describe('T015: resolveContext', () => {
 })
 
 // ---------------------------------------------------------------------------
-// T016 — full loadConfig pipeline with default current_context
+
 // ---------------------------------------------------------------------------
 
-describe('T016: loadConfig — default current_context', () => {
+describe('loadConfig -- default current_context', () => {
   it('exports a loadConfig function', () => {
     assert.equal(typeof loadConfig, 'function')
   })
@@ -171,10 +171,10 @@ describe('T016: loadConfig — default current_context', () => {
 })
 
 // ---------------------------------------------------------------------------
-// T017 — --context override
+
 // ---------------------------------------------------------------------------
 
-describe('T017: loadConfig — --context override', () => {
+describe('loadConfig -- --use-context override', () => {
   let tmpDir: string
   before(async () => {
     tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-test-'))
@@ -184,7 +184,7 @@ describe('T017: loadConfig — --context override', () => {
 
   it('uses the supplied contextName vs current_context', async () => {
     const result = await loadConfig({ searchFrom: tmpDir, contextName: 'staging' })
-    assert.ok(result.ok, `loadConfig should succeed with --context staging`)
+    assert.ok(result.ok, `loadConfig should succeed with --use-context staging`)
     if (!result.ok) return
     assert.deepEqual(result.value, {
       context: {
@@ -202,15 +202,15 @@ describe('T017: loadConfig — --context override', () => {
 })
 
 // ---------------------------------------------------------------------------
-// T018 — --config override (explicit file path bypasses discovery)
+
 // ---------------------------------------------------------------------------
 
-describe('T018: loadConfig — --config override', () => {
+describe('loadConfig -- --config-file override', () => {
   let tmpDir: string
   let discoveryDir: string
   let explicitConfigPath: string
   before(async () => {
-    // discoveryDir has NO config file — would fail if discovery were used
+    // discoveryDir has NO config file -- would fail if discovery were used
     discoveryDir = await mkdtemp(join(tmpdir(), 'elastic-cli-empty-'))
 
     // The explicit config file lives elsewhere
@@ -225,7 +225,7 @@ describe('T018: loadConfig — --config override', () => {
 
   it('loads from the explicit configPath, bypassing discovery', async () => {
     const result = await loadConfig({ searchFrom: discoveryDir, configPath: explicitConfigPath })
-    assert.ok(result.ok, `loadConfig should succeed with explicit --config path, got: ${!result.ok ? result.error.message : ''}`)
+    assert.ok(result.ok, `loadConfig should succeed with explicit --config-file path, got: ${!result.ok ? result.error.message : ''}`)
     if (!result.ok) return
     assert.deepEqual(result.value, {
       context: {

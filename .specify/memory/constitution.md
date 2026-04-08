@@ -1,28 +1,27 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.0.0 → 1.1.0 (MINOR — new principle added)
+Version change: 1.2.0 → 1.2.1 (PATCH — wording update to reflect renamed global flags)
 
 Modified principles:
-  - None renamed or removed.
+  - Principle II: updated `--file=<path>` → `--input-file=<path>`, `--format=json` → `--json`.
+  - Principle III: updated `--format=json` error payload reference → `--json`.
+  - Principle IV: updated `--context=<name>` → `--use-context=<name>`.
+  - Development Standards: updated `--format=json` error reference → `--json`.
 
 Added sections:
-  - Principle VII: Cross-Platform Compatibility (NON-NEGOTIABLE)
+  - None.
 
 Removed sections:
   - None.
 
 Templates reviewed:
-  - .specify/templates/plan-template.md  ✅ no changes required; "Target Platform"
-    field already accommodates multi-OS context.
+  - .specify/templates/plan-template.md  ✅ no changes required.
   - .specify/templates/spec-template.md  ✅ no changes required.
-  - .specify/templates/tasks-template.md ✅ no changes required; new principle
-    implies platform-matrix testing tasks are expected wherever OS-specific
-    behaviour is exercised — teams should add such tasks explicitly.
+  - .specify/templates/tasks-template.md ✅ no changes required.
   - .specify/templates/agent-file-template.md ✅ no changes required.
   - .specify/templates/checklist-template.md  ✅ no changes required.
-  - .specify/templates/constitution-template.md ✅ source template; no update
-    required for the living constitution.
+  - .specify/templates/constitution-template.md ✅ source template; no update required.
 
 Follow-up TODOs:
   - TODO(RATIFICATION_DATE): confirm original adoption date.
@@ -49,9 +48,9 @@ across the entire command surface.
 
 The CLI MUST treat automated agents as first-class consumers alongside human users.
 
-- Every command MUST accept input as JSON via piped stdin or `--file=<path>`.
-- Every command MUST emit machine-readable JSON when `--format=json` is provided.
-- `--help --format=json` MUST return the command's full JSON Schema so agents can
+- Every command MUST accept input as JSON via piped stdin or `--input-file=<path>`.
+- Every command MUST emit machine-readable JSON when `--json` is provided.
+- `--help --json` MUST return the command's full JSON Schema so agents can
   introspect valid inputs without running the command.
 - All top-level JSON Schema fields MUST also be addressable as individual CLI flags
   so human users are not forced to compose JSON.
@@ -62,7 +61,7 @@ The CLI MUST treat automated agents as first-class consumers alongside human use
 
 All input MUST be validated against the command's JSON Schema before any action is
 taken. Failures are hard errors that exit immediately with a structured error
-payload (JSON when `--format=json`).
+payload (JSON when `--json`).
 
 - Validation is enabled by default and MUST NOT be bypassable at runtime except
   via explicit opt-out flags that are themselves documented and logged.
@@ -81,7 +80,7 @@ defines one or more named contexts, mirroring `kubectl` conventions.
   other Elastic services (URLs, credentials, TLS settings, etc.).
 - A single context is designated as the active default.
 - Any command MAY override the active context for a single invocation via
-  `--context=<name>`.
+  `--use-context=<name>`.
 - Credentials MUST NOT be accepted as bare CLI flags on operational commands; they
   belong exclusively in the config file or environment variables mapped to context
   fields.
@@ -141,7 +140,7 @@ behave differently on any of these three platforms.
   exhaustive, CLI reference docs MUST be generated from schema + command metadata
   rather than authored manually. Any exception requires written justification.
 - **Error messages**: Errors MUST be structured and distinguishable (error code +
-  human message). When `--format=json`, errors MUST serialize to JSON with at
+  human message). When `--json`, errors MUST serialize to JSON with at
   minimum `{"error": {"code": "…", "message": "…"}}`.
 - **Node.js ecosystem conventions**: Standard JavaScript/TypeScript idioms, `npm test`,
   MUST pass before merge. Any deviation from ecosystem idioms MUST be
@@ -167,4 +166,20 @@ behave differently on any of these three platforms.
 - Runtime development guidance for agents lives in `.specify/memory/` alongside
   this file.
 
-**Version**: 1.1.0 | **Ratified**: TODO(RATIFICATION_DATE): confirm adoption date | **Last Amended**: 2026-03-30
+### VIII. Transport-Layer Abstraction
+
+The CLI MUST NOT expose HTTP transport implementation details to users in any
+user-facing surface — including help text, flag descriptions, JSON Schema output,
+or error messages.
+
+- Parameters are user-visible by their *semantic purpose* (e.g. "Index to target",
+  "Timeout for the request"), not by their HTTP location (path, query string, body).
+- Internal routing metadata (`found_in`) is an implementation concern of the
+  request-builder layer and MUST remain invisible to CLI consumers.
+- Feature work that would expose routing labels (e.g. `[path]`, `[query]`,
+  `[body]`) in help text or schema output is explicitly out of scope and MUST be
+  declined; it leaks the HTTP transport contract into the user interface.
+- Schema introspection tooling for *developers* of the CLI itself (not end users)
+  may inspect `found_in` values internally, but MUST NOT propagate them outward.
+
+**Version**: 1.2.1 | **Ratified**: TODO(RATIFICATION_DATE): confirm adoption date | **Last Amended**: 2026-04-06

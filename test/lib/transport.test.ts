@@ -54,7 +54,7 @@ describe('getTransport', () => {
 
   it('throws when resolved config is not set at all', () => {
     // getResolvedConfig returns undefined when nothing is set
-    // Force by resetting — relying on the internal undefined state isn't possible here,
+    // Force by resetting -- relying on the internal undefined state isn't possible here,
     // so we set a config without elasticsearch
     setResolvedConfig({ context: {} } as ResolvedConfig)
     assert.throws(() => getTransport(), /missing_config|No Elasticsearch/i)
