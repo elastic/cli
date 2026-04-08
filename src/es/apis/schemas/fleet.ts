@@ -3,37 +3,37 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { MsearchRequestItem, MsearchResponseItem, SearchFieldCollapse, SearchHighlight, SearchHitsMetadata, SearchPointInTimeReference, SearchProfile, SearchRescore, SearchSourceConfig, SearchSuggest, SearchSuggester, SearchTrackHits } from './_global.ts'
 import { AggregateName, AggregationsAggregate, AggregationsAggregationContainer, ClusterStatistics, Duration, ExpandWildcards, Field, Fields, Id, IndexAlias, IndexName, MappingRuntimeFields, QueryDslFieldAndFormat, QueryDslOperator, QueryDslQueryContainer, Routing, ScriptField, ScrollId, SearchType, ShardStatistics, SlicedScroll, Sort, SortResults, SuggestMode, SuggestionName, double, integer, long } from './_types.ts'
 
-export const FleetCheckpoint = z.lazy(() => long)
+export const FleetCheckpoint = z.lazy(() => long).meta({ id: 'FleetCheckpoint' })
 export type FleetCheckpoint = z.infer<typeof FleetCheckpoint>
 
 /** Deletes a secret stored by Fleet. */
 export const FleetDeleteSecretRequest = z.object({
   id: z.string().describe('The ID of the secret').meta({ found_in: 'path' })
-})
+}).meta({ id: 'FleetDeleteSecretRequest' })
 export type FleetDeleteSecretRequest = z.infer<typeof FleetDeleteSecretRequest>
 
 export const FleetDeleteSecretResponse = z.object({
   deleted: z.boolean()
-})
+}).meta({ id: 'FleetDeleteSecretResponse' })
 export type FleetDeleteSecretResponse = z.infer<typeof FleetDeleteSecretResponse>
 
 /** Retrieves a secret stored by Fleet. */
 export const FleetGetSecretRequest = z.object({
   id: z.string().describe('The ID of the secret').meta({ found_in: 'path' })
-})
+}).meta({ id: 'FleetGetSecretRequest' })
 export type FleetGetSecretRequest = z.infer<typeof FleetGetSecretRequest>
 
 export const FleetGetSecretResponse = z.object({
   id: z.string(),
   value: z.string()
-})
+}).meta({ id: 'FleetGetSecretResponse' })
 export type FleetGetSecretResponse = z.infer<typeof FleetGetSecretResponse>
 
 /**
@@ -48,13 +48,13 @@ export const FleetGlobalCheckpointsRequest = z.object({
   wait_for_index: z.boolean().describe('A boolean value which controls whether to wait (until the timeout) for the target index to exist and all primary shards be active. Can only be true when `wait_for_advance` is true.').optional().meta({ found_in: 'query' }),
   checkpoints: z.array(FleetCheckpoint).describe('A comma separated list of previous global checkpoints. When used in combination with `wait_for_advance`, the API will only return once the global checkpoints advances past the checkpoints. Providing an empty list will cause Elasticsearch to immediately return the current global checkpoints.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a global checkpoints to advance past `checkpoints`.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'FleetGlobalCheckpointsRequest' })
 export type FleetGlobalCheckpointsRequest = z.infer<typeof FleetGlobalCheckpointsRequest>
 
 export const FleetGlobalCheckpointsResponse = z.object({
   global_checkpoints: z.array(FleetCheckpoint),
   timed_out: z.boolean()
-})
+}).meta({ id: 'FleetGlobalCheckpointsResponse' })
 export type FleetGlobalCheckpointsResponse = z.infer<typeof FleetGlobalCheckpointsResponse>
 
 /**
@@ -80,23 +80,23 @@ export const FleetMsearchRequest = z.object({
   wait_for_checkpoints: z.array(FleetCheckpoint).describe('A comma separated list of checkpoints. When configured, the search API will only be executed on a shard after the relevant checkpoint has become visible for search. Defaults to an empty list which will cause Elasticsearch to immediately execute the search.').optional().meta({ found_in: 'query' }),
   allow_partial_search_results: z.boolean().describe('If true, returns partial results if there are shard request timeouts or shard failures. If false, returns an error with no partial results. Defaults to the configured cluster setting `search.default_allow_partial_results`, which is true by default.').optional().meta({ found_in: 'query' }),
   searches: z.array(MsearchRequestItem).optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'FleetMsearchRequest' })
 export type FleetMsearchRequest = z.infer<typeof FleetMsearchRequest>
 
 export const FleetMsearchResponse = z.object({
   docs: z.array(MsearchResponseItem)
-})
+}).meta({ id: 'FleetMsearchResponse' })
 export type FleetMsearchResponse = z.infer<typeof FleetMsearchResponse>
 
 /** Creates a secret stored by Fleet. */
 export const FleetPostSecretRequest = z.object({
   value: z.string().meta({ found_in: 'body' })
-})
+}).meta({ id: 'FleetPostSecretRequest' })
 export type FleetPostSecretRequest = z.infer<typeof FleetPostSecretRequest>
 
 export const FleetPostSecretResponse = z.object({
   id: z.string()
-})
+}).meta({ id: 'FleetPostSecretResponse' })
 export type FleetPostSecretResponse = z.infer<typeof FleetPostSecretResponse>
 
 /**
@@ -168,7 +168,7 @@ export const FleetSearchRequest = z.object({
   pit: SearchPointInTimeReference.describe('Limits the search to a point in time (PIT). If you provide a PIT, you cannot specify an <index> in the request path.').optional().meta({ found_in: 'body' }),
   runtime_mappings: z.lazy(() => MappingRuntimeFields).describe('Defines one or more runtime fields in the search request. These fields take precedence over mapped fields with the same name.').optional().meta({ found_in: 'body' }),
   stats: z.array(z.string()).describe('Stats groups to associate with the search. Each group maintains a statistics aggregation for its associated searches. You can retrieve these stats using the indices stats API.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'FleetSearchRequest' })
 export type FleetSearchRequest = z.infer<typeof FleetSearchRequest>
 
 export const FleetSearchResponse = z.object({
@@ -186,5 +186,5 @@ export const FleetSearchResponse = z.object({
   _scroll_id: z.lazy(() => ScrollId).optional(),
   suggest: z.record(z.lazy(() => SuggestionName), z.array(SearchSuggest)).optional(),
   terminated_early: z.boolean().optional()
-})
+}).meta({ id: 'FleetSearchResponse' })
 export type FleetSearchResponse = z.infer<typeof FleetSearchResponse>

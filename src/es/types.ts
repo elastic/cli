@@ -5,6 +5,7 @@
 
 import type { z } from 'zod'
 import { extractSchemaArgs } from '../lib/schema-args.ts'
+import type { SchemaArgDefinition } from '../lib/schema-args.ts'
 
 /**
  * Valid HTTP methods for Elasticsearch API requests.
@@ -104,18 +105,18 @@ function extractPathTokens (path: string): string[] {
  *
  * @throws {Error} if any validation rule is violated
  */
-export function validateApiDefinition (def: EsApiDefinition): void {
+export function validateApiDefinition (def: EsApiDefinition): SchemaArgDefinition[] {
   if (!VALID_NAME.test(def.name)) {
     throw new Error(
-      `invalid name ${JSON.stringify(def.name)}: ` +
-      'names must start with a lowercase letter or digit and contain only lowercase letters, digits, and hyphens'
+ `invalid name ${JSON.stringify(def.name)}: ` +
+ 'names must start with a lowercase letter or digit and contain only lowercase letters, digits, and hyphens'
     )
   }
 
   if (def.namespace !== undefined && !VALID_NAMESPACE.test(def.namespace)) {
     throw new Error(
-      `invalid namespace ${JSON.stringify(def.namespace)}: ` +
-      'namespaces must start with a lowercase letter and contain only lowercase letters and hyphens'
+ `invalid namespace ${JSON.stringify(def.namespace)}: ` +
+ 'namespaces must start with a lowercase letter and contain only lowercase letters and hyphens'
     )
   }
 
@@ -123,7 +124,7 @@ export function validateApiDefinition (def: EsApiDefinition): void {
     throw new Error(`path must start with "/" -- got ${JSON.stringify(def.path)}`)
   }
 
-  if (def.input == null) return
+  if (def.input == null) return []
 
   const tokens = new Set(extractPathTokens(def.path))
   const args = extractSchemaArgs(resolveInput(def.input))
@@ -132,8 +133,8 @@ export function validateApiDefinition (def: EsApiDefinition): void {
   for (const token of tokens) {
     if (!pathFields.has(token)) {
       throw new Error(
-        `path param {${token}} in definition "${def.name}" has no input field with found_in: "path" -- ` +
-        `add .meta({ found_in: "path" }) to the "${token}" field in the input schema`
+ `path param {${token}} in definition "${def.name}" has no input field with found_in: "path" -- ` +
+ `add .meta({ found_in: "path" }) to the "${token}" field in the input schema`
       )
     }
   }
@@ -141,10 +142,12 @@ export function validateApiDefinition (def: EsApiDefinition): void {
   for (const key of pathFields) {
     if (!tokens.has(key)) {
       throw new Error(
-        `input field "${key}" has found_in: "path" but there is no {${key}} token in the path template for definition "${def.name}"`
+ `input field "${key}" has found_in: "path" but there is no {${key}} token in the path template for definition "${def.name}"`
       )
     }
   }
+
+  return args
 }
 
 /**

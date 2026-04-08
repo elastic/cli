@@ -20,7 +20,7 @@ let _transport: Transport | undefined
  * appropriate transport auth type (`ApiKeyAuth` or `BasicAuth`).
  * @throws {Error} with code `missing_config` when no Elasticsearch service is configured
  */
-export function getTransport(): Transport {
+export function getTransport (): Transport {
   if (_transport != null) return _transport
 
   const config = getResolvedConfig()
@@ -36,13 +36,13 @@ export function getTransport(): Transport {
 
   const { url, auth } = es
 
-  let transportAuth: ApiKeyAuth | { username: string; password: string } | undefined
-  if ('api_key' in auth && typeof (auth as Record<string, unknown>)['api_key'] === 'string') {
-    transportAuth = { apiKey: (auth as Record<string, unknown>)['api_key'] as string }
+  let transportAuth: ApiKeyAuth | { username: string, password: string } | undefined
+  if ('api_key' in auth && typeof (auth as Record<string, unknown>).api_key === 'string') {
+    transportAuth = { apiKey: (auth as Record<string, unknown>).api_key as string }
   } else if ('username' in auth && 'password' in auth) {
     const a = auth as Record<string, unknown>
-    if (typeof a['username'] === 'string' && typeof a['password'] === 'string') {
-      transportAuth = { username: a['username'], password: a['password'] }
+    if (typeof a.username === 'string' && typeof a.password === 'string') {
+      transportAuth = { username: a.username, password: a.password }
     }
   }
 
@@ -58,7 +58,7 @@ export function getTransport(): Transport {
   // Setting pool.auth after addConnection() has no effect on the already-created connection.
   const pool = new WeightedConnectionPool({
     Connection: UndiciConnection,
-    ...(transportAuth != null && { auth: transportAuth }),
+    ...(transportAuth != null && { auth: transportAuth })
   })
   pool.addConnection(url)
 
@@ -71,6 +71,6 @@ export function getTransport(): Transport {
  *
  * @internal test seam — call in `afterEach` to prevent instance reuse across tests
  */
-export function _testResetTransport(): void {
+export function _testResetTransport (): void {
   _transport = undefined
 }

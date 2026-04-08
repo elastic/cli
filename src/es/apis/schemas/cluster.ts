@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { AcknowledgedResponseBase, ByteSize, ClusterInfoTargets, CompletionStats, DateFormat, DateTime, DocStats, Duration, DurationValue, EpochTime, ExpandWildcards, FielddataStats, HealthStatus, Id, Ids, IndexName, Indices, Level, MappingTypeMapping, Metadata, Name, Names, NodeId, NodeIds, NodeName, NodeRoles, NodeStatistics, PluginStats, QueryCacheStats, SegmentsStats, StoreStats, TransportAddress, UnitMillis, Uuid, VersionNumber, VersionString, WaitForActiveShards, WaitForEvents, double, integer, long } from './_types.ts'
 import { IndicesAliasDefinition, IndicesDataStreamLifecycle, IndicesDataStreamLifecycleWithRollover, IndicesDataStreamOptions, IndicesIndexSettings, IndicesPutIndexTemplateIndexTemplateMapping } from './indices.ts'
 import { NodesHttp, NodesIndexingPressureMemory, NodesIngest, NodesScripting, NodesThreadCount } from './nodes.ts'
 
-export const ClusterAllocationExplainUnassignedInformationReason = z.enum(['INDEX_CREATED', 'CLUSTER_RECOVERED', 'INDEX_REOPENED', 'DANGLING_INDEX_IMPORTED', 'NEW_INDEX_RESTORED', 'EXISTING_INDEX_RESTORED', 'REPLICA_ADDED', 'ALLOCATION_FAILED', 'NODE_LEFT', 'REROUTE_CANCELLED', 'REINITIALIZED', 'REALLOCATED_REPLICA', 'PRIMARY_FAILED', 'FORCED_EMPTY_PRIMARY', 'MANUAL_ALLOCATION'])
+export const ClusterAllocationExplainUnassignedInformationReason = z.enum(['INDEX_CREATED', 'CLUSTER_RECOVERED', 'INDEX_REOPENED', 'DANGLING_INDEX_IMPORTED', 'NEW_INDEX_RESTORED', 'EXISTING_INDEX_RESTORED', 'REPLICA_ADDED', 'ALLOCATION_FAILED', 'NODE_LEFT', 'REROUTE_CANCELLED', 'REINITIALIZED', 'REALLOCATED_REPLICA', 'PRIMARY_FAILED', 'FORCED_EMPTY_PRIMARY', 'MANUAL_ALLOCATION']).meta({ id: 'ClusterAllocationExplainUnassignedInformationReason' })
 export type ClusterAllocationExplainUnassignedInformationReason = z.infer<typeof ClusterAllocationExplainUnassignedInformationReason>
 
 export const ClusterAllocationExplainUnassignedInformation = z.object({
@@ -22,7 +22,7 @@ export const ClusterAllocationExplainUnassignedInformation = z.object({
   failed_allocation_attempts: z.lazy(() => integer).optional(),
   delayed: z.boolean().optional(),
   allocation_status: z.string().optional()
-})
+}).meta({ id: 'ClusterAllocationExplainUnassignedInformation' })
 export type ClusterAllocationExplainUnassignedInformation = z.infer<typeof ClusterAllocationExplainUnassignedInformation>
 
 export const ClusterComponentTemplateSummaryRes = z.object({
@@ -33,7 +33,7 @@ export const ClusterComponentTemplateSummaryRes = z.object({
   mappings: z.lazy(() => MappingTypeMapping).optional(),
   aliases: z.record(z.string(), z.lazy(() => IndicesAliasDefinition)).optional(),
   data_stream_options: z.lazy(() => IndicesDataStreamOptions).optional()
-})
+}).meta({ id: 'ClusterComponentTemplateSummaryRes' })
 export type ClusterComponentTemplateSummaryRes = z.infer<typeof ClusterComponentTemplateSummaryRes>
 
 export const ClusterComponentTemplateNodeWithRollover = z.object({
@@ -45,13 +45,13 @@ export const ClusterComponentTemplateNodeWithRollover = z.object({
   created_date_millis: z.lazy(() => EpochTime).describe('Date and time when the component template was created, in milliseconds since the epoch.').optional(),
   modified_date: z.lazy(() => DateTime).describe('Date and time when the component template was last modified. Only returned if the `human` query parameter is `true`.').optional(),
   modified_date_millis: z.lazy(() => EpochTime).describe('Date and time when the component template was last modified, in milliseconds since the epoch.').optional()
-})
+}).meta({ id: 'ClusterComponentTemplateNodeWithRollover' })
 export type ClusterComponentTemplateNodeWithRollover = z.infer<typeof ClusterComponentTemplateNodeWithRollover>
 
 export const ClusterComponentTemplate = z.object({
   name: z.lazy(() => Name),
   component_template: ClusterComponentTemplateNodeWithRollover
-})
+}).meta({ id: 'ClusterComponentTemplate' })
 export type ClusterComponentTemplate = z.infer<typeof ClusterComponentTemplate>
 
 export const ClusterComponentTemplateSummary = z.object({
@@ -62,7 +62,7 @@ export const ClusterComponentTemplateSummary = z.object({
   aliases: z.record(z.string(), z.lazy(() => IndicesAliasDefinition)).optional(),
   lifecycle: z.lazy(() => IndicesDataStreamLifecycle).optional(),
   data_stream_options: z.lazy(() => IndicesDataStreamOptions).optional()
-})
+}).meta({ id: 'ClusterComponentTemplateSummary' })
 export type ClusterComponentTemplateSummary = z.infer<typeof ClusterComponentTemplateSummary>
 
 export const ClusterComponentTemplateNode = z.object({
@@ -74,17 +74,17 @@ export const ClusterComponentTemplateNode = z.object({
   created_date_millis: z.lazy(() => EpochTime).describe('Date and time when the component template was created, in milliseconds since the epoch.').optional(),
   modified_date: z.lazy(() => DateTime).describe('Date and time when the component template was last modified. Only returned if the `human` query parameter is `true`.').optional(),
   modified_date_millis: z.lazy(() => EpochTime).describe('Date and time when the component template was last modified, in milliseconds since the epoch.').optional()
-})
+}).meta({ id: 'ClusterComponentTemplateNode' })
 export type ClusterComponentTemplateNode = z.infer<typeof ClusterComponentTemplateNode>
 
-export const ClusterAllocationExplainAllocationExplainDecision = z.enum(['NO', 'YES', 'THROTTLE', 'ALWAYS'])
+export const ClusterAllocationExplainAllocationExplainDecision = z.enum(['NO', 'YES', 'THROTTLE', 'ALWAYS']).meta({ id: 'ClusterAllocationExplainAllocationExplainDecision' })
 export type ClusterAllocationExplainAllocationExplainDecision = z.infer<typeof ClusterAllocationExplainAllocationExplainDecision>
 
 export const ClusterAllocationExplainAllocationDecision = z.object({
   decider: z.string(),
   decision: ClusterAllocationExplainAllocationExplainDecision,
   explanation: z.string()
-})
+}).meta({ id: 'ClusterAllocationExplainAllocationDecision' })
 export type ClusterAllocationExplainAllocationDecision = z.infer<typeof ClusterAllocationExplainAllocationDecision>
 
 export const ClusterAllocationExplainAllocationStore = z.object({
@@ -94,7 +94,7 @@ export const ClusterAllocationExplainAllocationStore = z.object({
   matching_size_in_bytes: z.lazy(() => long),
   matching_sync_id: z.boolean(),
   store_exception: z.string()
-})
+}).meta({ id: 'ClusterAllocationExplainAllocationStore' })
 export type ClusterAllocationExplainAllocationStore = z.infer<typeof ClusterAllocationExplainAllocationStore>
 
 export const ClusterAllocationExplainDiskUsage = z.object({
@@ -104,14 +104,14 @@ export const ClusterAllocationExplainDiskUsage = z.object({
   free_bytes: z.lazy(() => long),
   free_disk_percent: z.lazy(() => double),
   used_disk_percent: z.lazy(() => double)
-})
+}).meta({ id: 'ClusterAllocationExplainDiskUsage' })
 export type ClusterAllocationExplainDiskUsage = z.infer<typeof ClusterAllocationExplainDiskUsage>
 
 export const ClusterAllocationExplainNodeDiskUsage = z.object({
   node_name: z.lazy(() => Name),
   least_available: ClusterAllocationExplainDiskUsage,
   most_available: ClusterAllocationExplainDiskUsage
-})
+}).meta({ id: 'ClusterAllocationExplainNodeDiskUsage' })
 export type ClusterAllocationExplainNodeDiskUsage = z.infer<typeof ClusterAllocationExplainNodeDiskUsage>
 
 export const ClusterAllocationExplainReservedSize = z.object({
@@ -119,7 +119,7 @@ export const ClusterAllocationExplainReservedSize = z.object({
   path: z.string(),
   total: z.lazy(() => long),
   shards: z.array(z.string())
-})
+}).meta({ id: 'ClusterAllocationExplainReservedSize' })
 export type ClusterAllocationExplainReservedSize = z.infer<typeof ClusterAllocationExplainReservedSize>
 
 export const ClusterAllocationExplainClusterInfo = z.object({
@@ -128,7 +128,7 @@ export const ClusterAllocationExplainClusterInfo = z.object({
   shard_data_set_sizes: z.record(z.string(), z.string()).optional(),
   shard_paths: z.record(z.string(), z.string()),
   reserved_sizes: z.array(ClusterAllocationExplainReservedSize)
-})
+}).meta({ id: 'ClusterAllocationExplainClusterInfo' })
 export type ClusterAllocationExplainClusterInfo = z.infer<typeof ClusterAllocationExplainClusterInfo>
 
 export const ClusterAllocationExplainCurrentNode = z.object({
@@ -138,10 +138,10 @@ export const ClusterAllocationExplainCurrentNode = z.object({
   attributes: z.record(z.string(), z.string()),
   transport_address: z.lazy(() => TransportAddress),
   weight_ranking: z.lazy(() => integer)
-})
+}).meta({ id: 'ClusterAllocationExplainCurrentNode' })
 export type ClusterAllocationExplainCurrentNode = z.infer<typeof ClusterAllocationExplainCurrentNode>
 
-export const ClusterAllocationExplainDecision = z.enum(['yes', 'no', 'worse_balance', 'throttled', 'awaiting_info', 'allocation_delayed', 'no_valid_shard_copy', 'no_attempt'])
+export const ClusterAllocationExplainDecision = z.enum(['yes', 'no', 'worse_balance', 'throttled', 'awaiting_info', 'allocation_delayed', 'no_valid_shard_copy', 'no_attempt']).meta({ id: 'ClusterAllocationExplainDecision' })
 export type ClusterAllocationExplainDecision = z.infer<typeof ClusterAllocationExplainDecision>
 
 export const ClusterAllocationExplainNodeAllocationExplanation = z.object({
@@ -154,7 +154,7 @@ export const ClusterAllocationExplainNodeAllocationExplanation = z.object({
   store: ClusterAllocationExplainAllocationStore.optional(),
   transport_address: z.lazy(() => TransportAddress),
   weight_ranking: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'ClusterAllocationExplainNodeAllocationExplanation' })
 export type ClusterAllocationExplainNodeAllocationExplanation = z.infer<typeof ClusterAllocationExplainNodeAllocationExplanation>
 
 /**
@@ -175,7 +175,7 @@ export const ClusterAllocationExplainRequest = z.object({
   shard: z.lazy(() => integer).describe('An identifier for the shard that you would like an explanation for.').optional().meta({ found_in: 'body' }),
   primary: z.boolean().describe('If true, returns an explanation for the primary shard for the specified shard ID.').optional().meta({ found_in: 'body' }),
   current_node: z.lazy(() => NodeId).describe('Explain a shard only if it is currently located on the specified node name or node ID.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ClusterAllocationExplainRequest' })
 export type ClusterAllocationExplainRequest = z.infer<typeof ClusterAllocationExplainRequest>
 
 export const ClusterAllocationExplainResponse = z.object({
@@ -204,7 +204,7 @@ export const ClusterAllocationExplainResponse = z.object({
   shard: z.lazy(() => integer),
   unassigned_info: z.lazy(() => ClusterAllocationExplainUnassignedInformation).optional(),
   note: z.string().optional()
-})
+}).meta({ id: 'ClusterAllocationExplainResponse' })
 export type ClusterAllocationExplainResponse = z.infer<typeof ClusterAllocationExplainResponse>
 
 /**
@@ -216,10 +216,10 @@ export const ClusterDeleteComponentTemplateRequest = z.object({
   name: z.lazy(() => Names).describe('Comma-separated list or wildcard expression of component template names used to limit the request.').meta({ found_in: 'path' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ClusterDeleteComponentTemplateRequest' })
 export type ClusterDeleteComponentTemplateRequest = z.infer<typeof ClusterDeleteComponentTemplateRequest>
 
-export const ClusterDeleteComponentTemplateResponse = z.lazy(() => AcknowledgedResponseBase)
+export const ClusterDeleteComponentTemplateResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'ClusterDeleteComponentTemplateResponse' })
 export type ClusterDeleteComponentTemplateResponse = z.infer<typeof ClusterDeleteComponentTemplateResponse>
 
 /**
@@ -230,10 +230,10 @@ export type ClusterDeleteComponentTemplateResponse = z.infer<typeof ClusterDelet
 export const ClusterDeleteVotingConfigExclusionsRequest = z.object({
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
   wait_for_removal: z.boolean().describe('Specifies whether to wait for all excluded nodes to be removed from the cluster before clearing the voting configuration exclusions list. Defaults to true, meaning that all excluded nodes must be removed from the cluster before this API takes any action. If set to false then the voting configuration exclusions list is cleared even if some excluded nodes are still in the cluster.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ClusterDeleteVotingConfigExclusionsRequest' })
 export type ClusterDeleteVotingConfigExclusionsRequest = z.infer<typeof ClusterDeleteVotingConfigExclusionsRequest>
 
-export const ClusterDeleteVotingConfigExclusionsResponse = z.boolean()
+export const ClusterDeleteVotingConfigExclusionsResponse = z.boolean().meta({ id: 'ClusterDeleteVotingConfigExclusionsResponse' })
 export type ClusterDeleteVotingConfigExclusionsResponse = z.infer<typeof ClusterDeleteVotingConfigExclusionsResponse>
 
 /**
@@ -245,10 +245,10 @@ export const ClusterExistsComponentTemplateRequest = z.object({
   name: z.lazy(() => Names).describe('Comma-separated list of component template names used to limit the request. Wildcard (*) expressions are supported.').meta({ found_in: 'path' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If true, the request retrieves information from the local node only. Defaults to false, which means information is retrieved from the master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ClusterExistsComponentTemplateRequest' })
 export type ClusterExistsComponentTemplateRequest = z.infer<typeof ClusterExistsComponentTemplateRequest>
 
-export const ClusterExistsComponentTemplateResponse = z.boolean()
+export const ClusterExistsComponentTemplateResponse = z.boolean().meta({ id: 'ClusterExistsComponentTemplateResponse' })
 export type ClusterExistsComponentTemplateResponse = z.infer<typeof ClusterExistsComponentTemplateResponse>
 
 /**
@@ -263,12 +263,12 @@ export const ClusterGetComponentTemplateRequest = z.object({
   include_defaults: z.boolean().describe('Return all default configurations for the component template').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request retrieves information from the local node only. If `false`, information is retrieved from the master node.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ClusterGetComponentTemplateRequest' })
 export type ClusterGetComponentTemplateRequest = z.infer<typeof ClusterGetComponentTemplateRequest>
 
 export const ClusterGetComponentTemplateResponse = z.object({
   component_templates: z.array(ClusterComponentTemplate)
-})
+}).meta({ id: 'ClusterGetComponentTemplateResponse' })
 export type ClusterGetComponentTemplateResponse = z.infer<typeof ClusterGetComponentTemplateResponse>
 
 /**
@@ -281,14 +281,14 @@ export const ClusterGetSettingsRequest = z.object({
   include_defaults: z.boolean().describe('If `true`, also returns the values of all other cluster settings set in the `elasticsearch.yml` file on one of the nodes in your cluster, together with the default values of all other cluster settings on that node. The default value of each setting may depend on the values of other settings on that node. If the nodes in your cluster do not all have the same configuration then the values returned by this API may vary from invocation to invocation and may not reflect the values that Elasticsearch uses in all situations. Use the `GET _nodes/settings` API to fetch the settings for each individual node in your cluster.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ClusterGetSettingsRequest' })
 export type ClusterGetSettingsRequest = z.infer<typeof ClusterGetSettingsRequest>
 
 export const ClusterGetSettingsResponse = z.object({
   persistent: z.record(z.string(), z.any()).describe('The settings that persist after the cluster restarts.'),
   transient: z.record(z.string(), z.any()).describe('The settings that do not persist after the cluster restarts.'),
   defaults: z.record(z.string(), z.any()).describe('The default setting values.').optional()
-})
+}).meta({ id: 'ClusterGetSettingsResponse' })
 export type ClusterGetSettingsResponse = z.infer<typeof ClusterGetSettingsResponse>
 
 export const ClusterHealthShardHealthStats = z.object({
@@ -299,7 +299,7 @@ export const ClusterHealthShardHealthStats = z.object({
   status: z.lazy(() => HealthStatus),
   unassigned_shards: z.lazy(() => integer),
   unassigned_primary_shards: z.lazy(() => integer)
-})
+}).meta({ id: 'ClusterHealthShardHealthStats' })
 export type ClusterHealthShardHealthStats = z.infer<typeof ClusterHealthShardHealthStats>
 
 export const ClusterHealthIndexHealthStats = z.object({
@@ -313,7 +313,7 @@ export const ClusterHealthIndexHealthStats = z.object({
   status: z.lazy(() => HealthStatus),
   unassigned_shards: z.lazy(() => integer),
   unassigned_primary_shards: z.lazy(() => integer)
-})
+}).meta({ id: 'ClusterHealthIndexHealthStats' })
 export type ClusterHealthIndexHealthStats = z.infer<typeof ClusterHealthIndexHealthStats>
 
 export const ClusterHealthHealthResponseBody = z.object({
@@ -336,10 +336,10 @@ export const ClusterHealthHealthResponseBody = z.object({
   timed_out: z.boolean().describe('If false the response returned within the period of time that is specified by the timeout parameter (30s by default)'),
   unassigned_primary_shards: z.lazy(() => integer).describe('The number of primary shards that are not allocated.'),
   unassigned_shards: z.lazy(() => integer).describe('The number of shards that are not allocated.')
-})
+}).meta({ id: 'ClusterHealthHealthResponseBody' })
 export type ClusterHealthHealthResponseBody = z.infer<typeof ClusterHealthHealthResponseBody>
 
-export const ClusterHealthWaitForNodes = z.union([z.string(), z.lazy(() => integer)])
+export const ClusterHealthWaitForNodes = z.union([z.string(), z.lazy(() => integer)]).meta({ id: 'ClusterHealthWaitForNodes' })
 export type ClusterHealthWaitForNodes = z.infer<typeof ClusterHealthWaitForNodes>
 
 /**
@@ -368,10 +368,10 @@ export const ClusterHealthRequest = z.object({
   wait_for_no_initializing_shards: z.boolean().describe('Wait (until the timeout expires) for the cluster to have no shard initializations. If false, the request does not wait for initializing shards.').optional().meta({ found_in: 'query' }),
   wait_for_no_relocating_shards: z.boolean().describe('Wait (until the timeout expires) for the cluster to have no shard relocations. If false, the request not wait for relocating shards.').optional().meta({ found_in: 'query' }),
   wait_for_status: z.lazy(() => HealthStatus).describe('Wait (until the timeout expires) for the cluster to reach a specific health status (or a better status). A green status is better than yellow and yellow is better than red. By default, the request does not wait for a particular status.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ClusterHealthRequest' })
 export type ClusterHealthRequest = z.infer<typeof ClusterHealthRequest>
 
-export const ClusterHealthResponse = ClusterHealthHealthResponseBody
+export const ClusterHealthResponse = ClusterHealthHealthResponseBody.meta({ id: 'ClusterHealthResponse' })
 export type ClusterHealthResponse = z.infer<typeof ClusterHealthResponse>
 
 /**
@@ -381,7 +381,7 @@ export type ClusterHealthResponse = z.infer<typeof ClusterHealthResponse>
  */
 export const ClusterInfoRequest = z.object({
   target: z.lazy(() => ClusterInfoTargets).describe('Limits the information returned to the specific target. Supports a comma-separated list, such as http,ingest.').meta({ found_in: 'path' })
-})
+}).meta({ id: 'ClusterInfoRequest' })
 export type ClusterInfoRequest = z.infer<typeof ClusterInfoRequest>
 
 export const ClusterInfoResponse = z.object({
@@ -390,7 +390,7 @@ export const ClusterInfoResponse = z.object({
   ingest: z.lazy(() => NodesIngest).optional(),
   thread_pool: z.record(z.string(), z.lazy(() => NodesThreadCount)).optional(),
   script: z.lazy(() => NodesScripting).optional()
-})
+}).meta({ id: 'ClusterInfoResponse' })
 export type ClusterInfoResponse = z.infer<typeof ClusterInfoResponse>
 
 export const ClusterPendingTasksPendingTask = z.object({
@@ -400,7 +400,7 @@ export const ClusterPendingTasksPendingTask = z.object({
   source: z.string().describe('A general description of the cluster task that may include a reason and origin.'),
   time_in_queue: z.lazy(() => Duration).describe('The time since the task is waiting for being performed.').optional(),
   time_in_queue_millis: z.lazy(() => DurationValue).describe('The time expressed in milliseconds since the task is waiting for being performed.')
-})
+}).meta({ id: 'ClusterPendingTasksPendingTask' })
 export type ClusterPendingTasksPendingTask = z.infer<typeof ClusterPendingTasksPendingTask>
 
 /**
@@ -415,12 +415,12 @@ export type ClusterPendingTasksPendingTask = z.infer<typeof ClusterPendingTasksP
 export const ClusterPendingTasksRequest = z.object({
   local: z.boolean().describe('If `true`, the request retrieves information from the local node only. If `false`, information is retrieved from the master node.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ClusterPendingTasksRequest' })
 export type ClusterPendingTasksRequest = z.infer<typeof ClusterPendingTasksRequest>
 
 export const ClusterPendingTasksResponse = z.object({
   tasks: z.array(ClusterPendingTasksPendingTask)
-})
+}).meta({ id: 'ClusterPendingTasksResponse' })
 export type ClusterPendingTasksResponse = z.infer<typeof ClusterPendingTasksResponse>
 
 /**
@@ -449,10 +449,10 @@ export const ClusterPostVotingConfigExclusionsRequest = z.object({
   node_ids: z.lazy(() => Ids).describe('A comma-separated list of the persistent ids of the nodes to exclude from the voting configuration. If specified, you may not also specify node_names.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('When adding a voting configuration exclusion, the API waits for the specified nodes to be excluded from the voting configuration before returning. If the timeout expires before the appropriate condition is satisfied, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ClusterPostVotingConfigExclusionsRequest' })
 export type ClusterPostVotingConfigExclusionsRequest = z.infer<typeof ClusterPostVotingConfigExclusionsRequest>
 
-export const ClusterPostVotingConfigExclusionsResponse = z.boolean()
+export const ClusterPostVotingConfigExclusionsResponse = z.boolean().meta({ id: 'ClusterPostVotingConfigExclusionsResponse' })
 export type ClusterPostVotingConfigExclusionsResponse = z.infer<typeof ClusterPostVotingConfigExclusionsResponse>
 
 /**
@@ -487,10 +487,10 @@ export const ClusterPutComponentTemplateRequest = z.object({
   version: z.lazy(() => VersionNumber).describe('Version number used to manage component templates externally. This number isn\'t automatically generated or incremented by Elasticsearch. To unset a version, replace the template without specifying a version.').optional().meta({ found_in: 'body' }),
   _meta: z.lazy(() => Metadata).describe('Optional user metadata about the component template. It may have any contents. This map is not automatically generated by Elasticsearch. This information is stored in the cluster state, so keeping it short is preferable. To unset `_meta`, replace the template without specifying this information.').optional().meta({ found_in: 'body' }),
   deprecated: z.boolean().describe('Marks this index template as deprecated. When creating or updating a non-deprecated index template that uses deprecated components, Elasticsearch will emit a deprecation warning.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ClusterPutComponentTemplateRequest' })
 export type ClusterPutComponentTemplateRequest = z.infer<typeof ClusterPutComponentTemplateRequest>
 
-export const ClusterPutComponentTemplateResponse = z.lazy(() => AcknowledgedResponseBase)
+export const ClusterPutComponentTemplateResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'ClusterPutComponentTemplateResponse' })
 export type ClusterPutComponentTemplateResponse = z.infer<typeof ClusterPutComponentTemplateResponse>
 
 /**
@@ -520,14 +520,14 @@ export const ClusterPutSettingsRequest = z.object({
   timeout: z.lazy(() => Duration).describe('The period to wait for a response.').optional().meta({ found_in: 'query' }),
   persistent: z.record(z.string(), z.any()).describe('The settings that persist after the cluster restarts.').optional().meta({ found_in: 'body' }),
   transient: z.record(z.string(), z.any()).describe('The settings that do not persist after the cluster restarts.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ClusterPutSettingsRequest' })
 export type ClusterPutSettingsRequest = z.infer<typeof ClusterPutSettingsRequest>
 
 export const ClusterPutSettingsResponse = z.object({
   acknowledged: z.boolean(),
   persistent: z.record(z.string(), z.any()),
   transient: z.record(z.string(), z.any())
-})
+}).meta({ id: 'ClusterPutSettingsResponse' })
 export type ClusterPutSettingsResponse = z.infer<typeof ClusterPutSettingsResponse>
 
 export const ClusterRemoteInfoClusterRemoteSniffInfo = z.object({
@@ -538,7 +538,7 @@ export const ClusterRemoteInfoClusterRemoteSniffInfo = z.object({
   initial_connect_timeout: z.lazy(() => Duration).describe('The initial connect timeout for remote cluster connections.'),
   skip_unavailable: z.boolean().describe('If `true`, cross-cluster search skips the remote cluster when its nodes are unavailable during the search and ignores errors returned by the remote cluster.'),
   seeds: z.array(z.string()).describe('The initial seed transport addresses of the remote cluster when sniff mode is configured.')
-})
+}).meta({ id: 'ClusterRemoteInfoClusterRemoteSniffInfo' })
 export type ClusterRemoteInfoClusterRemoteSniffInfo = z.infer<typeof ClusterRemoteInfoClusterRemoteSniffInfo>
 
 export const ClusterRemoteInfoClusterRemoteProxyInfo = z.object({
@@ -551,10 +551,10 @@ export const ClusterRemoteInfoClusterRemoteProxyInfo = z.object({
   num_proxy_sockets_connected: z.lazy(() => integer).describe('The number of open socket connections to the remote cluster when proxy mode is configured.'),
   max_proxy_socket_connections: z.lazy(() => integer).describe('The maximum number of socket connections to the remote cluster when proxy mode is configured.'),
   cluster_credentials: z.string().describe('This field is present and has a value of `::es_redacted::` only when the remote cluster is configured with the API key based model. Otherwise, the field is not present.').optional()
-})
+}).meta({ id: 'ClusterRemoteInfoClusterRemoteProxyInfo' })
 export type ClusterRemoteInfoClusterRemoteProxyInfo = z.infer<typeof ClusterRemoteInfoClusterRemoteProxyInfo>
 
-export const ClusterRemoteInfoClusterRemoteInfo = z.union([ClusterRemoteInfoClusterRemoteSniffInfo, ClusterRemoteInfoClusterRemoteProxyInfo])
+export const ClusterRemoteInfoClusterRemoteInfo = z.union([ClusterRemoteInfoClusterRemoteSniffInfo, ClusterRemoteInfoClusterRemoteProxyInfo]).meta({ id: 'ClusterRemoteInfoClusterRemoteInfo' })
 export type ClusterRemoteInfoClusterRemoteInfo = z.infer<typeof ClusterRemoteInfoClusterRemoteInfo>
 
 /**
@@ -570,10 +570,10 @@ export type ClusterRemoteInfoClusterRemoteInfo = z.infer<typeof ClusterRemoteInf
  * > To trigger a reconnection, attempt a cross-cluster search, ES|QL cross-cluster search, or try the [resolve cluster endpoint](https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-indices-resolve-cluster).
  */
 export const ClusterRemoteInfoRequest = z.object({
-})
+}).meta({ id: 'ClusterRemoteInfoRequest' })
 export type ClusterRemoteInfoRequest = z.infer<typeof ClusterRemoteInfoRequest>
 
-export const ClusterRemoteInfoResponse = z.record(z.string(), ClusterRemoteInfoClusterRemoteInfo)
+export const ClusterRemoteInfoResponse = z.record(z.string(), ClusterRemoteInfoClusterRemoteInfo).meta({ id: 'ClusterRemoteInfoResponse' })
 export type ClusterRemoteInfoResponse = z.infer<typeof ClusterRemoteInfoResponse>
 
 export const ClusterRerouteCommandCancelAction = z.object({
@@ -581,7 +581,7 @@ export const ClusterRerouteCommandCancelAction = z.object({
   shard: z.lazy(() => integer),
   node: z.string(),
   allow_primary: z.boolean().optional()
-})
+}).meta({ id: 'ClusterRerouteCommandCancelAction' })
 export type ClusterRerouteCommandCancelAction = z.infer<typeof ClusterRerouteCommandCancelAction>
 
 export const ClusterRerouteCommandMoveAction = z.object({
@@ -589,14 +589,14 @@ export const ClusterRerouteCommandMoveAction = z.object({
   shard: z.lazy(() => integer),
   from_node: z.string().describe('The node to move the shard from'),
   to_node: z.string().describe('The node to move the shard to')
-})
+}).meta({ id: 'ClusterRerouteCommandMoveAction' })
 export type ClusterRerouteCommandMoveAction = z.infer<typeof ClusterRerouteCommandMoveAction>
 
 export const ClusterRerouteCommandAllocateReplicaAction = z.object({
   index: z.lazy(() => IndexName),
   shard: z.lazy(() => integer),
   node: z.string()
-})
+}).meta({ id: 'ClusterRerouteCommandAllocateReplicaAction' })
 export type ClusterRerouteCommandAllocateReplicaAction = z.infer<typeof ClusterRerouteCommandAllocateReplicaAction>
 
 export const ClusterRerouteCommandAllocatePrimaryAction = z.object({
@@ -604,7 +604,7 @@ export const ClusterRerouteCommandAllocatePrimaryAction = z.object({
   shard: z.lazy(() => integer),
   node: z.string(),
   accept_data_loss: z.boolean().describe('If a node which has a copy of the data rejoins the cluster later on, that data will be deleted. To ensure that these implications are well-understood, this command requires the flag accept_data_loss to be explicitly set to true')
-})
+}).meta({ id: 'ClusterRerouteCommandAllocatePrimaryAction' })
 export type ClusterRerouteCommandAllocatePrimaryAction = z.infer<typeof ClusterRerouteCommandAllocatePrimaryAction>
 
 export const ClusterRerouteCommand = z.object({
@@ -613,7 +613,7 @@ export const ClusterRerouteCommand = z.object({
   allocate_replica: ClusterRerouteCommandAllocateReplicaAction.describe('Allocate an unassigned replica shard to a node. Accepts index and shard for index name and shard number, and node to allocate the shard to. Takes allocation deciders into account.').optional(),
   allocate_stale_primary: ClusterRerouteCommandAllocatePrimaryAction.describe('Allocate a primary shard to a node that holds a stale copy. Accepts the index and shard for index name and shard number, and node to allocate the shard to. Using this command may lead to data loss for the provided shard id. If a node which has the good copy of the data rejoins the cluster later on, that data will be deleted or overwritten with the data of the stale copy that was forcefully allocated with this command. To ensure that these implications are well-understood, this command requires the flag accept_data_loss to be explicitly set to true.').optional(),
   allocate_empty_primary: ClusterRerouteCommandAllocatePrimaryAction.describe('Allocate an empty primary shard to a node. Accepts the index and shard for index name and shard number, and node to allocate the shard to. Using this command leads to a complete loss of all data that was indexed into this shard, if it was previously started. If a node which has a copy of the data rejoins the cluster later on, that data will be deleted. To ensure that these implications are well-understood, this command requires the flag accept_data_loss to be explicitly set to true.').optional()
-})
+}).meta({ id: 'ClusterRerouteCommand' })
 export type ClusterRerouteCommand = z.infer<typeof ClusterRerouteCommand>
 
 /**
@@ -641,14 +641,14 @@ export const ClusterRerouteRequest = z.object({
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   commands: z.array(ClusterRerouteCommand).describe('Defines the commands to perform.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ClusterRerouteRequest' })
 export type ClusterRerouteRequest = z.infer<typeof ClusterRerouteRequest>
 
 export const ClusterRerouteRerouteDecision = z.object({
   decider: z.string(),
   decision: z.string(),
   explanation: z.string()
-})
+}).meta({ id: 'ClusterRerouteRerouteDecision' })
 export type ClusterRerouteRerouteDecision = z.infer<typeof ClusterRerouteRerouteDecision>
 
 export const ClusterRerouteRerouteParameters = z.object({
@@ -658,27 +658,27 @@ export const ClusterRerouteRerouteParameters = z.object({
   shard: z.lazy(() => integer),
   from_node: z.lazy(() => NodeName).optional(),
   to_node: z.lazy(() => NodeName).optional()
-})
+}).meta({ id: 'ClusterRerouteRerouteParameters' })
 export type ClusterRerouteRerouteParameters = z.infer<typeof ClusterRerouteRerouteParameters>
 
 export const ClusterRerouteRerouteExplanation = z.object({
   command: z.string(),
   decisions: z.array(ClusterRerouteRerouteDecision),
   parameters: ClusterRerouteRerouteParameters
-})
+}).meta({ id: 'ClusterRerouteRerouteExplanation' })
 export type ClusterRerouteRerouteExplanation = z.infer<typeof ClusterRerouteRerouteExplanation>
 
 export const ClusterRerouteResponse = z.object({
   acknowledged: z.boolean(),
   explanations: z.array(ClusterRerouteRerouteExplanation).optional(),
   state: z.any().describe('There aren\'t any guarantees on the output/structure of the raw cluster state. Here you will find the internal representation of the cluster, which can differ from the external representation.').optional()
-})
+}).meta({ id: 'ClusterRerouteResponse' })
 export type ClusterRerouteResponse = z.infer<typeof ClusterRerouteResponse>
 
-export const ClusterStateClusterStateMetric = z.enum(['_all', 'version', 'master_node', 'blocks', 'nodes', 'metadata', 'routing_table', 'routing_nodes', 'customs'])
+export const ClusterStateClusterStateMetric = z.enum(['_all', 'version', 'master_node', 'blocks', 'nodes', 'metadata', 'routing_table', 'routing_nodes', 'customs']).meta({ id: 'ClusterStateClusterStateMetric' })
 export type ClusterStateClusterStateMetric = z.infer<typeof ClusterStateClusterStateMetric>
 
-export const ClusterStateClusterStateMetrics = z.union([ClusterStateClusterStateMetric, z.array(ClusterStateClusterStateMetric)])
+export const ClusterStateClusterStateMetrics = z.union([ClusterStateClusterStateMetric, z.array(ClusterStateClusterStateMetric)]).meta({ id: 'ClusterStateClusterStateMetrics' })
 export type ClusterStateClusterStateMetrics = z.infer<typeof ClusterStateClusterStateMetrics>
 
 /**
@@ -714,10 +714,10 @@ export const ClusterStateRequest = z.object({
   master_timeout: z.lazy(() => Duration).describe('Timeout for waiting for new cluster state in case it is blocked').optional().meta({ found_in: 'query' }),
   wait_for_metadata_version: z.lazy(() => VersionNumber).describe('Wait for the metadata version to be equal or greater than the specified metadata version').optional().meta({ found_in: 'query' }),
   wait_for_timeout: z.lazy(() => Duration).describe('The maximum time to wait for wait_for_metadata_version before timing out').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ClusterStateRequest' })
 export type ClusterStateRequest = z.infer<typeof ClusterStateRequest>
 
-export const ClusterStateResponse = z.any()
+export const ClusterStateResponse = z.any().meta({ id: 'ClusterStateResponse' })
 export type ClusterStateResponse = z.infer<typeof ClusterStateResponse>
 
 export const ClusterStatsRemoteClusterInfo = z.object({
@@ -736,21 +736,21 @@ export const ClusterStatsRemoteClusterInfo = z.object({
   max_heap: z.string().describe('Maximum amount of memory available for use by the heap across the nodes of the remote cluster, as a human-readable string.').optional(),
   mem_total_in_bytes: z.lazy(() => long).describe('Total amount, in bytes, of physical memory across the nodes of the remote cluster.'),
   mem_total: z.string().describe('Total amount of physical memory across the nodes of the remote cluster, as a human-readable string.').optional()
-})
+}).meta({ id: 'ClusterStatsRemoteClusterInfo' })
 export type ClusterStatsRemoteClusterInfo = z.infer<typeof ClusterStatsRemoteClusterInfo>
 
 export const ClusterStatsCCSUsageTimeValue = z.object({
   max: z.lazy(() => DurationValue).describe('The maximum time taken to execute a request, in milliseconds.'),
   avg: z.lazy(() => DurationValue).describe('The average time taken to execute a request, in milliseconds.'),
   p90: z.lazy(() => DurationValue).describe('The 90th percentile of the time taken to execute requests, in milliseconds.')
-})
+}).meta({ id: 'ClusterStatsCCSUsageTimeValue' })
 export type ClusterStatsCCSUsageTimeValue = z.infer<typeof ClusterStatsCCSUsageTimeValue>
 
 export const ClusterStatsCCSUsageClusterStats = z.object({
   total: z.lazy(() => integer).describe('The total number of successful (not skipped) cross-cluster search requests that were executed against this cluster. This may include requests where partial results were returned, but not requests in which the cluster has been skipped entirely.'),
   skipped: z.lazy(() => integer).describe('The total number of cross-cluster search requests for which this cluster was skipped.'),
   took: ClusterStatsCCSUsageTimeValue.describe('Statistics about the time taken to execute requests against this cluster.')
-})
+}).meta({ id: 'ClusterStatsCCSUsageClusterStats' })
 export type ClusterStatsCCSUsageClusterStats = z.infer<typeof ClusterStatsCCSUsageClusterStats>
 
 export const ClusterStatsCCSUsageStats = z.object({
@@ -766,14 +766,14 @@ export const ClusterStatsCCSUsageStats = z.object({
   features: z.record(z.string(), z.lazy(() => integer)).describe('The keys are the names of the search feature, and the values are the number of requests that used that feature. Single request can use more than one feature (e.g. both `async` and `wildcard`).'),
   clients: z.record(z.string(), z.lazy(() => integer)).describe('Statistics about the clients that executed cross-cluster search requests. The keys are the names of the clients, and the values are the number of requests that were executed by that client. Only known clients (such as `kibana` or `elasticsearch`) are counted.'),
   clusters: z.record(z.string(), ClusterStatsCCSUsageClusterStats).describe('Statistics about the clusters that were queried in cross-cluster search requests. The keys are cluster names, and the values are per-cluster telemetry data. This also includes the local cluster itself, which uses the name `(local)`.')
-})
+}).meta({ id: 'ClusterStatsCCSUsageStats' })
 export type ClusterStatsCCSUsageStats = z.infer<typeof ClusterStatsCCSUsageStats>
 
 export const ClusterStatsCCSStats = z.object({
   clusters: z.record(z.string(), ClusterStatsRemoteClusterInfo).describe('Contains remote cluster settings and metrics collected from them. The keys are cluster names, and the values are per-cluster data. Only present if `include_remotes` option is set to true.').optional(),
   _search: ClusterStatsCCSUsageStats.describe('Information about cross-cluster search usage.'),
   _esql: ClusterStatsCCSUsageStats.describe('Information about ES|QL cross-cluster query usage.').optional()
-})
+}).meta({ id: 'ClusterStatsCCSStats' })
 export type ClusterStatsCCSStats = z.infer<typeof ClusterStatsCCSStats>
 
 export const ClusterStatsFieldTypes = z.object({
@@ -787,13 +787,13 @@ export const ClusterStatsFieldTypes = z.object({
   vector_index_type_count: z.record(z.lazy(() => Name), z.lazy(() => integer)).describe('For dense_vector field types, count of mappings by index type').optional(),
   vector_similarity_type_count: z.record(z.lazy(() => Name), z.lazy(() => integer)).describe('For dense_vector field types, count of mappings by similarity').optional(),
   vector_element_type_count: z.record(z.lazy(() => Name), z.lazy(() => integer)).describe('For dense_vector field types, count of mappings by element type').optional()
-})
+}).meta({ id: 'ClusterStatsFieldTypes' })
 export type ClusterStatsFieldTypes = z.infer<typeof ClusterStatsFieldTypes>
 
 export const ClusterStatsSynonymsStats = z.object({
   count: z.lazy(() => integer),
   index_count: z.lazy(() => integer)
-})
+}).meta({ id: 'ClusterStatsSynonymsStats' })
 export type ClusterStatsSynonymsStats = z.infer<typeof ClusterStatsSynonymsStats>
 
 export const ClusterStatsCharFilterTypes = z.object({
@@ -806,7 +806,7 @@ export const ClusterStatsCharFilterTypes = z.object({
   filter_types: z.array(ClusterStatsFieldTypes).describe('Contains statistics about token filter types used in selected nodes.'),
   tokenizer_types: z.array(ClusterStatsFieldTypes).describe('Contains statistics about tokenizer types used in selected nodes.'),
   synonyms: z.record(z.lazy(() => Name), ClusterStatsSynonymsStats).describe('Contains statistics about synonyms types used in selected nodes.')
-})
+}).meta({ id: 'ClusterStatsCharFilterTypes' })
 export type ClusterStatsCharFilterTypes = z.infer<typeof ClusterStatsCharFilterTypes>
 
 export const ClusterStatsClusterFileSystem = z.object({
@@ -827,31 +827,31 @@ export const ClusterStatsClusterFileSystem = z.object({
   flood_stage_free_space_in_bytes: z.lazy(() => long).optional(),
   frozen_flood_stage_free_space: z.lazy(() => ByteSize).optional(),
   frozen_flood_stage_free_space_in_bytes: z.lazy(() => long).optional()
-})
+}).meta({ id: 'ClusterStatsClusterFileSystem' })
 export type ClusterStatsClusterFileSystem = z.infer<typeof ClusterStatsClusterFileSystem>
 
 export const ClusterStatsExtendedTextSimilarityRetrieverUsage = z.object({
   chunk_rescorer: z.lazy(() => long).optional()
-})
+}).meta({ id: 'ClusterStatsExtendedTextSimilarityRetrieverUsage' })
 export type ClusterStatsExtendedTextSimilarityRetrieverUsage = z.infer<typeof ClusterStatsExtendedTextSimilarityRetrieverUsage>
 
 export const ClusterStatsExtendedRetrieversSearchUsage = z.object({
   text_similarity_reranker: ClusterStatsExtendedTextSimilarityRetrieverUsage.optional()
-})
+}).meta({ id: 'ClusterStatsExtendedRetrieversSearchUsage' })
 export type ClusterStatsExtendedRetrieversSearchUsage = z.infer<typeof ClusterStatsExtendedRetrieversSearchUsage>
 
-export const ClusterStatsSortType = z.enum(['_doc', '_geo_distance', '_score', '_script', 'field_sort'])
+export const ClusterStatsSortType = z.enum(['_doc', '_geo_distance', '_score', '_script', 'field_sort']).meta({ id: 'ClusterStatsSortType' })
 export type ClusterStatsSortType = z.infer<typeof ClusterStatsSortType>
 
 export const ClusterStatsExtendedSectionSearchUsage = z.object({
   sort: z.record(ClusterStatsSortType, z.lazy(() => long)).optional()
-})
+}).meta({ id: 'ClusterStatsExtendedSectionSearchUsage' })
 export type ClusterStatsExtendedSectionSearchUsage = z.infer<typeof ClusterStatsExtendedSectionSearchUsage>
 
 export const ClusterStatsExtendedSearchUsage = z.object({
   retrievers: ClusterStatsExtendedRetrieversSearchUsage.optional(),
   section: ClusterStatsExtendedSectionSearchUsage.optional()
-})
+}).meta({ id: 'ClusterStatsExtendedSearchUsage' })
 export type ClusterStatsExtendedSearchUsage = z.infer<typeof ClusterStatsExtendedSearchUsage>
 
 export const ClusterStatsSearchUsageStats = z.object({
@@ -861,21 +861,21 @@ export const ClusterStatsSearchUsageStats = z.object({
   sections: z.record(z.lazy(() => Name), z.lazy(() => long)),
   retrievers: z.record(z.lazy(() => Name), z.lazy(() => long)),
   extended: ClusterStatsExtendedSearchUsage
-})
+}).meta({ id: 'ClusterStatsSearchUsageStats' })
 export type ClusterStatsSearchUsageStats = z.infer<typeof ClusterStatsSearchUsageStats>
 
 export const ClusterStatsClusterShardMetrics = z.object({
   avg: z.lazy(() => double).describe('Mean number of shards in an index, counting only shards assigned to selected nodes.'),
   max: z.lazy(() => double).describe('Maximum number of shards in an index, counting only shards assigned to selected nodes.'),
   min: z.lazy(() => double).describe('Minimum number of shards in an index, counting only shards assigned to selected nodes.')
-})
+}).meta({ id: 'ClusterStatsClusterShardMetrics' })
 export type ClusterStatsClusterShardMetrics = z.infer<typeof ClusterStatsClusterShardMetrics>
 
 export const ClusterStatsClusterIndicesShardsIndex = z.object({
   primaries: ClusterStatsClusterShardMetrics.describe('Contains statistics about the number of primary shards assigned to selected nodes.'),
   replication: ClusterStatsClusterShardMetrics.describe('Contains statistics about the number of replication shards assigned to selected nodes.'),
   shards: ClusterStatsClusterShardMetrics.describe('Contains statistics about the number of shards assigned to selected nodes.')
-})
+}).meta({ id: 'ClusterStatsClusterIndicesShardsIndex' })
 export type ClusterStatsClusterIndicesShardsIndex = z.infer<typeof ClusterStatsClusterIndicesShardsIndex>
 
 /** Contains statistics about shards assigned to selected nodes. */
@@ -884,7 +884,7 @@ export const ClusterStatsClusterIndicesShards = z.object({
   primaries: z.lazy(() => double).describe('Number of primary shards assigned to selected nodes.').optional(),
   replication: z.lazy(() => double).describe('Ratio of replica shards to primary shards across all selected nodes.').optional(),
   total: z.lazy(() => double).describe('Total number of shards assigned to selected nodes.').optional()
-})
+}).meta({ id: 'ClusterStatsClusterIndicesShards' })
 export type ClusterStatsClusterIndicesShards = z.infer<typeof ClusterStatsClusterIndicesShards>
 
 export const ClusterStatsRuntimeFieldTypes = z.object({
@@ -902,7 +902,7 @@ export const ClusterStatsRuntimeFieldTypes = z.object({
   shadowed_count: z.lazy(() => integer).describe('Number of runtime fields that shadow an indexed field.'),
   source_max: z.lazy(() => integer).describe('Maximum number of accesses to _source for a single runtime field script.'),
   source_total: z.lazy(() => integer).describe('Total number of accesses to _source for the scripts that define the current runtime field data type.')
-})
+}).meta({ id: 'ClusterStatsRuntimeFieldTypes' })
 export type ClusterStatsRuntimeFieldTypes = z.infer<typeof ClusterStatsRuntimeFieldTypes>
 
 export const ClusterStatsFieldTypesMappings = z.object({
@@ -913,7 +913,7 @@ export const ClusterStatsFieldTypesMappings = z.object({
   total_deduplicated_mapping_size: z.lazy(() => ByteSize).describe('Total size of all mappings after deduplication and compression.').optional(),
   total_deduplicated_mapping_size_in_bytes: z.lazy(() => long).describe('Total size of all mappings, in bytes, after deduplication and compression.').optional(),
   source_modes: z.record(z.lazy(() => Name), z.lazy(() => integer)).describe('Source mode usage count.')
-})
+}).meta({ id: 'ClusterStatsFieldTypesMappings' })
 export type ClusterStatsFieldTypesMappings = z.infer<typeof ClusterStatsFieldTypesMappings>
 
 export const ClusterStatsIndicesVersions = z.object({
@@ -922,7 +922,7 @@ export const ClusterStatsIndicesVersions = z.object({
   total_primary_bytes: z.lazy(() => long),
   total_primary_size: z.lazy(() => ByteSize).optional(),
   version: z.lazy(() => VersionString)
-})
+}).meta({ id: 'ClusterStatsIndicesVersions' })
 export type ClusterStatsIndicesVersions = z.infer<typeof ClusterStatsIndicesVersions>
 
 export const ClusterStatsDenseVectorOffHeapStats = z.object({
@@ -941,18 +941,18 @@ export const ClusterStatsDenseVectorOffHeapStats = z.object({
   total_clivf_size_bytes: z.lazy(() => long),
   total_clivf_size: z.lazy(() => ByteSize).optional(),
   fielddata: z.record(z.string(), z.record(z.string(), z.lazy(() => long))).optional()
-})
+}).meta({ id: 'ClusterStatsDenseVectorOffHeapStats' })
 export type ClusterStatsDenseVectorOffHeapStats = z.infer<typeof ClusterStatsDenseVectorOffHeapStats>
 
 export const ClusterStatsDenseVectorStats = z.object({
   value_count: z.lazy(() => long),
   off_heap: ClusterStatsDenseVectorOffHeapStats.optional()
-})
+}).meta({ id: 'ClusterStatsDenseVectorStats' })
 export type ClusterStatsDenseVectorStats = z.infer<typeof ClusterStatsDenseVectorStats>
 
 export const ClusterStatsSparseVectorStats = z.object({
   value_count: z.lazy(() => long)
-})
+}).meta({ id: 'ClusterStatsSparseVectorStats' })
 export type ClusterStatsSparseVectorStats = z.infer<typeof ClusterStatsSparseVectorStats>
 
 export const ClusterStatsClusterIndices = z.object({
@@ -970,7 +970,7 @@ export const ClusterStatsClusterIndices = z.object({
   versions: z.array(ClusterStatsIndicesVersions).describe('Contains statistics about analyzers and analyzer components used in selected nodes.').optional(),
   dense_vector: ClusterStatsDenseVectorStats.describe('Contains statistics about indexed dense vector'),
   sparse_vector: ClusterStatsSparseVectorStats.describe('Contains statistics about indexed sparse vector')
-})
+}).meta({ id: 'ClusterStatsClusterIndices' })
 export type ClusterStatsClusterIndices = z.infer<typeof ClusterStatsClusterIndices>
 
 export const ClusterStatsClusterProcessor = z.object({
@@ -979,13 +979,13 @@ export const ClusterStatsClusterProcessor = z.object({
   failed: z.lazy(() => long),
   time: z.lazy(() => Duration).optional(),
   time_in_millis: z.lazy(() => DurationValue)
-})
+}).meta({ id: 'ClusterStatsClusterProcessor' })
 export type ClusterStatsClusterProcessor = z.infer<typeof ClusterStatsClusterProcessor>
 
 export const ClusterStatsClusterIngest = z.object({
   number_of_pipelines: z.lazy(() => integer),
   processor_stats: z.record(z.string(), ClusterStatsClusterProcessor)
-})
+}).meta({ id: 'ClusterStatsClusterIngest' })
 export type ClusterStatsClusterIngest = z.infer<typeof ClusterStatsClusterIngest>
 
 export const ClusterStatsClusterJvmMemory = z.object({
@@ -993,7 +993,7 @@ export const ClusterStatsClusterJvmMemory = z.object({
   heap_max: z.lazy(() => ByteSize).describe('Maximum amount of memory available for use by the heap across all selected nodes.').optional(),
   heap_used_in_bytes: z.lazy(() => long).describe('Memory, in bytes, currently in use by the heap across all selected nodes.'),
   heap_used: z.lazy(() => ByteSize).describe('Memory currently in use by the heap across all selected nodes.').optional()
-})
+}).meta({ id: 'ClusterStatsClusterJvmMemory' })
 export type ClusterStatsClusterJvmMemory = z.infer<typeof ClusterStatsClusterJvmMemory>
 
 export const ClusterStatsClusterJvmVersion = z.object({
@@ -1004,7 +1004,7 @@ export const ClusterStatsClusterJvmVersion = z.object({
   vm_name: z.string().describe('Name of the JVM.'),
   vm_vendor: z.string().describe('Vendor of the JVM.'),
   vm_version: z.lazy(() => VersionString).describe('Full version number of JVM. The full version number includes a plus sign (+) followed by the build number.')
-})
+}).meta({ id: 'ClusterStatsClusterJvmVersion' })
 export type ClusterStatsClusterJvmVersion = z.infer<typeof ClusterStatsClusterJvmVersion>
 
 export const ClusterStatsClusterJvm = z.object({
@@ -1013,13 +1013,13 @@ export const ClusterStatsClusterJvm = z.object({
   mem: ClusterStatsClusterJvmMemory.describe('Contains statistics about memory used by selected nodes.'),
   threads: z.lazy(() => long).describe('Number of active threads in use by JVM across all selected nodes.'),
   versions: z.array(ClusterStatsClusterJvmVersion).describe('Contains statistics about the JVM versions used by selected nodes.')
-})
+}).meta({ id: 'ClusterStatsClusterJvm' })
 export type ClusterStatsClusterJvm = z.infer<typeof ClusterStatsClusterJvm>
 
 export const ClusterStatsClusterNetworkTypes = z.object({
   http_types: z.record(z.string(), z.lazy(() => integer)).describe('Contains statistics about the HTTP network types used by selected nodes.'),
   transport_types: z.record(z.string(), z.lazy(() => integer)).describe('Contains statistics about the transport network types used by selected nodes.')
-})
+}).meta({ id: 'ClusterStatsClusterNetworkTypes' })
 export type ClusterStatsClusterNetworkTypes = z.infer<typeof ClusterStatsClusterNetworkTypes>
 
 export const ClusterStatsClusterNodeCount = z.object({
@@ -1039,18 +1039,18 @@ export const ClusterStatsClusterNodeCount = z.object({
   search: z.lazy(() => integer).optional(),
   transform: z.lazy(() => integer).optional(),
   voting_only: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'ClusterStatsClusterNodeCount' })
 export type ClusterStatsClusterNodeCount = z.infer<typeof ClusterStatsClusterNodeCount>
 
 export const ClusterStatsIndexingPressure = z.object({
   memory: z.lazy(() => NodesIndexingPressureMemory)
-})
+}).meta({ id: 'ClusterStatsIndexingPressure' })
 export type ClusterStatsIndexingPressure = z.infer<typeof ClusterStatsIndexingPressure>
 
 export const ClusterStatsClusterOperatingSystemArchitecture = z.object({
   arch: z.string().describe('Name of an architecture used by one or more selected nodes.'),
   count: z.lazy(() => integer).describe('Number of selected nodes using the architecture.')
-})
+}).meta({ id: 'ClusterStatsClusterOperatingSystemArchitecture' })
 export type ClusterStatsClusterOperatingSystemArchitecture = z.infer<typeof ClusterStatsClusterOperatingSystemArchitecture>
 
 export const ClusterStatsOperatingSystemMemoryInfo = z.object({
@@ -1064,19 +1064,19 @@ export const ClusterStatsOperatingSystemMemoryInfo = z.object({
   used_in_bytes: z.lazy(() => long).describe('Amount, in bytes, of physical memory in use across all selected nodes.'),
   used: z.lazy(() => ByteSize).describe('Amount of physical memory in use across all selected nodes.').optional(),
   used_percent: z.lazy(() => integer).describe('Percentage of physical memory in use across all selected nodes.')
-})
+}).meta({ id: 'ClusterStatsOperatingSystemMemoryInfo' })
 export type ClusterStatsOperatingSystemMemoryInfo = z.infer<typeof ClusterStatsOperatingSystemMemoryInfo>
 
 export const ClusterStatsClusterOperatingSystemName = z.object({
   count: z.lazy(() => integer).describe('Number of selected nodes using the operating system.'),
   name: z.lazy(() => Name).describe('Name of an operating system used by one or more selected nodes.')
-})
+}).meta({ id: 'ClusterStatsClusterOperatingSystemName' })
 export type ClusterStatsClusterOperatingSystemName = z.infer<typeof ClusterStatsClusterOperatingSystemName>
 
 export const ClusterStatsClusterOperatingSystemPrettyName = z.object({
   count: z.lazy(() => integer).describe('Number of selected nodes using the operating system.'),
   pretty_name: z.lazy(() => Name).describe('Human-readable name of an operating system used by one or more selected nodes.')
-})
+}).meta({ id: 'ClusterStatsClusterOperatingSystemPrettyName' })
 export type ClusterStatsClusterOperatingSystemPrettyName = z.infer<typeof ClusterStatsClusterOperatingSystemPrettyName>
 
 export const ClusterStatsClusterOperatingSystem = z.object({
@@ -1086,32 +1086,32 @@ export const ClusterStatsClusterOperatingSystem = z.object({
   mem: ClusterStatsOperatingSystemMemoryInfo.describe('Contains statistics about memory used by selected nodes.'),
   names: z.array(ClusterStatsClusterOperatingSystemName).describe('Contains statistics about operating systems used by selected nodes.'),
   pretty_names: z.array(ClusterStatsClusterOperatingSystemPrettyName).describe('Contains statistics about operating systems used by selected nodes.')
-})
+}).meta({ id: 'ClusterStatsClusterOperatingSystem' })
 export type ClusterStatsClusterOperatingSystem = z.infer<typeof ClusterStatsClusterOperatingSystem>
 
 export const ClusterStatsNodePackagingType = z.object({
   count: z.lazy(() => integer).describe('Number of selected nodes using the distribution flavor and file type.'),
   flavor: z.string().describe('Type of Elasticsearch distribution. This is always `default`.'),
   type: z.string().describe('File type (such as `tar` or `zip`) used for the distribution package.')
-})
+}).meta({ id: 'ClusterStatsNodePackagingType' })
 export type ClusterStatsNodePackagingType = z.infer<typeof ClusterStatsNodePackagingType>
 
 export const ClusterStatsClusterProcessCpu = z.object({
   percent: z.lazy(() => integer).describe('Percentage of CPU used across all selected nodes. Returns `-1` if not supported.')
-})
+}).meta({ id: 'ClusterStatsClusterProcessCpu' })
 export type ClusterStatsClusterProcessCpu = z.infer<typeof ClusterStatsClusterProcessCpu>
 
 export const ClusterStatsClusterProcessOpenFileDescriptors = z.object({
   avg: z.lazy(() => long).describe('Average number of concurrently open file descriptors. Returns `-1` if not supported.'),
   max: z.lazy(() => long).describe('Maximum number of concurrently open file descriptors allowed across all selected nodes. Returns `-1` if not supported.'),
   min: z.lazy(() => long).describe('Minimum number of concurrently open file descriptors across all selected nodes. Returns -1 if not supported.')
-})
+}).meta({ id: 'ClusterStatsClusterProcessOpenFileDescriptors' })
 export type ClusterStatsClusterProcessOpenFileDescriptors = z.infer<typeof ClusterStatsClusterProcessOpenFileDescriptors>
 
 export const ClusterStatsClusterProcess = z.object({
   cpu: ClusterStatsClusterProcessCpu.describe('Contains statistics about CPU used by selected nodes.'),
   open_file_descriptors: ClusterStatsClusterProcessOpenFileDescriptors.describe('Contains statistics about open file descriptors in selected nodes.')
-})
+}).meta({ id: 'ClusterStatsClusterProcess' })
 export type ClusterStatsClusterProcess = z.infer<typeof ClusterStatsClusterProcess>
 
 export const ClusterStatsClusterNodes = z.object({
@@ -1127,7 +1127,7 @@ export const ClusterStatsClusterNodes = z.object({
   plugins: z.array(z.lazy(() => PluginStats)).describe('Contains statistics about installed plugins and modules by selected nodes. If no plugins or modules are installed, this array is empty.'),
   process: ClusterStatsClusterProcess.describe('Contains statistics about processes used by selected nodes.'),
   versions: z.array(z.lazy(() => VersionString)).describe('Array of Elasticsearch versions used on selected nodes.')
-})
+}).meta({ id: 'ClusterStatsClusterNodes' })
 export type ClusterStatsClusterNodes = z.infer<typeof ClusterStatsClusterNodes>
 
 export const ClusterStatsSnapshotCurrentCounts = z.object({
@@ -1136,10 +1136,10 @@ export const ClusterStatsSnapshotCurrentCounts = z.object({
   snapshot_deletions: z.lazy(() => integer).describe('Snapshots deletions in progress'),
   concurrent_operations: z.lazy(() => integer).describe('Sum of snapshots and snapshot_deletions'),
   cleanups: z.lazy(() => integer).describe('Cleanups in progress, not counted in concurrent_operations as they are not concurrent')
-})
+}).meta({ id: 'ClusterStatsSnapshotCurrentCounts' })
 export type ClusterStatsSnapshotCurrentCounts = z.infer<typeof ClusterStatsSnapshotCurrentCounts>
 
-export const ClusterStatsShardState = z.enum(['INIT', 'SUCCESS', 'FAILED', 'ABORTED', 'MISSING', 'WAITING', 'QUEUED', 'PAUSED_FOR_NODE_REMOVAL'])
+export const ClusterStatsShardState = z.enum(['INIT', 'SUCCESS', 'FAILED', 'ABORTED', 'MISSING', 'WAITING', 'QUEUED', 'PAUSED_FOR_NODE_REMOVAL']).meta({ id: 'ClusterStatsShardState' })
 export type ClusterStatsShardState = z.infer<typeof ClusterStatsShardState>
 
 export const ClusterStatsRepositoryStatsShards = z.object({
@@ -1147,7 +1147,7 @@ export const ClusterStatsRepositoryStatsShards = z.object({
   complete: z.lazy(() => integer),
   incomplete: z.lazy(() => integer),
   states: z.record(ClusterStatsShardState, z.lazy(() => integer))
-})
+}).meta({ id: 'ClusterStatsRepositoryStatsShards' })
 export type ClusterStatsRepositoryStatsShards = z.infer<typeof ClusterStatsRepositoryStatsShards>
 
 export const ClusterStatsRepositoryStatsCurrentCounts = z.object({
@@ -1158,7 +1158,7 @@ export const ClusterStatsRepositoryStatsCurrentCounts = z.object({
   snapshot_deletions: z.lazy(() => integer),
   active_deletions: z.lazy(() => integer),
   shards: ClusterStatsRepositoryStatsShards
-})
+}).meta({ id: 'ClusterStatsRepositoryStatsCurrentCounts' })
 export type ClusterStatsRepositoryStatsCurrentCounts = z.infer<typeof ClusterStatsRepositoryStatsCurrentCounts>
 
 export const ClusterStatsPerRepositoryStats = z.object({
@@ -1166,13 +1166,13 @@ export const ClusterStatsPerRepositoryStats = z.object({
   oldest_start_time_millis: z.lazy(() => UnitMillis),
   oldest_start_time: z.lazy(() => DateFormat).optional(),
   current_counts: ClusterStatsRepositoryStatsCurrentCounts
-})
+}).meta({ id: 'ClusterStatsPerRepositoryStats' })
 export type ClusterStatsPerRepositoryStats = z.infer<typeof ClusterStatsPerRepositoryStats>
 
 export const ClusterStatsClusterSnapshotStats = z.object({
   current_counts: ClusterStatsSnapshotCurrentCounts,
   repositories: z.record(z.lazy(() => Name), ClusterStatsPerRepositoryStats)
-})
+}).meta({ id: 'ClusterStatsClusterSnapshotStats' })
 export type ClusterStatsClusterSnapshotStats = z.infer<typeof ClusterStatsClusterSnapshotStats>
 
 /**
@@ -1184,7 +1184,7 @@ export const ClusterStatsRequest = z.object({
   node_id: z.lazy(() => NodeIds).describe('Comma-separated list of node filters used to limit returned information. Defaults to all nodes in the cluster.').optional().meta({ found_in: 'path' }),
   include_remotes: z.boolean().describe('Include remote cluster data into the response').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for each node to respond. If a node does not respond before its timeout expires, the response does not include its stats. However, timed out nodes are included in the response’s `_nodes.failed` property. Defaults to no timeout.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ClusterStatsRequest' })
 export type ClusterStatsRequest = z.infer<typeof ClusterStatsRequest>
 
 export const ClusterStatsStatsResponseBase = z.object({
@@ -1198,8 +1198,8 @@ export const ClusterStatsStatsResponseBase = z.object({
   status: z.lazy(() => HealthStatus).describe('Health status of the cluster, based on the state of its primary and replica shards.').optional(),
   timestamp: z.lazy(() => long).describe('Unix timestamp, in milliseconds, for the last time the cluster statistics were refreshed.'),
   ccs: ClusterStatsCCSStats.describe('Cross-cluster stats')
-})
+}).meta({ id: 'ClusterStatsStatsResponseBase' })
 export type ClusterStatsStatsResponseBase = z.infer<typeof ClusterStatsStatsResponseBase>
 
-export const ClusterStatsResponse = ClusterStatsStatsResponseBase
+export const ClusterStatsResponse = ClusterStatsStatsResponseBase.meta({ id: 'ClusterStatsResponse' })
 export type ClusterStatsResponse = z.infer<typeof ClusterStatsResponse>

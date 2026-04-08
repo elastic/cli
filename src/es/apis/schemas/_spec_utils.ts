@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { Bytes, Host, Ip, Name, NodeRoles, TimeUnit, TransportAddress } from './_types.ts'
@@ -16,7 +16,7 @@ import { Bytes, Host, Ip, Name, NodeRoles, TimeUnit, TransportAddress } from './
  * Depending on the target language, code generators can use this hint to generate language specific
  * flags enum constructs and the corresponding (de-)serialization code.
  */
-export const SpecUtilsPipeSeparatedFlags = z.union([z.any(), z.string()])
+export const SpecUtilsPipeSeparatedFlags = z.union([z.any(), z.string()]).meta({ id: 'SpecUtilsPipeSeparatedFlags' })
 export type SpecUtilsPipeSeparatedFlags = z.infer<typeof SpecUtilsPipeSeparatedFlags>
 
 export const SpecUtilsBaseNode = z.object({
@@ -26,7 +26,7 @@ export const SpecUtilsBaseNode = z.object({
   name: z.lazy(() => Name),
   roles: z.lazy(() => NodeRoles).optional(),
   transport_address: z.lazy(() => TransportAddress)
-})
+}).meta({ id: 'SpecUtilsBaseNode' })
 export type SpecUtilsBaseNode = z.infer<typeof SpecUtilsBaseNode>
 
 /**
@@ -34,7 +34,7 @@ export type SpecUtilsBaseNode = z.infer<typeof SpecUtilsBaseNode>
  * to a missing value. It is used for exemple in settings, where using the `NullValue` for a setting will reset
  * it to its default value.
  */
-export const SpecUtilsNullValue = z.null()
+export const SpecUtilsNullValue = z.null().meta({ id: 'SpecUtilsNullValue' })
 export type SpecUtilsNullValue = z.infer<typeof SpecUtilsNullValue>
 
 /**
@@ -44,14 +44,14 @@ export type SpecUtilsNullValue = z.infer<typeof SpecUtilsNullValue>
  * Depending on the target language, code generators can keep the union or remove it and leniently parse
  * strings to the target type.
  */
-export const SpecUtilsStringified = z.union([z.any(), z.string()])
+export const SpecUtilsStringified = z.union([z.any(), z.string()]).meta({ id: 'SpecUtilsStringified' })
 export type SpecUtilsStringified = z.infer<typeof SpecUtilsStringified>
 
 /**
  * `WithNullValue<T>` allows for explicit null assignments in contexts where `null` should be interpreted as an
  * actual value.
  */
-export const SpecUtilsWithNullValue = z.union([z.any(), SpecUtilsNullValue])
+export const SpecUtilsWithNullValue = z.union([z.any(), SpecUtilsNullValue]).meta({ id: 'SpecUtilsWithNullValue' })
 export type SpecUtilsWithNullValue = z.infer<typeof SpecUtilsWithNullValue>
 
 /**
@@ -62,7 +62,7 @@ export type SpecUtilsWithNullValue = z.infer<typeof SpecUtilsWithNullValue>
  * We therefore document the requirement to behave like a dictionary for unknown properties with this interface.
  */
 export const SpecUtilsAdditionalProperties = z.object({
-})
+}).meta({ id: 'SpecUtilsAdditionalProperties' })
 export type SpecUtilsAdditionalProperties = z.infer<typeof SpecUtilsAdditionalProperties>
 
 /**
@@ -74,7 +74,7 @@ export type SpecUtilsAdditionalProperties = z.infer<typeof SpecUtilsAdditionalPr
  * We therefore document the requirement to accept a single unknown property with this interface.
  */
 export const SpecUtilsAdditionalProperty = z.object({
-})
+}).meta({ id: 'SpecUtilsAdditionalProperty' })
 export type SpecUtilsAdditionalProperty = z.infer<typeof SpecUtilsAdditionalProperty>
 
 /**
@@ -88,7 +88,7 @@ export const SpecUtilsCommonQueryParameters = z.object({
   filter_path: z.union([z.string(), z.array(z.string())]).describe('Comma-separated list of filters in dot notation which reduce the response returned by Elasticsearch.').optional(),
   human: z.boolean().describe('When set to `true` will return statistics in a format suitable for humans. For example `"exists_time": "1h"` for humans and `"exists_time_in_millis": 3600000` for computers. When disabled the human readable values will be omitted. This makes sense for responses being consumed only by machines.').optional(),
   pretty: z.boolean().describe('If set to `true` the returned JSON will be "pretty-formatted". Only use this option for debugging only.').optional()
-})
+}).meta({ id: 'SpecUtilsCommonQueryParameters' })
 export type SpecUtilsCommonQueryParameters = z.infer<typeof SpecUtilsCommonQueryParameters>
 
 /**
@@ -98,7 +98,7 @@ export type SpecUtilsCommonQueryParameters = z.infer<typeof SpecUtilsCommonQuery
  * if not specified, the parent ones will be used.
  */
 export const SpecUtilsOverloadOf = z.object({
-})
+}).meta({ id: 'SpecUtilsOverloadOf' })
 export type SpecUtilsOverloadOf = z.infer<typeof SpecUtilsOverloadOf>
 
 /**
@@ -111,5 +111,5 @@ export const SpecUtilsCommonCatQueryParameters = z.object({
   v: z.boolean().describe('When set to `true` will enable verbose output.').optional(),
   bytes: z.lazy(() => Bytes).describe('Sets the units for columns that contain a byte-size value. Note that byte-size value units work in terms of powers of 1024. For instance `1kb` means 1024 bytes, not 1000 bytes. If omitted, byte-size values are rendered with a suffix such as `kb`, `mb`, or `gb`, chosen such that the numeric value of the column is as small as possible whilst still being at least `1.0`. If given, byte-size values are rendered as an integer with no suffix, representing the value of the column in the chosen unit. Values that are not an exact multiple of the chosen unit are rounded down.').optional(),
   time: z.lazy(() => TimeUnit).describe('Sets the units for columns that contain a time duration. If omitted, time duration values are rendered with a suffix such as `ms`, `s`, `m` or `h`, chosen such that the numeric value of the column is as small as possible whilst still being at least `1.0`. If given, time duration values are rendered as an integer with no suffix. Values that are not an exact multiple of the chosen unit are rounded down.').optional()
-})
+}).meta({ id: 'SpecUtilsCommonCatQueryParameters' })
 export type SpecUtilsCommonCatQueryParameters = z.infer<typeof SpecUtilsCommonCatQueryParameters>

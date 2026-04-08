@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { SearchTotalHits } from './_global.ts'
-import { AcknowledgedResponseBase, Duration, DurationValue, EpochTime, ExpandWildcards, Field, Id, IndexName, Indices, MappingRuntimeFields, ProjectRouting, QueryDslFieldAndFormat, QueryDslQueryContainer, ShardFailure, integer, uint } from './_types.ts'
+import { AcknowledgedResponseBase, Duration, DurationValue, EpochTime, ExpandWildcards, Field, Id, IndexName, Indices, MappingRuntimeFields, QueryDslFieldAndFormat, QueryDslQueryContainer, ShardFailure, integer, uint } from './_types.ts'
 
 export const EqlHitsEvent = z.object({
   _index: z.lazy(() => IndexName).describe('Name of the index containing the event.'),
@@ -16,20 +16,20 @@ export const EqlHitsEvent = z.object({
   _source: z.any().describe('Original JSON body passed for the event at index time.'),
   missing: z.boolean().describe('Set to `true` for events in a timespan-constrained sequence that do not meet a given condition.').optional(),
   fields: z.record(z.lazy(() => Field), z.array(z.any())).optional()
-})
+}).meta({ id: 'EqlHitsEvent' })
 export type EqlHitsEvent = z.infer<typeof EqlHitsEvent>
 
 export const EqlHitsSequence = z.object({
   events: z.array(EqlHitsEvent).describe('Contains events matching the query. Each object represents a matching event.'),
   join_keys: z.array(z.any()).describe('Shared field values used to constrain matches in the sequence. These are defined using the by keyword in the EQL query syntax.').optional()
-})
+}).meta({ id: 'EqlHitsSequence' })
 export type EqlHitsSequence = z.infer<typeof EqlHitsSequence>
 
 export const EqlEqlHits = z.object({
   total: SearchTotalHits.describe('Metadata about the number of matching events or sequences.').optional(),
   events: z.array(EqlHitsEvent).describe('Contains events matching the query. Each object represents a matching event.').optional(),
   sequences: z.array(EqlHitsSequence).describe('Contains event sequences matching the query. Each object represents a matching sequence. This parameter is only returned for EQL queries containing a sequence.').optional()
-})
+}).meta({ id: 'EqlEqlHits' })
 export type EqlEqlHits = z.infer<typeof EqlEqlHits>
 
 export const EqlEqlSearchResponseBase = z.object({
@@ -40,7 +40,7 @@ export const EqlEqlSearchResponseBase = z.object({
   timed_out: z.boolean().describe('If true, the request timed out before completion.').optional(),
   hits: EqlEqlHits.describe('Contains matching events and sequences. Also contains related metadata.'),
   shard_failures: z.array(z.lazy(() => ShardFailure)).describe('Contains information about shard failures (if any), in case allow_partial_search_results=true').optional()
-})
+}).meta({ id: 'EqlEqlSearchResponseBase' })
 export type EqlEqlSearchResponseBase = z.infer<typeof EqlEqlSearchResponseBase>
 
 /**
@@ -51,10 +51,10 @@ export type EqlEqlSearchResponseBase = z.infer<typeof EqlEqlSearchResponseBase>
  */
 export const EqlDeleteRequest = z.object({
   id: z.lazy(() => Id).describe('Identifier for the search to delete. A search ID is provided in the EQL search API\'s response for an async search. A search ID is also provided if the request’s `keep_on_completion` parameter is `true`.').meta({ found_in: 'path' })
-})
+}).meta({ id: 'EqlDeleteRequest' })
 export type EqlDeleteRequest = z.infer<typeof EqlDeleteRequest>
 
-export const EqlDeleteResponse = z.lazy(() => AcknowledgedResponseBase)
+export const EqlDeleteResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'EqlDeleteResponse' })
 export type EqlDeleteResponse = z.infer<typeof EqlDeleteResponse>
 
 /**
@@ -66,10 +66,10 @@ export const EqlGetRequest = z.object({
   id: z.lazy(() => Id).describe('Identifier for the search.').meta({ found_in: 'path' }),
   keep_alive: z.lazy(() => Duration).describe('Period for which the search and its results are stored on the cluster. Defaults to the keep_alive value set by the search’s EQL search API request.').optional().meta({ found_in: 'query' }),
   wait_for_completion_timeout: z.lazy(() => Duration).describe('Timeout duration to wait for the request to finish. Defaults to no timeout, meaning the request waits for complete search results.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'EqlGetRequest' })
 export type EqlGetRequest = z.infer<typeof EqlGetRequest>
 
-export const EqlGetResponse = EqlEqlSearchResponseBase
+export const EqlGetResponse = EqlEqlSearchResponseBase.meta({ id: 'EqlGetResponse' })
 export type EqlGetResponse = z.infer<typeof EqlGetResponse>
 
 /**
@@ -79,7 +79,7 @@ export type EqlGetResponse = z.infer<typeof EqlGetResponse>
  */
 export const EqlGetStatusRequest = z.object({
   id: z.lazy(() => Id).describe('Identifier for the search.').meta({ found_in: 'path' })
-})
+}).meta({ id: 'EqlGetStatusRequest' })
 export type EqlGetStatusRequest = z.infer<typeof EqlGetStatusRequest>
 
 export const EqlGetStatusResponse = z.object({
@@ -89,10 +89,10 @@ export const EqlGetStatusResponse = z.object({
   start_time_in_millis: z.lazy(() => EpochTime).describe('For a running search shows a timestamp when the eql search started, in milliseconds since the Unix epoch.').optional(),
   expiration_time_in_millis: z.lazy(() => EpochTime).describe('Shows a timestamp when the eql search will be expired, in milliseconds since the Unix epoch. When this time is reached, the search and its results are deleted, even if the search is still ongoing.').optional(),
   completion_status: z.lazy(() => integer).describe('For a completed search shows the http status code of the completed search.').optional()
-})
+}).meta({ id: 'EqlGetStatusResponse' })
 export type EqlGetStatusResponse = z.infer<typeof EqlGetStatusResponse>
 
-export const EqlSearchResultPosition = z.enum(['tail', 'head'])
+export const EqlSearchResultPosition = z.enum(['tail', 'head']).meta({ id: 'EqlSearchResultPosition' })
 export type EqlSearchResultPosition = z.infer<typeof EqlSearchResultPosition>
 
 /**
@@ -124,8 +124,8 @@ export const EqlSearchRequest = z.object({
   result_position: EqlSearchResultPosition.optional().meta({ found_in: 'body' }),
   runtime_mappings: z.lazy(() => MappingRuntimeFields).optional().meta({ found_in: 'body' }),
   max_samples_per_key: z.lazy(() => integer).describe('By default, the response of a sample query contains up to `10` samples, with one sample per unique set of join keys. Use the `size` parameter to get a smaller or larger set of samples. To retrieve more than one sample per set of join keys, use the `max_samples_per_key` parameter. Pipes are not supported for sample queries.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'EqlSearchRequest' })
 export type EqlSearchRequest = z.infer<typeof EqlSearchRequest>
 
-export const EqlSearchResponse = EqlEqlSearchResponseBase
+export const EqlSearchResponse = EqlEqlSearchResponseBase.meta({ id: 'EqlSearchResponse' })
 export type EqlSearchResponse = z.infer<typeof EqlSearchResponse>

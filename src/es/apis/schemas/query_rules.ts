@@ -3,29 +3,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { AcknowledgedResponseBase, Id, QueryDslPinnedDoc, Result, integer, long } from './_types.ts'
 
-export const QueryRulesQueryRuleType = z.enum(['pinned', 'exclude'])
+export const QueryRulesQueryRuleType = z.enum(['pinned', 'exclude']).meta({ id: 'QueryRulesQueryRuleType' })
 export type QueryRulesQueryRuleType = z.infer<typeof QueryRulesQueryRuleType>
 
-export const QueryRulesQueryRuleCriteriaType = z.enum(['global', 'exact', 'fuzzy', 'prefix', 'suffix', 'contains', 'lt', 'lte', 'gt', 'gte', 'always'])
+export const QueryRulesQueryRuleCriteriaType = z.enum(['global', 'exact', 'fuzzy', 'prefix', 'suffix', 'contains', 'lt', 'lte', 'gt', 'gte', 'always']).meta({ id: 'QueryRulesQueryRuleCriteriaType' })
 export type QueryRulesQueryRuleCriteriaType = z.infer<typeof QueryRulesQueryRuleCriteriaType>
 
 export const QueryRulesQueryRuleCriteria = z.object({
   type: QueryRulesQueryRuleCriteriaType.describe('The type of criteria. The following criteria types are supported: * `always`: Matches all queries, regardless of input. * `contains`: Matches that contain this value anywhere in the field meet the criteria defined by the rule. Only applicable for string values. * `exact`: Only exact matches meet the criteria defined by the rule. Applicable for string or numerical values. * `fuzzy`: Exact matches or matches within the allowed Levenshtein Edit Distance meet the criteria defined by the rule. Only applicable for string values. * `gt`: Matches with a value greater than this value meet the criteria defined by the rule. Only applicable for numerical values. * `gte`: Matches with a value greater than or equal to this value meet the criteria defined by the rule. Only applicable for numerical values. * `lt`: Matches with a value less than this value meet the criteria defined by the rule. Only applicable for numerical values. * `lte`: Matches with a value less than or equal to this value meet the criteria defined by the rule. Only applicable for numerical values. * `prefix`: Matches that start with this value meet the criteria defined by the rule. Only applicable for string values. * `suffix`: Matches that end with this value meet the criteria defined by the rule. Only applicable for string values.'),
   metadata: z.string().describe('The metadata field to match against. This metadata will be used to match against `match_criteria` sent in the rule. It is required for all criteria types except `always`.').optional(),
   values: z.array(z.any()).describe('The values to match against the `metadata` field. Only one value must match for the criteria to be met. It is required for all criteria types except `always`.').optional()
-})
+}).meta({ id: 'QueryRulesQueryRuleCriteria' })
 export type QueryRulesQueryRuleCriteria = z.infer<typeof QueryRulesQueryRuleCriteria>
 
 export const QueryRulesQueryRuleActions = z.object({
   ids: z.array(z.lazy(() => Id)).describe('The unique document IDs of the documents to apply the rule to. Only one of `ids` or `docs` may be specified and at least one must be specified.').optional(),
   docs: z.array(QueryDslPinnedDoc).describe('The documents to apply the rule to. Only one of `ids` or `docs` may be specified and at least one must be specified. There is a maximum value of 100 documents in a rule. You can specify the following attributes for each document: * `_index`: The index of the document to pin. * `_id`: The unique document ID.').optional()
-})
+}).meta({ id: 'QueryRulesQueryRuleActions' })
 export type QueryRulesQueryRuleActions = z.infer<typeof QueryRulesQueryRuleActions>
 
 export const QueryRulesQueryRule = z.object({
@@ -34,13 +34,13 @@ export const QueryRulesQueryRule = z.object({
   criteria: z.union([QueryRulesQueryRuleCriteria, z.array(QueryRulesQueryRuleCriteria)]).describe('The criteria that must be met for the rule to be applied. If multiple criteria are specified for a rule, all criteria must be met for the rule to be applied.'),
   actions: QueryRulesQueryRuleActions.describe('The actions to take when the rule is matched. The format of this action depends on the rule type.'),
   priority: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'QueryRulesQueryRule' })
 export type QueryRulesQueryRule = z.infer<typeof QueryRulesQueryRule>
 
 export const QueryRulesQueryRuleset = z.object({
   ruleset_id: z.lazy(() => Id).describe('A unique identifier for the ruleset.'),
   rules: z.array(QueryRulesQueryRule).describe('Rules associated with the query ruleset.')
-})
+}).meta({ id: 'QueryRulesQueryRuleset' })
 export type QueryRulesQueryRuleset = z.infer<typeof QueryRulesQueryRuleset>
 
 /**
@@ -52,10 +52,10 @@ export type QueryRulesQueryRuleset = z.infer<typeof QueryRulesQueryRuleset>
 export const QueryRulesDeleteRuleRequest = z.object({
   ruleset_id: z.lazy(() => Id).describe('The unique identifier of the query ruleset containing the rule to delete').meta({ found_in: 'path' }),
   rule_id: z.lazy(() => Id).describe('The unique identifier of the query rule within the specified ruleset to delete').meta({ found_in: 'path' })
-})
+}).meta({ id: 'QueryRulesDeleteRuleRequest' })
 export type QueryRulesDeleteRuleRequest = z.infer<typeof QueryRulesDeleteRuleRequest>
 
-export const QueryRulesDeleteRuleResponse = z.lazy(() => AcknowledgedResponseBase)
+export const QueryRulesDeleteRuleResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'QueryRulesDeleteRuleResponse' })
 export type QueryRulesDeleteRuleResponse = z.infer<typeof QueryRulesDeleteRuleResponse>
 
 /**
@@ -66,10 +66,10 @@ export type QueryRulesDeleteRuleResponse = z.infer<typeof QueryRulesDeleteRuleRe
  */
 export const QueryRulesDeleteRulesetRequest = z.object({
   ruleset_id: z.lazy(() => Id).describe('The unique identifier of the query ruleset to delete').meta({ found_in: 'path' })
-})
+}).meta({ id: 'QueryRulesDeleteRulesetRequest' })
 export type QueryRulesDeleteRulesetRequest = z.infer<typeof QueryRulesDeleteRulesetRequest>
 
-export const QueryRulesDeleteRulesetResponse = z.lazy(() => AcknowledgedResponseBase)
+export const QueryRulesDeleteRulesetResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'QueryRulesDeleteRulesetResponse' })
 export type QueryRulesDeleteRulesetResponse = z.infer<typeof QueryRulesDeleteRulesetResponse>
 
 /**
@@ -80,10 +80,10 @@ export type QueryRulesDeleteRulesetResponse = z.infer<typeof QueryRulesDeleteRul
 export const QueryRulesGetRuleRequest = z.object({
   ruleset_id: z.lazy(() => Id).describe('The unique identifier of the query ruleset containing the rule to retrieve').meta({ found_in: 'path' }),
   rule_id: z.lazy(() => Id).describe('The unique identifier of the query rule within the specified ruleset to retrieve').meta({ found_in: 'path' })
-})
+}).meta({ id: 'QueryRulesGetRuleRequest' })
 export type QueryRulesGetRuleRequest = z.infer<typeof QueryRulesGetRuleRequest>
 
-export const QueryRulesGetRuleResponse = QueryRulesQueryRule
+export const QueryRulesGetRuleResponse = QueryRulesQueryRule.meta({ id: 'QueryRulesGetRuleResponse' })
 export type QueryRulesGetRuleResponse = z.infer<typeof QueryRulesGetRuleResponse>
 
 /**
@@ -93,10 +93,10 @@ export type QueryRulesGetRuleResponse = z.infer<typeof QueryRulesGetRuleResponse
  */
 export const QueryRulesGetRulesetRequest = z.object({
   ruleset_id: z.lazy(() => Id).describe('The unique identifier of the query ruleset').meta({ found_in: 'path' })
-})
+}).meta({ id: 'QueryRulesGetRulesetRequest' })
 export type QueryRulesGetRulesetRequest = z.infer<typeof QueryRulesGetRulesetRequest>
 
-export const QueryRulesGetRulesetResponse = QueryRulesQueryRuleset
+export const QueryRulesGetRulesetResponse = QueryRulesQueryRuleset.meta({ id: 'QueryRulesGetRulesetResponse' })
 export type QueryRulesGetRulesetResponse = z.infer<typeof QueryRulesGetRulesetResponse>
 
 export const QueryRulesListRulesetsQueryRulesetListItem = z.object({
@@ -104,7 +104,7 @@ export const QueryRulesListRulesetsQueryRulesetListItem = z.object({
   rule_total_count: z.lazy(() => integer).describe('The number of rules associated with the ruleset.'),
   rule_criteria_types_counts: z.record(z.string(), z.lazy(() => integer)).describe('A map of criteria type (for example, `exact`) to the number of rules of that type. NOTE: The counts in `rule_criteria_types_counts` may be larger than the value of `rule_total_count` because a rule may have multiple criteria.'),
   rule_type_counts: z.record(z.string(), z.lazy(() => integer)).describe('A map of rule type (for example, `pinned`) to the number of rules of that type.')
-})
+}).meta({ id: 'QueryRulesListRulesetsQueryRulesetListItem' })
 export type QueryRulesListRulesetsQueryRulesetListItem = z.infer<typeof QueryRulesListRulesetsQueryRulesetListItem>
 
 /**
@@ -115,13 +115,13 @@ export type QueryRulesListRulesetsQueryRulesetListItem = z.infer<typeof QueryRul
 export const QueryRulesListRulesetsRequest = z.object({
   from: z.lazy(() => integer).describe('The offset from the first result to fetch.').optional().meta({ found_in: 'query' }),
   size: z.lazy(() => integer).describe('The maximum number of results to retrieve.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'QueryRulesListRulesetsRequest' })
 export type QueryRulesListRulesetsRequest = z.infer<typeof QueryRulesListRulesetsRequest>
 
 export const QueryRulesListRulesetsResponse = z.object({
   count: z.lazy(() => long),
   results: z.array(QueryRulesListRulesetsQueryRulesetListItem)
-})
+}).meta({ id: 'QueryRulesListRulesetsResponse' })
 export type QueryRulesListRulesetsResponse = z.infer<typeof QueryRulesListRulesetsResponse>
 
 /**
@@ -141,12 +141,12 @@ export const QueryRulesPutRuleRequest = z.object({
   criteria: z.union([QueryRulesQueryRuleCriteria, z.array(QueryRulesQueryRuleCriteria)]).describe('The criteria that must be met for the rule to be applied. If multiple criteria are specified for a rule, all criteria must be met for the rule to be applied.').meta({ found_in: 'body' }),
   actions: QueryRulesQueryRuleActions.describe('The actions to take when the rule is matched. The format of this action depends on the rule type.').meta({ found_in: 'body' }),
   priority: z.lazy(() => integer).optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'QueryRulesPutRuleRequest' })
 export type QueryRulesPutRuleRequest = z.infer<typeof QueryRulesPutRuleRequest>
 
 export const QueryRulesPutRuleResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'QueryRulesPutRuleResponse' })
 export type QueryRulesPutRuleResponse = z.infer<typeof QueryRulesPutRuleResponse>
 
 /**
@@ -163,18 +163,18 @@ export type QueryRulesPutRuleResponse = z.infer<typeof QueryRulesPutRuleResponse
 export const QueryRulesPutRulesetRequest = z.object({
   ruleset_id: z.lazy(() => Id).describe('The unique identifier of the query ruleset to be created or updated.').meta({ found_in: 'path' }),
   rules: z.union([QueryRulesQueryRule, z.array(QueryRulesQueryRule)]).meta({ found_in: 'body' })
-})
+}).meta({ id: 'QueryRulesPutRulesetRequest' })
 export type QueryRulesPutRulesetRequest = z.infer<typeof QueryRulesPutRulesetRequest>
 
 export const QueryRulesPutRulesetResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'QueryRulesPutRulesetResponse' })
 export type QueryRulesPutRulesetResponse = z.infer<typeof QueryRulesPutRulesetResponse>
 
 export const QueryRulesTestQueryRulesetMatchedRule = z.object({
   ruleset_id: z.lazy(() => Id).describe('Ruleset unique identifier'),
   rule_id: z.lazy(() => Id).describe('Rule unique identifier within that ruleset')
-})
+}).meta({ id: 'QueryRulesTestQueryRulesetMatchedRule' })
 export type QueryRulesTestQueryRulesetMatchedRule = z.infer<typeof QueryRulesTestQueryRulesetMatchedRule>
 
 /**
@@ -185,11 +185,11 @@ export type QueryRulesTestQueryRulesetMatchedRule = z.infer<typeof QueryRulesTes
 export const QueryRulesTestRequest = z.object({
   ruleset_id: z.lazy(() => Id).describe('The unique identifier of the query ruleset to be created or updated').meta({ found_in: 'path' }),
   match_criteria: z.record(z.string(), z.any()).describe('The match criteria to apply to rules in the given query ruleset. Match criteria should match the keys defined in the `criteria.metadata` field of the rule.').meta({ found_in: 'body' })
-})
+}).meta({ id: 'QueryRulesTestRequest' })
 export type QueryRulesTestRequest = z.infer<typeof QueryRulesTestRequest>
 
 export const QueryRulesTestResponse = z.object({
   total_matched_rules: z.lazy(() => integer),
   matched_rules: z.array(QueryRulesTestQueryRulesetMatchedRule)
-})
+}).meta({ id: 'QueryRulesTestResponse' })
 export type QueryRulesTestResponse = z.infer<typeof QueryRulesTestResponse>

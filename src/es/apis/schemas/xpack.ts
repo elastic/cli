@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { ByteSize, DateTime, Duration, DurationValue, EpochTime, Field, Name, VersionString, double, integer, long, uint, ulong } from './_types.ts'
@@ -21,24 +21,24 @@ export const XpackUsageSecurityRolesDlsBitSetCache = z.object({
   evictions: z.lazy(() => long).describe('Total number of cache evictions.'),
   hits_time_in_millis: z.lazy(() => DurationValue).describe('Total combined time spent in cache for hits in milliseconds.'),
   misses_time_in_millis: z.lazy(() => DurationValue).describe('Total combined time spent in cache for misses in milliseconds.')
-})
+}).meta({ id: 'XpackUsageSecurityRolesDlsBitSetCache' })
 export type XpackUsageSecurityRolesDlsBitSetCache = z.infer<typeof XpackUsageSecurityRolesDlsBitSetCache>
 
 export const XpackUsageSecurityRolesDls = z.object({
   bit_set_cache: XpackUsageSecurityRolesDlsBitSetCache
-})
+}).meta({ id: 'XpackUsageSecurityRolesDls' })
 export type XpackUsageSecurityRolesDls = z.infer<typeof XpackUsageSecurityRolesDls>
 
 export const XpackInfoBuildInformation = z.object({
   date: z.lazy(() => DateTime),
   hash: z.string()
-})
+}).meta({ id: 'XpackInfoBuildInformation' })
 export type XpackInfoBuildInformation = z.infer<typeof XpackInfoBuildInformation>
 
 export const XpackInfoNativeCodeInformation = z.object({
   build_hash: z.string(),
   version: z.lazy(() => VersionString)
-})
+}).meta({ id: 'XpackInfoNativeCodeInformation' })
 export type XpackInfoNativeCodeInformation = z.infer<typeof XpackInfoNativeCodeInformation>
 
 export const XpackInfoFeature = z.object({
@@ -46,7 +46,7 @@ export const XpackInfoFeature = z.object({
   description: z.string().optional(),
   enabled: z.boolean(),
   native_code_info: XpackInfoNativeCodeInformation.optional()
-})
+}).meta({ id: 'XpackInfoFeature' })
 export type XpackInfoFeature = z.infer<typeof XpackInfoFeature>
 
 export const XpackInfoFeatures = z.object({
@@ -73,7 +73,7 @@ export const XpackInfoFeatures = z.object({
   transform: XpackInfoFeature,
   voting_only: XpackInfoFeature,
   watcher: XpackInfoFeature
-})
+}).meta({ id: 'XpackInfoFeatures' })
 export type XpackInfoFeatures = z.infer<typeof XpackInfoFeatures>
 
 export const XpackInfoMinimalLicenseInformation = z.object({
@@ -82,10 +82,10 @@ export const XpackInfoMinimalLicenseInformation = z.object({
   status: LicenseLicenseStatus,
   type: LicenseLicenseType,
   uid: z.string()
-})
+}).meta({ id: 'XpackInfoMinimalLicenseInformation' })
 export type XpackInfoMinimalLicenseInformation = z.infer<typeof XpackInfoMinimalLicenseInformation>
 
-export const XpackInfoXPackCategory = z.enum(['build', 'features', 'license'])
+export const XpackInfoXPackCategory = z.enum(['build', 'features', 'license']).meta({ id: 'XpackInfoXPackCategory' })
 export type XpackInfoXPackCategory = z.infer<typeof XpackInfoXPackCategory>
 
 /**
@@ -101,7 +101,7 @@ export const XpackInfoRequest = z.object({
   categories: z.array(XpackInfoXPackCategory).describe('A comma-separated list of the information categories to include in the response. For example, `build,license,features`.').optional().meta({ found_in: 'query' }),
   accept_enterprise: z.boolean().describe('If used, this otherwise ignored parameter must be set to true').optional().meta({ found_in: 'query' }),
   human: z.boolean().describe('Defines whether additional human-readable information is included in the response. In particular, it adds descriptions and a tag line.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'XpackInfoRequest' })
 export type XpackInfoRequest = z.infer<typeof XpackInfoRequest>
 
 export const XpackInfoResponse = z.object({
@@ -109,13 +109,13 @@ export const XpackInfoResponse = z.object({
   features: XpackInfoFeatures,
   license: XpackInfoMinimalLicenseInformation,
   tagline: z.string()
-})
+}).meta({ id: 'XpackInfoResponse' })
 export type XpackInfoResponse = z.infer<typeof XpackInfoResponse>
 
 export const XpackUsageBase = z.object({
   available: z.boolean(),
   enabled: z.boolean()
-})
+}).meta({ id: 'XpackUsageBase' })
 export type XpackUsageBase = z.infer<typeof XpackUsageBase>
 
 export const XpackUsageAnalyticsStatistics = z.object({
@@ -128,50 +128,50 @@ export const XpackUsageAnalyticsStatistics = z.object({
   normalize_usage: z.lazy(() => long),
   rate_usage: z.lazy(() => long),
   multi_terms_usage: z.lazy(() => long).optional()
-})
+}).meta({ id: 'XpackUsageAnalyticsStatistics' })
 export type XpackUsageAnalyticsStatistics = z.infer<typeof XpackUsageAnalyticsStatistics>
 
 export const XpackUsageAnalytics = z.object({
   ...XpackUsageBase.shape,
   stats: XpackUsageAnalyticsStatistics
-})
+}).meta({ id: 'XpackUsageAnalytics' })
 export type XpackUsageAnalytics = z.infer<typeof XpackUsageAnalytics>
 
 export const XpackUsageArchive = z.object({
   ...XpackUsageBase.shape,
   indices_count: z.lazy(() => long)
-})
+}).meta({ id: 'XpackUsageArchive' })
 export type XpackUsageArchive = z.infer<typeof XpackUsageArchive>
 
 export const XpackUsageFeatureToggle = z.object({
   enabled: z.boolean()
-})
+}).meta({ id: 'XpackUsageFeatureToggle' })
 export type XpackUsageFeatureToggle = z.infer<typeof XpackUsageFeatureToggle>
 
 export const XpackUsageAudit = z.object({
   ...XpackUsageFeatureToggle.shape,
   outputs: z.array(z.string()).optional()
-})
+}).meta({ id: 'XpackUsageAudit' })
 export type XpackUsageAudit = z.infer<typeof XpackUsageAudit>
 
 export const XpackUsageCcr = z.object({
   ...XpackUsageBase.shape,
   auto_follow_patterns_count: z.lazy(() => integer),
   follower_indices_count: z.lazy(() => integer)
-})
+}).meta({ id: 'XpackUsageCcr' })
 export type XpackUsageCcr = z.infer<typeof XpackUsageCcr>
 
 export const XpackUsageCounter = z.object({
   active: z.lazy(() => long),
   total: z.lazy(() => long)
-})
+}).meta({ id: 'XpackUsageCounter' })
 export type XpackUsageCounter = z.infer<typeof XpackUsageCounter>
 
 export const XpackUsageDataStreams = z.object({
   ...XpackUsageBase.shape,
   data_streams: z.lazy(() => long),
   indices_count: z.lazy(() => long)
-})
+}).meta({ id: 'XpackUsageDataStreams' })
 export type XpackUsageDataStreams = z.infer<typeof XpackUsageDataStreams>
 
 export const XpackUsageDataTierPhaseStatistics = z.object({
@@ -185,7 +185,7 @@ export const XpackUsageDataTierPhaseStatistics = z.object({
   primary_shard_size_avg_bytes: z.lazy(() => long),
   primary_shard_size_median_bytes: z.lazy(() => long),
   primary_shard_size_mad_bytes: z.lazy(() => long)
-})
+}).meta({ id: 'XpackUsageDataTierPhaseStatistics' })
 export type XpackUsageDataTierPhaseStatistics = z.infer<typeof XpackUsageDataTierPhaseStatistics>
 
 export const XpackUsageDataTiers = z.object({
@@ -195,12 +195,12 @@ export const XpackUsageDataTiers = z.object({
   data_cold: XpackUsageDataTierPhaseStatistics,
   data_content: XpackUsageDataTierPhaseStatistics,
   data_hot: XpackUsageDataTierPhaseStatistics
-})
+}).meta({ id: 'XpackUsageDataTiers' })
 export type XpackUsageDataTiers = z.infer<typeof XpackUsageDataTiers>
 
 export const XpackUsageDatafeed = z.object({
   count: z.lazy(() => long)
-})
+}).meta({ id: 'XpackUsageDatafeed' })
 export type XpackUsageDatafeed = z.infer<typeof XpackUsageDatafeed>
 
 export const XpackUsageEqlFeaturesJoin = z.object({
@@ -209,7 +209,7 @@ export const XpackUsageEqlFeaturesJoin = z.object({
   join_until: z.lazy(() => uint),
   join_queries_five_or_more: z.lazy(() => uint),
   join_queries_four: z.lazy(() => uint)
-})
+}).meta({ id: 'XpackUsageEqlFeaturesJoin' })
 export type XpackUsageEqlFeaturesJoin = z.infer<typeof XpackUsageEqlFeaturesJoin>
 
 export const XpackUsageEqlFeaturesKeys = z.object({
@@ -218,13 +218,13 @@ export const XpackUsageEqlFeaturesKeys = z.object({
   join_keys_three: z.lazy(() => uint),
   join_keys_five_or_more: z.lazy(() => uint),
   join_keys_four: z.lazy(() => uint)
-})
+}).meta({ id: 'XpackUsageEqlFeaturesKeys' })
 export type XpackUsageEqlFeaturesKeys = z.infer<typeof XpackUsageEqlFeaturesKeys>
 
 export const XpackUsageEqlFeaturesPipes = z.object({
   pipe_tail: z.lazy(() => uint),
   pipe_head: z.lazy(() => uint)
-})
+}).meta({ id: 'XpackUsageEqlFeaturesPipes' })
 export type XpackUsageEqlFeaturesPipes = z.infer<typeof XpackUsageEqlFeaturesPipes>
 
 export const XpackUsageEqlFeaturesSequences = z.object({
@@ -234,7 +234,7 @@ export const XpackUsageEqlFeaturesSequences = z.object({
   sequence_until: z.lazy(() => uint),
   sequence_queries_five_or_more: z.lazy(() => uint),
   sequence_maxspan: z.lazy(() => uint)
-})
+}).meta({ id: 'XpackUsageEqlFeaturesSequences' })
 export type XpackUsageEqlFeaturesSequences = z.infer<typeof XpackUsageEqlFeaturesSequences>
 
 export const XpackUsageEqlFeatures = z.object({
@@ -245,7 +245,7 @@ export const XpackUsageEqlFeatures = z.object({
   pipes: XpackUsageEqlFeaturesPipes,
   sequence: z.lazy(() => uint),
   sequences: XpackUsageEqlFeaturesSequences
-})
+}).meta({ id: 'XpackUsageEqlFeatures' })
 export type XpackUsageEqlFeatures = z.infer<typeof XpackUsageEqlFeatures>
 
 export const XpackUsageQuery = z.object({
@@ -253,20 +253,20 @@ export const XpackUsageQuery = z.object({
   failed: z.lazy(() => integer).optional(),
   paging: z.lazy(() => integer).optional(),
   total: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'XpackUsageQuery' })
 export type XpackUsageQuery = z.infer<typeof XpackUsageQuery>
 
 export const XpackUsageEql = z.object({
   ...XpackUsageBase.shape,
   features: XpackUsageEqlFeatures,
   queries: z.record(z.string(), XpackUsageQuery)
-})
+}).meta({ id: 'XpackUsageEql' })
 export type XpackUsageEql = z.infer<typeof XpackUsageEql>
 
 export const XpackUsageFlattened = z.object({
   ...XpackUsageBase.shape,
   field_count: z.lazy(() => integer)
-})
+}).meta({ id: 'XpackUsageFlattened' })
 export type XpackUsageFlattened = z.infer<typeof XpackUsageFlattened>
 
 /** Per-node GPU statistics for vector indexing. */
@@ -275,7 +275,7 @@ export const XpackUsageGpuNodeStats = z.object({
   memory_in_bytes: z.lazy(() => long).describe('GPU memory in bytes.'),
   enabled: z.boolean().describe('Whether GPU vector indexing is enabled on this node.'),
   index_build_count: z.lazy(() => long).describe('Number of GPU index builds performed on this node.')
-})
+}).meta({ id: 'XpackUsageGpuNodeStats' })
 export type XpackUsageGpuNodeStats = z.infer<typeof XpackUsageGpuNodeStats>
 
 /** GPU vector indexing usage statistics. */
@@ -284,24 +284,24 @@ export const XpackUsageGpuVectorIndexing = z.object({
   index_build_count: z.lazy(() => long).describe('Total GPU index builds across the cluster.'),
   nodes_with_gpu: z.lazy(() => integer).describe('Count of data nodes with GPU support.'),
   nodes: z.array(XpackUsageGpuNodeStats).describe('Per-node GPU details including type, memory, enabled status, and build count.')
-})
+}).meta({ id: 'XpackUsageGpuVectorIndexing' })
 export type XpackUsageGpuVectorIndexing = z.infer<typeof XpackUsageGpuVectorIndexing>
 
 export const XpackUsageInvocations = z.object({
   total: z.lazy(() => long)
-})
+}).meta({ id: 'XpackUsageInvocations' })
 export type XpackUsageInvocations = z.infer<typeof XpackUsageInvocations>
 
 export const XpackUsageHealthStatistics = z.object({
   ...XpackUsageBase.shape,
   invocations: XpackUsageInvocations
-})
+}).meta({ id: 'XpackUsageHealthStatistics' })
 export type XpackUsageHealthStatistics = z.infer<typeof XpackUsageHealthStatistics>
 
 export const XpackUsagePhase = z.object({
   actions: z.array(z.string()),
   min_age: z.lazy(() => DurationValue)
-})
+}).meta({ id: 'XpackUsagePhase' })
 export type XpackUsagePhase = z.infer<typeof XpackUsagePhase>
 
 export const XpackUsagePhases = z.object({
@@ -310,31 +310,31 @@ export const XpackUsagePhases = z.object({
   frozen: XpackUsagePhase.optional(),
   hot: XpackUsagePhase.optional(),
   warm: XpackUsagePhase.optional()
-})
+}).meta({ id: 'XpackUsagePhases' })
 export type XpackUsagePhases = z.infer<typeof XpackUsagePhases>
 
 export const XpackUsageIlmPolicyStatistics = z.object({
   indices_managed: z.lazy(() => integer),
   phases: XpackUsagePhases
-})
+}).meta({ id: 'XpackUsageIlmPolicyStatistics' })
 export type XpackUsageIlmPolicyStatistics = z.infer<typeof XpackUsageIlmPolicyStatistics>
 
 export const XpackUsageIlm = z.object({
   policy_count: z.lazy(() => integer),
   policy_stats: z.array(XpackUsageIlmPolicyStatistics)
-})
+}).meta({ id: 'XpackUsageIlm' })
 export type XpackUsageIlm = z.infer<typeof XpackUsageIlm>
 
 export const XpackUsageIpFilter = z.object({
   http: z.boolean(),
   transport: z.boolean()
-})
+}).meta({ id: 'XpackUsageIpFilter' })
 export type XpackUsageIpFilter = z.infer<typeof XpackUsageIpFilter>
 
 export const XpackUsageMlJobForecasts = z.object({
   total: z.lazy(() => long),
   forecasted_jobs: z.lazy(() => long)
-})
+}).meta({ id: 'XpackUsageMlJobForecasts' })
 export type XpackUsageMlJobForecasts = z.infer<typeof XpackUsageMlJobForecasts>
 
 export const XpackUsageJobUsage = z.object({
@@ -343,24 +343,24 @@ export const XpackUsageJobUsage = z.object({
   detectors: MlJobStatistics,
   forecasts: XpackUsageMlJobForecasts,
   model_size: MlJobStatistics
-})
+}).meta({ id: 'XpackUsageJobUsage' })
 export type XpackUsageJobUsage = z.infer<typeof XpackUsageJobUsage>
 
 export const XpackUsageMlDataFrameAnalyticsJobsMemory = z.object({
   peak_usage_bytes: MlJobStatistics
-})
+}).meta({ id: 'XpackUsageMlDataFrameAnalyticsJobsMemory' })
 export type XpackUsageMlDataFrameAnalyticsJobsMemory = z.infer<typeof XpackUsageMlDataFrameAnalyticsJobsMemory>
 
 export const XpackUsageMlDataFrameAnalyticsJobsCount = z.object({
   count: z.lazy(() => long)
-})
+}).meta({ id: 'XpackUsageMlDataFrameAnalyticsJobsCount' })
 export type XpackUsageMlDataFrameAnalyticsJobsCount = z.infer<typeof XpackUsageMlDataFrameAnalyticsJobsCount>
 
 export const XpackUsageMlDataFrameAnalyticsJobsAnalysis = z.object({
   classification: z.lazy(() => integer).optional(),
   outlier_detection: z.lazy(() => integer).optional(),
   regression: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'XpackUsageMlDataFrameAnalyticsJobsAnalysis' })
 export type XpackUsageMlDataFrameAnalyticsJobsAnalysis = z.infer<typeof XpackUsageMlDataFrameAnalyticsJobsAnalysis>
 
 export const XpackUsageMlDataFrameAnalyticsJobs = z.object({
@@ -368,19 +368,19 @@ export const XpackUsageMlDataFrameAnalyticsJobs = z.object({
   _all: XpackUsageMlDataFrameAnalyticsJobsCount,
   analysis_counts: XpackUsageMlDataFrameAnalyticsJobsAnalysis.optional(),
   stopped: XpackUsageMlDataFrameAnalyticsJobsCount.optional()
-})
+}).meta({ id: 'XpackUsageMlDataFrameAnalyticsJobs' })
 export type XpackUsageMlDataFrameAnalyticsJobs = z.infer<typeof XpackUsageMlDataFrameAnalyticsJobs>
 
 export const XpackUsageMlInferenceIngestProcessorCount = z.object({
   max: z.lazy(() => long),
   sum: z.lazy(() => long),
   min: z.lazy(() => long)
-})
+}).meta({ id: 'XpackUsageMlInferenceIngestProcessorCount' })
 export type XpackUsageMlInferenceIngestProcessorCount = z.infer<typeof XpackUsageMlInferenceIngestProcessorCount>
 
 export const XpackUsageMlCounter = z.object({
   count: z.lazy(() => long)
-})
+}).meta({ id: 'XpackUsageMlCounter' })
 export type XpackUsageMlCounter = z.infer<typeof XpackUsageMlCounter>
 
 export const XpackUsageMlInferenceIngestProcessor = z.object({
@@ -388,7 +388,7 @@ export const XpackUsageMlInferenceIngestProcessor = z.object({
   pipelines: XpackUsageMlCounter,
   num_failures: XpackUsageMlInferenceIngestProcessorCount,
   time_ms: XpackUsageMlInferenceIngestProcessorCount
-})
+}).meta({ id: 'XpackUsageMlInferenceIngestProcessor' })
 export type XpackUsageMlInferenceIngestProcessor = z.infer<typeof XpackUsageMlInferenceIngestProcessor>
 
 export const XpackUsageMlInferenceTrainedModelsCount = z.object({
@@ -400,7 +400,7 @@ export const XpackUsageMlInferenceTrainedModelsCount = z.object({
   classification: z.lazy(() => long).optional(),
   ner: z.lazy(() => long).optional(),
   text_embedding: z.lazy(() => long).optional()
-})
+}).meta({ id: 'XpackUsageMlInferenceTrainedModelsCount' })
 export type XpackUsageMlInferenceTrainedModelsCount = z.infer<typeof XpackUsageMlInferenceTrainedModelsCount>
 
 export const XpackUsageMlInferenceTrainedModels = z.object({
@@ -409,12 +409,12 @@ export const XpackUsageMlInferenceTrainedModels = z.object({
   count: XpackUsageMlInferenceTrainedModelsCount.optional(),
   _all: XpackUsageMlCounter,
   model_size_bytes: MlJobStatistics.optional()
-})
+}).meta({ id: 'XpackUsageMlInferenceTrainedModels' })
 export type XpackUsageMlInferenceTrainedModels = z.infer<typeof XpackUsageMlInferenceTrainedModels>
 
 export const XpackUsageMlInferenceDeploymentsTimeMs = z.object({
   avg: z.lazy(() => double)
-})
+}).meta({ id: 'XpackUsageMlInferenceDeploymentsTimeMs' })
 export type XpackUsageMlInferenceDeploymentsTimeMs = z.infer<typeof XpackUsageMlInferenceDeploymentsTimeMs>
 
 export const XpackUsageMlInferenceDeployments = z.object({
@@ -422,14 +422,14 @@ export const XpackUsageMlInferenceDeployments = z.object({
   inference_counts: MlJobStatistics,
   model_sizes_bytes: MlJobStatistics,
   time_ms: XpackUsageMlInferenceDeploymentsTimeMs
-})
+}).meta({ id: 'XpackUsageMlInferenceDeployments' })
 export type XpackUsageMlInferenceDeployments = z.infer<typeof XpackUsageMlInferenceDeployments>
 
 export const XpackUsageMlInference = z.object({
   ingest_processors: z.record(z.string(), XpackUsageMlInferenceIngestProcessor),
   trained_models: XpackUsageMlInferenceTrainedModels,
   deployments: XpackUsageMlInferenceDeployments.optional()
-})
+}).meta({ id: 'XpackUsageMlInference' })
 export type XpackUsageMlInference = z.infer<typeof XpackUsageMlInference>
 
 export const XpackUsageMachineLearning = z.object({
@@ -439,19 +439,19 @@ export const XpackUsageMachineLearning = z.object({
   node_count: z.lazy(() => integer),
   data_frame_analytics_jobs: XpackUsageMlDataFrameAnalyticsJobs,
   inference: XpackUsageMlInference
-})
+}).meta({ id: 'XpackUsageMachineLearning' })
 export type XpackUsageMachineLearning = z.infer<typeof XpackUsageMachineLearning>
 
 export const XpackUsageMonitoring = z.object({
   ...XpackUsageBase.shape,
   collection_enabled: z.boolean(),
   enabled_exporters: z.record(z.string(), z.lazy(() => long))
-})
+}).meta({ id: 'XpackUsageMonitoring' })
 export type XpackUsageMonitoring = z.infer<typeof XpackUsageMonitoring>
 
 export const XpackUsageRealmCache = z.object({
   size: z.lazy(() => long)
-})
+}).meta({ id: 'XpackUsageRealmCache' })
 export type XpackUsageRealmCache = z.infer<typeof XpackUsageRealmCache>
 
 export const XpackUsageRealm = z.object({
@@ -464,7 +464,7 @@ export const XpackUsageRealm = z.object({
   has_default_username_pattern: z.array(z.boolean()).optional(),
   has_truststore: z.array(z.boolean()).optional(),
   is_authentication_delegated: z.array(z.boolean()).optional()
-})
+}).meta({ id: 'XpackUsageRealm' })
 export type XpackUsageRealm = z.infer<typeof XpackUsageRealm>
 
 /**
@@ -475,31 +475,31 @@ export type XpackUsageRealm = z.infer<typeof XpackUsageRealm>
  */
 export const XpackUsageRequest = z.object({
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error. To indicate that the request should never timeout, set it to `-1`.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'XpackUsageRequest' })
 export type XpackUsageRequest = z.infer<typeof XpackUsageRequest>
 
 export const XpackUsageWatcherActionTotals = z.object({
   total: z.lazy(() => Duration),
   total_time_in_ms: z.lazy(() => DurationValue)
-})
+}).meta({ id: 'XpackUsageWatcherActionTotals' })
 export type XpackUsageWatcherActionTotals = z.infer<typeof XpackUsageWatcherActionTotals>
 
 export const XpackUsageWatcherActions = z.object({
   actions: z.record(z.lazy(() => Name), XpackUsageWatcherActionTotals)
-})
+}).meta({ id: 'XpackUsageWatcherActions' })
 export type XpackUsageWatcherActions = z.infer<typeof XpackUsageWatcherActions>
 
 export const XpackUsageWatcherWatchTriggerSchedule = z.object({
   ...XpackUsageCounter.shape,
   cron: XpackUsageCounter,
   _all: XpackUsageCounter
-})
+}).meta({ id: 'XpackUsageWatcherWatchTriggerSchedule' })
 export type XpackUsageWatcherWatchTriggerSchedule = z.infer<typeof XpackUsageWatcherWatchTriggerSchedule>
 
 export const XpackUsageWatcherWatchTrigger = z.object({
   schedule: XpackUsageWatcherWatchTriggerSchedule.optional(),
   _all: XpackUsageCounter
-})
+}).meta({ id: 'XpackUsageWatcherWatchTrigger' })
 export type XpackUsageWatcherWatchTrigger = z.infer<typeof XpackUsageWatcherWatchTrigger>
 
 export const XpackUsageWatcherWatch = z.object({
@@ -507,7 +507,7 @@ export const XpackUsageWatcherWatch = z.object({
   condition: z.record(z.lazy(() => Name), XpackUsageCounter).optional(),
   action: z.record(z.lazy(() => Name), XpackUsageCounter).optional(),
   trigger: XpackUsageWatcherWatchTrigger
-})
+}).meta({ id: 'XpackUsageWatcherWatch' })
 export type XpackUsageWatcherWatch = z.infer<typeof XpackUsageWatcherWatch>
 
 export const XpackUsageWatcher = z.object({
@@ -515,7 +515,7 @@ export const XpackUsageWatcher = z.object({
   execution: XpackUsageWatcherActions,
   watch: XpackUsageWatcherWatch,
   count: XpackUsageCounter
-})
+}).meta({ id: 'XpackUsageWatcher' })
 export type XpackUsageWatcher = z.infer<typeof XpackUsageWatcher>
 
 export const XpackUsageRuntimeFieldsType = z.object({
@@ -533,13 +533,13 @@ export const XpackUsageRuntimeFieldsType = z.object({
   shadowed_count: z.lazy(() => long),
   source_max: z.lazy(() => long),
   source_total: z.lazy(() => long)
-})
+}).meta({ id: 'XpackUsageRuntimeFieldsType' })
 export type XpackUsageRuntimeFieldsType = z.infer<typeof XpackUsageRuntimeFieldsType>
 
 export const XpackUsageRuntimeFieldTypes = z.object({
   ...XpackUsageBase.shape,
   field_types: z.array(XpackUsageRuntimeFieldsType)
-})
+}).meta({ id: 'XpackUsageRuntimeFieldTypes' })
 export type XpackUsageRuntimeFieldTypes = z.infer<typeof XpackUsageRuntimeFieldTypes>
 
 export const XpackUsageSearchableSnapshots = z.object({
@@ -547,40 +547,40 @@ export const XpackUsageSearchableSnapshots = z.object({
   indices_count: z.lazy(() => integer),
   full_copy_indices_count: z.lazy(() => integer).optional(),
   shared_cache_indices_count: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'XpackUsageSearchableSnapshots' })
 export type XpackUsageSearchableSnapshots = z.infer<typeof XpackUsageSearchableSnapshots>
 
 export const XpackUsageRoleMapping = z.object({
   enabled: z.lazy(() => integer),
   size: z.lazy(() => integer)
-})
+}).meta({ id: 'XpackUsageRoleMapping' })
 export type XpackUsageRoleMapping = z.infer<typeof XpackUsageRoleMapping>
 
 export const XpackUsageSecurityRolesNative = z.object({
   dls: z.boolean(),
   fls: z.boolean(),
   size: z.lazy(() => long)
-})
+}).meta({ id: 'XpackUsageSecurityRolesNative' })
 export type XpackUsageSecurityRolesNative = z.infer<typeof XpackUsageSecurityRolesNative>
 
 export const XpackUsageSecurityRolesFile = z.object({
   dls: z.boolean(),
   fls: z.boolean(),
   size: z.lazy(() => long)
-})
+}).meta({ id: 'XpackUsageSecurityRolesFile' })
 export type XpackUsageSecurityRolesFile = z.infer<typeof XpackUsageSecurityRolesFile>
 
 export const XpackUsageSecurityRoles = z.object({
   native: XpackUsageSecurityRolesNative,
   dls: XpackUsageSecurityRolesDls,
   file: XpackUsageSecurityRolesFile
-})
+}).meta({ id: 'XpackUsageSecurityRoles' })
 export type XpackUsageSecurityRoles = z.infer<typeof XpackUsageSecurityRoles>
 
 export const XpackUsageSsl = z.object({
   http: XpackUsageFeatureToggle,
   transport: XpackUsageFeatureToggle
-})
+}).meta({ id: 'XpackUsageSsl' })
 export type XpackUsageSsl = z.infer<typeof XpackUsageSsl>
 
 export const XpackUsageSecurity = z.object({
@@ -597,21 +597,21 @@ export const XpackUsageSecurity = z.object({
   system_key: XpackUsageFeatureToggle.optional(),
   token_service: XpackUsageFeatureToggle,
   operator_privileges: XpackUsageBase
-})
+}).meta({ id: 'XpackUsageSecurity' })
 export type XpackUsageSecurity = z.infer<typeof XpackUsageSecurity>
 
 export const XpackUsageSlm = z.object({
   ...XpackUsageBase.shape,
   policy_count: z.lazy(() => integer).optional(),
   policy_stats: SlmStatistics.optional()
-})
+}).meta({ id: 'XpackUsageSlm' })
 export type XpackUsageSlm = z.infer<typeof XpackUsageSlm>
 
 export const XpackUsageSql = z.object({
   ...XpackUsageBase.shape,
   features: z.record(z.string(), z.lazy(() => integer)),
   queries: z.record(z.string(), XpackUsageQuery)
-})
+}).meta({ id: 'XpackUsageSql' })
 export type XpackUsageSql = z.infer<typeof XpackUsageSql>
 
 export const XpackUsageVector = z.object({
@@ -619,7 +619,7 @@ export const XpackUsageVector = z.object({
   dense_vector_dims_avg_count: z.lazy(() => integer),
   dense_vector_fields_count: z.lazy(() => integer),
   sparse_vector_fields_count: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'XpackUsageVector' })
 export type XpackUsageVector = z.infer<typeof XpackUsageVector>
 
 export const XpackUsageResponse = z.object({
@@ -651,5 +651,5 @@ export const XpackUsageResponse = z.object({
   transform: XpackUsageBase,
   vectors: XpackUsageVector.optional(),
   voting_only: XpackUsageBase
-})
+}).meta({ id: 'XpackUsageResponse' })
 export type XpackUsageResponse = z.infer<typeof XpackUsageResponse>

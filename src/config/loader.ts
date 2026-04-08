@@ -36,9 +36,9 @@ import type { ConfigFile, ResolvedConfig, ResolvedContext } from './types.ts'
  * The explorer searches from the given directory upward toward the home
  * directory (`searchStrategy: 'global'`).
  */
-export function createExplorer() {
+export function createExplorer () {
   return cosmiconfig('elastic', {
-    searchStrategy: 'global',
+    searchStrategy: 'global'
   })
 }
 
@@ -56,7 +56,7 @@ export function createExplorer() {
  * @param contextName - The key of the context to resolve.
  * @returns A `ResolvedConfig` wrapping only that context's service blocks.
  */
-export function resolveContext(config: ConfigFile, contextName: string): ResolvedConfig {
+export function resolveContext (config: ConfigFile, contextName: string): ResolvedConfig {
   // non-null: caller (loadConfig) guarantees contextName exists in config.contexts
   const ctx = config.contexts[contextName]!
   const resolved: ResolvedContext = {}
@@ -77,10 +77,10 @@ export interface LoadConfigOptions {
 }
 
 /** Successful result from {@link loadConfig}. */
-export type LoadConfigOk = { ok: true; value: ResolvedConfig }
+export interface LoadConfigOk { ok: true, value: ResolvedConfig }
 
 /** Failure result from {@link loadConfig}. */
-export type LoadConfigErr = { ok: false; error: { message: string } }
+export interface LoadConfigErr { ok: false, error: { message: string } }
 
 /** Discriminated result type returned by {@link loadConfig}. */
 export type LoadConfigResult = LoadConfigOk | LoadConfigErr
@@ -99,7 +99,7 @@ export type LoadConfigResult = LoadConfigOk | LoadConfigErr
  * @param options - Optional overrides for search root, config path, and context name.
  * @returns A `LoadConfigResult` discriminated union.
  */
-export async function loadConfig(options: LoadConfigOptions = {}): Promise<LoadConfigResult> {
+export async function loadConfig (options: LoadConfigOptions = {}): Promise<LoadConfigResult> {
   const { searchFrom, configPath, contextName } = options
   const explorer = createExplorer()
 
@@ -113,7 +113,7 @@ export async function loadConfig(options: LoadConfigOptions = {}): Promise<LoadC
     if (result == null) {
       return {
         ok: false,
-        error: { message: 'No configuration file found. Create a .elasticrc.yml in your home directory or project root.' },
+        error: { message: 'No configuration file found. Create a .elasticrc.yml in your home directory or project root.' }
       }
     }
 
@@ -132,15 +132,15 @@ export async function loadConfig(options: LoadConfigOptions = {}): Promise<LoadC
   const config = parsed.data
 
   // Step 3: resolve context name (--use-context override or current_context from file)
-  const resolvedContextName = contextName ?? config['current_context']
+  const resolvedContextName = contextName ?? config.current_context
 
   if (!(resolvedContextName in config.contexts)) {
     const available = Object.keys(config.contexts).join(', ')
     return {
       ok: false,
       error: {
-        message: `Context "${resolvedContextName}" not found. Available contexts: ${available}`,
-      },
+        message: `Context "${resolvedContextName}" not found. Available contexts: ${available}`
+      }
     }
   }
 

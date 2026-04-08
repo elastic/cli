@@ -6,9 +6,8 @@
 
 import { Command } from 'commander'
 import { createRequire } from 'node:module'
-import { defineCommand } from './factory.js'
-import type { ParsedResult } from './factory.js'
-import { registerEsCommands } from './es/register.ts'
+import { defineCommand, defineGroup } from './factory.ts'
+import type { ParsedResult } from './factory.ts'
 import { loadConfig } from './config/loader.ts'
 import { setResolvedConfig } from './config/store.ts'
 
@@ -28,13 +27,10 @@ program
 // On error, print a structured message and exit — never let a config failure
 // silently propagate into the command handler.
 program.hook('preAction', async (thisCommand) => {
-  const { configFile: configPath, useContext: contextName } = thisCommand.opts() as {
-    configFile?: string
-    useContext?: string
-  }
+  const { configFile: configPath, useContext: contextName } = thisCommand.opts()
   const result = await loadConfig({
     ...(configPath != null && { configPath }),
-    ...(contextName != null && { contextName }),
+    ...(contextName != null && { contextName })
   })
   if (result.ok) {
     setResolvedConfig(result.value)
@@ -48,7 +44,7 @@ program.hook('preAction', async (thisCommand) => {
 const versionCmd = defineCommand({
   name: 'version',
   description: 'Print the elastic CLI version',
-  handler: () => ({ version }),
+  handler: () => ({ version })
 })
 program.addCommand(versionCmd)
 
@@ -58,10 +54,20 @@ const pingCmd = defineCommand({
   handler: (parsed: ParsedResult) => {
     const esUrl = parsed.config?.context.elasticsearch?.url
     return esUrl != null ? { status: 'ok', url: esUrl } : { status: 'ok' }
-  },
+  }
 })
 program.addCommand(pingCmd)
-program.addCommand(registerEsCommands())
+// Lazily load the full ES command tree only when an `es` subcommand is actually
+// invoked. For all other invocations (including `elastic --help`), register a
+// lightweight stub so that `es` appears in the top-level help text without paying
+// the cost of loading and compiling all Elasticsearch API schemas.
+const esArgs = process.argv.slice(2)
+if (esArgs[0] === 'es') {
+  const { registerEsCommands } = await import('./es/register.ts')
+  program.addCommand(registerEsCommands())
+} else {
+  program.addCommand(defineGroup({ name: 'es', description: 'Interact with the Elasticsearch API' }))
+}
 
 if (process.argv.slice(2).length === 0) {
   program.outputHelp()

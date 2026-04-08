@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { SpecUtilsWithNullValue } from './_spec_utils.ts'
@@ -13,52 +13,52 @@ import { AcknowledgedResponseBase, DateTime, Duration, Field, Id, IndexName, Ind
 export const ConnectorDependency = z.object({
   field: z.string(),
   value: z.lazy(() => ScalarValue)
-})
+}).meta({ id: 'ConnectorDependency' })
 export type ConnectorDependency = z.infer<typeof ConnectorDependency>
 
-export const ConnectorDisplayType = z.enum(['textbox', 'textarea', 'numeric', 'toggle', 'dropdown'])
+export const ConnectorDisplayType = z.enum(['textbox', 'textarea', 'numeric', 'toggle', 'dropdown']).meta({ id: 'ConnectorDisplayType' })
 export type ConnectorDisplayType = z.infer<typeof ConnectorDisplayType>
 
 export const ConnectorSelectOption = z.object({
   label: z.string(),
   value: z.lazy(() => ScalarValue)
-})
+}).meta({ id: 'ConnectorSelectOption' })
 export type ConnectorSelectOption = z.infer<typeof ConnectorSelectOption>
 
-export const ConnectorConnectorFieldType = z.enum(['str', 'int', 'list', 'bool'])
+export const ConnectorConnectorFieldType = z.enum(['str', 'int', 'list', 'bool']).meta({ id: 'ConnectorConnectorFieldType' })
 export type ConnectorConnectorFieldType = z.infer<typeof ConnectorConnectorFieldType>
 
 export const ConnectorLessThanValidation = z.object({
   type: z.literal('less_than'),
   constraint: z.lazy(() => double)
-})
+}).meta({ id: 'ConnectorLessThanValidation' })
 export type ConnectorLessThanValidation = z.infer<typeof ConnectorLessThanValidation>
 
 export const ConnectorGreaterThanValidation = z.object({
   type: z.literal('greater_than'),
   constraint: z.lazy(() => double)
-})
+}).meta({ id: 'ConnectorGreaterThanValidation' })
 export type ConnectorGreaterThanValidation = z.infer<typeof ConnectorGreaterThanValidation>
 
 export const ConnectorListTypeValidation = z.object({
   type: z.literal('list_type'),
   constraint: z.string()
-})
+}).meta({ id: 'ConnectorListTypeValidation' })
 export type ConnectorListTypeValidation = z.infer<typeof ConnectorListTypeValidation>
 
 export const ConnectorIncludedInValidation = z.object({
   type: z.literal('included_in'),
   constraint: z.array(z.lazy(() => ScalarValue))
-})
+}).meta({ id: 'ConnectorIncludedInValidation' })
 export type ConnectorIncludedInValidation = z.infer<typeof ConnectorIncludedInValidation>
 
 export const ConnectorRegexValidation = z.object({
   type: z.literal('regex'),
   constraint: z.string()
-})
+}).meta({ id: 'ConnectorRegexValidation' })
 export type ConnectorRegexValidation = z.infer<typeof ConnectorRegexValidation>
 
-export const ConnectorValidation = z.union([ConnectorLessThanValidation, ConnectorGreaterThanValidation, ConnectorListTypeValidation, ConnectorIncludedInValidation, ConnectorRegexValidation])
+export const ConnectorValidation = z.union([ConnectorLessThanValidation, ConnectorGreaterThanValidation, ConnectorListTypeValidation, ConnectorIncludedInValidation, ConnectorRegexValidation]).meta({ id: 'ConnectorValidation' })
 export type ConnectorValidation = z.infer<typeof ConnectorValidation>
 
 export const ConnectorConnectorConfigProperties = z.object({
@@ -77,10 +77,10 @@ export const ConnectorConnectorConfigProperties = z.object({
   ui_restrictions: z.array(z.string()).optional(),
   validations: z.array(ConnectorValidation).optional(),
   value: z.any()
-})
+}).meta({ id: 'ConnectorConnectorConfigProperties' })
 export type ConnectorConnectorConfigProperties = z.infer<typeof ConnectorConnectorConfigProperties>
 
-export const ConnectorConnectorConfiguration = z.record(z.string(), ConnectorConnectorConfigProperties)
+export const ConnectorConnectorConfiguration = z.record(z.string(), ConnectorConnectorConfigProperties).meta({ id: 'ConnectorConnectorConfiguration' })
 export type ConnectorConnectorConfiguration = z.infer<typeof ConnectorConnectorConfiguration>
 
 export const ConnectorCustomSchedulingConfigurationOverrides = z.object({
@@ -89,7 +89,7 @@ export const ConnectorCustomSchedulingConfigurationOverrides = z.object({
   domain_allowlist: z.array(z.string()).optional(),
   sitemap_urls: z.array(z.string()).optional(),
   seed_urls: z.array(z.string()).optional()
-})
+}).meta({ id: 'ConnectorCustomSchedulingConfigurationOverrides' })
 export type ConnectorCustomSchedulingConfigurationOverrides = z.infer<typeof ConnectorCustomSchedulingConfigurationOverrides>
 
 export const ConnectorCustomScheduling = z.object({
@@ -98,21 +98,21 @@ export const ConnectorCustomScheduling = z.object({
   interval: z.string(),
   last_synced: z.lazy(() => DateTime).optional(),
   name: z.string()
-})
+}).meta({ id: 'ConnectorCustomScheduling' })
 export type ConnectorCustomScheduling = z.infer<typeof ConnectorCustomScheduling>
 
-export const ConnectorConnectorCustomScheduling = z.record(z.string(), ConnectorCustomScheduling)
+export const ConnectorConnectorCustomScheduling = z.record(z.string(), ConnectorCustomScheduling).meta({ id: 'ConnectorConnectorCustomScheduling' })
 export type ConnectorConnectorCustomScheduling = z.infer<typeof ConnectorConnectorCustomScheduling>
 
 export const ConnectorFeatureEnabled = z.object({
   enabled: z.boolean()
-})
+}).meta({ id: 'ConnectorFeatureEnabled' })
 export type ConnectorFeatureEnabled = z.infer<typeof ConnectorFeatureEnabled>
 
 export const ConnectorSyncRulesFeature = z.object({
   advanced: ConnectorFeatureEnabled.describe('Indicates whether advanced sync rules are enabled.').optional(),
   basic: ConnectorFeatureEnabled.describe('Indicates whether basic sync rules are enabled.').optional()
-})
+}).meta({ id: 'ConnectorSyncRulesFeature' })
 export type ConnectorSyncRulesFeature = z.infer<typeof ConnectorSyncRulesFeature>
 
 export const ConnectorConnectorFeatures = z.object({
@@ -120,20 +120,20 @@ export const ConnectorConnectorFeatures = z.object({
   incremental_sync: ConnectorFeatureEnabled.describe('Indicates whether incremental syncs are enabled.').optional(),
   native_connector_api_keys: ConnectorFeatureEnabled.describe('Indicates whether managed connector API keys are enabled.').optional(),
   sync_rules: ConnectorSyncRulesFeature.optional()
-})
+}).meta({ id: 'ConnectorConnectorFeatures' })
 export type ConnectorConnectorFeatures = z.infer<typeof ConnectorConnectorFeatures>
 
 export const ConnectorFilteringAdvancedSnippet = z.object({
   created_at: z.lazy(() => DateTime).optional(),
   updated_at: z.lazy(() => DateTime).optional(),
   value: z.any()
-})
+}).meta({ id: 'ConnectorFilteringAdvancedSnippet' })
 export type ConnectorFilteringAdvancedSnippet = z.infer<typeof ConnectorFilteringAdvancedSnippet>
 
-export const ConnectorFilteringPolicy = z.enum(['exclude', 'include'])
+export const ConnectorFilteringPolicy = z.enum(['exclude', 'include']).meta({ id: 'ConnectorFilteringPolicy' })
 export type ConnectorFilteringPolicy = z.infer<typeof ConnectorFilteringPolicy>
 
-export const ConnectorFilteringRuleRule = z.enum(['contains', 'ends_with', 'equals', 'regex', 'starts_with', '>', '<'])
+export const ConnectorFilteringRuleRule = z.enum(['contains', 'ends_with', 'equals', 'regex', 'starts_with', '>', '<']).meta({ id: 'ConnectorFilteringRuleRule' })
 export type ConnectorFilteringRuleRule = z.infer<typeof ConnectorFilteringRuleRule>
 
 export const ConnectorFilteringRule = z.object({
@@ -145,39 +145,39 @@ export const ConnectorFilteringRule = z.object({
   rule: ConnectorFilteringRuleRule,
   updated_at: z.lazy(() => DateTime).optional(),
   value: z.string()
-})
+}).meta({ id: 'ConnectorFilteringRule' })
 export type ConnectorFilteringRule = z.infer<typeof ConnectorFilteringRule>
 
 export const ConnectorFilteringValidation = z.object({
   ids: z.array(z.lazy(() => Id)),
   messages: z.array(z.string())
-})
+}).meta({ id: 'ConnectorFilteringValidation' })
 export type ConnectorFilteringValidation = z.infer<typeof ConnectorFilteringValidation>
 
-export const ConnectorFilteringValidationState = z.enum(['edited', 'invalid', 'valid'])
+export const ConnectorFilteringValidationState = z.enum(['edited', 'invalid', 'valid']).meta({ id: 'ConnectorFilteringValidationState' })
 export type ConnectorFilteringValidationState = z.infer<typeof ConnectorFilteringValidationState>
 
 export const ConnectorFilteringRulesValidation = z.object({
   errors: z.array(ConnectorFilteringValidation),
   state: ConnectorFilteringValidationState
-})
+}).meta({ id: 'ConnectorFilteringRulesValidation' })
 export type ConnectorFilteringRulesValidation = z.infer<typeof ConnectorFilteringRulesValidation>
 
 export const ConnectorFilteringRules = z.object({
   advanced_snippet: ConnectorFilteringAdvancedSnippet,
   rules: z.array(ConnectorFilteringRule),
   validation: ConnectorFilteringRulesValidation
-})
+}).meta({ id: 'ConnectorFilteringRules' })
 export type ConnectorFilteringRules = z.infer<typeof ConnectorFilteringRules>
 
 export const ConnectorFilteringConfig = z.object({
   active: ConnectorFilteringRules,
   domain: z.string().optional(),
   draft: ConnectorFilteringRules
-})
+}).meta({ id: 'ConnectorFilteringConfig' })
 export type ConnectorFilteringConfig = z.infer<typeof ConnectorFilteringConfig>
 
-export const ConnectorSyncStatus = z.enum(['canceling', 'canceled', 'completed', 'error', 'in_progress', 'pending', 'suspended'])
+export const ConnectorSyncStatus = z.enum(['canceling', 'canceled', 'completed', 'error', 'in_progress', 'pending', 'suspended']).meta({ id: 'ConnectorSyncStatus' })
 export type ConnectorSyncStatus = z.infer<typeof ConnectorSyncStatus>
 
 export const ConnectorIngestPipelineParams = z.object({
@@ -185,23 +185,23 @@ export const ConnectorIngestPipelineParams = z.object({
   name: z.string(),
   reduce_whitespace: z.boolean(),
   run_ml_inference: z.boolean()
-})
+}).meta({ id: 'ConnectorIngestPipelineParams' })
 export type ConnectorIngestPipelineParams = z.infer<typeof ConnectorIngestPipelineParams>
 
 export const ConnectorConnectorScheduling = z.object({
   enabled: z.boolean(),
   interval: z.string().describe('The interval is expressed using the crontab syntax')
-})
+}).meta({ id: 'ConnectorConnectorScheduling' })
 export type ConnectorConnectorScheduling = z.infer<typeof ConnectorConnectorScheduling>
 
 export const ConnectorSchedulingConfiguration = z.object({
   access_control: ConnectorConnectorScheduling.optional(),
   full: ConnectorConnectorScheduling.optional(),
   incremental: ConnectorConnectorScheduling.optional()
-})
+}).meta({ id: 'ConnectorSchedulingConfiguration' })
 export type ConnectorSchedulingConfiguration = z.infer<typeof ConnectorSchedulingConfiguration>
 
-export const ConnectorConnectorStatus = z.enum(['created', 'needs_configuration', 'configured', 'connected', 'error'])
+export const ConnectorConnectorStatus = z.enum(['created', 'needs_configuration', 'configured', 'connected', 'error']).meta({ id: 'ConnectorConnectorStatus' })
 export type ConnectorConnectorStatus = z.infer<typeof ConnectorConnectorStatus>
 
 export const ConnectorConnector = z.object({
@@ -236,7 +236,7 @@ export const ConnectorConnector = z.object({
   status: ConnectorConnectorStatus,
   sync_cursor: z.any().optional(),
   sync_now: z.boolean()
-})
+}).meta({ id: 'ConnectorConnector' })
 export type ConnectorConnector = z.infer<typeof ConnectorConnector>
 
 export const ConnectorSyncJobConnectorReference = z.object({
@@ -248,13 +248,13 @@ export const ConnectorSyncJobConnectorReference = z.object({
   pipeline: ConnectorIngestPipelineParams.optional(),
   service_type: z.string(),
   sync_cursor: z.any().optional()
-})
+}).meta({ id: 'ConnectorSyncJobConnectorReference' })
 export type ConnectorSyncJobConnectorReference = z.infer<typeof ConnectorSyncJobConnectorReference>
 
-export const ConnectorSyncJobType = z.enum(['full', 'incremental', 'access_control'])
+export const ConnectorSyncJobType = z.enum(['full', 'incremental', 'access_control']).meta({ id: 'ConnectorSyncJobType' })
 export type ConnectorSyncJobType = z.infer<typeof ConnectorSyncJobType>
 
-export const ConnectorSyncJobTriggerMethod = z.enum(['on_demand', 'scheduled'])
+export const ConnectorSyncJobTriggerMethod = z.enum(['on_demand', 'scheduled']).meta({ id: 'ConnectorSyncJobTriggerMethod' })
 export type ConnectorSyncJobTriggerMethod = z.infer<typeof ConnectorSyncJobTriggerMethod>
 
 export const ConnectorConnectorSyncJob = z.object({
@@ -276,7 +276,7 @@ export const ConnectorConnectorSyncJob = z.object({
   total_document_count: z.lazy(() => long),
   trigger_method: ConnectorSyncJobTriggerMethod,
   worker_hostname: z.string().optional()
-})
+}).meta({ id: 'ConnectorConnectorSyncJob' })
 export type ConnectorConnectorSyncJob = z.infer<typeof ConnectorConnectorSyncJob>
 
 /**
@@ -286,12 +286,12 @@ export type ConnectorConnectorSyncJob = z.infer<typeof ConnectorConnectorSyncJob
  */
 export const ConnectorCheckInRequest = z.object({
   connector_id: z.lazy(() => Id).describe('The unique identifier of the connector to be checked in').meta({ found_in: 'path' })
-})
+}).meta({ id: 'ConnectorCheckInRequest' })
 export type ConnectorCheckInRequest = z.infer<typeof ConnectorCheckInRequest>
 
 export const ConnectorCheckInResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorCheckInResponse' })
 export type ConnectorCheckInResponse = z.infer<typeof ConnectorCheckInResponse>
 
 /**
@@ -306,10 +306,10 @@ export const ConnectorDeleteRequest = z.object({
   connector_id: z.lazy(() => Id).describe('The unique identifier of the connector to be deleted').meta({ found_in: 'path' }),
   delete_sync_jobs: z.boolean().describe('A flag indicating if associated sync jobs should be also removed.').optional().meta({ found_in: 'query' }),
   hard: z.boolean().describe('A flag indicating if the connector should be hard deleted.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ConnectorDeleteRequest' })
 export type ConnectorDeleteRequest = z.infer<typeof ConnectorDeleteRequest>
 
-export const ConnectorDeleteResponse = z.lazy(() => AcknowledgedResponseBase)
+export const ConnectorDeleteResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'ConnectorDeleteResponse' })
 export type ConnectorDeleteResponse = z.infer<typeof ConnectorDeleteResponse>
 
 /**
@@ -320,10 +320,10 @@ export type ConnectorDeleteResponse = z.infer<typeof ConnectorDeleteResponse>
 export const ConnectorGetRequest = z.object({
   connector_id: z.lazy(() => Id).describe('The unique identifier of the connector').meta({ found_in: 'path' }),
   include_deleted: z.boolean().describe('A flag to indicate if the desired connector should be fetched, even if it was soft-deleted.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ConnectorGetRequest' })
 export type ConnectorGetRequest = z.infer<typeof ConnectorGetRequest>
 
-export const ConnectorGetResponse = ConnectorConnector
+export const ConnectorGetResponse = ConnectorConnector.meta({ id: 'ConnectorGetResponse' })
 export type ConnectorGetResponse = z.infer<typeof ConnectorGetResponse>
 
 /**
@@ -346,12 +346,12 @@ export const ConnectorLastSyncRequest = z.object({
   last_sync_status: ConnectorSyncStatus.optional().meta({ found_in: 'body' }),
   last_synced: z.lazy(() => DateTime).optional().meta({ found_in: 'body' }),
   sync_cursor: z.any().optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorLastSyncRequest' })
 export type ConnectorLastSyncRequest = z.infer<typeof ConnectorLastSyncRequest>
 
 export const ConnectorLastSyncResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorLastSyncResponse' })
 export type ConnectorLastSyncResponse = z.infer<typeof ConnectorLastSyncResponse>
 
 /**
@@ -367,13 +367,13 @@ export const ConnectorListRequest = z.object({
   service_type: z.lazy(() => Names).describe('A comma-separated list of connector service types to fetch connector documents for').optional().meta({ found_in: 'query' }),
   include_deleted: z.boolean().describe('A flag to indicate if the desired connector should be fetched, even if it was soft-deleted.').optional().meta({ found_in: 'query' }),
   query: z.string().describe('A wildcard query string that filters connectors with matching name, description or index name').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ConnectorListRequest' })
 export type ConnectorListRequest = z.infer<typeof ConnectorListRequest>
 
 export const ConnectorListResponse = z.object({
   count: z.lazy(() => long),
   results: z.array(ConnectorConnector)
-})
+}).meta({ id: 'ConnectorListResponse' })
 export type ConnectorListResponse = z.infer<typeof ConnectorListResponse>
 
 /**
@@ -390,13 +390,13 @@ export const ConnectorPostRequest = z.object({
   language: z.string().optional().meta({ found_in: 'body' }),
   name: z.string().optional().meta({ found_in: 'body' }),
   service_type: z.string().optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorPostRequest' })
 export type ConnectorPostRequest = z.infer<typeof ConnectorPostRequest>
 
 export const ConnectorPostResponse = z.object({
   result: z.lazy(() => Result),
   id: z.lazy(() => Id)
-})
+}).meta({ id: 'ConnectorPostResponse' })
 export type ConnectorPostResponse = z.infer<typeof ConnectorPostResponse>
 
 /** Create or update a connector. */
@@ -408,59 +408,59 @@ export const ConnectorPutRequest = z.object({
   language: z.string().optional().meta({ found_in: 'body' }),
   name: z.string().optional().meta({ found_in: 'body' }),
   service_type: z.string().optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorPutRequest' })
 export type ConnectorPutRequest = z.infer<typeof ConnectorPutRequest>
 
 export const ConnectorPutResponse = z.object({
   result: z.lazy(() => Result),
   id: z.lazy(() => Id)
-})
+}).meta({ id: 'ConnectorPutResponse' })
 export type ConnectorPutResponse = z.infer<typeof ConnectorPutResponse>
 
 /** Deletes a connector secret. */
 export const ConnectorSecretDeleteRequest = z.object({
   id: z.string().describe('The ID of the secret').meta({ found_in: 'path' })
-})
+}).meta({ id: 'ConnectorSecretDeleteRequest' })
 export type ConnectorSecretDeleteRequest = z.infer<typeof ConnectorSecretDeleteRequest>
 
 export const ConnectorSecretDeleteResponse = z.object({
   deleted: z.boolean()
-})
+}).meta({ id: 'ConnectorSecretDeleteResponse' })
 export type ConnectorSecretDeleteResponse = z.infer<typeof ConnectorSecretDeleteResponse>
 
 /** Retrieves a secret stored by Connectors. */
 export const ConnectorSecretGetRequest = z.object({
   id: z.string().describe('The ID of the secret').meta({ found_in: 'path' })
-})
+}).meta({ id: 'ConnectorSecretGetRequest' })
 export type ConnectorSecretGetRequest = z.infer<typeof ConnectorSecretGetRequest>
 
 export const ConnectorSecretGetResponse = z.object({
   id: z.string(),
   value: z.string()
-})
+}).meta({ id: 'ConnectorSecretGetResponse' })
 export type ConnectorSecretGetResponse = z.infer<typeof ConnectorSecretGetResponse>
 
 /** Creates a secret for a Connector. */
 export const ConnectorSecretPostRequest = z.object({
   value: z.string().optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorSecretPostRequest' })
 export type ConnectorSecretPostRequest = z.infer<typeof ConnectorSecretPostRequest>
 
 export const ConnectorSecretPostResponse = z.object({
   id: z.string()
-})
+}).meta({ id: 'ConnectorSecretPostResponse' })
 export type ConnectorSecretPostResponse = z.infer<typeof ConnectorSecretPostResponse>
 
 /** Creates or updates a secret for a Connector. */
 export const ConnectorSecretPutRequest = z.object({
   id: z.string().describe('The ID of the secret').meta({ found_in: 'path' }),
   value: z.string().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorSecretPutRequest' })
 export type ConnectorSecretPutRequest = z.infer<typeof ConnectorSecretPutRequest>
 
 export const ConnectorSecretPutResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorSecretPutResponse' })
 export type ConnectorSecretPutResponse = z.infer<typeof ConnectorSecretPutResponse>
 
 /**
@@ -471,12 +471,12 @@ export type ConnectorSecretPutResponse = z.infer<typeof ConnectorSecretPutRespon
  */
 export const ConnectorSyncJobCancelRequest = z.object({
   connector_sync_job_id: z.lazy(() => Id).describe('The unique identifier of the connector sync job').meta({ found_in: 'path' })
-})
+}).meta({ id: 'ConnectorSyncJobCancelRequest' })
 export type ConnectorSyncJobCancelRequest = z.infer<typeof ConnectorSyncJobCancelRequest>
 
 export const ConnectorSyncJobCancelResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorSyncJobCancelResponse' })
 export type ConnectorSyncJobCancelResponse = z.infer<typeof ConnectorSyncJobCancelResponse>
 
 /**
@@ -489,11 +489,11 @@ export type ConnectorSyncJobCancelResponse = z.infer<typeof ConnectorSyncJobCanc
  */
 export const ConnectorSyncJobCheckInRequest = z.object({
   connector_sync_job_id: z.lazy(() => Id).describe('The unique identifier of the connector sync job to be checked in.').meta({ found_in: 'path' })
-})
+}).meta({ id: 'ConnectorSyncJobCheckInRequest' })
 export type ConnectorSyncJobCheckInRequest = z.infer<typeof ConnectorSyncJobCheckInRequest>
 
 export const ConnectorSyncJobCheckInResponse = z.object({
-})
+}).meta({ id: 'ConnectorSyncJobCheckInResponse' })
 export type ConnectorSyncJobCheckInResponse = z.infer<typeof ConnectorSyncJobCheckInResponse>
 
 /**
@@ -512,11 +512,11 @@ export const ConnectorSyncJobClaimRequest = z.object({
   connector_sync_job_id: z.lazy(() => Id).describe('The unique identifier of the connector sync job.').meta({ found_in: 'path' }),
   sync_cursor: z.any().describe('The cursor object from the last incremental sync job. This should reference the `sync_cursor` field in the connector state for which the job runs.').optional().meta({ found_in: 'body' }),
   worker_hostname: z.string().describe('The host name of the current system that will run the job.').meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorSyncJobClaimRequest' })
 export type ConnectorSyncJobClaimRequest = z.infer<typeof ConnectorSyncJobClaimRequest>
 
 export const ConnectorSyncJobClaimResponse = z.object({
-})
+}).meta({ id: 'ConnectorSyncJobClaimResponse' })
 export type ConnectorSyncJobClaimResponse = z.infer<typeof ConnectorSyncJobClaimResponse>
 
 /**
@@ -527,10 +527,10 @@ export type ConnectorSyncJobClaimResponse = z.infer<typeof ConnectorSyncJobClaim
  */
 export const ConnectorSyncJobDeleteRequest = z.object({
   connector_sync_job_id: z.lazy(() => Id).describe('The unique identifier of the connector sync job to be deleted').meta({ found_in: 'path' })
-})
+}).meta({ id: 'ConnectorSyncJobDeleteRequest' })
 export type ConnectorSyncJobDeleteRequest = z.infer<typeof ConnectorSyncJobDeleteRequest>
 
-export const ConnectorSyncJobDeleteResponse = z.lazy(() => AcknowledgedResponseBase)
+export const ConnectorSyncJobDeleteResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'ConnectorSyncJobDeleteResponse' })
 export type ConnectorSyncJobDeleteResponse = z.infer<typeof ConnectorSyncJobDeleteResponse>
 
 /**
@@ -544,20 +544,20 @@ export type ConnectorSyncJobDeleteResponse = z.infer<typeof ConnectorSyncJobDele
 export const ConnectorSyncJobErrorRequest = z.object({
   connector_sync_job_id: z.lazy(() => Id).describe('The unique identifier for the connector sync job.').meta({ found_in: 'path' }),
   error: z.string().describe('The error for the connector sync job error field.').meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorSyncJobErrorRequest' })
 export type ConnectorSyncJobErrorRequest = z.infer<typeof ConnectorSyncJobErrorRequest>
 
 export const ConnectorSyncJobErrorResponse = z.object({
-})
+}).meta({ id: 'ConnectorSyncJobErrorResponse' })
 export type ConnectorSyncJobErrorResponse = z.infer<typeof ConnectorSyncJobErrorResponse>
 
 /** Get a connector sync job. */
 export const ConnectorSyncJobGetRequest = z.object({
   connector_sync_job_id: z.lazy(() => Id).describe('The unique identifier of the connector sync job').meta({ found_in: 'path' })
-})
+}).meta({ id: 'ConnectorSyncJobGetRequest' })
 export type ConnectorSyncJobGetRequest = z.infer<typeof ConnectorSyncJobGetRequest>
 
-export const ConnectorSyncJobGetResponse = ConnectorConnectorSyncJob
+export const ConnectorSyncJobGetResponse = ConnectorConnectorSyncJob.meta({ id: 'ConnectorSyncJobGetResponse' })
 export type ConnectorSyncJobGetResponse = z.infer<typeof ConnectorSyncJobGetResponse>
 
 /**
@@ -571,13 +571,13 @@ export const ConnectorSyncJobListRequest = z.object({
   status: ConnectorSyncStatus.describe('A sync job status to fetch connector sync jobs for').optional().meta({ found_in: 'query' }),
   connector_id: z.lazy(() => Id).describe('A connector id to fetch connector sync jobs for').optional().meta({ found_in: 'query' }),
   job_type: z.union([ConnectorSyncJobType, z.array(ConnectorSyncJobType)]).describe('A comma-separated list of job types to fetch the sync jobs for').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ConnectorSyncJobListRequest' })
 export type ConnectorSyncJobListRequest = z.infer<typeof ConnectorSyncJobListRequest>
 
 export const ConnectorSyncJobListResponse = z.object({
   count: z.lazy(() => long),
   results: z.array(ConnectorConnectorSyncJob)
-})
+}).meta({ id: 'ConnectorSyncJobListResponse' })
 export type ConnectorSyncJobListResponse = z.infer<typeof ConnectorSyncJobListResponse>
 
 /**
@@ -589,12 +589,12 @@ export const ConnectorSyncJobPostRequest = z.object({
   id: z.lazy(() => Id).describe('The id of the associated connector').meta({ found_in: 'body' }),
   job_type: ConnectorSyncJobType.optional().meta({ found_in: 'body' }),
   trigger_method: ConnectorSyncJobTriggerMethod.optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorSyncJobPostRequest' })
 export type ConnectorSyncJobPostRequest = z.infer<typeof ConnectorSyncJobPostRequest>
 
 export const ConnectorSyncJobPostResponse = z.object({
   id: z.lazy(() => Id)
-})
+}).meta({ id: 'ConnectorSyncJobPostResponse' })
 export type ConnectorSyncJobPostResponse = z.infer<typeof ConnectorSyncJobPostResponse>
 
 /**
@@ -615,11 +615,11 @@ export const ConnectorSyncJobUpdateStatsRequest = z.object({
   last_seen: z.lazy(() => Duration).describe('The timestamp to use in the `last_seen` property for the connector sync job.').optional().meta({ found_in: 'body' }),
   metadata: z.lazy(() => Metadata).describe('The connector-specific metadata.').optional().meta({ found_in: 'body' }),
   total_document_count: z.lazy(() => integer).describe('The total number of documents in the target index after the sync job finished.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorSyncJobUpdateStatsRequest' })
 export type ConnectorSyncJobUpdateStatsRequest = z.infer<typeof ConnectorSyncJobUpdateStatsRequest>
 
 export const ConnectorSyncJobUpdateStatsResponse = z.object({
-})
+}).meta({ id: 'ConnectorSyncJobUpdateStatsResponse' })
 export type ConnectorSyncJobUpdateStatsResponse = z.infer<typeof ConnectorSyncJobUpdateStatsResponse>
 
 /**
@@ -629,12 +629,12 @@ export type ConnectorSyncJobUpdateStatsResponse = z.infer<typeof ConnectorSyncJo
  */
 export const ConnectorUpdateActiveFilteringRequest = z.object({
   connector_id: z.lazy(() => Id).describe('The unique identifier of the connector to be updated').meta({ found_in: 'path' })
-})
+}).meta({ id: 'ConnectorUpdateActiveFilteringRequest' })
 export type ConnectorUpdateActiveFilteringRequest = z.infer<typeof ConnectorUpdateActiveFilteringRequest>
 
 export const ConnectorUpdateActiveFilteringResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorUpdateActiveFilteringResponse' })
 export type ConnectorUpdateActiveFilteringResponse = z.infer<typeof ConnectorUpdateActiveFilteringResponse>
 
 /**
@@ -649,12 +649,12 @@ export const ConnectorUpdateApiKeyIdRequest = z.object({
   connector_id: z.lazy(() => Id).describe('The unique identifier of the connector to be updated').meta({ found_in: 'path' }),
   api_key_id: z.string().optional().meta({ found_in: 'body' }),
   api_key_secret_id: z.string().optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorUpdateApiKeyIdRequest' })
 export type ConnectorUpdateApiKeyIdRequest = z.infer<typeof ConnectorUpdateApiKeyIdRequest>
 
 export const ConnectorUpdateApiKeyIdResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorUpdateApiKeyIdResponse' })
 export type ConnectorUpdateApiKeyIdResponse = z.infer<typeof ConnectorUpdateApiKeyIdResponse>
 
 /**
@@ -666,12 +666,12 @@ export const ConnectorUpdateConfigurationRequest = z.object({
   connector_id: z.lazy(() => Id).describe('The unique identifier of the connector to be updated').meta({ found_in: 'path' }),
   configuration: ConnectorConnectorConfiguration.optional().meta({ found_in: 'body' }),
   values: z.record(z.string(), z.any()).optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorUpdateConfigurationRequest' })
 export type ConnectorUpdateConfigurationRequest = z.infer<typeof ConnectorUpdateConfigurationRequest>
 
 export const ConnectorUpdateConfigurationResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorUpdateConfigurationResponse' })
 export type ConnectorUpdateConfigurationResponse = z.infer<typeof ConnectorUpdateConfigurationResponse>
 
 /**
@@ -684,12 +684,12 @@ export type ConnectorUpdateConfigurationResponse = z.infer<typeof ConnectorUpdat
 export const ConnectorUpdateErrorRequest = z.object({
   connector_id: z.lazy(() => Id).describe('The unique identifier of the connector to be updated').meta({ found_in: 'path' }),
   error: z.lazy(() => SpecUtilsWithNullValue).meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorUpdateErrorRequest' })
 export type ConnectorUpdateErrorRequest = z.infer<typeof ConnectorUpdateErrorRequest>
 
 export const ConnectorUpdateErrorResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorUpdateErrorResponse' })
 export type ConnectorUpdateErrorResponse = z.infer<typeof ConnectorUpdateErrorResponse>
 
 /**
@@ -712,12 +712,12 @@ export type ConnectorUpdateErrorResponse = z.infer<typeof ConnectorUpdateErrorRe
 export const ConnectorUpdateFeaturesRequest = z.object({
   connector_id: z.lazy(() => Id).describe('The unique identifier of the connector to be updated.').meta({ found_in: 'path' }),
   features: ConnectorConnectorFeatures.meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorUpdateFeaturesRequest' })
 export type ConnectorUpdateFeaturesRequest = z.infer<typeof ConnectorUpdateFeaturesRequest>
 
 export const ConnectorUpdateFeaturesResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorUpdateFeaturesResponse' })
 export type ConnectorUpdateFeaturesResponse = z.infer<typeof ConnectorUpdateFeaturesResponse>
 
 /**
@@ -732,12 +732,12 @@ export const ConnectorUpdateFilteringRequest = z.object({
   filtering: z.array(ConnectorFilteringConfig).optional().meta({ found_in: 'body' }),
   rules: z.array(ConnectorFilteringRule).optional().meta({ found_in: 'body' }),
   advanced_snippet: ConnectorFilteringAdvancedSnippet.optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorUpdateFilteringRequest' })
 export type ConnectorUpdateFilteringRequest = z.infer<typeof ConnectorUpdateFilteringRequest>
 
 export const ConnectorUpdateFilteringResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorUpdateFilteringResponse' })
 export type ConnectorUpdateFilteringResponse = z.infer<typeof ConnectorUpdateFilteringResponse>
 
 /**
@@ -748,12 +748,12 @@ export type ConnectorUpdateFilteringResponse = z.infer<typeof ConnectorUpdateFil
 export const ConnectorUpdateFilteringValidationRequest = z.object({
   connector_id: z.lazy(() => Id).describe('The unique identifier of the connector to be updated').meta({ found_in: 'path' }),
   validation: ConnectorFilteringRulesValidation.meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorUpdateFilteringValidationRequest' })
 export type ConnectorUpdateFilteringValidationRequest = z.infer<typeof ConnectorUpdateFilteringValidationRequest>
 
 export const ConnectorUpdateFilteringValidationResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorUpdateFilteringValidationResponse' })
 export type ConnectorUpdateFilteringValidationResponse = z.infer<typeof ConnectorUpdateFilteringValidationResponse>
 
 /**
@@ -764,12 +764,12 @@ export type ConnectorUpdateFilteringValidationResponse = z.infer<typeof Connecto
 export const ConnectorUpdateIndexNameRequest = z.object({
   connector_id: z.lazy(() => Id).describe('The unique identifier of the connector to be updated').meta({ found_in: 'path' }),
   index_name: z.lazy(() => SpecUtilsWithNullValue).meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorUpdateIndexNameRequest' })
 export type ConnectorUpdateIndexNameRequest = z.infer<typeof ConnectorUpdateIndexNameRequest>
 
 export const ConnectorUpdateIndexNameResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorUpdateIndexNameResponse' })
 export type ConnectorUpdateIndexNameResponse = z.infer<typeof ConnectorUpdateIndexNameResponse>
 
 /** Update the connector name and description. */
@@ -777,24 +777,24 @@ export const ConnectorUpdateNameRequest = z.object({
   connector_id: z.lazy(() => Id).describe('The unique identifier of the connector to be updated').meta({ found_in: 'path' }),
   name: z.string().optional().meta({ found_in: 'body' }),
   description: z.string().optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorUpdateNameRequest' })
 export type ConnectorUpdateNameRequest = z.infer<typeof ConnectorUpdateNameRequest>
 
 export const ConnectorUpdateNameResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorUpdateNameResponse' })
 export type ConnectorUpdateNameResponse = z.infer<typeof ConnectorUpdateNameResponse>
 
 /** Update the connector is_native flag. */
 export const ConnectorUpdateNativeRequest = z.object({
   connector_id: z.lazy(() => Id).describe('The unique identifier of the connector to be updated').meta({ found_in: 'path' }),
   is_native: z.boolean().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorUpdateNativeRequest' })
 export type ConnectorUpdateNativeRequest = z.infer<typeof ConnectorUpdateNativeRequest>
 
 export const ConnectorUpdateNativeResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorUpdateNativeResponse' })
 export type ConnectorUpdateNativeResponse = z.infer<typeof ConnectorUpdateNativeResponse>
 
 /**
@@ -805,46 +805,46 @@ export type ConnectorUpdateNativeResponse = z.infer<typeof ConnectorUpdateNative
 export const ConnectorUpdatePipelineRequest = z.object({
   connector_id: z.lazy(() => Id).describe('The unique identifier of the connector to be updated').meta({ found_in: 'path' }),
   pipeline: ConnectorIngestPipelineParams.meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorUpdatePipelineRequest' })
 export type ConnectorUpdatePipelineRequest = z.infer<typeof ConnectorUpdatePipelineRequest>
 
 export const ConnectorUpdatePipelineResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorUpdatePipelineResponse' })
 export type ConnectorUpdatePipelineResponse = z.infer<typeof ConnectorUpdatePipelineResponse>
 
 /** Update the connector scheduling. */
 export const ConnectorUpdateSchedulingRequest = z.object({
   connector_id: z.lazy(() => Id).describe('The unique identifier of the connector to be updated').meta({ found_in: 'path' }),
   scheduling: ConnectorSchedulingConfiguration.meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorUpdateSchedulingRequest' })
 export type ConnectorUpdateSchedulingRequest = z.infer<typeof ConnectorUpdateSchedulingRequest>
 
 export const ConnectorUpdateSchedulingResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorUpdateSchedulingResponse' })
 export type ConnectorUpdateSchedulingResponse = z.infer<typeof ConnectorUpdateSchedulingResponse>
 
 /** Update the connector service type. */
 export const ConnectorUpdateServiceTypeRequest = z.object({
   connector_id: z.lazy(() => Id).describe('The unique identifier of the connector to be updated').meta({ found_in: 'path' }),
   service_type: z.string().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorUpdateServiceTypeRequest' })
 export type ConnectorUpdateServiceTypeRequest = z.infer<typeof ConnectorUpdateServiceTypeRequest>
 
 export const ConnectorUpdateServiceTypeResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorUpdateServiceTypeResponse' })
 export type ConnectorUpdateServiceTypeResponse = z.infer<typeof ConnectorUpdateServiceTypeResponse>
 
 /** Update the connector status. */
 export const ConnectorUpdateStatusRequest = z.object({
   connector_id: z.lazy(() => Id).describe('The unique identifier of the connector to be updated').meta({ found_in: 'path' }),
   status: ConnectorConnectorStatus.meta({ found_in: 'body' })
-})
+}).meta({ id: 'ConnectorUpdateStatusRequest' })
 export type ConnectorUpdateStatusRequest = z.infer<typeof ConnectorUpdateStatusRequest>
 
 export const ConnectorUpdateStatusResponse = z.object({
   result: z.lazy(() => Result)
-})
+}).meta({ id: 'ConnectorUpdateStatusResponse' })
 export type ConnectorUpdateStatusResponse = z.infer<typeof ConnectorUpdateStatusResponse>

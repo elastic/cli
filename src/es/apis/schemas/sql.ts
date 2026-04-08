@@ -3,31 +3,31 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { SearchSourceConfig, SearchTrackHits } from './_global.ts'
-import { AcknowledgedResponseBase, AggregationsAggregationContainer, Duration, EpochTime, Id, MappingRuntimeFields, Name, ProjectRouting, QueryDslFieldAndFormat, QueryDslQueryContainer, Sort, TimeZone, integer, long, uint } from './_types.ts'
+import { AcknowledgedResponseBase, AggregationsAggregationContainer, Duration, EpochTime, Id, MappingRuntimeFields, Name, QueryDslFieldAndFormat, QueryDslQueryContainer, Sort, TimeZone, integer, long, uint } from './_types.ts'
 
 export const SqlColumn = z.object({
   name: z.lazy(() => Name),
   type: z.string()
-})
+}).meta({ id: 'SqlColumn' })
 export type SqlColumn = z.infer<typeof SqlColumn>
 
-export const SqlRow = z.array(z.any())
+export const SqlRow = z.array(z.any()).meta({ id: 'SqlRow' })
 export type SqlRow = z.infer<typeof SqlRow>
 
 /** Clear an SQL search cursor. */
 export const SqlClearCursorRequest = z.object({
   cursor: z.string().describe('Cursor to clear.').meta({ found_in: 'body' })
-})
+}).meta({ id: 'SqlClearCursorRequest' })
 export type SqlClearCursorRequest = z.infer<typeof SqlClearCursorRequest>
 
 export const SqlClearCursorResponse = z.object({
   succeeded: z.boolean()
-})
+}).meta({ id: 'SqlClearCursorResponse' })
 export type SqlClearCursorResponse = z.infer<typeof SqlClearCursorResponse>
 
 /**
@@ -43,10 +43,10 @@ export type SqlClearCursorResponse = z.infer<typeof SqlClearCursorResponse>
  */
 export const SqlDeleteAsyncRequest = z.object({
   id: z.lazy(() => Id).describe('The identifier for the search.').meta({ found_in: 'path' })
-})
+}).meta({ id: 'SqlDeleteAsyncRequest' })
 export type SqlDeleteAsyncRequest = z.infer<typeof SqlDeleteAsyncRequest>
 
-export const SqlDeleteAsyncResponse = z.lazy(() => AcknowledgedResponseBase)
+export const SqlDeleteAsyncResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'SqlDeleteAsyncResponse' })
 export type SqlDeleteAsyncResponse = z.infer<typeof SqlDeleteAsyncResponse>
 
 /**
@@ -62,7 +62,7 @@ export const SqlGetAsyncRequest = z.object({
   format: z.string().describe('The format for the response. You must specify a format using this parameter or the `Accept` HTTP header. If you specify both, the API uses this parameter.').optional().meta({ found_in: 'query' }),
   keep_alive: z.lazy(() => Duration).describe('The retention period for the search and its results. It defaults to the `keep_alive` period for the original SQL search.').optional().meta({ found_in: 'query' }),
   wait_for_completion_timeout: z.lazy(() => Duration).describe('The period to wait for complete results. It defaults to no timeout, meaning the request waits for complete search results.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'SqlGetAsyncRequest' })
 export type SqlGetAsyncRequest = z.infer<typeof SqlGetAsyncRequest>
 
 export const SqlGetAsyncResponse = z.object({
@@ -72,7 +72,7 @@ export const SqlGetAsyncResponse = z.object({
   columns: z.array(SqlColumn).describe('Column headings for the search results. Each object is a column.').optional(),
   cursor: z.string().describe('The cursor for the next set of paginated results. For CSV, TSV, and TXT responses, this value is returned in the `Cursor` HTTP header.').optional(),
   rows: z.array(SqlRow).describe('The values for the search results.')
-})
+}).meta({ id: 'SqlGetAsyncResponse' })
 export type SqlGetAsyncResponse = z.infer<typeof SqlGetAsyncResponse>
 
 /**
@@ -82,7 +82,7 @@ export type SqlGetAsyncResponse = z.infer<typeof SqlGetAsyncResponse>
  */
 export const SqlGetAsyncStatusRequest = z.object({
   id: z.lazy(() => Id).describe('The identifier for the search.').meta({ found_in: 'path' })
-})
+}).meta({ id: 'SqlGetAsyncStatusRequest' })
 export type SqlGetAsyncStatusRequest = z.infer<typeof SqlGetAsyncStatusRequest>
 
 export const SqlGetAsyncStatusResponse = z.object({
@@ -92,10 +92,10 @@ export const SqlGetAsyncStatusResponse = z.object({
   is_partial: z.boolean().describe('If `true`, the response does not contain complete search results. If `is_partial` is `true` and `is_running` is `true`, the search is still running. If `is_partial` is `true` but `is_running` is `false`, the results are partial due to a failure or timeout.'),
   start_time_in_millis: z.lazy(() => EpochTime).describe('The timestamp, in milliseconds since the Unix epoch, when the search started. The API returns this property only for running searches.'),
   completion_status: z.lazy(() => uint).describe('The HTTP status code for the search. The API returns this property only for completed searches.').optional()
-})
+}).meta({ id: 'SqlGetAsyncStatusResponse' })
 export type SqlGetAsyncStatusResponse = z.infer<typeof SqlGetAsyncStatusResponse>
 
-export const SqlQuerySqlFormat = z.enum(['csv', 'json', 'tsv', 'txt', 'yaml', 'cbor', 'smile'])
+export const SqlQuerySqlFormat = z.enum(['csv', 'json', 'tsv', 'txt', 'yaml', 'cbor', 'smile']).meta({ id: 'SqlQuerySqlFormat' })
 export type SqlQuerySqlFormat = z.infer<typeof SqlQuerySqlFormat>
 
 /**
@@ -122,7 +122,7 @@ export const SqlQueryRequest = z.object({
   runtime_mappings: z.lazy(() => MappingRuntimeFields).describe('One or more runtime fields for the search request. These fields take precedence over mapped fields with the same name.').optional().meta({ found_in: 'body' }),
   time_zone: TimeZone.describe('The ISO-8601 time zone ID for the search.').optional().meta({ found_in: 'body' }),
   wait_for_completion_timeout: z.lazy(() => Duration).describe('The period to wait for complete results. It defaults to no timeout, meaning the request waits for complete search results. If the search doesn\'t finish within this period, the search becomes async. To save a synchronous search, you must specify this parameter and the `keep_on_completion` parameter.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'SqlQueryRequest' })
 export type SqlQueryRequest = z.infer<typeof SqlQueryRequest>
 
 export const SqlQueryResponse = z.object({
@@ -132,7 +132,7 @@ export const SqlQueryResponse = z.object({
   is_running: z.boolean().describe('If `true`, the search is still running. If `false`, the search has finished. This value is returned only for async and saved synchronous searches. For CSV, TSV, and TXT responses, this value is returned in the `Async-partial` HTTP header.').optional(),
   is_partial: z.boolean().describe('If `true`, the response does not contain complete search results. If `is_partial` is `true` and `is_running` is `true`, the search is still running. If `is_partial` is `true` but `is_running` is `false`, the results are partial due to a failure or timeout. This value is returned only for async and saved synchronous searches. For CSV, TSV, and TXT responses, this value is returned in the `Async-partial` HTTP header.').optional(),
   rows: z.array(SqlRow).describe('The values for the search results.')
-})
+}).meta({ id: 'SqlQueryResponse' })
 export type SqlQueryResponse = z.infer<typeof SqlQueryResponse>
 
 /**
@@ -146,7 +146,7 @@ export const SqlTranslateRequest = z.object({
   filter: z.lazy(() => QueryDslQueryContainer).describe('The Elasticsearch query DSL for additional filtering.').optional().meta({ found_in: 'body' }),
   query: z.string().describe('The SQL query to run.').meta({ found_in: 'body' }),
   time_zone: TimeZone.describe('The ISO-8601 time zone ID for the search.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'SqlTranslateRequest' })
 export type SqlTranslateRequest = z.infer<typeof SqlTranslateRequest>
 
 export const SqlTranslateResponse = z.object({
@@ -157,5 +157,5 @@ export const SqlTranslateResponse = z.object({
   query: z.lazy(() => QueryDslQueryContainer).optional(),
   sort: z.lazy(() => Sort).optional(),
   track_total_hits: SearchTrackHits.optional()
-})
+}).meta({ id: 'SqlTranslateResponse' })
 export type SqlTranslateResponse = z.infer<typeof SqlTranslateResponse>

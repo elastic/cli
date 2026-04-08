@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { Duration, DurationValue, EpochTime, ErrorCause, Host, Id, Ip, NodeId, NodeIds, TaskFailure, TaskId, TransportAddress, long } from './_types.ts'
@@ -23,7 +23,7 @@ export const TasksTaskInfo = z.object({
   status: z.any().describe('The internal status of the task, which varies from task to task. The format also varies. While the goal is to keep the status for a particular task consistent from version to version, this is not always possible because sometimes the implementation changes. Fields might be removed from the status for a particular request so any parsing you do of the status might break in minor releases.').optional(),
   type: z.string(),
   parent_task_id: z.lazy(() => TaskId).optional()
-})
+}).meta({ id: 'TasksTaskInfo' })
 export type TasksTaskInfo = z.infer<typeof TasksTaskInfo>
 
 export const TasksNodeTasks = z.object({
@@ -34,7 +34,7 @@ export const TasksNodeTasks = z.object({
   roles: z.array(z.string()).optional(),
   attributes: z.record(z.string(), z.string()).optional(),
   tasks: z.record(z.lazy(() => TaskId), z.lazy(() => TasksTaskInfo))
-})
+}).meta({ id: 'TasksNodeTasks' })
 export type TasksNodeTasks = z.infer<typeof TasksNodeTasks>
 
 export const TasksParentTaskInfo = z.object({
@@ -52,10 +52,10 @@ export const TasksParentTaskInfo = z.object({
   type: z.string(),
   parent_task_id: z.lazy(() => TaskId).optional(),
   children: z.array(z.lazy(() => TasksTaskInfo)).optional()
-})
+}).meta({ id: 'TasksParentTaskInfo' })
 export type TasksParentTaskInfo = z.infer<typeof TasksParentTaskInfo>
 
-export const TasksTaskInfos = z.union([z.array(z.lazy(() => TasksTaskInfo)), z.record(z.string(), TasksParentTaskInfo)])
+export const TasksTaskInfos = z.union([z.array(z.lazy(() => TasksTaskInfo)), z.record(z.string(), TasksParentTaskInfo)]).meta({ id: 'TasksTaskInfos' })
 export type TasksTaskInfos = z.infer<typeof TasksTaskInfos>
 
 export const TasksTaskListResponseBase = z.object({
@@ -63,10 +63,10 @@ export const TasksTaskListResponseBase = z.object({
   task_failures: z.array(z.lazy(() => TaskFailure)).optional(),
   nodes: z.record(z.string(), TasksNodeTasks).describe('Task information grouped by node, if `group_by` was set to `node` (the default).').optional(),
   tasks: TasksTaskInfos.describe('Either a flat list of tasks if `group_by` was set to `none`, or grouped by parents if `group_by` was set to `parents`.').optional()
-})
+}).meta({ id: 'TasksTaskListResponseBase' })
 export type TasksTaskListResponseBase = z.infer<typeof TasksTaskListResponseBase>
 
-export const TasksGroupBy = z.enum(['nodes', 'parents', 'none'])
+export const TasksGroupBy = z.enum(['nodes', 'parents', 'none']).meta({ id: 'TasksGroupBy' })
 export type TasksGroupBy = z.infer<typeof TasksGroupBy>
 
 /**
@@ -89,10 +89,10 @@ export const TasksCancelRequest = z.object({
   nodes: z.array(z.string()).describe('A comma-separated list of node IDs or names that is used to limit the request.').optional().meta({ found_in: 'query' }),
   parent_task_id: z.string().describe('A parent task ID that is used to limit the tasks.').optional().meta({ found_in: 'query' }),
   wait_for_completion: z.boolean().describe('If true, the request blocks until all found tasks are complete.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'TasksCancelRequest' })
 export type TasksCancelRequest = z.infer<typeof TasksCancelRequest>
 
-export const TasksCancelResponse = z.lazy(() => TasksTaskListResponseBase)
+export const TasksCancelResponse = z.lazy(() => TasksTaskListResponseBase).meta({ id: 'TasksCancelResponse' })
 export type TasksCancelResponse = z.infer<typeof TasksCancelResponse>
 
 /**
@@ -109,7 +109,7 @@ export const TasksGetRequest = z.object({
   task_id: z.lazy(() => Id).describe('The task identifier.').meta({ found_in: 'path' }),
   timeout: z.lazy(() => Duration).describe('The period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   wait_for_completion: z.boolean().describe('If `true`, the request blocks until the task has completed.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'TasksGetRequest' })
 export type TasksGetRequest = z.infer<typeof TasksGetRequest>
 
 export const TasksGetResponse = z.object({
@@ -117,7 +117,7 @@ export const TasksGetResponse = z.object({
   task: z.lazy(() => TasksTaskInfo),
   response: z.any().optional(),
   error: z.lazy(() => ErrorCause).optional()
-})
+}).meta({ id: 'TasksGetResponse' })
 export type TasksGetResponse = z.infer<typeof TasksGetResponse>
 
 /**
@@ -190,8 +190,8 @@ export const TasksListRequest = z.object({
   parent_task_id: z.lazy(() => Id).describe('A parent task identifier that is used to limit returned information. To return all tasks, omit this parameter or use a value of `-1`. If the parent task is not found, the API does not return a 404 response code.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('The period to wait for each node to respond. If a node does not respond before its timeout expires, the response does not include its information. However, timed out nodes are included in the `node_failures` property.').optional().meta({ found_in: 'query' }),
   wait_for_completion: z.boolean().describe('If `true`, the request blocks until the operation is complete.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'TasksListRequest' })
 export type TasksListRequest = z.infer<typeof TasksListRequest>
 
-export const TasksListResponse = z.lazy(() => TasksTaskListResponseBase)
+export const TasksListResponse = z.lazy(() => TasksTaskListResponseBase).meta({ id: 'TasksListResponse' })
 export type TasksListResponse = z.infer<typeof TasksListResponse>

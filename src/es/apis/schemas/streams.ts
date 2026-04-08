@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { AcknowledgedResponseBase, Duration } from './_types.ts'
 
-export const StreamsStreamType = z.enum(['logs', 'logs.otel', 'logs.ecs'])
+export const StreamsStreamType = z.enum(['logs', 'logs.otel', 'logs.ecs']).meta({ id: 'StreamsStreamType' })
 export type StreamsStreamType = z.infer<typeof StreamsStreamType>
 
 /**
@@ -21,10 +21,10 @@ export const StreamsLogsDisableRequest = z.object({
   name: StreamsStreamType.describe('The stream type to disable.').meta({ found_in: 'path' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('The period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'StreamsLogsDisableRequest' })
 export type StreamsLogsDisableRequest = z.infer<typeof StreamsLogsDisableRequest>
 
-export const StreamsLogsDisableResponse = z.lazy(() => AcknowledgedResponseBase)
+export const StreamsLogsDisableResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'StreamsLogsDisableResponse' })
 export type StreamsLogsDisableResponse = z.infer<typeof StreamsLogsDisableResponse>
 
 /**
@@ -41,10 +41,10 @@ export const StreamsLogsEnableRequest = z.object({
   name: StreamsStreamType.describe('The stream type to enable.').meta({ found_in: 'path' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('The period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'StreamsLogsEnableRequest' })
 export type StreamsLogsEnableRequest = z.infer<typeof StreamsLogsEnableRequest>
 
-export const StreamsLogsEnableResponse = z.lazy(() => AcknowledgedResponseBase)
+export const StreamsLogsEnableResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'StreamsLogsEnableResponse' })
 export type StreamsLogsEnableResponse = z.infer<typeof StreamsLogsEnableResponse>
 
 /**
@@ -54,17 +54,17 @@ export type StreamsLogsEnableResponse = z.infer<typeof StreamsLogsEnableResponse
  */
 export const StreamsStatusRequest = z.object({
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'StreamsStatusRequest' })
 export type StreamsStatusRequest = z.infer<typeof StreamsStatusRequest>
 
 export const StreamsStatusStreamStatus = z.object({
   enabled: z.boolean().describe('If true, the stream feature is enabled.')
-})
+}).meta({ id: 'StreamsStatusStreamStatus' })
 export type StreamsStatusStreamStatus = z.infer<typeof StreamsStatusStreamStatus>
 
 export const StreamsStatusResponse = z.object({
   logs: StreamsStatusStreamStatus,
   'logs.otel': StreamsStatusStreamStatus,
   'logs.ecs': StreamsStatusStreamStatus
-})
+}).meta({ id: 'StreamsStatusResponse' })
 export type StreamsStatusResponse = z.infer<typeof StreamsStatusResponse>

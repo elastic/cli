@@ -56,9 +56,9 @@ export interface FlagKeyMap {
  * toKebabCase('index')           // 'index'
  * ```
  */
-export function toKebabCase(key: string): string {
+export function toKebabCase (key: string): string {
   return key
-    .replace(/^_+/, '')  // strip leading underscores (e.g. Elasticsearch's _source, _meta)
+    .replace(/^_+/, '') // strip leading underscores (e.g. Elasticsearch's _source, _meta)
     .replace(/_/g, '-')
     .replace(/([a-z])([A-Z])/g, '$1-$2')
     .toLowerCase()
@@ -75,8 +75,13 @@ interface ZodFieldDef {
  * Unwraps `optional` and `default` wrapper types from a Zod schema field,
  * returning the underlying type name, optional status, and default value.
  */
-function unwrapField(field: z.ZodType): { typeName: string; isOptional: boolean; defaultValue?: unknown } {
+function unwrapField (field: z.ZodType): { typeName: string, isOptional: boolean, defaultValue?: unknown } {
   const def = field.def as ZodFieldDef
+  // date/bigint/symbol/undefined/void/never cannot be represented in JSON Schema
+  // and would cause z.toJSONSchema() to throw when help is rendered — fail fast here
+  if (def.type === 'date') {
+    throw new Error('Date cannot be represented in JSON Schema: use z.string() with an ISO-8601 description instead of z.date()')
+  }
 
   if (def.type === 'optional') {
     const inner = unwrapField(def.innerType as z.ZodType)
@@ -100,7 +105,7 @@ const CLI_TYPES = new Set(['string', 'number', 'boolean', 'object', 'array', 'en
  *
  * Returns an empty array if `schema` is not a Zod object schema.
  */
-export function extractSchemaArgs(schema: unknown): SchemaArgDefinition[] {
+export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
   const shape = (schema as z.ZodObject<z.ZodRawShape> | null)?.shape
   if (shape == null || typeof shape !== 'object') return []
 
@@ -108,14 +113,18 @@ export function extractSchemaArgs(schema: unknown): SchemaArgDefinition[] {
     const { typeName, isOptional, defaultValue } = unwrapField(fieldSchema as z.ZodType)
     const type = (CLI_TYPES.has(typeName) ? typeName : 'string') as SchemaArgDefinition['type']
 
-    let description = ''
-    try {
-      const js = (fieldSchema as z.ZodType).toJSONSchema()
-      if (typeof js === 'object' && js !== null && 'description' in js && typeof js.description === 'string') {
-        description = js.description
+    // Read description from the Zod globalRegistry — much faster than calling
+    // .toJSONSchema() per field, which would force lazy-schema evaluation.
+    // The outer field may carry found_in meta while the inner type (unwrapped from
+    // optional/default) carries the description, so we check both levels.
+    const outerMeta = (fieldSchema as z.ZodType).meta() as Record<string, unknown> | null | undefined
+    let description: string = typeof outerMeta?.description === 'string' ? outerMeta.description : ''
+    if (description === '') {
+      const innerType = ((fieldSchema as z.ZodType).def as { innerType?: z.ZodType } | undefined)?.innerType
+      if (innerType != null) {
+        const innerMeta = innerType.meta() as Record<string, unknown> | null | undefined
+        if (typeof innerMeta?.description === 'string') description = innerMeta.description
       }
-    } catch {
-      // schema types that don't support toJSONSchema get empty description
     }
 
     const foundIn = extractFoundIn(fieldSchema as z.ZodType)
@@ -126,7 +135,7 @@ export function extractSchemaArgs(schema: unknown): SchemaArgDefinition[] {
       required: !isOptional && defaultValue === undefined,
       defaultValue,
       description,
-      ...(foundIn !== undefined ? { foundIn } : {}),
+      ...(foundIn !== undefined ? { foundIn } : {})
     }
   })
 }
@@ -135,7 +144,7 @@ export function extractSchemaArgs(schema: unknown): SchemaArgDefinition[] {
  * Builds a bidirectional mapping between CLI flag names and schema keys for a command.
  * Created once at registration time; immutable after creation.
  */
-export function buildFlagKeyMap(args: SchemaArgDefinition[]): FlagKeyMap {
+export function buildFlagKeyMap (args: SchemaArgDefinition[]): FlagKeyMap {
   const toSchemaKey = new Map<string, string>()
   const toCliFlag = new Map<string, string>()
   for (const arg of args) {
@@ -153,7 +162,7 @@ const RESERVED_FLAGS = new Set(['help', 'json', 'config-file', 'use-context', 'i
  * Throws if any `cliFlag` collides with a reserved flag or duplicates another arg's flag.
  * Called at command registration time for fail-fast detection.
  */
-export function validateSchemaArgs(args: SchemaArgDefinition[]): void {
+export function validateSchemaArgs (args: SchemaArgDefinition[]): void {
   const seen = new Set<string>()
   for (const arg of args) {
     if (RESERVED_FLAGS.has(arg.cliFlag)) {
@@ -166,7 +175,6 @@ export function validateSchemaArgs(args: SchemaArgDefinition[]): void {
   }
 }
 
-
 /**
  * Extracts the `found_in` routing metadata from a Zod field.
  *
@@ -175,7 +183,7 @@ export function validateSchemaArgs(args: SchemaArgDefinition[]): void {
  *
  * @returns the routing destination, or `undefined` if no `found_in` metadata is present
  */
-export function extractFoundIn(field: z.ZodType): FoundIn | undefined {
+export function extractFoundIn (field: z.ZodType): FoundIn | undefined {
   // check outermost first
   const outerMeta = field.meta() as Record<string, unknown> | undefined
   if (outerMeta?.found_in != null) return outerMeta.found_in as FoundIn

@@ -3,20 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { Duration, Field, GrokPattern, IndexName, MappingTypeMapping, integer, long, uint } from './_types.ts'
 import { IngestPipelineConfig } from './ingest.ts'
 
-export const TextStructureEcsCompatibilityType = z.enum(['disabled', 'v1'])
+export const TextStructureEcsCompatibilityType = z.enum(['disabled', 'v1']).meta({ id: 'TextStructureEcsCompatibilityType' })
 export type TextStructureEcsCompatibilityType = z.infer<typeof TextStructureEcsCompatibilityType>
 
 export const TextStructureTopHit = z.object({
   count: z.lazy(() => long),
   value: z.any()
-})
+}).meta({ id: 'TextStructureTopHit' })
 export type TextStructureTopHit = z.infer<typeof TextStructureTopHit>
 
 export const TextStructureFieldStat = z.object({
@@ -29,10 +29,10 @@ export const TextStructureFieldStat = z.object({
   min_value: z.lazy(() => integer).optional(),
   earliest: z.string().optional(),
   latest: z.string().optional()
-})
+}).meta({ id: 'TextStructureFieldStat' })
 export type TextStructureFieldStat = z.infer<typeof TextStructureFieldStat>
 
-export const TextStructureFormatType = z.enum(['delimited', 'ndjson', 'semi_structured_text', 'xml'])
+export const TextStructureFormatType = z.enum(['delimited', 'ndjson', 'semi_structured_text', 'xml']).meta({ id: 'TextStructureFormatType' })
 export type TextStructureFormatType = z.infer<typeof TextStructureFormatType>
 
 /**
@@ -72,7 +72,7 @@ export const TextStructureFindFieldStructureRequest = z.object({
   timeout: z.lazy(() => Duration).describe('The maximum amount of time that the structure analysis can take. If the analysis is still running when the timeout expires, it will be stopped.').optional().meta({ found_in: 'query' }),
   timestamp_field: z.lazy(() => Field).describe('The name of the field that contains the primary timestamp of each record in the text. In particular, if the text was ingested into an index, this is the field that would be used to populate the `@timestamp` field. If the format is `semi_structured_text`, this field must match the name of the appropriate extraction in the `grok_pattern`. Therefore, for semi-structured text, it is best not to specify this parameter unless `grok_pattern` is also specified. For structured text, if you specify this parameter, the field must exist within the text. If this parameter is not specified, the structure finder makes a decision about which field (if any) is the primary timestamp field. For structured text, it is not compulsory to have a timestamp in the text.').optional().meta({ found_in: 'query' }),
   timestamp_format: z.string().describe('The Java time format of the timestamp field in the text. Only a subset of Java time format letter groups are supported: * `a` * `d` * `dd` * `EEE` * `EEEE` * `H` * `HH` * `h` * `M` * `MM` * `MMM` * `MMMM` * `mm` * `ss` * `XX` * `XXX` * `yy` * `yyyy` * `zzz` Additionally `S` letter groups (fractional seconds) of length one to nine are supported providing they occur after `ss` and are separated from the `ss` by a period (`.`), comma (`,`), or colon (`:`). Spacing and punctuation is also permitted with the exception a question mark (`?`), newline, and carriage return, together with literal text enclosed in single quotes. For example, `MM/dd HH.mm.ss,SSSSSS \'in\' yyyy` is a valid override format. One valuable use case for this parameter is when the format is semi-structured text, there are multiple timestamp formats in the text, and you know which format corresponds to the primary timestamp, but you do not want to specify the full `grok_pattern`. Another is when the timestamp format is one that the structure finder does not consider by default. If this parameter is not specified, the structure finder chooses the best format from a built-in set. If the special value `null` is specified, the structure finder will not look for a primary timestamp in the text. When the format is semi-structured text, this will result in the structure finder treating the text as single-line messages.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'TextStructureFindFieldStructureRequest' })
 export type TextStructureFindFieldStructureRequest = z.infer<typeof TextStructureFindFieldStructureRequest>
 
 export const TextStructureFindFieldStructureResponse = z.object({
@@ -91,7 +91,7 @@ export const TextStructureFindFieldStructureResponse = z.object({
   num_messages_analyzed: z.lazy(() => integer),
   sample_start: z.string(),
   timestamp_field: z.lazy(() => Field).optional()
-})
+}).meta({ id: 'TextStructureFindFieldStructureResponse' })
 export type TextStructureFindFieldStructureResponse = z.infer<typeof TextStructureFindFieldStructureResponse>
 
 /**
@@ -130,7 +130,7 @@ export const TextStructureFindMessageStructureRequest = z.object({
   timestamp_field: z.lazy(() => Field).describe('The name of the field that contains the primary timestamp of each record in the text. In particular, if the text was ingested into an index, this is the field that would be used to populate the `@timestamp` field. If the format is `semi_structured_text`, this field must match the name of the appropriate extraction in the `grok_pattern`. Therefore, for semi-structured text, it is best not to specify this parameter unless `grok_pattern` is also specified. For structured text, if you specify this parameter, the field must exist within the text. If this parameter is not specified, the structure finder makes a decision about which field (if any) is the primary timestamp field. For structured text, it is not compulsory to have a timestamp in the text.').optional().meta({ found_in: 'query' }),
   timestamp_format: z.string().describe('The Java time format of the timestamp field in the text. Only a subset of Java time format letter groups are supported: * `a` * `d` * `dd` * `EEE` * `EEEE` * `H` * `HH` * `h` * `M` * `MM` * `MMM` * `MMMM` * `mm` * `ss` * `XX` * `XXX` * `yy` * `yyyy` * `zzz` Additionally `S` letter groups (fractional seconds) of length one to nine are supported providing they occur after `ss` and are separated from the `ss` by a period (`.`), comma (`,`), or colon (`:`). Spacing and punctuation is also permitted with the exception a question mark (`?`), newline, and carriage return, together with literal text enclosed in single quotes. For example, `MM/dd HH.mm.ss,SSSSSS \'in\' yyyy` is a valid override format. One valuable use case for this parameter is when the format is semi-structured text, there are multiple timestamp formats in the text, and you know which format corresponds to the primary timestamp, but you do not want to specify the full `grok_pattern`. Another is when the timestamp format is one that the structure finder does not consider by default. If this parameter is not specified, the structure finder chooses the best format from a built-in set. If the special value `null` is specified, the structure finder will not look for a primary timestamp in the text. When the format is semi-structured text, this will result in the structure finder treating the text as single-line messages.').optional().meta({ found_in: 'query' }),
   messages: z.array(z.string()).describe('The list of messages you want to analyze.').meta({ found_in: 'body' })
-})
+}).meta({ id: 'TextStructureFindMessageStructureRequest' })
 export type TextStructureFindMessageStructureRequest = z.infer<typeof TextStructureFindMessageStructureRequest>
 
 export const TextStructureFindMessageStructureResponse = z.object({
@@ -149,10 +149,10 @@ export const TextStructureFindMessageStructureResponse = z.object({
   num_messages_analyzed: z.lazy(() => integer),
   sample_start: z.string(),
   timestamp_field: z.lazy(() => Field).optional()
-})
+}).meta({ id: 'TextStructureFindMessageStructureResponse' })
 export type TextStructureFindMessageStructureResponse = z.infer<typeof TextStructureFindMessageStructureResponse>
 
-export const TextStructureFindStructureFindStructureFormat = z.enum(['ndjson', 'xml', 'delimited', 'semi_structured_text'])
+export const TextStructureFindStructureFindStructureFormat = z.enum(['ndjson', 'xml', 'delimited', 'semi_structured_text']).meta({ id: 'TextStructureFindStructureFindStructureFormat' })
 export type TextStructureFindStructureFindStructureFormat = z.infer<typeof TextStructureFindStructureFindStructureFormat>
 
 /**
@@ -193,7 +193,7 @@ export const TextStructureFindStructureRequest = z.object({
   timestamp_field: z.lazy(() => Field).describe('The name of the field that contains the primary timestamp of each record in the text. In particular, if the text were ingested into an index, this is the field that would be used to populate the `@timestamp` field. If the `format` is `semi_structured_text`, this field must match the name of the appropriate extraction in the `grok_pattern`. Therefore, for semi-structured text, it is best not to specify this parameter unless `grok_pattern` is also specified. For structured text, if you specify this parameter, the field must exist within the text. If this parameter is not specified, the structure finder makes a decision about which field (if any) is the primary timestamp field. For structured text, it is not compulsory to have a timestamp in the text.').optional().meta({ found_in: 'query' }),
   timestamp_format: z.string().describe('The Java time format of the timestamp field in the text. Only a subset of Java time format letter groups are supported: * `a` * `d` * `dd` * `EEE` * `EEEE` * `H` * `HH` * `h` * `M` * `MM` * `MMM` * `MMMM` * `mm` * `ss` * `XX` * `XXX` * `yy` * `yyyy` * `zzz` Additionally `S` letter groups (fractional seconds) of length one to nine are supported providing they occur after `ss` and separated from the `ss` by a `.`, `,` or `:`. Spacing and punctuation is also permitted with the exception of `?`, newline and carriage return, together with literal text enclosed in single quotes. For example, `MM/dd HH.mm.ss,SSSSSS \'in\' yyyy` is a valid override format. One valuable use case for this parameter is when the format is semi-structured text, there are multiple timestamp formats in the text, and you know which format corresponds to the primary timestamp, but you do not want to specify the full `grok_pattern`. Another is when the timestamp format is one that the structure finder does not consider by default. If this parameter is not specified, the structure finder chooses the best format from a built-in set. If the special value `null` is specified the structure finder will not look for a primary timestamp in the text. When the format is semi-structured text this will result in the structure finder treating the text as single-line messages.').optional().meta({ found_in: 'query' }),
   text_files: z.array(z.any()).optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'TextStructureFindStructureRequest' })
 export type TextStructureFindStructureRequest = z.infer<typeof TextStructureFindStructureRequest>
 
 export const TextStructureFindStructureResponse = z.object({
@@ -219,20 +219,20 @@ export const TextStructureFindStructureResponse = z.object({
   timestamp_field: z.lazy(() => Field).describe('The field considered most likely to be the primary timestamp of each document.').optional(),
   should_trim_fields: z.boolean().optional(),
   ingest_pipeline: IngestPipelineConfig
-})
+}).meta({ id: 'TextStructureFindStructureResponse' })
 export type TextStructureFindStructureResponse = z.infer<typeof TextStructureFindStructureResponse>
 
 export const TextStructureTestGrokPatternMatchedField = z.object({
   match: z.string(),
   offset: z.lazy(() => integer),
   length: z.lazy(() => integer)
-})
+}).meta({ id: 'TextStructureTestGrokPatternMatchedField' })
 export type TextStructureTestGrokPatternMatchedField = z.infer<typeof TextStructureTestGrokPatternMatchedField>
 
 export const TextStructureTestGrokPatternMatchedText = z.object({
   matched: z.boolean(),
   fields: z.record(z.string(), z.array(TextStructureTestGrokPatternMatchedField)).optional()
-})
+}).meta({ id: 'TextStructureTestGrokPatternMatchedText' })
 export type TextStructureTestGrokPatternMatchedText = z.infer<typeof TextStructureTestGrokPatternMatchedText>
 
 /**
@@ -245,10 +245,10 @@ export const TextStructureTestGrokPatternRequest = z.object({
   ecs_compatibility: z.string().describe('The mode of compatibility with ECS compliant Grok patterns. Use this parameter to specify whether to use ECS Grok patterns instead of legacy ones when the structure finder creates a Grok pattern. Valid values are `disabled` and `v1`.').optional().meta({ found_in: 'query' }),
   grok_pattern: z.lazy(() => GrokPattern).describe('The Grok pattern to run on the text.').meta({ found_in: 'body' }),
   text: z.array(z.string()).describe('The lines of text to run the Grok pattern on.').meta({ found_in: 'body' })
-})
+}).meta({ id: 'TextStructureTestGrokPatternRequest' })
 export type TextStructureTestGrokPatternRequest = z.infer<typeof TextStructureTestGrokPatternRequest>
 
 export const TextStructureTestGrokPatternResponse = z.object({
   matches: z.array(TextStructureTestGrokPatternMatchedText)
-})
+}).meta({ id: 'TextStructureTestGrokPatternResponse' })
 export type TextStructureTestGrokPatternResponse = z.infer<typeof TextStructureTestGrokPatternResponse>

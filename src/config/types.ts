@@ -8,7 +8,7 @@ import type {
   AuthSchema,
   ServiceBlockSchema,
   ContextSchema,
-  ConfigFileSchema,
+  ConfigFileSchema
 } from './schema.ts'
 
 /**

@@ -3,167 +3,167 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { SpecUtilsStringified } from './_spec_utils.ts'
-import { ByteSize, DateTime, Duration, EpochTime, ExpandWildcards, Fields, HealthStatus, Host, Id, IndexName, Indices, Ip, Name, Names, NodeId, NodeIds, Percentage, ProjectRouting, TimeOfDay, VersionString, integer } from './_types.ts'
+import { ByteSize, DateTime, Duration, EpochTime, ExpandWildcards, Fields, HealthStatus, Host, Id, IndexName, Indices, Ip, Name, Names, NodeId, NodeIds, Percentage, TimeOfDay, VersionString, integer } from './_types.ts'
 import { MlCategorizationStatus, MlDatafeedState, MlJobState, MlMemoryStatus } from './ml.ts'
 import { WatcherScheduleTimeOfDay } from './watcher.ts'
 
-export const CatCatAliasesColumn = z.union([z.enum(['alias', 'a', 'index', 'i', 'idx', 'filter', 'f', 'fi', 'routing.index', 'ri', 'routingIndex', 'routing.search', 'rs', 'routingSearch', 'is_write_index', 'w', 'isWriteIndex']), z.string()])
+export const CatCatAliasesColumn = z.union([z.enum(['alias', 'a', 'index', 'i', 'idx', 'filter', 'f', 'fi', 'routing.index', 'ri', 'routingIndex', 'routing.search', 'rs', 'routingSearch', 'is_write_index', 'w', 'isWriteIndex']), z.string()]).meta({ id: 'CatCatAliasesColumn' })
 export type CatCatAliasesColumn = z.infer<typeof CatCatAliasesColumn>
 
-export const CatCatAliasesColumns = z.union([CatCatAliasesColumn, z.array(CatCatAliasesColumn)])
+export const CatCatAliasesColumns = z.union([CatCatAliasesColumn, z.array(CatCatAliasesColumn)]).meta({ id: 'CatCatAliasesColumns' })
 export type CatCatAliasesColumns = z.infer<typeof CatCatAliasesColumns>
 
-export const CatCatAllocationColumn = z.union([z.enum(['shards', 's', 'shards.undesired', 'write_load.forecast', 'wlf', 'writeLoadForecast', 'disk.indices.forecast', 'dif', 'diskIndicesForecast', 'disk.indices', 'di', 'diskIndices', 'disk.used', 'du', 'diskUsed', 'disk.avail', 'da', 'diskAvail', 'disk.total', 'dt', 'diskTotal', 'disk.percent', 'dp', 'diskPercent', 'host', 'h', 'ip', 'node', 'n', 'node.role', 'r', 'role', 'nodeRole']), z.string()])
+export const CatCatAllocationColumn = z.union([z.enum(['shards', 's', 'shards.undesired', 'write_load.forecast', 'wlf', 'writeLoadForecast', 'disk.indices.forecast', 'dif', 'diskIndicesForecast', 'disk.indices', 'di', 'diskIndices', 'disk.used', 'du', 'diskUsed', 'disk.avail', 'da', 'diskAvail', 'disk.total', 'dt', 'diskTotal', 'disk.percent', 'dp', 'diskPercent', 'host', 'h', 'ip', 'node', 'n', 'node.role', 'r', 'role', 'nodeRole']), z.string()]).meta({ id: 'CatCatAllocationColumn' })
 export type CatCatAllocationColumn = z.infer<typeof CatCatAllocationColumn>
 
-export const CatCatAllocationColumns = z.union([CatCatAllocationColumn, z.array(CatCatAllocationColumn)])
+export const CatCatAllocationColumns = z.union([CatCatAllocationColumn, z.array(CatCatAllocationColumn)]).meta({ id: 'CatCatAllocationColumns' })
 export type CatCatAllocationColumns = z.infer<typeof CatCatAllocationColumns>
 
-export const CatCatAnomalyDetectorColumn = z.enum(['assignment_explanation', 'ae', 'buckets.count', 'bc', 'bucketsCount', 'buckets.time.exp_avg', 'btea', 'bucketsTimeExpAvg', 'buckets.time.exp_avg_hour', 'bteah', 'bucketsTimeExpAvgHour', 'buckets.time.max', 'btmax', 'bucketsTimeMax', 'buckets.time.min', 'btmin', 'bucketsTimeMin', 'buckets.time.total', 'btt', 'bucketsTimeTotal', 'data.buckets', 'db', 'dataBuckets', 'data.earliest_record', 'der', 'dataEarliestRecord', 'data.empty_buckets', 'deb', 'dataEmptyBuckets', 'data.input_bytes', 'dib', 'dataInputBytes', 'data.input_fields', 'dif', 'dataInputFields', 'data.input_records', 'dir', 'dataInputRecords', 'data.invalid_dates', 'did', 'dataInvalidDates', 'data.last', 'dl', 'dataLast', 'data.last_empty_bucket', 'dleb', 'dataLastEmptyBucket', 'data.last_sparse_bucket', 'dlsb', 'dataLastSparseBucket', 'data.latest_record', 'dlr', 'dataLatestRecord', 'data.missing_fields', 'dmf', 'dataMissingFields', 'data.out_of_order_timestamps', 'doot', 'dataOutOfOrderTimestamps', 'data.processed_fields', 'dpf', 'dataProcessedFields', 'data.processed_records', 'dpr', 'dataProcessedRecords', 'data.sparse_buckets', 'dsb', 'dataSparseBuckets', 'forecasts.memory.avg', 'fmavg', 'forecastsMemoryAvg', 'forecasts.memory.max', 'fmmax', 'forecastsMemoryMax', 'forecasts.memory.min', 'fmmin', 'forecastsMemoryMin', 'forecasts.memory.total', 'fmt', 'forecastsMemoryTotal', 'forecasts.records.avg', 'fravg', 'forecastsRecordsAvg', 'forecasts.records.max', 'frmax', 'forecastsRecordsMax', 'forecasts.records.min', 'frmin', 'forecastsRecordsMin', 'forecasts.records.total', 'frt', 'forecastsRecordsTotal', 'forecasts.time.avg', 'ftavg', 'forecastsTimeAvg', 'forecasts.time.max', 'ftmax', 'forecastsTimeMax', 'forecasts.time.min', 'ftmin', 'forecastsTimeMin', 'forecasts.time.total', 'ftt', 'forecastsTimeTotal', 'forecasts.total', 'ft', 'forecastsTotal', 'id', 'model.bucket_allocation_failures', 'mbaf', 'modelBucketAllocationFailures', 'model.by_fields', 'mbf', 'modelByFields', 'model.bytes', 'mb', 'modelBytes', 'model.bytes_exceeded', 'mbe', 'modelBytesExceeded', 'model.categorization_status', 'mcs', 'modelCategorizationStatus', 'model.categorized_doc_count', 'mcdc', 'modelCategorizedDocCount', 'model.dead_category_count', 'mdcc', 'modelDeadCategoryCount', 'model.failed_category_count', 'mdcc', 'modelFailedCategoryCount', 'model.frequent_category_count', 'mfcc', 'modelFrequentCategoryCount', 'model.log_time', 'mlt', 'modelLogTime', 'model.memory_limit', 'mml', 'modelMemoryLimit', 'model.memory_status', 'mms', 'modelMemoryStatus', 'model.over_fields', 'mof', 'modelOverFields', 'model.partition_fields', 'mpf', 'modelPartitionFields', 'model.rare_category_count', 'mrcc', 'modelRareCategoryCount', 'model.timestamp', 'mt', 'modelTimestamp', 'model.total_category_count', 'mtcc', 'modelTotalCategoryCount', 'node.address', 'na', 'nodeAddress', 'node.ephemeral_id', 'ne', 'nodeEphemeralId', 'node.id', 'ni', 'nodeId', 'node.name', 'nn', 'nodeName', 'opened_time', 'ot', 'state', 's'])
+export const CatCatAnomalyDetectorColumn = z.enum(['assignment_explanation', 'ae', 'buckets.count', 'bc', 'bucketsCount', 'buckets.time.exp_avg', 'btea', 'bucketsTimeExpAvg', 'buckets.time.exp_avg_hour', 'bteah', 'bucketsTimeExpAvgHour', 'buckets.time.max', 'btmax', 'bucketsTimeMax', 'buckets.time.min', 'btmin', 'bucketsTimeMin', 'buckets.time.total', 'btt', 'bucketsTimeTotal', 'data.buckets', 'db', 'dataBuckets', 'data.earliest_record', 'der', 'dataEarliestRecord', 'data.empty_buckets', 'deb', 'dataEmptyBuckets', 'data.input_bytes', 'dib', 'dataInputBytes', 'data.input_fields', 'dif', 'dataInputFields', 'data.input_records', 'dir', 'dataInputRecords', 'data.invalid_dates', 'did', 'dataInvalidDates', 'data.last', 'dl', 'dataLast', 'data.last_empty_bucket', 'dleb', 'dataLastEmptyBucket', 'data.last_sparse_bucket', 'dlsb', 'dataLastSparseBucket', 'data.latest_record', 'dlr', 'dataLatestRecord', 'data.missing_fields', 'dmf', 'dataMissingFields', 'data.out_of_order_timestamps', 'doot', 'dataOutOfOrderTimestamps', 'data.processed_fields', 'dpf', 'dataProcessedFields', 'data.processed_records', 'dpr', 'dataProcessedRecords', 'data.sparse_buckets', 'dsb', 'dataSparseBuckets', 'forecasts.memory.avg', 'fmavg', 'forecastsMemoryAvg', 'forecasts.memory.max', 'fmmax', 'forecastsMemoryMax', 'forecasts.memory.min', 'fmmin', 'forecastsMemoryMin', 'forecasts.memory.total', 'fmt', 'forecastsMemoryTotal', 'forecasts.records.avg', 'fravg', 'forecastsRecordsAvg', 'forecasts.records.max', 'frmax', 'forecastsRecordsMax', 'forecasts.records.min', 'frmin', 'forecastsRecordsMin', 'forecasts.records.total', 'frt', 'forecastsRecordsTotal', 'forecasts.time.avg', 'ftavg', 'forecastsTimeAvg', 'forecasts.time.max', 'ftmax', 'forecastsTimeMax', 'forecasts.time.min', 'ftmin', 'forecastsTimeMin', 'forecasts.time.total', 'ftt', 'forecastsTimeTotal', 'forecasts.total', 'ft', 'forecastsTotal', 'id', 'model.bucket_allocation_failures', 'mbaf', 'modelBucketAllocationFailures', 'model.by_fields', 'mbf', 'modelByFields', 'model.bytes', 'mb', 'modelBytes', 'model.bytes_exceeded', 'mbe', 'modelBytesExceeded', 'model.categorization_status', 'mcs', 'modelCategorizationStatus', 'model.categorized_doc_count', 'mcdc', 'modelCategorizedDocCount', 'model.dead_category_count', 'mdcc', 'modelDeadCategoryCount', 'model.failed_category_count', 'mdcc', 'modelFailedCategoryCount', 'model.frequent_category_count', 'mfcc', 'modelFrequentCategoryCount', 'model.log_time', 'mlt', 'modelLogTime', 'model.memory_limit', 'mml', 'modelMemoryLimit', 'model.memory_status', 'mms', 'modelMemoryStatus', 'model.over_fields', 'mof', 'modelOverFields', 'model.partition_fields', 'mpf', 'modelPartitionFields', 'model.rare_category_count', 'mrcc', 'modelRareCategoryCount', 'model.timestamp', 'mt', 'modelTimestamp', 'model.total_category_count', 'mtcc', 'modelTotalCategoryCount', 'node.address', 'na', 'nodeAddress', 'node.ephemeral_id', 'ne', 'nodeEphemeralId', 'node.id', 'ni', 'nodeId', 'node.name', 'nn', 'nodeName', 'opened_time', 'ot', 'state', 's']).meta({ id: 'CatCatAnomalyDetectorColumn' })
 export type CatCatAnomalyDetectorColumn = z.infer<typeof CatCatAnomalyDetectorColumn>
 
-export const CatCatAnomalyDetectorColumns = z.union([CatCatAnomalyDetectorColumn, z.array(CatCatAnomalyDetectorColumn)])
+export const CatCatAnomalyDetectorColumns = z.union([CatCatAnomalyDetectorColumn, z.array(CatCatAnomalyDetectorColumn)]).meta({ id: 'CatCatAnomalyDetectorColumns' })
 export type CatCatAnomalyDetectorColumns = z.infer<typeof CatCatAnomalyDetectorColumns>
 
-export const CatCatCircuitBreakerColumn = z.union([z.enum(['node_id', 'id', 'node_name', 'nn', 'breaker', 'br', 'limit', 'l', 'limit_bytes', 'lb', 'estimated', 'e', 'estimated_bytes', 'eb', 'tripped', 't', 'overhead', 'o']), z.string()])
+export const CatCatCircuitBreakerColumn = z.union([z.enum(['node_id', 'id', 'node_name', 'nn', 'breaker', 'br', 'limit', 'l', 'limit_bytes', 'lb', 'estimated', 'e', 'estimated_bytes', 'eb', 'tripped', 't', 'overhead', 'o']), z.string()]).meta({ id: 'CatCatCircuitBreakerColumn' })
 export type CatCatCircuitBreakerColumn = z.infer<typeof CatCatCircuitBreakerColumn>
 
-export const CatCatCircuitBreakerColumns = z.union([CatCatCircuitBreakerColumn, z.array(CatCatCircuitBreakerColumn)])
+export const CatCatCircuitBreakerColumns = z.union([CatCatCircuitBreakerColumn, z.array(CatCatCircuitBreakerColumn)]).meta({ id: 'CatCatCircuitBreakerColumns' })
 export type CatCatCircuitBreakerColumns = z.infer<typeof CatCatCircuitBreakerColumns>
 
-export const CatCatComponentColumn = z.union([z.enum(['name', 'n', 'version', 'v', 'alias_count', 'a', 'mapping_count', 'm', 'settings_count', 's', 'metadata_count', 'me', 'included_in', 'i']), z.string()])
+export const CatCatComponentColumn = z.union([z.enum(['name', 'n', 'version', 'v', 'alias_count', 'a', 'mapping_count', 'm', 'settings_count', 's', 'metadata_count', 'me', 'included_in', 'i']), z.string()]).meta({ id: 'CatCatComponentColumn' })
 export type CatCatComponentColumn = z.infer<typeof CatCatComponentColumn>
 
-export const CatCatComponentColumns = z.union([CatCatComponentColumn, z.array(CatCatComponentColumn)])
+export const CatCatComponentColumns = z.union([CatCatComponentColumn, z.array(CatCatComponentColumn)]).meta({ id: 'CatCatComponentColumns' })
 export type CatCatComponentColumns = z.infer<typeof CatCatComponentColumns>
 
-export const CatCatCountColumn = z.union([z.enum(['epoch', 't', 'time', 'timestamp', 'ts', 'hms', 'hhmmss', 'count', 'dc', 'docs.count', 'docsCount']), z.string()])
+export const CatCatCountColumn = z.union([z.enum(['epoch', 't', 'time', 'timestamp', 'ts', 'hms', 'hhmmss', 'count', 'dc', 'docs.count', 'docsCount']), z.string()]).meta({ id: 'CatCatCountColumn' })
 export type CatCatCountColumn = z.infer<typeof CatCatCountColumn>
 
-export const CatCatCountColumns = z.union([CatCatCountColumn, z.array(CatCatCountColumn)])
+export const CatCatCountColumns = z.union([CatCatCountColumn, z.array(CatCatCountColumn)]).meta({ id: 'CatCatCountColumns' })
 export type CatCatCountColumns = z.infer<typeof CatCatCountColumns>
 
-export const CatCatDatafeedColumn = z.enum(['ae', 'assignment_explanation', 'bc', 'buckets.count', 'bucketsCount', 'id', 'na', 'node.address', 'nodeAddress', 'ne', 'node.ephemeral_id', 'nodeEphemeralId', 'ni', 'node.id', 'nodeId', 'nn', 'node.name', 'nodeName', 'sba', 'search.bucket_avg', 'searchBucketAvg', 'sc', 'search.count', 'searchCount', 'seah', 'search.exp_avg_hour', 'searchExpAvgHour', 'st', 'search.time', 'searchTime', 's', 'state'])
+export const CatCatDatafeedColumn = z.enum(['ae', 'assignment_explanation', 'bc', 'buckets.count', 'bucketsCount', 'id', 'na', 'node.address', 'nodeAddress', 'ne', 'node.ephemeral_id', 'nodeEphemeralId', 'ni', 'node.id', 'nodeId', 'nn', 'node.name', 'nodeName', 'sba', 'search.bucket_avg', 'searchBucketAvg', 'sc', 'search.count', 'searchCount', 'seah', 'search.exp_avg_hour', 'searchExpAvgHour', 'st', 'search.time', 'searchTime', 's', 'state']).meta({ id: 'CatCatDatafeedColumn' })
 export type CatCatDatafeedColumn = z.infer<typeof CatCatDatafeedColumn>
 
-export const CatCatDatafeedColumns = z.union([CatCatDatafeedColumn, z.array(CatCatDatafeedColumn)])
+export const CatCatDatafeedColumns = z.union([CatCatDatafeedColumn, z.array(CatCatDatafeedColumn)]).meta({ id: 'CatCatDatafeedColumns' })
 export type CatCatDatafeedColumns = z.infer<typeof CatCatDatafeedColumns>
 
-export const CatCatDfaColumn = z.enum(['assignment_explanation', 'ae', 'create_time', 'ct', 'createTime', 'description', 'd', 'dest_index', 'di', 'destIndex', 'failure_reason', 'fr', 'failureReason', 'id', 'model_memory_limit', 'mml', 'modelMemoryLimit', 'node.address', 'na', 'nodeAddress', 'node.ephemeral_id', 'ne', 'nodeEphemeralId', 'node.id', 'ni', 'nodeId', 'node.name', 'nn', 'nodeName', 'progress', 'p', 'source_index', 'si', 'sourceIndex', 'state', 's', 'type', 't', 'version', 'v'])
+export const CatCatDfaColumn = z.enum(['assignment_explanation', 'ae', 'create_time', 'ct', 'createTime', 'description', 'd', 'dest_index', 'di', 'destIndex', 'failure_reason', 'fr', 'failureReason', 'id', 'model_memory_limit', 'mml', 'modelMemoryLimit', 'node.address', 'na', 'nodeAddress', 'node.ephemeral_id', 'ne', 'nodeEphemeralId', 'node.id', 'ni', 'nodeId', 'node.name', 'nn', 'nodeName', 'progress', 'p', 'source_index', 'si', 'sourceIndex', 'state', 's', 'type', 't', 'version', 'v']).meta({ id: 'CatCatDfaColumn' })
 export type CatCatDfaColumn = z.infer<typeof CatCatDfaColumn>
 
-export const CatCatDfaColumns = z.union([CatCatDfaColumn, z.array(CatCatDfaColumn)])
+export const CatCatDfaColumns = z.union([CatCatDfaColumn, z.array(CatCatDfaColumn)]).meta({ id: 'CatCatDfaColumns' })
 export type CatCatDfaColumns = z.infer<typeof CatCatDfaColumns>
 
-export const CatCatFieldDataColumn = z.union([z.enum(['id', 'host', 'h', 'ip', 'node', 'n', 'field', 'f', 'size', 's']), z.string()])
+export const CatCatFieldDataColumn = z.union([z.enum(['id', 'host', 'h', 'ip', 'node', 'n', 'field', 'f', 'size', 's']), z.string()]).meta({ id: 'CatCatFieldDataColumn' })
 export type CatCatFieldDataColumn = z.infer<typeof CatCatFieldDataColumn>
 
-export const CatCatFieldDataColumns = z.union([CatCatFieldDataColumn, z.array(CatCatFieldDataColumn)])
+export const CatCatFieldDataColumns = z.union([CatCatFieldDataColumn, z.array(CatCatFieldDataColumn)]).meta({ id: 'CatCatFieldDataColumns' })
 export type CatCatFieldDataColumns = z.infer<typeof CatCatFieldDataColumns>
 
-export const CatCatHealthColumn = z.union([z.enum(['epoch', 't', 'time', 'timestamp', 'ts', 'hms', 'hhmmss', 'cluster', 'cl', 'status', 'st', 'node.total', 'nt', 'nodeTotal', 'node.data', 'nd', 'nodeData', 'shards', 't', 'sh', 'shards.total', 'shardsTotal', 'pri', 'p', 'shards.primary', 'shardsPrimary', 'relo', 'r', 'shards.relocating', 'shardsRelocating', 'init', 'i', 'shards.initializing', 'shardsInitializing', 'unassign', 'u', 'shards.unassigned', 'shardsUnassigned', 'unassign.pri', 'up', 'shards.unassigned.primary', 'shardsUnassignedPrimary', 'pending_tasks', 'pt', 'pendingTasks', 'max_task_wait_time', 'mtwt', 'maxTaskWaitTime', 'active_shards_percent', 'asp', 'activeShardsPercent']), z.string()])
+export const CatCatHealthColumn = z.union([z.enum(['epoch', 't', 'time', 'timestamp', 'ts', 'hms', 'hhmmss', 'cluster', 'cl', 'status', 'st', 'node.total', 'nt', 'nodeTotal', 'node.data', 'nd', 'nodeData', 'shards', 't', 'sh', 'shards.total', 'shardsTotal', 'pri', 'p', 'shards.primary', 'shardsPrimary', 'relo', 'r', 'shards.relocating', 'shardsRelocating', 'init', 'i', 'shards.initializing', 'shardsInitializing', 'unassign', 'u', 'shards.unassigned', 'shardsUnassigned', 'unassign.pri', 'up', 'shards.unassigned.primary', 'shardsUnassignedPrimary', 'pending_tasks', 'pt', 'pendingTasks', 'max_task_wait_time', 'mtwt', 'maxTaskWaitTime', 'active_shards_percent', 'asp', 'activeShardsPercent']), z.string()]).meta({ id: 'CatCatHealthColumn' })
 export type CatCatHealthColumn = z.infer<typeof CatCatHealthColumn>
 
-export const CatCatHealthColumns = z.union([CatCatHealthColumn, z.array(CatCatHealthColumn)])
+export const CatCatHealthColumns = z.union([CatCatHealthColumn, z.array(CatCatHealthColumn)]).meta({ id: 'CatCatHealthColumns' })
 export type CatCatHealthColumns = z.infer<typeof CatCatHealthColumns>
 
-export const CatCatIndicesColumn = z.union([z.enum(['health', 'h', 'status', 's', 'index', 'i', 'idx', 'uuid', 'id', 'uuid', 'pri', 'p', 'shards.primary', 'shardsPrimary', 'rep', 'r', 'shards.replica', 'shardsReplica', 'docs.count', 'dc', 'docsCount', 'docs.deleted', 'dd', 'docsDeleted', 'creation.date', 'cd', 'creation.date.string', 'cds', 'store.size', 'ss', 'storeSize', 'pri.store.size', 'dataset.size', 'completion.size', 'cs', 'completionSize', 'pri.completion.size', 'fielddata.memory_size', 'fm', 'fielddataMemory', 'pri.fielddata.memory_size', 'fielddata.evictions', 'fe', 'fielddataEvictions', 'pri.fielddata.evictions', 'query_cache.memory_size', 'qcm', 'queryCacheMemory', 'pri.query_cache.memory_size', 'query_cache.evictions', 'qce', 'queryCacheEvictions', 'pri.query_cache.evictions', 'request_cache.memory_size', 'rcm', 'requestCacheMemory', 'pri.request_cache.memory_size', 'request_cache.evictions', 'rce', 'requestCacheEvictions', 'pri.request_cache.evictions', 'request_cache.hit_count', 'rchc', 'requestCacheHitCount', 'pri.request_cache.hit_count', 'request_cache.miss_count', 'rcmc', 'requestCacheMissCount', 'pri.request_cache.miss_count', 'flush.total', 'ft', 'flushTotal', 'pri.flush.total', 'flush.total_time', 'ftt', 'flushTotalTime', 'pri.flush.total_time', 'get.current', 'gc', 'getCurrent', 'pri.get.current', 'get.time', 'gti', 'getTime', 'pri.get.time', 'get.total', 'gto', 'getTotal', 'pri.get.total', 'get.exists_time', 'geti', 'getExistsTime', 'pri.get.exists_time', 'get.exists_total', 'geto', 'getExistsTotal', 'pri.get.exists_total', 'get.missing_time', 'gmti', 'getMissingTime', 'pri.get.missing_time', 'get.missing_total', 'gmto', 'getMissingTotal', 'pri.get.missing_total', 'indexing.delete_current', 'idc', 'indexingDeleteCurrent', 'pri.indexing.delete_current', 'indexing.delete_time', 'idti', 'indexingDeleteTime', 'pri.indexing.delete_time', 'indexing.delete_total', 'idto', 'indexingDeleteTotal', 'pri.indexing.delete_total', 'indexing.index_current', 'iic', 'indexingIndexCurrent', 'pri.indexing.index_current', 'indexing.index_time', 'iiti', 'indexingIndexTime', 'pri.indexing.index_time', 'indexing.index_total', 'iito', 'indexingIndexTotal', 'pri.indexing.index_total', 'indexing.index_failed', 'iif', 'indexingIndexFailed', 'pri.indexing.index_failed', 'indexing.index_failed_due_to_version_conflict', 'iifvc', 'indexingIndexFailedDueToVersionConflict', 'pri.indexing.index_failed_due_to_version_conflict', 'merges.current', 'mc', 'mergesCurrent', 'pri.merges.current', 'merges.current_docs', 'mcd', 'mergesCurrentDocs', 'pri.merges.current_docs', 'merges.current_size', 'mcs', 'mergesCurrentSize', 'pri.merges.current_size', 'merges.total', 'mt', 'mergesTotal', 'pri.merges.total', 'merges.total_docs', 'mtd', 'mergesTotalDocs', 'pri.merges.total_docs', 'merges.total_size', 'mts', 'mergesTotalSize', 'pri.merges.total_size', 'merges.total_time', 'mtt', 'mergesTotalTime', 'pri.merges.total_time', 'refresh.total', 'rto', 'refreshTotal', 'pri.refresh.total', 'refresh.time', 'rti', 'refreshTime', 'pri.refresh.time', 'refresh.external_total', 'rto', 'refreshTotal', 'pri.refresh.external_total', 'refresh.external_time', 'rti', 'refreshTime', 'pri.refresh.external_time', 'refresh.listeners', 'rli', 'refreshListeners', 'pri.refresh.listeners', 'search.fetch_current', 'sfc', 'searchFetchCurrent', 'pri.search.fetch_current', 'search.fetch_time', 'sfti', 'searchFetchTime', 'pri.search.fetch_time', 'search.fetch_total', 'sfto', 'searchFetchTotal', 'pri.search.fetch_total', 'search.open_contexts', 'so', 'searchOpenContexts', 'pri.search.open_contexts', 'search.query_current', 'sqc', 'searchQueryCurrent', 'pri.search.query_current', 'search.query_time', 'sqti', 'searchQueryTime', 'pri.search.query_time', 'search.query_total', 'sqto', 'searchQueryTotal', 'pri.search.query_total', 'search.scroll_current', 'scc', 'searchScrollCurrent', 'pri.search.scroll_current', 'search.scroll_time', 'scti', 'searchScrollTime', 'pri.search.scroll_time', 'search.scroll_total', 'scto', 'searchScrollTotal', 'pri.search.scroll_total', 'segments.count', 'sc', 'segmentsCount', 'pri.segments.count', 'segments.memory', 'sm', 'segmentsMemory', 'pri.segments.memory', 'segments.index_writer_memory', 'siwm', 'segmentsIndexWriterMemory', 'pri.segments.index_writer_memory', 'segments.version_map_memory', 'svmm', 'segmentsVersionMapMemory', 'pri.segments.version_map_memory', 'segments.fixed_bitset_memory', 'sfbm', 'fixedBitsetMemory', 'pri.segments.fixed_bitset_memory', 'warmer.current', 'wc', 'warmerCurrent', 'pri.warmer.current', 'warmer.total', 'wto', 'warmerTotal', 'pri.warmer.total', 'warmer.total_time', 'wtt', 'warmerTotalTime', 'pri.warmer.total_time', 'suggest.current', 'suc', 'suggestCurrent', 'pri.suggest.current', 'suggest.time', 'suti', 'suggestTime', 'pri.suggest.time', 'suggest.total', 'suto', 'suggestTotal', 'pri.suggest.total', 'memory.total', 'tm', 'memoryTotal', 'pri.memory.total', 'bulk.total_operations', 'bto', 'bulkTotalOperation', 'pri.bulk.total_operations', 'bulk.total_time', 'btti', 'bulkTotalTime', 'pri.bulk.total_time', 'bulk.total_size_in_bytes', 'btsi', 'bulkTotalSizeInBytes', 'pri.bulk.total_size_in_bytes', 'bulk.avg_time', 'bati', 'bulkAvgTime', 'pri.bulk.avg_time', 'bulk.avg_size_in_bytes', 'basi', 'bulkAvgSizeInBytes', 'pri.bulk.avg_size_in_bytes', 'dense_vector.value_count', 'dvc', 'denseVectorCount', 'pri.dense_vector.value_count', 'sparse_vector.value_count', 'svc', 'sparseVectorCount', 'pri.sparse_vector.value_count']), z.string()])
+export const CatCatIndicesColumn = z.union([z.enum(['health', 'h', 'status', 's', 'index', 'i', 'idx', 'uuid', 'id', 'uuid', 'pri', 'p', 'shards.primary', 'shardsPrimary', 'rep', 'r', 'shards.replica', 'shardsReplica', 'docs.count', 'dc', 'docsCount', 'docs.deleted', 'dd', 'docsDeleted', 'creation.date', 'cd', 'creation.date.string', 'cds', 'store.size', 'ss', 'storeSize', 'pri.store.size', 'dataset.size', 'completion.size', 'cs', 'completionSize', 'pri.completion.size', 'fielddata.memory_size', 'fm', 'fielddataMemory', 'pri.fielddata.memory_size', 'fielddata.evictions', 'fe', 'fielddataEvictions', 'pri.fielddata.evictions', 'query_cache.memory_size', 'qcm', 'queryCacheMemory', 'pri.query_cache.memory_size', 'query_cache.evictions', 'qce', 'queryCacheEvictions', 'pri.query_cache.evictions', 'request_cache.memory_size', 'rcm', 'requestCacheMemory', 'pri.request_cache.memory_size', 'request_cache.evictions', 'rce', 'requestCacheEvictions', 'pri.request_cache.evictions', 'request_cache.hit_count', 'rchc', 'requestCacheHitCount', 'pri.request_cache.hit_count', 'request_cache.miss_count', 'rcmc', 'requestCacheMissCount', 'pri.request_cache.miss_count', 'flush.total', 'ft', 'flushTotal', 'pri.flush.total', 'flush.total_time', 'ftt', 'flushTotalTime', 'pri.flush.total_time', 'get.current', 'gc', 'getCurrent', 'pri.get.current', 'get.time', 'gti', 'getTime', 'pri.get.time', 'get.total', 'gto', 'getTotal', 'pri.get.total', 'get.exists_time', 'geti', 'getExistsTime', 'pri.get.exists_time', 'get.exists_total', 'geto', 'getExistsTotal', 'pri.get.exists_total', 'get.missing_time', 'gmti', 'getMissingTime', 'pri.get.missing_time', 'get.missing_total', 'gmto', 'getMissingTotal', 'pri.get.missing_total', 'indexing.delete_current', 'idc', 'indexingDeleteCurrent', 'pri.indexing.delete_current', 'indexing.delete_time', 'idti', 'indexingDeleteTime', 'pri.indexing.delete_time', 'indexing.delete_total', 'idto', 'indexingDeleteTotal', 'pri.indexing.delete_total', 'indexing.index_current', 'iic', 'indexingIndexCurrent', 'pri.indexing.index_current', 'indexing.index_time', 'iiti', 'indexingIndexTime', 'pri.indexing.index_time', 'indexing.index_total', 'iito', 'indexingIndexTotal', 'pri.indexing.index_total', 'indexing.index_failed', 'iif', 'indexingIndexFailed', 'pri.indexing.index_failed', 'indexing.index_failed_due_to_version_conflict', 'iifvc', 'indexingIndexFailedDueToVersionConflict', 'pri.indexing.index_failed_due_to_version_conflict', 'merges.current', 'mc', 'mergesCurrent', 'pri.merges.current', 'merges.current_docs', 'mcd', 'mergesCurrentDocs', 'pri.merges.current_docs', 'merges.current_size', 'mcs', 'mergesCurrentSize', 'pri.merges.current_size', 'merges.total', 'mt', 'mergesTotal', 'pri.merges.total', 'merges.total_docs', 'mtd', 'mergesTotalDocs', 'pri.merges.total_docs', 'merges.total_size', 'mts', 'mergesTotalSize', 'pri.merges.total_size', 'merges.total_time', 'mtt', 'mergesTotalTime', 'pri.merges.total_time', 'refresh.total', 'rto', 'refreshTotal', 'pri.refresh.total', 'refresh.time', 'rti', 'refreshTime', 'pri.refresh.time', 'refresh.external_total', 'rto', 'refreshTotal', 'pri.refresh.external_total', 'refresh.external_time', 'rti', 'refreshTime', 'pri.refresh.external_time', 'refresh.listeners', 'rli', 'refreshListeners', 'pri.refresh.listeners', 'search.fetch_current', 'sfc', 'searchFetchCurrent', 'pri.search.fetch_current', 'search.fetch_time', 'sfti', 'searchFetchTime', 'pri.search.fetch_time', 'search.fetch_total', 'sfto', 'searchFetchTotal', 'pri.search.fetch_total', 'search.open_contexts', 'so', 'searchOpenContexts', 'pri.search.open_contexts', 'search.query_current', 'sqc', 'searchQueryCurrent', 'pri.search.query_current', 'search.query_time', 'sqti', 'searchQueryTime', 'pri.search.query_time', 'search.query_total', 'sqto', 'searchQueryTotal', 'pri.search.query_total', 'search.scroll_current', 'scc', 'searchScrollCurrent', 'pri.search.scroll_current', 'search.scroll_time', 'scti', 'searchScrollTime', 'pri.search.scroll_time', 'search.scroll_total', 'scto', 'searchScrollTotal', 'pri.search.scroll_total', 'segments.count', 'sc', 'segmentsCount', 'pri.segments.count', 'segments.memory', 'sm', 'segmentsMemory', 'pri.segments.memory', 'segments.index_writer_memory', 'siwm', 'segmentsIndexWriterMemory', 'pri.segments.index_writer_memory', 'segments.version_map_memory', 'svmm', 'segmentsVersionMapMemory', 'pri.segments.version_map_memory', 'segments.fixed_bitset_memory', 'sfbm', 'fixedBitsetMemory', 'pri.segments.fixed_bitset_memory', 'warmer.current', 'wc', 'warmerCurrent', 'pri.warmer.current', 'warmer.total', 'wto', 'warmerTotal', 'pri.warmer.total', 'warmer.total_time', 'wtt', 'warmerTotalTime', 'pri.warmer.total_time', 'suggest.current', 'suc', 'suggestCurrent', 'pri.suggest.current', 'suggest.time', 'suti', 'suggestTime', 'pri.suggest.time', 'suggest.total', 'suto', 'suggestTotal', 'pri.suggest.total', 'memory.total', 'tm', 'memoryTotal', 'pri.memory.total', 'bulk.total_operations', 'bto', 'bulkTotalOperation', 'pri.bulk.total_operations', 'bulk.total_time', 'btti', 'bulkTotalTime', 'pri.bulk.total_time', 'bulk.total_size_in_bytes', 'btsi', 'bulkTotalSizeInBytes', 'pri.bulk.total_size_in_bytes', 'bulk.avg_time', 'bati', 'bulkAvgTime', 'pri.bulk.avg_time', 'bulk.avg_size_in_bytes', 'basi', 'bulkAvgSizeInBytes', 'pri.bulk.avg_size_in_bytes', 'dense_vector.value_count', 'dvc', 'denseVectorCount', 'pri.dense_vector.value_count', 'sparse_vector.value_count', 'svc', 'sparseVectorCount', 'pri.sparse_vector.value_count']), z.string()]).meta({ id: 'CatCatIndicesColumn' })
 export type CatCatIndicesColumn = z.infer<typeof CatCatIndicesColumn>
 
-export const CatCatIndicesColumns = z.union([CatCatIndicesColumn, z.array(CatCatIndicesColumn)])
+export const CatCatIndicesColumns = z.union([CatCatIndicesColumn, z.array(CatCatIndicesColumn)]).meta({ id: 'CatCatIndicesColumns' })
 export type CatCatIndicesColumns = z.infer<typeof CatCatIndicesColumns>
 
-export const CatCatMasterColumn = z.union([z.enum(['id', 'host', 'h', 'ip', 'node', 'n']), z.string()])
+export const CatCatMasterColumn = z.union([z.enum(['id', 'host', 'h', 'ip', 'node', 'n']), z.string()]).meta({ id: 'CatCatMasterColumn' })
 export type CatCatMasterColumn = z.infer<typeof CatCatMasterColumn>
 
-export const CatCatMasterColumns = z.union([CatCatMasterColumn, z.array(CatCatMasterColumn)])
+export const CatCatMasterColumns = z.union([CatCatMasterColumn, z.array(CatCatMasterColumn)]).meta({ id: 'CatCatMasterColumns' })
 export type CatCatMasterColumns = z.infer<typeof CatCatMasterColumns>
 
-export const CatCatNodeColumn = z.union([z.enum(['build', 'b', 'completion.size', 'cs', 'completionSize', 'cpu', 'disk.avail', 'd', 'disk', 'diskAvail', 'disk.total', 'dt', 'diskTotal', 'disk.used', 'du', 'diskUsed', 'disk.used_percent', 'dup', 'diskUsedPercent', 'fielddata.evictions', 'fe', 'fielddataEvictions', 'fielddata.memory_size', 'fm', 'fielddataMemory', 'file_desc.current', 'fdc', 'fileDescriptorCurrent', 'file_desc.max', 'fdm', 'fileDescriptorMax', 'file_desc.percent', 'fdp', 'fileDescriptorPercent', 'flush.total', 'ft', 'flushTotal', 'flush.total_time', 'ftt', 'flushTotalTime', 'get.current', 'gc', 'getCurrent', 'get.exists_time', 'geti', 'getExistsTime', 'get.exists_total', 'geto', 'getExistsTotal', 'get.missing_time', 'gmti', 'getMissingTime', 'get.missing_total', 'gmto', 'getMissingTotal', 'get.time', 'gti', 'getTime', 'get.total', 'gto', 'getTotal', 'heap.current', 'hc', 'heapCurrent', 'heap.max', 'hm', 'heapMax', 'heap.percent', 'hp', 'heapPercent', 'http_address', 'http', 'id', 'nodeId', 'indexing.delete_current', 'idc', 'indexingDeleteCurrent', 'indexing.delete_time', 'idti', 'indexingDeleteTime', 'indexing.delete_total', 'idto', 'indexingDeleteTotal', 'indexing.index_current', 'iic', 'indexingIndexCurrent', 'indexing.index_failed', 'iif', 'indexingIndexFailed', 'indexing.index_failed_due_to_version_conflict', 'iifvc', 'indexingIndexFailedDueToVersionConflict', 'indexing.index_time', 'iiti', 'indexingIndexTime', 'indexing.index_total', 'iito', 'indexingIndexTotal', 'ip', 'i', 'jdk', 'j', 'load_1m', 'l', 'load_5m', 'l', 'load_15m', 'l', 'available_processors', 'ap', 'mappings.total_count', 'mtc', 'mappingsTotalCount', 'mappings.total_estimated_overhead_in_bytes', 'mteo', 'mappingsTotalEstimatedOverheadInBytes', 'master', 'm', 'merges.current', 'mc', 'mergesCurrent', 'merges.current_docs', 'mcd', 'mergesCurrentDocs', 'merges.current_size', 'mcs', 'mergesCurrentSize', 'merges.total', 'mt', 'mergesTotal', 'merges.total_docs', 'mtd', 'mergesTotalDocs', 'merges.total_size', 'mts', 'mergesTotalSize', 'merges.total_time', 'mtt', 'mergesTotalTime', 'name', 'n', 'node.role', 'r', 'role', 'nodeRole', 'pid', 'p', 'port', 'po', 'query_cache.memory_size', 'qcm', 'queryCacheMemory', 'query_cache.evictions', 'qce', 'queryCacheEvictions', 'query_cache.hit_count', 'qchc', 'queryCacheHitCount', 'query_cache.miss_count', 'qcmc', 'queryCacheMissCount', 'ram.current', 'rc', 'ramCurrent', 'ram.max', 'rm', 'ramMax', 'ram.percent', 'rp', 'ramPercent', 'refresh.total', 'rto', 'refreshTotal', 'refresh.time', 'rti', 'refreshTime', 'request_cache.memory_size', 'rcm', 'requestCacheMemory', 'request_cache.evictions', 'rce', 'requestCacheEvictions', 'request_cache.hit_count', 'rchc', 'requestCacheHitCount', 'request_cache.miss_count', 'rcmc', 'requestCacheMissCount', 'script.compilations', 'scrcc', 'scriptCompilations', 'script.cache_evictions', 'scrce', 'scriptCacheEvictions', 'search.fetch_current', 'sfc', 'searchFetchCurrent', 'search.fetch_time', 'sfti', 'searchFetchTime', 'search.fetch_total', 'sfto', 'searchFetchTotal', 'search.open_contexts', 'so', 'searchOpenContexts', 'search.query_current', 'sqc', 'searchQueryCurrent', 'search.query_time', 'sqti', 'searchQueryTime', 'search.query_total', 'sqto', 'searchQueryTotal', 'search.scroll_current', 'scc', 'searchScrollCurrent', 'search.scroll_time', 'scti', 'searchScrollTime', 'search.scroll_total', 'scto', 'searchScrollTotal', 'segments.count', 'sc', 'segmentsCount', 'segments.fixed_bitset_memory', 'sfbm', 'fixedBitsetMemory', 'segments.index_writer_memory', 'siwm', 'segmentsIndexWriterMemory', 'segments.memory', 'sm', 'segmentsMemory', 'segments.version_map_memory', 'svmm', 'segmentsVersionMapMemory', 'shard_stats.total_count', 'sstc', 'shards', 'shardStatsTotalCount', 'suggest.current', 'suc', 'suggestCurrent', 'suggest.time', 'suti', 'suggestTime', 'suggest.total', 'suto', 'suggestTotal', 'uptime', 'u', 'version', 'v']), z.string()])
+export const CatCatNodeColumn = z.union([z.enum(['build', 'b', 'completion.size', 'cs', 'completionSize', 'cpu', 'disk.avail', 'd', 'disk', 'diskAvail', 'disk.total', 'dt', 'diskTotal', 'disk.used', 'du', 'diskUsed', 'disk.used_percent', 'dup', 'diskUsedPercent', 'fielddata.evictions', 'fe', 'fielddataEvictions', 'fielddata.memory_size', 'fm', 'fielddataMemory', 'file_desc.current', 'fdc', 'fileDescriptorCurrent', 'file_desc.max', 'fdm', 'fileDescriptorMax', 'file_desc.percent', 'fdp', 'fileDescriptorPercent', 'flush.total', 'ft', 'flushTotal', 'flush.total_time', 'ftt', 'flushTotalTime', 'get.current', 'gc', 'getCurrent', 'get.exists_time', 'geti', 'getExistsTime', 'get.exists_total', 'geto', 'getExistsTotal', 'get.missing_time', 'gmti', 'getMissingTime', 'get.missing_total', 'gmto', 'getMissingTotal', 'get.time', 'gti', 'getTime', 'get.total', 'gto', 'getTotal', 'heap.current', 'hc', 'heapCurrent', 'heap.max', 'hm', 'heapMax', 'heap.percent', 'hp', 'heapPercent', 'http_address', 'http', 'id', 'nodeId', 'indexing.delete_current', 'idc', 'indexingDeleteCurrent', 'indexing.delete_time', 'idti', 'indexingDeleteTime', 'indexing.delete_total', 'idto', 'indexingDeleteTotal', 'indexing.index_current', 'iic', 'indexingIndexCurrent', 'indexing.index_failed', 'iif', 'indexingIndexFailed', 'indexing.index_failed_due_to_version_conflict', 'iifvc', 'indexingIndexFailedDueToVersionConflict', 'indexing.index_time', 'iiti', 'indexingIndexTime', 'indexing.index_total', 'iito', 'indexingIndexTotal', 'ip', 'i', 'jdk', 'j', 'load_1m', 'l', 'load_5m', 'l', 'load_15m', 'l', 'available_processors', 'ap', 'mappings.total_count', 'mtc', 'mappingsTotalCount', 'mappings.total_estimated_overhead_in_bytes', 'mteo', 'mappingsTotalEstimatedOverheadInBytes', 'master', 'm', 'merges.current', 'mc', 'mergesCurrent', 'merges.current_docs', 'mcd', 'mergesCurrentDocs', 'merges.current_size', 'mcs', 'mergesCurrentSize', 'merges.total', 'mt', 'mergesTotal', 'merges.total_docs', 'mtd', 'mergesTotalDocs', 'merges.total_size', 'mts', 'mergesTotalSize', 'merges.total_time', 'mtt', 'mergesTotalTime', 'name', 'n', 'node.role', 'r', 'role', 'nodeRole', 'pid', 'p', 'port', 'po', 'query_cache.memory_size', 'qcm', 'queryCacheMemory', 'query_cache.evictions', 'qce', 'queryCacheEvictions', 'query_cache.hit_count', 'qchc', 'queryCacheHitCount', 'query_cache.miss_count', 'qcmc', 'queryCacheMissCount', 'ram.current', 'rc', 'ramCurrent', 'ram.max', 'rm', 'ramMax', 'ram.percent', 'rp', 'ramPercent', 'refresh.total', 'rto', 'refreshTotal', 'refresh.time', 'rti', 'refreshTime', 'request_cache.memory_size', 'rcm', 'requestCacheMemory', 'request_cache.evictions', 'rce', 'requestCacheEvictions', 'request_cache.hit_count', 'rchc', 'requestCacheHitCount', 'request_cache.miss_count', 'rcmc', 'requestCacheMissCount', 'script.compilations', 'scrcc', 'scriptCompilations', 'script.cache_evictions', 'scrce', 'scriptCacheEvictions', 'search.fetch_current', 'sfc', 'searchFetchCurrent', 'search.fetch_time', 'sfti', 'searchFetchTime', 'search.fetch_total', 'sfto', 'searchFetchTotal', 'search.open_contexts', 'so', 'searchOpenContexts', 'search.query_current', 'sqc', 'searchQueryCurrent', 'search.query_time', 'sqti', 'searchQueryTime', 'search.query_total', 'sqto', 'searchQueryTotal', 'search.scroll_current', 'scc', 'searchScrollCurrent', 'search.scroll_time', 'scti', 'searchScrollTime', 'search.scroll_total', 'scto', 'searchScrollTotal', 'segments.count', 'sc', 'segmentsCount', 'segments.fixed_bitset_memory', 'sfbm', 'fixedBitsetMemory', 'segments.index_writer_memory', 'siwm', 'segmentsIndexWriterMemory', 'segments.memory', 'sm', 'segmentsMemory', 'segments.version_map_memory', 'svmm', 'segmentsVersionMapMemory', 'shard_stats.total_count', 'sstc', 'shards', 'shardStatsTotalCount', 'suggest.current', 'suc', 'suggestCurrent', 'suggest.time', 'suti', 'suggestTime', 'suggest.total', 'suto', 'suggestTotal', 'uptime', 'u', 'version', 'v']), z.string()]).meta({ id: 'CatCatNodeColumn' })
 export type CatCatNodeColumn = z.infer<typeof CatCatNodeColumn>
 
-export const CatCatNodeColumns = z.union([CatCatNodeColumn, z.array(CatCatNodeColumn)])
+export const CatCatNodeColumns = z.union([CatCatNodeColumn, z.array(CatCatNodeColumn)]).meta({ id: 'CatCatNodeColumns' })
 export type CatCatNodeColumns = z.infer<typeof CatCatNodeColumns>
 
-export const CatCatNodeattrsColumn = z.union([z.enum(['node', 'id', 'id', 'nodeId', 'pid', 'p', 'host', 'h', 'ip', 'i', 'port', 'po', 'attr', 'attr.name', 'value', 'attr.value']), z.string()])
+export const CatCatNodeattrsColumn = z.union([z.enum(['node', 'id', 'id', 'nodeId', 'pid', 'p', 'host', 'h', 'ip', 'i', 'port', 'po', 'attr', 'attr.name', 'value', 'attr.value']), z.string()]).meta({ id: 'CatCatNodeattrsColumn' })
 export type CatCatNodeattrsColumn = z.infer<typeof CatCatNodeattrsColumn>
 
-export const CatCatNodeattrsColumns = z.union([CatCatNodeattrsColumn, z.array(CatCatNodeattrsColumn)])
+export const CatCatNodeattrsColumns = z.union([CatCatNodeattrsColumn, z.array(CatCatNodeattrsColumn)]).meta({ id: 'CatCatNodeattrsColumns' })
 export type CatCatNodeattrsColumns = z.infer<typeof CatCatNodeattrsColumns>
 
-export const CatCatPendingTasksColumn = z.union([z.enum(['insertOrder', 'o', 'timeInQueue', 't', 'priority', 'p', 'source', 's']), z.string()])
+export const CatCatPendingTasksColumn = z.union([z.enum(['insertOrder', 'o', 'timeInQueue', 't', 'priority', 'p', 'source', 's']), z.string()]).meta({ id: 'CatCatPendingTasksColumn' })
 export type CatCatPendingTasksColumn = z.infer<typeof CatCatPendingTasksColumn>
 
-export const CatCatPendingTasksColumns = z.union([CatCatPendingTasksColumn, z.array(CatCatPendingTasksColumn)])
+export const CatCatPendingTasksColumns = z.union([CatCatPendingTasksColumn, z.array(CatCatPendingTasksColumn)]).meta({ id: 'CatCatPendingTasksColumns' })
 export type CatCatPendingTasksColumns = z.infer<typeof CatCatPendingTasksColumns>
 
-export const CatCatPluginsColumn = z.union([z.enum(['id', 'name', 'n', 'component', 'c', 'version', 'v', 'description', 'd']), z.string()])
+export const CatCatPluginsColumn = z.union([z.enum(['id', 'name', 'n', 'component', 'c', 'version', 'v', 'description', 'd']), z.string()]).meta({ id: 'CatCatPluginsColumn' })
 export type CatCatPluginsColumn = z.infer<typeof CatCatPluginsColumn>
 
-export const CatCatPluginsColumns = z.union([CatCatPluginsColumn, z.array(CatCatPluginsColumn)])
+export const CatCatPluginsColumns = z.union([CatCatPluginsColumn, z.array(CatCatPluginsColumn)]).meta({ id: 'CatCatPluginsColumns' })
 export type CatCatPluginsColumns = z.infer<typeof CatCatPluginsColumns>
 
-export const CatCatRecoveryColumn = z.union([z.enum(['index', 'i', 'idx', 'shard', 's', 'sh', 'start_time', 'start', 'start_time_millis', 'start_millis', 'stop_time', 'stop', 'stop_time_millis', 'stop_millis', 'time', 't', 'ti', 'type', 'ty', 'stage', 'st', 'source_host', 'shost', 'source_node', 'snode', 'target_host', 'thost', 'target_node', 'tnode', 'repository', 'rep', 'snapshot', 'snap', 'files', 'f', 'files_recovered', 'fr', 'files_percent', 'fp', 'files_total', 'tf', 'bytes', 'b', 'bytes_recovered', 'br', 'bytes_percent', 'bp', 'bytes_total', 'tb', 'translog_ops', 'to', 'translog_ops_recovered', 'tor', 'translog_ops_percent', 'top']), z.string()])
+export const CatCatRecoveryColumn = z.union([z.enum(['index', 'i', 'idx', 'shard', 's', 'sh', 'start_time', 'start', 'start_time_millis', 'start_millis', 'stop_time', 'stop', 'stop_time_millis', 'stop_millis', 'time', 't', 'ti', 'type', 'ty', 'stage', 'st', 'source_host', 'shost', 'source_node', 'snode', 'target_host', 'thost', 'target_node', 'tnode', 'repository', 'rep', 'snapshot', 'snap', 'files', 'f', 'files_recovered', 'fr', 'files_percent', 'fp', 'files_total', 'tf', 'bytes', 'b', 'bytes_recovered', 'br', 'bytes_percent', 'bp', 'bytes_total', 'tb', 'translog_ops', 'to', 'translog_ops_recovered', 'tor', 'translog_ops_percent', 'top']), z.string()]).meta({ id: 'CatCatRecoveryColumn' })
 export type CatCatRecoveryColumn = z.infer<typeof CatCatRecoveryColumn>
 
-export const CatCatRecoveryColumns = z.union([CatCatRecoveryColumn, z.array(CatCatRecoveryColumn)])
+export const CatCatRecoveryColumns = z.union([CatCatRecoveryColumn, z.array(CatCatRecoveryColumn)]).meta({ id: 'CatCatRecoveryColumns' })
 export type CatCatRecoveryColumns = z.infer<typeof CatCatRecoveryColumns>
 
 export const CatCatRequestBase = z.object({
-})
+}).meta({ id: 'CatCatRequestBase' })
 export type CatCatRequestBase = z.infer<typeof CatCatRequestBase>
 
-export const CatCatSegmentsColumn = z.union([z.enum(['index', 'i', 'idx', 'shard', 's', 'sh', 'prirep', 'p', 'pr', 'primaryOrReplica', 'ip', 'segment', 'generation', 'docs.count', 'docs.deleted', 'size', 'size.memory', 'committed', 'searchable', 'version', 'compound', 'id']), z.string()])
+export const CatCatSegmentsColumn = z.union([z.enum(['index', 'i', 'idx', 'shard', 's', 'sh', 'prirep', 'p', 'pr', 'primaryOrReplica', 'ip', 'segment', 'generation', 'docs.count', 'docs.deleted', 'size', 'size.memory', 'committed', 'searchable', 'version', 'compound', 'id']), z.string()]).meta({ id: 'CatCatSegmentsColumn' })
 export type CatCatSegmentsColumn = z.infer<typeof CatCatSegmentsColumn>
 
-export const CatCatSegmentsColumns = z.union([CatCatSegmentsColumn, z.array(CatCatSegmentsColumn)])
+export const CatCatSegmentsColumns = z.union([CatCatSegmentsColumn, z.array(CatCatSegmentsColumn)]).meta({ id: 'CatCatSegmentsColumns' })
 export type CatCatSegmentsColumns = z.infer<typeof CatCatSegmentsColumns>
 
-export const CatCatShardColumn = z.union([z.enum(['completion.size', 'cs', 'completionSize', 'dataset.size', 'dense_vector.value_count', 'dvc', 'denseVectorCount', 'docs', 'd', 'dc', 'fielddata.evictions', 'fe', 'fielddataEvictions', 'fielddata.memory_size', 'fm', 'fielddataMemory', 'flush.total', 'ft', 'flushTotal', 'flush.total_time', 'ftt', 'flushTotalTime', 'get.current', 'gc', 'getCurrent', 'get.exists_time', 'geti', 'getExistsTime', 'get.exists_total', 'geto', 'getExistsTotal', 'get.missing_time', 'gmti', 'getMissingTime', 'get.missing_total', 'gmto', 'getMissingTotal', 'get.time', 'gti', 'getTime', 'get.total', 'gto', 'getTotal', 'id', 'index', 'i', 'idx', 'indexing.delete_current', 'idc', 'indexingDeleteCurrent', 'indexing.delete_time', 'idti', 'indexingDeleteTime', 'indexing.delete_total', 'idto', 'indexingDeleteTotal', 'indexing.index_current', 'iic', 'indexingIndexCurrent', 'indexing.index_failed_due_to_version_conflict', 'iifvc', 'indexingIndexFailedDueToVersionConflict', 'indexing.index_failed', 'iif', 'indexingIndexFailed', 'indexing.index_time', 'iiti', 'indexingIndexTime', 'indexing.index_total', 'iito', 'indexingIndexTotal', 'ip', 'merges.current', 'mc', 'mergesCurrent', 'merges.current_docs', 'mcd', 'mergesCurrentDocs', 'merges.current_size', 'mcs', 'mergesCurrentSize', 'merges.total', 'mt', 'mergesTotal', 'merges.total_docs', 'mtd', 'mergesTotalDocs', 'merges.total_size', 'mts', 'mergesTotalSize', 'merges.total_time', 'mtt', 'mergesTotalTime', 'node', 'n', 'prirep', 'p', 'pr', 'primaryOrReplica', 'query_cache.evictions', 'qce', 'queryCacheEvictions', 'query_cache.memory_size', 'qcm', 'queryCacheMemory', 'recoverysource.type', 'rs', 'refresh.time', 'rti', 'refreshTime', 'refresh.total', 'rto', 'refreshTotal', 'search.fetch_current', 'sfc', 'searchFetchCurrent', 'search.fetch_time', 'sfti', 'searchFetchTime', 'search.fetch_total', 'sfto', 'searchFetchTotal', 'search.open_contexts', 'so', 'searchOpenContexts', 'search.query_current', 'sqc', 'searchQueryCurrent', 'search.query_time', 'sqti', 'searchQueryTime', 'search.query_total', 'sqto', 'searchQueryTotal', 'search.scroll_current', 'scc', 'searchScrollCurrent', 'search.scroll_time', 'scti', 'searchScrollTime', 'search.scroll_total', 'scto', 'searchScrollTotal', 'segments.count', 'sc', 'segmentsCount', 'segments.fixed_bitset_memory', 'sfbm', 'fixedBitsetMemory', 'segments.index_writer_memory', 'siwm', 'segmentsIndexWriterMemory', 'segments.memory', 'sm', 'segmentsMemory', 'segments.version_map_memory', 'svmm', 'segmentsVersionMapMemory', 'seq_no.global_checkpoint', 'sqg', 'globalCheckpoint', 'seq_no.local_checkpoint', 'sql', 'localCheckpoint', 'seq_no.max', 'sqm', 'maxSeqNo', 'shard', 's', 'sh', 'dsparse_vector.value_count', 'svc', 'sparseVectorCount', 'state', 'st', 'store', 'sto', 'suggest.current', 'suc', 'suggestCurrent', 'suggest.time', 'suti', 'suggestTime', 'suggest.total', 'suto', 'suggestTotal', 'sync_id', 'unassigned.at', 'ua', 'unassigned.details', 'ud', 'unassigned.for', 'uf', 'unassigned.reason', 'ur']), z.string()])
+export const CatCatShardColumn = z.union([z.enum(['completion.size', 'cs', 'completionSize', 'dataset.size', 'dense_vector.value_count', 'dvc', 'denseVectorCount', 'docs', 'd', 'dc', 'fielddata.evictions', 'fe', 'fielddataEvictions', 'fielddata.memory_size', 'fm', 'fielddataMemory', 'flush.total', 'ft', 'flushTotal', 'flush.total_time', 'ftt', 'flushTotalTime', 'get.current', 'gc', 'getCurrent', 'get.exists_time', 'geti', 'getExistsTime', 'get.exists_total', 'geto', 'getExistsTotal', 'get.missing_time', 'gmti', 'getMissingTime', 'get.missing_total', 'gmto', 'getMissingTotal', 'get.time', 'gti', 'getTime', 'get.total', 'gto', 'getTotal', 'id', 'index', 'i', 'idx', 'indexing.delete_current', 'idc', 'indexingDeleteCurrent', 'indexing.delete_time', 'idti', 'indexingDeleteTime', 'indexing.delete_total', 'idto', 'indexingDeleteTotal', 'indexing.index_current', 'iic', 'indexingIndexCurrent', 'indexing.index_failed_due_to_version_conflict', 'iifvc', 'indexingIndexFailedDueToVersionConflict', 'indexing.index_failed', 'iif', 'indexingIndexFailed', 'indexing.index_time', 'iiti', 'indexingIndexTime', 'indexing.index_total', 'iito', 'indexingIndexTotal', 'ip', 'merges.current', 'mc', 'mergesCurrent', 'merges.current_docs', 'mcd', 'mergesCurrentDocs', 'merges.current_size', 'mcs', 'mergesCurrentSize', 'merges.total', 'mt', 'mergesTotal', 'merges.total_docs', 'mtd', 'mergesTotalDocs', 'merges.total_size', 'mts', 'mergesTotalSize', 'merges.total_time', 'mtt', 'mergesTotalTime', 'node', 'n', 'prirep', 'p', 'pr', 'primaryOrReplica', 'query_cache.evictions', 'qce', 'queryCacheEvictions', 'query_cache.memory_size', 'qcm', 'queryCacheMemory', 'recoverysource.type', 'rs', 'refresh.time', 'rti', 'refreshTime', 'refresh.total', 'rto', 'refreshTotal', 'search.fetch_current', 'sfc', 'searchFetchCurrent', 'search.fetch_time', 'sfti', 'searchFetchTime', 'search.fetch_total', 'sfto', 'searchFetchTotal', 'search.open_contexts', 'so', 'searchOpenContexts', 'search.query_current', 'sqc', 'searchQueryCurrent', 'search.query_time', 'sqti', 'searchQueryTime', 'search.query_total', 'sqto', 'searchQueryTotal', 'search.scroll_current', 'scc', 'searchScrollCurrent', 'search.scroll_time', 'scti', 'searchScrollTime', 'search.scroll_total', 'scto', 'searchScrollTotal', 'segments.count', 'sc', 'segmentsCount', 'segments.fixed_bitset_memory', 'sfbm', 'fixedBitsetMemory', 'segments.index_writer_memory', 'siwm', 'segmentsIndexWriterMemory', 'segments.memory', 'sm', 'segmentsMemory', 'segments.version_map_memory', 'svmm', 'segmentsVersionMapMemory', 'seq_no.global_checkpoint', 'sqg', 'globalCheckpoint', 'seq_no.local_checkpoint', 'sql', 'localCheckpoint', 'seq_no.max', 'sqm', 'maxSeqNo', 'shard', 's', 'sh', 'dsparse_vector.value_count', 'svc', 'sparseVectorCount', 'state', 'st', 'store', 'sto', 'suggest.current', 'suc', 'suggestCurrent', 'suggest.time', 'suti', 'suggestTime', 'suggest.total', 'suto', 'suggestTotal', 'sync_id', 'unassigned.at', 'ua', 'unassigned.details', 'ud', 'unassigned.for', 'uf', 'unassigned.reason', 'ur']), z.string()]).meta({ id: 'CatCatShardColumn' })
 export type CatCatShardColumn = z.infer<typeof CatCatShardColumn>
 
-export const CatCatShardColumns = z.union([CatCatShardColumn, z.array(CatCatShardColumn)])
+export const CatCatShardColumns = z.union([CatCatShardColumn, z.array(CatCatShardColumn)]).meta({ id: 'CatCatShardColumns' })
 export type CatCatShardColumns = z.infer<typeof CatCatShardColumns>
 
-export const CatCatSnapshotsColumn = z.union([z.enum(['id', 'snapshot', 'repository', 're', 'repo', 'status', 's', 'start_epoch', 'ste', 'startEpoch', 'start_time', 'sti', 'startTime', 'end_epoch', 'ete', 'endEpoch', 'end_time', 'eti', 'endTime', 'duration', 'dur', 'indices', 'i', 'successful_shards', 'ss', 'failed_shards', 'fs', 'total_shards', 'ts', 'reason', 'r']), z.string()])
+export const CatCatSnapshotsColumn = z.union([z.enum(['id', 'snapshot', 'repository', 're', 'repo', 'status', 's', 'start_epoch', 'ste', 'startEpoch', 'start_time', 'sti', 'startTime', 'end_epoch', 'ete', 'endEpoch', 'end_time', 'eti', 'endTime', 'duration', 'dur', 'indices', 'i', 'successful_shards', 'ss', 'failed_shards', 'fs', 'total_shards', 'ts', 'reason', 'r']), z.string()]).meta({ id: 'CatCatSnapshotsColumn' })
 export type CatCatSnapshotsColumn = z.infer<typeof CatCatSnapshotsColumn>
 
-export const CatCatSnapshotsColumns = z.union([CatCatSnapshotsColumn, z.array(CatCatSnapshotsColumn)])
+export const CatCatSnapshotsColumns = z.union([CatCatSnapshotsColumn, z.array(CatCatSnapshotsColumn)]).meta({ id: 'CatCatSnapshotsColumns' })
 export type CatCatSnapshotsColumns = z.infer<typeof CatCatSnapshotsColumns>
 
-export const CatCatTasksColumn = z.union([z.enum(['id', 'action', 'ac', 'task_id', 'ti', 'parent_task_id', 'pti', 'type', 'ty', 'start_time', 'start', 'timestamp', 'ts', 'hms', 'hhmmss', 'running_time_ns', 'time', 'running_time', 'time', 'node_id', 'ni', 'ip', 'i', 'port', 'po', 'node', 'n', 'version', 'v', 'x_opaque_id', 'x']), z.string()])
+export const CatCatTasksColumn = z.union([z.enum(['id', 'action', 'ac', 'task_id', 'ti', 'parent_task_id', 'pti', 'type', 'ty', 'start_time', 'start', 'timestamp', 'ts', 'hms', 'hhmmss', 'running_time_ns', 'time', 'running_time', 'time', 'node_id', 'ni', 'ip', 'i', 'port', 'po', 'node', 'n', 'version', 'v', 'x_opaque_id', 'x']), z.string()]).meta({ id: 'CatCatTasksColumn' })
 export type CatCatTasksColumn = z.infer<typeof CatCatTasksColumn>
 
-export const CatCatTasksColumns = z.union([CatCatTasksColumn, z.array(CatCatTasksColumn)])
+export const CatCatTasksColumns = z.union([CatCatTasksColumn, z.array(CatCatTasksColumn)]).meta({ id: 'CatCatTasksColumns' })
 export type CatCatTasksColumns = z.infer<typeof CatCatTasksColumns>
 
-export const CatCatTemplatesColumn = z.union([z.enum(['name', 'n', 'index_patterns', 't', 'order', 'o', 'p', 'version', 'v', 'composed_of', 'c']), z.string()])
+export const CatCatTemplatesColumn = z.union([z.enum(['name', 'n', 'index_patterns', 't', 'order', 'o', 'p', 'version', 'v', 'composed_of', 'c']), z.string()]).meta({ id: 'CatCatTemplatesColumn' })
 export type CatCatTemplatesColumn = z.infer<typeof CatCatTemplatesColumn>
 
-export const CatCatTemplatesColumns = z.union([CatCatTemplatesColumn, z.array(CatCatTemplatesColumn)])
+export const CatCatTemplatesColumns = z.union([CatCatTemplatesColumn, z.array(CatCatTemplatesColumn)]).meta({ id: 'CatCatTemplatesColumns' })
 export type CatCatTemplatesColumns = z.infer<typeof CatCatTemplatesColumns>
 
-export const CatCatThreadPoolColumn = z.union([z.enum(['active', 'a', 'completed', 'c', 'core', 'cr', 'ephemeral_id', 'eid', 'host', 'h', 'ip', 'i', 'keep_alive', 'k', 'largest', 'l', 'max', 'mx', 'name', 'node_id', 'id', 'node_name', 'pid', 'p', 'pool_size', 'psz', 'port', 'po', 'queue', 'q', 'queue_size', 'qs', 'rejected', 'r', 'size', 'sz', 'type', 't']), z.string()])
+export const CatCatThreadPoolColumn = z.union([z.enum(['active', 'a', 'completed', 'c', 'core', 'cr', 'ephemeral_id', 'eid', 'host', 'h', 'ip', 'i', 'keep_alive', 'k', 'largest', 'l', 'max', 'mx', 'name', 'node_id', 'id', 'node_name', 'pid', 'p', 'pool_size', 'psz', 'port', 'po', 'queue', 'q', 'queue_size', 'qs', 'rejected', 'r', 'size', 'sz', 'type', 't']), z.string()]).meta({ id: 'CatCatThreadPoolColumn' })
 export type CatCatThreadPoolColumn = z.infer<typeof CatCatThreadPoolColumn>
 
-export const CatCatThreadPoolColumns = z.union([CatCatThreadPoolColumn, z.array(CatCatThreadPoolColumn)])
+export const CatCatThreadPoolColumns = z.union([CatCatThreadPoolColumn, z.array(CatCatThreadPoolColumn)]).meta({ id: 'CatCatThreadPoolColumns' })
 export type CatCatThreadPoolColumns = z.infer<typeof CatCatThreadPoolColumns>
 
-export const CatCatTrainedModelsColumn = z.enum(['create_time', 'ct', 'created_by', 'c', 'createdBy', 'data_frame_analytics_id', 'df', 'dataFrameAnalytics', 'dfid', 'description', 'd', 'heap_size', 'hs', 'modelHeapSize', 'id', 'ingest.count', 'ic', 'ingestCount', 'ingest.current', 'icurr', 'ingestCurrent', 'ingest.failed', 'if', 'ingestFailed', 'ingest.pipelines', 'ip', 'ingestPipelines', 'ingest.time', 'it', 'ingestTime', 'license', 'l', 'operations', 'o', 'modelOperations', 'version', 'v'])
+export const CatCatTrainedModelsColumn = z.enum(['create_time', 'ct', 'created_by', 'c', 'createdBy', 'data_frame_analytics_id', 'df', 'dataFrameAnalytics', 'dfid', 'description', 'd', 'heap_size', 'hs', 'modelHeapSize', 'id', 'ingest.count', 'ic', 'ingestCount', 'ingest.current', 'icurr', 'ingestCurrent', 'ingest.failed', 'if', 'ingestFailed', 'ingest.pipelines', 'ip', 'ingestPipelines', 'ingest.time', 'it', 'ingestTime', 'license', 'l', 'operations', 'o', 'modelOperations', 'version', 'v']).meta({ id: 'CatCatTrainedModelsColumn' })
 export type CatCatTrainedModelsColumn = z.infer<typeof CatCatTrainedModelsColumn>
 
-export const CatCatTrainedModelsColumns = z.union([CatCatTrainedModelsColumn, z.array(CatCatTrainedModelsColumn)])
+export const CatCatTrainedModelsColumns = z.union([CatCatTrainedModelsColumn, z.array(CatCatTrainedModelsColumn)]).meta({ id: 'CatCatTrainedModelsColumns' })
 export type CatCatTrainedModelsColumns = z.infer<typeof CatCatTrainedModelsColumns>
 
-export const CatCatTransformColumn = z.enum(['changes_last_detection_time', 'cldt', 'checkpoint', 'cp', 'checkpoint_duration_time_exp_avg', 'cdtea', 'checkpointTimeExpAvg', 'checkpoint_progress', 'c', 'checkpointProgress', 'create_time', 'ct', 'createTime', 'delete_time', 'dtime', 'description', 'd', 'dest_index', 'di', 'destIndex', 'documents_deleted', 'docd', 'documents_indexed', 'doci', 'docs_per_second', 'dps', 'documents_processed', 'docp', 'frequency', 'f', 'id', 'index_failure', 'if', 'index_time', 'itime', 'index_total', 'it', 'indexed_documents_exp_avg', 'idea', 'last_search_time', 'lst', 'lastSearchTime', 'max_page_search_size', 'mpsz', 'pages_processed', 'pp', 'pipeline', 'p', 'processed_documents_exp_avg', 'pdea', 'processing_time', 'pt', 'reason', 'r', 'search_failure', 'sf', 'search_time', 'stime', 'search_total', 'st', 'source_index', 'si', 'sourceIndex', 'state', 's', 'transform_type', 'tt', 'trigger_count', 'tc', 'version', 'v'])
+export const CatCatTransformColumn = z.enum(['changes_last_detection_time', 'cldt', 'checkpoint', 'cp', 'checkpoint_duration_time_exp_avg', 'cdtea', 'checkpointTimeExpAvg', 'checkpoint_progress', 'c', 'checkpointProgress', 'create_time', 'ct', 'createTime', 'delete_time', 'dtime', 'description', 'd', 'dest_index', 'di', 'destIndex', 'documents_deleted', 'docd', 'documents_indexed', 'doci', 'docs_per_second', 'dps', 'documents_processed', 'docp', 'frequency', 'f', 'id', 'index_failure', 'if', 'index_time', 'itime', 'index_total', 'it', 'indexed_documents_exp_avg', 'idea', 'last_search_time', 'lst', 'lastSearchTime', 'max_page_search_size', 'mpsz', 'pages_processed', 'pp', 'pipeline', 'p', 'processed_documents_exp_avg', 'pdea', 'processing_time', 'pt', 'reason', 'r', 'search_failure', 'sf', 'search_time', 'stime', 'search_total', 'st', 'source_index', 'si', 'sourceIndex', 'state', 's', 'transform_type', 'tt', 'trigger_count', 'tc', 'version', 'v']).meta({ id: 'CatCatTransformColumn' })
 export type CatCatTransformColumn = z.infer<typeof CatCatTransformColumn>
 
-export const CatCatTransformColumns = z.union([CatCatTransformColumn, z.array(CatCatTransformColumn)])
+export const CatCatTransformColumns = z.union([CatCatTransformColumn, z.array(CatCatTransformColumn)]).meta({ id: 'CatCatTransformColumns' })
 export type CatCatTransformColumns = z.infer<typeof CatCatTransformColumns>
 
 export const CatAliasesAliasesRecord = z.object({
@@ -184,7 +184,7 @@ export const CatAliasesAliasesRecord = z.object({
   is_write_index: z.string().describe('write index').optional(),
   w: z.string().describe('write index').optional(),
   isWriteIndex: z.string().describe('write index').optional()
-})
+}).meta({ id: 'CatAliasesAliasesRecord' })
 export type CatAliasesAliasesRecord = z.infer<typeof CatAliasesAliasesRecord>
 
 /**
@@ -202,10 +202,10 @@ export const CatAliasesRequest = z.object({
   s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   expand_wildcards: z.lazy(() => ExpandWildcards).describe('The type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. It supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If the master node is not available before the timeout expires, the request fails and returns an error. To indicated that the request should never timeout, you can set it to `-1`.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatAliasesRequest' })
 export type CatAliasesRequest = z.infer<typeof CatAliasesRequest>
 
-export const CatAliasesResponse = z.array(CatAliasesAliasesRecord)
+export const CatAliasesResponse = z.array(CatAliasesAliasesRecord).meta({ id: 'CatAliasesResponse' })
 export type CatAliasesResponse = z.infer<typeof CatAliasesResponse>
 
 export const CatAllocationAllocationRecord = z.object({
@@ -242,7 +242,7 @@ export const CatAllocationAllocationRecord = z.object({
   r: z.union([z.string(), z.null()]).describe('Node roles').optional(),
   role: z.union([z.string(), z.null()]).describe('Node roles').optional(),
   nodeRole: z.union([z.string(), z.null()]).describe('Node roles').optional()
-})
+}).meta({ id: 'CatAllocationAllocationRecord' })
 export type CatAllocationAllocationRecord = z.infer<typeof CatAllocationAllocationRecord>
 
 /**
@@ -259,10 +259,10 @@ export const CatAllocationRequest = z.object({
   s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatAllocationRequest' })
 export type CatAllocationRequest = z.infer<typeof CatAllocationRequest>
 
-export const CatAllocationResponse = z.array(CatAllocationAllocationRecord)
+export const CatAllocationResponse = z.array(CatAllocationAllocationRecord).meta({ id: 'CatAllocationResponse' })
 export type CatAllocationResponse = z.infer<typeof CatAllocationResponse>
 
 export const CatCircuitBreakerCircuitBreakerRecord = z.object({
@@ -284,7 +284,7 @@ export const CatCircuitBreakerCircuitBreakerRecord = z.object({
   t: z.string().describe('Tripped count').optional(),
   overhead: z.string().describe('Overhead').optional(),
   o: z.string().describe('Overhead').optional()
-})
+}).meta({ id: 'CatCircuitBreakerCircuitBreakerRecord' })
 export type CatCircuitBreakerCircuitBreakerRecord = z.infer<typeof CatCircuitBreakerCircuitBreakerRecord>
 
 /**
@@ -300,10 +300,10 @@ export const CatCircuitBreakerRequest = z.object({
   s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatCircuitBreakerRequest' })
 export type CatCircuitBreakerRequest = z.infer<typeof CatCircuitBreakerRequest>
 
-export const CatCircuitBreakerResponse = z.array(CatCircuitBreakerCircuitBreakerRecord)
+export const CatCircuitBreakerResponse = z.array(CatCircuitBreakerCircuitBreakerRecord).meta({ id: 'CatCircuitBreakerResponse' })
 export type CatCircuitBreakerResponse = z.infer<typeof CatCircuitBreakerResponse>
 
 export const CatComponentTemplatesComponentTemplate = z.object({
@@ -314,7 +314,7 @@ export const CatComponentTemplatesComponentTemplate = z.object({
   settings_count: z.string(),
   metadata_count: z.string(),
   included_in: z.string()
-})
+}).meta({ id: 'CatComponentTemplatesComponentTemplate' })
 export type CatComponentTemplatesComponentTemplate = z.infer<typeof CatComponentTemplatesComponentTemplate>
 
 /**
@@ -333,10 +333,10 @@ export const CatComponentTemplatesRequest = z.object({
   s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatComponentTemplatesRequest' })
 export type CatComponentTemplatesRequest = z.infer<typeof CatComponentTemplatesRequest>
 
-export const CatComponentTemplatesResponse = z.array(CatComponentTemplatesComponentTemplate)
+export const CatComponentTemplatesResponse = z.array(CatComponentTemplatesComponentTemplate).meta({ id: 'CatComponentTemplatesResponse' })
 export type CatComponentTemplatesResponse = z.infer<typeof CatComponentTemplatesResponse>
 
 export const CatCountCountRecord = z.object({
@@ -351,7 +351,7 @@ export const CatCountCountRecord = z.object({
   dc: z.string().describe('the document count').optional(),
   'docs.count': z.string().describe('the document count').optional(),
   docsCount: z.string().describe('the document count').optional()
-})
+}).meta({ id: 'CatCountCountRecord' })
 export type CatCountCountRecord = z.infer<typeof CatCountCountRecord>
 
 /**
@@ -370,10 +370,10 @@ export const CatCountRequest = z.object({
   index: z.lazy(() => Indices).describe('A comma-separated list of data streams, indices, and aliases used to limit the request. It supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
   h: CatCatCountColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
   s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatCountRequest' })
 export type CatCountRequest = z.infer<typeof CatCountRequest>
 
-export const CatCountResponse = z.array(CatCountCountRecord)
+export const CatCountResponse = z.array(CatCountCountRecord).meta({ id: 'CatCountResponse' })
 export type CatCountResponse = z.infer<typeof CatCountResponse>
 
 export const CatFielddataFielddataRecord = z.object({
@@ -386,7 +386,7 @@ export const CatFielddataFielddataRecord = z.object({
   field: z.string().describe('field name').optional(),
   f: z.string().describe('field name').optional(),
   size: z.string().describe('field data usage').optional()
-})
+}).meta({ id: 'CatFielddataFielddataRecord' })
 export type CatFielddataFielddataRecord = z.infer<typeof CatFielddataFielddataRecord>
 
 /**
@@ -402,10 +402,10 @@ export const CatFielddataRequest = z.object({
   fields: z.lazy(() => Fields).describe('Comma-separated list of fields used to limit returned information. To retrieve all fields, omit this parameter.').optional().meta({ found_in: 'path' }),
   h: CatCatFieldDataColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
   s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatFielddataRequest' })
 export type CatFielddataRequest = z.infer<typeof CatFielddataRequest>
 
-export const CatFielddataResponse = z.array(CatFielddataFielddataRecord)
+export const CatFielddataResponse = z.array(CatFielddataFielddataRecord).meta({ id: 'CatFielddataResponse' })
 export type CatFielddataResponse = z.infer<typeof CatFielddataResponse>
 
 export const CatHealthHealthRecord = z.object({
@@ -459,7 +459,7 @@ export const CatHealthHealthRecord = z.object({
   active_shards_percent: z.string().describe('active number of shards in percent').optional(),
   asp: z.string().describe('active number of shards in percent').optional(),
   activeShardsPercent: z.string().describe('active number of shards in percent').optional()
-})
+}).meta({ id: 'CatHealthHealthRecord' })
 export type CatHealthHealthRecord = z.infer<typeof CatHealthHealthRecord>
 
 /**
@@ -480,10 +480,10 @@ export const CatHealthRequest = z.object({
   ts: z.boolean().describe('If true, returns `HH:MM:SS` and Unix epoch timestamps.').optional().meta({ found_in: 'query' }),
   h: CatCatHealthColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
   s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatHealthRequest' })
 export type CatHealthRequest = z.infer<typeof CatHealthRequest>
 
-export const CatHealthResponse = z.array(CatHealthHealthRecord)
+export const CatHealthResponse = z.array(CatHealthHealthRecord).meta({ id: 'CatHealthResponse' })
 export type CatHealthResponse = z.infer<typeof CatHealthResponse>
 
 /**
@@ -492,11 +492,11 @@ export type CatHealthResponse = z.infer<typeof CatHealthResponse>
  * Get help for the CAT APIs.
  */
 export const CatHelpRequest = z.object({
-})
+}).meta({ id: 'CatHelpRequest' })
 export type CatHelpRequest = z.infer<typeof CatHelpRequest>
 
 export const CatHelpResponse = z.object({
-})
+}).meta({ id: 'CatHelpResponse' })
 export type CatHelpResponse = z.infer<typeof CatHelpResponse>
 
 export const CatIndicesIndicesRecord = z.object({
@@ -788,7 +788,7 @@ export const CatIndicesIndicesRecord = z.object({
   basi: z.string().describe('average size in bytes of shard bulk').optional(),
   bulkAvgSizeInBytes: z.string().describe('average size in bytes of shard bulk').optional(),
   'pri.bulk.avg_size_in_bytes': z.string().describe('average size in bytes of shard bulk').optional()
-})
+}).meta({ id: 'CatIndicesIndicesRecord' })
 export type CatIndicesIndicesRecord = z.infer<typeof CatIndicesIndicesRecord>
 
 /**
@@ -823,10 +823,10 @@ export const CatIndicesRequest = z.object({
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
   h: CatCatIndicesColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
   s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatIndicesRequest' })
 export type CatIndicesRequest = z.infer<typeof CatIndicesRequest>
 
-export const CatIndicesResponse = z.array(CatIndicesIndicesRecord)
+export const CatIndicesResponse = z.array(CatIndicesIndicesRecord).meta({ id: 'CatIndicesResponse' })
 export type CatIndicesResponse = z.infer<typeof CatIndicesResponse>
 
 export const CatMasterMasterRecord = z.object({
@@ -836,7 +836,7 @@ export const CatMasterMasterRecord = z.object({
   ip: z.string().describe('ip address').optional(),
   node: z.string().describe('node name').optional(),
   n: z.string().describe('node name').optional()
-})
+}).meta({ id: 'CatMasterMasterRecord' })
 export type CatMasterMasterRecord = z.infer<typeof CatMasterMasterRecord>
 
 /**
@@ -852,10 +852,10 @@ export const CatMasterRequest = z.object({
   s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatMasterRequest' })
 export type CatMasterRequest = z.infer<typeof CatMasterRequest>
 
-export const CatMasterResponse = z.array(CatMasterMasterRecord)
+export const CatMasterResponse = z.array(CatMasterMasterRecord).meta({ id: 'CatMasterResponse' })
 export type CatMasterResponse = z.infer<typeof CatMasterResponse>
 
 export const CatMlDataFrameAnalyticsDataFrameAnalyticsRecord = z.object({
@@ -900,7 +900,7 @@ export const CatMlDataFrameAnalyticsDataFrameAnalyticsRecord = z.object({
   'node.address': z.string().describe('The network address of the assigned node.').optional(),
   na: z.string().describe('The network address of the assigned node.').optional(),
   nodeAddress: z.string().describe('The network address of the assigned node.').optional()
-})
+}).meta({ id: 'CatMlDataFrameAnalyticsDataFrameAnalyticsRecord' })
 export type CatMlDataFrameAnalyticsDataFrameAnalyticsRecord = z.infer<typeof CatMlDataFrameAnalyticsDataFrameAnalyticsRecord>
 
 /**
@@ -918,10 +918,10 @@ export const CatMlDataFrameAnalyticsRequest = z.object({
   allow_no_match: z.boolean().describe('Whether to ignore if a wildcard expression matches no configs. (This includes `_all` string or when no configs have been specified.)').optional().meta({ found_in: 'query' }),
   h: CatCatDfaColumns.describe('Comma-separated list of column names to display.').optional().meta({ found_in: 'query' }),
   s: CatCatDfaColumns.describe('Comma-separated list of column names or column aliases used to sort the response.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatMlDataFrameAnalyticsRequest' })
 export type CatMlDataFrameAnalyticsRequest = z.infer<typeof CatMlDataFrameAnalyticsRequest>
 
-export const CatMlDataFrameAnalyticsResponse = z.array(CatMlDataFrameAnalyticsDataFrameAnalyticsRecord)
+export const CatMlDataFrameAnalyticsResponse = z.array(CatMlDataFrameAnalyticsDataFrameAnalyticsRecord).meta({ id: 'CatMlDataFrameAnalyticsResponse' })
 export type CatMlDataFrameAnalyticsResponse = z.infer<typeof CatMlDataFrameAnalyticsResponse>
 
 export const CatMlDatafeedsDatafeedsRecord = z.object({
@@ -957,7 +957,7 @@ export const CatMlDatafeedsDatafeedsRecord = z.object({
   'node.address': z.string().describe('The network address of the assigned node. For started datafeeds only, this information pertains to the node upon which the datafeed is started.').optional(),
   na: z.string().describe('The network address of the assigned node. For started datafeeds only, this information pertains to the node upon which the datafeed is started.').optional(),
   nodeAddress: z.string().describe('The network address of the assigned node. For started datafeeds only, this information pertains to the node upon which the datafeed is started.').optional()
-})
+}).meta({ id: 'CatMlDatafeedsDatafeedsRecord' })
 export type CatMlDatafeedsDatafeedsRecord = z.infer<typeof CatMlDatafeedsDatafeedsRecord>
 
 /**
@@ -978,10 +978,10 @@ export const CatMlDatafeedsRequest = z.object({
   allow_no_match: z.boolean().describe('Specifies what to do when the request: * Contains wildcard expressions and there are no datafeeds that match. * Contains the `_all` string or no identifiers and there are no matches. * Contains wildcard expressions and there are only partial matches. If `true`, the API returns an empty datafeeds array when there are no matches and the subset of results when there are partial matches. If `false`, the API returns a 404 status code when there are no matches or only partial matches.').optional().meta({ found_in: 'query' }),
   h: CatCatDatafeedColumns.describe('Comma-separated list of column names to display.').optional().meta({ found_in: 'query' }),
   s: CatCatDatafeedColumns.describe('Comma-separated list of column names or column aliases used to sort the response.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatMlDatafeedsRequest' })
 export type CatMlDatafeedsRequest = z.infer<typeof CatMlDatafeedsRequest>
 
-export const CatMlDatafeedsResponse = z.array(CatMlDatafeedsDatafeedsRecord)
+export const CatMlDatafeedsResponse = z.array(CatMlDatafeedsDatafeedsRecord).meta({ id: 'CatMlDatafeedsResponse' })
 export type CatMlDatafeedsResponse = z.infer<typeof CatMlDatafeedsResponse>
 
 export const CatMlJobsJobsRecord = z.object({
@@ -1159,7 +1159,7 @@ export const CatMlJobsJobsRecord = z.object({
   'buckets.time.exp_avg_hour': z.string().describe('The exponential moving average of bucket processing times calculated in a one hour time window, in milliseconds.').optional(),
   bteah: z.string().describe('The exponential moving average of bucket processing times calculated in a one hour time window, in milliseconds.').optional(),
   bucketsTimeExpAvgHour: z.string().describe('The exponential moving average of bucket processing times calculated in a one hour time window, in milliseconds.').optional()
-})
+}).meta({ id: 'CatMlJobsJobsRecord' })
 export type CatMlJobsJobsRecord = z.infer<typeof CatMlJobsJobsRecord>
 
 /**
@@ -1180,10 +1180,10 @@ export const CatMlJobsRequest = z.object({
   allow_no_match: z.boolean().describe('Specifies what to do when the request: * Contains wildcard expressions and there are no jobs that match. * Contains the `_all` string or no identifiers and there are no matches. * Contains wildcard expressions and there are only partial matches. If `true`, the API returns an empty jobs array when there are no matches and the subset of results when there are partial matches. If `false`, the API returns a 404 status code when there are no matches or only partial matches.').optional().meta({ found_in: 'query' }),
   h: CatCatAnomalyDetectorColumns.describe('Comma-separated list of column names to display.').optional().meta({ found_in: 'query' }),
   s: CatCatAnomalyDetectorColumns.describe('Comma-separated list of column names or column aliases used to sort the response.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatMlJobsRequest' })
 export type CatMlJobsRequest = z.infer<typeof CatMlJobsRequest>
 
-export const CatMlJobsResponse = z.array(CatMlJobsJobsRecord)
+export const CatMlJobsResponse = z.array(CatMlJobsJobsRecord).meta({ id: 'CatMlJobsResponse' })
 export type CatMlJobsResponse = z.infer<typeof CatMlJobsResponse>
 
 /**
@@ -1203,7 +1203,7 @@ export const CatMlTrainedModelsRequest = z.object({
   s: CatCatTrainedModelsColumns.describe('A comma-separated list of column names or aliases used to sort the response.').optional().meta({ found_in: 'query' }),
   from: z.lazy(() => integer).describe('Skips the specified number of transforms.').optional().meta({ found_in: 'query' }),
   size: z.lazy(() => integer).describe('The maximum number of transforms to display.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatMlTrainedModelsRequest' })
 export type CatMlTrainedModelsRequest = z.infer<typeof CatMlTrainedModelsRequest>
 
 export const CatMlTrainedModelsTrainedModelsRecord = z.object({
@@ -1253,10 +1253,10 @@ export const CatMlTrainedModelsTrainedModelsRecord = z.object({
   dfa: z.string().describe('The analysis used by the data frame to build the model.').optional(),
   dataFrameAnalyticsAnalysis: z.string().describe('The analysis used by the data frame to build the model.').optional(),
   type: z.string().optional()
-})
+}).meta({ id: 'CatMlTrainedModelsTrainedModelsRecord' })
 export type CatMlTrainedModelsTrainedModelsRecord = z.infer<typeof CatMlTrainedModelsTrainedModelsRecord>
 
-export const CatMlTrainedModelsResponse = z.array(CatMlTrainedModelsTrainedModelsRecord)
+export const CatMlTrainedModelsResponse = z.array(CatMlTrainedModelsTrainedModelsRecord).meta({ id: 'CatMlTrainedModelsResponse' })
 export type CatMlTrainedModelsResponse = z.infer<typeof CatMlTrainedModelsResponse>
 
 export const CatNodeattrsNodeAttributesRecord = z.object({
@@ -1270,7 +1270,7 @@ export const CatNodeattrsNodeAttributesRecord = z.object({
   port: z.string().describe('The bound transport port.').optional(),
   attr: z.string().describe('The attribute name.').optional(),
   value: z.string().describe('The attribute value.').optional()
-})
+}).meta({ id: 'CatNodeattrsNodeAttributesRecord' })
 export type CatNodeattrsNodeAttributesRecord = z.infer<typeof CatNodeattrsNodeAttributesRecord>
 
 /**
@@ -1285,10 +1285,10 @@ export const CatNodeattrsRequest = z.object({
   s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatNodeattrsRequest' })
 export type CatNodeattrsRequest = z.infer<typeof CatNodeattrsRequest>
 
-export const CatNodeattrsResponse = z.array(CatNodeattrsNodeAttributesRecord)
+export const CatNodeattrsResponse = z.array(CatNodeattrsNodeAttributesRecord).meta({ id: 'CatNodeattrsResponse' })
 export type CatNodeattrsResponse = z.infer<typeof CatNodeattrsResponse>
 
 export const CatNodesNodesRecord = z.object({
@@ -1561,7 +1561,7 @@ export const CatNodesNodesRecord = z.object({
   'bulk.avg_size_in_bytes': z.string().describe('The average size in bytes of shard bulk.').optional(),
   basi: z.string().describe('The average size in bytes of shard bulk.').optional(),
   bulkAvgSizeInBytes: z.string().describe('The average size in bytes of shard bulk.').optional()
-})
+}).meta({ id: 'CatNodesNodesRecord' })
 export type CatNodesNodesRecord = z.infer<typeof CatNodesNodesRecord>
 
 /**
@@ -1577,10 +1577,10 @@ export const CatNodesRequest = z.object({
   h: CatCatNodeColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
   s: z.lazy(() => Names).describe('A comma-separated list of column names or aliases that determines the sort order. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatNodesRequest' })
 export type CatNodesRequest = z.infer<typeof CatNodesRequest>
 
-export const CatNodesResponse = z.array(CatNodesNodesRecord)
+export const CatNodesResponse = z.array(CatNodesNodesRecord).meta({ id: 'CatNodesResponse' })
 export type CatNodesResponse = z.infer<typeof CatNodesResponse>
 
 export const CatPendingTasksPendingTasksRecord = z.object({
@@ -1592,7 +1592,7 @@ export const CatPendingTasksPendingTasksRecord = z.object({
   p: z.string().describe('The task priority.').optional(),
   source: z.string().describe('The task source.').optional(),
   s: z.string().describe('The task source.').optional()
-})
+}).meta({ id: 'CatPendingTasksPendingTasksRecord' })
 export type CatPendingTasksPendingTasksRecord = z.infer<typeof CatPendingTasksPendingTasksRecord>
 
 /**
@@ -1607,10 +1607,10 @@ export const CatPendingTasksRequest = z.object({
   s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatPendingTasksRequest' })
 export type CatPendingTasksRequest = z.infer<typeof CatPendingTasksRequest>
 
-export const CatPendingTasksResponse = z.array(CatPendingTasksPendingTasksRecord)
+export const CatPendingTasksResponse = z.array(CatPendingTasksPendingTasksRecord).meta({ id: 'CatPendingTasksResponse' })
 export type CatPendingTasksResponse = z.infer<typeof CatPendingTasksResponse>
 
 export const CatPluginsPluginsRecord = z.object({
@@ -1625,7 +1625,7 @@ export const CatPluginsPluginsRecord = z.object({
   d: z.string().describe('The plugin details.').optional(),
   type: z.string().describe('The plugin type.').optional(),
   t: z.string().describe('The plugin type.').optional()
-})
+}).meta({ id: 'CatPluginsPluginsRecord' })
 export type CatPluginsPluginsRecord = z.infer<typeof CatPluginsPluginsRecord>
 
 /**
@@ -1641,10 +1641,10 @@ export const CatPluginsRequest = z.object({
   include_bootstrap: z.boolean().describe('Include bootstrap plugins in the response').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatPluginsRequest' })
 export type CatPluginsRequest = z.infer<typeof CatPluginsRequest>
 
-export const CatPluginsResponse = z.array(CatPluginsPluginsRecord)
+export const CatPluginsResponse = z.array(CatPluginsPluginsRecord).meta({ id: 'CatPluginsResponse' })
 export type CatPluginsResponse = z.infer<typeof CatPluginsResponse>
 
 export const CatRecoveryRecoveryRecord = z.object({
@@ -1703,7 +1703,7 @@ export const CatRecoveryRecoveryRecord = z.object({
   tor: z.string().describe('The translog operations recovered.').optional(),
   translog_ops_percent: z.lazy(() => Percentage).describe('The ratio of translog operations recovered.').optional(),
   top: z.lazy(() => Percentage).describe('The ratio of translog operations recovered.').optional()
-})
+}).meta({ id: 'CatRecoveryRecoveryRecord' })
 export type CatRecoveryRecoveryRecord = z.infer<typeof CatRecoveryRecoveryRecord>
 
 /**
@@ -1721,10 +1721,10 @@ export const CatRecoveryRequest = z.object({
   detailed: z.boolean().describe('If `true`, the response includes detailed information about shard recoveries.').optional().meta({ found_in: 'query' }),
   h: CatCatRecoveryColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
   s: z.lazy(() => Names).describe('A comma-separated list of column names or aliases that determines the sort order. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatRecoveryRequest' })
 export type CatRecoveryRequest = z.infer<typeof CatRecoveryRequest>
 
-export const CatRecoveryResponse = z.array(CatRecoveryRecoveryRecord)
+export const CatRecoveryResponse = z.array(CatRecoveryRecoveryRecord).meta({ id: 'CatRecoveryResponse' })
 export type CatRecoveryResponse = z.infer<typeof CatRecoveryResponse>
 
 export const CatRepositoriesRepositoriesRecord = z.object({
@@ -1732,7 +1732,7 @@ export const CatRepositoriesRepositoriesRecord = z.object({
   repoId: z.string().describe('The unique repository identifier.').optional(),
   type: z.string().describe('The repository type.').optional(),
   t: z.string().describe('The repository type.').optional()
-})
+}).meta({ id: 'CatRepositoriesRepositoriesRecord' })
 export type CatRepositoriesRepositoriesRecord = z.infer<typeof CatRepositoriesRepositoriesRecord>
 
 /**
@@ -1747,10 +1747,10 @@ export const CatRepositoriesRequest = z.object({
   s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatRepositoriesRequest' })
 export type CatRepositoriesRequest = z.infer<typeof CatRepositoriesRequest>
 
-export const CatRepositoriesResponse = z.array(CatRepositoriesRepositoriesRecord)
+export const CatRepositoriesResponse = z.array(CatRepositoriesRepositoriesRecord).meta({ id: 'CatRepositoriesResponse' })
 export type CatRepositoriesResponse = z.infer<typeof CatRepositoriesResponse>
 
 /**
@@ -1772,7 +1772,7 @@ export const CatSegmentsRequest = z.object({
   ignore_throttled: z.boolean().describe('If true, concrete, expanded or aliased indices are ignored when frozen.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
   allow_closed: z.boolean().describe('If true, allow closed indices to be returned in the response otherwise if false, keep the legacy behaviour of throwing an exception if index pattern matches closed indices').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatSegmentsRequest' })
 export type CatSegmentsRequest = z.infer<typeof CatSegmentsRequest>
 
 export const CatSegmentsSegmentsRecord = z.object({
@@ -1815,10 +1815,10 @@ export const CatSegmentsSegmentsRecord = z.object({
   compound: z.string().describe('If `true`, the segment is stored in a compound file. This means Lucene merged all files from the segment in a single file to save file descriptors.').optional(),
   ico: z.string().describe('If `true`, the segment is stored in a compound file. This means Lucene merged all files from the segment in a single file to save file descriptors.').optional(),
   isCompound: z.string().describe('If `true`, the segment is stored in a compound file. This means Lucene merged all files from the segment in a single file to save file descriptors.').optional()
-})
+}).meta({ id: 'CatSegmentsSegmentsRecord' })
 export type CatSegmentsSegmentsRecord = z.infer<typeof CatSegmentsSegmentsRecord>
 
-export const CatSegmentsResponse = z.array(CatSegmentsSegmentsRecord)
+export const CatSegmentsResponse = z.array(CatSegmentsSegmentsRecord).meta({ id: 'CatSegmentsResponse' })
 export type CatSegmentsResponse = z.infer<typeof CatSegmentsResponse>
 
 /**
@@ -1834,7 +1834,7 @@ export const CatShardsRequest = z.object({
   h: CatCatShardColumns.describe('List of columns to appear in the response. Supports simple wildcards.').optional().meta({ found_in: 'query' }),
   s: z.lazy(() => Names).describe('A comma-separated list of column names or aliases that determines the sort order. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatShardsRequest' })
 export type CatShardsRequest = z.infer<typeof CatShardsRequest>
 
 export const CatShardsShardsRecord = z.object({
@@ -2050,10 +2050,10 @@ export const CatShardsShardsRecord = z.object({
   'bulk.avg_size_in_bytes': z.string().describe('The average size in bytes of shard bulk operations.').optional(),
   basi: z.string().describe('The average size in bytes of shard bulk operations.').optional(),
   bulkAvgSizeInBytes: z.string().describe('The average size in bytes of shard bulk operations.').optional()
-})
+}).meta({ id: 'CatShardsShardsRecord' })
 export type CatShardsShardsRecord = z.infer<typeof CatShardsShardsRecord>
 
-export const CatShardsResponse = z.array(CatShardsShardsRecord)
+export const CatShardsResponse = z.array(CatShardsShardsRecord).meta({ id: 'CatShardsResponse' })
 export type CatShardsResponse = z.infer<typeof CatShardsResponse>
 
 /**
@@ -2070,7 +2070,7 @@ export const CatSnapshotsRequest = z.object({
   h: CatCatSnapshotsColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
   s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatSnapshotsRequest' })
 export type CatSnapshotsRequest = z.infer<typeof CatSnapshotsRequest>
 
 export const CatSnapshotsSnapshotsRecord = z.object({
@@ -2105,10 +2105,10 @@ export const CatSnapshotsSnapshotsRecord = z.object({
   ts: z.string().describe('The total number of shards in the snapshot.').optional(),
   reason: z.string().describe('The reason for any snapshot failures.').optional(),
   r: z.string().describe('The reason for any snapshot failures.').optional()
-})
+}).meta({ id: 'CatSnapshotsSnapshotsRecord' })
 export type CatSnapshotsSnapshotsRecord = z.infer<typeof CatSnapshotsSnapshotsRecord>
 
-export const CatSnapshotsResponse = z.array(CatSnapshotsSnapshotsRecord)
+export const CatSnapshotsResponse = z.array(CatSnapshotsSnapshotsRecord).meta({ id: 'CatSnapshotsResponse' })
 export type CatSnapshotsResponse = z.infer<typeof CatSnapshotsResponse>
 
 /**
@@ -2127,7 +2127,7 @@ export const CatTasksRequest = z.object({
   s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   wait_for_completion: z.boolean().describe('If `true`, the request blocks until the task has completed.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatTasksRequest' })
 export type CatTasksRequest = z.infer<typeof CatTasksRequest>
 
 export const CatTasksTasksRecord = z.object({
@@ -2163,10 +2163,10 @@ export const CatTasksTasksRecord = z.object({
   x: z.string().describe('The X-Opaque-ID header.').optional(),
   description: z.string().describe('The task action description.').optional(),
   desc: z.string().describe('The task action description.').optional()
-})
+}).meta({ id: 'CatTasksTasksRecord' })
 export type CatTasksTasksRecord = z.infer<typeof CatTasksTasksRecord>
 
-export const CatTasksResponse = z.array(CatTasksTasksRecord)
+export const CatTasksResponse = z.array(CatTasksTasksRecord).meta({ id: 'CatTasksResponse' })
 export type CatTasksResponse = z.infer<typeof CatTasksResponse>
 
 /**
@@ -2183,7 +2183,7 @@ export const CatTemplatesRequest = z.object({
   s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatTemplatesRequest' })
 export type CatTemplatesRequest = z.infer<typeof CatTemplatesRequest>
 
 export const CatTemplatesTemplatesRecord = z.object({
@@ -2198,10 +2198,10 @@ export const CatTemplatesTemplatesRecord = z.object({
   v: z.union([z.lazy(() => VersionString), z.null()]).describe('The template version.').optional(),
   composed_of: z.string().describe('The component templates that comprise the index template.').optional(),
   c: z.string().describe('The component templates that comprise the index template.').optional()
-})
+}).meta({ id: 'CatTemplatesTemplatesRecord' })
 export type CatTemplatesTemplatesRecord = z.infer<typeof CatTemplatesTemplatesRecord>
 
-export const CatTemplatesResponse = z.array(CatTemplatesTemplatesRecord)
+export const CatTemplatesResponse = z.array(CatTemplatesTemplatesRecord).meta({ id: 'CatTemplatesResponse' })
 export type CatTemplatesResponse = z.infer<typeof CatTemplatesResponse>
 
 /**
@@ -2218,7 +2218,7 @@ export const CatThreadPoolRequest = z.object({
   s: z.lazy(() => Names).describe('A comma-separated list of column names or aliases that determines the sort order. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatThreadPoolRequest' })
 export type CatThreadPoolRequest = z.infer<typeof CatThreadPoolRequest>
 
 export const CatThreadPoolThreadPoolRecord = z.object({
@@ -2262,10 +2262,10 @@ export const CatThreadPoolThreadPoolRecord = z.object({
   sz: z.union([z.string(), z.null()]).describe('The number of active threads allowed in a fixed thread pool.').optional(),
   keep_alive: z.union([z.string(), z.null()]).describe('The thread keep alive time.').optional(),
   ka: z.union([z.string(), z.null()]).describe('The thread keep alive time.').optional()
-})
+}).meta({ id: 'CatThreadPoolThreadPoolRecord' })
 export type CatThreadPoolThreadPoolRecord = z.infer<typeof CatThreadPoolThreadPoolRecord>
 
-export const CatThreadPoolResponse = z.array(CatThreadPoolThreadPoolRecord)
+export const CatThreadPoolResponse = z.array(CatThreadPoolThreadPoolRecord).meta({ id: 'CatThreadPoolResponse' })
 export type CatThreadPoolResponse = z.infer<typeof CatThreadPoolResponse>
 
 /**
@@ -2285,7 +2285,7 @@ export const CatTransformsRequest = z.object({
   h: CatCatTransformColumns.describe('Comma-separated list of column names to display.').optional().meta({ found_in: 'query' }),
   s: CatCatTransformColumns.describe('Comma-separated list of column names or column aliases used to sort the response.').optional().meta({ found_in: 'query' }),
   size: z.lazy(() => integer).describe('The maximum number of transforms to obtain.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CatTransformsRequest' })
 export type CatTransformsRequest = z.infer<typeof CatTransformsRequest>
 
 export const CatTransformsTransformsRecord = z.object({
@@ -2361,8 +2361,8 @@ export const CatTransformsTransformsRecord = z.object({
   idea: z.string().describe('The exponential moving average of the number of new documents that have been indexed.').optional(),
   processed_documents_exp_avg: z.string().describe('The exponential moving average of the number of documents that have been processed.').optional(),
   pdea: z.string().describe('The exponential moving average of the number of documents that have been processed.').optional()
-})
+}).meta({ id: 'CatTransformsTransformsRecord' })
 export type CatTransformsTransformsRecord = z.infer<typeof CatTransformsTransformsRecord>
 
-export const CatTransformsResponse = z.array(CatTransformsTransformsRecord)
+export const CatTransformsResponse = z.array(CatTransformsTransformsRecord).meta({ id: 'CatTransformsResponse' })
 export type CatTransformsResponse = z.infer<typeof CatTransformsResponse>

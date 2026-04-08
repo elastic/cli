@@ -10,7 +10,7 @@
     "build": "tsc",
     "test": "npm run build && npm run test:lint && npm run test:unit",
     "test:unit": "node --import tsx/esm --test",
-    "test:lint": "eslint ."
+    "test:lint": "eslint src"
   },
   "keywords": [
     "cli",

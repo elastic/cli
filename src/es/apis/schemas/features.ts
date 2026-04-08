@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { Duration } from './_types.ts'
@@ -12,7 +12,7 @@ import { Duration } from './_types.ts'
 export const FeaturesFeature = z.object({
   name: z.string(),
   description: z.string()
-})
+}).meta({ id: 'FeaturesFeature' })
 export type FeaturesFeature = z.infer<typeof FeaturesFeature>
 
 /**
@@ -30,12 +30,12 @@ export type FeaturesFeature = z.infer<typeof FeaturesFeature>
  */
 export const FeaturesGetFeaturesRequest = z.object({
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'FeaturesGetFeaturesRequest' })
 export type FeaturesGetFeaturesRequest = z.infer<typeof FeaturesGetFeaturesRequest>
 
 export const FeaturesGetFeaturesResponse = z.object({
   features: z.array(FeaturesFeature)
-})
+}).meta({ id: 'FeaturesGetFeaturesResponse' })
 export type FeaturesGetFeaturesResponse = z.infer<typeof FeaturesGetFeaturesResponse>
 
 /**
@@ -60,10 +60,10 @@ export type FeaturesGetFeaturesResponse = z.infer<typeof FeaturesGetFeaturesResp
  */
 export const FeaturesResetFeaturesRequest = z.object({
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'FeaturesResetFeaturesRequest' })
 export type FeaturesResetFeaturesRequest = z.infer<typeof FeaturesResetFeaturesRequest>
 
 export const FeaturesResetFeaturesResponse = z.object({
   features: z.array(FeaturesFeature)
-})
+}).meta({ id: 'FeaturesResetFeaturesResponse' })
 export type FeaturesResetFeaturesResponse = z.infer<typeof FeaturesResetFeaturesResponse>

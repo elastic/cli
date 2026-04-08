@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { AcknowledgedResponseBase, DateTime, Duration, EpochTime, Uuid, integer, long } from './_types.ts'
 
-export const LicenseLicenseType = z.enum(['missing', 'trial', 'basic', 'standard', 'dev', 'silver', 'gold', 'platinum', 'enterprise'])
+export const LicenseLicenseType = z.enum(['missing', 'trial', 'basic', 'standard', 'dev', 'silver', 'gold', 'platinum', 'enterprise']).meta({ id: 'LicenseLicenseType' })
 export type LicenseLicenseType = z.infer<typeof LicenseLicenseType>
 
 export const LicenseLicense = z.object({
@@ -23,10 +23,10 @@ export const LicenseLicense = z.object({
   signature: z.string(),
   type: LicenseLicenseType,
   uid: z.string()
-})
+}).meta({ id: 'LicenseLicense' })
 export type LicenseLicense = z.infer<typeof LicenseLicense>
 
-export const LicenseLicenseStatus = z.enum(['active', 'valid', 'invalid', 'expired'])
+export const LicenseLicenseStatus = z.enum(['active', 'valid', 'invalid', 'expired']).meta({ id: 'LicenseLicenseStatus' })
 export type LicenseLicenseStatus = z.infer<typeof LicenseLicenseStatus>
 
 /**
@@ -39,10 +39,10 @@ export type LicenseLicenseStatus = z.infer<typeof LicenseLicenseStatus>
 export const LicenseDeleteRequest = z.object({
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('The period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'LicenseDeleteRequest' })
 export type LicenseDeleteRequest = z.infer<typeof LicenseDeleteRequest>
 
-export const LicenseDeleteResponse = z.lazy(() => AcknowledgedResponseBase)
+export const LicenseDeleteResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'LicenseDeleteResponse' })
 export type LicenseDeleteResponse = z.infer<typeof LicenseDeleteResponse>
 
 export const LicenseGetLicenseInformation = z.object({
@@ -58,7 +58,7 @@ export const LicenseGetLicenseInformation = z.object({
   type: LicenseLicenseType.describe('The type of the license. For example, trial, basic, gold, platinum, or enterprise.'),
   uid: z.lazy(() => Uuid).describe('The unique identifier of the license.'),
   start_date_in_millis: z.lazy(() => EpochTime).describe('The date and time the license was started in milliseconds since the Unix epoch.')
-})
+}).meta({ id: 'LicenseGetLicenseInformation' })
 export type LicenseGetLicenseInformation = z.infer<typeof LicenseGetLicenseInformation>
 
 /**
@@ -73,38 +73,38 @@ export type LicenseGetLicenseInformation = z.infer<typeof LicenseGetLicenseInfor
 export const LicenseGetRequest = z.object({
   accept_enterprise: z.boolean().describe('If `true`, this parameter returns enterprise for Enterprise license types. If `false`, this parameter returns platinum for both platinum and enterprise license types. This behavior is maintained for backwards compatibility. This parameter is deprecated and will always be set to true in 8.x.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('Specifies whether to retrieve local information. From 9.2 onwards the default value is `true`, which means the information is retrieved from the responding node. In earlier versions the default is `false`, which means the information is retrieved from the elected master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'LicenseGetRequest' })
 export type LicenseGetRequest = z.infer<typeof LicenseGetRequest>
 
 export const LicenseGetResponse = z.object({
   license: LicenseGetLicenseInformation
-})
+}).meta({ id: 'LicenseGetResponse' })
 export type LicenseGetResponse = z.infer<typeof LicenseGetResponse>
 
 /** Get the basic license status. */
 export const LicenseGetBasicStatusRequest = z.object({
-})
+}).meta({ id: 'LicenseGetBasicStatusRequest' })
 export type LicenseGetBasicStatusRequest = z.infer<typeof LicenseGetBasicStatusRequest>
 
 export const LicenseGetBasicStatusResponse = z.object({
   eligible_to_start_basic: z.boolean()
-})
+}).meta({ id: 'LicenseGetBasicStatusResponse' })
 export type LicenseGetBasicStatusResponse = z.infer<typeof LicenseGetBasicStatusResponse>
 
 /** Get the trial status. */
 export const LicenseGetTrialStatusRequest = z.object({
-})
+}).meta({ id: 'LicenseGetTrialStatusRequest' })
 export type LicenseGetTrialStatusRequest = z.infer<typeof LicenseGetTrialStatusRequest>
 
 export const LicenseGetTrialStatusResponse = z.object({
   eligible_to_start_trial: z.boolean()
-})
+}).meta({ id: 'LicenseGetTrialStatusResponse' })
 export type LicenseGetTrialStatusResponse = z.infer<typeof LicenseGetTrialStatusResponse>
 
 export const LicensePostAcknowledgement = z.object({
   license: z.array(z.string()),
   message: z.string()
-})
+}).meta({ id: 'LicensePostAcknowledgement' })
 export type LicensePostAcknowledgement = z.infer<typeof LicensePostAcknowledgement>
 
 /**
@@ -124,14 +124,14 @@ export const LicensePostRequest = z.object({
   timeout: z.lazy(() => Duration).describe('The period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   license: LicenseLicense.optional().meta({ found_in: 'body' }),
   licenses: z.array(LicenseLicense).describe('A sequence of one or more JSON documents containing the license information.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'LicensePostRequest' })
 export type LicensePostRequest = z.infer<typeof LicensePostRequest>
 
 export const LicensePostResponse = z.object({
   acknowledge: LicensePostAcknowledgement.optional(),
   acknowledged: z.boolean(),
   license_status: LicenseLicenseStatus
-})
+}).meta({ id: 'LicensePostResponse' })
 export type LicensePostResponse = z.infer<typeof LicensePostResponse>
 
 /**
@@ -150,7 +150,7 @@ export const LicensePostStartBasicRequest = z.object({
   acknowledge: z.boolean().describe('To start a basic license, you must accept the acknowledge messages and set this parameter to `true`.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'LicensePostStartBasicRequest' })
 export type LicensePostStartBasicRequest = z.infer<typeof LicensePostStartBasicRequest>
 
 export const LicensePostStartBasicResponse = z.object({
@@ -159,7 +159,7 @@ export const LicensePostStartBasicResponse = z.object({
   error_message: z.string().optional(),
   type: LicenseLicenseType.optional(),
   acknowledge: z.record(z.string(), z.union([z.string(), z.array(z.string())])).optional()
-})
+}).meta({ id: 'LicensePostStartBasicResponse' })
 export type LicensePostStartBasicResponse = z.infer<typeof LicensePostStartBasicResponse>
 
 /**
@@ -176,7 +176,7 @@ export const LicensePostStartTrialRequest = z.object({
   acknowledge: z.boolean().describe('To start a trial, you must accept the acknowledge messages and set this parameter to `true`.').optional().meta({ found_in: 'query' }),
   type: z.string().describe('The type of trial license to generate').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'LicensePostStartTrialRequest' })
 export type LicensePostStartTrialRequest = z.infer<typeof LicensePostStartTrialRequest>
 
 export const LicensePostStartTrialResponse = z.object({
@@ -184,5 +184,5 @@ export const LicensePostStartTrialResponse = z.object({
   error_message: z.string().optional(),
   trial_was_started: z.boolean(),
   type: LicenseLicenseType.optional()
-})
+}).meta({ id: 'LicensePostStartTrialResponse' })
 export type LicensePostStartTrialResponse = z.infer<typeof LicensePostStartTrialResponse>

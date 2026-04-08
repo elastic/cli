@@ -3,48 +3,48 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { ReindexDestination, ReindexSource } from './_global.ts'
-import { AcknowledgedResponseBase, AggregationsAggregationContainer, AggregationsDateHistogramAggregation, AggregationsGeoTileGridAggregation, AggregationsHistogramAggregation, AggregationsTermsAggregation, DateTime, Duration, DurationValue, EpochTime, Field, HealthStatus, Id, IndexName, Indices, MappingRuntimeFields, Metadata, Name, Names, NodeAttributes, ProjectRouting, QueryDslQueryContainer, VersionString, double, float, integer, long } from './_types.ts'
+import { AcknowledgedResponseBase, AggregationsAggregationContainer, AggregationsDateHistogramAggregation, AggregationsGeoTileGridAggregation, AggregationsHistogramAggregation, AggregationsTermsAggregation, DateTime, Duration, DurationValue, EpochTime, Field, HealthStatus, Id, IndexName, Indices, MappingRuntimeFields, Metadata, Name, Names, QueryDslQueryContainer, VersionString, double, float, integer, long } from './_types.ts'
 import { IndicesIndexState } from './indices.ts'
 import { MlTransformAuthorization } from './ml.ts'
 
 export const TransformDestination = z.object({
   index: z.lazy(() => IndexName).describe('The destination index for the transform. The mappings of the destination index are deduced based on the source fields when possible. If alternate mappings are required, use the create index API prior to starting the transform.').optional(),
   pipeline: z.string().describe('The unique identifier for an ingest pipeline.').optional()
-})
+}).meta({ id: 'TransformDestination' })
 export type TransformDestination = z.infer<typeof TransformDestination>
 
 export const TransformLatest = z.object({
   sort: z.lazy(() => Field).describe('Specifies the date field that is used to identify the latest documents.'),
   unique_key: z.array(z.lazy(() => Field)).describe('Specifies an array of one or more fields that are used to group the data.')
-})
+}).meta({ id: 'TransformLatest' })
 export type TransformLatest = z.infer<typeof TransformLatest>
 
 const TransformPivotGroupByContainerExclusiveProps = z.union([z.object({ date_histogram: z.lazy(() => AggregationsDateHistogramAggregation) }), z.object({ geotile_grid: AggregationsGeoTileGridAggregation }), z.object({ histogram: z.lazy(() => AggregationsHistogramAggregation) }), z.object({ terms: z.lazy(() => AggregationsTermsAggregation) })])
 
-export const TransformPivotGroupByContainer = TransformPivotGroupByContainerExclusiveProps
+export const TransformPivotGroupByContainer = TransformPivotGroupByContainerExclusiveProps.meta({ id: 'TransformPivotGroupByContainer' })
 export type TransformPivotGroupByContainer = z.infer<typeof TransformPivotGroupByContainer>
 
 export const TransformPivot = z.object({
   aggregations: z.record(z.string(), z.lazy(() => AggregationsAggregationContainer)).describe('Defines how to aggregate the grouped data. The following aggregations are currently supported: average, bucket script, bucket selector, cardinality, filter, geo bounds, geo centroid, geo line, max, median absolute deviation, min, missing, percentiles, rare terms, scripted metric, stats, sum, terms, top metrics, value count, weighted average.').optional(),
   aggs: z.record(z.string(), z.lazy(() => AggregationsAggregationContainer)).describe('Defines how to aggregate the grouped data. The following aggregations are currently supported: average, bucket script, bucket selector, cardinality, filter, geo bounds, geo centroid, geo line, max, median absolute deviation, min, missing, percentiles, rare terms, scripted metric, stats, sum, terms, top metrics, value count, weighted average.').optional(),
   group_by: z.record(z.string(), TransformPivotGroupByContainer).describe('Defines how to group the data. More than one grouping can be defined per pivot. The following groupings are currently supported: date histogram, geotile grid, histogram, terms.').optional()
-})
+}).meta({ id: 'TransformPivot' })
 export type TransformPivot = z.infer<typeof TransformPivot>
 
 export const TransformRetentionPolicy = z.object({
   field: z.lazy(() => Field).describe('The date field that is used to calculate the age of the document.'),
   max_age: z.lazy(() => Duration).describe('Specifies the maximum age of a document in the destination index. Documents that are older than the configured value are removed from the destination index.')
-})
+}).meta({ id: 'TransformRetentionPolicy' })
 export type TransformRetentionPolicy = z.infer<typeof TransformRetentionPolicy>
 
 const TransformRetentionPolicyContainerExclusiveProps = z.union([z.object({ time: TransformRetentionPolicy })])
 
-export const TransformRetentionPolicyContainer = TransformRetentionPolicyContainerExclusiveProps
+export const TransformRetentionPolicyContainer = TransformRetentionPolicyContainerExclusiveProps.meta({ id: 'TransformRetentionPolicyContainer' })
 export type TransformRetentionPolicyContainer = z.infer<typeof TransformRetentionPolicyContainer>
 
 /** The source of the data for the transform. */
@@ -57,25 +57,25 @@ export const TransformSettings = z.object({
   use_point_in_time: z.boolean().describe('Specifies whether the transform checkpoint will use the Point In Time API while searching over the source index. In general, Point In Time is an optimization that will reduce pressure on the source index by reducing the amount of refreshes and merges, but it can be expensive if a large number of Point In Times are opened and closed for a given index. The benefits and impact depend on the data being searched, the ingest rate into the source index, and the amount of other consumers searching the same source index.').optional(),
   num_failure_retries: z.lazy(() => integer).describe('Defines the number of retries on a recoverable failure before the transform task is marked as `failed`. The minimum value is `0` and the maximum is `100`, where `-1` indicates that the transform retries indefinitely. If unset, the cluster-level setting `num_transform_failure_retries` is used. This setting cannot be specified when `unattended` is `true`, because unattended transforms always retry indefinitely.').optional(),
   unattended: z.boolean().describe('If `true`, the transform runs in unattended mode. In unattended mode, the transform retries indefinitely in case of an error which means the transform never fails. Setting the number of retries other than infinite fails in validation.').optional()
-})
+}).meta({ id: 'TransformSettings' })
 export type TransformSettings = z.infer<typeof TransformSettings>
 
 export const TransformSource = z.object({
   index: z.lazy(() => Indices).describe('The source indices for the transform. It can be a single index, an index pattern (for example, `"my-index-*""`), an array of indices (for example, `["my-index-000001", "my-index-000002"]`), or an array of index patterns (for example, `["my-index-*", "my-other-index-*"]`. For remote indices use the syntax `"remote_name:index_name"`. If any indices are in remote clusters then the master node and at least one transform node must have the `remote_cluster_client` node role.'),
   query: z.lazy(() => QueryDslQueryContainer).describe('A query clause that retrieves a subset of data from the source index.').optional(),
   runtime_mappings: z.lazy(() => MappingRuntimeFields).describe('Definitions of search-time runtime fields that can be used by the transform. For search runtime fields all data nodes, including remote nodes, must be 7.12 or later.').optional()
-})
+}).meta({ id: 'TransformSource' })
 export type TransformSource = z.infer<typeof TransformSource>
 
 export const TransformTimeSync = z.object({
   delay: z.lazy(() => Duration).describe('The time delay between the current time and the latest input data time.').optional(),
   field: z.lazy(() => Field).describe('The date field that is used to identify new documents in the source. In general, it’s a good idea to use a field that contains the ingest timestamp. If you use a different field, you might need to set the delay such that it accounts for data transmission delays.')
-})
+}).meta({ id: 'TransformTimeSync' })
 export type TransformTimeSync = z.infer<typeof TransformTimeSync>
 
 const TransformSyncContainerExclusiveProps = z.union([z.object({ time: TransformTimeSync })])
 
-export const TransformSyncContainer = TransformSyncContainerExclusiveProps
+export const TransformSyncContainer = TransformSyncContainerExclusiveProps.meta({ id: 'TransformSyncContainer' })
 export type TransformSyncContainer = z.infer<typeof TransformSyncContainer>
 
 /** Delete a transform. */
@@ -84,10 +84,10 @@ export const TransformDeleteTransformRequest = z.object({
   force: z.boolean().describe('If this value is false, the transform must be stopped before it can be deleted. If true, the transform is deleted regardless of its current state.').optional().meta({ found_in: 'query' }),
   delete_dest_index: z.boolean().describe('If this value is true, the destination index is deleted together with the transform. If false, the destination index will not be deleted').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'TransformDeleteTransformRequest' })
 export type TransformDeleteTransformRequest = z.infer<typeof TransformDeleteTransformRequest>
 
-export const TransformDeleteTransformResponse = z.lazy(() => AcknowledgedResponseBase)
+export const TransformDeleteTransformResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'TransformDeleteTransformResponse' })
 export type TransformDeleteTransformResponse = z.infer<typeof TransformDeleteTransformResponse>
 
 /**
@@ -96,26 +96,26 @@ export type TransformDeleteTransformResponse = z.infer<typeof TransformDeleteTra
  * Get per-node information about transform usage.
  */
 export const TransformGetNodeStatsRequest = z.object({
-})
+}).meta({ id: 'TransformGetNodeStatsRequest' })
 export type TransformGetNodeStatsRequest = z.infer<typeof TransformGetNodeStatsRequest>
 
 export const TransformGetNodeStatsTransformSchedulerStats = z.object({
   registered_transform_count: z.lazy(() => integer),
   peek_transform: z.string().optional()
-})
+}).meta({ id: 'TransformGetNodeStatsTransformSchedulerStats' })
 export type TransformGetNodeStatsTransformSchedulerStats = z.infer<typeof TransformGetNodeStatsTransformSchedulerStats>
 
 export const TransformGetNodeStatsTransformNodeStats = z.object({
   scheduler: TransformGetNodeStatsTransformSchedulerStats
-})
+}).meta({ id: 'TransformGetNodeStatsTransformNodeStats' })
 export type TransformGetNodeStatsTransformNodeStats = z.infer<typeof TransformGetNodeStatsTransformNodeStats>
 
 export const TransformGetNodeStatsTransformNodeFullStats = z.object({
   total: TransformGetNodeStatsTransformNodeStats
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'TransformGetNodeStatsTransformNodeFullStats' })
 export type TransformGetNodeStatsTransformNodeFullStats = z.infer<typeof TransformGetNodeStatsTransformNodeFullStats>
 
-export const TransformGetNodeStatsResponse = TransformGetNodeStatsTransformNodeFullStats
+export const TransformGetNodeStatsResponse = TransformGetNodeStatsTransformNodeFullStats.meta({ id: 'TransformGetNodeStatsResponse' })
 export type TransformGetNodeStatsResponse = z.infer<typeof TransformGetNodeStatsResponse>
 
 /**
@@ -129,7 +129,7 @@ export const TransformGetTransformRequest = z.object({
   from: z.lazy(() => integer).describe('Skips the specified number of transforms.').optional().meta({ found_in: 'query' }),
   size: z.lazy(() => integer).describe('Specifies the maximum number of transforms to obtain.').optional().meta({ found_in: 'query' }),
   exclude_generated: z.boolean().describe('Excludes fields that were automatically added when creating the transform. This allows the configuration to be in an acceptable format to be retrieved and then added to another cluster.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'TransformGetTransformRequest' })
 export type TransformGetTransformRequest = z.infer<typeof TransformGetTransformRequest>
 
 export const TransformGetTransformTransformSummary = z.object({
@@ -148,13 +148,13 @@ export const TransformGetTransformTransformSummary = z.object({
   sync: TransformSyncContainer.describe('Defines the properties transforms require to run continuously.').optional(),
   version: z.lazy(() => VersionString).describe('The version of Elasticsearch that existed on the node when the transform was created.').optional(),
   _meta: z.lazy(() => Metadata).optional()
-})
+}).meta({ id: 'TransformGetTransformTransformSummary' })
 export type TransformGetTransformTransformSummary = z.infer<typeof TransformGetTransformTransformSummary>
 
 export const TransformGetTransformResponse = z.object({
   count: z.lazy(() => long),
   transforms: z.array(TransformGetTransformTransformSummary)
-})
+}).meta({ id: 'TransformGetTransformResponse' })
 export type TransformGetTransformResponse = z.infer<typeof TransformGetTransformResponse>
 
 export const TransformGetTransformStatsTransformProgress = z.object({
@@ -163,7 +163,7 @@ export const TransformGetTransformStatsTransformProgress = z.object({
   docs_remaining: z.lazy(() => long).optional(),
   percent_complete: z.lazy(() => double).optional(),
   total_docs: z.lazy(() => long).optional()
-})
+}).meta({ id: 'TransformGetTransformStatsTransformProgress' })
 export type TransformGetTransformStatsTransformProgress = z.infer<typeof TransformGetTransformStatsTransformProgress>
 
 export const TransformGetTransformStatsCheckpointStats = z.object({
@@ -173,7 +173,7 @@ export const TransformGetTransformStatsCheckpointStats = z.object({
   timestamp_millis: z.lazy(() => EpochTime).optional(),
   time_upper_bound: z.lazy(() => DateTime).optional(),
   time_upper_bound_millis: z.lazy(() => EpochTime).optional()
-})
+}).meta({ id: 'TransformGetTransformStatsCheckpointStats' })
 export type TransformGetTransformStatsCheckpointStats = z.infer<typeof TransformGetTransformStatsCheckpointStats>
 
 export const TransformGetTransformStatsCheckpointing = z.object({
@@ -184,7 +184,7 @@ export const TransformGetTransformStatsCheckpointing = z.object({
   operations_behind: z.lazy(() => long).optional(),
   last_search_time: z.lazy(() => long).optional(),
   last_search_time_string: z.lazy(() => DateTime).optional()
-})
+}).meta({ id: 'TransformGetTransformStatsCheckpointing' })
 export type TransformGetTransformStatsCheckpointing = z.infer<typeof TransformGetTransformStatsCheckpointing>
 
 /**
@@ -198,7 +198,7 @@ export const TransformGetTransformStatsRequest = z.object({
   from: z.lazy(() => long).describe('Skips the specified number of transforms.').optional().meta({ found_in: 'query' }),
   size: z.lazy(() => long).describe('Specifies the maximum number of transforms to obtain.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Controls the time to wait for the stats').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'TransformGetTransformStatsRequest' })
 export type TransformGetTransformStatsRequest = z.infer<typeof TransformGetTransformStatsRequest>
 
 export const TransformGetTransformStatsTransformHealthIssue = z.object({
@@ -208,13 +208,13 @@ export const TransformGetTransformStatsTransformHealthIssue = z.object({
   count: z.lazy(() => integer).describe('Number of times this issue has occurred since it started'),
   first_occurrence: z.lazy(() => EpochTime).describe('The timestamp this issue occurred for for the first time').optional(),
   first_occurence_string: z.lazy(() => DateTime).optional()
-})
+}).meta({ id: 'TransformGetTransformStatsTransformHealthIssue' })
 export type TransformGetTransformStatsTransformHealthIssue = z.infer<typeof TransformGetTransformStatsTransformHealthIssue>
 
 export const TransformGetTransformStatsTransformStatsHealth = z.object({
   status: z.lazy(() => HealthStatus),
   issues: z.array(TransformGetTransformStatsTransformHealthIssue).describe('If a non-healthy status is returned, contains a list of issues of the transform.').optional()
-})
+}).meta({ id: 'TransformGetTransformStatsTransformStatsHealth' })
 export type TransformGetTransformStatsTransformStatsHealth = z.infer<typeof TransformGetTransformStatsTransformStatsHealth>
 
 export const TransformGetTransformStatsTransformIndexerStats = z.object({
@@ -235,7 +235,7 @@ export const TransformGetTransformStatsTransformIndexerStats = z.object({
   search_time_in_ms: z.lazy(() => DurationValue),
   search_total: z.lazy(() => long),
   trigger_count: z.lazy(() => long)
-})
+}).meta({ id: 'TransformGetTransformStatsTransformIndexerStats' })
 export type TransformGetTransformStatsTransformIndexerStats = z.infer<typeof TransformGetTransformStatsTransformIndexerStats>
 
 export const TransformGetTransformStatsTransformStats = z.object({
@@ -245,13 +245,13 @@ export const TransformGetTransformStatsTransformStats = z.object({
   reason: z.string().optional(),
   state: z.string(),
   stats: TransformGetTransformStatsTransformIndexerStats
-})
+}).meta({ id: 'TransformGetTransformStatsTransformStats' })
 export type TransformGetTransformStatsTransformStats = z.infer<typeof TransformGetTransformStatsTransformStats>
 
 export const TransformGetTransformStatsResponse = z.object({
   count: z.lazy(() => long),
   transforms: z.array(TransformGetTransformStatsTransformStats)
-})
+}).meta({ id: 'TransformGetTransformStatsResponse' })
 export type TransformGetTransformStatsResponse = z.infer<typeof TransformGetTransformStatsResponse>
 
 /**
@@ -275,13 +275,13 @@ export const TransformPreviewTransformRequest = z.object({
   sync: TransformSyncContainer.describe('Defines the properties transforms require to run continuously.').optional().meta({ found_in: 'body' }),
   retention_policy: TransformRetentionPolicyContainer.describe('Defines a retention policy for the transform. Data that meets the defined criteria is deleted from the destination index.').optional().meta({ found_in: 'body' }),
   latest: TransformLatest.describe('The latest method transforms the data by finding the latest document for each unique key.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'TransformPreviewTransformRequest' })
 export type TransformPreviewTransformRequest = z.infer<typeof TransformPreviewTransformRequest>
 
 export const TransformPreviewTransformResponse = z.object({
   generated_dest_index: IndicesIndexState,
   preview: z.array(z.any())
-})
+}).meta({ id: 'TransformPreviewTransformResponse' })
 export type TransformPreviewTransformResponse = z.infer<typeof TransformPreviewTransformResponse>
 
 /**
@@ -323,10 +323,10 @@ export const TransformPutTransformRequest = z.object({
   settings: TransformSettings.describe('Defines optional transform settings.').optional().meta({ found_in: 'body' }),
   source: TransformSource.describe('The source of the data for the transform.').meta({ found_in: 'body' }),
   sync: TransformSyncContainer.describe('Defines the properties transforms require to run continuously.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'TransformPutTransformRequest' })
 export type TransformPutTransformRequest = z.infer<typeof TransformPutTransformRequest>
 
-export const TransformPutTransformResponse = z.lazy(() => AcknowledgedResponseBase)
+export const TransformPutTransformResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'TransformPutTransformResponse' })
 export type TransformPutTransformResponse = z.infer<typeof TransformPutTransformResponse>
 
 /**
@@ -339,10 +339,10 @@ export const TransformResetTransformRequest = z.object({
   transform_id: z.lazy(() => Id).describe('Identifier for the transform. This identifier can contain lowercase alphanumeric characters (a-z and 0-9), hyphens, and underscores. It has a 64 character limit and must start and end with alphanumeric characters.').meta({ found_in: 'path' }),
   force: z.boolean().describe('If this value is `true`, the transform is reset regardless of its current state. If it\'s `false`, the transform must be stopped before it can be reset.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'TransformResetTransformRequest' })
 export type TransformResetTransformRequest = z.infer<typeof TransformResetTransformRequest>
 
-export const TransformResetTransformResponse = z.lazy(() => AcknowledgedResponseBase)
+export const TransformResetTransformResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'TransformResetTransformResponse' })
 export type TransformResetTransformResponse = z.infer<typeof TransformResetTransformResponse>
 
 /**
@@ -357,10 +357,10 @@ export type TransformResetTransformResponse = z.infer<typeof TransformResetTrans
 export const TransformScheduleNowTransformRequest = z.object({
   transform_id: z.lazy(() => Id).describe('Identifier for the transform.').meta({ found_in: 'path' }),
   timeout: z.lazy(() => Duration).describe('Controls the time to wait for the scheduling to take place').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'TransformScheduleNowTransformRequest' })
 export type TransformScheduleNowTransformRequest = z.infer<typeof TransformScheduleNowTransformRequest>
 
-export const TransformScheduleNowTransformResponse = z.lazy(() => AcknowledgedResponseBase)
+export const TransformScheduleNowTransformResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'TransformScheduleNowTransformResponse' })
 export type TransformScheduleNowTransformResponse = z.infer<typeof TransformScheduleNowTransformResponse>
 
 /**
@@ -382,10 +382,10 @@ export type TransformScheduleNowTransformResponse = z.infer<typeof TransformSche
 export const TransformSetUpgradeModeRequest = z.object({
   enabled: z.boolean().describe('When `true`, it enables `upgrade_mode` which temporarily halts all transform tasks and prohibits new transform tasks from starting.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('The time to wait for the request to be completed.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'TransformSetUpgradeModeRequest' })
 export type TransformSetUpgradeModeRequest = z.infer<typeof TransformSetUpgradeModeRequest>
 
-export const TransformSetUpgradeModeResponse = z.lazy(() => AcknowledgedResponseBase)
+export const TransformSetUpgradeModeResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'TransformSetUpgradeModeResponse' })
 export type TransformSetUpgradeModeResponse = z.infer<typeof TransformSetUpgradeModeResponse>
 
 /**
@@ -410,10 +410,10 @@ export const TransformStartTransformRequest = z.object({
   transform_id: z.lazy(() => Id).describe('Identifier for the transform.').meta({ found_in: 'path' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   from: z.string().describe('Restricts the set of transformed entities to those changed after this time. Relative times like now-30d are supported. Only applicable for continuous transforms.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'TransformStartTransformRequest' })
 export type TransformStartTransformRequest = z.infer<typeof TransformStartTransformRequest>
 
-export const TransformStartTransformResponse = z.lazy(() => AcknowledgedResponseBase)
+export const TransformStartTransformResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'TransformStartTransformResponse' })
 export type TransformStartTransformResponse = z.infer<typeof TransformStartTransformResponse>
 
 /**
@@ -428,10 +428,10 @@ export const TransformStopTransformRequest = z.object({
   timeout: z.lazy(() => Duration).describe('Period to wait for a response when `wait_for_completion` is `true`. If no response is received before the timeout expires, the request returns a timeout exception. However, the request continues processing and eventually moves the transform to a STOPPED state.').optional().meta({ found_in: 'query' }),
   wait_for_checkpoint: z.boolean().describe('If it is true, the transform does not completely stop until the current checkpoint is completed. If it is false, the transform stops as soon as possible.').optional().meta({ found_in: 'query' }),
   wait_for_completion: z.boolean().describe('If it is true, the API blocks until the indexer state completely stops. If it is false, the API returns immediately and the indexer is stopped asynchronously in the background.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'TransformStopTransformRequest' })
 export type TransformStopTransformRequest = z.infer<typeof TransformStopTransformRequest>
 
-export const TransformStopTransformResponse = z.lazy(() => AcknowledgedResponseBase)
+export const TransformStopTransformResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'TransformStopTransformResponse' })
 export type TransformStopTransformResponse = z.infer<typeof TransformStopTransformResponse>
 
 /**
@@ -457,7 +457,7 @@ export const TransformUpdateTransformRequest = z.object({
   settings: TransformSettings.describe('Defines optional transform settings.').optional().meta({ found_in: 'body' }),
   sync: TransformSyncContainer.describe('Defines the properties transforms require to run continuously.').optional().meta({ found_in: 'body' }),
   retention_policy: z.union([TransformRetentionPolicyContainer, z.null()]).describe('Defines a retention policy for the transform. Data that meets the defined criteria is deleted from the destination index.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'TransformUpdateTransformRequest' })
 export type TransformUpdateTransformRequest = z.infer<typeof TransformUpdateTransformRequest>
 
 export const TransformUpdateTransformResponse = z.object({
@@ -475,7 +475,7 @@ export const TransformUpdateTransformResponse = z.object({
   sync: TransformSyncContainer.optional(),
   version: z.lazy(() => VersionString),
   _meta: z.lazy(() => Metadata).optional()
-})
+}).meta({ id: 'TransformUpdateTransformResponse' })
 export type TransformUpdateTransformResponse = z.infer<typeof TransformUpdateTransformResponse>
 
 /**
@@ -498,12 +498,12 @@ export type TransformUpdateTransformResponse = z.infer<typeof TransformUpdateTra
 export const TransformUpgradeTransformsRequest = z.object({
   dry_run: z.boolean().describe('When true, the request checks for updates but does not run them.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'TransformUpgradeTransformsRequest' })
 export type TransformUpgradeTransformsRequest = z.infer<typeof TransformUpgradeTransformsRequest>
 
 export const TransformUpgradeTransformsResponse = z.object({
   needs_update: z.lazy(() => integer).describe('The number of transforms that need to be upgraded.'),
   no_action: z.lazy(() => integer).describe('The number of transforms that don’t require upgrading.'),
   updated: z.lazy(() => integer).describe('The number of transforms that have been upgraded.')
-})
+}).meta({ id: 'TransformUpgradeTransformsResponse' })
 export type TransformUpgradeTransformsResponse = z.infer<typeof TransformUpgradeTransformsResponse>

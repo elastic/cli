@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { AcknowledgedResponseBase, Duration, EpochTime, Ids, Uuid } from './_types.ts'
@@ -20,10 +20,10 @@ export const DanglingIndicesDeleteDanglingIndexRequest = z.object({
   accept_data_loss: z.boolean().describe('This parameter must be set to true to acknowledge that it will no longer be possible to recove data from the dangling index.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('The period to wait for a response.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'DanglingIndicesDeleteDanglingIndexRequest' })
 export type DanglingIndicesDeleteDanglingIndexRequest = z.infer<typeof DanglingIndicesDeleteDanglingIndexRequest>
 
-export const DanglingIndicesDeleteDanglingIndexResponse = z.lazy(() => AcknowledgedResponseBase)
+export const DanglingIndicesDeleteDanglingIndexResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'DanglingIndicesDeleteDanglingIndexResponse' })
 export type DanglingIndicesDeleteDanglingIndexResponse = z.infer<typeof DanglingIndicesDeleteDanglingIndexResponse>
 
 /**
@@ -37,10 +37,10 @@ export const DanglingIndicesImportDanglingIndexRequest = z.object({
   accept_data_loss: z.boolean().describe('This parameter must be set to true to import a dangling index. Because Elasticsearch cannot know where the dangling index data came from or determine which shard copies are fresh and which are stale, it cannot guarantee that the imported data represents the latest state of the index when it was last in the cluster.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('The period to wait for a response.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'DanglingIndicesImportDanglingIndexRequest' })
 export type DanglingIndicesImportDanglingIndexRequest = z.infer<typeof DanglingIndicesImportDanglingIndexRequest>
 
-export const DanglingIndicesImportDanglingIndexResponse = z.lazy(() => AcknowledgedResponseBase)
+export const DanglingIndicesImportDanglingIndexResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'DanglingIndicesImportDanglingIndexResponse' })
 export type DanglingIndicesImportDanglingIndexResponse = z.infer<typeof DanglingIndicesImportDanglingIndexResponse>
 
 export const DanglingIndicesListDanglingIndicesDanglingIndex = z.object({
@@ -48,7 +48,7 @@ export const DanglingIndicesListDanglingIndicesDanglingIndex = z.object({
   index_uuid: z.string(),
   creation_date_millis: z.lazy(() => EpochTime),
   node_ids: z.lazy(() => Ids)
-})
+}).meta({ id: 'DanglingIndicesListDanglingIndicesDanglingIndex' })
 export type DanglingIndicesListDanglingIndicesDanglingIndex = z.infer<typeof DanglingIndicesListDanglingIndicesDanglingIndex>
 
 /**
@@ -60,10 +60,10 @@ export type DanglingIndicesListDanglingIndicesDanglingIndex = z.infer<typeof Dan
  * Use this API to list dangling indices, which you can then import or delete.
  */
 export const DanglingIndicesListDanglingIndicesRequest = z.object({
-})
+}).meta({ id: 'DanglingIndicesListDanglingIndicesRequest' })
 export type DanglingIndicesListDanglingIndicesRequest = z.infer<typeof DanglingIndicesListDanglingIndicesRequest>
 
 export const DanglingIndicesListDanglingIndicesResponse = z.object({
   dangling_indices: z.array(DanglingIndicesListDanglingIndicesDanglingIndex)
-})
+}).meta({ id: 'DanglingIndicesListDanglingIndicesResponse' })
 export type DanglingIndicesListDanglingIndicesResponse = z.infer<typeof DanglingIndicesListDanglingIndicesResponse>

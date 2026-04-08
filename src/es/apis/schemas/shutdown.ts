@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { AcknowledgedResponseBase, Duration, EpochTime, NodeId, NodeIds } from './_types.ts'
 
-export const ShutdownType = z.enum(['restart', 'remove', 'replace'])
+export const ShutdownType = z.enum(['restart', 'remove', 'replace']).meta({ id: 'ShutdownType' })
 export type ShutdownType = z.infer<typeof ShutdownType>
 
 /**
@@ -28,31 +28,31 @@ export const ShutdownDeleteNodeRequest = z.object({
   node_id: z.lazy(() => NodeId).describe('The node id of node to be removed from the shutdown state').meta({ found_in: 'path' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ShutdownDeleteNodeRequest' })
 export type ShutdownDeleteNodeRequest = z.infer<typeof ShutdownDeleteNodeRequest>
 
-export const ShutdownDeleteNodeResponse = z.lazy(() => AcknowledgedResponseBase)
+export const ShutdownDeleteNodeResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'ShutdownDeleteNodeResponse' })
 export type ShutdownDeleteNodeResponse = z.infer<typeof ShutdownDeleteNodeResponse>
 
-export const ShutdownGetNodeShutdownType = z.enum(['remove', 'restart'])
+export const ShutdownGetNodeShutdownType = z.enum(['remove', 'restart']).meta({ id: 'ShutdownGetNodeShutdownType' })
 export type ShutdownGetNodeShutdownType = z.infer<typeof ShutdownGetNodeShutdownType>
 
-export const ShutdownGetNodeShutdownStatus = z.enum(['not_started', 'in_progress', 'stalled', 'complete'])
+export const ShutdownGetNodeShutdownStatus = z.enum(['not_started', 'in_progress', 'stalled', 'complete']).meta({ id: 'ShutdownGetNodeShutdownStatus' })
 export type ShutdownGetNodeShutdownStatus = z.infer<typeof ShutdownGetNodeShutdownStatus>
 
 export const ShutdownGetNodeShardMigrationStatus = z.object({
   status: ShutdownGetNodeShutdownStatus
-})
+}).meta({ id: 'ShutdownGetNodeShardMigrationStatus' })
 export type ShutdownGetNodeShardMigrationStatus = z.infer<typeof ShutdownGetNodeShardMigrationStatus>
 
 export const ShutdownGetNodePersistentTaskStatus = z.object({
   status: ShutdownGetNodeShutdownStatus
-})
+}).meta({ id: 'ShutdownGetNodePersistentTaskStatus' })
 export type ShutdownGetNodePersistentTaskStatus = z.infer<typeof ShutdownGetNodePersistentTaskStatus>
 
 export const ShutdownGetNodePluginsStatus = z.object({
   status: ShutdownGetNodeShutdownStatus
-})
+}).meta({ id: 'ShutdownGetNodePluginsStatus' })
 export type ShutdownGetNodePluginsStatus = z.infer<typeof ShutdownGetNodePluginsStatus>
 
 export const ShutdownGetNodeNodeShutdownStatus = z.object({
@@ -64,7 +64,7 @@ export const ShutdownGetNodeNodeShutdownStatus = z.object({
   shard_migration: ShutdownGetNodeShardMigrationStatus,
   persistent_tasks: ShutdownGetNodePersistentTaskStatus,
   plugins: ShutdownGetNodePluginsStatus
-})
+}).meta({ id: 'ShutdownGetNodeNodeShutdownStatus' })
 export type ShutdownGetNodeNodeShutdownStatus = z.infer<typeof ShutdownGetNodeNodeShutdownStatus>
 
 /**
@@ -80,12 +80,12 @@ export type ShutdownGetNodeNodeShutdownStatus = z.infer<typeof ShutdownGetNodeNo
 export const ShutdownGetNodeRequest = z.object({
   node_id: z.lazy(() => NodeIds).describe('Comma-separated list of nodes for which to retrieve the shutdown status').optional().meta({ found_in: 'path' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ShutdownGetNodeRequest' })
 export type ShutdownGetNodeRequest = z.infer<typeof ShutdownGetNodeRequest>
 
 export const ShutdownGetNodeResponse = z.object({
   nodes: z.array(ShutdownGetNodeNodeShutdownStatus)
-})
+}).meta({ id: 'ShutdownGetNodeResponse' })
 export type ShutdownGetNodeResponse = z.infer<typeof ShutdownGetNodeResponse>
 
 /**
@@ -114,8 +114,8 @@ export const ShutdownPutNodeRequest = z.object({
   reason: z.string().describe('A human-readable reason that the node is being shut down. This field provides information for other cluster operators; it does not affect the shut down process.').meta({ found_in: 'body' }),
   allocation_delay: z.string().describe('Only valid if type is restart. Controls how long Elasticsearch will wait for the node to restart and join the cluster before reassigning its shards to other nodes. This works the same as delaying allocation with the index.unassigned.node_left.delayed_timeout setting. If you specify both a restart allocation delay and an index-level allocation delay, the longer of the two is used.').optional().meta({ found_in: 'body' }),
   target_node_name: z.string().describe('Only valid if type is replace. Specifies the name of the node that is replacing the node being shut down. Shards from the shut down node are only allowed to be allocated to the target node, and no other data will be allocated to the target node. During relocation of data certain allocation rules are ignored, such as disk watermarks or user attribute filtering rules.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ShutdownPutNodeRequest' })
 export type ShutdownPutNodeRequest = z.infer<typeof ShutdownPutNodeRequest>
 
-export const ShutdownPutNodeResponse = z.lazy(() => AcknowledgedResponseBase)
+export const ShutdownPutNodeResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'ShutdownPutNodeResponse' })
 export type ShutdownPutNodeResponse = z.infer<typeof ShutdownPutNodeResponse>

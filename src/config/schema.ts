@@ -20,13 +20,13 @@ import { z } from 'zod'
 
 /** API key authentication credentials. Auth type is inferred from the presence of `api_key`. */
 export const ApiKeyAuthSchema = z.looseObject({
-  api_key: z.string().min(1),
+  api_key: z.string().min(1)
 })
 
 /** Basic (username + password) authentication credentials. Auth type is inferred from the presence of `username` and `password`. */
 export const BasicAuthSchema = z.looseObject({
   username: z.string().min(1),
-  password: z.string().min(1),
+  password: z.string().min(1)
 })
 
 /** Union of all supported auth variants — type is inferred from whichever fields are present. */
@@ -35,7 +35,7 @@ export const AuthSchema = z.union([ApiKeyAuthSchema, BasicAuthSchema])
 /** Endpoint URL and authentication credentials for a single service. */
 export const ServiceBlockSchema = z.looseObject({
   url: z.string().min(1),
-  auth: AuthSchema,
+  auth: AuthSchema
 })
 
 /** A context value: optional service blocks with at least one present. */
@@ -43,23 +43,23 @@ export const ContextSchema = z
   .looseObject({
     elasticsearch: ServiceBlockSchema.optional(),
     kibana: ServiceBlockSchema.optional(),
-    cloud: ServiceBlockSchema.optional(),
+    cloud: ServiceBlockSchema.optional()
   })
   .refine(
     (ctx) => ctx.elasticsearch != null || ctx.kibana != null || ctx.cloud != null,
-    { error: 'at least one service block (elasticsearch, kibana, or cloud) is required' },
+    { error: 'at least one service block (elasticsearch, kibana, or cloud) is required' }
   )
 
 /** The root configuration file structure. */
 export const ConfigFileSchema = z
   .looseObject({
-    'current_context': z.string().min(1),
+    current_context: z.string().min(1),
     contexts: z.record(z.string(), ContextSchema).refine(
       (map) => Object.keys(map).length > 0,
-      { error: 'contexts must contain at least one entry' },
-    ),
+      { error: 'contexts must contain at least one entry' }
+    )
   })
   .refine(
-    (cfg) => cfg['current_context'] in cfg.contexts,
-    { error: 'current_context must reference an existing context key' },
+    (cfg) => cfg.current_context in cfg.contexts,
+    { error: 'current_context must reference an existing context key' }
   )

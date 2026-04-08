@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { BulkFailureStoreStatus, SearchFieldCollapse, SearchHighlight, SearchHitsMetadata, SearchInnerHits, SearchRescore, SearchSearchRequestBody, SearchSourceConfig } from './_global.ts'
@@ -15,81 +15,81 @@ import { IndicesFielddataFrequencyFilter, IndicesNumericFielddata, IndicesStatsS
 import { MlClassificationInferenceOptions, MlRegressionInferenceOptions } from './ml.ts'
 import { WatcherSearchInputRequestDefinition } from './watcher.ts'
 
-export const Id = z.string()
+export const Id = z.string().meta({ id: 'Id' })
 export type Id = z.infer<typeof Id>
 
-export const IndexName = z.string()
+export const IndexName = z.string().meta({ id: 'IndexName' })
 export type IndexName = z.infer<typeof IndexName>
 
-export const long = z.number()
+export const long = z.number().meta({ id: 'long' })
 export type long = z.infer<typeof long>
 
-export const SequenceNumber = z.lazy(() => long)
+export const SequenceNumber = z.lazy(() => long).meta({ id: 'SequenceNumber' })
 export type SequenceNumber = z.infer<typeof SequenceNumber>
 
-export const VersionNumber = z.lazy(() => long)
+export const VersionNumber = z.lazy(() => long).meta({ id: 'VersionNumber' })
 export type VersionNumber = z.infer<typeof VersionNumber>
 
-export const VersionType = z.enum(['internal', 'external', 'external_gte'])
+export const VersionType = z.enum(['internal', 'external', 'external_gte']).meta({ id: 'VersionType' })
 export type VersionType = z.infer<typeof VersionType>
 
-export const integer = z.number()
+export const integer = z.number().meta({ id: 'integer' })
 export type integer = z.infer<typeof integer>
 
 export const RequestBase = z.object({
-})
+}).meta({ id: 'RequestBase' })
 export type RequestBase = z.infer<typeof RequestBase>
 
-export const Refresh = z.union([z.boolean(), z.enum(['true', 'false', 'wait_for'])])
+export const Refresh = z.union([z.boolean(), z.enum(['true', 'false', 'wait_for'])]).meta({ id: 'Refresh' })
 export type Refresh = z.infer<typeof Refresh>
 
 /** Only to be used in query and path parameters, as the array form is actually a csv */
-export const Routing = z.union([z.string(), z.array(z.string())])
+export const Routing = z.union([z.string(), z.array(z.string())]).meta({ id: 'Routing' })
 export type Routing = z.infer<typeof Routing>
 
 /** Path to field or array of paths. Some API's support wildcards in the path to select multiple fields. */
-export const Field = z.string()
+export const Field = z.string().meta({ id: 'Field' })
 export type Field = z.infer<typeof Field>
 
-export const Fields = z.union([z.lazy(() => Field), z.array(z.lazy(() => Field))])
+export const Fields = z.union([z.lazy(() => Field), z.array(z.lazy(() => Field))]).meta({ id: 'Fields' })
 export type Fields = z.infer<typeof Fields>
 
 /**
  * A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and
  * `d` (days). Also accepts "0" without a unit and "-1" to indicate an unspecified value.
  */
-export const Duration = z.union([z.string(), z.literal(-1), z.literal(0)])
+export const Duration = z.union([z.string(), z.literal(-1), z.literal(0)]).meta({ id: 'Duration' })
 export type Duration = z.infer<typeof Duration>
 
-export const WaitForActiveShardOptions = z.enum(['all', 'index-setting'])
+export const WaitForActiveShardOptions = z.enum(['all', 'index-setting']).meta({ id: 'WaitForActiveShardOptions' })
 export type WaitForActiveShardOptions = z.infer<typeof WaitForActiveShardOptions>
 
-export const WaitForActiveShards = z.union([z.lazy(() => integer), WaitForActiveShardOptions])
+export const WaitForActiveShards = z.union([z.lazy(() => integer), WaitForActiveShardOptions]).meta({ id: 'WaitForActiveShards' })
 export type WaitForActiveShards = z.infer<typeof WaitForActiveShards>
 
-export const Metadata = z.record(z.string(), z.any())
+export const Metadata = z.record(z.string(), z.any()).meta({ id: 'Metadata' })
 export type Metadata = z.infer<typeof Metadata>
 
 export const AggregationsAggregation = z.object({
-})
+}).meta({ id: 'AggregationsAggregation' })
 export type AggregationsAggregation = z.infer<typeof AggregationsAggregation>
 
 /** Base type for bucket aggregations. These aggregations also accept sub-aggregations. */
 export const AggregationsBucketAggregationBase = z.object({
-})
+}).meta({ id: 'AggregationsBucketAggregationBase' })
 export type AggregationsBucketAggregationBase = z.infer<typeof AggregationsBucketAggregationBase>
 
-export const float = z.number()
+export const float = z.number().meta({ id: 'float' })
 export type float = z.infer<typeof float>
 
 export const QueryDslQueryBase = z.object({
   boost: z.lazy(() => float).describe('Floating point number used to decrease or increase the relevance scores of the query. Boost values are relative to the default value of 1.0. A boost value between 0 and 1.0 decreases the relevance score. A value greater than 1.0 increases the relevance score.').optional(),
   query_name: z.string().optional()
-})
+}).meta({ id: 'QueryDslQueryBase' })
 export type QueryDslQueryBase = z.infer<typeof QueryDslQueryBase>
 
 /** The minimum number of terms that should match as integer, percentage or range */
-export const MinimumShouldMatch = z.union([z.lazy(() => integer), z.string()])
+export const MinimumShouldMatch = z.union([z.lazy(() => integer), z.string()]).meta({ id: 'MinimumShouldMatch' })
 export type MinimumShouldMatch = z.infer<typeof MinimumShouldMatch>
 
 export interface QueryDslBoolQueryShape {
@@ -109,10 +109,10 @@ export const QueryDslBoolQuery = z.object({
   get must (): z.ZodOptional<z.ZodUnion<readonly [typeof QueryDslQueryContainer, z.ZodArray<typeof QueryDslQueryContainer>]>> { return z.union([QueryDslQueryContainer, QueryDslQueryContainer.array()]).describe('The clause (query) must appear in matching documents and will contribute to the score.').optional() },
   get must_not (): z.ZodOptional<z.ZodUnion<readonly [typeof QueryDslQueryContainer, z.ZodArray<typeof QueryDslQueryContainer>]>> { return z.union([QueryDslQueryContainer, QueryDslQueryContainer.array()]).describe('The clause (query) must not appear in the matching documents. Because scoring is ignored, a score of `0` is returned for all documents.').optional() },
   get should (): z.ZodOptional<z.ZodUnion<readonly [typeof QueryDslQueryContainer, z.ZodArray<typeof QueryDslQueryContainer>]>> { return z.union([QueryDslQueryContainer, QueryDslQueryContainer.array()]).describe('The clause (query) should appear in the matching document.').optional() }
-})
+}).meta({ id: 'QueryDslBoolQuery' })
 export type QueryDslBoolQuery = z.infer<typeof QueryDslBoolQuery>
 
-export const double = z.number()
+export const double = z.number().meta({ id: 'double' })
 export type double = z.infer<typeof double>
 
 export interface QueryDslBoostingQueryShape {
@@ -128,10 +128,10 @@ export const QueryDslBoostingQuery = z.object({
   negative_boost: z.lazy(() => double).describe('Floating point number between 0 and 1.0 used to decrease the relevance scores of documents matching the `negative` query.'),
   get negative () { return QueryDslQueryContainer.describe('Query used to decrease the relevance score of matching documents.') },
   get positive () { return QueryDslQueryContainer.describe('Any returned documents must match this query.') }
-})
+}).meta({ id: 'QueryDslBoostingQuery' })
 export type QueryDslBoostingQuery = z.infer<typeof QueryDslBoostingQuery>
 
-export const QueryDslOperator = z.enum(['and', 'AND', 'or', 'OR'])
+export const QueryDslOperator = z.enum(['and', 'AND', 'or', 'OR']).meta({ id: 'QueryDslOperator' })
 export type QueryDslOperator = z.infer<typeof QueryDslOperator>
 
 export const QueryDslCommonTermsQuery = z.object({
@@ -142,13 +142,13 @@ export const QueryDslCommonTermsQuery = z.object({
   low_freq_operator: z.lazy(() => QueryDslOperator).optional(),
   minimum_should_match: MinimumShouldMatch.optional(),
   query: z.string()
-})
+}).meta({ id: 'QueryDslCommonTermsQuery' })
 export type QueryDslCommonTermsQuery = z.infer<typeof QueryDslCommonTermsQuery>
 
-export const QueryDslCombinedFieldsOperator = z.enum(['or', 'and'])
+export const QueryDslCombinedFieldsOperator = z.enum(['or', 'and']).meta({ id: 'QueryDslCombinedFieldsOperator' })
 export type QueryDslCombinedFieldsOperator = z.infer<typeof QueryDslCombinedFieldsOperator>
 
-export const QueryDslCombinedFieldsZeroTerms = z.enum(['none', 'all'])
+export const QueryDslCombinedFieldsZeroTerms = z.enum(['none', 'all']).meta({ id: 'QueryDslCombinedFieldsZeroTerms' })
 export type QueryDslCombinedFieldsZeroTerms = z.infer<typeof QueryDslCombinedFieldsZeroTerms>
 
 export const QueryDslCombinedFieldsQuery = z.object({
@@ -159,7 +159,7 @@ export const QueryDslCombinedFieldsQuery = z.object({
   operator: QueryDslCombinedFieldsOperator.describe('Boolean logic used to interpret text in the query value.').optional(),
   minimum_should_match: MinimumShouldMatch.describe('Minimum number of clauses that must match for a document to be returned.').optional(),
   zero_terms_query: QueryDslCombinedFieldsZeroTerms.describe('Indicates whether no documents are returned if the analyzer removes all tokens, such as when using a `stop` filter.').optional()
-})
+}).meta({ id: 'QueryDslCombinedFieldsQuery' })
 export type QueryDslCombinedFieldsQuery = z.infer<typeof QueryDslCombinedFieldsQuery>
 
 export interface QueryDslConstantScoreQueryShape {
@@ -171,7 +171,7 @@ export const QueryDslConstantScoreQuery = z.object({
   boost: z.lazy(() => float).describe('Floating point number used to decrease or increase the relevance scores of the query. Boost values are relative to the default value of 1.0. A boost value between 0 and 1.0 decreases the relevance score. A value greater than 1.0 increases the relevance score.').optional(),
   query_name: z.string().optional(),
   get filter () { return QueryDslQueryContainer.describe('Filter query you wish to run. Any returned documents must match this query. Filter queries do not calculate relevance scores. To speed up performance, Elasticsearch automatically caches frequently used filter queries.') }
-})
+}).meta({ id: 'QueryDslConstantScoreQuery' })
 export type QueryDslConstantScoreQuery = z.infer<typeof QueryDslConstantScoreQuery>
 
 export interface QueryDslDisMaxQueryShape {
@@ -185,7 +185,7 @@ export const QueryDslDisMaxQuery = z.object({
   query_name: z.string().optional(),
   get queries () { return QueryDslQueryContainer.array().describe('One or more query clauses. Returned documents must match one or more of these queries. If a document matches multiple queries, Elasticsearch uses the highest relevance score.') },
   tie_breaker: z.lazy(() => double).describe('Floating point number between 0 and 1.0 used to increase the relevance scores of documents matching multiple query clauses.').optional()
-})
+}).meta({ id: 'QueryDslDisMaxQuery' })
 export type QueryDslDisMaxQuery = z.infer<typeof QueryDslDisMaxQuery>
 
 export const QueryDslDistanceFeatureQueryBase = z.object({
@@ -193,68 +193,68 @@ export const QueryDslDistanceFeatureQueryBase = z.object({
   origin: z.any().describe('Date or point of origin used to calculate distances. If the `field` value is a `date` or `date_nanos` field, the `origin` value must be a date. Date Math, such as `now-1h`, is supported. If the field value is a `geo_point` field, the `origin` value must be a geopoint.'),
   pivot: z.any().describe('Distance from the `origin` at which relevance scores receive half of the `boost` value. If the `field` value is a `date` or `date_nanos` field, the `pivot` value must be a time unit, such as `1h` or `10d`. If the `field` value is a `geo_point` field, the `pivot` value must be a distance unit, such as `1km` or `12m`.'),
   field: z.lazy(() => Field).describe('Name of the field used to calculate distances. This field must meet the following criteria: be a `date`, `date_nanos` or `geo_point` field; have an `index` mapping parameter value of `true`, which is the default; have an `doc_values` mapping parameter value of `true`, which is the default.')
-})
+}).meta({ id: 'QueryDslDistanceFeatureQueryBase' })
 export type QueryDslDistanceFeatureQueryBase = z.infer<typeof QueryDslDistanceFeatureQueryBase>
 
 export const QueryDslUntypedDistanceFeatureQuery = z.object({
   ...QueryDslDistanceFeatureQueryBase.shape
-})
+}).meta({ id: 'QueryDslUntypedDistanceFeatureQuery' })
 export type QueryDslUntypedDistanceFeatureQuery = z.infer<typeof QueryDslUntypedDistanceFeatureQuery>
 
 export const QueryDslGeoDistanceFeatureQuery = z.object({
   ...QueryDslDistanceFeatureQueryBase.shape
-})
+}).meta({ id: 'QueryDslGeoDistanceFeatureQuery' })
 export type QueryDslGeoDistanceFeatureQuery = z.infer<typeof QueryDslGeoDistanceFeatureQuery>
 
 export const QueryDslDateDistanceFeatureQuery = z.object({
   ...QueryDslDistanceFeatureQueryBase.shape
-})
+}).meta({ id: 'QueryDslDateDistanceFeatureQuery' })
 export type QueryDslDateDistanceFeatureQuery = z.infer<typeof QueryDslDateDistanceFeatureQuery>
 
-export const QueryDslDistanceFeatureQuery = z.union([QueryDslUntypedDistanceFeatureQuery, QueryDslGeoDistanceFeatureQuery, QueryDslDateDistanceFeatureQuery])
+export const QueryDslDistanceFeatureQuery = z.union([QueryDslUntypedDistanceFeatureQuery, QueryDslGeoDistanceFeatureQuery, QueryDslDateDistanceFeatureQuery]).meta({ id: 'QueryDslDistanceFeatureQuery' })
 export type QueryDslDistanceFeatureQuery = z.infer<typeof QueryDslDistanceFeatureQuery>
 
 export const QueryDslExistsQuery = z.object({
   ...QueryDslQueryBase.shape,
   field: z.lazy(() => Field).describe('Name of the field you wish to search.')
-})
+}).meta({ id: 'QueryDslExistsQuery' })
 export type QueryDslExistsQuery = z.infer<typeof QueryDslExistsQuery>
 
-export const QueryDslFunctionBoostMode = z.enum(['multiply', 'replace', 'sum', 'avg', 'max', 'min'])
+export const QueryDslFunctionBoostMode = z.enum(['multiply', 'replace', 'sum', 'avg', 'max', 'min']).meta({ id: 'QueryDslFunctionBoostMode' })
 export type QueryDslFunctionBoostMode = z.infer<typeof QueryDslFunctionBoostMode>
 
-export const QueryDslMultiValueMode = z.enum(['min', 'max', 'avg', 'sum'])
+export const QueryDslMultiValueMode = z.enum(['min', 'max', 'avg', 'sum']).meta({ id: 'QueryDslMultiValueMode' })
 export type QueryDslMultiValueMode = z.infer<typeof QueryDslMultiValueMode>
 
 export const QueryDslDecayFunctionBase = z.object({
   multi_value_mode: QueryDslMultiValueMode.describe('Determines how the distance is calculated when a field used for computing the decay contains multiple values.').optional()
-})
+}).meta({ id: 'QueryDslDecayFunctionBase' })
 export type QueryDslDecayFunctionBase = z.infer<typeof QueryDslDecayFunctionBase>
 
 export const QueryDslUntypedDecayFunction = z.object({
   multi_value_mode: QueryDslMultiValueMode.describe('Determines how the distance is calculated when a field used for computing the decay contains multiple values.').optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'QueryDslUntypedDecayFunction' })
 export type QueryDslUntypedDecayFunction = z.infer<typeof QueryDslUntypedDecayFunction>
 
 export const QueryDslDateDecayFunction = z.object({
   multi_value_mode: QueryDslMultiValueMode.describe('Determines how the distance is calculated when a field used for computing the decay contains multiple values.').optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'QueryDslDateDecayFunction' })
 export type QueryDslDateDecayFunction = z.infer<typeof QueryDslDateDecayFunction>
 
 export const QueryDslNumericDecayFunction = z.object({
   multi_value_mode: QueryDslMultiValueMode.describe('Determines how the distance is calculated when a field used for computing the decay contains multiple values.').optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'QueryDslNumericDecayFunction' })
 export type QueryDslNumericDecayFunction = z.infer<typeof QueryDslNumericDecayFunction>
 
 export const QueryDslGeoDecayFunction = z.object({
   multi_value_mode: QueryDslMultiValueMode.describe('Determines how the distance is calculated when a field used for computing the decay contains multiple values.').optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'QueryDslGeoDecayFunction' })
 export type QueryDslGeoDecayFunction = z.infer<typeof QueryDslGeoDecayFunction>
 
-export const QueryDslDecayFunction = z.union([QueryDslUntypedDecayFunction, QueryDslDateDecayFunction, QueryDslNumericDecayFunction, QueryDslGeoDecayFunction])
+export const QueryDslDecayFunction = z.union([QueryDslUntypedDecayFunction, QueryDslDateDecayFunction, QueryDslNumericDecayFunction, QueryDslGeoDecayFunction]).meta({ id: 'QueryDslDecayFunction' })
 export type QueryDslDecayFunction = z.infer<typeof QueryDslDecayFunction>
 
-export const QueryDslFieldValueFactorModifier = z.enum(['none', 'log', 'log1p', 'log2p', 'ln', 'ln1p', 'ln2p', 'square', 'sqrt', 'reciprocal'])
+export const QueryDslFieldValueFactorModifier = z.enum(['none', 'log', 'log1p', 'log2p', 'ln', 'ln1p', 'ln2p', 'square', 'sqrt', 'reciprocal']).meta({ id: 'QueryDslFieldValueFactorModifier' })
 export type QueryDslFieldValueFactorModifier = z.infer<typeof QueryDslFieldValueFactorModifier>
 
 export const QueryDslFieldValueFactorScoreFunction = z.object({
@@ -262,13 +262,13 @@ export const QueryDslFieldValueFactorScoreFunction = z.object({
   factor: z.lazy(() => double).describe('Optional factor to multiply the field value with.').optional(),
   missing: z.lazy(() => double).describe('Value used if the document doesn’t have that field. The modifier and factor are still applied to it as though it were read from the document.').optional(),
   modifier: QueryDslFieldValueFactorModifier.describe('Modifier to apply to the field value.').optional()
-})
+}).meta({ id: 'QueryDslFieldValueFactorScoreFunction' })
 export type QueryDslFieldValueFactorScoreFunction = z.infer<typeof QueryDslFieldValueFactorScoreFunction>
 
 export const QueryDslRandomScoreFunction = z.object({
   field: z.lazy(() => Field).optional(),
   seed: z.union([z.lazy(() => long), z.string()]).optional()
-})
+}).meta({ id: 'QueryDslRandomScoreFunction' })
 export type QueryDslRandomScoreFunction = z.infer<typeof QueryDslRandomScoreFunction>
 
 export interface QueryDslScriptScoreFunctionShape {
@@ -276,7 +276,7 @@ export interface QueryDslScriptScoreFunctionShape {
 }
 export const QueryDslScriptScoreFunction = z.object({
   get script () { return Script.describe('A script that computes a score.') }
-})
+}).meta({ id: 'QueryDslScriptScoreFunction' })
 export type QueryDslScriptScoreFunction = z.infer<typeof QueryDslScriptScoreFunction>
 
 const QueryDslFunctionScoreContainerCommonProps = z.object({
@@ -296,10 +296,10 @@ export interface QueryDslFunctionScoreContainerShape {
   random_score?: QueryDslRandomScoreFunction | undefined
   script_score?: QueryDslScriptScoreFunction | undefined
 }
-export const QueryDslFunctionScoreContainer: z.ZodType<QueryDslFunctionScoreContainerShape> = QueryDslFunctionScoreContainerCommonProps.and(QueryDslFunctionScoreContainerExclusiveProps)
+export const QueryDslFunctionScoreContainer: z.ZodType<QueryDslFunctionScoreContainerShape> = QueryDslFunctionScoreContainerCommonProps.and(QueryDslFunctionScoreContainerExclusiveProps).meta({ id: 'QueryDslFunctionScoreContainer' })
 export type QueryDslFunctionScoreContainer = z.infer<typeof QueryDslFunctionScoreContainer>
 
-export const QueryDslFunctionScoreMode = z.enum(['multiply', 'sum', 'avg', 'first', 'max', 'min'])
+export const QueryDslFunctionScoreMode = z.enum(['multiply', 'sum', 'avg', 'first', 'max', 'min']).meta({ id: 'QueryDslFunctionScoreMode' })
 export type QueryDslFunctionScoreMode = z.infer<typeof QueryDslFunctionScoreMode>
 
 export interface QueryDslFunctionScoreQueryShape {
@@ -321,13 +321,13 @@ export const QueryDslFunctionScoreQuery = z.object({
   min_score: z.lazy(() => double).describe('Excludes documents that do not meet the provided score threshold.').optional(),
   get query () { return QueryDslQueryContainer.describe('A query that determines the documents for which a new score is computed.').optional() },
   score_mode: QueryDslFunctionScoreMode.describe('Specifies how the computed scores are combined').optional()
-})
+}).meta({ id: 'QueryDslFunctionScoreQuery' })
 export type QueryDslFunctionScoreQuery = z.infer<typeof QueryDslFunctionScoreQuery>
 
-export const MultiTermQueryRewrite = z.string()
+export const MultiTermQueryRewrite = z.string().meta({ id: 'MultiTermQueryRewrite' })
 export type MultiTermQueryRewrite = z.infer<typeof MultiTermQueryRewrite>
 
-export const Fuzziness = z.union([z.string(), z.lazy(() => integer)])
+export const Fuzziness = z.union([z.string(), z.lazy(() => integer)]).meta({ id: 'Fuzziness' })
 export type Fuzziness = z.infer<typeof Fuzziness>
 
 export const QueryDslFuzzyQuery = z.object({
@@ -338,13 +338,13 @@ export const QueryDslFuzzyQuery = z.object({
   transpositions: z.boolean().describe('Indicates whether edits include transpositions of two adjacent characters (for example `ab` to `ba`).').optional(),
   fuzziness: z.lazy(() => Fuzziness).describe('Maximum edit distance allowed for matching.').optional(),
   value: z.union([z.string(), z.lazy(() => double), z.boolean()]).describe('Term you wish to find in the provided field.')
-})
+}).meta({ id: 'QueryDslFuzzyQuery' })
 export type QueryDslFuzzyQuery = z.infer<typeof QueryDslFuzzyQuery>
 
-export const QueryDslGeoExecution = z.enum(['memory', 'indexed'])
+export const QueryDslGeoExecution = z.enum(['memory', 'indexed']).meta({ id: 'QueryDslGeoExecution' })
 export type QueryDslGeoExecution = z.infer<typeof QueryDslGeoExecution>
 
-export const QueryDslGeoValidationMethod = z.enum(['coerce', 'ignore_malformed', 'strict'])
+export const QueryDslGeoValidationMethod = z.enum(['coerce', 'ignore_malformed', 'strict']).meta({ id: 'QueryDslGeoValidationMethod' })
 export type QueryDslGeoValidationMethod = z.infer<typeof QueryDslGeoValidationMethod>
 
 export const QueryDslGeoBoundingBoxQuery = z.object({
@@ -353,13 +353,13 @@ export const QueryDslGeoBoundingBoxQuery = z.object({
   type: QueryDslGeoExecution.optional(),
   validation_method: QueryDslGeoValidationMethod.describe('Set to `IGNORE_MALFORMED` to accept geo points with invalid latitude or longitude. Set to `COERCE` to also try to infer correct latitude or longitude.').optional(),
   ignore_unmapped: z.boolean().describe('Set to `true` to ignore an unmapped field and not match any documents for this query. Set to `false` to throw an exception if the field is not mapped.').optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'QueryDslGeoBoundingBoxQuery' })
 export type QueryDslGeoBoundingBoxQuery = z.infer<typeof QueryDslGeoBoundingBoxQuery>
 
-export const Distance = z.string()
+export const Distance = z.string().meta({ id: 'Distance' })
 export type Distance = z.infer<typeof Distance>
 
-export const GeoDistanceType = z.enum(['arc', 'plane'])
+export const GeoDistanceType = z.enum(['arc', 'plane']).meta({ id: 'GeoDistanceType' })
 export type GeoDistanceType = z.infer<typeof GeoDistanceType>
 
 export const QueryDslGeoDistanceQuery = z.object({
@@ -369,23 +369,23 @@ export const QueryDslGeoDistanceQuery = z.object({
   distance_type: GeoDistanceType.describe('How to compute the distance. Set to `plane` for a faster calculation that\'s inaccurate on long distances and close to the poles.').optional(),
   validation_method: QueryDslGeoValidationMethod.describe('Set to `IGNORE_MALFORMED` to accept geo points with invalid latitude or longitude. Set to `COERCE` to also try to infer correct latitude or longitude.').optional(),
   ignore_unmapped: z.boolean().describe('Set to `true` to ignore an unmapped field and not match any documents for this query. Set to `false` to throw an exception if the field is not mapped.').optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'QueryDslGeoDistanceQuery' })
 export type QueryDslGeoDistanceQuery = z.infer<typeof QueryDslGeoDistanceQuery>
 
 /** A map tile reference, represented as `{zoom}/{x}/{y}` */
-export const GeoTile = z.string()
+export const GeoTile = z.string().meta({ id: 'GeoTile' })
 export type GeoTile = z.infer<typeof GeoTile>
 
-export const GeoHash = z.string()
+export const GeoHash = z.string().meta({ id: 'GeoHash' })
 export type GeoHash = z.infer<typeof GeoHash>
 
 /** A map hex cell (H3) reference */
-export const GeoHexCell = z.string()
+export const GeoHexCell = z.string().meta({ id: 'GeoHexCell' })
 export type GeoHexCell = z.infer<typeof GeoHexCell>
 
 const QueryDslGeoGridQueryExclusiveProps = z.union([z.object({ geotile: GeoTile }), z.object({ geohash: GeoHash }), z.object({ geohex: GeoHexCell })])
 
-export const QueryDslGeoGridQuery = QueryDslGeoGridQueryExclusiveProps
+export const QueryDslGeoGridQuery = QueryDslGeoGridQueryExclusiveProps.meta({ id: 'QueryDslGeoGridQuery' })
 export type QueryDslGeoGridQuery = z.infer<typeof QueryDslGeoGridQuery>
 
 export const QueryDslGeoPolygonQuery = z.object({
@@ -393,17 +393,17 @@ export const QueryDslGeoPolygonQuery = z.object({
   query_name: z.string().optional(),
   validation_method: QueryDslGeoValidationMethod.optional(),
   ignore_unmapped: z.boolean().optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'QueryDslGeoPolygonQuery' })
 export type QueryDslGeoPolygonQuery = z.infer<typeof QueryDslGeoPolygonQuery>
 
 export const QueryDslGeoShapeQuery = z.object({
   boost: z.lazy(() => float).describe('Floating point number used to decrease or increase the relevance scores of the query. Boost values are relative to the default value of 1.0. A boost value between 0 and 1.0 decreases the relevance score. A value greater than 1.0 increases the relevance score.').optional(),
   query_name: z.string().optional(),
   ignore_unmapped: z.boolean().describe('Set to `true` to ignore an unmapped field and not match any documents for this query. Set to `false` to throw an exception if the field is not mapped.').optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'QueryDslGeoShapeQuery' })
 export type QueryDslGeoShapeQuery = z.infer<typeof QueryDslGeoShapeQuery>
 
-export const Name = z.string()
+export const Name = z.string().meta({ id: 'Name' })
 export type Name = z.infer<typeof Name>
 
 /** A reference to a field with formatting instructions on how to return the value */
@@ -411,7 +411,7 @@ export const QueryDslFieldAndFormat = z.object({
   field: z.lazy(() => Field).describe('A wildcard pattern. The request returns values for field names matching this pattern.'),
   format: z.string().describe('The format in which the values are returned.').optional(),
   include_unmapped: z.boolean().optional()
-})
+}).meta({ id: 'QueryDslFieldAndFormat' })
 export type QueryDslFieldAndFormat = z.infer<typeof QueryDslFieldAndFormat>
 
 export interface ScriptFieldShape {
@@ -421,21 +421,21 @@ export interface ScriptFieldShape {
 export const ScriptField = z.object({
   get script () { return Script },
   ignore_failure: z.boolean().optional()
-})
+}).meta({ id: 'ScriptField' })
 export type ScriptField = z.infer<typeof ScriptField>
 
-export const SortOrder = z.enum(['asc', 'desc'])
+export const SortOrder = z.enum(['asc', 'desc']).meta({ id: 'SortOrder' })
 export type SortOrder = z.infer<typeof SortOrder>
 
 export const ScoreSort = z.object({
   order: SortOrder.optional()
-})
+}).meta({ id: 'ScoreSort' })
 export type ScoreSort = z.infer<typeof ScoreSort>
 
-export const SortMode = z.enum(['min', 'max', 'sum', 'avg', 'median'])
+export const SortMode = z.enum(['min', 'max', 'sum', 'avg', 'median']).meta({ id: 'SortMode' })
 export type SortMode = z.infer<typeof SortMode>
 
-export const DistanceUnit = z.enum(['in', 'ft', 'yd', 'mi', 'nmi', 'km', 'm', 'cm', 'mm'])
+export const DistanceUnit = z.enum(['in', 'ft', 'yd', 'mi', 'nmi', 'km', 'm', 'cm', 'mm']).meta({ id: 'DistanceUnit' })
 export type DistanceUnit = z.infer<typeof DistanceUnit>
 
 export interface NestedSortValueShape {
@@ -449,7 +449,7 @@ export const NestedSortValue = z.object({
   max_children: z.lazy(() => integer).optional(),
   get nested () { return NestedSortValue.optional() },
   path: z.lazy(() => Field)
-})
+}).meta({ id: 'NestedSortValue' })
 export type NestedSortValue = z.infer<typeof NestedSortValue>
 
 export interface GeoDistanceSortShape {
@@ -467,10 +467,10 @@ export const GeoDistanceSort = z.looseObject({
   order: SortOrder.optional(),
   unit: DistanceUnit.optional(),
   get nested () { return NestedSortValue.optional() }
-})
+}).meta({ id: 'GeoDistanceSort' })
 export type GeoDistanceSort = z.infer<typeof GeoDistanceSort>
 
-export const ScriptSortType = z.enum(['string', 'number', 'version'])
+export const ScriptSortType = z.enum(['string', 'number', 'version']).meta({ id: 'ScriptSortType' })
 export type ScriptSortType = z.infer<typeof ScriptSortType>
 
 export interface ScriptSortShape {
@@ -486,7 +486,7 @@ export const ScriptSort = z.object({
   type: ScriptSortType.optional(),
   mode: SortMode.optional(),
   get nested () { return NestedSortValue.optional() }
-})
+}).meta({ id: 'ScriptSort' })
 export type ScriptSort = z.infer<typeof ScriptSort>
 
 export interface SortOptionsShape {
@@ -500,21 +500,21 @@ export const SortOptions = z.looseObject({
   _doc: ScoreSort.optional(),
   get _geo_distance () { return GeoDistanceSort.optional() },
   get _script () { return ScriptSort.optional() }
-})
+}).meta({ id: 'SortOptions' })
 export type SortOptions = z.infer<typeof SortOptions>
 
 export type SortCombinationsShape = Field | SortOptionsShape
-export const SortCombinations: z.ZodType<SortCombinationsShape> = z.union([z.lazy(() => Field), z.lazy(() => SortOptions)])
+export const SortCombinations: z.ZodType<SortCombinationsShape> = z.union([z.lazy(() => Field), z.lazy(() => SortOptions)]).meta({ id: 'SortCombinations' })
 export type SortCombinations = z.infer<typeof SortCombinations>
 
 export type SortShape = SortCombinationsShape | SortCombinationsShape[]
-export const Sort: z.ZodType<SortShape> = z.union([z.lazy(() => SortCombinations), z.array(z.lazy(() => SortCombinations))])
+export const Sort: z.ZodType<SortShape> = z.union([z.lazy(() => SortCombinations), z.array(z.lazy(() => SortCombinations))]).meta({ id: 'Sort' })
 export type Sort = z.infer<typeof Sort>
 
-export const QueryDslChildScoreMode = z.enum(['none', 'avg', 'sum', 'max', 'min'])
+export const QueryDslChildScoreMode = z.enum(['none', 'avg', 'sum', 'max', 'min']).meta({ id: 'QueryDslChildScoreMode' })
 export type QueryDslChildScoreMode = z.infer<typeof QueryDslChildScoreMode>
 
-export const RelationName = z.string()
+export const RelationName = z.string().meta({ id: 'RelationName' })
 export type RelationName = z.infer<typeof RelationName>
 
 export interface QueryDslHasChildQueryShape {
@@ -538,7 +538,7 @@ export const QueryDslHasChildQuery = z.object({
   get query () { return QueryDslQueryContainer.describe('Query you wish to run on child documents of the `type` field. If a child document matches the search, the query returns the parent document.') },
   score_mode: QueryDslChildScoreMode.describe('Indicates how scores for matching child documents affect the root parent document’s relevance score.').optional(),
   type: RelationName.describe('Name of the child relationship mapped for the `join` field.')
-})
+}).meta({ id: 'QueryDslHasChildQuery' })
 export type QueryDslHasChildQuery = z.infer<typeof QueryDslHasChildQuery>
 
 export interface QueryDslHasParentQueryShape {
@@ -558,16 +558,16 @@ export const QueryDslHasParentQuery = z.object({
   parent_type: RelationName.describe('Name of the parent relationship mapped for the `join` field.'),
   get query () { return QueryDslQueryContainer.describe('Query you wish to run on parent documents of the `parent_type` field. If a parent document matches the search, the query returns its child documents.') },
   score: z.boolean().describe('Indicates whether the relevance score of a matching parent document is aggregated into its child documents.').optional()
-})
+}).meta({ id: 'QueryDslHasParentQuery' })
 export type QueryDslHasParentQuery = z.infer<typeof QueryDslHasParentQuery>
 
-export const Ids = z.union([z.lazy(() => Id), z.array(z.lazy(() => Id))])
+export const Ids = z.union([z.lazy(() => Id), z.array(z.lazy(() => Id))]).meta({ id: 'Ids' })
 export type Ids = z.infer<typeof Ids>
 
 export const QueryDslIdsQuery = z.object({
   ...QueryDslQueryBase.shape,
   values: z.lazy(() => Ids).describe('An array of document IDs.').optional()
-})
+}).meta({ id: 'QueryDslIdsQuery' })
 export type QueryDslIdsQuery = z.infer<typeof QueryDslIdsQuery>
 
 const QueryDslIntervalsFilterExclusiveProps = z.union([z.object({ after: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ before: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ contained_by: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ containing: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ not_contained_by: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ not_containing: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ not_overlapping: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ overlapping: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ script: z.lazy(() => Script) })])
@@ -583,7 +583,7 @@ export interface QueryDslIntervalsFilterShape {
   overlapping?: QueryDslIntervalsContainer | undefined
   script?: Script | undefined
 }
-export const QueryDslIntervalsFilter: z.ZodType<QueryDslIntervalsFilterShape> = QueryDslIntervalsFilterExclusiveProps
+export const QueryDslIntervalsFilter: z.ZodType<QueryDslIntervalsFilterShape> = QueryDslIntervalsFilterExclusiveProps.meta({ id: 'QueryDslIntervalsFilter' })
 export type QueryDslIntervalsFilter = z.infer<typeof QueryDslIntervalsFilter>
 
 export interface QueryDslIntervalsAnyOfShape {
@@ -593,7 +593,7 @@ export interface QueryDslIntervalsAnyOfShape {
 export const QueryDslIntervalsAnyOf = z.object({
   get intervals () { return QueryDslIntervalsContainer.array().describe('An array of rules to match.') },
   get filter () { return QueryDslIntervalsFilter.describe('Rule used to filter returned intervals.').optional() }
-})
+}).meta({ id: 'QueryDslIntervalsAnyOf' })
 export type QueryDslIntervalsAnyOf = z.infer<typeof QueryDslIntervalsAnyOf>
 
 export const QueryDslIntervalsFuzzy = z.object({
@@ -603,7 +603,7 @@ export const QueryDslIntervalsFuzzy = z.object({
   term: z.string().describe('The term to match.'),
   transpositions: z.boolean().describe('Indicates whether edits include transpositions of two adjacent characters (for example, `ab` to `ba`).').optional(),
   use_field: z.lazy(() => Field).describe('If specified, match intervals from this field rather than the top-level field. The `term` is normalized using the search analyzer from this field, unless `analyzer` is specified separately.').optional()
-})
+}).meta({ id: 'QueryDslIntervalsFuzzy' })
 export type QueryDslIntervalsFuzzy = z.infer<typeof QueryDslIntervalsFuzzy>
 
 export interface QueryDslIntervalsMatchShape {
@@ -621,14 +621,14 @@ export const QueryDslIntervalsMatch = z.object({
   query: z.string().describe('Text you wish to find in the provided field.'),
   use_field: z.lazy(() => Field).describe('If specified, match intervals from this field rather than the top-level field. The `term` is normalized using the search analyzer from this field, unless `analyzer` is specified separately.').optional(),
   get filter () { return QueryDslIntervalsFilter.describe('An optional interval filter.').optional() }
-})
+}).meta({ id: 'QueryDslIntervalsMatch' })
 export type QueryDslIntervalsMatch = z.infer<typeof QueryDslIntervalsMatch>
 
 export const QueryDslIntervalsPrefix = z.object({
   analyzer: z.string().describe('Analyzer used to analyze the `prefix`.').optional(),
   prefix: z.string().describe('Beginning characters of terms you wish to find in the top-level field.'),
   use_field: z.lazy(() => Field).describe('If specified, match intervals from this field rather than the top-level field. The `prefix` is normalized using the search analyzer from this field, unless `analyzer` is specified separately.').optional()
-})
+}).meta({ id: 'QueryDslIntervalsPrefix' })
 export type QueryDslIntervalsPrefix = z.infer<typeof QueryDslIntervalsPrefix>
 
 export const QueryDslIntervalsRange = z.object({
@@ -638,21 +638,21 @@ export const QueryDslIntervalsRange = z.object({
   lte: z.string().describe('Upper term, either lte or lt must be provided.').optional(),
   lt: z.string().describe('Upper term, either lte or lt must be provided.').optional(),
   use_field: z.lazy(() => Field).describe('If specified, match intervals from this field rather than the top-level field. The `prefix` is normalized using the search analyzer from this field, unless `analyzer` is specified separately.').optional()
-})
+}).meta({ id: 'QueryDslIntervalsRange' })
 export type QueryDslIntervalsRange = z.infer<typeof QueryDslIntervalsRange>
 
 export const QueryDslIntervalsRegexp = z.object({
   analyzer: z.string().describe('Analyzer used to analyze the `prefix`.').optional(),
   pattern: z.string().describe('Regex pattern.'),
   use_field: z.lazy(() => Field).describe('If specified, match intervals from this field rather than the top-level field. The `prefix` is normalized using the search analyzer from this field, unless `analyzer` is specified separately.').optional()
-})
+}).meta({ id: 'QueryDslIntervalsRegexp' })
 export type QueryDslIntervalsRegexp = z.infer<typeof QueryDslIntervalsRegexp>
 
 export const QueryDslIntervalsWildcard = z.object({
   analyzer: z.string().describe('Analyzer used to analyze the `pattern`. Defaults to the top-level field\'s analyzer.').optional(),
   pattern: z.string().describe('Wildcard pattern used to find matching terms.'),
   use_field: z.lazy(() => Field).describe('If specified, match intervals from this field rather than the top-level field. The `pattern` is normalized using the search analyzer from this field, unless `analyzer` is specified separately.').optional()
-})
+}).meta({ id: 'QueryDslIntervalsWildcard' })
 export type QueryDslIntervalsWildcard = z.infer<typeof QueryDslIntervalsWildcard>
 
 const QueryDslIntervalsContainerExclusiveProps = z.union([z.object({ all_of: z.lazy(() => QueryDslIntervalsAllOf) }), z.object({ any_of: z.lazy(() => QueryDslIntervalsAnyOf) }), z.object({ fuzzy: QueryDslIntervalsFuzzy }), z.object({ match: z.lazy(() => QueryDslIntervalsMatch) }), z.object({ prefix: QueryDslIntervalsPrefix }), z.object({ range: QueryDslIntervalsRange }), z.object({ regexp: QueryDslIntervalsRegexp }), z.object({ wildcard: QueryDslIntervalsWildcard })])
@@ -667,7 +667,7 @@ export interface QueryDslIntervalsContainerShape {
   regexp?: QueryDslIntervalsRegexp | undefined
   wildcard?: QueryDslIntervalsWildcard | undefined
 }
-export const QueryDslIntervalsContainer: z.ZodType<QueryDslIntervalsContainerShape> = QueryDslIntervalsContainerExclusiveProps
+export const QueryDslIntervalsContainer: z.ZodType<QueryDslIntervalsContainerShape> = QueryDslIntervalsContainerExclusiveProps.meta({ id: 'QueryDslIntervalsContainer' })
 export type QueryDslIntervalsContainer = z.infer<typeof QueryDslIntervalsContainer>
 
 export interface QueryDslIntervalsAllOfShape {
@@ -681,7 +681,7 @@ export const QueryDslIntervalsAllOf = z.object({
   max_gaps: z.lazy(() => integer).describe('Maximum number of positions between the matching terms. Intervals produced by the rules further apart than this are not considered matches.').optional(),
   ordered: z.boolean().describe('If `true`, intervals produced by the rules should appear in the order in which they are specified.').optional(),
   get filter () { return QueryDslIntervalsFilter.describe('Rule used to filter returned intervals.').optional() }
-})
+}).meta({ id: 'QueryDslIntervalsAllOf' })
 export type QueryDslIntervalsAllOf = z.infer<typeof QueryDslIntervalsAllOf>
 
 const QueryDslIntervalsQueryExclusiveProps = z.union([z.object({ all_of: z.lazy(() => QueryDslIntervalsAllOf) }), z.object({ any_of: z.lazy(() => QueryDslIntervalsAnyOf) }), z.object({ fuzzy: QueryDslIntervalsFuzzy }), z.object({ match: z.lazy(() => QueryDslIntervalsMatch) }), z.object({ prefix: QueryDslIntervalsPrefix }), z.object({ range: QueryDslIntervalsRange }), z.object({ regexp: QueryDslIntervalsRegexp }), z.object({ wildcard: QueryDslIntervalsWildcard })])
@@ -696,16 +696,16 @@ export interface QueryDslIntervalsQueryShape {
   regexp?: QueryDslIntervalsRegexp | undefined
   wildcard?: QueryDslIntervalsWildcard | undefined
 }
-export const QueryDslIntervalsQuery: z.ZodType<QueryDslIntervalsQueryShape> = QueryDslIntervalsQueryExclusiveProps
+export const QueryDslIntervalsQuery: z.ZodType<QueryDslIntervalsQueryShape> = QueryDslIntervalsQueryExclusiveProps.meta({ id: 'QueryDslIntervalsQuery' })
 export type QueryDslIntervalsQuery = z.infer<typeof QueryDslIntervalsQuery>
 
-export const QueryVector = z.array(z.lazy(() => float))
+export const QueryVector = z.array(z.lazy(() => float)).meta({ id: 'QueryVector' })
 export type QueryVector = z.infer<typeof QueryVector>
 
 export const TextEmbedding = z.object({
   model_id: z.string().describe('Model ID is required for all dense_vector fields but may be inferred for semantic_text fields').optional(),
   model_text: z.string().describe('The text to be converted into a vector by the specified model')
-})
+}).meta({ id: 'TextEmbedding' })
 export type TextEmbedding = z.infer<typeof TextEmbedding>
 
 export const LookupQueryVectorBuilder = z.object({
@@ -713,17 +713,17 @@ export const LookupQueryVectorBuilder = z.object({
   index: z.string().describe('The name of the index to fetch the document from'),
   path: z.string().describe('The name of the field containing the vector'),
   routing: z.string().describe('The routing value to use when fetching the document').optional()
-})
+}).meta({ id: 'LookupQueryVectorBuilder' })
 export type LookupQueryVectorBuilder = z.infer<typeof LookupQueryVectorBuilder>
 
 const QueryVectorBuilderExclusiveProps = z.union([z.object({ text_embedding: TextEmbedding }), z.object({ lookup: LookupQueryVectorBuilder })])
 
-export const QueryVectorBuilder = QueryVectorBuilderExclusiveProps
+export const QueryVectorBuilder = QueryVectorBuilderExclusiveProps.meta({ id: 'QueryVectorBuilder' })
 export type QueryVectorBuilder = z.infer<typeof QueryVectorBuilder>
 
 export const RescoreVector = z.object({
   oversample: z.lazy(() => float).describe('Applies the specified oversample factor to k on the approximate kNN search')
-})
+}).meta({ id: 'RescoreVector' })
 export type RescoreVector = z.infer<typeof RescoreVector>
 
 export interface KnnQueryShape {
@@ -751,10 +751,10 @@ export const KnnQuery = z.object({
   get filter (): z.ZodOptional<z.ZodUnion<readonly [typeof QueryDslQueryContainer, z.ZodArray<typeof QueryDslQueryContainer>]>> { return z.union([QueryDslQueryContainer, QueryDslQueryContainer.array()]).describe('Filters for the kNN search query').optional() },
   similarity: z.lazy(() => float).describe('The minimum similarity for a vector to be considered a match').optional(),
   rescore_vector: RescoreVector.describe('Apply oversampling and rescoring to quantized vectors').optional()
-})
+}).meta({ id: 'KnnQuery' })
 export type KnnQuery = z.infer<typeof KnnQuery>
 
-export const QueryDslZeroTermsQuery = z.enum(['all', 'none'])
+export const QueryDslZeroTermsQuery = z.enum(['all', 'none']).meta({ id: 'QueryDslZeroTermsQuery' })
 export type QueryDslZeroTermsQuery = z.infer<typeof QueryDslZeroTermsQuery>
 
 export const QueryDslMatchQuery = z.object({
@@ -772,12 +772,12 @@ export const QueryDslMatchQuery = z.object({
   prefix_length: z.lazy(() => integer).describe('Number of beginning characters left unchanged for fuzzy matching.').optional(),
   query: z.union([z.string(), z.lazy(() => float), z.boolean()]).describe('Text, number, boolean value or date you wish to find in the provided field.'),
   zero_terms_query: QueryDslZeroTermsQuery.describe('Indicates whether no documents are returned if the `analyzer` removes all tokens, such as when using a `stop` filter.').optional()
-})
+}).meta({ id: 'QueryDslMatchQuery' })
 export type QueryDslMatchQuery = z.infer<typeof QueryDslMatchQuery>
 
 export const QueryDslMatchAllQuery = z.object({
   ...QueryDslQueryBase.shape
-})
+}).meta({ id: 'QueryDslMatchAllQuery' })
 export type QueryDslMatchAllQuery = z.infer<typeof QueryDslMatchAllQuery>
 
 export const QueryDslMatchBoolPrefixQuery = z.object({
@@ -791,12 +791,12 @@ export const QueryDslMatchBoolPrefixQuery = z.object({
   operator: z.lazy(() => QueryDslOperator).describe('Boolean logic used to interpret text in the query value. Applied to the constructed bool query.').optional(),
   prefix_length: z.lazy(() => integer).describe('Number of beginning characters left unchanged for fuzzy matching. Can be applied to the term subqueries constructed for all terms but the final term.').optional(),
   query: z.string().describe('Terms you wish to find in the provided field. The last term is used in a prefix query.')
-})
+}).meta({ id: 'QueryDslMatchBoolPrefixQuery' })
 export type QueryDslMatchBoolPrefixQuery = z.infer<typeof QueryDslMatchBoolPrefixQuery>
 
 export const QueryDslMatchNoneQuery = z.object({
   ...QueryDslQueryBase.shape
-})
+}).meta({ id: 'QueryDslMatchNoneQuery' })
 export type QueryDslMatchNoneQuery = z.infer<typeof QueryDslMatchNoneQuery>
 
 export const QueryDslMatchPhraseQuery = z.object({
@@ -805,7 +805,7 @@ export const QueryDslMatchPhraseQuery = z.object({
   query: z.string().describe('Query terms that are analyzed and turned into a phrase query.'),
   slop: z.lazy(() => integer).describe('Maximum number of positions allowed between matching tokens.').optional(),
   zero_terms_query: QueryDslZeroTermsQuery.describe('Indicates whether no documents are returned if the `analyzer` removes all tokens, such as when using a `stop` filter.').optional()
-})
+}).meta({ id: 'QueryDslMatchPhraseQuery' })
 export type QueryDslMatchPhraseQuery = z.infer<typeof QueryDslMatchPhraseQuery>
 
 export const QueryDslMatchPhrasePrefixQuery = z.object({
@@ -815,7 +815,7 @@ export const QueryDslMatchPhrasePrefixQuery = z.object({
   query: z.string().describe('Text you wish to find in the provided field.'),
   slop: z.lazy(() => integer).describe('Maximum number of positions allowed between matching tokens.').optional(),
   zero_terms_query: QueryDslZeroTermsQuery.describe('Indicates whether no documents are returned if the analyzer removes all tokens, such as when using a `stop` filter.').optional()
-})
+}).meta({ id: 'QueryDslMatchPhrasePrefixQuery' })
 export type QueryDslMatchPhrasePrefixQuery = z.infer<typeof QueryDslMatchPhrasePrefixQuery>
 
 export const QueryDslLikeDocument = z.object({
@@ -827,14 +827,14 @@ export const QueryDslLikeDocument = z.object({
   routing: z.lazy(() => Routing).optional(),
   version: z.lazy(() => VersionNumber).optional(),
   version_type: z.lazy(() => VersionType).optional()
-})
+}).meta({ id: 'QueryDslLikeDocument' })
 export type QueryDslLikeDocument = z.infer<typeof QueryDslLikeDocument>
 
 /** Text that we want similar documents for or a lookup to a document's field for the text. */
-export const QueryDslLike = z.union([z.string(), QueryDslLikeDocument])
+export const QueryDslLike = z.union([z.string(), QueryDslLikeDocument]).meta({ id: 'QueryDslLike' })
 export type QueryDslLike = z.infer<typeof QueryDslLike>
 
-export const AnalysisStopWordLanguage = z.enum(['_arabic_', '_armenian_', '_basque_', '_bengali_', '_brazilian_', '_bulgarian_', '_catalan_', '_cjk_', '_czech_', '_danish_', '_dutch_', '_english_', '_estonian_', '_finnish_', '_french_', '_galician_', '_german_', '_greek_', '_hindi_', '_hungarian_', '_indonesian_', '_irish_', '_italian_', '_latvian_', '_lithuanian_', '_norwegian_', '_persian_', '_portuguese_', '_romanian_', '_russian_', '_serbian_', '_sorani_', '_spanish_', '_swedish_', '_thai_', '_turkish_', '_none_'])
+export const AnalysisStopWordLanguage = z.enum(['_arabic_', '_armenian_', '_basque_', '_bengali_', '_brazilian_', '_bulgarian_', '_catalan_', '_cjk_', '_czech_', '_danish_', '_dutch_', '_english_', '_estonian_', '_finnish_', '_french_', '_galician_', '_german_', '_greek_', '_hindi_', '_hungarian_', '_indonesian_', '_irish_', '_italian_', '_latvian_', '_lithuanian_', '_norwegian_', '_persian_', '_portuguese_', '_romanian_', '_russian_', '_serbian_', '_sorani_', '_spanish_', '_swedish_', '_thai_', '_turkish_', '_none_']).meta({ id: 'AnalysisStopWordLanguage' })
 export type AnalysisStopWordLanguage = z.infer<typeof AnalysisStopWordLanguage>
 
 /**
@@ -842,7 +842,7 @@ export type AnalysisStopWordLanguage = z.infer<typeof AnalysisStopWordLanguage>
  * Each language value corresponds to a predefined list of stop words in Lucene. See Stop words by language for supported language values and their stop words.
  * Also accepts an array of stop words.
  */
-export const AnalysisStopWords = z.union([AnalysisStopWordLanguage, z.array(z.string())])
+export const AnalysisStopWords = z.union([AnalysisStopWordLanguage, z.array(z.string())]).meta({ id: 'AnalysisStopWords' })
 export type AnalysisStopWords = z.infer<typeof AnalysisStopWords>
 
 export const QueryDslMoreLikeThisQuery = z.object({
@@ -865,10 +865,10 @@ export const QueryDslMoreLikeThisQuery = z.object({
   unlike: z.union([QueryDslLike, z.array(QueryDslLike)]).describe('Used in combination with `like` to exclude documents that match a set of terms.').optional(),
   version: z.lazy(() => VersionNumber).optional(),
   version_type: z.lazy(() => VersionType).optional()
-})
+}).meta({ id: 'QueryDslMoreLikeThisQuery' })
 export type QueryDslMoreLikeThisQuery = z.infer<typeof QueryDslMoreLikeThisQuery>
 
-export const QueryDslTextQueryType = z.enum(['best_fields', 'most_fields', 'cross_fields', 'phrase', 'phrase_prefix', 'bool_prefix'])
+export const QueryDslTextQueryType = z.enum(['best_fields', 'most_fields', 'cross_fields', 'phrase', 'phrase_prefix', 'bool_prefix']).meta({ id: 'QueryDslTextQueryType' })
 export type QueryDslTextQueryType = z.infer<typeof QueryDslTextQueryType>
 
 export const QueryDslMultiMatchQuery = z.object({
@@ -890,7 +890,7 @@ export const QueryDslMultiMatchQuery = z.object({
   tie_breaker: z.lazy(() => double).describe('Determines how scores for each per-term blended query and scores across groups are combined.').optional(),
   type: QueryDslTextQueryType.describe('How `the` multi_match query is executed internally.').optional(),
   zero_terms_query: QueryDslZeroTermsQuery.describe('Indicates whether no documents are returned if the `analyzer` removes all tokens, such as when using a `stop` filter.').optional()
-})
+}).meta({ id: 'QueryDslMultiMatchQuery' })
 export type QueryDslMultiMatchQuery = z.infer<typeof QueryDslMultiMatchQuery>
 
 export interface QueryDslNestedQueryShape {
@@ -910,7 +910,7 @@ export const QueryDslNestedQuery = z.object({
   path: z.lazy(() => Field).describe('Path to the nested object you wish to search.'),
   get query () { return QueryDslQueryContainer.describe('Query you wish to run on nested objects in the path.') },
   score_mode: QueryDslChildScoreMode.describe('How scores for matching child objects affect the root parent document’s relevance score.').optional()
-})
+}).meta({ id: 'QueryDslNestedQuery' })
 export type QueryDslNestedQuery = z.infer<typeof QueryDslNestedQuery>
 
 export const QueryDslParentIdQuery = z.object({
@@ -918,7 +918,7 @@ export const QueryDslParentIdQuery = z.object({
   id: z.lazy(() => Id).describe('ID of the parent document.').optional(),
   ignore_unmapped: z.boolean().describe('Indicates whether to ignore an unmapped `type` and not return any documents instead of an error.').optional(),
   type: RelationName.describe('Name of the child relationship mapped for the `join` field.').optional()
-})
+}).meta({ id: 'QueryDslParentIdQuery' })
 export type QueryDslParentIdQuery = z.infer<typeof QueryDslParentIdQuery>
 
 export const QueryDslPercolateQuery = z.object({
@@ -932,13 +932,13 @@ export const QueryDslPercolateQuery = z.object({
   preference: z.string().describe('Preference used to fetch document to percolate.').optional(),
   routing: z.string().describe('Routing used to fetch document to percolate.').optional(),
   version: z.lazy(() => VersionNumber).describe('The expected version of a stored document to percolate.').optional()
-})
+}).meta({ id: 'QueryDslPercolateQuery' })
 export type QueryDslPercolateQuery = z.infer<typeof QueryDslPercolateQuery>
 
 export const QueryDslPinnedDoc = z.object({
   _id: z.lazy(() => Id).describe('The unique document ID.'),
   _index: z.lazy(() => IndexName).describe('The index that contains the document.').optional()
-})
+}).meta({ id: 'QueryDslPinnedDoc' })
 export type QueryDslPinnedDoc = z.infer<typeof QueryDslPinnedDoc>
 
 const QueryDslPinnedQueryCommonProps = z.object({
@@ -952,7 +952,7 @@ export interface QueryDslPinnedQueryShape {
   ids?: Id[] | undefined
   docs?: QueryDslPinnedDoc[] | undefined
 }
-export const QueryDslPinnedQuery: z.ZodType<QueryDslPinnedQueryShape> = QueryDslPinnedQueryCommonProps.and(QueryDslPinnedQueryExclusiveProps)
+export const QueryDslPinnedQuery: z.ZodType<QueryDslPinnedQueryShape> = QueryDslPinnedQueryCommonProps.and(QueryDslPinnedQueryExclusiveProps).meta({ id: 'QueryDslPinnedQuery' })
 export type QueryDslPinnedQuery = z.infer<typeof QueryDslPinnedQuery>
 
 export const QueryDslPrefixQuery = z.object({
@@ -960,10 +960,10 @@ export const QueryDslPrefixQuery = z.object({
   rewrite: MultiTermQueryRewrite.describe('Method used to rewrite the query.').optional(),
   value: z.string().describe('Beginning characters of terms you wish to find in the provided field.'),
   case_insensitive: z.boolean().describe('Allows ASCII case insensitive matching of the value with the indexed field values when set to `true`. Default is `false` which means the case sensitivity of matching depends on the underlying field’s mapping.').optional()
-})
+}).meta({ id: 'QueryDslPrefixQuery' })
 export type QueryDslPrefixQuery = z.infer<typeof QueryDslPrefixQuery>
 
-export const TimeZone = z.string()
+export const TimeZone = z.string().meta({ id: 'TimeZone' })
 export type TimeZone = z.infer<typeof TimeZone>
 
 export const QueryDslQueryStringQuery = z.object({
@@ -993,10 +993,10 @@ export const QueryDslQueryStringQuery = z.object({
   tie_breaker: z.lazy(() => double).describe('How to combine the queries generated from the individual search terms in the resulting `dis_max` query.').optional(),
   time_zone: TimeZone.describe('Coordinated Universal Time (UTC) offset or IANA time zone used to convert date values in the query string to UTC.').optional(),
   type: QueryDslTextQueryType.describe('Determines how the query matches and scores documents.').optional()
-})
+}).meta({ id: 'QueryDslQueryStringQuery' })
 export type QueryDslQueryStringQuery = z.infer<typeof QueryDslQueryStringQuery>
 
-export const QueryDslRangeRelation = z.enum(['within', 'contains', 'intersects'])
+export const QueryDslRangeRelation = z.enum(['within', 'contains', 'intersects']).meta({ id: 'QueryDslRangeRelation' })
 export type QueryDslRangeRelation = z.infer<typeof QueryDslRangeRelation>
 
 export const QueryDslRangeQueryBase = z.object({
@@ -1006,61 +1006,61 @@ export const QueryDslRangeQueryBase = z.object({
   gte: z.any().describe('Greater than or equal to.').optional(),
   lt: z.any().describe('Less than.').optional(),
   lte: z.any().describe('Less than or equal to.').optional()
-})
+}).meta({ id: 'QueryDslRangeQueryBase' })
 export type QueryDslRangeQueryBase = z.infer<typeof QueryDslRangeQueryBase>
 
-export const DateFormat = z.string()
+export const DateFormat = z.string().meta({ id: 'DateFormat' })
 export type DateFormat = z.infer<typeof DateFormat>
 
 export const QueryDslUntypedRangeQuery = z.object({
   ...QueryDslRangeQueryBase.shape,
   format: z.lazy(() => DateFormat).describe('Date format used to convert `date` values in the query.').optional(),
   time_zone: TimeZone.describe('Coordinated Universal Time (UTC) offset or IANA time zone used to convert `date` values in the query to UTC.').optional()
-})
+}).meta({ id: 'QueryDslUntypedRangeQuery' })
 export type QueryDslUntypedRangeQuery = z.infer<typeof QueryDslUntypedRangeQuery>
 
 export const QueryDslDateRangeQuery = z.object({
   ...QueryDslRangeQueryBase.shape,
   format: z.lazy(() => DateFormat).describe('Date format used to convert `date` values in the query.').optional(),
   time_zone: TimeZone.describe('Coordinated Universal Time (UTC) offset or IANA time zone used to convert `date` values in the query to UTC.').optional()
-})
+}).meta({ id: 'QueryDslDateRangeQuery' })
 export type QueryDslDateRangeQuery = z.infer<typeof QueryDslDateRangeQuery>
 
 export const QueryDslNumberRangeQuery = z.object({
   ...QueryDslRangeQueryBase.shape
-})
+}).meta({ id: 'QueryDslNumberRangeQuery' })
 export type QueryDslNumberRangeQuery = z.infer<typeof QueryDslNumberRangeQuery>
 
 export const QueryDslTermRangeQuery = z.object({
   ...QueryDslRangeQueryBase.shape
-})
+}).meta({ id: 'QueryDslTermRangeQuery' })
 export type QueryDslTermRangeQuery = z.infer<typeof QueryDslTermRangeQuery>
 
-export const QueryDslRangeQuery = z.union([QueryDslUntypedRangeQuery, QueryDslDateRangeQuery, QueryDslNumberRangeQuery, QueryDslTermRangeQuery])
+export const QueryDslRangeQuery = z.union([QueryDslUntypedRangeQuery, QueryDslDateRangeQuery, QueryDslNumberRangeQuery, QueryDslTermRangeQuery]).meta({ id: 'QueryDslRangeQuery' })
 export type QueryDslRangeQuery = z.infer<typeof QueryDslRangeQuery>
 
 export const QueryDslRankFeatureFunction = z.object({
-})
+}).meta({ id: 'QueryDslRankFeatureFunction' })
 export type QueryDslRankFeatureFunction = z.infer<typeof QueryDslRankFeatureFunction>
 
 export const QueryDslRankFeatureFunctionSaturation = z.object({
   pivot: z.lazy(() => float).describe('Configurable pivot value so that the result will be less than 0.5.').optional()
-})
+}).meta({ id: 'QueryDslRankFeatureFunctionSaturation' })
 export type QueryDslRankFeatureFunctionSaturation = z.infer<typeof QueryDslRankFeatureFunctionSaturation>
 
 export const QueryDslRankFeatureFunctionLogarithm = z.object({
   scaling_factor: z.lazy(() => float).describe('Configurable scaling factor.')
-})
+}).meta({ id: 'QueryDslRankFeatureFunctionLogarithm' })
 export type QueryDslRankFeatureFunctionLogarithm = z.infer<typeof QueryDslRankFeatureFunctionLogarithm>
 
 export const QueryDslRankFeatureFunctionLinear = z.object({
-})
+}).meta({ id: 'QueryDslRankFeatureFunctionLinear' })
 export type QueryDslRankFeatureFunctionLinear = z.infer<typeof QueryDslRankFeatureFunctionLinear>
 
 export const QueryDslRankFeatureFunctionSigmoid = z.object({
   pivot: z.lazy(() => float).describe('Configurable pivot value so that the result will be less than 0.5.'),
   exponent: z.lazy(() => float).describe('Configurable Exponent.')
-})
+}).meta({ id: 'QueryDslRankFeatureFunctionSigmoid' })
 export type QueryDslRankFeatureFunctionSigmoid = z.infer<typeof QueryDslRankFeatureFunctionSigmoid>
 
 export const QueryDslRankFeatureQuery = z.object({
@@ -1070,7 +1070,7 @@ export const QueryDslRankFeatureQuery = z.object({
   log: QueryDslRankFeatureFunctionLogarithm.describe('Logarithmic function used to boost relevance scores based on the value of the rank feature `field`.').optional(),
   linear: QueryDslRankFeatureFunctionLinear.describe('Linear function used to boost relevance scores based on the value of the rank feature `field`.').optional(),
   sigmoid: QueryDslRankFeatureFunctionSigmoid.describe('Sigmoid function used to boost relevance scores based on the value of the rank feature `field`.').optional()
-})
+}).meta({ id: 'QueryDslRankFeatureQuery' })
 export type QueryDslRankFeatureQuery = z.infer<typeof QueryDslRankFeatureQuery>
 
 export const QueryDslRegexpQuery = z.object({
@@ -1080,7 +1080,7 @@ export const QueryDslRegexpQuery = z.object({
   max_determinized_states: z.lazy(() => integer).describe('Maximum number of automaton states required for the query.').optional(),
   rewrite: MultiTermQueryRewrite.describe('Method used to rewrite the query.').optional(),
   value: z.string().describe('Regular expression for terms you wish to find in the provided field.')
-})
+}).meta({ id: 'QueryDslRegexpQuery' })
 export type QueryDslRegexpQuery = z.infer<typeof QueryDslRegexpQuery>
 
 export interface QueryDslRuleQueryShape {
@@ -1098,7 +1098,7 @@ export const QueryDslRuleQuery = z.object({
   ruleset_ids: z.union([z.lazy(() => Id), z.array(z.lazy(() => Id))]).optional(),
   ruleset_id: z.string().optional(),
   match_criteria: z.any()
-})
+}).meta({ id: 'QueryDslRuleQuery' })
 export type QueryDslRuleQuery = z.infer<typeof QueryDslRuleQuery>
 
 export interface QueryDslScriptQueryShape {
@@ -1110,7 +1110,7 @@ export const QueryDslScriptQuery = z.object({
   boost: z.lazy(() => float).describe('Floating point number used to decrease or increase the relevance scores of the query. Boost values are relative to the default value of 1.0. A boost value between 0 and 1.0 decreases the relevance score. A value greater than 1.0 increases the relevance score.').optional(),
   query_name: z.string().optional(),
   get script () { return Script.describe('Contains a script to run as a query. This script must return a boolean value, `true` or `false`.') }
-})
+}).meta({ id: 'QueryDslScriptQuery' })
 export type QueryDslScriptQuery = z.infer<typeof QueryDslScriptQuery>
 
 export interface QueryDslScriptScoreQueryShape {
@@ -1126,25 +1126,25 @@ export const QueryDslScriptScoreQuery = z.object({
   min_score: z.lazy(() => float).describe('Documents with a score lower than this floating point number are excluded from the search results.').optional(),
   get query () { return QueryDslQueryContainer.describe('Query used to return documents.') },
   get script () { return Script.describe('Script used to compute the score of documents returned by the query. Important: final relevance scores from the `script_score` query cannot be negative.') }
-})
+}).meta({ id: 'QueryDslScriptScoreQuery' })
 export type QueryDslScriptScoreQuery = z.infer<typeof QueryDslScriptScoreQuery>
 
 export const QueryDslSemanticQuery = z.object({
   ...QueryDslQueryBase.shape,
   field: z.string().describe('The field to query, which must be a semantic_text field type'),
   query: z.string().describe('The query text')
-})
+}).meta({ id: 'QueryDslSemanticQuery' })
 export type QueryDslSemanticQuery = z.infer<typeof QueryDslSemanticQuery>
 
 export const QueryDslShapeQuery = z.object({
   boost: z.lazy(() => float).describe('Floating point number used to decrease or increase the relevance scores of the query. Boost values are relative to the default value of 1.0. A boost value between 0 and 1.0 decreases the relevance score. A value greater than 1.0 increases the relevance score.').optional(),
   query_name: z.string().optional(),
   ignore_unmapped: z.boolean().describe('When set to `true` the query ignores an unmapped field and will not match any documents.').optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'QueryDslShapeQuery' })
 export type QueryDslShapeQuery = z.infer<typeof QueryDslShapeQuery>
 
 /** Query flags can be either a single flag or a combination of flags, e.g. `OR|AND|PREFIX` */
-export const QueryDslSimpleQueryStringFlags = z.lazy(() => SpecUtilsPipeSeparatedFlags)
+export const QueryDslSimpleQueryStringFlags = z.lazy(() => SpecUtilsPipeSeparatedFlags).meta({ id: 'QueryDslSimpleQueryStringFlags' })
 export type QueryDslSimpleQueryStringFlags = z.infer<typeof QueryDslSimpleQueryStringFlags>
 
 export const QueryDslSimpleQueryStringQuery = z.object({
@@ -1162,7 +1162,7 @@ export const QueryDslSimpleQueryStringQuery = z.object({
   minimum_should_match: MinimumShouldMatch.describe('Minimum number of clauses that must match for a document to be returned.').optional(),
   query: z.string().describe('Query string in the simple query string syntax you wish to parse and use for search.'),
   quote_field_suffix: z.string().describe('Suffix appended to quoted text in the query string.').optional()
-})
+}).meta({ id: 'QueryDslSimpleQueryStringQuery' })
 export type QueryDslSimpleQueryStringQuery = z.infer<typeof QueryDslSimpleQueryStringQuery>
 
 export interface QueryDslSpanFieldMaskingQueryShape {
@@ -1176,7 +1176,7 @@ export const QueryDslSpanFieldMaskingQuery = z.object({
   query_name: z.string().optional(),
   field: z.lazy(() => Field),
   get query () { return QueryDslSpanQuery }
-})
+}).meta({ id: 'QueryDslSpanFieldMaskingQuery' })
 export type QueryDslSpanFieldMaskingQuery = z.infer<typeof QueryDslSpanFieldMaskingQuery>
 
 export interface QueryDslSpanFirstQueryShape {
@@ -1190,11 +1190,11 @@ export const QueryDslSpanFirstQuery = z.object({
   query_name: z.string().optional(),
   end: z.lazy(() => integer).describe('Controls the maximum end position permitted in a match.'),
   get match () { return QueryDslSpanQuery.describe('Can be any other span type query.') }
-})
+}).meta({ id: 'QueryDslSpanFirstQuery' })
 export type QueryDslSpanFirstQuery = z.infer<typeof QueryDslSpanFirstQuery>
 
 /** Can only be used as a clause in a span_near query. */
-export const QueryDslSpanGapQuery = z.record(z.lazy(() => Field), z.lazy(() => integer))
+export const QueryDslSpanGapQuery = z.record(z.lazy(() => Field), z.lazy(() => integer)).meta({ id: 'QueryDslSpanGapQuery' })
 export type QueryDslSpanGapQuery = z.infer<typeof QueryDslSpanGapQuery>
 
 export interface QueryDslSpanMultiTermQueryShape {
@@ -1206,7 +1206,7 @@ export const QueryDslSpanMultiTermQuery = z.object({
   boost: z.lazy(() => float).describe('Floating point number used to decrease or increase the relevance scores of the query. Boost values are relative to the default value of 1.0. A boost value between 0 and 1.0 decreases the relevance score. A value greater than 1.0 increases the relevance score.').optional(),
   query_name: z.string().optional(),
   get match () { return QueryDslQueryContainer.describe('Should be a multi term query (one of `wildcard`, `fuzzy`, `prefix`, `range`, or `regexp` query).') }
-})
+}).meta({ id: 'QueryDslSpanMultiTermQuery' })
 export type QueryDslSpanMultiTermQuery = z.infer<typeof QueryDslSpanMultiTermQuery>
 
 export interface QueryDslSpanNearQueryShape {
@@ -1222,7 +1222,7 @@ export const QueryDslSpanNearQuery = z.object({
   get clauses () { return QueryDslSpanQuery.array().describe('Array of one or more other span type queries.') },
   in_order: z.boolean().describe('Controls whether matches are required to be in-order.').optional(),
   slop: z.lazy(() => integer).describe('Controls the maximum number of intervening unmatched positions permitted.').optional()
-})
+}).meta({ id: 'QueryDslSpanNearQuery' })
 export type QueryDslSpanNearQuery = z.infer<typeof QueryDslSpanNearQuery>
 
 export interface QueryDslSpanNotQueryShape {
@@ -1242,7 +1242,7 @@ export const QueryDslSpanNotQuery = z.object({
   get include () { return QueryDslSpanQuery.describe('Span query whose matches are filtered.') },
   post: z.lazy(() => integer).describe('The number of tokens after the include span that can’t have overlap with the exclude span.').optional(),
   pre: z.lazy(() => integer).describe('The number of tokens before the include span that can’t have overlap with the exclude span.').optional()
-})
+}).meta({ id: 'QueryDslSpanNotQuery' })
 export type QueryDslSpanNotQuery = z.infer<typeof QueryDslSpanNotQuery>
 
 export interface QueryDslSpanOrQueryShape {
@@ -1254,18 +1254,18 @@ export const QueryDslSpanOrQuery = z.object({
   boost: z.lazy(() => float).describe('Floating point number used to decrease or increase the relevance scores of the query. Boost values are relative to the default value of 1.0. A boost value between 0 and 1.0 decreases the relevance score. A value greater than 1.0 increases the relevance score.').optional(),
   query_name: z.string().optional(),
   get clauses () { return QueryDslSpanQuery.array().describe('Array of one or more other span type queries.') }
-})
+}).meta({ id: 'QueryDslSpanOrQuery' })
 export type QueryDslSpanOrQuery = z.infer<typeof QueryDslSpanOrQuery>
 
 /** A field value. */
-export const FieldValue = z.union([z.lazy(() => long), z.lazy(() => double), z.string(), z.boolean(), z.null()])
+export const FieldValue = z.union([z.lazy(() => long), z.lazy(() => double), z.string(), z.boolean(), z.null()]).meta({ id: 'FieldValue' })
 export type FieldValue = z.infer<typeof FieldValue>
 
 export const QueryDslSpanTermQuery = z.object({
   ...QueryDslQueryBase.shape,
   value: z.lazy(() => FieldValue),
   term: z.lazy(() => FieldValue)
-})
+}).meta({ id: 'QueryDslSpanTermQuery' })
 export type QueryDslSpanTermQuery = z.infer<typeof QueryDslSpanTermQuery>
 
 export interface QueryDslSpanWithinQueryShape {
@@ -1279,7 +1279,7 @@ export const QueryDslSpanWithinQuery = z.object({
   query_name: z.string().optional(),
   get big () { return QueryDslSpanQuery.describe('Can be any span query. Matching spans from `little` that are enclosed within `big` are returned.') },
   get little () { return QueryDslSpanQuery.describe('Can be any span query. Matching spans from `little` that are enclosed within `big` are returned.') }
-})
+}).meta({ id: 'QueryDslSpanWithinQuery' })
 export type QueryDslSpanWithinQuery = z.infer<typeof QueryDslSpanWithinQuery>
 
 const QueryDslSpanQueryExclusiveProps = z.union([z.object({ span_containing: z.lazy(() => QueryDslSpanContainingQuery) }), z.object({ span_field_masking: z.lazy(() => QueryDslSpanFieldMaskingQuery) }), z.object({ span_first: z.lazy(() => QueryDslSpanFirstQuery) }), z.object({ span_gap: QueryDslSpanGapQuery }), z.object({ span_multi: z.lazy(() => QueryDslSpanMultiTermQuery) }), z.object({ span_near: z.lazy(() => QueryDslSpanNearQuery) }), z.object({ span_not: z.lazy(() => QueryDslSpanNotQuery) }), z.object({ span_or: z.lazy(() => QueryDslSpanOrQuery) }), z.object({ span_term: z.record(z.lazy(() => Field), QueryDslSpanTermQuery) }), z.object({ span_within: z.lazy(() => QueryDslSpanWithinQuery) })])
@@ -1296,7 +1296,7 @@ export interface QueryDslSpanQueryShape {
   span_term?: Record<Field, QueryDslSpanTermQuery> | undefined
   span_within?: QueryDslSpanWithinQuery | undefined
 }
-export const QueryDslSpanQuery: z.ZodType<QueryDslSpanQueryShape> = QueryDslSpanQueryExclusiveProps
+export const QueryDslSpanQuery: z.ZodType<QueryDslSpanQueryShape> = QueryDslSpanQueryExclusiveProps.meta({ id: 'QueryDslSpanQuery' })
 export type QueryDslSpanQuery = z.infer<typeof QueryDslSpanQuery>
 
 export interface QueryDslSpanContainingQueryShape {
@@ -1310,14 +1310,14 @@ export const QueryDslSpanContainingQuery = z.object({
   query_name: z.string().optional(),
   get big () { return QueryDslSpanQuery.describe('Can be any span query. Matching spans from `big` that contain matches from `little` are returned.') },
   get little () { return QueryDslSpanQuery.describe('Can be any span query. Matching spans from `big` that contain matches from `little` are returned.') }
-})
+}).meta({ id: 'QueryDslSpanContainingQuery' })
 export type QueryDslSpanContainingQuery = z.infer<typeof QueryDslSpanContainingQuery>
 
 export const TokenPruningConfig = z.object({
   tokens_freq_ratio_threshold: z.lazy(() => integer).describe('Tokens whose frequency is more than this threshold times the average frequency of all tokens in the specified field are considered outliers and pruned.').optional(),
   tokens_weight_threshold: z.lazy(() => float).describe('Tokens whose weight is less than this threshold are considered nonsignificant and pruned.').optional(),
   only_score_pruned_tokens: z.boolean().describe('Whether to only score pruned tokens, vs only scoring kept tokens.').optional()
-})
+}).meta({ id: 'TokenPruningConfig' })
 export type TokenPruningConfig = z.infer<typeof TokenPruningConfig>
 
 const QueryDslSparseVectorQueryCommonProps = z.object({
@@ -1329,20 +1329,20 @@ const QueryDslSparseVectorQueryCommonProps = z.object({
 
 const QueryDslSparseVectorQueryExclusiveProps = z.union([z.object({ query_vector: z.record(z.string(), z.lazy(() => float)) }), z.object({ inference_id: z.lazy(() => Id) })])
 
-export const QueryDslSparseVectorQuery = QueryDslSparseVectorQueryCommonProps.and(QueryDslSparseVectorQueryExclusiveProps)
+export const QueryDslSparseVectorQuery = QueryDslSparseVectorQueryCommonProps.and(QueryDslSparseVectorQueryExclusiveProps).meta({ id: 'QueryDslSparseVectorQuery' })
 export type QueryDslSparseVectorQuery = z.infer<typeof QueryDslSparseVectorQuery>
 
 export const QueryDslTermQuery = z.object({
   ...QueryDslQueryBase.shape,
   value: z.lazy(() => FieldValue).describe('Term you wish to find in the provided field.'),
   case_insensitive: z.boolean().describe('Allows ASCII case insensitive matching of the value with the indexed field values when set to `true`. When `false`, the case sensitivity of matching depends on the underlying field’s mapping.').optional()
-})
+}).meta({ id: 'QueryDslTermQuery' })
 export type QueryDslTermQuery = z.infer<typeof QueryDslTermQuery>
 
 export const QueryDslTermsQuery = z.object({
   boost: z.lazy(() => float).describe('Floating point number used to decrease or increase the relevance scores of the query. Boost values are relative to the default value of 1.0. A boost value between 0 and 1.0 decreases the relevance score. A value greater than 1.0 increases the relevance score.').optional(),
   query_name: z.string().optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'QueryDslTermsQuery' })
 export type QueryDslTermsQuery = z.infer<typeof QueryDslTermsQuery>
 
 export interface QueryDslTermsSetQueryShape {
@@ -1360,7 +1360,7 @@ export const QueryDslTermsSetQuery = z.object({
   minimum_should_match_field: z.lazy(() => Field).describe('Numeric field containing the number of matching terms required to return a document.').optional(),
   get minimum_should_match_script () { return Script.describe('Custom script containing the number of matching terms required to return a document.').optional() },
   terms: z.array(z.lazy(() => FieldValue)).describe('Array of terms you wish to find in the provided field.')
-})
+}).meta({ id: 'QueryDslTermsSetQuery' })
 export type QueryDslTermsSetQuery = z.infer<typeof QueryDslTermsSetQuery>
 
 export const QueryDslTextExpansionQuery = z.object({
@@ -1368,14 +1368,14 @@ export const QueryDslTextExpansionQuery = z.object({
   model_id: z.string().describe('The text expansion NLP model to use'),
   model_text: z.string().describe('The query text'),
   pruning_config: TokenPruningConfig.describe('Token pruning configurations').optional()
-})
+}).meta({ id: 'QueryDslTextExpansionQuery' })
 export type QueryDslTextExpansionQuery = z.infer<typeof QueryDslTextExpansionQuery>
 
 export const QueryDslWeightedTokensQuery = z.object({
   ...QueryDslQueryBase.shape,
   tokens: z.union([z.record(z.string(), z.lazy(() => float)), z.array(z.record(z.string(), z.lazy(() => float)))]).describe('The tokens representing this query'),
   pruning_config: TokenPruningConfig.describe('Token pruning configurations').optional()
-})
+}).meta({ id: 'QueryDslWeightedTokensQuery' })
 export type QueryDslWeightedTokensQuery = z.infer<typeof QueryDslWeightedTokensQuery>
 
 export const QueryDslWildcardQuery = z.object({
@@ -1384,19 +1384,19 @@ export const QueryDslWildcardQuery = z.object({
   rewrite: MultiTermQueryRewrite.describe('Method used to rewrite the query.').optional(),
   value: z.string().describe('Wildcard pattern for terms you wish to find in the provided field. Required, when wildcard is not set.').optional(),
   wildcard: z.string().describe('Wildcard pattern for terms you wish to find in the provided field. Required, when value is not set.').optional()
-})
+}).meta({ id: 'QueryDslWildcardQuery' })
 export type QueryDslWildcardQuery = z.infer<typeof QueryDslWildcardQuery>
 
 export const QueryDslWrapperQuery = z.object({
   ...QueryDslQueryBase.shape,
   query: z.string().describe('A base64 encoded query. The binary data format can be any of JSON, YAML, CBOR or SMILE encodings')
-})
+}).meta({ id: 'QueryDslWrapperQuery' })
 export type QueryDslWrapperQuery = z.infer<typeof QueryDslWrapperQuery>
 
 export const QueryDslTypeQuery = z.object({
   ...QueryDslQueryBase.shape,
   value: z.string()
-})
+}).meta({ id: 'QueryDslTypeQuery' })
 export type QueryDslTypeQuery = z.infer<typeof QueryDslTypeQuery>
 
 const QueryDslQueryContainerExclusiveProps = z.union([z.object({ bool: z.lazy(() => QueryDslBoolQuery) }), z.object({ boosting: z.lazy(() => QueryDslBoostingQuery) }), z.object({ common: z.record(z.lazy(() => Field), QueryDslCommonTermsQuery) }), z.object({ combined_fields: QueryDslCombinedFieldsQuery }), z.object({ constant_score: z.lazy(() => QueryDslConstantScoreQuery) }), z.object({ dis_max: z.lazy(() => QueryDslDisMaxQuery) }), z.object({ distance_feature: QueryDslDistanceFeatureQuery }), z.object({ exists: QueryDslExistsQuery }), z.object({ function_score: z.lazy(() => QueryDslFunctionScoreQuery) }), z.object({ fuzzy: z.record(z.lazy(() => Field), QueryDslFuzzyQuery) }), z.object({ geo_bounding_box: QueryDslGeoBoundingBoxQuery }), z.object({ geo_distance: QueryDslGeoDistanceQuery }), z.object({ geo_grid: z.record(z.lazy(() => Field), QueryDslGeoGridQuery) }), z.object({ geo_polygon: QueryDslGeoPolygonQuery }), z.object({ geo_shape: QueryDslGeoShapeQuery }), z.object({ has_child: z.lazy(() => QueryDslHasChildQuery) }), z.object({ has_parent: z.lazy(() => QueryDslHasParentQuery) }), z.object({ ids: QueryDslIdsQuery }), z.object({ intervals: z.record(z.lazy(() => Field), z.lazy(() => QueryDslIntervalsQuery)) }), z.object({ knn: z.lazy(() => KnnQuery) }), z.object({ match: z.record(z.lazy(() => Field), QueryDslMatchQuery) }), z.object({ match_all: QueryDslMatchAllQuery }), z.object({ match_bool_prefix: z.record(z.lazy(() => Field), QueryDslMatchBoolPrefixQuery) }), z.object({ match_none: QueryDslMatchNoneQuery }), z.object({ match_phrase: z.record(z.lazy(() => Field), QueryDslMatchPhraseQuery) }), z.object({ match_phrase_prefix: z.record(z.lazy(() => Field), QueryDslMatchPhrasePrefixQuery) }), z.object({ more_like_this: QueryDslMoreLikeThisQuery }), z.object({ multi_match: QueryDslMultiMatchQuery }), z.object({ nested: z.lazy(() => QueryDslNestedQuery) }), z.object({ parent_id: QueryDslParentIdQuery }), z.object({ percolate: QueryDslPercolateQuery }), z.object({ pinned: z.lazy(() => QueryDslPinnedQuery) }), z.object({ prefix: z.record(z.lazy(() => Field), QueryDslPrefixQuery) }), z.object({ query_string: QueryDslQueryStringQuery }), z.object({ range: z.record(z.lazy(() => Field), QueryDslRangeQuery) }), z.object({ rank_feature: QueryDslRankFeatureQuery }), z.object({ regexp: z.record(z.lazy(() => Field), QueryDslRegexpQuery) }), z.object({ rule: z.lazy(() => QueryDslRuleQuery) }), z.object({ script: z.lazy(() => QueryDslScriptQuery) }), z.object({ script_score: z.lazy(() => QueryDslScriptScoreQuery) }), z.object({ semantic: QueryDslSemanticQuery }), z.object({ shape: QueryDslShapeQuery }), z.object({ simple_query_string: QueryDslSimpleQueryStringQuery }), z.object({ span_containing: z.lazy(() => QueryDslSpanContainingQuery) }), z.object({ span_field_masking: z.lazy(() => QueryDslSpanFieldMaskingQuery) }), z.object({ span_first: z.lazy(() => QueryDslSpanFirstQuery) }), z.object({ span_multi: z.lazy(() => QueryDslSpanMultiTermQuery) }), z.object({ span_near: z.lazy(() => QueryDslSpanNearQuery) }), z.object({ span_not: z.lazy(() => QueryDslSpanNotQuery) }), z.object({ span_or: z.lazy(() => QueryDslSpanOrQuery) }), z.object({ span_term: z.record(z.lazy(() => Field), QueryDslSpanTermQuery) }), z.object({ span_within: z.lazy(() => QueryDslSpanWithinQuery) }), z.object({ sparse_vector: QueryDslSparseVectorQuery }), z.object({ term: z.record(z.lazy(() => Field), QueryDslTermQuery) }), z.object({ terms: QueryDslTermsQuery }), z.object({ terms_set: z.record(z.lazy(() => Field), z.lazy(() => QueryDslTermsSetQuery)) }), z.object({ text_expansion: z.record(z.lazy(() => Field), QueryDslTextExpansionQuery) }), z.object({ weighted_tokens: z.record(z.lazy(() => Field), QueryDslWeightedTokensQuery) }), z.object({ wildcard: z.record(z.lazy(() => Field), QueryDslWildcardQuery) }), z.object({ wrapper: QueryDslWrapperQuery }), z.object({ type: QueryDslTypeQuery })])
@@ -1465,7 +1465,7 @@ export interface QueryDslQueryContainerShape {
   type?: QueryDslTypeQuery | undefined
 }
 /** An Elasticsearch Query DSL (Domain Specific Language) object that defines a query. */
-export const QueryDslQueryContainer: z.ZodType<QueryDslQueryContainerShape> = QueryDslQueryContainerExclusiveProps
+export const QueryDslQueryContainer: z.ZodType<QueryDslQueryContainerShape> = QueryDslQueryContainerExclusiveProps.meta({ id: 'QueryDslQueryContainer' })
 export type QueryDslQueryContainer = z.infer<typeof QueryDslQueryContainer>
 
 export interface AggregationsAdjacencyMatrixAggregationShape {
@@ -1475,13 +1475,13 @@ export interface AggregationsAdjacencyMatrixAggregationShape {
 export const AggregationsAdjacencyMatrixAggregation = z.object({
   get filters (): z.ZodOptional<z.ZodRecord<z.ZodString, typeof QueryDslQueryContainer>> { return z.record(z.string(), QueryDslQueryContainer).describe('Filters used to create buckets. At least one filter is required.').optional() },
   separator: z.string().describe('Separator used to concatenate filter names. Defaults to &.').optional()
-})
+}).meta({ id: 'AggregationsAdjacencyMatrixAggregation' })
 export type AggregationsAdjacencyMatrixAggregation = z.infer<typeof AggregationsAdjacencyMatrixAggregation>
 
-export const AggregationsMinimumInterval = z.enum(['second', 'minute', 'hour', 'day', 'month', 'year'])
+export const AggregationsMinimumInterval = z.enum(['second', 'minute', 'hour', 'day', 'month', 'year']).meta({ id: 'AggregationsMinimumInterval' })
 export type AggregationsMinimumInterval = z.infer<typeof AggregationsMinimumInterval>
 
-export const EpochTime = z.any()
+export const EpochTime = z.any().meta({ id: 'EpochTime' })
 export type EpochTime = z.infer<typeof EpochTime>
 
 /**
@@ -1489,7 +1489,7 @@ export type EpochTime = z.infer<typeof EpochTime>
  * number of milliseconds since the Epoch. Elasticsearch accepts both as input, but will generally output a string
  * representation.
  */
-export const DateTime = z.union([z.string(), z.lazy(() => EpochTime)])
+export const DateTime = z.union([z.string(), z.lazy(() => EpochTime)]).meta({ id: 'DateTime' })
 export type DateTime = z.infer<typeof DateTime>
 
 export interface AggregationsAutoDateHistogramAggregationShape {
@@ -1513,10 +1513,10 @@ export const AggregationsAutoDateHistogramAggregation = z.object({
   params: z.record(z.string(), z.any()).optional(),
   get script () { return Script.optional() },
   time_zone: TimeZone.describe('Time zone ID.').optional()
-})
+}).meta({ id: 'AggregationsAutoDateHistogramAggregation' })
 export type AggregationsAutoDateHistogramAggregation = z.infer<typeof AggregationsAutoDateHistogramAggregation>
 
-export const AggregationsMissing = z.union([z.string(), z.lazy(() => integer), z.lazy(() => double), z.boolean()])
+export const AggregationsMissing = z.union([z.string(), z.lazy(() => integer), z.lazy(() => double), z.boolean()]).meta({ id: 'AggregationsMissing' })
 export type AggregationsMissing = z.infer<typeof AggregationsMissing>
 
 export interface AggregationsMetricAggregationBaseShape {
@@ -1528,7 +1528,7 @@ export const AggregationsMetricAggregationBase = z.object({
   field: z.lazy(() => Field).describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
   get script () { return Script.optional() }
-})
+}).meta({ id: 'AggregationsMetricAggregationBase' })
 export type AggregationsMetricAggregationBase = z.infer<typeof AggregationsMetricAggregationBase>
 
 export interface AggregationsFormatMetricAggregationBaseShape {
@@ -1542,7 +1542,7 @@ export const AggregationsFormatMetricAggregationBase = z.object({
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
   get script () { return Script.optional() },
   format: z.string().optional()
-})
+}).meta({ id: 'AggregationsFormatMetricAggregationBase' })
 export type AggregationsFormatMetricAggregationBase = z.infer<typeof AggregationsFormatMetricAggregationBase>
 
 export interface AggregationsAverageAggregationShape {
@@ -1556,7 +1556,7 @@ export const AggregationsAverageAggregation = z.object({
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
   get script () { return Script.optional() },
   format: z.string().optional()
-})
+}).meta({ id: 'AggregationsAverageAggregation' })
 export type AggregationsAverageAggregation = z.infer<typeof AggregationsAverageAggregation>
 
 /**
@@ -1564,30 +1564,30 @@ export type AggregationsAverageAggregation = z.infer<typeof AggregationsAverageA
  * forms depending on its type. Please refer to each aggregation's documentation to know what buckets
  * path forms they accept.
  */
-export const AggregationsBucketsPath = z.union([z.string(), z.array(z.string()), z.record(z.string(), z.string())])
+export const AggregationsBucketsPath = z.union([z.string(), z.array(z.string()), z.record(z.string(), z.string())]).meta({ id: 'AggregationsBucketsPath' })
 export type AggregationsBucketsPath = z.infer<typeof AggregationsBucketsPath>
 
 export const AggregationsBucketPathAggregation = z.object({
   buckets_path: AggregationsBucketsPath.describe('Path to the buckets that contain one set of values to correlate.').optional()
-})
+}).meta({ id: 'AggregationsBucketPathAggregation' })
 export type AggregationsBucketPathAggregation = z.infer<typeof AggregationsBucketPathAggregation>
 
-export const AggregationsGapPolicy = z.enum(['skip', 'insert_zeros', 'keep_values'])
+export const AggregationsGapPolicy = z.enum(['skip', 'insert_zeros', 'keep_values']).meta({ id: 'AggregationsGapPolicy' })
 export type AggregationsGapPolicy = z.infer<typeof AggregationsGapPolicy>
 
 export const AggregationsPipelineAggregationBase = z.object({
   ...AggregationsBucketPathAggregation.shape,
   format: z.string().describe('`DecimalFormat` pattern for the output value. If specified, the formatted value is returned in the aggregation’s `value_as_string` property.').optional(),
   gap_policy: AggregationsGapPolicy.describe('Policy to apply when gaps are found in the data.').optional()
-})
+}).meta({ id: 'AggregationsPipelineAggregationBase' })
 export type AggregationsPipelineAggregationBase = z.infer<typeof AggregationsPipelineAggregationBase>
 
 export const AggregationsAverageBucketAggregation = z.object({
   ...AggregationsPipelineAggregationBase.shape
-})
+}).meta({ id: 'AggregationsAverageBucketAggregation' })
 export type AggregationsAverageBucketAggregation = z.infer<typeof AggregationsAverageBucketAggregation>
 
-export const AggregationsTDigestExecutionHint = z.enum(['default', 'high_accuracy'])
+export const AggregationsTDigestExecutionHint = z.enum(['default', 'high_accuracy']).meta({ id: 'AggregationsTDigestExecutionHint' })
 export type AggregationsTDigestExecutionHint = z.infer<typeof AggregationsTDigestExecutionHint>
 
 export interface AggregationsBoxplotAggregationShape {
@@ -1603,7 +1603,7 @@ export const AggregationsBoxplotAggregation = z.object({
   get script () { return Script.optional() },
   compression: z.lazy(() => double).describe('Limits the maximum number of nodes used by the underlying TDigest algorithm to `20 * compression`, enabling control of memory usage and approximation error.').optional(),
   execution_hint: AggregationsTDigestExecutionHint.describe('The default implementation of TDigest is optimized for performance, scaling to millions or even billions of sample values while maintaining acceptable accuracy levels (close to 1% relative error for millions of samples in some cases). To use an implementation optimized for accuracy, set this parameter to high_accuracy instead.').optional()
-})
+}).meta({ id: 'AggregationsBoxplotAggregation' })
 export type AggregationsBoxplotAggregation = z.infer<typeof AggregationsBoxplotAggregation>
 
 export interface AggregationsBucketScriptAggregationShape {
@@ -1617,7 +1617,7 @@ export const AggregationsBucketScriptAggregation = z.object({
   format: z.string().describe('`DecimalFormat` pattern for the output value. If specified, the formatted value is returned in the aggregation’s `value_as_string` property.').optional(),
   gap_policy: AggregationsGapPolicy.describe('Policy to apply when gaps are found in the data.').optional(),
   get script () { return Script.describe('The script to run for this aggregation.').optional() }
-})
+}).meta({ id: 'AggregationsBucketScriptAggregation' })
 export type AggregationsBucketScriptAggregation = z.infer<typeof AggregationsBucketScriptAggregation>
 
 export interface AggregationsBucketSelectorAggregationShape {
@@ -1631,7 +1631,7 @@ export const AggregationsBucketSelectorAggregation = z.object({
   format: z.string().describe('`DecimalFormat` pattern for the output value. If specified, the formatted value is returned in the aggregation’s `value_as_string` property.').optional(),
   gap_policy: AggregationsGapPolicy.describe('Policy to apply when gaps are found in the data.').optional(),
   get script () { return Script.describe('The script to run for this aggregation.').optional() }
-})
+}).meta({ id: 'AggregationsBucketSelectorAggregation' })
 export type AggregationsBucketSelectorAggregation = z.infer<typeof AggregationsBucketSelectorAggregation>
 
 export interface AggregationsBucketSortAggregationShape {
@@ -1645,7 +1645,7 @@ export const AggregationsBucketSortAggregation = z.object({
   gap_policy: AggregationsGapPolicy.describe('The policy to apply when gaps are found in the data.').optional(),
   size: z.lazy(() => integer).describe('The number of buckets to return. Defaults to all buckets of the parent aggregation.').optional(),
   get sort () { return Sort.describe('The list of fields to sort on.').optional() }
-})
+}).meta({ id: 'AggregationsBucketSortAggregation' })
 export type AggregationsBucketSortAggregation = z.infer<typeof AggregationsBucketSortAggregation>
 
 /**
@@ -1664,34 +1664,34 @@ export const AggregationsBucketKsAggregation = z.object({
   alternative: z.array(z.string()).describe('A list of string values indicating which K-S test alternative to calculate. The valid values are: "greater", "less", "two_sided". This parameter is key for determining the K-S statistic used when calculating the K-S test. Default value is all possible alternative hypotheses.').optional(),
   fractions: z.array(z.lazy(() => double)).describe('A list of doubles indicating the distribution of the samples with which to compare to the `buckets_path` results. In typical usage this is the overall proportion of documents in each bucket, which is compared with the actual document proportions in each bucket from the sibling aggregation counts. The default is to assume that overall documents are uniformly distributed on these buckets, which they would be if one used equal percentiles of a metric to define the bucket end points.').optional(),
   sampling_method: z.string().describe('Indicates the sampling methodology when calculating the K-S test. Note, this is sampling of the returned values. This determines the cumulative distribution function (CDF) points used comparing the two samples. Default is `upper_tail`, which emphasizes the upper end of the CDF points. Valid options are: `upper_tail`, `uniform`, and `lower_tail`.').optional()
-})
+}).meta({ id: 'AggregationsBucketKsAggregation' })
 export type AggregationsBucketKsAggregation = z.infer<typeof AggregationsBucketKsAggregation>
 
 export const AggregationsBucketCorrelationFunctionCountCorrelationIndicator = z.object({
   doc_count: z.lazy(() => integer).describe('The total number of documents that initially created the expectations. It’s required to be greater than or equal to the sum of all values in the buckets_path as this is the originating superset of data to which the term values are correlated.'),
   expectations: z.array(z.lazy(() => double)).describe('An array of numbers with which to correlate the configured `bucket_path` values. The length of this value must always equal the number of buckets returned by the `bucket_path`.'),
   fractions: z.array(z.lazy(() => double)).describe('An array of fractions to use when averaging and calculating variance. This should be used if the pre-calculated data and the buckets_path have known gaps. The length of fractions, if provided, must equal expectations.').optional()
-})
+}).meta({ id: 'AggregationsBucketCorrelationFunctionCountCorrelationIndicator' })
 export type AggregationsBucketCorrelationFunctionCountCorrelationIndicator = z.infer<typeof AggregationsBucketCorrelationFunctionCountCorrelationIndicator>
 
 export const AggregationsBucketCorrelationFunctionCountCorrelation = z.object({
   indicator: AggregationsBucketCorrelationFunctionCountCorrelationIndicator.describe('The indicator with which to correlate the configured `bucket_path` values.')
-})
+}).meta({ id: 'AggregationsBucketCorrelationFunctionCountCorrelation' })
 export type AggregationsBucketCorrelationFunctionCountCorrelation = z.infer<typeof AggregationsBucketCorrelationFunctionCountCorrelation>
 
 export const AggregationsBucketCorrelationFunction = z.object({
   count_correlation: AggregationsBucketCorrelationFunctionCountCorrelation.describe('The configuration to calculate a count correlation. This function is designed for determining the correlation of a term value and a given metric.')
-})
+}).meta({ id: 'AggregationsBucketCorrelationFunction' })
 export type AggregationsBucketCorrelationFunction = z.infer<typeof AggregationsBucketCorrelationFunction>
 
 /** A sibling pipeline aggregation which executes a correlation function on the configured sibling multi-bucket aggregation. */
 export const AggregationsBucketCorrelationAggregation = z.object({
   ...AggregationsBucketPathAggregation.shape,
   function: AggregationsBucketCorrelationFunction.describe('The correlation function to execute.')
-})
+}).meta({ id: 'AggregationsBucketCorrelationAggregation' })
 export type AggregationsBucketCorrelationAggregation = z.infer<typeof AggregationsBucketCorrelationAggregation>
 
-export const AggregationsCardinalityExecutionMode = z.enum(['global_ordinals', 'segment_ordinals', 'direct', 'save_memory_heuristic', 'save_time_heuristic'])
+export const AggregationsCardinalityExecutionMode = z.enum(['global_ordinals', 'segment_ordinals', 'direct', 'save_memory_heuristic', 'save_time_heuristic']).meta({ id: 'AggregationsCardinalityExecutionMode' })
 export type AggregationsCardinalityExecutionMode = z.infer<typeof AggregationsCardinalityExecutionMode>
 
 export interface AggregationsCardinalityAggregationShape {
@@ -1709,7 +1709,7 @@ export const AggregationsCardinalityAggregation = z.object({
   precision_threshold: z.lazy(() => integer).describe('A unique count below which counts are expected to be close to accurate. This allows to trade memory for accuracy.').optional(),
   rehash: z.boolean().optional(),
   execution_hint: AggregationsCardinalityExecutionMode.describe('Mechanism by which cardinality aggregations is run.').optional()
-})
+}).meta({ id: 'AggregationsCardinalityAggregation' })
 export type AggregationsCardinalityAggregation = z.infer<typeof AggregationsCardinalityAggregation>
 
 export interface AggregationsCartesianBoundsAggregationShape {
@@ -1721,7 +1721,7 @@ export const AggregationsCartesianBoundsAggregation = z.object({
   field: z.lazy(() => Field).describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
   get script () { return Script.optional() }
-})
+}).meta({ id: 'AggregationsCartesianBoundsAggregation' })
 export type AggregationsCartesianBoundsAggregation = z.infer<typeof AggregationsCartesianBoundsAggregation>
 
 export interface AggregationsCartesianCentroidAggregationShape {
@@ -1733,17 +1733,17 @@ export const AggregationsCartesianCentroidAggregation = z.object({
   field: z.lazy(() => Field).describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
   get script () { return Script.optional() }
-})
+}).meta({ id: 'AggregationsCartesianCentroidAggregation' })
 export type AggregationsCartesianCentroidAggregation = z.infer<typeof AggregationsCartesianCentroidAggregation>
 
 export const AggregationsCustomCategorizeTextAnalyzer = z.object({
   char_filter: z.array(z.string()).optional(),
   tokenizer: z.string().optional(),
   filter: z.array(z.string()).optional()
-})
+}).meta({ id: 'AggregationsCustomCategorizeTextAnalyzer' })
 export type AggregationsCustomCategorizeTextAnalyzer = z.infer<typeof AggregationsCustomCategorizeTextAnalyzer>
 
-export const AggregationsCategorizeTextAnalyzer = z.union([z.string(), AggregationsCustomCategorizeTextAnalyzer])
+export const AggregationsCategorizeTextAnalyzer = z.union([z.string(), AggregationsCustomCategorizeTextAnalyzer]).meta({ id: 'AggregationsCategorizeTextAnalyzer' })
 export type AggregationsCategorizeTextAnalyzer = z.infer<typeof AggregationsCategorizeTextAnalyzer>
 
 /**
@@ -1763,27 +1763,27 @@ export const AggregationsCategorizeTextAggregation = z.object({
   size: z.lazy(() => integer).describe('The number of buckets to return.').optional(),
   min_doc_count: z.lazy(() => integer).describe('The minimum number of documents in a bucket to be returned to the results.').optional(),
   shard_min_doc_count: z.lazy(() => integer).describe('The minimum number of documents in a bucket to be returned from the shard before merging.').optional()
-})
+}).meta({ id: 'AggregationsCategorizeTextAggregation' })
 export type AggregationsCategorizeTextAggregation = z.infer<typeof AggregationsCategorizeTextAggregation>
 
 export const AggregationsChangePointAggregation = z.object({
   ...AggregationsPipelineAggregationBase.shape
-})
+}).meta({ id: 'AggregationsChangePointAggregation' })
 export type AggregationsChangePointAggregation = z.infer<typeof AggregationsChangePointAggregation>
 
 export const AggregationsChildrenAggregation = z.object({
   ...AggregationsBucketAggregationBase.shape,
   type: RelationName.describe('The child type that should be selected.').optional()
-})
+}).meta({ id: 'AggregationsChildrenAggregation' })
 export type AggregationsChildrenAggregation = z.infer<typeof AggregationsChildrenAggregation>
 
-export const AggregationsCompositeAggregateKey = z.record(z.lazy(() => Field), z.lazy(() => FieldValue))
+export const AggregationsCompositeAggregateKey = z.record(z.lazy(() => Field), z.lazy(() => FieldValue)).meta({ id: 'AggregationsCompositeAggregateKey' })
 export type AggregationsCompositeAggregateKey = z.infer<typeof AggregationsCompositeAggregateKey>
 
-export const AggregationsMissingOrder = z.enum(['first', 'last', 'default'])
+export const AggregationsMissingOrder = z.enum(['first', 'last', 'default']).meta({ id: 'AggregationsMissingOrder' })
 export type AggregationsMissingOrder = z.infer<typeof AggregationsMissingOrder>
 
-export const AggregationsValueType = z.enum(['string', 'long', 'double', 'number', 'date', 'date_nanos', 'ip', 'numeric', 'geo_point', 'boolean'])
+export const AggregationsValueType = z.enum(['string', 'long', 'double', 'number', 'date', 'date_nanos', 'ip', 'numeric', 'geo_point', 'boolean']).meta({ id: 'AggregationsValueType' })
 export type AggregationsValueType = z.infer<typeof AggregationsValueType>
 
 export interface AggregationsCompositeAggregationBaseShape {
@@ -1801,7 +1801,7 @@ export const AggregationsCompositeAggregationBase = z.object({
   get script () { return Script.describe('Either `field` or `script` must be present').optional() },
   value_type: AggregationsValueType.optional(),
   order: SortOrder.optional()
-})
+}).meta({ id: 'AggregationsCompositeAggregationBase' })
 export type AggregationsCompositeAggregationBase = z.infer<typeof AggregationsCompositeAggregationBase>
 
 export interface AggregationsCompositeTermsAggregationShape {
@@ -1819,7 +1819,7 @@ export const AggregationsCompositeTermsAggregation = z.object({
   get script () { return Script.describe('Either `field` or `script` must be present').optional() },
   value_type: AggregationsValueType.optional(),
   order: SortOrder.optional()
-})
+}).meta({ id: 'AggregationsCompositeTermsAggregation' })
 export type AggregationsCompositeTermsAggregation = z.infer<typeof AggregationsCompositeTermsAggregation>
 
 export interface AggregationsCompositeHistogramAggregationShape {
@@ -1839,14 +1839,14 @@ export const AggregationsCompositeHistogramAggregation = z.object({
   value_type: AggregationsValueType.optional(),
   order: SortOrder.optional(),
   interval: z.lazy(() => double)
-})
+}).meta({ id: 'AggregationsCompositeHistogramAggregation' })
 export type AggregationsCompositeHistogramAggregation = z.infer<typeof AggregationsCompositeHistogramAggregation>
 
 /**
  * A date histogram interval. Similar to `Duration` with additional units: `w` (week), `M` (month), `q` (quarter) and
  * `y` (year)
  */
-export const DurationLarge = z.string()
+export const DurationLarge = z.string().meta({ id: 'DurationLarge' })
 export type DurationLarge = z.infer<typeof DurationLarge>
 
 export interface AggregationsCompositeDateHistogramAggregationShape {
@@ -1874,7 +1874,7 @@ export const AggregationsCompositeDateHistogramAggregation = z.object({
   fixed_interval: z.lazy(() => DurationLarge).describe('Either `calendar_interval` or `fixed_interval` must be present').optional(),
   offset: z.lazy(() => Duration).optional(),
   time_zone: TimeZone.optional()
-})
+}).meta({ id: 'AggregationsCompositeDateHistogramAggregation' })
 export type AggregationsCompositeDateHistogramAggregation = z.infer<typeof AggregationsCompositeDateHistogramAggregation>
 
 export const CoordsGeoBounds = z.object({
@@ -1882,18 +1882,18 @@ export const CoordsGeoBounds = z.object({
   bottom: z.lazy(() => double),
   left: z.lazy(() => double),
   right: z.lazy(() => double)
-})
+}).meta({ id: 'CoordsGeoBounds' })
 export type CoordsGeoBounds = z.infer<typeof CoordsGeoBounds>
 
 export const LatLonGeoLocation = z.object({
   lat: z.lazy(() => double).describe('Latitude'),
   lon: z.lazy(() => double).describe('Longitude')
-})
+}).meta({ id: 'LatLonGeoLocation' })
 export type LatLonGeoLocation = z.infer<typeof LatLonGeoLocation>
 
 export const GeoHashLocation = z.object({
   geohash: GeoHash
-})
+}).meta({ id: 'GeoHashLocation' })
 export type GeoHashLocation = z.infer<typeof GeoHashLocation>
 
 /**
@@ -1903,24 +1903,24 @@ export type GeoHashLocation = z.infer<typeof GeoHashLocation>
  * - as a `[lon, lat]` array
  * - as a string in `"<lat>, <lon>"` or WKT point formats
  */
-export const GeoLocation = z.union([LatLonGeoLocation, GeoHashLocation, z.array(z.lazy(() => double)), z.string()])
+export const GeoLocation = z.union([LatLonGeoLocation, GeoHashLocation, z.array(z.lazy(() => double)), z.string()]).meta({ id: 'GeoLocation' })
 export type GeoLocation = z.infer<typeof GeoLocation>
 
 export const TopLeftBottomRightGeoBounds = z.object({
   top_left: z.lazy(() => GeoLocation),
   bottom_right: z.lazy(() => GeoLocation)
-})
+}).meta({ id: 'TopLeftBottomRightGeoBounds' })
 export type TopLeftBottomRightGeoBounds = z.infer<typeof TopLeftBottomRightGeoBounds>
 
 export const TopRightBottomLeftGeoBounds = z.object({
   top_right: z.lazy(() => GeoLocation),
   bottom_left: z.lazy(() => GeoLocation)
-})
+}).meta({ id: 'TopRightBottomLeftGeoBounds' })
 export type TopRightBottomLeftGeoBounds = z.infer<typeof TopRightBottomLeftGeoBounds>
 
 export const WktGeoBounds = z.object({
   wkt: z.string()
-})
+}).meta({ id: 'WktGeoBounds' })
 export type WktGeoBounds = z.infer<typeof WktGeoBounds>
 
 /**
@@ -1930,7 +1930,7 @@ export type WktGeoBounds = z.infer<typeof WktGeoBounds>
  * - as 2 top_right / bottom_left points
  * - as a WKT bounding box
  */
-export const GeoBounds = z.union([CoordsGeoBounds, TopLeftBottomRightGeoBounds, TopRightBottomLeftGeoBounds, WktGeoBounds])
+export const GeoBounds = z.union([CoordsGeoBounds, TopLeftBottomRightGeoBounds, TopRightBottomLeftGeoBounds, WktGeoBounds]).meta({ id: 'GeoBounds' })
 export type GeoBounds = z.infer<typeof GeoBounds>
 
 export interface AggregationsCompositeGeoTileGridAggregationShape {
@@ -1952,7 +1952,7 @@ export const AggregationsCompositeGeoTileGridAggregation = z.object({
   order: SortOrder.optional(),
   precision: z.lazy(() => integer).optional(),
   bounds: GeoBounds.optional()
-})
+}).meta({ id: 'AggregationsCompositeGeoTileGridAggregation' })
 export type AggregationsCompositeGeoTileGridAggregation = z.infer<typeof AggregationsCompositeGeoTileGridAggregation>
 
 const AggregationsCompositeAggregationSourceExclusiveProps = z.union([z.object({ terms: z.lazy(() => AggregationsCompositeTermsAggregation) }), z.object({ histogram: z.lazy(() => AggregationsCompositeHistogramAggregation) }), z.object({ date_histogram: z.lazy(() => AggregationsCompositeDateHistogramAggregation) }), z.object({ geotile_grid: z.lazy(() => AggregationsCompositeGeoTileGridAggregation) })])
@@ -1963,7 +1963,7 @@ export interface AggregationsCompositeAggregationSourceShape {
   date_histogram?: AggregationsCompositeDateHistogramAggregation | undefined
   geotile_grid?: AggregationsCompositeGeoTileGridAggregation | undefined
 }
-export const AggregationsCompositeAggregationSource: z.ZodType<AggregationsCompositeAggregationSourceShape> = AggregationsCompositeAggregationSourceExclusiveProps
+export const AggregationsCompositeAggregationSource: z.ZodType<AggregationsCompositeAggregationSourceShape> = AggregationsCompositeAggregationSourceExclusiveProps.meta({ id: 'AggregationsCompositeAggregationSource' })
 export type AggregationsCompositeAggregationSource = z.infer<typeof AggregationsCompositeAggregationSource>
 
 export interface AggregationsCompositeAggregationShape {
@@ -1975,29 +1975,29 @@ export const AggregationsCompositeAggregation = z.object({
   after: AggregationsCompositeAggregateKey.describe('When paginating, use the `after_key` value returned in the previous response to retrieve the next page.').optional(),
   size: z.lazy(() => integer).describe('The number of composite buckets that should be returned.').optional(),
   get sources (): z.ZodOptional<z.ZodArray<z.ZodRecord<z.ZodString, typeof AggregationsCompositeAggregationSource>>> { return z.array(z.record(z.string(), AggregationsCompositeAggregationSource)).describe('The value sources used to build composite buckets. Keys are returned in the order of the `sources` definition.').optional() }
-})
+}).meta({ id: 'AggregationsCompositeAggregation' })
 export type AggregationsCompositeAggregation = z.infer<typeof AggregationsCompositeAggregation>
 
 export const AggregationsCumulativeCardinalityAggregation = z.object({
   ...AggregationsPipelineAggregationBase.shape
-})
+}).meta({ id: 'AggregationsCumulativeCardinalityAggregation' })
 export type AggregationsCumulativeCardinalityAggregation = z.infer<typeof AggregationsCumulativeCardinalityAggregation>
 
 export const AggregationsCumulativeSumAggregation = z.object({
   ...AggregationsPipelineAggregationBase.shape
-})
+}).meta({ id: 'AggregationsCumulativeSumAggregation' })
 export type AggregationsCumulativeSumAggregation = z.infer<typeof AggregationsCumulativeSumAggregation>
 
-export const AggregationsCalendarInterval = z.enum(['second', '1s', 'minute', '1m', 'hour', '1h', 'day', '1d', 'week', '1w', 'month', '1M', 'quarter', '1q', 'year', '1y'])
+export const AggregationsCalendarInterval = z.enum(['second', '1s', 'minute', '1m', 'hour', '1h', 'day', '1d', 'week', '1w', 'month', '1M', 'quarter', '1q', 'year', '1y']).meta({ id: 'AggregationsCalendarInterval' })
 export type AggregationsCalendarInterval = z.infer<typeof AggregationsCalendarInterval>
 
 export const AggregationsExtendedBounds = z.object({
   max: z.any().describe('Maximum value for the bound.').optional(),
   min: z.any().describe('Minimum value for the bound.').optional()
-})
+}).meta({ id: 'AggregationsExtendedBounds' })
 export type AggregationsExtendedBounds = z.infer<typeof AggregationsExtendedBounds>
 
-export const AggregationsAggregateOrder = z.union([z.record(z.lazy(() => Field), SortOrder), z.array(z.record(z.lazy(() => Field), SortOrder))])
+export const AggregationsAggregateOrder = z.union([z.record(z.lazy(() => Field), SortOrder), z.array(z.record(z.lazy(() => Field), SortOrder))]).meta({ id: 'AggregationsAggregateOrder' })
 export type AggregationsAggregateOrder = z.infer<typeof AggregationsAggregateOrder>
 
 export interface AggregationsDateHistogramAggregationShape {
@@ -2033,24 +2033,24 @@ export const AggregationsDateHistogramAggregation = z.object({
   get script () { return Script.optional() },
   time_zone: TimeZone.describe('Time zone used for bucketing and rounding. Defaults to Coordinated Universal Time (UTC).').optional(),
   keyed: z.boolean().describe('Set to `true` to associate a unique string key with each bucket and return the ranges as a hash rather than an array.').optional()
-})
+}).meta({ id: 'AggregationsDateHistogramAggregation' })
 export type AggregationsDateHistogramAggregation = z.infer<typeof AggregationsDateHistogramAggregation>
 
-export const DateMath = z.string()
+export const DateMath = z.string().meta({ id: 'DateMath' })
 export type DateMath = z.infer<typeof DateMath>
 
 /**
  * A date range limit, represented either as a DateMath expression or a number expressed
  * according to the target field's precision.
  */
-export const AggregationsFieldDateMath = z.union([DateMath, z.lazy(() => double)])
+export const AggregationsFieldDateMath = z.union([DateMath, z.lazy(() => double)]).meta({ id: 'AggregationsFieldDateMath' })
 export type AggregationsFieldDateMath = z.infer<typeof AggregationsFieldDateMath>
 
 export const AggregationsDateRangeExpression = z.object({
   from: AggregationsFieldDateMath.describe('Start of the range (inclusive).').optional(),
   key: z.string().describe('Custom key to return the range with.').optional(),
   to: AggregationsFieldDateMath.describe('End of the range (exclusive).').optional()
-})
+}).meta({ id: 'AggregationsDateRangeExpression' })
 export type AggregationsDateRangeExpression = z.infer<typeof AggregationsDateRangeExpression>
 
 export const AggregationsDateRangeAggregation = z.object({
@@ -2061,15 +2061,15 @@ export const AggregationsDateRangeAggregation = z.object({
   ranges: z.array(AggregationsDateRangeExpression).describe('Array of date ranges.').optional(),
   time_zone: TimeZone.describe('Time zone used to convert dates from another time zone to UTC.').optional(),
   keyed: z.boolean().describe('Set to `true` to associate a unique string key with each bucket and returns the ranges as a hash rather than an array.').optional()
-})
+}).meta({ id: 'AggregationsDateRangeAggregation' })
 export type AggregationsDateRangeAggregation = z.infer<typeof AggregationsDateRangeAggregation>
 
 export const AggregationsDerivativeAggregation = z.object({
   ...AggregationsPipelineAggregationBase.shape
-})
+}).meta({ id: 'AggregationsDerivativeAggregation' })
 export type AggregationsDerivativeAggregation = z.infer<typeof AggregationsDerivativeAggregation>
 
-export const AggregationsSamplerAggregationExecutionHint = z.enum(['map', 'global_ordinals', 'bytes_hash'])
+export const AggregationsSamplerAggregationExecutionHint = z.enum(['map', 'global_ordinals', 'bytes_hash']).meta({ id: 'AggregationsSamplerAggregationExecutionHint' })
 export type AggregationsSamplerAggregationExecutionHint = z.infer<typeof AggregationsSamplerAggregationExecutionHint>
 
 export interface AggregationsDiversifiedSamplerAggregationShape {
@@ -2085,7 +2085,7 @@ export const AggregationsDiversifiedSamplerAggregation = z.object({
   get script () { return Script.optional() },
   shard_size: z.lazy(() => integer).describe('Limits how many top-scoring documents are collected in the sample processed on each shard.').optional(),
   field: z.lazy(() => Field).describe('The field used to provide values used for de-duplication.').optional()
-})
+}).meta({ id: 'AggregationsDiversifiedSamplerAggregation' })
 export type AggregationsDiversifiedSamplerAggregation = z.infer<typeof AggregationsDiversifiedSamplerAggregation>
 
 export interface AggregationsExtendedStatsAggregationShape {
@@ -2101,32 +2101,32 @@ export const AggregationsExtendedStatsAggregation = z.object({
   get script () { return Script.optional() },
   format: z.string().optional(),
   sigma: z.lazy(() => double).describe('The number of standard deviations above/below the mean to display.').optional()
-})
+}).meta({ id: 'AggregationsExtendedStatsAggregation' })
 export type AggregationsExtendedStatsAggregation = z.infer<typeof AggregationsExtendedStatsAggregation>
 
 export const AggregationsExtendedStatsBucketAggregation = z.object({
   ...AggregationsPipelineAggregationBase.shape,
   sigma: z.lazy(() => double).describe('The number of standard deviations above/below the mean to display.').optional()
-})
+}).meta({ id: 'AggregationsExtendedStatsBucketAggregation' })
 export type AggregationsExtendedStatsBucketAggregation = z.infer<typeof AggregationsExtendedStatsBucketAggregation>
 
-export const AggregationsTermsExclude = z.union([z.string(), z.array(z.string())])
+export const AggregationsTermsExclude = z.union([z.string(), z.array(z.string())]).meta({ id: 'AggregationsTermsExclude' })
 export type AggregationsTermsExclude = z.infer<typeof AggregationsTermsExclude>
 
 export const AggregationsTermsPartition = z.object({
   num_partitions: z.lazy(() => long).describe('The number of partitions.'),
   partition: z.lazy(() => long).describe('The partition number for this request.')
-})
+}).meta({ id: 'AggregationsTermsPartition' })
 export type AggregationsTermsPartition = z.infer<typeof AggregationsTermsPartition>
 
-export const AggregationsTermsInclude = z.union([z.string(), z.array(z.string()), AggregationsTermsPartition])
+export const AggregationsTermsInclude = z.union([z.string(), z.array(z.string()), AggregationsTermsPartition]).meta({ id: 'AggregationsTermsInclude' })
 export type AggregationsTermsInclude = z.infer<typeof AggregationsTermsInclude>
 
 export const AggregationsFrequentItemSetsField = z.object({
   field: z.lazy(() => Field),
   exclude: AggregationsTermsExclude.describe('Values to exclude. Can be regular expression strings or arrays of strings of exact terms.').optional(),
   include: AggregationsTermsInclude.describe('Values to include. Can be regular expression strings or arrays of strings of exact terms.').optional()
-})
+}).meta({ id: 'AggregationsFrequentItemSetsField' })
 export type AggregationsFrequentItemSetsField = z.infer<typeof AggregationsFrequentItemSetsField>
 
 export interface AggregationsFrequentItemSetsAggregationShape {
@@ -2142,14 +2142,14 @@ export const AggregationsFrequentItemSetsAggregation = z.object({
   minimum_support: z.lazy(() => double).describe('The minimum support of one item set.').optional(),
   size: z.lazy(() => integer).describe('The number of top item sets to return.').optional(),
   get filter () { return QueryDslQueryContainer.describe('Query that filters documents from analysis.').optional() }
-})
+}).meta({ id: 'AggregationsFrequentItemSetsAggregation' })
 export type AggregationsFrequentItemSetsAggregation = z.infer<typeof AggregationsFrequentItemSetsAggregation>
 
 /**
  * Aggregation buckets. By default they are returned as an array, but if the aggregation has keys configured for
  * the different buckets, the result is a dictionary.
  */
-export const AggregationsBuckets = z.union([z.record(z.string(), z.any()), z.array(z.any())])
+export const AggregationsBuckets = z.union([z.record(z.string(), z.any()), z.array(z.any())]).meta({ id: 'AggregationsBuckets' })
 export type AggregationsBuckets = z.infer<typeof AggregationsBuckets>
 
 export const AggregationsFiltersAggregation = z.object({
@@ -2158,7 +2158,7 @@ export const AggregationsFiltersAggregation = z.object({
   other_bucket: z.boolean().describe('Set to `true` to add a bucket to the response which will contain all documents that do not match any of the given filters.').optional(),
   other_bucket_key: z.string().describe('The key with which the other bucket is returned.').optional(),
   keyed: z.boolean().describe('By default, the named filters aggregation returns the buckets as an object. Set to `false` to return the buckets as an array of objects.').optional()
-})
+}).meta({ id: 'AggregationsFiltersAggregation' })
 export type AggregationsFiltersAggregation = z.infer<typeof AggregationsFiltersAggregation>
 
 export interface AggregationsGeoBoundsAggregationShape {
@@ -2172,7 +2172,7 @@ export const AggregationsGeoBoundsAggregation = z.object({
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
   get script () { return Script.optional() },
   wrap_longitude: z.boolean().describe('Specifies whether the bounding box should be allowed to overlap the international date line.').optional()
-})
+}).meta({ id: 'AggregationsGeoBoundsAggregation' })
 export type AggregationsGeoBoundsAggregation = z.infer<typeof AggregationsGeoBoundsAggregation>
 
 export interface AggregationsGeoCentroidAggregationShape {
@@ -2188,14 +2188,14 @@ export const AggregationsGeoCentroidAggregation = z.object({
   get script () { return Script.optional() },
   count: z.lazy(() => long).optional(),
   location: z.lazy(() => GeoLocation).optional()
-})
+}).meta({ id: 'AggregationsGeoCentroidAggregation' })
 export type AggregationsGeoCentroidAggregation = z.infer<typeof AggregationsGeoCentroidAggregation>
 
 export const AggregationsAggregationRange = z.object({
   from: z.union([z.lazy(() => double), z.null()]).describe('Start of the range (inclusive).').optional(),
   key: z.string().describe('Custom key to return the range with.').optional(),
   to: z.union([z.lazy(() => double), z.null()]).describe('End of the range (exclusive).').optional()
-})
+}).meta({ id: 'AggregationsAggregationRange' })
 export type AggregationsAggregationRange = z.infer<typeof AggregationsAggregationRange>
 
 export const AggregationsGeoDistanceAggregation = z.object({
@@ -2205,11 +2205,11 @@ export const AggregationsGeoDistanceAggregation = z.object({
   origin: z.lazy(() => GeoLocation).describe('The origin  used to evaluate the distance.').optional(),
   ranges: z.array(AggregationsAggregationRange).describe('An array of ranges used to bucket documents.').optional(),
   unit: DistanceUnit.describe('The distance unit.').optional()
-})
+}).meta({ id: 'AggregationsGeoDistanceAggregation' })
 export type AggregationsGeoDistanceAggregation = z.infer<typeof AggregationsGeoDistanceAggregation>
 
 /** A precision that can be expressed as a geohash length between 1 and 12, or a distance measure like "1km", "10m". */
-export const GeoHashPrecision = z.union([z.lazy(() => integer), z.string()])
+export const GeoHashPrecision = z.union([z.lazy(() => integer), z.string()]).meta({ id: 'GeoHashPrecision' })
 export type GeoHashPrecision = z.infer<typeof GeoHashPrecision>
 
 export const AggregationsGeoHashGridAggregation = z.object({
@@ -2219,17 +2219,17 @@ export const AggregationsGeoHashGridAggregation = z.object({
   precision: z.lazy(() => GeoHashPrecision).describe('The string length of the geohashes used to define cells/buckets in the results.').optional(),
   shard_size: z.lazy(() => integer).describe('Allows for more accurate counting of the top cells returned in the final result the aggregation. Defaults to returning `max(10,(size x number-of-shards))` buckets from each shard.').optional(),
   size: z.lazy(() => integer).describe('The maximum number of geohash buckets to return.').optional()
-})
+}).meta({ id: 'AggregationsGeoHashGridAggregation' })
 export type AggregationsGeoHashGridAggregation = z.infer<typeof AggregationsGeoHashGridAggregation>
 
 export const AggregationsGeoLinePoint = z.object({
   field: z.lazy(() => Field).describe('The name of the geo_point field.')
-})
+}).meta({ id: 'AggregationsGeoLinePoint' })
 export type AggregationsGeoLinePoint = z.infer<typeof AggregationsGeoLinePoint>
 
 export const AggregationsGeoLineSort = z.object({
   field: z.lazy(() => Field).describe('The name of the numeric field to use as the sort key for ordering the points.')
-})
+}).meta({ id: 'AggregationsGeoLineSort' })
 export type AggregationsGeoLineSort = z.infer<typeof AggregationsGeoLineSort>
 
 export const AggregationsGeoLineAggregation = z.object({
@@ -2238,10 +2238,10 @@ export const AggregationsGeoLineAggregation = z.object({
   include_sort: z.boolean().describe('When `true`, returns an additional array of the sort values in the feature properties.').optional(),
   sort_order: SortOrder.describe('The order in which the line is sorted (ascending or descending).').optional(),
   size: z.lazy(() => integer).describe('The maximum length of the line represented in the aggregation. Valid sizes are between 1 and 10000.').optional()
-})
+}).meta({ id: 'AggregationsGeoLineAggregation' })
 export type AggregationsGeoLineAggregation = z.infer<typeof AggregationsGeoLineAggregation>
 
-export const GeoTilePrecision = z.lazy(() => integer)
+export const GeoTilePrecision = z.lazy(() => integer).meta({ id: 'GeoTilePrecision' })
 export type GeoTilePrecision = z.infer<typeof GeoTilePrecision>
 
 export const AggregationsGeoTileGridAggregation = z.object({
@@ -2251,7 +2251,7 @@ export const AggregationsGeoTileGridAggregation = z.object({
   shard_size: z.lazy(() => integer).describe('Allows for more accurate counting of the top cells returned in the final result the aggregation. Defaults to returning `max(10,(size x number-of-shards))` buckets from each shard.').optional(),
   size: z.lazy(() => integer).describe('The maximum number of buckets to return.').optional(),
   bounds: GeoBounds.describe('A bounding box to filter the geo-points or geo-shapes in each bucket.').optional()
-})
+}).meta({ id: 'AggregationsGeoTileGridAggregation' })
 export type AggregationsGeoTileGridAggregation = z.infer<typeof AggregationsGeoTileGridAggregation>
 
 export const AggregationsGeohexGridAggregation = z.object({
@@ -2261,12 +2261,12 @@ export const AggregationsGeohexGridAggregation = z.object({
   bounds: GeoBounds.describe('Bounding box used to filter the geo-points in each bucket.').optional(),
   size: z.lazy(() => integer).describe('Maximum number of buckets to return.').optional(),
   shard_size: z.lazy(() => integer).describe('Number of buckets returned from each shard.').optional()
-})
+}).meta({ id: 'AggregationsGeohexGridAggregation' })
 export type AggregationsGeohexGridAggregation = z.infer<typeof AggregationsGeohexGridAggregation>
 
 export const AggregationsGlobalAggregation = z.object({
   ...AggregationsBucketAggregationBase.shape
-})
+}).meta({ id: 'AggregationsGlobalAggregation' })
 export type AggregationsGlobalAggregation = z.infer<typeof AggregationsGlobalAggregation>
 
 export interface AggregationsHistogramAggregationShape {
@@ -2294,21 +2294,21 @@ export const AggregationsHistogramAggregation = z.object({
   get script () { return Script.optional() },
   format: z.string().optional(),
   keyed: z.boolean().describe('If `true`, returns buckets as a hash instead of an array, keyed by the bucket keys.').optional()
-})
+}).meta({ id: 'AggregationsHistogramAggregation' })
 export type AggregationsHistogramAggregation = z.infer<typeof AggregationsHistogramAggregation>
 
 export const AggregationsIpRangeAggregationRange = z.object({
   from: z.union([z.string(), z.null()]).describe('Start of the range.').optional(),
   mask: z.string().describe('IP range defined as a CIDR mask.').optional(),
   to: z.union([z.string(), z.null()]).describe('End of the range.').optional()
-})
+}).meta({ id: 'AggregationsIpRangeAggregationRange' })
 export type AggregationsIpRangeAggregationRange = z.infer<typeof AggregationsIpRangeAggregationRange>
 
 export const AggregationsIpRangeAggregation = z.object({
   ...AggregationsBucketAggregationBase.shape,
   field: z.lazy(() => Field).describe('The date field whose values are used to build ranges.').optional(),
   ranges: z.array(AggregationsIpRangeAggregationRange).describe('Array of IP ranges.').optional()
-})
+}).meta({ id: 'AggregationsIpRangeAggregation' })
 export type AggregationsIpRangeAggregation = z.infer<typeof AggregationsIpRangeAggregation>
 
 export const AggregationsIpPrefixAggregation = z.object({
@@ -2319,31 +2319,31 @@ export const AggregationsIpPrefixAggregation = z.object({
   append_prefix_length: z.boolean().describe('Defines whether the prefix length is appended to IP address keys in the response.').optional(),
   keyed: z.boolean().describe('Defines whether buckets are returned as a hash rather than an array in the response.').optional(),
   min_doc_count: z.lazy(() => long).describe('Minimum number of documents in a bucket for it to be included in the response.').optional()
-})
+}).meta({ id: 'AggregationsIpPrefixAggregation' })
 export type AggregationsIpPrefixAggregation = z.infer<typeof AggregationsIpPrefixAggregation>
 
 const AggregationsInferenceConfigContainerExclusiveProps = z.union([z.object({ regression: z.lazy(() => MlRegressionInferenceOptions) }), z.object({ classification: z.lazy(() => MlClassificationInferenceOptions) })])
 
-export const AggregationsInferenceConfigContainer = AggregationsInferenceConfigContainerExclusiveProps
+export const AggregationsInferenceConfigContainer = AggregationsInferenceConfigContainerExclusiveProps.meta({ id: 'AggregationsInferenceConfigContainer' })
 export type AggregationsInferenceConfigContainer = z.infer<typeof AggregationsInferenceConfigContainer>
 
 export const AggregationsInferenceAggregation = z.object({
   ...AggregationsPipelineAggregationBase.shape,
   model_id: z.lazy(() => Name).describe('The ID or alias for the trained model.'),
   inference_config: AggregationsInferenceConfigContainer.describe('Contains the inference type and its options.').optional()
-})
+}).meta({ id: 'AggregationsInferenceAggregation' })
 export type AggregationsInferenceAggregation = z.infer<typeof AggregationsInferenceAggregation>
 
 export const AggregationsMatrixAggregation = z.object({
   fields: z.lazy(() => Fields).describe('An array of fields for computing the statistics.').optional(),
   missing: z.record(z.lazy(() => Field), z.lazy(() => double)).describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional()
-})
+}).meta({ id: 'AggregationsMatrixAggregation' })
 export type AggregationsMatrixAggregation = z.infer<typeof AggregationsMatrixAggregation>
 
 export const AggregationsMatrixStatsAggregation = z.object({
   ...AggregationsMatrixAggregation.shape,
   mode: SortMode.describe('Array value the aggregation will use for array or multi-valued fields.').optional()
-})
+}).meta({ id: 'AggregationsMatrixStatsAggregation' })
 export type AggregationsMatrixStatsAggregation = z.infer<typeof AggregationsMatrixStatsAggregation>
 
 export interface AggregationsMaxAggregationShape {
@@ -2357,12 +2357,12 @@ export const AggregationsMaxAggregation = z.object({
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
   get script () { return Script.optional() },
   format: z.string().optional()
-})
+}).meta({ id: 'AggregationsMaxAggregation' })
 export type AggregationsMaxAggregation = z.infer<typeof AggregationsMaxAggregation>
 
 export const AggregationsMaxBucketAggregation = z.object({
   ...AggregationsPipelineAggregationBase.shape
-})
+}).meta({ id: 'AggregationsMaxBucketAggregation' })
 export type AggregationsMaxBucketAggregation = z.infer<typeof AggregationsMaxBucketAggregation>
 
 export interface AggregationsMedianAbsoluteDeviationAggregationShape {
@@ -2380,7 +2380,7 @@ export const AggregationsMedianAbsoluteDeviationAggregation = z.object({
   format: z.string().optional(),
   compression: z.lazy(() => double).describe('Limits the maximum number of nodes used by the underlying TDigest algorithm to `20 * compression`, enabling control of memory usage and approximation error.').optional(),
   execution_hint: AggregationsTDigestExecutionHint.describe('The default implementation of TDigest is optimized for performance, scaling to millions or even billions of sample values while maintaining acceptable accuracy levels (close to 1% relative error for millions of samples in some cases). To use an implementation optimized for accuracy, set this parameter to high_accuracy instead.').optional()
-})
+}).meta({ id: 'AggregationsMedianAbsoluteDeviationAggregation' })
 export type AggregationsMedianAbsoluteDeviationAggregation = z.infer<typeof AggregationsMedianAbsoluteDeviationAggregation>
 
 export interface AggregationsMinAggregationShape {
@@ -2394,19 +2394,19 @@ export const AggregationsMinAggregation = z.object({
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
   get script () { return Script.optional() },
   format: z.string().optional()
-})
+}).meta({ id: 'AggregationsMinAggregation' })
 export type AggregationsMinAggregation = z.infer<typeof AggregationsMinAggregation>
 
 export const AggregationsMinBucketAggregation = z.object({
   ...AggregationsPipelineAggregationBase.shape
-})
+}).meta({ id: 'AggregationsMinBucketAggregation' })
 export type AggregationsMinBucketAggregation = z.infer<typeof AggregationsMinBucketAggregation>
 
 export const AggregationsMissingAggregation = z.object({
   ...AggregationsBucketAggregationBase.shape,
   field: z.lazy(() => Field).describe('The name of the field.').optional(),
   missing: AggregationsMissing.optional()
-})
+}).meta({ id: 'AggregationsMissingAggregation' })
 export type AggregationsMissingAggregation = z.infer<typeof AggregationsMissingAggregation>
 
 export const AggregationsMovingAverageAggregationBase = z.object({
@@ -2414,54 +2414,54 @@ export const AggregationsMovingAverageAggregationBase = z.object({
   minimize: z.boolean().optional(),
   predict: z.lazy(() => integer).optional(),
   window: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'AggregationsMovingAverageAggregationBase' })
 export type AggregationsMovingAverageAggregationBase = z.infer<typeof AggregationsMovingAverageAggregationBase>
 
 /** For empty Class assignments */
 export const EmptyObject = z.object({
-})
+}).meta({ id: 'EmptyObject' })
 export type EmptyObject = z.infer<typeof EmptyObject>
 
 export const AggregationsLinearMovingAverageAggregation = z.object({
   ...AggregationsMovingAverageAggregationBase.shape,
   model: z.literal('linear'),
   settings: EmptyObject
-})
+}).meta({ id: 'AggregationsLinearMovingAverageAggregation' })
 export type AggregationsLinearMovingAverageAggregation = z.infer<typeof AggregationsLinearMovingAverageAggregation>
 
 export const AggregationsSimpleMovingAverageAggregation = z.object({
   ...AggregationsMovingAverageAggregationBase.shape,
   model: z.literal('simple'),
   settings: EmptyObject
-})
+}).meta({ id: 'AggregationsSimpleMovingAverageAggregation' })
 export type AggregationsSimpleMovingAverageAggregation = z.infer<typeof AggregationsSimpleMovingAverageAggregation>
 
 export const AggregationsEwmaModelSettings = z.object({
   alpha: z.lazy(() => float).optional()
-})
+}).meta({ id: 'AggregationsEwmaModelSettings' })
 export type AggregationsEwmaModelSettings = z.infer<typeof AggregationsEwmaModelSettings>
 
 export const AggregationsEwmaMovingAverageAggregation = z.object({
   ...AggregationsMovingAverageAggregationBase.shape,
   model: z.literal('ewma'),
   settings: AggregationsEwmaModelSettings
-})
+}).meta({ id: 'AggregationsEwmaMovingAverageAggregation' })
 export type AggregationsEwmaMovingAverageAggregation = z.infer<typeof AggregationsEwmaMovingAverageAggregation>
 
 export const AggregationsHoltLinearModelSettings = z.object({
   alpha: z.lazy(() => float).optional(),
   beta: z.lazy(() => float).optional()
-})
+}).meta({ id: 'AggregationsHoltLinearModelSettings' })
 export type AggregationsHoltLinearModelSettings = z.infer<typeof AggregationsHoltLinearModelSettings>
 
 export const AggregationsHoltMovingAverageAggregation = z.object({
   ...AggregationsMovingAverageAggregationBase.shape,
   model: z.literal('holt'),
   settings: AggregationsHoltLinearModelSettings
-})
+}).meta({ id: 'AggregationsHoltMovingAverageAggregation' })
 export type AggregationsHoltMovingAverageAggregation = z.infer<typeof AggregationsHoltMovingAverageAggregation>
 
-export const AggregationsHoltWintersType = z.enum(['add', 'mult'])
+export const AggregationsHoltWintersType = z.enum(['add', 'mult']).meta({ id: 'AggregationsHoltWintersType' })
 export type AggregationsHoltWintersType = z.infer<typeof AggregationsHoltWintersType>
 
 export const AggregationsHoltWintersModelSettings = z.object({
@@ -2471,17 +2471,17 @@ export const AggregationsHoltWintersModelSettings = z.object({
   pad: z.boolean().optional(),
   period: z.lazy(() => integer).optional(),
   type: AggregationsHoltWintersType.optional()
-})
+}).meta({ id: 'AggregationsHoltWintersModelSettings' })
 export type AggregationsHoltWintersModelSettings = z.infer<typeof AggregationsHoltWintersModelSettings>
 
 export const AggregationsHoltWintersMovingAverageAggregation = z.object({
   ...AggregationsMovingAverageAggregationBase.shape,
   model: z.literal('holt_winters'),
   settings: AggregationsHoltWintersModelSettings
-})
+}).meta({ id: 'AggregationsHoltWintersMovingAverageAggregation' })
 export type AggregationsHoltWintersMovingAverageAggregation = z.infer<typeof AggregationsHoltWintersMovingAverageAggregation>
 
-export const AggregationsMovingAverageAggregation = z.union([AggregationsLinearMovingAverageAggregation, AggregationsSimpleMovingAverageAggregation, AggregationsEwmaMovingAverageAggregation, AggregationsHoltMovingAverageAggregation, AggregationsHoltWintersMovingAverageAggregation])
+export const AggregationsMovingAverageAggregation = z.union([AggregationsLinearMovingAverageAggregation, AggregationsSimpleMovingAverageAggregation, AggregationsEwmaMovingAverageAggregation, AggregationsHoltMovingAverageAggregation, AggregationsHoltWintersMovingAverageAggregation]).meta({ id: 'AggregationsMovingAverageAggregation' })
 export type AggregationsMovingAverageAggregation = z.infer<typeof AggregationsMovingAverageAggregation>
 
 export const AggregationsMovingPercentilesAggregation = z.object({
@@ -2489,7 +2489,7 @@ export const AggregationsMovingPercentilesAggregation = z.object({
   window: z.lazy(() => integer).describe('The size of window to "slide" across the histogram.').optional(),
   shift: z.lazy(() => integer).describe('By default, the window consists of the last n values excluding the current bucket. Increasing `shift` by 1, moves the starting window position by 1 to the right.').optional(),
   keyed: z.boolean().optional()
-})
+}).meta({ id: 'AggregationsMovingPercentilesAggregation' })
 export type AggregationsMovingPercentilesAggregation = z.infer<typeof AggregationsMovingPercentilesAggregation>
 
 export const AggregationsMovingFunctionAggregation = z.object({
@@ -2497,10 +2497,10 @@ export const AggregationsMovingFunctionAggregation = z.object({
   script: z.string().describe('The script that should be executed on each window of data.').optional(),
   shift: z.lazy(() => integer).describe('By default, the window consists of the last n values excluding the current bucket. Increasing `shift` by 1, moves the starting window position by 1 to the right.').optional(),
   window: z.lazy(() => integer).describe('The size of window to "slide" across the histogram.').optional()
-})
+}).meta({ id: 'AggregationsMovingFunctionAggregation' })
 export type AggregationsMovingFunctionAggregation = z.infer<typeof AggregationsMovingFunctionAggregation>
 
-export const AggregationsTermsAggregationCollectMode = z.enum(['depth_first', 'breadth_first'])
+export const AggregationsTermsAggregationCollectMode = z.enum(['depth_first', 'breadth_first']).meta({ id: 'AggregationsTermsAggregationCollectMode' })
 export type AggregationsTermsAggregationCollectMode = z.infer<typeof AggregationsTermsAggregationCollectMode>
 
 const AggregationsMultiTermLookupCommonProps = z.object({
@@ -2514,7 +2514,7 @@ export interface AggregationsMultiTermLookupShape {
   field?: Field | undefined
   script?: Script | undefined
 }
-export const AggregationsMultiTermLookup: z.ZodType<AggregationsMultiTermLookupShape> = AggregationsMultiTermLookupCommonProps.and(AggregationsMultiTermLookupExclusiveProps)
+export const AggregationsMultiTermLookup: z.ZodType<AggregationsMultiTermLookupShape> = AggregationsMultiTermLookupCommonProps.and(AggregationsMultiTermLookupExclusiveProps).meta({ id: 'AggregationsMultiTermLookup' })
 export type AggregationsMultiTermLookup = z.infer<typeof AggregationsMultiTermLookup>
 
 export interface AggregationsMultiTermsAggregationShape {
@@ -2536,39 +2536,39 @@ export const AggregationsMultiTermsAggregation = z.object({
   show_term_doc_count_error: z.boolean().describe('Calculates the doc count error on per term basis.').optional(),
   size: z.lazy(() => integer).describe('The number of term buckets should be returned out of the overall terms list.').optional(),
   get terms () { return AggregationsMultiTermLookup.array().describe('The field from which to generate sets of terms.') }
-})
+}).meta({ id: 'AggregationsMultiTermsAggregation' })
 export type AggregationsMultiTermsAggregation = z.infer<typeof AggregationsMultiTermsAggregation>
 
 export const AggregationsNestedAggregation = z.object({
   ...AggregationsBucketAggregationBase.shape,
   path: z.lazy(() => Field).describe('The path to the field of type `nested`.').optional()
-})
+}).meta({ id: 'AggregationsNestedAggregation' })
 export type AggregationsNestedAggregation = z.infer<typeof AggregationsNestedAggregation>
 
-export const AggregationsNormalizeMethod = z.enum(['rescale_0_1', 'rescale_0_100', 'percent_of_sum', 'mean', 'z-score', 'softmax'])
+export const AggregationsNormalizeMethod = z.enum(['rescale_0_1', 'rescale_0_100', 'percent_of_sum', 'mean', 'z-score', 'softmax']).meta({ id: 'AggregationsNormalizeMethod' })
 export type AggregationsNormalizeMethod = z.infer<typeof AggregationsNormalizeMethod>
 
 export const AggregationsNormalizeAggregation = z.object({
   ...AggregationsPipelineAggregationBase.shape,
   method: AggregationsNormalizeMethod.describe('The specific method to apply.').optional()
-})
+}).meta({ id: 'AggregationsNormalizeAggregation' })
 export type AggregationsNormalizeAggregation = z.infer<typeof AggregationsNormalizeAggregation>
 
 export const AggregationsParentAggregation = z.object({
   ...AggregationsBucketAggregationBase.shape,
   type: RelationName.describe('The child type that should be selected.').optional()
-})
+}).meta({ id: 'AggregationsParentAggregation' })
 export type AggregationsParentAggregation = z.infer<typeof AggregationsParentAggregation>
 
 export const AggregationsHdrMethod = z.object({
   number_of_significant_value_digits: z.lazy(() => integer).describe('Specifies the resolution of values for the histogram in number of significant digits.').optional()
-})
+}).meta({ id: 'AggregationsHdrMethod' })
 export type AggregationsHdrMethod = z.infer<typeof AggregationsHdrMethod>
 
 export const AggregationsTDigest = z.object({
   compression: z.lazy(() => integer).describe('Limits the maximum number of nodes used by the underlying TDigest algorithm to `20 * compression`, enabling control of memory usage and approximation error.').optional(),
   execution_hint: AggregationsTDigestExecutionHint.describe('The default implementation of TDigest is optimized for performance, scaling to millions or even billions of sample values while maintaining acceptable accuracy levels (close to 1% relative error for millions of samples in some cases). To use an implementation optimized for accuracy, set this parameter to high_accuracy instead.').optional()
-})
+}).meta({ id: 'AggregationsTDigest' })
 export type AggregationsTDigest = z.infer<typeof AggregationsTDigest>
 
 export interface AggregationsPercentileRanksAggregationShape {
@@ -2590,7 +2590,7 @@ export const AggregationsPercentileRanksAggregation = z.object({
   values: z.union([z.array(z.lazy(() => double)), z.null()]).describe('An array of values for which to calculate the percentile ranks.').optional(),
   hdr: AggregationsHdrMethod.describe('Uses the alternative High Dynamic Range Histogram algorithm to calculate percentile ranks.').optional(),
   tdigest: AggregationsTDigest.describe('Sets parameters for the default TDigest algorithm used to calculate percentile ranks.').optional()
-})
+}).meta({ id: 'AggregationsPercentileRanksAggregation' })
 export type AggregationsPercentileRanksAggregation = z.infer<typeof AggregationsPercentileRanksAggregation>
 
 export interface AggregationsPercentilesAggregationShape {
@@ -2612,13 +2612,13 @@ export const AggregationsPercentilesAggregation = z.object({
   percents: z.union([z.lazy(() => double), z.array(z.lazy(() => double))]).describe('The percentiles to calculate.').optional(),
   hdr: AggregationsHdrMethod.describe('Uses the alternative High Dynamic Range Histogram algorithm to calculate percentiles.').optional(),
   tdigest: AggregationsTDigest.describe('Sets parameters for the default TDigest algorithm used to calculate percentiles.').optional()
-})
+}).meta({ id: 'AggregationsPercentilesAggregation' })
 export type AggregationsPercentilesAggregation = z.infer<typeof AggregationsPercentilesAggregation>
 
 export const AggregationsPercentilesBucketAggregation = z.object({
   ...AggregationsPipelineAggregationBase.shape,
   percents: z.array(z.lazy(() => double)).describe('The list of percentiles to calculate.').optional()
-})
+}).meta({ id: 'AggregationsPercentilesBucketAggregation' })
 export type AggregationsPercentilesBucketAggregation = z.infer<typeof AggregationsPercentilesBucketAggregation>
 
 export interface AggregationsRangeAggregationShape {
@@ -2636,7 +2636,7 @@ export const AggregationsRangeAggregation = z.object({
   get script () { return Script.optional() },
   keyed: z.boolean().describe('Set to `true` to associate a unique string key with each bucket and return the ranges as a hash rather than an array.').optional(),
   format: z.string().optional()
-})
+}).meta({ id: 'AggregationsRangeAggregation' })
 export type AggregationsRangeAggregation = z.infer<typeof AggregationsRangeAggregation>
 
 export const AggregationsRareTermsAggregation = z.object({
@@ -2648,10 +2648,10 @@ export const AggregationsRareTermsAggregation = z.object({
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
   precision: z.lazy(() => double).describe('The precision of the internal CuckooFilters. Smaller precision leads to better approximation, but higher memory usage.').optional(),
   value_type: z.string().optional()
-})
+}).meta({ id: 'AggregationsRareTermsAggregation' })
 export type AggregationsRareTermsAggregation = z.infer<typeof AggregationsRareTermsAggregation>
 
-export const AggregationsRateMode = z.enum(['sum', 'value_count'])
+export const AggregationsRateMode = z.enum(['sum', 'value_count']).meta({ id: 'AggregationsRateMode' })
 export type AggregationsRateMode = z.infer<typeof AggregationsRateMode>
 
 export interface AggregationsRateAggregationShape {
@@ -2669,26 +2669,26 @@ export const AggregationsRateAggregation = z.object({
   format: z.string().optional(),
   unit: AggregationsCalendarInterval.describe('The interval used to calculate the rate. By default, the interval of the `date_histogram` is used.').optional(),
   mode: AggregationsRateMode.describe('How the rate is calculated.').optional()
-})
+}).meta({ id: 'AggregationsRateAggregation' })
 export type AggregationsRateAggregation = z.infer<typeof AggregationsRateAggregation>
 
 export const AggregationsReverseNestedAggregation = z.object({
   ...AggregationsBucketAggregationBase.shape,
   path: z.lazy(() => Field).describe('Defines the nested object field that should be joined back to. The default is empty, which means that it joins back to the root/main document level.').optional()
-})
+}).meta({ id: 'AggregationsReverseNestedAggregation' })
 export type AggregationsReverseNestedAggregation = z.infer<typeof AggregationsReverseNestedAggregation>
 
 export const AggregationsRandomSamplerAggregation = z.object({
   ...AggregationsBucketAggregationBase.shape,
   probability: z.lazy(() => double).describe('The probability that a document will be included in the aggregated data. Must be greater than 0, less than 0.5, or exactly 1. The lower the probability, the fewer documents are matched.'),
   seed: z.lazy(() => integer).describe('The seed to generate the random sampling of documents. When a seed is provided, the random subset of documents is the same between calls.').optional()
-})
+}).meta({ id: 'AggregationsRandomSamplerAggregation' })
 export type AggregationsRandomSamplerAggregation = z.infer<typeof AggregationsRandomSamplerAggregation>
 
 export const AggregationsSamplerAggregation = z.object({
   ...AggregationsBucketAggregationBase.shape,
   shard_size: z.lazy(() => integer).describe('Limits how many top-scoring documents are collected in the sample processed on each shard.').optional()
-})
+}).meta({ id: 'AggregationsSamplerAggregation' })
 export type AggregationsSamplerAggregation = z.infer<typeof AggregationsSamplerAggregation>
 
 export interface AggregationsScriptedMetricAggregationShape {
@@ -2710,37 +2710,37 @@ export const AggregationsScriptedMetricAggregation = z.object({
   get map_script () { return Script.describe('Run once per document collected. If no `combine_script` is specified, the resulting state needs to be stored in the `state` object.').optional() },
   params: z.record(z.string(), z.any()).describe('A global object with script parameters for `init`, `map` and `combine` scripts. It is shared between the scripts.').optional(),
   get reduce_script () { return Script.describe('Runs once on the coordinating node after all shards have returned their results. The script is provided with access to a variable `states`, which is an array of the result of the `combine_script` on each shard.').optional() }
-})
+}).meta({ id: 'AggregationsScriptedMetricAggregation' })
 export type AggregationsScriptedMetricAggregation = z.infer<typeof AggregationsScriptedMetricAggregation>
 
 export const AggregationsSerialDifferencingAggregation = z.object({
   ...AggregationsPipelineAggregationBase.shape,
   lag: z.lazy(() => integer).describe('The historical bucket to subtract from the current value. Must be a positive, non-zero integer.').optional()
-})
+}).meta({ id: 'AggregationsSerialDifferencingAggregation' })
 export type AggregationsSerialDifferencingAggregation = z.infer<typeof AggregationsSerialDifferencingAggregation>
 
 export const AggregationsChiSquareHeuristic = z.object({
   background_is_superset: z.boolean().describe('Set to `false` if you defined a custom background filter that represents a different set of documents that you want to compare to.'),
   include_negatives: z.boolean().describe('Set to `false` to filter out the terms that appear less often in the subset than in documents outside the subset.')
-})
+}).meta({ id: 'AggregationsChiSquareHeuristic' })
 export type AggregationsChiSquareHeuristic = z.infer<typeof AggregationsChiSquareHeuristic>
 
-export const AggregationsTermsAggregationExecutionHint = z.enum(['map', 'global_ordinals', 'global_ordinals_hash', 'global_ordinals_low_cardinality'])
+export const AggregationsTermsAggregationExecutionHint = z.enum(['map', 'global_ordinals', 'global_ordinals_hash', 'global_ordinals_low_cardinality']).meta({ id: 'AggregationsTermsAggregationExecutionHint' })
 export type AggregationsTermsAggregationExecutionHint = z.infer<typeof AggregationsTermsAggregationExecutionHint>
 
 export const AggregationsGoogleNormalizedDistanceHeuristic = z.object({
   background_is_superset: z.boolean().describe('Set to `false` if you defined a custom background filter that represents a different set of documents that you want to compare to.').optional()
-})
+}).meta({ id: 'AggregationsGoogleNormalizedDistanceHeuristic' })
 export type AggregationsGoogleNormalizedDistanceHeuristic = z.infer<typeof AggregationsGoogleNormalizedDistanceHeuristic>
 
 export const AggregationsMutualInformationHeuristic = z.object({
   background_is_superset: z.boolean().describe('Set to `false` if you defined a custom background filter that represents a different set of documents that you want to compare to.').optional(),
   include_negatives: z.boolean().describe('Set to `false` to filter out the terms that appear less often in the subset than in documents outside the subset.').optional()
-})
+}).meta({ id: 'AggregationsMutualInformationHeuristic' })
 export type AggregationsMutualInformationHeuristic = z.infer<typeof AggregationsMutualInformationHeuristic>
 
 export const AggregationsPercentageScoreHeuristic = z.object({
-})
+}).meta({ id: 'AggregationsPercentageScoreHeuristic' })
 export type AggregationsPercentageScoreHeuristic = z.infer<typeof AggregationsPercentageScoreHeuristic>
 
 export interface AggregationsScriptedHeuristicShape {
@@ -2748,13 +2748,13 @@ export interface AggregationsScriptedHeuristicShape {
 }
 export const AggregationsScriptedHeuristic = z.object({
   get script () { return Script }
-})
+}).meta({ id: 'AggregationsScriptedHeuristic' })
 export type AggregationsScriptedHeuristic = z.infer<typeof AggregationsScriptedHeuristic>
 
 export const AggregationsPValueHeuristic = z.object({
   background_is_superset: z.boolean().optional(),
   normalize_above: z.lazy(() => long).describe('Should the results be normalized when above the given value. Allows for consistent significance results at various scales. Note: `0` is a special value which means no normalization').optional()
-})
+}).meta({ id: 'AggregationsPValueHeuristic' })
 export type AggregationsPValueHeuristic = z.infer<typeof AggregationsPValueHeuristic>
 
 export interface AggregationsSignificantTermsAggregationShape {
@@ -2792,7 +2792,7 @@ export const AggregationsSignificantTermsAggregation = z.object({
   shard_min_doc_count: z.lazy(() => long).describe('Regulates the certainty a shard has if the term should actually be added to the candidate list or not with respect to the `min_doc_count`. Terms will only be considered if their local shard frequency within the set is higher than the `shard_min_doc_count`.').optional(),
   shard_size: z.lazy(() => integer).describe('Can be used to control the volumes of candidate terms produced by each shard. By default, `shard_size` will be automatically estimated based on the number of shards and the `size` parameter.').optional(),
   size: z.lazy(() => integer).describe('The number of buckets returned out of the overall terms list.').optional()
-})
+}).meta({ id: 'AggregationsSignificantTermsAggregation' })
 export type AggregationsSignificantTermsAggregation = z.infer<typeof AggregationsSignificantTermsAggregation>
 
 export interface AggregationsSignificantTextAggregationShape {
@@ -2832,7 +2832,7 @@ export const AggregationsSignificantTextAggregation = z.object({
   shard_size: z.lazy(() => integer).describe('The number of candidate terms produced by each shard. By default, `shard_size` will be automatically estimated based on the number of shards and the `size` parameter.').optional(),
   size: z.lazy(() => integer).describe('The number of buckets returned out of the overall terms list.').optional(),
   source_fields: z.lazy(() => Fields).describe('Overrides the JSON `_source` fields from which text will be analyzed.').optional()
-})
+}).meta({ id: 'AggregationsSignificantTextAggregation' })
 export type AggregationsSignificantTextAggregation = z.infer<typeof AggregationsSignificantTextAggregation>
 
 export interface AggregationsStatsAggregationShape {
@@ -2846,12 +2846,12 @@ export const AggregationsStatsAggregation = z.object({
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
   get script () { return Script.optional() },
   format: z.string().optional()
-})
+}).meta({ id: 'AggregationsStatsAggregation' })
 export type AggregationsStatsAggregation = z.infer<typeof AggregationsStatsAggregation>
 
 export const AggregationsStatsBucketAggregation = z.object({
   ...AggregationsPipelineAggregationBase.shape
-})
+}).meta({ id: 'AggregationsStatsBucketAggregation' })
 export type AggregationsStatsBucketAggregation = z.infer<typeof AggregationsStatsBucketAggregation>
 
 export interface AggregationsStringStatsAggregationShape {
@@ -2865,7 +2865,7 @@ export const AggregationsStringStatsAggregation = z.object({
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
   get script () { return Script.optional() },
   show_distribution: z.boolean().describe('Shows the probability distribution for all characters.').optional()
-})
+}).meta({ id: 'AggregationsStringStatsAggregation' })
 export type AggregationsStringStatsAggregation = z.infer<typeof AggregationsStringStatsAggregation>
 
 export interface AggregationsSumAggregationShape {
@@ -2879,12 +2879,12 @@ export const AggregationsSumAggregation = z.object({
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
   get script () { return Script.optional() },
   format: z.string().optional()
-})
+}).meta({ id: 'AggregationsSumAggregation' })
 export type AggregationsSumAggregation = z.infer<typeof AggregationsSumAggregation>
 
 export const AggregationsSumBucketAggregation = z.object({
   ...AggregationsPipelineAggregationBase.shape
-})
+}).meta({ id: 'AggregationsSumBucketAggregation' })
 export type AggregationsSumBucketAggregation = z.infer<typeof AggregationsSumBucketAggregation>
 
 export interface AggregationsTermsAggregationShape {
@@ -2924,14 +2924,14 @@ export const AggregationsTermsAggregation = z.object({
   show_term_doc_count_error: z.boolean().describe('Set to `true` to return the `doc_count_error_upper_bound`, which is an upper bound to the error on the `doc_count` returned by each shard.').optional(),
   size: z.lazy(() => integer).describe('The number of buckets returned out of the overall terms list.').optional(),
   format: z.string().optional()
-})
+}).meta({ id: 'AggregationsTermsAggregation' })
 export type AggregationsTermsAggregation = z.infer<typeof AggregationsTermsAggregation>
 
 export const AggregationsTimeSeriesAggregation = z.object({
   ...AggregationsBucketAggregationBase.shape,
   size: z.lazy(() => integer).describe('The maximum number of results to return.').optional(),
   keyed: z.boolean().describe('Set to `true` to associate a unique string key with each bucket and returns the ranges as a hash rather than an array.').optional()
-})
+}).meta({ id: 'AggregationsTimeSeriesAggregation' })
 export type AggregationsTimeSeriesAggregation = z.infer<typeof AggregationsTimeSeriesAggregation>
 
 export interface AggregationsTopHitsAggregationShape {
@@ -2969,7 +2969,7 @@ export const AggregationsTopHitsAggregation = z.object({
   track_scores: z.boolean().describe('If `true`, calculates and returns document scores, even if the scores are not used for sorting.').optional(),
   version: z.boolean().describe('If `true`, returns document version as part of a hit.').optional(),
   seq_no_primary_term: z.boolean().describe('If `true`, returns sequence number and primary term of the last modification of each hit.').optional()
-})
+}).meta({ id: 'AggregationsTopHitsAggregation' })
 export type AggregationsTopHitsAggregation = z.infer<typeof AggregationsTopHitsAggregation>
 
 export interface AggregationsTestPopulationShape {
@@ -2981,10 +2981,10 @@ export const AggregationsTestPopulation = z.object({
   field: z.lazy(() => Field).describe('The field to aggregate.'),
   get script () { return Script.optional() },
   get filter () { return QueryDslQueryContainer.describe('A filter used to define a set of records to run unpaired t-test on.').optional() }
-})
+}).meta({ id: 'AggregationsTestPopulation' })
 export type AggregationsTestPopulation = z.infer<typeof AggregationsTestPopulation>
 
-export const AggregationsTTestType = z.enum(['paired', 'homoscedastic', 'heteroscedastic'])
+export const AggregationsTTestType = z.enum(['paired', 'homoscedastic', 'heteroscedastic']).meta({ id: 'AggregationsTTestType' })
 export type AggregationsTTestType = z.infer<typeof AggregationsTTestType>
 
 export interface AggregationsTTestAggregationShape {
@@ -2996,12 +2996,12 @@ export const AggregationsTTestAggregation = z.object({
   get a () { return AggregationsTestPopulation.describe('Test population A.').optional() },
   get b () { return AggregationsTestPopulation.describe('Test population B.').optional() },
   type: AggregationsTTestType.describe('The type of test.').optional()
-})
+}).meta({ id: 'AggregationsTTestAggregation' })
 export type AggregationsTTestAggregation = z.infer<typeof AggregationsTTestAggregation>
 
 export const AggregationsTopMetricsValue = z.object({
   field: z.lazy(() => Field).describe('A field to return as a metric.')
-})
+}).meta({ id: 'AggregationsTopMetricsValue' })
 export type AggregationsTopMetricsValue = z.infer<typeof AggregationsTopMetricsValue>
 
 export interface AggregationsTopMetricsAggregationShape {
@@ -3019,7 +3019,7 @@ export const AggregationsTopMetricsAggregation = z.object({
   metrics: z.union([AggregationsTopMetricsValue, z.array(AggregationsTopMetricsValue)]).describe('The fields of the top document to return.').optional(),
   size: z.lazy(() => integer).describe('The number of top documents from which to return metrics.').optional(),
   get sort () { return Sort.describe('The sort order of the documents.').optional() }
-})
+}).meta({ id: 'AggregationsTopMetricsAggregation' })
 export type AggregationsTopMetricsAggregation = z.infer<typeof AggregationsTopMetricsAggregation>
 
 export interface AggregationsFormattableMetricAggregationShape {
@@ -3033,7 +3033,7 @@ export const AggregationsFormattableMetricAggregation = z.object({
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
   get script () { return Script.optional() },
   format: z.string().optional()
-})
+}).meta({ id: 'AggregationsFormattableMetricAggregation' })
 export type AggregationsFormattableMetricAggregation = z.infer<typeof AggregationsFormattableMetricAggregation>
 
 export interface AggregationsValueCountAggregationShape {
@@ -3047,7 +3047,7 @@ export const AggregationsValueCountAggregation = z.object({
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
   get script () { return Script.optional() },
   format: z.string().optional()
-})
+}).meta({ id: 'AggregationsValueCountAggregation' })
 export type AggregationsValueCountAggregation = z.infer<typeof AggregationsValueCountAggregation>
 
 export interface AggregationsWeightedAverageValueShape {
@@ -3059,7 +3059,7 @@ export const AggregationsWeightedAverageValue = z.object({
   field: z.lazy(() => Field).describe('The field from which to extract the values or weights.').optional(),
   missing: z.lazy(() => double).describe('A value or weight to use if the field is missing.').optional(),
   get script () { return Script.optional() }
-})
+}).meta({ id: 'AggregationsWeightedAverageValue' })
 export type AggregationsWeightedAverageValue = z.infer<typeof AggregationsWeightedAverageValue>
 
 export interface AggregationsWeightedAverageAggregationShape {
@@ -3073,7 +3073,7 @@ export const AggregationsWeightedAverageAggregation = z.object({
   get value () { return AggregationsWeightedAverageValue.describe('Configuration for the field that provides the values.').optional() },
   value_type: AggregationsValueType.optional(),
   get weight () { return AggregationsWeightedAverageValue.describe('Configuration for the field or script that provides the weights.').optional() }
-})
+}).meta({ id: 'AggregationsWeightedAverageAggregation' })
 export type AggregationsWeightedAverageAggregation = z.infer<typeof AggregationsWeightedAverageAggregation>
 
 export interface AggregationsVariableWidthHistogramAggregationShape {
@@ -3089,7 +3089,7 @@ export const AggregationsVariableWidthHistogramAggregation = z.object({
   shard_size: z.lazy(() => integer).describe('The number of buckets that the coordinating node will request from each shard. Defaults to `buckets * 50`.').optional(),
   initial_buffer: z.lazy(() => integer).describe('Specifies the number of individual documents that will be stored in memory on a shard before the initial bucketing algorithm is run. Defaults to `min(10 * shard_size, 50000)`.').optional(),
   get script () { return Script.optional() }
-})
+}).meta({ id: 'AggregationsVariableWidthHistogramAggregation' })
 export type AggregationsVariableWidthHistogramAggregation = z.infer<typeof AggregationsVariableWidthHistogramAggregation>
 
 const AggregationsAggregationContainerCommonProps = z.object({
@@ -3184,7 +3184,7 @@ export interface AggregationsAggregationContainerShape {
   weighted_avg?: AggregationsWeightedAverageAggregation | undefined
   variable_width_histogram?: AggregationsVariableWidthHistogramAggregation | undefined
 }
-export const AggregationsAggregationContainer: z.ZodType<AggregationsAggregationContainerShape> = AggregationsAggregationContainerCommonProps.and(AggregationsAggregationContainerExclusiveProps)
+export const AggregationsAggregationContainer: z.ZodType<AggregationsAggregationContainerShape> = AggregationsAggregationContainerCommonProps.and(AggregationsAggregationContainerExclusiveProps).meta({ id: 'AggregationsAggregationContainer' })
 export type AggregationsAggregationContainer = z.infer<typeof AggregationsAggregationContainer>
 
 export interface KnnSearchShape {
@@ -3214,22 +3214,22 @@ export const KnnSearch = z.object({
   get inner_hits () { return SearchInnerHits.describe('If defined, each search hit will contain inner hits.').optional() },
   rescore_vector: RescoreVector.describe('Apply oversampling and rescoring to quantized vectors').optional(),
   query_name: z.string().optional()
-})
+}).meta({ id: 'KnnSearch' })
 export type KnnSearch = z.infer<typeof KnnSearch>
 
 export const RankBase = z.object({
-})
+}).meta({ id: 'RankBase' })
 export type RankBase = z.infer<typeof RankBase>
 
 export const RrfRank = z.object({
   rank_constant: z.lazy(() => long).describe('How much influence documents in individual result sets per query have over the final ranked result set').optional(),
   rank_window_size: z.lazy(() => long).describe('Size of the individual result sets per query').optional()
-})
+}).meta({ id: 'RrfRank' })
 export type RrfRank = z.infer<typeof RrfRank>
 
 const RankContainerExclusiveProps = z.union([z.object({ rrf: RrfRank })])
 
-export const RankContainer = RankContainerExclusiveProps
+export const RankContainer = RankContainerExclusiveProps.meta({ id: 'RankContainer' })
 export type RankContainer = z.infer<typeof RankContainer>
 
 export interface RetrieverBaseShape {
@@ -3241,10 +3241,10 @@ export const RetrieverBase = z.object({
   get filter (): z.ZodOptional<z.ZodUnion<readonly [typeof QueryDslQueryContainer, z.ZodArray<typeof QueryDslQueryContainer>]>> { return z.union([QueryDslQueryContainer, QueryDslQueryContainer.array()]).describe('Query to filter the documents that can match.').optional() },
   min_score: z.lazy(() => float).describe('Minimum _score for matching documents. Documents with a lower _score are not included in the top documents.').optional(),
   _name: z.string().describe('Retriever name.').optional()
-})
+}).meta({ id: 'RetrieverBase' })
 export type RetrieverBase = z.infer<typeof RetrieverBase>
 
-export const SortResults = z.array(z.lazy(() => FieldValue))
+export const SortResults = z.array(z.lazy(() => FieldValue)).meta({ id: 'SortResults' })
 export type SortResults = z.infer<typeof SortResults>
 
 export interface StandardRetrieverShape {
@@ -3266,7 +3266,7 @@ export const StandardRetriever = z.object({
   terminate_after: z.lazy(() => integer).describe('Maximum number of documents to collect for each shard.').optional(),
   get sort () { return Sort.describe('A sort object that that specifies the order of matching documents.').optional() },
   get collapse () { return SearchFieldCollapse.describe('Collapses the top documents by a specified key into a single top document per key.').optional() }
-})
+}).meta({ id: 'StandardRetriever' })
 export type StandardRetriever = z.infer<typeof StandardRetriever>
 
 export interface KnnRetrieverShape {
@@ -3294,7 +3294,7 @@ export const KnnRetriever = z.object({
   visit_percentage: z.lazy(() => float).describe('The percentage of vectors to explore per shard while doing knn search with bbq_disk').optional(),
   similarity: z.lazy(() => float).describe('The minimum similarity required for a document to be considered a match.').optional(),
   rescore_vector: RescoreVector.describe('Apply oversampling and rescoring to quantized vectors').optional()
-})
+}).meta({ id: 'KnnRetriever' })
 export type KnnRetriever = z.infer<typeof KnnRetriever>
 
 export interface RRFRetrieverComponentShape {
@@ -3305,12 +3305,12 @@ export interface RRFRetrieverComponentShape {
 export const RRFRetrieverComponent = z.object({
   get retriever () { return RetrieverContainer.describe('The nested retriever configuration.') },
   weight: z.lazy(() => float).describe('Weight multiplier for this retriever\'s contribution to the RRF score. Higher values increase influence. Defaults to 1.0 if not specified. Must be non-negative.').optional()
-})
+}).meta({ id: 'RRFRetrieverComponent' })
 export type RRFRetrieverComponent = z.infer<typeof RRFRetrieverComponent>
 
 export type RRFRetrieverEntryShape = RetrieverContainerShape | RRFRetrieverComponentShape
 /** Either a direct RetrieverContainer (backward compatible) or an RRFRetrieverComponent with weight. */
-export const RRFRetrieverEntry: z.ZodType<RRFRetrieverEntryShape> = z.union([z.lazy(() => RetrieverContainer), z.lazy(() => RRFRetrieverComponent)])
+export const RRFRetrieverEntry: z.ZodType<RRFRetrieverEntryShape> = z.union([z.lazy(() => RetrieverContainer), z.lazy(() => RRFRetrieverComponent)]).meta({ id: 'RRFRetrieverEntry' })
 export type RRFRetrieverEntry = z.infer<typeof RRFRetrieverEntry>
 
 export interface RRFRetrieverShape {
@@ -3332,7 +3332,7 @@ export const RRFRetriever = z.object({
   rank_window_size: z.lazy(() => integer).describe('This value determines the size of the individual result sets per query.').optional(),
   query: z.string().optional(),
   fields: z.array(z.string()).optional()
-})
+}).meta({ id: 'RRFRetriever' })
 export type RRFRetriever = z.infer<typeof RRFRetriever>
 
 export const MappingChunkRescorerChunkingSettings = z.object({
@@ -3342,13 +3342,13 @@ export const MappingChunkRescorerChunkingSettings = z.object({
   separator_group: z.string().describe('Only applicable to the `recursive` strategy and required when using it. Sets a predefined list of separators in the saved chunking settings based on the selected text type. Values can be `markdown` or `plaintext`. Using this parameter is an alternative to manually specifying a custom `separators` list.').optional(),
   separators: z.array(z.string()).describe('Only applicable to the `recursive` strategy and required when using it. A list of strings used as possible split points when chunking text. Each string can be a plain string or a regular expression (regex) pattern. The system tries each separator in order to split the text, starting from the first item in the list. After splitting, it attempts to recombine smaller pieces into larger chunks that stay within the `max_chunk_size` limit, to reduce the total number of chunks generated.').optional(),
   strategy: z.string().describe('The chunking strategy: `sentence`, `word`, `none` or `recursive`.  * If `strategy` is set to `recursive`, you must also specify: - `max_chunk_size` - either `separators` or`separator_group` Learn more about different chunking strategies in the linked documentation.').optional()
-})
+}).meta({ id: 'MappingChunkRescorerChunkingSettings' })
 export type MappingChunkRescorerChunkingSettings = z.infer<typeof MappingChunkRescorerChunkingSettings>
 
 export const ChunkRescorer = z.object({
   size: z.lazy(() => integer).describe('The number of chunks per document to evaluate for reranking.').optional(),
   chunking_settings: MappingChunkRescorerChunkingSettings.describe('Chunking settings to apply').optional()
-})
+}).meta({ id: 'ChunkRescorer' })
 export type ChunkRescorer = z.infer<typeof ChunkRescorer>
 
 export interface TextSimilarityRerankerShape {
@@ -3372,7 +3372,7 @@ export const TextSimilarityReranker = z.object({
   inference_text: z.string().describe('The text snippet used as the basis for similarity comparison.'),
   field: z.string().describe('The document field to be used for text similarity comparisons. This field should contain the text that will be evaluated against the inference_text.'),
   chunk_rescorer: ChunkRescorer.describe('Whether to rescore on only the best matching chunks.').optional()
-})
+}).meta({ id: 'TextSimilarityReranker' })
 export type TextSimilarityReranker = z.infer<typeof TextSimilarityReranker>
 
 export interface RuleRetrieverShape {
@@ -3392,7 +3392,7 @@ export const RuleRetriever = z.object({
   match_criteria: z.any().describe('The match criteria that will determine if a rule in the provided rulesets should be applied.'),
   get retriever () { return RetrieverContainer.describe('The retriever whose results rules should be applied to.') },
   rank_window_size: z.lazy(() => integer).describe('This value determines the size of the individual result set.').optional()
-})
+}).meta({ id: 'RuleRetriever' })
 export type RuleRetriever = z.infer<typeof RuleRetriever>
 
 export interface RescorerRetrieverShape {
@@ -3408,10 +3408,10 @@ export const RescorerRetriever = z.object({
   _name: z.string().describe('Retriever name.').optional(),
   get retriever () { return RetrieverContainer.describe('Inner retriever.') },
   get rescore (): z.ZodUnion<readonly [typeof SearchRescore, z.ZodArray<typeof SearchRescore>]> { return z.union([SearchRescore, SearchRescore.array()]) }
-})
+}).meta({ id: 'RescorerRetriever' })
 export type RescorerRetriever = z.infer<typeof RescorerRetriever>
 
-export const ScoreNormalizer = z.enum(['none', 'minmax', 'l2_norm'])
+export const ScoreNormalizer = z.enum(['none', 'minmax', 'l2_norm']).meta({ id: 'ScoreNormalizer' })
 export type ScoreNormalizer = z.infer<typeof ScoreNormalizer>
 
 export interface InnerRetrieverShape {
@@ -3423,7 +3423,7 @@ export const InnerRetriever = z.object({
   get retriever () { return RetrieverContainer },
   weight: z.lazy(() => float),
   normalizer: ScoreNormalizer
-})
+}).meta({ id: 'InnerRetriever' })
 export type InnerRetriever = z.infer<typeof InnerRetriever>
 
 export interface LinearRetrieverShape {
@@ -3445,13 +3445,13 @@ export const LinearRetriever = z.object({
   query: z.string().optional(),
   fields: z.array(z.string()).optional(),
   normalizer: ScoreNormalizer.optional()
-})
+}).meta({ id: 'LinearRetriever' })
 export type LinearRetriever = z.infer<typeof LinearRetriever>
 
 export const SpecifiedDocument = z.object({
   index: z.lazy(() => IndexName).optional(),
   id: z.lazy(() => Id)
-})
+}).meta({ id: 'SpecifiedDocument' })
 export type SpecifiedDocument = z.infer<typeof SpecifiedDocument>
 
 export interface PinnedRetrieverShape {
@@ -3471,10 +3471,10 @@ export const PinnedRetriever = z.object({
   ids: z.array(z.string()).optional(),
   docs: z.array(SpecifiedDocument).optional(),
   rank_window_size: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'PinnedRetriever' })
 export type PinnedRetriever = z.infer<typeof PinnedRetriever>
 
-export const DiversifyRetrieverTypes = z.enum(['mmr'])
+export const DiversifyRetrieverTypes = z.enum(['mmr']).meta({ id: 'DiversifyRetrieverTypes' })
 export type DiversifyRetrieverTypes = z.infer<typeof DiversifyRetrieverTypes>
 
 export interface DiversifyRetrieverShape {
@@ -3502,7 +3502,7 @@ export const DiversifyRetriever = z.object({
   query_vector: z.lazy(() => QueryVector).describe('The query vector used for diversification.').optional(),
   query_vector_builder: QueryVectorBuilder.describe('a dense vector query vector builder to use instead of a static query_vector').optional(),
   lambda: z.lazy(() => float).describe('Controls the trade-off between relevance and diversity for MMR. A value of 0.0 focuses solely on diversity, while a value of 1.0 focuses solely on relevance. Required for MMR').optional()
-})
+}).meta({ id: 'DiversifyRetriever' })
 export type DiversifyRetriever = z.infer<typeof DiversifyRetriever>
 
 const RetrieverContainerExclusiveProps = z.union([z.object({ standard: z.lazy(() => StandardRetriever) }), z.object({ knn: z.lazy(() => KnnRetriever) }), z.object({ rrf: z.lazy(() => RRFRetriever) }), z.object({ text_similarity_reranker: z.lazy(() => TextSimilarityReranker) }), z.object({ rule: z.lazy(() => RuleRetriever) }), z.object({ rescorer: z.lazy(() => RescorerRetriever) }), z.object({ linear: z.lazy(() => LinearRetriever) }), z.object({ pinned: z.lazy(() => PinnedRetriever) }), z.object({ diversify: z.lazy(() => DiversifyRetriever) })])
@@ -3518,28 +3518,28 @@ export interface RetrieverContainerShape {
   pinned?: PinnedRetriever | undefined
   diversify?: DiversifyRetriever | undefined
 }
-export const RetrieverContainer: z.ZodType<RetrieverContainerShape> = RetrieverContainerExclusiveProps
+export const RetrieverContainer: z.ZodType<RetrieverContainerShape> = RetrieverContainerExclusiveProps.meta({ id: 'RetrieverContainer' })
 export type RetrieverContainer = z.infer<typeof RetrieverContainer>
 
 export const SlicedScroll = z.object({
   field: z.lazy(() => Field).optional(),
   id: z.lazy(() => Id),
   max: z.lazy(() => integer)
-})
+}).meta({ id: 'SlicedScroll' })
 export type SlicedScroll = z.infer<typeof SlicedScroll>
 
-export const MappingRuntimeFieldType = z.enum(['boolean', 'composite', 'date', 'double', 'geo_point', 'geo_shape', 'ip', 'keyword', 'long', 'lookup'])
+export const MappingRuntimeFieldType = z.enum(['boolean', 'composite', 'date', 'double', 'geo_point', 'geo_shape', 'ip', 'keyword', 'long', 'lookup']).meta({ id: 'MappingRuntimeFieldType' })
 export type MappingRuntimeFieldType = z.infer<typeof MappingRuntimeFieldType>
 
 export const MappingCompositeSubField = z.object({
   type: MappingRuntimeFieldType
-})
+}).meta({ id: 'MappingCompositeSubField' })
 export type MappingCompositeSubField = z.infer<typeof MappingCompositeSubField>
 
 export const MappingRuntimeFieldFetchFields = z.object({
   field: z.lazy(() => Field),
   format: z.string().optional()
-})
+}).meta({ id: 'MappingRuntimeFieldFetchFields' })
 export type MappingRuntimeFieldFetchFields = z.infer<typeof MappingRuntimeFieldFetchFields>
 
 export interface MappingRuntimeFieldShape {
@@ -3561,18 +3561,18 @@ export const MappingRuntimeField = z.object({
   target_index: z.lazy(() => IndexName).describe('For type `lookup`').optional(),
   get script () { return Script.describe('Painless script executed at query time.').optional() },
   type: MappingRuntimeFieldType.describe('Field type, which can be: `boolean`, `composite`, `date`, `double`, `geo_point`, `ip`,`keyword`, `long`, or `lookup`.')
-})
+}).meta({ id: 'MappingRuntimeField' })
 export type MappingRuntimeField = z.infer<typeof MappingRuntimeField>
 
 export type MappingRuntimeFieldsShape = Record<Field, MappingRuntimeFieldShape>
-export const MappingRuntimeFields: z.ZodType<MappingRuntimeFieldsShape> = z.record(z.lazy(() => Field), z.lazy(() => MappingRuntimeField))
+export const MappingRuntimeFields: z.ZodType<MappingRuntimeFieldsShape> = z.record(z.lazy(() => Field), z.lazy(() => MappingRuntimeField)).meta({ id: 'MappingRuntimeFields' })
 export type MappingRuntimeFields = z.infer<typeof MappingRuntimeFields>
 
 export type ScriptSourceShape = string | SearchSearchRequestBodyShape
-export const ScriptSource: z.ZodType<ScriptSourceShape> = z.union([z.string(), z.lazy(() => SearchSearchRequestBody)])
+export const ScriptSource: z.ZodType<ScriptSourceShape> = z.union([z.string(), z.lazy(() => SearchSearchRequestBody)]).meta({ id: 'ScriptSource' })
 export type ScriptSource = z.infer<typeof ScriptSource>
 
-export const ScriptLanguage = z.union([z.enum(['painless', 'expression', 'mustache', 'java']), z.string()])
+export const ScriptLanguage = z.union([z.enum(['painless', 'expression', 'mustache', 'java']), z.string()]).meta({ id: 'ScriptLanguage' })
 export type ScriptLanguage = z.infer<typeof ScriptLanguage>
 
 export interface ScriptShape {
@@ -3588,7 +3588,7 @@ export const Script = z.object({
   params: z.record(z.string(), z.any()).describe('Specifies any named parameters that are passed into the script as variables. Use parameters instead of hard-coded values to decrease compile time.').optional(),
   lang: z.lazy(() => ScriptLanguage).describe('Specifies the language the script is written in.').optional(),
   options: z.record(z.string(), z.string()).optional()
-})
+}).meta({ id: 'Script' })
 export type Script = z.infer<typeof Script>
 
 export interface ErrorCauseShape {
@@ -3610,10 +3610,10 @@ export const ErrorCause = z.looseObject({
   get caused_by () { return ErrorCause.optional() },
   get root_cause () { return ErrorCause.array().optional() },
   get suppressed () { return ErrorCause.array().optional() }
-})
+}).meta({ id: 'ErrorCause' })
 export type ErrorCause = z.infer<typeof ErrorCause>
 
-export const uint = z.number()
+export const uint = z.number().meta({ id: 'uint' })
 export type uint = z.infer<typeof uint>
 
 export const ShardFailure = z.object({
@@ -3626,7 +3626,7 @@ export const ShardFailure = z.object({
   _shard: z.lazy(() => integer).optional(),
   status: z.string().optional(),
   primary: z.boolean().optional()
-})
+}).meta({ id: 'ShardFailure' })
 export type ShardFailure = z.infer<typeof ShardFailure>
 
 export const ShardStatistics = z.object({
@@ -3635,7 +3635,7 @@ export const ShardStatistics = z.object({
   total: z.lazy(() => uint).describe('The number of shards the operation or search will run on overall.'),
   failures: z.array(z.lazy(() => ShardFailure)).optional(),
   skipped: z.lazy(() => uint).optional()
-})
+}).meta({ id: 'ShardStatistics' })
 export type ShardStatistics = z.infer<typeof ShardStatistics>
 
 export const InlineGet = z.object({
@@ -3645,7 +3645,7 @@ export const InlineGet = z.object({
   _primary_term: z.lazy(() => long).optional(),
   _routing: z.lazy(() => Routing).optional(),
   _source: z.any().optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'InlineGet' })
 export type InlineGet = z.infer<typeof InlineGet>
 
 /** Contains statistics about the number of nodes selected by the request. */
@@ -3654,28 +3654,28 @@ export const NodeStatistics = z.object({
   total: z.lazy(() => integer).describe('Total number of nodes selected by the request.'),
   successful: z.lazy(() => integer).describe('Number of nodes that responded successfully to the request.'),
   failed: z.lazy(() => integer).describe('Number of nodes that rejected the request or failed to respond. If this value is not 0, a reason for the rejection or failure is included in the response.')
-})
+}).meta({ id: 'NodeStatistics' })
 export type NodeStatistics = z.infer<typeof NodeStatistics>
 
-export const ScrollId = z.string()
+export const ScrollId = z.string().meta({ id: 'ScrollId' })
 export type ScrollId = z.infer<typeof ScrollId>
 
-export const ScrollIds = z.union([z.lazy(() => ScrollId), z.array(z.lazy(() => ScrollId))])
+export const ScrollIds = z.union([z.lazy(() => ScrollId), z.array(z.lazy(() => ScrollId))]).meta({ id: 'ScrollIds' })
 export type ScrollIds = z.infer<typeof ScrollIds>
 
-export const Indices = z.union([z.lazy(() => IndexName), z.array(z.lazy(() => IndexName))])
+export const Indices = z.union([z.lazy(() => IndexName), z.array(z.lazy(() => IndexName))]).meta({ id: 'Indices' })
 export type Indices = z.infer<typeof Indices>
 
-export const ExpandWildcard = z.enum(['all', 'open', 'closed', 'hidden', 'none'])
+export const ExpandWildcard = z.enum(['all', 'open', 'closed', 'hidden', 'none']).meta({ id: 'ExpandWildcard' })
 export type ExpandWildcard = z.infer<typeof ExpandWildcard>
 
-export const ExpandWildcards = z.union([ExpandWildcard, z.array(ExpandWildcard)])
+export const ExpandWildcards = z.union([ExpandWildcard, z.array(ExpandWildcard)]).meta({ id: 'ExpandWildcards' })
 export type ExpandWildcards = z.infer<typeof ExpandWildcards>
 
-export const ProjectRouting = z.string()
+export const ProjectRouting = z.string().meta({ id: 'ProjectRouting' })
 export type ProjectRouting = z.infer<typeof ProjectRouting>
 
-export const Result = z.enum(['created', 'updated', 'deleted', 'not_found', 'noop'])
+export const Result = z.enum(['created', 'updated', 'deleted', 'not_found', 'noop']).meta({ id: 'Result' })
 export type Result = z.infer<typeof Result>
 
 export const WriteResponseBase = z.object({
@@ -3688,20 +3688,20 @@ export const WriteResponseBase = z.object({
   _version: z.lazy(() => VersionNumber).describe('The document version, which is incremented each time the document is updated.'),
   failure_store: z.lazy(() => BulkFailureStoreStatus).describe('The role of the failure store in this document response').optional(),
   forced_refresh: z.boolean().optional()
-})
+}).meta({ id: 'WriteResponseBase' })
 export type WriteResponseBase = z.infer<typeof WriteResponseBase>
 
-export const Conflicts = z.enum(['abort', 'proceed'])
+export const Conflicts = z.enum(['abort', 'proceed']).meta({ id: 'Conflicts' })
 export type Conflicts = z.infer<typeof Conflicts>
 
-export const SearchType = z.enum(['query_then_fetch', 'dfs_query_then_fetch'])
+export const SearchType = z.enum(['query_then_fetch', 'dfs_query_then_fetch']).meta({ id: 'SearchType' })
 export type SearchType = z.infer<typeof SearchType>
 
-export const SlicesCalculation = z.enum(['auto'])
+export const SlicesCalculation = z.enum(['auto']).meta({ id: 'SlicesCalculation' })
 export type SlicesCalculation = z.infer<typeof SlicesCalculation>
 
 /** Slices configuration used to parallelize a process. */
-export const Slices = z.union([z.lazy(() => integer), SlicesCalculation])
+export const Slices = z.union([z.lazy(() => integer), SlicesCalculation]).meta({ id: 'Slices' })
 export type Slices = z.infer<typeof Slices>
 
 export const BulkIndexByScrollFailure = z.object({
@@ -3709,16 +3709,16 @@ export const BulkIndexByScrollFailure = z.object({
   id: z.lazy(() => Id),
   index: z.lazy(() => IndexName),
   status: z.lazy(() => integer)
-})
+}).meta({ id: 'BulkIndexByScrollFailure' })
 export type BulkIndexByScrollFailure = z.infer<typeof BulkIndexByScrollFailure>
 
 export const Retries = z.object({
   bulk: z.lazy(() => long).describe('The number of bulk actions retried.'),
   search: z.lazy(() => long).describe('The number of search actions retried.')
-})
+}).meta({ id: 'Retries' })
 export type Retries = z.infer<typeof Retries>
 
-export const DurationValue = z.any()
+export const DurationValue = z.any().meta({ id: 'DurationValue' })
 export type DurationValue = z.infer<typeof DurationValue>
 
 export const ReindexStatus = z.object({
@@ -3737,13 +3737,13 @@ export const ReindexStatus = z.object({
   updated: z.lazy(() => long).describe('The number of documents that were successfully updated, for example, a document with same ID already existed prior to reindex updating it.').optional(),
   version_conflicts: z.lazy(() => long).describe('The number of version conflicts that reindex hits.'),
   cancelled: z.string().describe('The reason for cancellation if the slice was canceled').optional()
-})
+}).meta({ id: 'ReindexStatus' })
 export type ReindexStatus = z.infer<typeof ReindexStatus>
 
-export const TaskId = z.string()
+export const TaskId = z.string().meta({ id: 'TaskId' })
 export type TaskId = z.infer<typeof TaskId>
 
-export const NodeId = z.string()
+export const NodeId = z.string().meta({ id: 'NodeId' })
 export type NodeId = z.infer<typeof NodeId>
 
 export const TaskFailure = z.object({
@@ -3751,43 +3751,43 @@ export const TaskFailure = z.object({
   node_id: z.lazy(() => NodeId),
   status: z.string(),
   reason: z.lazy(() => ErrorCause)
-})
+}).meta({ id: 'TaskFailure' })
 export type TaskFailure = z.infer<typeof TaskFailure>
 
-export const TransportAddress = z.string()
+export const TransportAddress = z.string().meta({ id: 'TransportAddress' })
 export type TransportAddress = z.infer<typeof TransportAddress>
 
-export const Host = z.string()
+export const Host = z.string().meta({ id: 'Host' })
 export type Host = z.infer<typeof Host>
 
-export const Ip = z.string()
+export const Ip = z.string().meta({ id: 'Ip' })
 export type Ip = z.infer<typeof Ip>
 
 export const AcknowledgedResponseBase = z.object({
   acknowledged: z.boolean().describe('For a successful response, this value is always true. On failure, an exception is returned instead.')
-})
+}).meta({ id: 'AcknowledgedResponseBase' })
 export type AcknowledgedResponseBase = z.infer<typeof AcknowledgedResponseBase>
 
-export const MappingTimeSeriesMetricType = z.enum(['gauge', 'counter', 'summary', 'histogram', 'position'])
+export const MappingTimeSeriesMetricType = z.enum(['gauge', 'counter', 'summary', 'histogram', 'position']).meta({ id: 'MappingTimeSeriesMetricType' })
 export type MappingTimeSeriesMetricType = z.infer<typeof MappingTimeSeriesMetricType>
 
 export const StoredScript = z.object({
   lang: z.lazy(() => ScriptLanguage).describe('The language the script is written in. For search templates, use `mustache`.'),
   options: z.record(z.string(), z.string()).optional(),
   source: z.lazy(() => ScriptSource).describe('The script source. For search templates, an object containing the search template.')
-})
+}).meta({ id: 'StoredScript' })
 export type StoredScript = z.infer<typeof StoredScript>
 
-export const LifecycleOperationMode = z.enum(['RUNNING', 'STOPPING', 'STOPPED'])
+export const LifecycleOperationMode = z.enum(['RUNNING', 'STOPPING', 'STOPPED']).meta({ id: 'LifecycleOperationMode' })
 export type LifecycleOperationMode = z.infer<typeof LifecycleOperationMode>
 
-export const OpType = z.enum(['index', 'create'])
+export const OpType = z.enum(['index', 'create']).meta({ id: 'OpType' })
 export type OpType = z.infer<typeof OpType>
 
-export const Uuid = z.string()
+export const Uuid = z.string().meta({ id: 'Uuid' })
 export type Uuid = z.infer<typeof Uuid>
 
-export const VersionString = z.string()
+export const VersionString = z.string().meta({ id: 'VersionString' })
 export type VersionString = z.infer<typeof VersionString>
 
 export const ElasticsearchVersionInfo = z.object({
@@ -3800,13 +3800,13 @@ export const ElasticsearchVersionInfo = z.object({
   minimum_index_compatibility_version: z.lazy(() => VersionString).describe('The minimum index version with which the responding node can read from disk.'),
   minimum_wire_compatibility_version: z.lazy(() => VersionString).describe('The minimum node version with which the responding node can communicate. Also the minimum version from which you can perform a rolling upgrade.'),
   number: z.string().describe('The Elasticsearch version number. ::: IMPORTANT: For Serverless deployments, this static value is always `8.11.0` and is used solely for backward compatibility with legacy clients.  Serverless environments are versionless and automatically upgraded, so this value can be safely ignored.')
-})
+}).meta({ id: 'ElasticsearchVersionInfo' })
 export type ElasticsearchVersionInfo = z.infer<typeof ElasticsearchVersionInfo>
 
-export const ClusterAlias = z.string()
+export const ClusterAlias = z.string().meta({ id: 'ClusterAlias' })
 export type ClusterAlias = z.infer<typeof ClusterAlias>
 
-export const ClusterSearchStatus = z.enum(['running', 'successful', 'partial', 'skipped', 'failed'])
+export const ClusterSearchStatus = z.enum(['running', 'successful', 'partial', 'skipped', 'failed']).meta({ id: 'ClusterSearchStatus' })
 export type ClusterSearchStatus = z.infer<typeof ClusterSearchStatus>
 
 export const ClusterDetails = z.object({
@@ -3816,7 +3816,7 @@ export const ClusterDetails = z.object({
   timed_out: z.boolean(),
   _shards: z.lazy(() => ShardStatistics).optional(),
   failures: z.array(z.lazy(() => ShardFailure)).optional()
-})
+}).meta({ id: 'ClusterDetails' })
 export type ClusterDetails = z.infer<typeof ClusterDetails>
 
 export const ClusterStatistics = z.object({
@@ -3827,50 +3827,50 @@ export const ClusterStatistics = z.object({
   partial: z.lazy(() => integer),
   failed: z.lazy(() => integer),
   details: z.record(z.lazy(() => ClusterAlias), ClusterDetails).optional()
-})
+}).meta({ id: 'ClusterStatistics' })
 export type ClusterStatistics = z.infer<typeof ClusterStatistics>
 
 /**
  * The suggestion name as returned from the server. Depending whether typed_keys is specified this could come back
  * in the form of `name#type` instead of simply `name`
  */
-export const SuggestionName = z.string()
+export const SuggestionName = z.string().meta({ id: 'SuggestionName' })
 export type SuggestionName = z.infer<typeof SuggestionName>
 
 /** The response returned by Elasticsearch when request execution did not succeed. */
 export const ErrorResponseBase = z.object({
   error: z.lazy(() => ErrorCause),
   status: z.lazy(() => integer)
-})
+}).meta({ id: 'ErrorResponseBase' })
 export type ErrorResponseBase = z.infer<typeof ErrorResponseBase>
 
-export const Username = z.string()
+export const Username = z.string().meta({ id: 'Username' })
 export type Username = z.infer<typeof Username>
 
-export const Password = z.string()
+export const Password = z.string().meta({ id: 'Password' })
 export type Password = z.infer<typeof Password>
 
-export const HttpHeaders = z.record(z.string(), z.union([z.string(), z.array(z.string())]))
+export const HttpHeaders = z.record(z.string(), z.union([z.string(), z.array(z.string())])).meta({ id: 'HttpHeaders' })
 export type HttpHeaders = z.infer<typeof HttpHeaders>
 
-export const NodeRole = z.enum(['master', 'data', 'data_cold', 'data_content', 'data_frozen', 'data_hot', 'data_warm', 'client', 'ingest', 'ml', 'voting_only', 'transform', 'remote_cluster_client', 'coordinating_only'])
+export const NodeRole = z.enum(['master', 'data', 'data_cold', 'data_content', 'data_frozen', 'data_hot', 'data_warm', 'client', 'ingest', 'ml', 'voting_only', 'transform', 'remote_cluster_client', 'coordinating_only']).meta({ id: 'NodeRole' })
 export type NodeRole = z.infer<typeof NodeRole>
 
-export const NodeRoles = z.array(NodeRole)
+export const NodeRoles = z.array(NodeRole).meta({ id: 'NodeRoles' })
 export type NodeRoles = z.infer<typeof NodeRoles>
 
-export const SuggestMode = z.enum(['missing', 'popular', 'always'])
+export const SuggestMode = z.enum(['missing', 'popular', 'always']).meta({ id: 'SuggestMode' })
 export type SuggestMode = z.infer<typeof SuggestMode>
 
-export const MapboxVectorTiles = z.instanceof(ArrayBuffer)
+export const MapboxVectorTiles = z.instanceof(ArrayBuffer).meta({ id: 'MapboxVectorTiles' })
 export type MapboxVectorTiles = z.infer<typeof MapboxVectorTiles>
 
-export const NodeName = z.string()
+export const NodeName = z.string().meta({ id: 'NodeName' })
 export type NodeName = z.infer<typeof NodeName>
 
 export const RelocationFailureInfo = z.object({
   failed_attempts: z.lazy(() => integer)
-})
+}).meta({ id: 'RelocationFailureInfo' })
 export type RelocationFailureInfo = z.infer<typeof RelocationFailureInfo>
 
 export const NodeShard = z.object({
@@ -3884,205 +3884,205 @@ export const NodeShard = z.object({
   unassigned_info: z.lazy(() => ClusterAllocationExplainUnassignedInformation).optional(),
   relocating_node: z.union([z.lazy(() => NodeId), z.null()]).optional(),
   relocation_failure_info: RelocationFailureInfo.optional()
-})
+}).meta({ id: 'NodeShard' })
 export type NodeShard = z.infer<typeof NodeShard>
 
 /**
  * The aggregation name as returned from the server. Depending whether typed_keys is specified this could come back
  * in the form of `name#type` instead of simply `name`
  */
-export const AggregateName = z.string()
+export const AggregateName = z.string().meta({ id: 'AggregateName' })
 export type AggregateName = z.infer<typeof AggregateName>
 
 export const AggregationsAggregateBase = z.object({
   meta: z.lazy(() => Metadata).optional()
-})
+}).meta({ id: 'AggregationsAggregateBase' })
 export type AggregationsAggregateBase = z.infer<typeof AggregationsAggregateBase>
 
 export const AggregationsCardinalityAggregate = z.object({
   ...AggregationsAggregateBase.shape,
   value: z.lazy(() => long)
-})
+}).meta({ id: 'AggregationsCardinalityAggregate' })
 export type AggregationsCardinalityAggregate = z.infer<typeof AggregationsCardinalityAggregate>
 
-export const AggregationsKeyedPercentiles = z.record(z.string(), z.union([z.string(), z.lazy(() => double), z.null()]))
+export const AggregationsKeyedPercentiles = z.record(z.string(), z.union([z.string(), z.lazy(() => double), z.null()])).meta({ id: 'AggregationsKeyedPercentiles' })
 export type AggregationsKeyedPercentiles = z.infer<typeof AggregationsKeyedPercentiles>
 
 export const AggregationsArrayPercentilesItem = z.object({
   key: z.lazy(() => double),
   value: z.union([z.lazy(() => double), z.null()]),
   value_as_string: z.string().optional()
-})
+}).meta({ id: 'AggregationsArrayPercentilesItem' })
 export type AggregationsArrayPercentilesItem = z.infer<typeof AggregationsArrayPercentilesItem>
 
-export const AggregationsPercentiles = z.union([AggregationsKeyedPercentiles, z.array(AggregationsArrayPercentilesItem)])
+export const AggregationsPercentiles = z.union([AggregationsKeyedPercentiles, z.array(AggregationsArrayPercentilesItem)]).meta({ id: 'AggregationsPercentiles' })
 export type AggregationsPercentiles = z.infer<typeof AggregationsPercentiles>
 
 export const AggregationsPercentilesAggregateBase = z.object({
   ...AggregationsAggregateBase.shape,
   values: AggregationsPercentiles
-})
+}).meta({ id: 'AggregationsPercentilesAggregateBase' })
 export type AggregationsPercentilesAggregateBase = z.infer<typeof AggregationsPercentilesAggregateBase>
 
 export const AggregationsHdrPercentilesAggregate = z.object({
   ...AggregationsPercentilesAggregateBase.shape
-})
+}).meta({ id: 'AggregationsHdrPercentilesAggregate' })
 export type AggregationsHdrPercentilesAggregate = z.infer<typeof AggregationsHdrPercentilesAggregate>
 
 export const AggregationsHdrPercentileRanksAggregate = z.object({
   ...AggregationsPercentilesAggregateBase.shape
-})
+}).meta({ id: 'AggregationsHdrPercentileRanksAggregate' })
 export type AggregationsHdrPercentileRanksAggregate = z.infer<typeof AggregationsHdrPercentileRanksAggregate>
 
 export const AggregationsTDigestPercentilesAggregate = z.object({
   ...AggregationsPercentilesAggregateBase.shape
-})
+}).meta({ id: 'AggregationsTDigestPercentilesAggregate' })
 export type AggregationsTDigestPercentilesAggregate = z.infer<typeof AggregationsTDigestPercentilesAggregate>
 
 export const AggregationsTDigestPercentileRanksAggregate = z.object({
   ...AggregationsPercentilesAggregateBase.shape
-})
+}).meta({ id: 'AggregationsTDigestPercentileRanksAggregate' })
 export type AggregationsTDigestPercentileRanksAggregate = z.infer<typeof AggregationsTDigestPercentileRanksAggregate>
 
 export const AggregationsPercentilesBucketAggregate = z.object({
   ...AggregationsPercentilesAggregateBase.shape
-})
+}).meta({ id: 'AggregationsPercentilesBucketAggregate' })
 export type AggregationsPercentilesBucketAggregate = z.infer<typeof AggregationsPercentilesBucketAggregate>
 
 export const AggregationsSingleMetricAggregateBase = z.object({
   ...AggregationsAggregateBase.shape,
   value: z.union([z.lazy(() => double), z.null()]).describe('The metric value. A missing value generally means that there was no data to aggregate, unless specified otherwise.'),
   value_as_string: z.string().optional()
-})
+}).meta({ id: 'AggregationsSingleMetricAggregateBase' })
 export type AggregationsSingleMetricAggregateBase = z.infer<typeof AggregationsSingleMetricAggregateBase>
 
 export const AggregationsMedianAbsoluteDeviationAggregate = z.object({
   ...AggregationsSingleMetricAggregateBase.shape
-})
+}).meta({ id: 'AggregationsMedianAbsoluteDeviationAggregate' })
 export type AggregationsMedianAbsoluteDeviationAggregate = z.infer<typeof AggregationsMedianAbsoluteDeviationAggregate>
 
 export const AggregationsMinAggregate = z.object({
   ...AggregationsSingleMetricAggregateBase.shape
-})
+}).meta({ id: 'AggregationsMinAggregate' })
 export type AggregationsMinAggregate = z.infer<typeof AggregationsMinAggregate>
 
 export const AggregationsMaxAggregate = z.object({
   ...AggregationsSingleMetricAggregateBase.shape
-})
+}).meta({ id: 'AggregationsMaxAggregate' })
 export type AggregationsMaxAggregate = z.infer<typeof AggregationsMaxAggregate>
 
 /** Sum aggregation result. `value` is always present and is zero if there were no values to process. */
 export const AggregationsSumAggregate = z.object({
   ...AggregationsSingleMetricAggregateBase.shape
-})
+}).meta({ id: 'AggregationsSumAggregate' })
 export type AggregationsSumAggregate = z.infer<typeof AggregationsSumAggregate>
 
 export const AggregationsAvgAggregate = z.object({
   ...AggregationsSingleMetricAggregateBase.shape
-})
+}).meta({ id: 'AggregationsAvgAggregate' })
 export type AggregationsAvgAggregate = z.infer<typeof AggregationsAvgAggregate>
 
 /** Weighted average aggregation result. `value` is missing if the weight was set to zero. */
 export const AggregationsWeightedAvgAggregate = z.object({
   ...AggregationsSingleMetricAggregateBase.shape
-})
+}).meta({ id: 'AggregationsWeightedAvgAggregate' })
 export type AggregationsWeightedAvgAggregate = z.infer<typeof AggregationsWeightedAvgAggregate>
 
 /** Value count aggregation result. `value` is always present. */
 export const AggregationsValueCountAggregate = z.object({
   ...AggregationsSingleMetricAggregateBase.shape
-})
+}).meta({ id: 'AggregationsValueCountAggregate' })
 export type AggregationsValueCountAggregate = z.infer<typeof AggregationsValueCountAggregate>
 
 export const AggregationsSimpleValueAggregate = z.object({
   ...AggregationsSingleMetricAggregateBase.shape
-})
+}).meta({ id: 'AggregationsSimpleValueAggregate' })
 export type AggregationsSimpleValueAggregate = z.infer<typeof AggregationsSimpleValueAggregate>
 
 export const AggregationsDerivativeAggregate = z.object({
   ...AggregationsSingleMetricAggregateBase.shape,
   normalized_value: z.lazy(() => double).optional(),
   normalized_value_as_string: z.string().optional()
-})
+}).meta({ id: 'AggregationsDerivativeAggregate' })
 export type AggregationsDerivativeAggregate = z.infer<typeof AggregationsDerivativeAggregate>
 
 export const AggregationsBucketMetricValueAggregate = z.object({
   ...AggregationsSingleMetricAggregateBase.shape,
   keys: z.array(z.string())
-})
+}).meta({ id: 'AggregationsBucketMetricValueAggregate' })
 export type AggregationsBucketMetricValueAggregate = z.infer<typeof AggregationsBucketMetricValueAggregate>
 
 export const AggregationsAbstractChangePoint = z.object({
   p_value: z.lazy(() => double),
   change_point: z.lazy(() => integer)
-})
+}).meta({ id: 'AggregationsAbstractChangePoint' })
 export type AggregationsAbstractChangePoint = z.infer<typeof AggregationsAbstractChangePoint>
 
 export const AggregationsDip = z.object({
   ...AggregationsAbstractChangePoint.shape
-})
+}).meta({ id: 'AggregationsDip' })
 export type AggregationsDip = z.infer<typeof AggregationsDip>
 
 export const AggregationsDistributionChange = z.object({
   ...AggregationsAbstractChangePoint.shape
-})
+}).meta({ id: 'AggregationsDistributionChange' })
 export type AggregationsDistributionChange = z.infer<typeof AggregationsDistributionChange>
 
 export const AggregationsIndeterminable = z.object({
   reason: z.string()
-})
+}).meta({ id: 'AggregationsIndeterminable' })
 export type AggregationsIndeterminable = z.infer<typeof AggregationsIndeterminable>
 
 export const AggregationsNonStationary = z.object({
   p_value: z.lazy(() => double),
   r_value: z.lazy(() => double),
   trend: z.string()
-})
+}).meta({ id: 'AggregationsNonStationary' })
 export type AggregationsNonStationary = z.infer<typeof AggregationsNonStationary>
 
 export const AggregationsSpike = z.object({
   ...AggregationsAbstractChangePoint.shape
-})
+}).meta({ id: 'AggregationsSpike' })
 export type AggregationsSpike = z.infer<typeof AggregationsSpike>
 
 export const AggregationsStationary = z.object({
-})
+}).meta({ id: 'AggregationsStationary' })
 export type AggregationsStationary = z.infer<typeof AggregationsStationary>
 
 export const AggregationsStepChange = z.object({
   ...AggregationsAbstractChangePoint.shape
-})
+}).meta({ id: 'AggregationsStepChange' })
 export type AggregationsStepChange = z.infer<typeof AggregationsStepChange>
 
 export const AggregationsTrendChange = z.object({
   p_value: z.lazy(() => double),
   r_value: z.lazy(() => double),
   change_point: z.lazy(() => integer)
-})
+}).meta({ id: 'AggregationsTrendChange' })
 export type AggregationsTrendChange = z.infer<typeof AggregationsTrendChange>
 
 const AggregationsChangeTypeExclusiveProps = z.union([z.object({ dip: AggregationsDip }), z.object({ distribution_change: AggregationsDistributionChange }), z.object({ indeterminable: AggregationsIndeterminable }), z.object({ non_stationary: AggregationsNonStationary }), z.object({ spike: AggregationsSpike }), z.object({ stationary: AggregationsStationary }), z.object({ step_change: AggregationsStepChange }), z.object({ trend_change: AggregationsTrendChange })])
 
-export const AggregationsChangeType = AggregationsChangeTypeExclusiveProps
+export const AggregationsChangeType = AggregationsChangeTypeExclusiveProps.meta({ id: 'AggregationsChangeType' })
 export type AggregationsChangeType = z.infer<typeof AggregationsChangeType>
 
 /** Base type for multi-bucket aggregation results that can hold sub-aggregations results. */
 export const AggregationsMultiBucketBase = z.object({
   doc_count: z.lazy(() => long)
-})
+}).meta({ id: 'AggregationsMultiBucketBase' })
 export type AggregationsMultiBucketBase = z.infer<typeof AggregationsMultiBucketBase>
 
 export const AggregationsChangePointBucket = z.object({
   doc_count: z.lazy(() => long),
   key: z.lazy(() => FieldValue)
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsChangePointBucket' })
 export type AggregationsChangePointBucket = z.infer<typeof AggregationsChangePointBucket>
 
 export const AggregationsChangePointAggregate = z.object({
   ...AggregationsAggregateBase.shape,
   type: AggregationsChangeType,
   bucket: AggregationsChangePointBucket.optional()
-})
+}).meta({ id: 'AggregationsChangePointAggregate' })
 export type AggregationsChangePointAggregate = z.infer<typeof AggregationsChangePointAggregate>
 
 /**
@@ -4100,12 +4100,12 @@ export const AggregationsStatsAggregate = z.object({
   max_as_string: z.string().optional(),
   avg_as_string: z.string().optional(),
   sum_as_string: z.string().optional()
-})
+}).meta({ id: 'AggregationsStatsAggregate' })
 export type AggregationsStatsAggregate = z.infer<typeof AggregationsStatsAggregate>
 
 export const AggregationsStatsBucketAggregate = z.object({
   ...AggregationsStatsAggregate.shape
-})
+}).meta({ id: 'AggregationsStatsBucketAggregate' })
 export type AggregationsStatsBucketAggregate = z.infer<typeof AggregationsStatsBucketAggregate>
 
 export const AggregationsStandardDeviationBounds = z.object({
@@ -4115,7 +4115,7 @@ export const AggregationsStandardDeviationBounds = z.object({
   lower_population: z.union([z.lazy(() => double), z.null()]),
   upper_sampling: z.union([z.lazy(() => double), z.null()]),
   lower_sampling: z.union([z.lazy(() => double), z.null()])
-})
+}).meta({ id: 'AggregationsStandardDeviationBounds' })
 export type AggregationsStandardDeviationBounds = z.infer<typeof AggregationsStandardDeviationBounds>
 
 export const AggregationsStandardDeviationBoundsAsString = z.object({
@@ -4125,7 +4125,7 @@ export const AggregationsStandardDeviationBoundsAsString = z.object({
   lower_population: z.string(),
   upper_sampling: z.string(),
   lower_sampling: z.string()
-})
+}).meta({ id: 'AggregationsStandardDeviationBoundsAsString' })
 export type AggregationsStandardDeviationBoundsAsString = z.infer<typeof AggregationsStandardDeviationBoundsAsString>
 
 export const AggregationsExtendedStatsAggregate = z.object({
@@ -4144,206 +4144,206 @@ export const AggregationsExtendedStatsAggregate = z.object({
   variance_sampling_as_string: z.string().optional(),
   std_deviation_as_string: z.string().optional(),
   std_deviation_bounds_as_string: AggregationsStandardDeviationBoundsAsString.optional()
-})
+}).meta({ id: 'AggregationsExtendedStatsAggregate' })
 export type AggregationsExtendedStatsAggregate = z.infer<typeof AggregationsExtendedStatsAggregate>
 
 export const AggregationsExtendedStatsBucketAggregate = z.object({
   ...AggregationsExtendedStatsAggregate.shape
-})
+}).meta({ id: 'AggregationsExtendedStatsBucketAggregate' })
 export type AggregationsExtendedStatsBucketAggregate = z.infer<typeof AggregationsExtendedStatsBucketAggregate>
 
 export const AggregationsCartesianBoundsAggregate = z.object({
   ...AggregationsAggregateBase.shape,
   bounds: TopLeftBottomRightGeoBounds.optional()
-})
+}).meta({ id: 'AggregationsCartesianBoundsAggregate' })
 export type AggregationsCartesianBoundsAggregate = z.infer<typeof AggregationsCartesianBoundsAggregate>
 
 export const CartesianPoint = z.object({
   x: z.lazy(() => double),
   y: z.lazy(() => double)
-})
+}).meta({ id: 'CartesianPoint' })
 export type CartesianPoint = z.infer<typeof CartesianPoint>
 
 export const AggregationsCartesianCentroidAggregate = z.object({
   ...AggregationsAggregateBase.shape,
   count: z.lazy(() => long),
   location: CartesianPoint.optional()
-})
+}).meta({ id: 'AggregationsCartesianCentroidAggregate' })
 export type AggregationsCartesianCentroidAggregate = z.infer<typeof AggregationsCartesianCentroidAggregate>
 
 export const AggregationsGeoBoundsAggregate = z.object({
   ...AggregationsAggregateBase.shape,
   bounds: GeoBounds.optional()
-})
+}).meta({ id: 'AggregationsGeoBoundsAggregate' })
 export type AggregationsGeoBoundsAggregate = z.infer<typeof AggregationsGeoBoundsAggregate>
 
 export const AggregationsGeoCentroidAggregate = z.object({
   ...AggregationsAggregateBase.shape,
   count: z.lazy(() => long),
   location: z.lazy(() => GeoLocation).optional()
-})
+}).meta({ id: 'AggregationsGeoCentroidAggregate' })
 export type AggregationsGeoCentroidAggregate = z.infer<typeof AggregationsGeoCentroidAggregate>
 
 export const AggregationsMultiBucketAggregateBase = z.object({
   ...AggregationsAggregateBase.shape,
   buckets: AggregationsBuckets
-})
+}).meta({ id: 'AggregationsMultiBucketAggregateBase' })
 export type AggregationsMultiBucketAggregateBase = z.infer<typeof AggregationsMultiBucketAggregateBase>
 
 export const AggregationsHistogramAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape
-})
+}).meta({ id: 'AggregationsHistogramAggregate' })
 export type AggregationsHistogramAggregate = z.infer<typeof AggregationsHistogramAggregate>
 
 export const AggregationsDateHistogramAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape
-})
+}).meta({ id: 'AggregationsDateHistogramAggregate' })
 export type AggregationsDateHistogramAggregate = z.infer<typeof AggregationsDateHistogramAggregate>
 
 export const AggregationsAutoDateHistogramAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape,
   interval: z.lazy(() => DurationLarge)
-})
+}).meta({ id: 'AggregationsAutoDateHistogramAggregate' })
 export type AggregationsAutoDateHistogramAggregate = z.infer<typeof AggregationsAutoDateHistogramAggregate>
 
 export const AggregationsVariableWidthHistogramAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape
-})
+}).meta({ id: 'AggregationsVariableWidthHistogramAggregate' })
 export type AggregationsVariableWidthHistogramAggregate = z.infer<typeof AggregationsVariableWidthHistogramAggregate>
 
 export const AggregationsTermsAggregateBase = z.object({
   ...AggregationsMultiBucketAggregateBase.shape,
   doc_count_error_upper_bound: z.lazy(() => long).optional(),
   sum_other_doc_count: z.lazy(() => long).optional()
-})
+}).meta({ id: 'AggregationsTermsAggregateBase' })
 export type AggregationsTermsAggregateBase = z.infer<typeof AggregationsTermsAggregateBase>
 
 /** Result of a `terms` aggregation when the field is a string. */
 export const AggregationsStringTermsAggregate = z.object({
   ...AggregationsTermsAggregateBase.shape
-})
+}).meta({ id: 'AggregationsStringTermsAggregate' })
 export type AggregationsStringTermsAggregate = z.infer<typeof AggregationsStringTermsAggregate>
 
 /** Result of a `terms` aggregation when the field is some kind of whole number like a integer, long, or a date. */
 export const AggregationsLongTermsAggregate = z.object({
   ...AggregationsTermsAggregateBase.shape
-})
+}).meta({ id: 'AggregationsLongTermsAggregate' })
 export type AggregationsLongTermsAggregate = z.infer<typeof AggregationsLongTermsAggregate>
 
 /** Result of a `terms` aggregation when the field is some kind of decimal number like a float, double, or distance. */
 export const AggregationsDoubleTermsAggregate = z.object({
   ...AggregationsTermsAggregateBase.shape
-})
+}).meta({ id: 'AggregationsDoubleTermsAggregate' })
 export type AggregationsDoubleTermsAggregate = z.infer<typeof AggregationsDoubleTermsAggregate>
 
 /** Result of a `terms` aggregation when the field is unmapped. `buckets` is always empty. */
 export const AggregationsUnmappedTermsAggregate = z.object({
   ...AggregationsTermsAggregateBase.shape
-})
+}).meta({ id: 'AggregationsUnmappedTermsAggregate' })
 export type AggregationsUnmappedTermsAggregate = z.infer<typeof AggregationsUnmappedTermsAggregate>
 
 /** Result of the `rare_terms` aggregation when the field is some kind of whole number like a integer, long, or a date. */
 export const AggregationsLongRareTermsAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape
-})
+}).meta({ id: 'AggregationsLongRareTermsAggregate' })
 export type AggregationsLongRareTermsAggregate = z.infer<typeof AggregationsLongRareTermsAggregate>
 
 /** Result of the `rare_terms` aggregation when the field is a string. */
 export const AggregationsStringRareTermsAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape
-})
+}).meta({ id: 'AggregationsStringRareTermsAggregate' })
 export type AggregationsStringRareTermsAggregate = z.infer<typeof AggregationsStringRareTermsAggregate>
 
 /** Result of a `rare_terms` aggregation when the field is unmapped. `buckets` is always empty. */
 export const AggregationsUnmappedRareTermsAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape
-})
+}).meta({ id: 'AggregationsUnmappedRareTermsAggregate' })
 export type AggregationsUnmappedRareTermsAggregate = z.infer<typeof AggregationsUnmappedRareTermsAggregate>
 
 export const AggregationsMultiTermsAggregate = z.object({
   ...AggregationsTermsAggregateBase.shape
-})
+}).meta({ id: 'AggregationsMultiTermsAggregate' })
 export type AggregationsMultiTermsAggregate = z.infer<typeof AggregationsMultiTermsAggregate>
 
 /** Base type for single-bucket aggregation results that can hold sub-aggregations results. */
 export const AggregationsSingleBucketAggregateBase = z.object({
   ...AggregationsAggregateBase.shape,
   doc_count: z.lazy(() => long)
-})
+}).meta({ id: 'AggregationsSingleBucketAggregateBase' })
 export type AggregationsSingleBucketAggregateBase = z.infer<typeof AggregationsSingleBucketAggregateBase>
 
 export const AggregationsMissingAggregate = z.object({
   meta: z.lazy(() => Metadata).optional(),
   doc_count: z.lazy(() => long)
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsMissingAggregate' })
 export type AggregationsMissingAggregate = z.infer<typeof AggregationsMissingAggregate>
 
 export const AggregationsNestedAggregate = z.object({
   meta: z.lazy(() => Metadata).optional(),
   doc_count: z.lazy(() => long)
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsNestedAggregate' })
 export type AggregationsNestedAggregate = z.infer<typeof AggregationsNestedAggregate>
 
 export const AggregationsReverseNestedAggregate = z.object({
   meta: z.lazy(() => Metadata).optional(),
   doc_count: z.lazy(() => long)
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsReverseNestedAggregate' })
 export type AggregationsReverseNestedAggregate = z.infer<typeof AggregationsReverseNestedAggregate>
 
 export const AggregationsGlobalAggregate = z.object({
   meta: z.lazy(() => Metadata).optional(),
   doc_count: z.lazy(() => long)
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsGlobalAggregate' })
 export type AggregationsGlobalAggregate = z.infer<typeof AggregationsGlobalAggregate>
 
 export const AggregationsFilterAggregate = z.object({
   meta: z.lazy(() => Metadata).optional(),
   doc_count: z.lazy(() => long)
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsFilterAggregate' })
 export type AggregationsFilterAggregate = z.infer<typeof AggregationsFilterAggregate>
 
 export const AggregationsChildrenAggregate = z.object({
   meta: z.lazy(() => Metadata).optional(),
   doc_count: z.lazy(() => long)
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsChildrenAggregate' })
 export type AggregationsChildrenAggregate = z.infer<typeof AggregationsChildrenAggregate>
 
 export const AggregationsParentAggregate = z.object({
   meta: z.lazy(() => Metadata).optional(),
   doc_count: z.lazy(() => long)
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsParentAggregate' })
 export type AggregationsParentAggregate = z.infer<typeof AggregationsParentAggregate>
 
 export const AggregationsSamplerAggregate = z.object({
   meta: z.lazy(() => Metadata).optional(),
   doc_count: z.lazy(() => long)
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsSamplerAggregate' })
 export type AggregationsSamplerAggregate = z.infer<typeof AggregationsSamplerAggregate>
 
 export const AggregationsUnmappedSamplerAggregate = z.object({
   meta: z.lazy(() => Metadata).optional(),
   doc_count: z.lazy(() => long)
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsUnmappedSamplerAggregate' })
 export type AggregationsUnmappedSamplerAggregate = z.infer<typeof AggregationsUnmappedSamplerAggregate>
 
 export const AggregationsGeoHashGridAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape
-})
+}).meta({ id: 'AggregationsGeoHashGridAggregate' })
 export type AggregationsGeoHashGridAggregate = z.infer<typeof AggregationsGeoHashGridAggregate>
 
 export const AggregationsGeoTileGridAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape
-})
+}).meta({ id: 'AggregationsGeoTileGridAggregate' })
 export type AggregationsGeoTileGridAggregate = z.infer<typeof AggregationsGeoTileGridAggregate>
 
 export const AggregationsGeoHexGridAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape
-})
+}).meta({ id: 'AggregationsGeoHexGridAggregate' })
 export type AggregationsGeoHexGridAggregate = z.infer<typeof AggregationsGeoHexGridAggregate>
 
 export const AggregationsRangeAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape
-})
+}).meta({ id: 'AggregationsRangeAggregate' })
 export type AggregationsRangeAggregate = z.infer<typeof AggregationsRangeAggregate>
 
 /**
@@ -4352,104 +4352,104 @@ export type AggregationsRangeAggregate = z.infer<typeof AggregationsRangeAggrega
  */
 export const AggregationsDateRangeAggregate = z.object({
   ...AggregationsRangeAggregate.shape
-})
+}).meta({ id: 'AggregationsDateRangeAggregate' })
 export type AggregationsDateRangeAggregate = z.infer<typeof AggregationsDateRangeAggregate>
 
 /** Result of a `geo_distance` aggregation. The unit for `from` and `to` is meters by default. */
 export const AggregationsGeoDistanceAggregate = z.object({
   ...AggregationsRangeAggregate.shape
-})
+}).meta({ id: 'AggregationsGeoDistanceAggregate' })
 export type AggregationsGeoDistanceAggregate = z.infer<typeof AggregationsGeoDistanceAggregate>
 
 export const AggregationsIpRangeAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape
-})
+}).meta({ id: 'AggregationsIpRangeAggregate' })
 export type AggregationsIpRangeAggregate = z.infer<typeof AggregationsIpRangeAggregate>
 
 export const AggregationsIpPrefixAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape
-})
+}).meta({ id: 'AggregationsIpPrefixAggregate' })
 export type AggregationsIpPrefixAggregate = z.infer<typeof AggregationsIpPrefixAggregate>
 
 export const AggregationsFiltersAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape
-})
+}).meta({ id: 'AggregationsFiltersAggregate' })
 export type AggregationsFiltersAggregate = z.infer<typeof AggregationsFiltersAggregate>
 
 export const AggregationsAdjacencyMatrixAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape
-})
+}).meta({ id: 'AggregationsAdjacencyMatrixAggregate' })
 export type AggregationsAdjacencyMatrixAggregate = z.infer<typeof AggregationsAdjacencyMatrixAggregate>
 
 export const AggregationsSignificantTermsAggregateBase = z.object({
   ...AggregationsMultiBucketAggregateBase.shape,
   bg_count: z.lazy(() => long).optional(),
   doc_count: z.lazy(() => long).optional()
-})
+}).meta({ id: 'AggregationsSignificantTermsAggregateBase' })
 export type AggregationsSignificantTermsAggregateBase = z.infer<typeof AggregationsSignificantTermsAggregateBase>
 
 export const AggregationsSignificantLongTermsAggregate = z.object({
   ...AggregationsSignificantTermsAggregateBase.shape
-})
+}).meta({ id: 'AggregationsSignificantLongTermsAggregate' })
 export type AggregationsSignificantLongTermsAggregate = z.infer<typeof AggregationsSignificantLongTermsAggregate>
 
 export const AggregationsSignificantStringTermsAggregate = z.object({
   ...AggregationsSignificantTermsAggregateBase.shape
-})
+}).meta({ id: 'AggregationsSignificantStringTermsAggregate' })
 export type AggregationsSignificantStringTermsAggregate = z.infer<typeof AggregationsSignificantStringTermsAggregate>
 
 /** Result of the `significant_terms` aggregation on an unmapped field. `buckets` is always empty. */
 export const AggregationsUnmappedSignificantTermsAggregate = z.object({
   ...AggregationsSignificantTermsAggregateBase.shape
-})
+}).meta({ id: 'AggregationsUnmappedSignificantTermsAggregate' })
 export type AggregationsUnmappedSignificantTermsAggregate = z.infer<typeof AggregationsUnmappedSignificantTermsAggregate>
 
 export const AggregationsCompositeAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape,
   after_key: AggregationsCompositeAggregateKey.optional()
-})
+}).meta({ id: 'AggregationsCompositeAggregate' })
 export type AggregationsCompositeAggregate = z.infer<typeof AggregationsCompositeAggregate>
 
 export const AggregationsFrequentItemSetsAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape
-})
+}).meta({ id: 'AggregationsFrequentItemSetsAggregate' })
 export type AggregationsFrequentItemSetsAggregate = z.infer<typeof AggregationsFrequentItemSetsAggregate>
 
 export const AggregationsTimeSeriesAggregate = z.object({
   ...AggregationsMultiBucketAggregateBase.shape
-})
+}).meta({ id: 'AggregationsTimeSeriesAggregate' })
 export type AggregationsTimeSeriesAggregate = z.infer<typeof AggregationsTimeSeriesAggregate>
 
 export const AggregationsScriptedMetricAggregate = z.object({
   ...AggregationsAggregateBase.shape,
   value: z.any()
-})
+}).meta({ id: 'AggregationsScriptedMetricAggregate' })
 export type AggregationsScriptedMetricAggregate = z.infer<typeof AggregationsScriptedMetricAggregate>
 
 export const AggregationsTopHitsAggregate = z.object({
   ...AggregationsAggregateBase.shape,
   hits: z.lazy(() => SearchHitsMetadata)
-})
+}).meta({ id: 'AggregationsTopHitsAggregate' })
 export type AggregationsTopHitsAggregate = z.infer<typeof AggregationsTopHitsAggregate>
 
 export const AggregationsInferenceClassImportance = z.object({
   class_name: z.string(),
   importance: z.lazy(() => double)
-})
+}).meta({ id: 'AggregationsInferenceClassImportance' })
 export type AggregationsInferenceClassImportance = z.infer<typeof AggregationsInferenceClassImportance>
 
 export const AggregationsInferenceFeatureImportance = z.object({
   feature_name: z.string(),
   importance: z.lazy(() => double).optional(),
   classes: z.array(AggregationsInferenceClassImportance).optional()
-})
+}).meta({ id: 'AggregationsInferenceFeatureImportance' })
 export type AggregationsInferenceFeatureImportance = z.infer<typeof AggregationsInferenceFeatureImportance>
 
 export const AggregationsInferenceTopClassEntry = z.object({
   class_name: z.lazy(() => FieldValue),
   class_probability: z.lazy(() => double),
   class_score: z.lazy(() => double)
-})
+}).meta({ id: 'AggregationsInferenceTopClassEntry' })
 export type AggregationsInferenceTopClassEntry = z.infer<typeof AggregationsInferenceTopClassEntry>
 
 export const AggregationsInferenceAggregate = z.object({
@@ -4458,7 +4458,7 @@ export const AggregationsInferenceAggregate = z.object({
   feature_importance: z.array(AggregationsInferenceFeatureImportance).optional(),
   top_classes: z.array(AggregationsInferenceTopClassEntry).optional(),
   warning: z.string().optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsInferenceAggregate' })
 export type AggregationsInferenceAggregate = z.infer<typeof AggregationsInferenceAggregate>
 
 export const AggregationsStringStatsAggregate = z.object({
@@ -4472,7 +4472,7 @@ export const AggregationsStringStatsAggregate = z.object({
   min_length_as_string: z.string().optional(),
   max_length_as_string: z.string().optional(),
   avg_length_as_string: z.string().optional()
-})
+}).meta({ id: 'AggregationsStringStatsAggregate' })
 export type AggregationsStringStatsAggregate = z.infer<typeof AggregationsStringStatsAggregate>
 
 export const AggregationsBoxPlotAggregate = z.object({
@@ -4491,33 +4491,33 @@ export const AggregationsBoxPlotAggregate = z.object({
   q3_as_string: z.string().optional(),
   lower_as_string: z.string().optional(),
   upper_as_string: z.string().optional()
-})
+}).meta({ id: 'AggregationsBoxPlotAggregate' })
 export type AggregationsBoxPlotAggregate = z.infer<typeof AggregationsBoxPlotAggregate>
 
 export const AggregationsTopMetrics = z.object({
   sort: z.array(z.union([z.lazy(() => FieldValue), z.null()])),
   metrics: z.record(z.string(), z.union([z.lazy(() => FieldValue), z.null()]))
-})
+}).meta({ id: 'AggregationsTopMetrics' })
 export type AggregationsTopMetrics = z.infer<typeof AggregationsTopMetrics>
 
 export const AggregationsTopMetricsAggregate = z.object({
   ...AggregationsAggregateBase.shape,
   top: z.array(AggregationsTopMetrics)
-})
+}).meta({ id: 'AggregationsTopMetricsAggregate' })
 export type AggregationsTopMetricsAggregate = z.infer<typeof AggregationsTopMetricsAggregate>
 
 export const AggregationsTTestAggregate = z.object({
   ...AggregationsAggregateBase.shape,
   value: z.union([z.lazy(() => double), z.null()]),
   value_as_string: z.string().optional()
-})
+}).meta({ id: 'AggregationsTTestAggregate' })
 export type AggregationsTTestAggregate = z.infer<typeof AggregationsTTestAggregate>
 
 export const AggregationsRateAggregate = z.object({
   ...AggregationsAggregateBase.shape,
   value: z.lazy(() => double),
   value_as_string: z.string().optional()
-})
+}).meta({ id: 'AggregationsRateAggregate' })
 export type AggregationsRateAggregate = z.infer<typeof AggregationsRateAggregate>
 
 /** Result of the `cumulative_cardinality` aggregation */
@@ -4525,7 +4525,7 @@ export const AggregationsCumulativeCardinalityAggregate = z.object({
   ...AggregationsAggregateBase.shape,
   value: z.lazy(() => long),
   value_as_string: z.string().optional()
-})
+}).meta({ id: 'AggregationsCumulativeCardinalityAggregate' })
 export type AggregationsCumulativeCardinalityAggregate = z.infer<typeof AggregationsCumulativeCardinalityAggregate>
 
 export const AggregationsMatrixStatsFields = z.object({
@@ -4537,21 +4537,21 @@ export const AggregationsMatrixStatsFields = z.object({
   kurtosis: z.lazy(() => double),
   covariance: z.record(z.lazy(() => Field), z.lazy(() => double)),
   correlation: z.record(z.lazy(() => Field), z.lazy(() => double))
-})
+}).meta({ id: 'AggregationsMatrixStatsFields' })
 export type AggregationsMatrixStatsFields = z.infer<typeof AggregationsMatrixStatsFields>
 
 export const AggregationsMatrixStatsAggregate = z.object({
   ...AggregationsAggregateBase.shape,
   doc_count: z.lazy(() => long),
   fields: z.array(AggregationsMatrixStatsFields).optional()
-})
+}).meta({ id: 'AggregationsMatrixStatsAggregate' })
 export type AggregationsMatrixStatsAggregate = z.infer<typeof AggregationsMatrixStatsAggregate>
 
 /** A GeoJson GeoLine. */
 export const GeoLine = z.object({
   type: z.string().describe('Always `"LineString"`'),
   coordinates: z.array(z.array(z.lazy(() => double))).describe('Array of `[lon, lat]` coordinates')
-})
+}).meta({ id: 'GeoLine' })
 export type GeoLine = z.infer<typeof GeoLine>
 
 export const AggregationsGeoLineAggregate = z.object({
@@ -4559,13 +4559,13 @@ export const AggregationsGeoLineAggregate = z.object({
   type: z.string(),
   geometry: GeoLine,
   properties: z.any()
-})
+}).meta({ id: 'AggregationsGeoLineAggregate' })
 export type AggregationsGeoLineAggregate = z.infer<typeof AggregationsGeoLineAggregate>
 
-export const AggregationsAggregate = z.union([AggregationsCardinalityAggregate, AggregationsHdrPercentilesAggregate, AggregationsHdrPercentileRanksAggregate, AggregationsTDigestPercentilesAggregate, AggregationsTDigestPercentileRanksAggregate, AggregationsPercentilesBucketAggregate, AggregationsMedianAbsoluteDeviationAggregate, AggregationsMinAggregate, AggregationsMaxAggregate, AggregationsSumAggregate, AggregationsAvgAggregate, AggregationsWeightedAvgAggregate, AggregationsValueCountAggregate, AggregationsSimpleValueAggregate, AggregationsDerivativeAggregate, AggregationsBucketMetricValueAggregate, AggregationsChangePointAggregate, AggregationsStatsAggregate, AggregationsStatsBucketAggregate, AggregationsExtendedStatsAggregate, AggregationsExtendedStatsBucketAggregate, AggregationsCartesianBoundsAggregate, AggregationsCartesianCentroidAggregate, AggregationsGeoBoundsAggregate, AggregationsGeoCentroidAggregate, AggregationsHistogramAggregate, AggregationsDateHistogramAggregate, AggregationsAutoDateHistogramAggregate, AggregationsVariableWidthHistogramAggregate, AggregationsStringTermsAggregate, AggregationsLongTermsAggregate, AggregationsDoubleTermsAggregate, AggregationsUnmappedTermsAggregate, AggregationsLongRareTermsAggregate, AggregationsStringRareTermsAggregate, AggregationsUnmappedRareTermsAggregate, AggregationsMultiTermsAggregate, AggregationsMissingAggregate, AggregationsNestedAggregate, AggregationsReverseNestedAggregate, AggregationsGlobalAggregate, AggregationsFilterAggregate, AggregationsChildrenAggregate, AggregationsParentAggregate, AggregationsSamplerAggregate, AggregationsUnmappedSamplerAggregate, AggregationsGeoHashGridAggregate, AggregationsGeoTileGridAggregate, AggregationsGeoHexGridAggregate, AggregationsRangeAggregate, AggregationsDateRangeAggregate, AggregationsGeoDistanceAggregate, AggregationsIpRangeAggregate, AggregationsIpPrefixAggregate, AggregationsFiltersAggregate, AggregationsAdjacencyMatrixAggregate, AggregationsSignificantLongTermsAggregate, AggregationsSignificantStringTermsAggregate, AggregationsUnmappedSignificantTermsAggregate, AggregationsCompositeAggregate, AggregationsFrequentItemSetsAggregate, AggregationsTimeSeriesAggregate, AggregationsScriptedMetricAggregate, AggregationsTopHitsAggregate, AggregationsInferenceAggregate, AggregationsStringStatsAggregate, AggregationsBoxPlotAggregate, AggregationsTopMetricsAggregate, AggregationsTTestAggregate, AggregationsRateAggregate, AggregationsCumulativeCardinalityAggregate, AggregationsMatrixStatsAggregate, AggregationsGeoLineAggregate])
+export const AggregationsAggregate = z.union([AggregationsCardinalityAggregate, AggregationsHdrPercentilesAggregate, AggregationsHdrPercentileRanksAggregate, AggregationsTDigestPercentilesAggregate, AggregationsTDigestPercentileRanksAggregate, AggregationsPercentilesBucketAggregate, AggregationsMedianAbsoluteDeviationAggregate, AggregationsMinAggregate, AggregationsMaxAggregate, AggregationsSumAggregate, AggregationsAvgAggregate, AggregationsWeightedAvgAggregate, AggregationsValueCountAggregate, AggregationsSimpleValueAggregate, AggregationsDerivativeAggregate, AggregationsBucketMetricValueAggregate, AggregationsChangePointAggregate, AggregationsStatsAggregate, AggregationsStatsBucketAggregate, AggregationsExtendedStatsAggregate, AggregationsExtendedStatsBucketAggregate, AggregationsCartesianBoundsAggregate, AggregationsCartesianCentroidAggregate, AggregationsGeoBoundsAggregate, AggregationsGeoCentroidAggregate, AggregationsHistogramAggregate, AggregationsDateHistogramAggregate, AggregationsAutoDateHistogramAggregate, AggregationsVariableWidthHistogramAggregate, AggregationsStringTermsAggregate, AggregationsLongTermsAggregate, AggregationsDoubleTermsAggregate, AggregationsUnmappedTermsAggregate, AggregationsLongRareTermsAggregate, AggregationsStringRareTermsAggregate, AggregationsUnmappedRareTermsAggregate, AggregationsMultiTermsAggregate, AggregationsMissingAggregate, AggregationsNestedAggregate, AggregationsReverseNestedAggregate, AggregationsGlobalAggregate, AggregationsFilterAggregate, AggregationsChildrenAggregate, AggregationsParentAggregate, AggregationsSamplerAggregate, AggregationsUnmappedSamplerAggregate, AggregationsGeoHashGridAggregate, AggregationsGeoTileGridAggregate, AggregationsGeoHexGridAggregate, AggregationsRangeAggregate, AggregationsDateRangeAggregate, AggregationsGeoDistanceAggregate, AggregationsIpRangeAggregate, AggregationsIpPrefixAggregate, AggregationsFiltersAggregate, AggregationsAdjacencyMatrixAggregate, AggregationsSignificantLongTermsAggregate, AggregationsSignificantStringTermsAggregate, AggregationsUnmappedSignificantTermsAggregate, AggregationsCompositeAggregate, AggregationsFrequentItemSetsAggregate, AggregationsTimeSeriesAggregate, AggregationsScriptedMetricAggregate, AggregationsTopHitsAggregate, AggregationsInferenceAggregate, AggregationsStringStatsAggregate, AggregationsBoxPlotAggregate, AggregationsTopMetricsAggregate, AggregationsTTestAggregate, AggregationsRateAggregate, AggregationsCumulativeCardinalityAggregate, AggregationsMatrixStatsAggregate, AggregationsGeoLineAggregate]).meta({ id: 'AggregationsAggregate' })
 export type AggregationsAggregate = z.infer<typeof AggregationsAggregate>
 
-export const ByteSize = z.union([z.lazy(() => long), z.string()])
+export const ByteSize = z.union([z.lazy(() => long), z.string()]).meta({ id: 'ByteSize' })
 export type ByteSize = z.infer<typeof ByteSize>
 
 export const BulkStats = z.object({
@@ -4578,53 +4578,53 @@ export const BulkStats = z.object({
   avg_time_in_millis: z.lazy(() => DurationValue),
   avg_size: z.lazy(() => ByteSize).optional(),
   avg_size_in_bytes: z.lazy(() => long)
-})
+}).meta({ id: 'BulkStats' })
 export type BulkStats = z.infer<typeof BulkStats>
 
-export const Bytes = z.enum(['b', 'kb', 'mb', 'gb', 'tb', 'pb'])
+export const Bytes = z.enum(['b', 'kb', 'mb', 'gb', 'tb', 'pb']).meta({ id: 'Bytes' })
 export type Bytes = z.infer<typeof Bytes>
 
-export const CategoryId = z.lazy(() => long)
+export const CategoryId = z.lazy(() => long).meta({ id: 'CategoryId' })
 export type CategoryId = z.infer<typeof CategoryId>
 
-export const ClusterInfoTarget = z.enum(['_all', 'http', 'ingest', 'thread_pool', 'script'])
+export const ClusterInfoTarget = z.enum(['_all', 'http', 'ingest', 'thread_pool', 'script']).meta({ id: 'ClusterInfoTarget' })
 export type ClusterInfoTarget = z.infer<typeof ClusterInfoTarget>
 
-export const ClusterInfoTargets = z.union([ClusterInfoTarget, z.array(ClusterInfoTarget)])
+export const ClusterInfoTargets = z.union([ClusterInfoTarget, z.array(ClusterInfoTarget)]).meta({ id: 'ClusterInfoTargets' })
 export type ClusterInfoTargets = z.infer<typeof ClusterInfoTargets>
 
-export const CommonStatsFlag = z.enum(['_all', 'store', 'indexing', 'get', 'search', 'merge', 'flush', 'refresh', 'query_cache', 'fielddata', 'docs', 'warmer', 'completion', 'segments', 'translog', 'request_cache', 'recovery', 'bulk', 'shard_stats', 'mappings', 'dense_vector', 'sparse_vector'])
+export const CommonStatsFlag = z.enum(['_all', 'store', 'indexing', 'get', 'search', 'merge', 'flush', 'refresh', 'query_cache', 'fielddata', 'docs', 'warmer', 'completion', 'segments', 'translog', 'request_cache', 'recovery', 'bulk', 'shard_stats', 'mappings', 'dense_vector', 'sparse_vector']).meta({ id: 'CommonStatsFlag' })
 export type CommonStatsFlag = z.infer<typeof CommonStatsFlag>
 
-export const CommonStatsFlags = z.union([CommonStatsFlag, z.array(CommonStatsFlag)])
+export const CommonStatsFlags = z.union([CommonStatsFlag, z.array(CommonStatsFlag)]).meta({ id: 'CommonStatsFlags' })
 export type CommonStatsFlags = z.infer<typeof CommonStatsFlags>
 
 export const FieldSizeUsage = z.object({
   size: z.lazy(() => ByteSize).optional(),
   size_in_bytes: z.lazy(() => long)
-})
+}).meta({ id: 'FieldSizeUsage' })
 export type FieldSizeUsage = z.infer<typeof FieldSizeUsage>
 
 export const CompletionStats = z.object({
   size_in_bytes: z.lazy(() => long).describe('Total amount, in bytes, of memory used for completion across all shards assigned to selected nodes.'),
   size: z.lazy(() => ByteSize).describe('Total amount of memory used for completion across all shards assigned to selected nodes.').optional(),
   fields: z.record(z.lazy(() => Field), FieldSizeUsage).optional()
-})
+}).meta({ id: 'CompletionStats' })
 export type CompletionStats = z.infer<typeof CompletionStats>
 
-export const DFIIndependenceMeasure = z.enum(['standardized', 'saturated', 'chisquared'])
+export const DFIIndependenceMeasure = z.enum(['standardized', 'saturated', 'chisquared']).meta({ id: 'DFIIndependenceMeasure' })
 export type DFIIndependenceMeasure = z.infer<typeof DFIIndependenceMeasure>
 
-export const DFRAfterEffect = z.enum(['no', 'b', 'l'])
+export const DFRAfterEffect = z.enum(['no', 'b', 'l']).meta({ id: 'DFRAfterEffect' })
 export type DFRAfterEffect = z.infer<typeof DFRAfterEffect>
 
-export const DFRBasicModel = z.enum(['be', 'd', 'g', 'if', 'in', 'ine', 'p'])
+export const DFRBasicModel = z.enum(['be', 'd', 'g', 'if', 'in', 'ine', 'p']).meta({ id: 'DFRBasicModel' })
 export type DFRBasicModel = z.infer<typeof DFRBasicModel>
 
-export const DataStreamName = z.string()
+export const DataStreamName = z.string().meta({ id: 'DataStreamName' })
 export type DataStreamName = z.infer<typeof DataStreamName>
 
-export const DataStreamNames = z.union([z.lazy(() => DataStreamName), z.array(z.lazy(() => DataStreamName))])
+export const DataStreamNames = z.union([z.lazy(() => DataStreamName), z.array(z.lazy(() => DataStreamName))]).meta({ id: 'DataStreamNames' })
 export type DataStreamNames = z.infer<typeof DataStreamNames>
 
 export const DocStats = z.object({
@@ -4632,7 +4632,7 @@ export const DocStats = z.object({
   deleted: z.lazy(() => long).describe('Total number of deleted documents across all primary shards assigned to selected nodes. This number is based on documents in Lucene segments. Elasticsearch reclaims the disk space of deleted Lucene documents when a segment is merged.').optional(),
   total_size_in_bytes: z.lazy(() => long).describe('Returns the total size in bytes of all documents in this stats. This value may be more reliable than store_stats.size_in_bytes in estimating the index size.'),
   total_size: z.lazy(() => ByteSize).describe('Human readable total_size_in_bytes').optional()
-})
+}).meta({ id: 'DocStats' })
 export type DocStats = z.infer<typeof DocStats>
 
 /** Reduced (minimal) info ElasticsearchVersion */
@@ -4641,19 +4641,19 @@ export const ElasticsearchVersionMinInfo = z.object({
   minimum_index_compatibility_version: z.lazy(() => VersionString),
   minimum_wire_compatibility_version: z.lazy(() => VersionString),
   number: z.string()
-})
+}).meta({ id: 'ElasticsearchVersionMinInfo' })
 export type ElasticsearchVersionMinInfo = z.infer<typeof ElasticsearchVersionMinInfo>
 
 export const FieldMemoryUsage = z.object({
   memory_size: z.lazy(() => ByteSize).optional(),
   memory_size_in_bytes: z.lazy(() => long)
-})
+}).meta({ id: 'FieldMemoryUsage' })
 export type FieldMemoryUsage = z.infer<typeof FieldMemoryUsage>
 
-export const MappingFieldType = z.enum(['none', 'geo_point', 'geo_shape', 'ip', 'binary', 'keyword', 'text', 'search_as_you_type', 'date', 'date_nanos', 'boolean', 'completion', 'nested', 'object', 'passthrough', 'version', 'murmur3', 'token_count', 'percolator', 'integer', 'long', 'short', 'byte', 'float', 'half_float', 'scaled_float', 'double', 'integer_range', 'float_range', 'long_range', 'double_range', 'date_range', 'ip_range', 'alias', 'join', 'rank_feature', 'rank_features', 'flattened', 'shape', 'histogram', 'constant_keyword', 'counted_keyword', 'aggregate_metric_double', 'dense_vector', 'semantic_text', 'sparse_vector', 'match_only_text', 'icu_collation_keyword'])
+export const MappingFieldType = z.enum(['none', 'geo_point', 'geo_shape', 'ip', 'binary', 'keyword', 'text', 'search_as_you_type', 'date', 'date_nanos', 'boolean', 'completion', 'nested', 'object', 'passthrough', 'version', 'murmur3', 'token_count', 'percolator', 'integer', 'long', 'short', 'byte', 'float', 'half_float', 'scaled_float', 'double', 'integer_range', 'float_range', 'long_range', 'double_range', 'date_range', 'ip_range', 'alias', 'join', 'rank_feature', 'rank_features', 'flattened', 'shape', 'histogram', 'constant_keyword', 'counted_keyword', 'aggregate_metric_double', 'dense_vector', 'semantic_text', 'sparse_vector', 'match_only_text', 'icu_collation_keyword']).meta({ id: 'MappingFieldType' })
 export type MappingFieldType = z.infer<typeof MappingFieldType>
 
-export const FieldSortNumericType = z.enum(['long', 'double', 'date', 'date_nanos'])
+export const FieldSortNumericType = z.enum(['long', 'double', 'date', 'date_nanos']).meta({ id: 'FieldSortNumericType' })
 export type FieldSortNumericType = z.infer<typeof FieldSortNumericType>
 
 export const FieldSort = z.object({
@@ -4664,25 +4664,25 @@ export const FieldSort = z.object({
   unmapped_type: MappingFieldType.optional(),
   numeric_type: FieldSortNumericType.optional(),
   format: z.string().optional()
-})
+}).meta({ id: 'FieldSort' })
 export type FieldSort = z.infer<typeof FieldSort>
 
 /** Time unit for milliseconds */
-export const UnitMillis = z.lazy(() => long)
+export const UnitMillis = z.lazy(() => long).meta({ id: 'UnitMillis' })
 export type UnitMillis = z.infer<typeof UnitMillis>
 
 export const GlobalOrdinalFieldStats = z.object({
   build_time_in_millis: z.lazy(() => UnitMillis),
   build_time: z.string().optional(),
   shard_max_value_count: z.lazy(() => long)
-})
+}).meta({ id: 'GlobalOrdinalFieldStats' })
 export type GlobalOrdinalFieldStats = z.infer<typeof GlobalOrdinalFieldStats>
 
 export const GlobalOrdinalsStats = z.object({
   build_time_in_millis: z.lazy(() => UnitMillis),
   build_time: z.string().optional(),
   fields: z.record(z.lazy(() => Name), GlobalOrdinalFieldStats).optional()
-})
+}).meta({ id: 'GlobalOrdinalsStats' })
 export type GlobalOrdinalsStats = z.infer<typeof GlobalOrdinalsStats>
 
 export const FielddataStats = z.object({
@@ -4691,7 +4691,7 @@ export const FielddataStats = z.object({
   memory_size_in_bytes: z.lazy(() => long),
   fields: z.record(z.lazy(() => Field), FieldMemoryUsage).optional(),
   global_ordinals: GlobalOrdinalsStats
-})
+}).meta({ id: 'FielddataStats' })
 export type FielddataStats = z.infer<typeof FielddataStats>
 
 export const FlushStats = z.object({
@@ -4699,14 +4699,14 @@ export const FlushStats = z.object({
   total: z.lazy(() => long),
   total_time: z.lazy(() => Duration).optional(),
   total_time_in_millis: z.lazy(() => DurationValue)
-})
+}).meta({ id: 'FlushStats' })
 export type FlushStats = z.infer<typeof FlushStats>
 
 /** A GeoJson shape, that can also use Elasticsearch's `envelope` extension. */
-export const GeoShape = z.any()
+export const GeoShape = z.any().meta({ id: 'GeoShape' })
 export type GeoShape = z.infer<typeof GeoShape>
 
-export const GeoShapeRelation = z.enum(['intersects', 'disjoint', 'within', 'contains'])
+export const GeoShapeRelation = z.enum(['intersects', 'disjoint', 'within', 'contains']).meta({ id: 'GeoShapeRelation' })
 export type GeoShapeRelation = z.infer<typeof GeoShapeRelation>
 
 export const GetStats = z.object({
@@ -4720,28 +4720,28 @@ export const GetStats = z.object({
   time: z.lazy(() => Duration).optional(),
   time_in_millis: z.lazy(() => DurationValue),
   total: z.lazy(() => long)
-})
+}).meta({ id: 'GetStats' })
 export type GetStats = z.infer<typeof GetStats>
 
-export const GrokPattern = z.string()
+export const GrokPattern = z.string().meta({ id: 'GrokPattern' })
 export type GrokPattern = z.infer<typeof GrokPattern>
 
-export const HealthStatus = z.enum(['green', 'GREEN', 'yellow', 'YELLOW', 'red', 'RED', 'unknown', 'unavailable'])
+export const HealthStatus = z.enum(['green', 'GREEN', 'yellow', 'YELLOW', 'red', 'RED', 'unknown', 'unavailable']).meta({ id: 'HealthStatus' })
 export type HealthStatus = z.infer<typeof HealthStatus>
 
-export const IBDistribution = z.enum(['ll', 'spl'])
+export const IBDistribution = z.enum(['ll', 'spl']).meta({ id: 'IBDistribution' })
 export type IBDistribution = z.infer<typeof IBDistribution>
 
-export const IBLambda = z.enum(['df', 'ttf'])
+export const IBLambda = z.enum(['df', 'ttf']).meta({ id: 'IBLambda' })
 export type IBLambda = z.infer<typeof IBLambda>
 
-export const IndexAlias = z.string()
+export const IndexAlias = z.string().meta({ id: 'IndexAlias' })
 export type IndexAlias = z.infer<typeof IndexAlias>
 
-export const IndexPattern = z.string()
+export const IndexPattern = z.string().meta({ id: 'IndexPattern' })
 export type IndexPattern = z.infer<typeof IndexPattern>
 
-export const IndexPatterns = z.array(IndexPattern)
+export const IndexPatterns = z.array(IndexPattern).meta({ id: 'IndexPatterns' })
 export type IndexPatterns = z.infer<typeof IndexPatterns>
 
 export interface IndexingStatsShape {
@@ -4781,7 +4781,7 @@ export const IndexingStats = z.object({
   write_load: z.lazy(() => double).optional(),
   recent_write_load: z.lazy(() => double).optional(),
   peak_write_load: z.lazy(() => double).optional()
-})
+}).meta({ id: 'IndexingStats' })
 export type IndexingStats = z.infer<typeof IndexingStats>
 
 /**
@@ -4793,16 +4793,16 @@ export const IndicesOptions = z.object({
   expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional(),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional(),
   ignore_throttled: z.boolean().describe('If true, concrete, expanded or aliased indices are ignored when frozen.').optional()
-})
+}).meta({ id: 'IndicesOptions' })
 export type IndicesOptions = z.infer<typeof IndicesOptions>
 
 export const IndicesResponseBase = z.object({
   acknowledged: z.boolean().describe('For a successful response, this value is always true. On failure, an exception is returned instead.'),
   _shards: z.lazy(() => ShardStatistics).optional()
-})
+}).meta({ id: 'IndicesResponseBase' })
 export type IndicesResponseBase = z.infer<typeof IndicesResponseBase>
 
-export const Level = z.enum(['cluster', 'indices', 'shards'])
+export const Level = z.enum(['cluster', 'indices', 'shards']).meta({ id: 'Level' })
 export type Level = z.infer<typeof Level>
 
 export const MergesStats = z.object({
@@ -4822,13 +4822,13 @@ export const MergesStats = z.object({
   total_throttled_time_in_millis: z.lazy(() => DurationValue),
   total_time: z.lazy(() => Duration).optional(),
   total_time_in_millis: z.lazy(() => DurationValue)
-})
+}).meta({ id: 'MergesStats' })
 export type MergesStats = z.infer<typeof MergesStats>
 
-export const Names = z.union([z.lazy(() => Name), z.array(z.lazy(() => Name))])
+export const Names = z.union([z.lazy(() => Name), z.array(z.lazy(() => Name))]).meta({ id: 'Names' })
 export type Names = z.infer<typeof Names>
 
-export const Namespace = z.string()
+export const Namespace = z.string().meta({ id: 'Namespace' })
 export type Namespace = z.infer<typeof Namespace>
 
 export const NodeAttributes = z.object({
@@ -4837,22 +4837,22 @@ export const NodeAttributes = z.object({
   id: z.lazy(() => NodeId).describe('The unique identifier of the node.').optional(),
   name: z.lazy(() => NodeName).describe('The unique identifier of the node.'),
   transport_address: z.lazy(() => TransportAddress).describe('The host and port where transport HTTP connections are accepted.')
-})
+}).meta({ id: 'NodeAttributes' })
 export type NodeAttributes = z.infer<typeof NodeAttributes>
 
-export const NodeIds = z.union([z.lazy(() => NodeId), z.array(z.lazy(() => NodeId))])
+export const NodeIds = z.union([z.lazy(() => NodeId), z.array(z.lazy(() => NodeId))]).meta({ id: 'NodeIds' })
 export type NodeIds = z.infer<typeof NodeIds>
 
-export const NodeStatsLevel = z.enum(['node', 'indices', 'shards'])
+export const NodeStatsLevel = z.enum(['node', 'indices', 'shards']).meta({ id: 'NodeStatsLevel' })
 export type NodeStatsLevel = z.infer<typeof NodeStatsLevel>
 
-export const Normalization = z.enum(['no', 'h1', 'h2', 'h3', 'z'])
+export const Normalization = z.enum(['no', 'h1', 'h2', 'h3', 'z']).meta({ id: 'Normalization' })
 export type Normalization = z.infer<typeof Normalization>
 
-export const Percentage = z.union([z.string(), z.lazy(() => float)])
+export const Percentage = z.union([z.string(), z.lazy(() => float)]).meta({ id: 'Percentage' })
 export type Percentage = z.infer<typeof Percentage>
 
-export const PipelineName = z.string()
+export const PipelineName = z.string().meta({ id: 'PipelineName' })
 export type PipelineName = z.infer<typeof PipelineName>
 
 export const PluginStats = z.object({
@@ -4865,10 +4865,10 @@ export const PluginStats = z.object({
   name: z.lazy(() => Name),
   version: z.lazy(() => VersionString),
   licensed: z.boolean()
-})
+}).meta({ id: 'PluginStats' })
 export type PluginStats = z.infer<typeof PluginStats>
 
-export const PropertyName = z.string()
+export const PropertyName = z.string().meta({ id: 'PropertyName' })
 export type PropertyName = z.infer<typeof PropertyName>
 
 export const QueryCacheStats = z.object({
@@ -4880,7 +4880,7 @@ export const QueryCacheStats = z.object({
   memory_size_in_bytes: z.lazy(() => long).describe('Total amount, in bytes, of memory used for the query cache across all shards assigned to selected nodes.'),
   miss_count: z.lazy(() => long).describe('Total count of query cache misses across all shards assigned to selected nodes.'),
   total_count: z.lazy(() => long).describe('Total count of hits and misses in the query cache across all shards assigned to selected nodes.')
-})
+}).meta({ id: 'QueryCacheStats' })
 export type QueryCacheStats = z.infer<typeof QueryCacheStats>
 
 export const RecoveryStats = z.object({
@@ -4888,7 +4888,7 @@ export const RecoveryStats = z.object({
   current_as_target: z.lazy(() => long),
   throttle_time: z.lazy(() => Duration).optional(),
   throttle_time_in_millis: z.lazy(() => DurationValue)
-})
+}).meta({ id: 'RecoveryStats' })
 export type RecoveryStats = z.infer<typeof RecoveryStats>
 
 export const RefreshStats = z.object({
@@ -4898,7 +4898,7 @@ export const RefreshStats = z.object({
   total: z.lazy(() => long),
   total_time: z.lazy(() => Duration).optional(),
   total_time_in_millis: z.lazy(() => DurationValue)
-})
+}).meta({ id: 'RefreshStats' })
 export type RefreshStats = z.infer<typeof RefreshStats>
 
 export const RequestCacheStats = z.object({
@@ -4907,11 +4907,11 @@ export const RequestCacheStats = z.object({
   memory_size: z.string().optional(),
   memory_size_in_bytes: z.lazy(() => long),
   miss_count: z.lazy(() => long)
-})
+}).meta({ id: 'RequestCacheStats' })
 export type RequestCacheStats = z.infer<typeof RequestCacheStats>
 
 /** A scalar value. */
-export const ScalarValue = z.union([z.lazy(() => long), z.lazy(() => double), z.string(), z.boolean(), z.null()])
+export const ScalarValue = z.union([z.lazy(() => long), z.lazy(() => double), z.string(), z.boolean(), z.null()]).meta({ id: 'ScalarValue' })
 export type ScalarValue = z.infer<typeof ScalarValue>
 
 export const ScriptTransform = z.object({
@@ -4919,7 +4919,7 @@ export const ScriptTransform = z.object({
   params: z.record(z.string(), z.any()).optional(),
   source: z.lazy(() => ScriptSource).optional(),
   id: z.string().optional()
-})
+}).meta({ id: 'ScriptTransform' })
 export type ScriptTransform = z.infer<typeof ScriptTransform>
 
 export interface SearchStatsShape {
@@ -4963,13 +4963,13 @@ export const SearchStats = z.object({
   suggest_total: z.lazy(() => long),
   recent_search_load: z.lazy(() => double).optional(),
   get groups (): z.ZodOptional<z.ZodRecord<z.ZodString, typeof SearchStats>> { return z.record(z.string(), SearchStats).optional() }
-})
+}).meta({ id: 'SearchStats' })
 export type SearchStats = z.infer<typeof SearchStats>
 
 export const SearchTransform = z.object({
   request: z.lazy(() => WatcherSearchInputRequestDefinition),
   timeout: z.lazy(() => Duration)
-})
+}).meta({ id: 'SearchTransform' })
 export type SearchTransform = z.infer<typeof SearchTransform>
 
 export const SegmentsStats = z.object({
@@ -4996,15 +4996,15 @@ export const SegmentsStats = z.object({
   term_vectors_memory_in_bytes: z.lazy(() => long).describe('Total amount, in bytes, of memory used for term vectors across all shards assigned to selected nodes.'),
   version_map_memory: z.lazy(() => ByteSize).describe('Total amount of memory used by all version maps across all shards assigned to selected nodes.').optional(),
   version_map_memory_in_bytes: z.lazy(() => long).describe('Total amount, in bytes, of memory used by all version maps across all shards assigned to selected nodes.')
-})
+}).meta({ id: 'SegmentsStats' })
 export type SegmentsStats = z.infer<typeof SegmentsStats>
 
-export const Service = z.string()
+export const Service = z.string().meta({ id: 'Service' })
 export type Service = z.infer<typeof Service>
 
 export const ShardsOperationResponseBase = z.object({
   _shards: z.lazy(() => ShardStatistics).optional()
-})
+}).meta({ id: 'ShardsOperationResponseBase' })
 export type ShardsOperationResponseBase = z.infer<typeof ShardsOperationResponseBase>
 
 export const StoreStats = z.object({
@@ -5014,20 +5014,20 @@ export const StoreStats = z.object({
   reserved_in_bytes: z.lazy(() => long).describe('A prediction, in bytes, of how much larger the shard stores will eventually grow due to ongoing peer recoveries, restoring snapshots, and similar activities.'),
   total_data_set_size: z.lazy(() => ByteSize).describe('Total data set size of all shards assigned to selected nodes. This includes the size of shards not stored fully on the nodes, such as the cache for partially mounted indices.').optional(),
   total_data_set_size_in_bytes: z.lazy(() => long).describe('Total data set size, in bytes, of all shards assigned to selected nodes. This includes the size of shards not stored fully on the nodes, such as the cache for partially mounted indices.').optional()
-})
+}).meta({ id: 'StoreStats' })
 export type StoreStats = z.infer<typeof StoreStats>
 
-export const StreamResult = z.instanceof(ArrayBuffer)
+export const StreamResult = z.instanceof(ArrayBuffer).meta({ id: 'StreamResult' })
 export type StreamResult = z.infer<typeof StreamResult>
 
-export const ThreadType = z.enum(['cpu', 'wait', 'block', 'gpu', 'mem'])
+export const ThreadType = z.enum(['cpu', 'wait', 'block', 'gpu', 'mem']).meta({ id: 'ThreadType' })
 export type ThreadType = z.infer<typeof ThreadType>
 
 /** Time of day, expressed as HH:MM:SS */
-export const TimeOfDay = z.string()
+export const TimeOfDay = z.string().meta({ id: 'TimeOfDay' })
 export type TimeOfDay = z.infer<typeof TimeOfDay>
 
-export const TimeUnit = z.enum(['nanos', 'micros', 'ms', 's', 'm', 'h', 'd'])
+export const TimeUnit = z.enum(['nanos', 'micros', 'ms', 's', 'm', 'h', 'd']).meta({ id: 'TimeUnit' })
 export type TimeUnit = z.infer<typeof TimeUnit>
 
 const TransformContainerExclusiveProps = z.union([z.object({ chain: z.array(z.lazy(() => TransformContainer)) }), z.object({ script: ScriptTransform }), z.object({ search: SearchTransform })])
@@ -5037,7 +5037,7 @@ export interface TransformContainerShape {
   script?: ScriptTransform | undefined
   search?: SearchTransform | undefined
 }
-export const TransformContainer: z.ZodType<TransformContainerShape> = TransformContainerExclusiveProps
+export const TransformContainer: z.ZodType<TransformContainerShape> = TransformContainerExclusiveProps.meta({ id: 'TransformContainer' })
 export type TransformContainer = z.infer<typeof TransformContainer>
 
 export const TranslogStats = z.object({
@@ -5048,22 +5048,22 @@ export const TranslogStats = z.object({
   uncommitted_operations: z.lazy(() => integer),
   uncommitted_size: z.string().optional(),
   uncommitted_size_in_bytes: z.lazy(() => long)
-})
+}).meta({ id: 'TranslogStats' })
 export type TranslogStats = z.infer<typeof TranslogStats>
 
 /** Time unit for fractional milliseconds */
-export const UnitFloatMillis = z.lazy(() => double)
+export const UnitFloatMillis = z.lazy(() => double).meta({ id: 'UnitFloatMillis' })
 export type UnitFloatMillis = z.infer<typeof UnitFloatMillis>
 
 /** Time unit for nanoseconds */
-export const UnitNanos = z.lazy(() => long)
+export const UnitNanos = z.lazy(() => long).meta({ id: 'UnitNanos' })
 export type UnitNanos = z.infer<typeof UnitNanos>
 
 /** Time unit for seconds */
-export const UnitSeconds = z.lazy(() => long)
+export const UnitSeconds = z.lazy(() => long).meta({ id: 'UnitSeconds' })
 export type UnitSeconds = z.infer<typeof UnitSeconds>
 
-export const WaitForEvents = z.enum(['immediate', 'urgent', 'high', 'normal', 'low', 'languid'])
+export const WaitForEvents = z.enum(['immediate', 'urgent', 'high', 'normal', 'low', 'languid']).meta({ id: 'WaitForEvents' })
 export type WaitForEvents = z.infer<typeof WaitForEvents>
 
 export const WarmerStats = z.object({
@@ -5071,41 +5071,41 @@ export const WarmerStats = z.object({
   total: z.lazy(() => long),
   total_time: z.lazy(() => Duration).optional(),
   total_time_in_millis: z.lazy(() => DurationValue)
-})
+}).meta({ id: 'WarmerStats' })
 export type WarmerStats = z.infer<typeof WarmerStats>
 
-export const byte = z.number()
+export const byte = z.number().meta({ id: 'byte' })
 export type byte = z.infer<typeof byte>
 
-export const short = z.number()
+export const short = z.number().meta({ id: 'short' })
 export type short = z.infer<typeof short>
 
-export const ulong = z.number()
+export const ulong = z.number().meta({ id: 'ulong' })
 export type ulong = z.infer<typeof ulong>
 
 export const AggregationsAdjacencyMatrixBucket = z.object({
   doc_count: z.lazy(() => long),
   key: z.string()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsAdjacencyMatrixBucket' })
 export type AggregationsAdjacencyMatrixBucket = z.infer<typeof AggregationsAdjacencyMatrixBucket>
 
 export const AggregationsCompositeBucket = z.object({
   doc_count: z.lazy(() => long),
   key: AggregationsCompositeAggregateKey
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsCompositeBucket' })
 export type AggregationsCompositeBucket = z.infer<typeof AggregationsCompositeBucket>
 
 export const AggregationsDateHistogramBucket = z.object({
   doc_count: z.lazy(() => long),
   key_as_string: z.string().optional(),
   key: z.lazy(() => EpochTime)
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsDateHistogramBucket' })
 export type AggregationsDateHistogramBucket = z.infer<typeof AggregationsDateHistogramBucket>
 
 export const AggregationsTermsBucketBase = z.object({
   ...AggregationsMultiBucketBase.shape,
   doc_count_error_upper_bound: z.lazy(() => long).optional()
-})
+}).meta({ id: 'AggregationsTermsBucketBase' })
 export type AggregationsTermsBucketBase = z.infer<typeof AggregationsTermsBucketBase>
 
 export const AggregationsDoubleTermsBucket = z.object({
@@ -5113,45 +5113,45 @@ export const AggregationsDoubleTermsBucket = z.object({
   doc_count_error_upper_bound: z.lazy(() => long).optional(),
   key: z.lazy(() => double),
   key_as_string: z.string().optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsDoubleTermsBucket' })
 export type AggregationsDoubleTermsBucket = z.infer<typeof AggregationsDoubleTermsBucket>
 
 export const AggregationsFiltersBucket = z.object({
   doc_count: z.lazy(() => long),
   key: z.string().optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsFiltersBucket' })
 export type AggregationsFiltersBucket = z.infer<typeof AggregationsFiltersBucket>
 
 export const AggregationsFrequentItemSetsBucket = z.object({
   doc_count: z.lazy(() => long),
   key: z.record(z.lazy(() => Field), z.array(z.string())),
   support: z.lazy(() => double)
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsFrequentItemSetsBucket' })
 export type AggregationsFrequentItemSetsBucket = z.infer<typeof AggregationsFrequentItemSetsBucket>
 
 export const AggregationsGeoHashGridBucket = z.object({
   doc_count: z.lazy(() => long),
   key: GeoHash
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsGeoHashGridBucket' })
 export type AggregationsGeoHashGridBucket = z.infer<typeof AggregationsGeoHashGridBucket>
 
 export const AggregationsGeoHexGridBucket = z.object({
   doc_count: z.lazy(() => long),
   key: GeoHexCell
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsGeoHexGridBucket' })
 export type AggregationsGeoHexGridBucket = z.infer<typeof AggregationsGeoHexGridBucket>
 
 export const AggregationsGeoTileGridBucket = z.object({
   doc_count: z.lazy(() => long),
   key: GeoTile
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsGeoTileGridBucket' })
 export type AggregationsGeoTileGridBucket = z.infer<typeof AggregationsGeoTileGridBucket>
 
 export const AggregationsHistogramBucket = z.object({
   doc_count: z.lazy(() => long),
   key_as_string: z.string().optional(),
   key: z.lazy(() => double)
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsHistogramBucket' })
 export type AggregationsHistogramBucket = z.infer<typeof AggregationsHistogramBucket>
 
 export const AggregationsIpPrefixBucket = z.object({
@@ -5160,7 +5160,7 @@ export const AggregationsIpPrefixBucket = z.object({
   key: z.string(),
   prefix_length: z.lazy(() => integer),
   netmask: z.string().optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsIpPrefixBucket' })
 export type AggregationsIpPrefixBucket = z.infer<typeof AggregationsIpPrefixBucket>
 
 export const AggregationsIpRangeBucket = z.object({
@@ -5168,14 +5168,14 @@ export const AggregationsIpRangeBucket = z.object({
   key: z.string().optional(),
   from: z.string().optional(),
   to: z.string().optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsIpRangeBucket' })
 export type AggregationsIpRangeBucket = z.infer<typeof AggregationsIpRangeBucket>
 
 export const AggregationsLongRareTermsBucket = z.object({
   doc_count: z.lazy(() => long),
   key: z.lazy(() => long),
   key_as_string: z.string().optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsLongRareTermsBucket' })
 export type AggregationsLongRareTermsBucket = z.infer<typeof AggregationsLongRareTermsBucket>
 
 export const AggregationsLongTermsBucket = z.object({
@@ -5183,7 +5183,7 @@ export const AggregationsLongTermsBucket = z.object({
   doc_count_error_upper_bound: z.lazy(() => long).optional(),
   key: z.lazy(() => long),
   key_as_string: z.string().optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsLongTermsBucket' })
 export type AggregationsLongTermsBucket = z.infer<typeof AggregationsLongTermsBucket>
 
 export const AggregationsMultiTermsBucket = z.object({
@@ -5191,7 +5191,7 @@ export const AggregationsMultiTermsBucket = z.object({
   key: z.array(z.lazy(() => FieldValue)),
   key_as_string: z.string().optional(),
   doc_count_error_upper_bound: z.lazy(() => long).optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsMultiTermsBucket' })
 export type AggregationsMultiTermsBucket = z.infer<typeof AggregationsMultiTermsBucket>
 
 export const AggregationsRangeBucket = z.object({
@@ -5201,14 +5201,14 @@ export const AggregationsRangeBucket = z.object({
   from_as_string: z.string().optional(),
   to_as_string: z.string().optional(),
   key: z.string().describe('The bucket key. Present if the aggregation is _not_ keyed').optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsRangeBucket' })
 export type AggregationsRangeBucket = z.infer<typeof AggregationsRangeBucket>
 
 export const AggregationsSignificantTermsBucketBase = z.object({
   ...AggregationsMultiBucketBase.shape,
   score: z.lazy(() => double),
   bg_count: z.lazy(() => long)
-})
+}).meta({ id: 'AggregationsSignificantTermsBucketBase' })
 export type AggregationsSignificantTermsBucketBase = z.infer<typeof AggregationsSignificantTermsBucketBase>
 
 export const AggregationsSignificantLongTermsBucket = z.object({
@@ -5217,7 +5217,7 @@ export const AggregationsSignificantLongTermsBucket = z.object({
   bg_count: z.lazy(() => long),
   key: z.lazy(() => long),
   key_as_string: z.string().optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsSignificantLongTermsBucket' })
 export type AggregationsSignificantLongTermsBucket = z.infer<typeof AggregationsSignificantLongTermsBucket>
 
 export const AggregationsSignificantStringTermsBucket = z.object({
@@ -5225,26 +5225,26 @@ export const AggregationsSignificantStringTermsBucket = z.object({
   score: z.lazy(() => double),
   bg_count: z.lazy(() => long),
   key: z.string()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsSignificantStringTermsBucket' })
 export type AggregationsSignificantStringTermsBucket = z.infer<typeof AggregationsSignificantStringTermsBucket>
 
 export const AggregationsStringRareTermsBucket = z.object({
   doc_count: z.lazy(() => long),
   key: z.string()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsStringRareTermsBucket' })
 export type AggregationsStringRareTermsBucket = z.infer<typeof AggregationsStringRareTermsBucket>
 
 export const AggregationsStringTermsBucket = z.object({
   doc_count: z.lazy(() => long),
   doc_count_error_upper_bound: z.lazy(() => long).optional(),
   key: z.lazy(() => FieldValue)
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsStringTermsBucket' })
 export type AggregationsStringTermsBucket = z.infer<typeof AggregationsStringTermsBucket>
 
 export const AggregationsTimeSeriesBucket = z.object({
   doc_count: z.lazy(() => long),
   key: z.record(z.lazy(() => Field), z.lazy(() => FieldValue))
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsTimeSeriesBucket' })
 export type AggregationsTimeSeriesBucket = z.infer<typeof AggregationsTimeSeriesBucket>
 
 export const AggregationsVariableWidthHistogramBucket = z.object({
@@ -5255,7 +5255,7 @@ export const AggregationsVariableWidthHistogramBucket = z.object({
   min_as_string: z.string().optional(),
   key_as_string: z.string().optional(),
   max_as_string: z.string().optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'AggregationsVariableWidthHistogramBucket' })
 export type AggregationsVariableWidthHistogramBucket = z.infer<typeof AggregationsVariableWidthHistogramBucket>
 
 export const AnalysisCustomAnalyzer = z.object({
@@ -5265,7 +5265,7 @@ export const AnalysisCustomAnalyzer = z.object({
   position_increment_gap: z.lazy(() => integer).optional(),
   position_offset_gap: z.lazy(() => integer).optional(),
   tokenizer: z.string()
-})
+}).meta({ id: 'AnalysisCustomAnalyzer' })
 export type AnalysisCustomAnalyzer = z.infer<typeof AnalysisCustomAnalyzer>
 
 export const AnalysisFingerprintAnalyzer = z.object({
@@ -5275,16 +5275,16 @@ export const AnalysisFingerprintAnalyzer = z.object({
   separator: z.string().describe('The character to use to concatenate the terms. Defaults to a space.').optional(),
   stopwords: AnalysisStopWords.describe('A pre-defined stop words list like `_english_` or an array containing a list of stop words. Defaults to `_none_`.').optional(),
   stopwords_path: z.string().describe('The path to a file containing stop words.').optional()
-})
+}).meta({ id: 'AnalysisFingerprintAnalyzer' })
 export type AnalysisFingerprintAnalyzer = z.infer<typeof AnalysisFingerprintAnalyzer>
 
 export const AnalysisKeywordAnalyzer = z.object({
   type: z.literal('keyword'),
   version: z.lazy(() => VersionString).optional()
-})
+}).meta({ id: 'AnalysisKeywordAnalyzer' })
 export type AnalysisKeywordAnalyzer = z.infer<typeof AnalysisKeywordAnalyzer>
 
-export const AnalysisNoriDecompoundMode = z.enum(['discard', 'none', 'mixed'])
+export const AnalysisNoriDecompoundMode = z.enum(['discard', 'none', 'mixed']).meta({ id: 'AnalysisNoriDecompoundMode' })
 export type AnalysisNoriDecompoundMode = z.infer<typeof AnalysisNoriDecompoundMode>
 
 export const AnalysisNoriAnalyzer = z.object({
@@ -5293,7 +5293,7 @@ export const AnalysisNoriAnalyzer = z.object({
   decompound_mode: AnalysisNoriDecompoundMode.optional(),
   stoptags: z.array(z.string()).optional(),
   user_dictionary: z.string().optional()
-})
+}).meta({ id: 'AnalysisNoriAnalyzer' })
 export type AnalysisNoriAnalyzer = z.infer<typeof AnalysisNoriAnalyzer>
 
 export const AnalysisPatternAnalyzer = z.object({
@@ -5304,13 +5304,13 @@ export const AnalysisPatternAnalyzer = z.object({
   pattern: z.string().describe('A Java regular expression. Defaults to `W+`.').optional(),
   stopwords: AnalysisStopWords.describe('A pre-defined stop words list like `_english_` or an array containing a list of stop words. Defaults to `_none_`.').optional(),
   stopwords_path: z.string().describe('The path to a file containing stop words.').optional()
-})
+}).meta({ id: 'AnalysisPatternAnalyzer' })
 export type AnalysisPatternAnalyzer = z.infer<typeof AnalysisPatternAnalyzer>
 
 export const AnalysisSimpleAnalyzer = z.object({
   type: z.literal('simple'),
   version: z.lazy(() => VersionString).optional()
-})
+}).meta({ id: 'AnalysisSimpleAnalyzer' })
 export type AnalysisSimpleAnalyzer = z.infer<typeof AnalysisSimpleAnalyzer>
 
 export const AnalysisStandardAnalyzer = z.object({
@@ -5318,7 +5318,7 @@ export const AnalysisStandardAnalyzer = z.object({
   max_token_length: z.lazy(() => integer).describe('The maximum token length. If a token is seen that exceeds this length then it is split at `max_token_length` intervals. Defaults to `255`.').optional(),
   stopwords: AnalysisStopWords.describe('A pre-defined stop words list like `_english_` or an array containing a list of stop words. Defaults to `_none_`.').optional(),
   stopwords_path: z.string().describe('The path to a file containing stop words.').optional()
-})
+}).meta({ id: 'AnalysisStandardAnalyzer' })
 export type AnalysisStandardAnalyzer = z.infer<typeof AnalysisStandardAnalyzer>
 
 export const AnalysisStopAnalyzer = z.object({
@@ -5326,39 +5326,39 @@ export const AnalysisStopAnalyzer = z.object({
   version: z.lazy(() => VersionString).optional(),
   stopwords: AnalysisStopWords.describe('A pre-defined stop words list like `_english_` or an array containing a list of stop words. Defaults to `_none_`.').optional(),
   stopwords_path: z.string().describe('The path to a file containing stop words.').optional()
-})
+}).meta({ id: 'AnalysisStopAnalyzer' })
 export type AnalysisStopAnalyzer = z.infer<typeof AnalysisStopAnalyzer>
 
 export const AnalysisWhitespaceAnalyzer = z.object({
   type: z.literal('whitespace'),
   version: z.lazy(() => VersionString).optional()
-})
+}).meta({ id: 'AnalysisWhitespaceAnalyzer' })
 export type AnalysisWhitespaceAnalyzer = z.infer<typeof AnalysisWhitespaceAnalyzer>
 
-export const AnalysisIcuNormalizationType = z.enum(['nfc', 'nfkc', 'nfkc_cf'])
+export const AnalysisIcuNormalizationType = z.enum(['nfc', 'nfkc', 'nfkc_cf']).meta({ id: 'AnalysisIcuNormalizationType' })
 export type AnalysisIcuNormalizationType = z.infer<typeof AnalysisIcuNormalizationType>
 
-export const AnalysisIcuNormalizationMode = z.enum(['decompose', 'compose'])
+export const AnalysisIcuNormalizationMode = z.enum(['decompose', 'compose']).meta({ id: 'AnalysisIcuNormalizationMode' })
 export type AnalysisIcuNormalizationMode = z.infer<typeof AnalysisIcuNormalizationMode>
 
 export const AnalysisIcuAnalyzer = z.object({
   type: z.literal('icu_analyzer'),
   method: AnalysisIcuNormalizationType,
   mode: AnalysisIcuNormalizationMode
-})
+}).meta({ id: 'AnalysisIcuAnalyzer' })
 export type AnalysisIcuAnalyzer = z.infer<typeof AnalysisIcuAnalyzer>
 
-export const AnalysisKuromojiTokenizationMode = z.enum(['normal', 'search', 'extended'])
+export const AnalysisKuromojiTokenizationMode = z.enum(['normal', 'search', 'extended']).meta({ id: 'AnalysisKuromojiTokenizationMode' })
 export type AnalysisKuromojiTokenizationMode = z.infer<typeof AnalysisKuromojiTokenizationMode>
 
 export const AnalysisKuromojiAnalyzer = z.object({
   type: z.literal('kuromoji'),
   mode: AnalysisKuromojiTokenizationMode.optional(),
   user_dictionary: z.string().optional()
-})
+}).meta({ id: 'AnalysisKuromojiAnalyzer' })
 export type AnalysisKuromojiAnalyzer = z.infer<typeof AnalysisKuromojiAnalyzer>
 
-export const AnalysisSnowballLanguage = z.enum(['Arabic', 'Armenian', 'Basque', 'Catalan', 'Danish', 'Dutch', 'English', 'Estonian', 'Finnish', 'French', 'German', 'German2', 'Hungarian', 'Italian', 'Irish', 'Kp', 'Lithuanian', 'Lovins', 'Norwegian', 'Porter', 'Portuguese', 'Romanian', 'Russian', 'Serbian', 'Spanish', 'Swedish', 'Turkish'])
+export const AnalysisSnowballLanguage = z.enum(['Arabic', 'Armenian', 'Basque', 'Catalan', 'Danish', 'Dutch', 'English', 'Estonian', 'Finnish', 'French', 'German', 'German2', 'Hungarian', 'Italian', 'Irish', 'Kp', 'Lithuanian', 'Lovins', 'Norwegian', 'Porter', 'Portuguese', 'Romanian', 'Russian', 'Serbian', 'Spanish', 'Swedish', 'Turkish']).meta({ id: 'AnalysisSnowballLanguage' })
 export type AnalysisSnowballLanguage = z.infer<typeof AnalysisSnowballLanguage>
 
 export const AnalysisSnowballAnalyzer = z.object({
@@ -5366,7 +5366,7 @@ export const AnalysisSnowballAnalyzer = z.object({
   version: z.lazy(() => VersionString).optional(),
   language: AnalysisSnowballLanguage,
   stopwords: AnalysisStopWords.optional()
-})
+}).meta({ id: 'AnalysisSnowballAnalyzer' })
 export type AnalysisSnowballAnalyzer = z.infer<typeof AnalysisSnowballAnalyzer>
 
 export const AnalysisArabicAnalyzer = z.object({
@@ -5374,7 +5374,7 @@ export const AnalysisArabicAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisArabicAnalyzer' })
 export type AnalysisArabicAnalyzer = z.infer<typeof AnalysisArabicAnalyzer>
 
 export const AnalysisArmenianAnalyzer = z.object({
@@ -5382,7 +5382,7 @@ export const AnalysisArmenianAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisArmenianAnalyzer' })
 export type AnalysisArmenianAnalyzer = z.infer<typeof AnalysisArmenianAnalyzer>
 
 export const AnalysisBasqueAnalyzer = z.object({
@@ -5390,7 +5390,7 @@ export const AnalysisBasqueAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisBasqueAnalyzer' })
 export type AnalysisBasqueAnalyzer = z.infer<typeof AnalysisBasqueAnalyzer>
 
 export const AnalysisBengaliAnalyzer = z.object({
@@ -5398,14 +5398,14 @@ export const AnalysisBengaliAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisBengaliAnalyzer' })
 export type AnalysisBengaliAnalyzer = z.infer<typeof AnalysisBengaliAnalyzer>
 
 export const AnalysisBrazilianAnalyzer = z.object({
   type: z.literal('brazilian'),
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional()
-})
+}).meta({ id: 'AnalysisBrazilianAnalyzer' })
 export type AnalysisBrazilianAnalyzer = z.infer<typeof AnalysisBrazilianAnalyzer>
 
 export const AnalysisBulgarianAnalyzer = z.object({
@@ -5413,7 +5413,7 @@ export const AnalysisBulgarianAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisBulgarianAnalyzer' })
 export type AnalysisBulgarianAnalyzer = z.infer<typeof AnalysisBulgarianAnalyzer>
 
 export const AnalysisCatalanAnalyzer = z.object({
@@ -5421,21 +5421,21 @@ export const AnalysisCatalanAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisCatalanAnalyzer' })
 export type AnalysisCatalanAnalyzer = z.infer<typeof AnalysisCatalanAnalyzer>
 
 export const AnalysisChineseAnalyzer = z.object({
   type: z.literal('chinese'),
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional()
-})
+}).meta({ id: 'AnalysisChineseAnalyzer' })
 export type AnalysisChineseAnalyzer = z.infer<typeof AnalysisChineseAnalyzer>
 
 export const AnalysisCjkAnalyzer = z.object({
   type: z.literal('cjk'),
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional()
-})
+}).meta({ id: 'AnalysisCjkAnalyzer' })
 export type AnalysisCjkAnalyzer = z.infer<typeof AnalysisCjkAnalyzer>
 
 export const AnalysisCzechAnalyzer = z.object({
@@ -5443,14 +5443,14 @@ export const AnalysisCzechAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisCzechAnalyzer' })
 export type AnalysisCzechAnalyzer = z.infer<typeof AnalysisCzechAnalyzer>
 
 export const AnalysisDanishAnalyzer = z.object({
   type: z.literal('danish'),
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional()
-})
+}).meta({ id: 'AnalysisDanishAnalyzer' })
 export type AnalysisDanishAnalyzer = z.infer<typeof AnalysisDanishAnalyzer>
 
 export const AnalysisDutchAnalyzer = z.object({
@@ -5458,7 +5458,7 @@ export const AnalysisDutchAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisDutchAnalyzer' })
 export type AnalysisDutchAnalyzer = z.infer<typeof AnalysisDutchAnalyzer>
 
 export const AnalysisEnglishAnalyzer = z.object({
@@ -5466,14 +5466,14 @@ export const AnalysisEnglishAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisEnglishAnalyzer' })
 export type AnalysisEnglishAnalyzer = z.infer<typeof AnalysisEnglishAnalyzer>
 
 export const AnalysisEstonianAnalyzer = z.object({
   type: z.literal('estonian'),
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional()
-})
+}).meta({ id: 'AnalysisEstonianAnalyzer' })
 export type AnalysisEstonianAnalyzer = z.infer<typeof AnalysisEstonianAnalyzer>
 
 export const AnalysisFinnishAnalyzer = z.object({
@@ -5481,7 +5481,7 @@ export const AnalysisFinnishAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisFinnishAnalyzer' })
 export type AnalysisFinnishAnalyzer = z.infer<typeof AnalysisFinnishAnalyzer>
 
 export const AnalysisFrenchAnalyzer = z.object({
@@ -5489,7 +5489,7 @@ export const AnalysisFrenchAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisFrenchAnalyzer' })
 export type AnalysisFrenchAnalyzer = z.infer<typeof AnalysisFrenchAnalyzer>
 
 export const AnalysisGalicianAnalyzer = z.object({
@@ -5497,7 +5497,7 @@ export const AnalysisGalicianAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisGalicianAnalyzer' })
 export type AnalysisGalicianAnalyzer = z.infer<typeof AnalysisGalicianAnalyzer>
 
 export const AnalysisGermanAnalyzer = z.object({
@@ -5505,14 +5505,14 @@ export const AnalysisGermanAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisGermanAnalyzer' })
 export type AnalysisGermanAnalyzer = z.infer<typeof AnalysisGermanAnalyzer>
 
 export const AnalysisGreekAnalyzer = z.object({
   type: z.literal('greek'),
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional()
-})
+}).meta({ id: 'AnalysisGreekAnalyzer' })
 export type AnalysisGreekAnalyzer = z.infer<typeof AnalysisGreekAnalyzer>
 
 export const AnalysisHindiAnalyzer = z.object({
@@ -5520,7 +5520,7 @@ export const AnalysisHindiAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisHindiAnalyzer' })
 export type AnalysisHindiAnalyzer = z.infer<typeof AnalysisHindiAnalyzer>
 
 export const AnalysisHungarianAnalyzer = z.object({
@@ -5528,7 +5528,7 @@ export const AnalysisHungarianAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisHungarianAnalyzer' })
 export type AnalysisHungarianAnalyzer = z.infer<typeof AnalysisHungarianAnalyzer>
 
 export const AnalysisIndonesianAnalyzer = z.object({
@@ -5536,7 +5536,7 @@ export const AnalysisIndonesianAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisIndonesianAnalyzer' })
 export type AnalysisIndonesianAnalyzer = z.infer<typeof AnalysisIndonesianAnalyzer>
 
 export const AnalysisIrishAnalyzer = z.object({
@@ -5544,7 +5544,7 @@ export const AnalysisIrishAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisIrishAnalyzer' })
 export type AnalysisIrishAnalyzer = z.infer<typeof AnalysisIrishAnalyzer>
 
 export const AnalysisItalianAnalyzer = z.object({
@@ -5552,7 +5552,7 @@ export const AnalysisItalianAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisItalianAnalyzer' })
 export type AnalysisItalianAnalyzer = z.infer<typeof AnalysisItalianAnalyzer>
 
 export const AnalysisLatvianAnalyzer = z.object({
@@ -5560,7 +5560,7 @@ export const AnalysisLatvianAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisLatvianAnalyzer' })
 export type AnalysisLatvianAnalyzer = z.infer<typeof AnalysisLatvianAnalyzer>
 
 export const AnalysisLithuanianAnalyzer = z.object({
@@ -5568,7 +5568,7 @@ export const AnalysisLithuanianAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisLithuanianAnalyzer' })
 export type AnalysisLithuanianAnalyzer = z.infer<typeof AnalysisLithuanianAnalyzer>
 
 export const AnalysisNorwegianAnalyzer = z.object({
@@ -5576,14 +5576,14 @@ export const AnalysisNorwegianAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisNorwegianAnalyzer' })
 export type AnalysisNorwegianAnalyzer = z.infer<typeof AnalysisNorwegianAnalyzer>
 
 export const AnalysisPersianAnalyzer = z.object({
   type: z.literal('persian'),
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional()
-})
+}).meta({ id: 'AnalysisPersianAnalyzer' })
 export type AnalysisPersianAnalyzer = z.infer<typeof AnalysisPersianAnalyzer>
 
 export const AnalysisPortugueseAnalyzer = z.object({
@@ -5591,7 +5591,7 @@ export const AnalysisPortugueseAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisPortugueseAnalyzer' })
 export type AnalysisPortugueseAnalyzer = z.infer<typeof AnalysisPortugueseAnalyzer>
 
 export const AnalysisRomanianAnalyzer = z.object({
@@ -5599,7 +5599,7 @@ export const AnalysisRomanianAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisRomanianAnalyzer' })
 export type AnalysisRomanianAnalyzer = z.infer<typeof AnalysisRomanianAnalyzer>
 
 export const AnalysisRussianAnalyzer = z.object({
@@ -5607,7 +5607,7 @@ export const AnalysisRussianAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisRussianAnalyzer' })
 export type AnalysisRussianAnalyzer = z.infer<typeof AnalysisRussianAnalyzer>
 
 export const AnalysisSerbianAnalyzer = z.object({
@@ -5615,7 +5615,7 @@ export const AnalysisSerbianAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisSerbianAnalyzer' })
 export type AnalysisSerbianAnalyzer = z.infer<typeof AnalysisSerbianAnalyzer>
 
 export const AnalysisSoraniAnalyzer = z.object({
@@ -5623,7 +5623,7 @@ export const AnalysisSoraniAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisSoraniAnalyzer' })
 export type AnalysisSoraniAnalyzer = z.infer<typeof AnalysisSoraniAnalyzer>
 
 export const AnalysisSpanishAnalyzer = z.object({
@@ -5631,7 +5631,7 @@ export const AnalysisSpanishAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisSpanishAnalyzer' })
 export type AnalysisSpanishAnalyzer = z.infer<typeof AnalysisSpanishAnalyzer>
 
 export const AnalysisSwedishAnalyzer = z.object({
@@ -5639,7 +5639,7 @@ export const AnalysisSwedishAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisSwedishAnalyzer' })
 export type AnalysisSwedishAnalyzer = z.infer<typeof AnalysisSwedishAnalyzer>
 
 export const AnalysisTurkishAnalyzer = z.object({
@@ -5647,71 +5647,71 @@ export const AnalysisTurkishAnalyzer = z.object({
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional(),
   stem_exclusion: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisTurkishAnalyzer' })
 export type AnalysisTurkishAnalyzer = z.infer<typeof AnalysisTurkishAnalyzer>
 
 export const AnalysisThaiAnalyzer = z.object({
   type: z.literal('thai'),
   stopwords: AnalysisStopWords.optional(),
   stopwords_path: z.string().optional()
-})
+}).meta({ id: 'AnalysisThaiAnalyzer' })
 export type AnalysisThaiAnalyzer = z.infer<typeof AnalysisThaiAnalyzer>
 
-export const AnalysisAnalyzer = z.union([AnalysisCustomAnalyzer, AnalysisFingerprintAnalyzer, AnalysisKeywordAnalyzer, AnalysisNoriAnalyzer, AnalysisPatternAnalyzer, AnalysisSimpleAnalyzer, AnalysisStandardAnalyzer, AnalysisStopAnalyzer, AnalysisWhitespaceAnalyzer, AnalysisIcuAnalyzer, AnalysisKuromojiAnalyzer, AnalysisSnowballAnalyzer, AnalysisArabicAnalyzer, AnalysisArmenianAnalyzer, AnalysisBasqueAnalyzer, AnalysisBengaliAnalyzer, AnalysisBrazilianAnalyzer, AnalysisBulgarianAnalyzer, AnalysisCatalanAnalyzer, AnalysisChineseAnalyzer, AnalysisCjkAnalyzer, AnalysisCzechAnalyzer, AnalysisDanishAnalyzer, AnalysisDutchAnalyzer, AnalysisEnglishAnalyzer, AnalysisEstonianAnalyzer, AnalysisFinnishAnalyzer, AnalysisFrenchAnalyzer, AnalysisGalicianAnalyzer, AnalysisGermanAnalyzer, AnalysisGreekAnalyzer, AnalysisHindiAnalyzer, AnalysisHungarianAnalyzer, AnalysisIndonesianAnalyzer, AnalysisIrishAnalyzer, AnalysisItalianAnalyzer, AnalysisLatvianAnalyzer, AnalysisLithuanianAnalyzer, AnalysisNorwegianAnalyzer, AnalysisPersianAnalyzer, AnalysisPortugueseAnalyzer, AnalysisRomanianAnalyzer, AnalysisRussianAnalyzer, AnalysisSerbianAnalyzer, AnalysisSoraniAnalyzer, AnalysisSpanishAnalyzer, AnalysisSwedishAnalyzer, AnalysisTurkishAnalyzer, AnalysisThaiAnalyzer])
+export const AnalysisAnalyzer = z.union([AnalysisCustomAnalyzer, AnalysisFingerprintAnalyzer, AnalysisKeywordAnalyzer, AnalysisNoriAnalyzer, AnalysisPatternAnalyzer, AnalysisSimpleAnalyzer, AnalysisStandardAnalyzer, AnalysisStopAnalyzer, AnalysisWhitespaceAnalyzer, AnalysisIcuAnalyzer, AnalysisKuromojiAnalyzer, AnalysisSnowballAnalyzer, AnalysisArabicAnalyzer, AnalysisArmenianAnalyzer, AnalysisBasqueAnalyzer, AnalysisBengaliAnalyzer, AnalysisBrazilianAnalyzer, AnalysisBulgarianAnalyzer, AnalysisCatalanAnalyzer, AnalysisChineseAnalyzer, AnalysisCjkAnalyzer, AnalysisCzechAnalyzer, AnalysisDanishAnalyzer, AnalysisDutchAnalyzer, AnalysisEnglishAnalyzer, AnalysisEstonianAnalyzer, AnalysisFinnishAnalyzer, AnalysisFrenchAnalyzer, AnalysisGalicianAnalyzer, AnalysisGermanAnalyzer, AnalysisGreekAnalyzer, AnalysisHindiAnalyzer, AnalysisHungarianAnalyzer, AnalysisIndonesianAnalyzer, AnalysisIrishAnalyzer, AnalysisItalianAnalyzer, AnalysisLatvianAnalyzer, AnalysisLithuanianAnalyzer, AnalysisNorwegianAnalyzer, AnalysisPersianAnalyzer, AnalysisPortugueseAnalyzer, AnalysisRomanianAnalyzer, AnalysisRussianAnalyzer, AnalysisSerbianAnalyzer, AnalysisSoraniAnalyzer, AnalysisSpanishAnalyzer, AnalysisSwedishAnalyzer, AnalysisTurkishAnalyzer, AnalysisThaiAnalyzer]).meta({ id: 'AnalysisAnalyzer' })
 export type AnalysisAnalyzer = z.infer<typeof AnalysisAnalyzer>
 
 export const AnalysisTokenFilterBase = z.object({
   version: z.lazy(() => VersionString).optional()
-})
+}).meta({ id: 'AnalysisTokenFilterBase' })
 export type AnalysisTokenFilterBase = z.infer<typeof AnalysisTokenFilterBase>
 
 export const AnalysisApostropheTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('apostrophe')
-})
+}).meta({ id: 'AnalysisApostropheTokenFilter' })
 export type AnalysisApostropheTokenFilter = z.infer<typeof AnalysisApostropheTokenFilter>
 
 export const AnalysisArabicNormalizationTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('arabic_normalization')
-})
+}).meta({ id: 'AnalysisArabicNormalizationTokenFilter' })
 export type AnalysisArabicNormalizationTokenFilter = z.infer<typeof AnalysisArabicNormalizationTokenFilter>
 
 export const AnalysisArabicStemTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('arabic_stem')
-})
+}).meta({ id: 'AnalysisArabicStemTokenFilter' })
 export type AnalysisArabicStemTokenFilter = z.infer<typeof AnalysisArabicStemTokenFilter>
 
 export const AnalysisAsciiFoldingTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('asciifolding'),
   preserve_original: z.lazy(() => SpecUtilsStringified).describe('If `true`, emit both original tokens and folded tokens. Defaults to `false`.').optional()
-})
+}).meta({ id: 'AnalysisAsciiFoldingTokenFilter' })
 export type AnalysisAsciiFoldingTokenFilter = z.infer<typeof AnalysisAsciiFoldingTokenFilter>
 
 export const AnalysisBengaliNormalizationTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('bengali_normalization')
-})
+}).meta({ id: 'AnalysisBengaliNormalizationTokenFilter' })
 export type AnalysisBengaliNormalizationTokenFilter = z.infer<typeof AnalysisBengaliNormalizationTokenFilter>
 
 export const AnalysisBrazilianStemTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('brazilian_stem')
-})
+}).meta({ id: 'AnalysisBrazilianStemTokenFilter' })
 export type AnalysisBrazilianStemTokenFilter = z.infer<typeof AnalysisBrazilianStemTokenFilter>
 
 export const AnalysisCharFilterBase = z.object({
   version: z.lazy(() => VersionString).optional()
-})
+}).meta({ id: 'AnalysisCharFilterBase' })
 export type AnalysisCharFilterBase = z.infer<typeof AnalysisCharFilterBase>
 
 export const AnalysisHtmlStripCharFilter = z.object({
   ...AnalysisCharFilterBase.shape,
   type: z.literal('html_strip'),
   escaped_tags: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisHtmlStripCharFilter' })
 export type AnalysisHtmlStripCharFilter = z.infer<typeof AnalysisHtmlStripCharFilter>
 
 export const AnalysisMappingCharFilter = z.object({
@@ -5719,7 +5719,7 @@ export const AnalysisMappingCharFilter = z.object({
   type: z.literal('mapping'),
   mappings: z.array(z.string()).optional(),
   mappings_path: z.string().optional()
-})
+}).meta({ id: 'AnalysisMappingCharFilter' })
 export type AnalysisMappingCharFilter = z.infer<typeof AnalysisMappingCharFilter>
 
 export const AnalysisPatternReplaceCharFilter = z.object({
@@ -5728,7 +5728,7 @@ export const AnalysisPatternReplaceCharFilter = z.object({
   flags: z.string().optional(),
   pattern: z.string(),
   replacement: z.string().optional()
-})
+}).meta({ id: 'AnalysisPatternReplaceCharFilter' })
 export type AnalysisPatternReplaceCharFilter = z.infer<typeof AnalysisPatternReplaceCharFilter>
 
 export const AnalysisIcuNormalizationCharFilter = z.object({
@@ -5737,7 +5737,7 @@ export const AnalysisIcuNormalizationCharFilter = z.object({
   mode: AnalysisIcuNormalizationMode.optional(),
   name: AnalysisIcuNormalizationType.optional(),
   unicode_set_filter: z.string().optional()
-})
+}).meta({ id: 'AnalysisIcuNormalizationCharFilter' })
 export type AnalysisIcuNormalizationCharFilter = z.infer<typeof AnalysisIcuNormalizationCharFilter>
 
 export const AnalysisKuromojiIterationMarkCharFilter = z.object({
@@ -5745,18 +5745,18 @@ export const AnalysisKuromojiIterationMarkCharFilter = z.object({
   type: z.literal('kuromoji_iteration_mark'),
   normalize_kana: z.boolean(),
   normalize_kanji: z.boolean()
-})
+}).meta({ id: 'AnalysisKuromojiIterationMarkCharFilter' })
 export type AnalysisKuromojiIterationMarkCharFilter = z.infer<typeof AnalysisKuromojiIterationMarkCharFilter>
 
-export const AnalysisCharFilterDefinition = z.union([AnalysisHtmlStripCharFilter, AnalysisMappingCharFilter, AnalysisPatternReplaceCharFilter, AnalysisIcuNormalizationCharFilter, AnalysisKuromojiIterationMarkCharFilter])
+export const AnalysisCharFilterDefinition = z.union([AnalysisHtmlStripCharFilter, AnalysisMappingCharFilter, AnalysisPatternReplaceCharFilter, AnalysisIcuNormalizationCharFilter, AnalysisKuromojiIterationMarkCharFilter]).meta({ id: 'AnalysisCharFilterDefinition' })
 export type AnalysisCharFilterDefinition = z.infer<typeof AnalysisCharFilterDefinition>
 
-export const AnalysisCharFilter = z.union([z.string(), AnalysisCharFilterDefinition])
+export const AnalysisCharFilter = z.union([z.string(), AnalysisCharFilterDefinition]).meta({ id: 'AnalysisCharFilter' })
 export type AnalysisCharFilter = z.infer<typeof AnalysisCharFilter>
 
 export const AnalysisTokenizerBase = z.object({
   version: z.lazy(() => VersionString).optional()
-})
+}).meta({ id: 'AnalysisTokenizerBase' })
 export type AnalysisTokenizerBase = z.infer<typeof AnalysisTokenizerBase>
 
 export const AnalysisCharGroupTokenizer = z.object({
@@ -5764,10 +5764,10 @@ export const AnalysisCharGroupTokenizer = z.object({
   type: z.literal('char_group'),
   tokenize_on_chars: z.array(z.string()),
   max_token_length: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'AnalysisCharGroupTokenizer' })
 export type AnalysisCharGroupTokenizer = z.infer<typeof AnalysisCharGroupTokenizer>
 
-export const AnalysisCjkBigramIgnoredScript = z.enum(['han', 'hangul', 'hiragana', 'katakana'])
+export const AnalysisCjkBigramIgnoredScript = z.enum(['han', 'hangul', 'hiragana', 'katakana']).meta({ id: 'AnalysisCjkBigramIgnoredScript' })
 export type AnalysisCjkBigramIgnoredScript = z.infer<typeof AnalysisCjkBigramIgnoredScript>
 
 export const AnalysisCjkBigramTokenFilter = z.object({
@@ -5775,26 +5775,26 @@ export const AnalysisCjkBigramTokenFilter = z.object({
   type: z.literal('cjk_bigram'),
   ignored_scripts: z.array(AnalysisCjkBigramIgnoredScript).describe('Array of character scripts for which to disable bigrams.').optional(),
   output_unigrams: z.boolean().describe('If `true`, emit tokens in both bigram and unigram form. If `false`, a CJK character is output in unigram form when it has no adjacent characters. Defaults to `false`.').optional()
-})
+}).meta({ id: 'AnalysisCjkBigramTokenFilter' })
 export type AnalysisCjkBigramTokenFilter = z.infer<typeof AnalysisCjkBigramTokenFilter>
 
 export const AnalysisCjkWidthTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('cjk_width')
-})
+}).meta({ id: 'AnalysisCjkWidthTokenFilter' })
 export type AnalysisCjkWidthTokenFilter = z.infer<typeof AnalysisCjkWidthTokenFilter>
 
 export const AnalysisClassicTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('classic')
-})
+}).meta({ id: 'AnalysisClassicTokenFilter' })
 export type AnalysisClassicTokenFilter = z.infer<typeof AnalysisClassicTokenFilter>
 
 export const AnalysisClassicTokenizer = z.object({
   ...AnalysisTokenizerBase.shape,
   type: z.literal('classic'),
   max_token_length: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'AnalysisClassicTokenizer' })
 export type AnalysisClassicTokenizer = z.infer<typeof AnalysisClassicTokenizer>
 
 export const AnalysisCommonGramsTokenFilter = z.object({
@@ -5804,7 +5804,7 @@ export const AnalysisCommonGramsTokenFilter = z.object({
   common_words_path: z.string().describe('Path to a file containing a list of tokens. The filter generates bigrams for these tokens. This path must be absolute or relative to the `config` location. The file must be UTF-8 encoded. Each token in the file must be separated by a line break. Either this or the `common_words` parameter is required.').optional(),
   ignore_case: z.boolean().describe('If `true`, matches for common words matching are case-insensitive. Defaults to `false`.').optional(),
   query_mode: z.boolean().describe('If `true`, the filter excludes the following tokens from the output: - Unigrams for common words - Unigrams for terms followed by common words Defaults to `false`. We recommend enabling this parameter for search analyzers.').optional()
-})
+}).meta({ id: 'AnalysisCommonGramsTokenFilter' })
 export type AnalysisCommonGramsTokenFilter = z.infer<typeof AnalysisCommonGramsTokenFilter>
 
 export const AnalysisCompoundWordTokenFilterBase = z.object({
@@ -5815,7 +5815,7 @@ export const AnalysisCompoundWordTokenFilterBase = z.object({
   only_longest_match: z.boolean().describe('If `true`, only include the longest matching subword. Defaults to `false`.').optional(),
   word_list: z.array(z.string()).describe('A list of subwords to look for in the token stream. If found, the subword is included in the token output. Either this parameter or `word_list_path` must be specified.').optional(),
   word_list_path: z.string().describe('Path to a file that contains a list of subwords to find in the token stream. If found, the subword is included in the token output. This path must be absolute or relative to the config location, and the file must be UTF-8 encoded. Each token in the file must be separated by a line break. Either this parameter or `word_list` must be specified.').optional()
-})
+}).meta({ id: 'AnalysisCompoundWordTokenFilterBase' })
 export type AnalysisCompoundWordTokenFilterBase = z.infer<typeof AnalysisCompoundWordTokenFilterBase>
 
 export const AnalysisConditionTokenFilter = z.object({
@@ -5823,29 +5823,29 @@ export const AnalysisConditionTokenFilter = z.object({
   type: z.literal('condition'),
   filter: z.array(z.string()).describe('Array of token filters. If a token matches the predicate script in the `script` parameter, these filters are applied to the token in the order provided.'),
   script: z.lazy(() => Script).describe('Predicate script used to apply token filters. If a token matches this script, the filters in the `filter` parameter are applied to the token.')
-})
+}).meta({ id: 'AnalysisConditionTokenFilter' })
 export type AnalysisConditionTokenFilter = z.infer<typeof AnalysisConditionTokenFilter>
 
 export const AnalysisCustomNormalizer = z.object({
   type: z.literal('custom'),
   char_filter: z.array(z.string()).optional(),
   filter: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisCustomNormalizer' })
 export type AnalysisCustomNormalizer = z.infer<typeof AnalysisCustomNormalizer>
 
 export const AnalysisCzechStemTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('czech_stem')
-})
+}).meta({ id: 'AnalysisCzechStemTokenFilter' })
 export type AnalysisCzechStemTokenFilter = z.infer<typeof AnalysisCzechStemTokenFilter>
 
 export const AnalysisDecimalDigitTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('decimal_digit')
-})
+}).meta({ id: 'AnalysisDecimalDigitTokenFilter' })
 export type AnalysisDecimalDigitTokenFilter = z.infer<typeof AnalysisDecimalDigitTokenFilter>
 
-export const AnalysisDelimitedPayloadEncoding = z.enum(['int', 'float', 'identity'])
+export const AnalysisDelimitedPayloadEncoding = z.enum(['int', 'float', 'identity']).meta({ id: 'AnalysisDelimitedPayloadEncoding' })
 export type AnalysisDelimitedPayloadEncoding = z.infer<typeof AnalysisDelimitedPayloadEncoding>
 
 export const AnalysisDelimitedPayloadTokenFilter = z.object({
@@ -5853,22 +5853,22 @@ export const AnalysisDelimitedPayloadTokenFilter = z.object({
   type: z.literal('delimited_payload'),
   delimiter: z.string().describe('Character used to separate tokens from payloads. Defaults to `|`.').optional(),
   encoding: AnalysisDelimitedPayloadEncoding.describe('Data type for the stored payload.').optional()
-})
+}).meta({ id: 'AnalysisDelimitedPayloadTokenFilter' })
 export type AnalysisDelimitedPayloadTokenFilter = z.infer<typeof AnalysisDelimitedPayloadTokenFilter>
 
 export const AnalysisDictionaryDecompounderTokenFilter = z.object({
   ...AnalysisCompoundWordTokenFilterBase.shape,
   type: z.literal('dictionary_decompounder')
-})
+}).meta({ id: 'AnalysisDictionaryDecompounderTokenFilter' })
 export type AnalysisDictionaryDecompounderTokenFilter = z.infer<typeof AnalysisDictionaryDecompounderTokenFilter>
 
 export const AnalysisDutchStemTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('dutch_stem')
-})
+}).meta({ id: 'AnalysisDutchStemTokenFilter' })
 export type AnalysisDutchStemTokenFilter = z.infer<typeof AnalysisDutchStemTokenFilter>
 
-export const AnalysisEdgeNGramSide = z.enum(['front', 'back'])
+export const AnalysisEdgeNGramSide = z.enum(['front', 'back']).meta({ id: 'AnalysisEdgeNGramSide' })
 export type AnalysisEdgeNGramSide = z.infer<typeof AnalysisEdgeNGramSide>
 
 export const AnalysisEdgeNGramTokenFilter = z.object({
@@ -5878,10 +5878,10 @@ export const AnalysisEdgeNGramTokenFilter = z.object({
   min_gram: z.lazy(() => integer).describe('Minimum character length of a gram. Defaults to `1`.').optional(),
   side: AnalysisEdgeNGramSide.describe('Indicates whether to truncate tokens from the `front` or `back`. Defaults to `front`.').optional(),
   preserve_original: z.lazy(() => SpecUtilsStringified).describe('Emits original token when set to `true`. Defaults to `false`.').optional()
-})
+}).meta({ id: 'AnalysisEdgeNGramTokenFilter' })
 export type AnalysisEdgeNGramTokenFilter = z.infer<typeof AnalysisEdgeNGramTokenFilter>
 
-export const AnalysisTokenChar = z.enum(['letter', 'digit', 'whitespace', 'punctuation', 'symbol', 'custom'])
+export const AnalysisTokenChar = z.enum(['letter', 'digit', 'whitespace', 'punctuation', 'symbol', 'custom']).meta({ id: 'AnalysisTokenChar' })
 export type AnalysisTokenChar = z.infer<typeof AnalysisTokenChar>
 
 export const AnalysisEdgeNGramTokenizer = z.object({
@@ -5891,7 +5891,7 @@ export const AnalysisEdgeNGramTokenizer = z.object({
   max_gram: z.lazy(() => integer).optional(),
   min_gram: z.lazy(() => integer).optional(),
   token_chars: z.array(AnalysisTokenChar).optional()
-})
+}).meta({ id: 'AnalysisEdgeNGramTokenizer' })
 export type AnalysisEdgeNGramTokenizer = z.infer<typeof AnalysisEdgeNGramTokenizer>
 
 export const AnalysisElisionTokenFilter = z.object({
@@ -5900,7 +5900,7 @@ export const AnalysisElisionTokenFilter = z.object({
   articles: z.array(z.string()).describe('List of elisions to remove. To be removed, the elision must be at the beginning of a token and be immediately followed by an apostrophe. Both the elision and apostrophe are removed. For custom `elision` filters, either this parameter or `articles_path` must be specified.').optional(),
   articles_path: z.string().describe('Path to a file that contains a list of elisions to remove. This path must be absolute or relative to the `config` location, and the file must be UTF-8 encoded. Each elision in the file must be separated by a line break. To be removed, the elision must be at the beginning of a token and be immediately followed by an apostrophe. Both the elision and apostrophe are removed. For custom `elision` filters, either this parameter or `articles` must be specified.').optional(),
   articles_case: z.lazy(() => SpecUtilsStringified).describe('If `true`, elision matching is case insensitive. If `false`, elision matching is case sensitive. Defaults to `false`.').optional()
-})
+}).meta({ id: 'AnalysisElisionTokenFilter' })
 export type AnalysisElisionTokenFilter = z.infer<typeof AnalysisElisionTokenFilter>
 
 export const AnalysisFingerprintTokenFilter = z.object({
@@ -5908,37 +5908,37 @@ export const AnalysisFingerprintTokenFilter = z.object({
   type: z.literal('fingerprint'),
   max_output_size: z.lazy(() => integer).describe('Maximum character length, including whitespace, of the output token. Defaults to `255`. Concatenated tokens longer than this will result in no token output.').optional(),
   separator: z.string().describe('Character to use to concatenate the token stream input. Defaults to a space.').optional()
-})
+}).meta({ id: 'AnalysisFingerprintTokenFilter' })
 export type AnalysisFingerprintTokenFilter = z.infer<typeof AnalysisFingerprintTokenFilter>
 
 export const AnalysisFlattenGraphTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('flatten_graph')
-})
+}).meta({ id: 'AnalysisFlattenGraphTokenFilter' })
 export type AnalysisFlattenGraphTokenFilter = z.infer<typeof AnalysisFlattenGraphTokenFilter>
 
 export const AnalysisFrenchStemTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('french_stem')
-})
+}).meta({ id: 'AnalysisFrenchStemTokenFilter' })
 export type AnalysisFrenchStemTokenFilter = z.infer<typeof AnalysisFrenchStemTokenFilter>
 
 export const AnalysisGermanNormalizationTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('german_normalization')
-})
+}).meta({ id: 'AnalysisGermanNormalizationTokenFilter' })
 export type AnalysisGermanNormalizationTokenFilter = z.infer<typeof AnalysisGermanNormalizationTokenFilter>
 
 export const AnalysisGermanStemTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('german_stem')
-})
+}).meta({ id: 'AnalysisGermanStemTokenFilter' })
 export type AnalysisGermanStemTokenFilter = z.infer<typeof AnalysisGermanStemTokenFilter>
 
 export const AnalysisHindiNormalizationTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('hindi_normalization')
-})
+}).meta({ id: 'AnalysisHindiNormalizationTokenFilter' })
 export type AnalysisHindiNormalizationTokenFilter = z.infer<typeof AnalysisHindiNormalizationTokenFilter>
 
 export const AnalysisHunspellTokenFilter = z.object({
@@ -5950,7 +5950,7 @@ export const AnalysisHunspellTokenFilter = z.object({
   lang: z.string().describe('Locale directory used to specify the `.aff` and `.dic` files for a Hunspell dictionary.'),
   language: z.string().describe('Locale directory used to specify the `.aff` and `.dic` files for a Hunspell dictionary.'),
   longest_only: z.boolean().describe('If `true`, only the longest stemmed version of each token is included in the output. If `false`, all stemmed versions of the token are included. Defaults to `false`.').optional()
-})
+}).meta({ id: 'AnalysisHunspellTokenFilter' })
 export type AnalysisHunspellTokenFilter = z.infer<typeof AnalysisHunspellTokenFilter>
 
 export const AnalysisHyphenationDecompounderTokenFilter = z.object({
@@ -5959,19 +5959,19 @@ export const AnalysisHyphenationDecompounderTokenFilter = z.object({
   hyphenation_patterns_path: z.string().describe('Path to an Apache FOP (Formatting Objects Processor) XML hyphenation pattern file. This path must be absolute or relative to the `config` location. Only FOP v1.2 compatible files are supported.'),
   no_sub_matches: z.boolean().describe('If `true`, do not match sub tokens in tokens that are in the word list. Defaults to `false`.').optional(),
   no_overlapping_matches: z.boolean().describe('If `true`, do not allow overlapping tokens. Defaults to `false`.').optional()
-})
+}).meta({ id: 'AnalysisHyphenationDecompounderTokenFilter' })
 export type AnalysisHyphenationDecompounderTokenFilter = z.infer<typeof AnalysisHyphenationDecompounderTokenFilter>
 
-export const AnalysisIcuCollationAlternate = z.enum(['shifted', 'non-ignorable'])
+export const AnalysisIcuCollationAlternate = z.enum(['shifted', 'non-ignorable']).meta({ id: 'AnalysisIcuCollationAlternate' })
 export type AnalysisIcuCollationAlternate = z.infer<typeof AnalysisIcuCollationAlternate>
 
-export const AnalysisIcuCollationCaseFirst = z.enum(['lower', 'upper'])
+export const AnalysisIcuCollationCaseFirst = z.enum(['lower', 'upper']).meta({ id: 'AnalysisIcuCollationCaseFirst' })
 export type AnalysisIcuCollationCaseFirst = z.infer<typeof AnalysisIcuCollationCaseFirst>
 
-export const AnalysisIcuCollationDecomposition = z.enum(['no', 'identical'])
+export const AnalysisIcuCollationDecomposition = z.enum(['no', 'identical']).meta({ id: 'AnalysisIcuCollationDecomposition' })
 export type AnalysisIcuCollationDecomposition = z.infer<typeof AnalysisIcuCollationDecomposition>
 
-export const AnalysisIcuCollationStrength = z.enum(['primary', 'secondary', 'tertiary', 'quaternary', 'identical'])
+export const AnalysisIcuCollationStrength = z.enum(['primary', 'secondary', 'tertiary', 'quaternary', 'identical']).meta({ id: 'AnalysisIcuCollationStrength' })
 export type AnalysisIcuCollationStrength = z.infer<typeof AnalysisIcuCollationStrength>
 
 export const AnalysisIcuCollationTokenFilter = z.object({
@@ -5989,31 +5989,31 @@ export const AnalysisIcuCollationTokenFilter = z.object({
   strength: AnalysisIcuCollationStrength.optional(),
   variableTop: z.string().optional(),
   variant: z.string().optional()
-})
+}).meta({ id: 'AnalysisIcuCollationTokenFilter' })
 export type AnalysisIcuCollationTokenFilter = z.infer<typeof AnalysisIcuCollationTokenFilter>
 
 export const AnalysisIcuFoldingTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('icu_folding'),
   unicode_set_filter: z.string()
-})
+}).meta({ id: 'AnalysisIcuFoldingTokenFilter' })
 export type AnalysisIcuFoldingTokenFilter = z.infer<typeof AnalysisIcuFoldingTokenFilter>
 
 export const AnalysisIcuNormalizationTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('icu_normalizer'),
   name: AnalysisIcuNormalizationType
-})
+}).meta({ id: 'AnalysisIcuNormalizationTokenFilter' })
 export type AnalysisIcuNormalizationTokenFilter = z.infer<typeof AnalysisIcuNormalizationTokenFilter>
 
 export const AnalysisIcuTokenizer = z.object({
   ...AnalysisTokenizerBase.shape,
   type: z.literal('icu_tokenizer'),
   rule_files: z.string()
-})
+}).meta({ id: 'AnalysisIcuTokenizer' })
 export type AnalysisIcuTokenizer = z.infer<typeof AnalysisIcuTokenizer>
 
-export const AnalysisIcuTransformDirection = z.enum(['forward', 'reverse'])
+export const AnalysisIcuTransformDirection = z.enum(['forward', 'reverse']).meta({ id: 'AnalysisIcuTransformDirection' })
 export type AnalysisIcuTransformDirection = z.infer<typeof AnalysisIcuTransformDirection>
 
 export const AnalysisIcuTransformTokenFilter = z.object({
@@ -6021,29 +6021,29 @@ export const AnalysisIcuTransformTokenFilter = z.object({
   type: z.literal('icu_transform'),
   dir: AnalysisIcuTransformDirection.optional(),
   id: z.string()
-})
+}).meta({ id: 'AnalysisIcuTransformTokenFilter' })
 export type AnalysisIcuTransformTokenFilter = z.infer<typeof AnalysisIcuTransformTokenFilter>
 
 export const AnalysisIndicNormalizationTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('indic_normalization')
-})
+}).meta({ id: 'AnalysisIndicNormalizationTokenFilter' })
 export type AnalysisIndicNormalizationTokenFilter = z.infer<typeof AnalysisIndicNormalizationTokenFilter>
 
 export const AnalysisJaStopTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('ja_stop'),
   stopwords: AnalysisStopWords.optional()
-})
+}).meta({ id: 'AnalysisJaStopTokenFilter' })
 export type AnalysisJaStopTokenFilter = z.infer<typeof AnalysisJaStopTokenFilter>
 
 export const AnalysisKStemTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('kstem')
-})
+}).meta({ id: 'AnalysisKStemTokenFilter' })
 export type AnalysisKStemTokenFilter = z.infer<typeof AnalysisKStemTokenFilter>
 
-export const AnalysisKeepTypesMode = z.enum(['include', 'exclude'])
+export const AnalysisKeepTypesMode = z.enum(['include', 'exclude']).meta({ id: 'AnalysisKeepTypesMode' })
 export type AnalysisKeepTypesMode = z.infer<typeof AnalysisKeepTypesMode>
 
 export const AnalysisKeepTypesTokenFilter = z.object({
@@ -6051,7 +6051,7 @@ export const AnalysisKeepTypesTokenFilter = z.object({
   type: z.literal('keep_types'),
   mode: AnalysisKeepTypesMode.describe('Indicates whether to keep or remove the specified token types.').optional(),
   types: z.array(z.string()).describe('List of token types to keep or remove.')
-})
+}).meta({ id: 'AnalysisKeepTypesTokenFilter' })
 export type AnalysisKeepTypesTokenFilter = z.infer<typeof AnalysisKeepTypesTokenFilter>
 
 export const AnalysisKeepWordsTokenFilter = z.object({
@@ -6060,7 +6060,7 @@ export const AnalysisKeepWordsTokenFilter = z.object({
   keep_words: z.array(z.string()).describe('List of words to keep. Only tokens that match words in this list are included in the output. Either this parameter or `keep_words_path` must be specified.').optional(),
   keep_words_case: z.boolean().describe('If `true`, lowercase all keep words. Defaults to `false`.').optional(),
   keep_words_path: z.string().describe('Path to a file that contains a list of words to keep. Only tokens that match words in this list are included in the output. This path must be absolute or relative to the `config` location, and the file must be UTF-8 encoded. Each word in the file must be separated by a line break. Either this parameter or `keep_words` must be specified.').optional()
-})
+}).meta({ id: 'AnalysisKeepWordsTokenFilter' })
 export type AnalysisKeepWordsTokenFilter = z.infer<typeof AnalysisKeepWordsTokenFilter>
 
 export const AnalysisKeywordMarkerTokenFilter = z.object({
@@ -6070,41 +6070,41 @@ export const AnalysisKeywordMarkerTokenFilter = z.object({
   keywords: z.union([z.string(), z.array(z.string())]).describe('Array of keywords. Tokens that match these keywords are not stemmed. This parameter, `keywords_path`, or `keywords_pattern` must be specified. You cannot specify this parameter and `keywords_pattern`.').optional(),
   keywords_path: z.string().describe('Path to a file that contains a list of keywords. Tokens that match these keywords are not stemmed. This path must be absolute or relative to the `config` location, and the file must be UTF-8 encoded. Each word in the file must be separated by a line break. This parameter, `keywords`, or `keywords_pattern` must be specified. You cannot specify this parameter and `keywords_pattern`.').optional(),
   keywords_pattern: z.string().describe('Java regular expression used to match tokens. Tokens that match this expression are marked as keywords and not stemmed. This parameter, `keywords`, or `keywords_path` must be specified. You cannot specify this parameter and `keywords` or `keywords_pattern`.').optional()
-})
+}).meta({ id: 'AnalysisKeywordMarkerTokenFilter' })
 export type AnalysisKeywordMarkerTokenFilter = z.infer<typeof AnalysisKeywordMarkerTokenFilter>
 
 export const AnalysisKeywordRepeatTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('keyword_repeat')
-})
+}).meta({ id: 'AnalysisKeywordRepeatTokenFilter' })
 export type AnalysisKeywordRepeatTokenFilter = z.infer<typeof AnalysisKeywordRepeatTokenFilter>
 
 export const AnalysisKeywordTokenizer = z.object({
   ...AnalysisTokenizerBase.shape,
   type: z.literal('keyword'),
   buffer_size: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'AnalysisKeywordTokenizer' })
 export type AnalysisKeywordTokenizer = z.infer<typeof AnalysisKeywordTokenizer>
 
 export const AnalysisKuromojiPartOfSpeechTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('kuromoji_part_of_speech'),
   stoptags: z.array(z.string())
-})
+}).meta({ id: 'AnalysisKuromojiPartOfSpeechTokenFilter' })
 export type AnalysisKuromojiPartOfSpeechTokenFilter = z.infer<typeof AnalysisKuromojiPartOfSpeechTokenFilter>
 
 export const AnalysisKuromojiReadingFormTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('kuromoji_readingform'),
   use_romaji: z.boolean()
-})
+}).meta({ id: 'AnalysisKuromojiReadingFormTokenFilter' })
 export type AnalysisKuromojiReadingFormTokenFilter = z.infer<typeof AnalysisKuromojiReadingFormTokenFilter>
 
 export const AnalysisKuromojiStemmerTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('kuromoji_stemmer'),
   minimum_length: z.lazy(() => integer)
-})
+}).meta({ id: 'AnalysisKuromojiStemmerTokenFilter' })
 export type AnalysisKuromojiStemmerTokenFilter = z.infer<typeof AnalysisKuromojiStemmerTokenFilter>
 
 export const AnalysisKuromojiTokenizer = z.object({
@@ -6117,7 +6117,7 @@ export const AnalysisKuromojiTokenizer = z.object({
   user_dictionary: z.string().optional(),
   user_dictionary_rules: z.array(z.string()).optional(),
   discard_compound_token: z.boolean().optional()
-})
+}).meta({ id: 'AnalysisKuromojiTokenizer' })
 export type AnalysisKuromojiTokenizer = z.infer<typeof AnalysisKuromojiTokenizer>
 
 export const AnalysisLengthTokenFilter = z.object({
@@ -6125,13 +6125,13 @@ export const AnalysisLengthTokenFilter = z.object({
   type: z.literal('length'),
   max: z.lazy(() => integer).describe('Maximum character length of a token. Longer tokens are excluded from the output. Defaults to `Integer.MAX_VALUE`, which is `2^31-1` or `2147483647`.').optional(),
   min: z.lazy(() => integer).describe('Minimum character length of a token. Shorter tokens are excluded from the output. Defaults to `0`.').optional()
-})
+}).meta({ id: 'AnalysisLengthTokenFilter' })
 export type AnalysisLengthTokenFilter = z.infer<typeof AnalysisLengthTokenFilter>
 
 export const AnalysisLetterTokenizer = z.object({
   ...AnalysisTokenizerBase.shape,
   type: z.literal('letter')
-})
+}).meta({ id: 'AnalysisLetterTokenizer' })
 export type AnalysisLetterTokenizer = z.infer<typeof AnalysisLetterTokenizer>
 
 export const AnalysisLimitTokenCountTokenFilter = z.object({
@@ -6139,28 +6139,28 @@ export const AnalysisLimitTokenCountTokenFilter = z.object({
   type: z.literal('limit'),
   consume_all_tokens: z.boolean().describe('If `true`, the limit filter exhausts the token stream, even if the `max_token_count` has already been reached. Defaults to `false`.').optional(),
   max_token_count: z.lazy(() => SpecUtilsStringified).describe('Maximum number of tokens to keep. Once this limit is reached, any remaining tokens are excluded from the output. Defaults to `1`.').optional()
-})
+}).meta({ id: 'AnalysisLimitTokenCountTokenFilter' })
 export type AnalysisLimitTokenCountTokenFilter = z.infer<typeof AnalysisLimitTokenCountTokenFilter>
 
 export const AnalysisLowercaseNormalizer = z.object({
   type: z.literal('lowercase')
-})
+}).meta({ id: 'AnalysisLowercaseNormalizer' })
 export type AnalysisLowercaseNormalizer = z.infer<typeof AnalysisLowercaseNormalizer>
 
-export const AnalysisLowercaseTokenFilterLanguages = z.enum(['greek', 'irish', 'turkish'])
+export const AnalysisLowercaseTokenFilterLanguages = z.enum(['greek', 'irish', 'turkish']).meta({ id: 'AnalysisLowercaseTokenFilterLanguages' })
 export type AnalysisLowercaseTokenFilterLanguages = z.infer<typeof AnalysisLowercaseTokenFilterLanguages>
 
 export const AnalysisLowercaseTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('lowercase'),
   language: AnalysisLowercaseTokenFilterLanguages.describe('Language-specific lowercase token filter to use.').optional()
-})
+}).meta({ id: 'AnalysisLowercaseTokenFilter' })
 export type AnalysisLowercaseTokenFilter = z.infer<typeof AnalysisLowercaseTokenFilter>
 
 export const AnalysisLowercaseTokenizer = z.object({
   ...AnalysisTokenizerBase.shape,
   type: z.literal('lowercase')
-})
+}).meta({ id: 'AnalysisLowercaseTokenizer' })
 export type AnalysisLowercaseTokenizer = z.infer<typeof AnalysisLowercaseTokenizer>
 
 export const AnalysisMinHashTokenFilter = z.object({
@@ -6170,7 +6170,7 @@ export const AnalysisMinHashTokenFilter = z.object({
   hash_count: z.lazy(() => integer).describe('Number of ways to hash each token in the stream. Defaults to `1`.').optional(),
   hash_set_size: z.lazy(() => integer).describe('Number of hashes to keep from each bucket. Defaults to `1`. Hashes are retained by ascending size, starting with the bucket’s smallest hash first.').optional(),
   with_rotation: z.boolean().describe('If `true`, the filter fills empty buckets with the value of the first non-empty bucket to its circular right if the `hash_set_size` is `1`. If the `bucket_count` argument is greater than 1, this parameter defaults to `true`. Otherwise, this parameter defaults to `false`.').optional()
-})
+}).meta({ id: 'AnalysisMinHashTokenFilter' })
 export type AnalysisMinHashTokenFilter = z.infer<typeof AnalysisMinHashTokenFilter>
 
 export const AnalysisMultiplexerTokenFilter = z.object({
@@ -6178,7 +6178,7 @@ export const AnalysisMultiplexerTokenFilter = z.object({
   type: z.literal('multiplexer'),
   filters: z.array(z.string()).describe('A list of token filters to apply to incoming tokens.'),
   preserve_original: z.lazy(() => SpecUtilsStringified).describe('If `true` (the default) then emit the original token in addition to the filtered tokens.').optional()
-})
+}).meta({ id: 'AnalysisMultiplexerTokenFilter' })
 export type AnalysisMultiplexerTokenFilter = z.infer<typeof AnalysisMultiplexerTokenFilter>
 
 export const AnalysisNGramTokenFilter = z.object({
@@ -6187,7 +6187,7 @@ export const AnalysisNGramTokenFilter = z.object({
   max_gram: z.lazy(() => integer).describe('Maximum length of characters in a gram. Defaults to `2`.').optional(),
   min_gram: z.lazy(() => integer).describe('Minimum length of characters in a gram. Defaults to `1`.').optional(),
   preserve_original: z.lazy(() => SpecUtilsStringified).describe('Emits original token when set to `true`. Defaults to `false`.').optional()
-})
+}).meta({ id: 'AnalysisNGramTokenFilter' })
 export type AnalysisNGramTokenFilter = z.infer<typeof AnalysisNGramTokenFilter>
 
 export const AnalysisNGramTokenizer = z.object({
@@ -6197,14 +6197,14 @@ export const AnalysisNGramTokenizer = z.object({
   max_gram: z.lazy(() => integer).optional(),
   min_gram: z.lazy(() => integer).optional(),
   token_chars: z.array(AnalysisTokenChar).optional()
-})
+}).meta({ id: 'AnalysisNGramTokenizer' })
 export type AnalysisNGramTokenizer = z.infer<typeof AnalysisNGramTokenizer>
 
 export const AnalysisNoriPartOfSpeechTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('nori_part_of_speech'),
   stoptags: z.array(z.string()).describe('An array of part-of-speech tags that should be removed.').optional()
-})
+}).meta({ id: 'AnalysisNoriPartOfSpeechTokenFilter' })
 export type AnalysisNoriPartOfSpeechTokenFilter = z.infer<typeof AnalysisNoriPartOfSpeechTokenFilter>
 
 export const AnalysisNoriTokenizer = z.object({
@@ -6214,10 +6214,10 @@ export const AnalysisNoriTokenizer = z.object({
   discard_punctuation: z.boolean().optional(),
   user_dictionary: z.string().optional(),
   user_dictionary_rules: z.array(z.string()).optional()
-})
+}).meta({ id: 'AnalysisNoriTokenizer' })
 export type AnalysisNoriTokenizer = z.infer<typeof AnalysisNoriTokenizer>
 
-export const AnalysisNormalizer = z.union([AnalysisLowercaseNormalizer, AnalysisCustomNormalizer])
+export const AnalysisNormalizer = z.union([AnalysisLowercaseNormalizer, AnalysisCustomNormalizer]).meta({ id: 'AnalysisNormalizer' })
 export type AnalysisNormalizer = z.infer<typeof AnalysisNormalizer>
 
 export const AnalysisPathHierarchyTokenizer = z.object({
@@ -6228,7 +6228,7 @@ export const AnalysisPathHierarchyTokenizer = z.object({
   replacement: z.string().optional(),
   reverse: z.lazy(() => SpecUtilsStringified).optional(),
   skip: z.lazy(() => SpecUtilsStringified).optional()
-})
+}).meta({ id: 'AnalysisPathHierarchyTokenizer' })
 export type AnalysisPathHierarchyTokenizer = z.infer<typeof AnalysisPathHierarchyTokenizer>
 
 export const AnalysisPatternCaptureTokenFilter = z.object({
@@ -6236,7 +6236,7 @@ export const AnalysisPatternCaptureTokenFilter = z.object({
   type: z.literal('pattern_capture'),
   patterns: z.array(z.string()).describe('A list of regular expressions to match.'),
   preserve_original: z.lazy(() => SpecUtilsStringified).describe('If set to `true` (the default) it will emit the original token.').optional()
-})
+}).meta({ id: 'AnalysisPatternCaptureTokenFilter' })
 export type AnalysisPatternCaptureTokenFilter = z.infer<typeof AnalysisPatternCaptureTokenFilter>
 
 export const AnalysisPatternReplaceTokenFilter = z.object({
@@ -6246,7 +6246,7 @@ export const AnalysisPatternReplaceTokenFilter = z.object({
   flags: z.string().optional(),
   pattern: z.string().describe('Regular expression, written in Java’s regular expression syntax. The filter replaces token substrings matching this pattern with the substring in the `replacement` parameter.'),
   replacement: z.string().describe('Replacement substring. Defaults to an empty substring (`""`).').optional()
-})
+}).meta({ id: 'AnalysisPatternReplaceTokenFilter' })
 export type AnalysisPatternReplaceTokenFilter = z.infer<typeof AnalysisPatternReplaceTokenFilter>
 
 export const AnalysisPatternTokenizer = z.object({
@@ -6255,31 +6255,31 @@ export const AnalysisPatternTokenizer = z.object({
   flags: z.string().optional(),
   group: z.lazy(() => integer).optional(),
   pattern: z.string().optional()
-})
+}).meta({ id: 'AnalysisPatternTokenizer' })
 export type AnalysisPatternTokenizer = z.infer<typeof AnalysisPatternTokenizer>
 
 export const AnalysisPersianNormalizationTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('persian_normalization')
-})
+}).meta({ id: 'AnalysisPersianNormalizationTokenFilter' })
 export type AnalysisPersianNormalizationTokenFilter = z.infer<typeof AnalysisPersianNormalizationTokenFilter>
 
 export const AnalysisPersianStemTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('persian_stem')
-})
+}).meta({ id: 'AnalysisPersianStemTokenFilter' })
 export type AnalysisPersianStemTokenFilter = z.infer<typeof AnalysisPersianStemTokenFilter>
 
-export const AnalysisPhoneticEncoder = z.enum(['metaphone', 'double_metaphone', 'soundex', 'refined_soundex', 'caverphone1', 'caverphone2', 'cologne', 'nysiis', 'koelnerphonetik', 'haasephonetik', 'beider_morse', 'daitch_mokotoff'])
+export const AnalysisPhoneticEncoder = z.enum(['metaphone', 'double_metaphone', 'soundex', 'refined_soundex', 'caverphone1', 'caverphone2', 'cologne', 'nysiis', 'koelnerphonetik', 'haasephonetik', 'beider_morse', 'daitch_mokotoff']).meta({ id: 'AnalysisPhoneticEncoder' })
 export type AnalysisPhoneticEncoder = z.infer<typeof AnalysisPhoneticEncoder>
 
-export const AnalysisPhoneticLanguage = z.enum(['any', 'common', 'cyrillic', 'english', 'french', 'german', 'hebrew', 'hungarian', 'polish', 'romanian', 'russian', 'spanish'])
+export const AnalysisPhoneticLanguage = z.enum(['any', 'common', 'cyrillic', 'english', 'french', 'german', 'hebrew', 'hungarian', 'polish', 'romanian', 'russian', 'spanish']).meta({ id: 'AnalysisPhoneticLanguage' })
 export type AnalysisPhoneticLanguage = z.infer<typeof AnalysisPhoneticLanguage>
 
-export const AnalysisPhoneticNameType = z.enum(['generic', 'ashkenazi', 'sephardic'])
+export const AnalysisPhoneticNameType = z.enum(['generic', 'ashkenazi', 'sephardic']).meta({ id: 'AnalysisPhoneticNameType' })
 export type AnalysisPhoneticNameType = z.infer<typeof AnalysisPhoneticNameType>
 
-export const AnalysisPhoneticRuleType = z.enum(['approx', 'exact'])
+export const AnalysisPhoneticRuleType = z.enum(['approx', 'exact']).meta({ id: 'AnalysisPhoneticRuleType' })
 export type AnalysisPhoneticRuleType = z.infer<typeof AnalysisPhoneticRuleType>
 
 export const AnalysisPhoneticTokenFilter = z.object({
@@ -6291,56 +6291,56 @@ export const AnalysisPhoneticTokenFilter = z.object({
   name_type: AnalysisPhoneticNameType.optional(),
   replace: z.boolean().optional(),
   rule_type: AnalysisPhoneticRuleType.optional()
-})
+}).meta({ id: 'AnalysisPhoneticTokenFilter' })
 export type AnalysisPhoneticTokenFilter = z.infer<typeof AnalysisPhoneticTokenFilter>
 
 export const AnalysisPorterStemTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('porter_stem')
-})
+}).meta({ id: 'AnalysisPorterStemTokenFilter' })
 export type AnalysisPorterStemTokenFilter = z.infer<typeof AnalysisPorterStemTokenFilter>
 
 export const AnalysisPredicateTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('predicate_token_filter'),
   script: z.lazy(() => Script).describe('Script containing a condition used to filter incoming tokens. Only tokens that match this script are included in the output.')
-})
+}).meta({ id: 'AnalysisPredicateTokenFilter' })
 export type AnalysisPredicateTokenFilter = z.infer<typeof AnalysisPredicateTokenFilter>
 
 export const AnalysisRemoveDuplicatesTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('remove_duplicates')
-})
+}).meta({ id: 'AnalysisRemoveDuplicatesTokenFilter' })
 export type AnalysisRemoveDuplicatesTokenFilter = z.infer<typeof AnalysisRemoveDuplicatesTokenFilter>
 
 export const AnalysisReverseTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('reverse')
-})
+}).meta({ id: 'AnalysisReverseTokenFilter' })
 export type AnalysisReverseTokenFilter = z.infer<typeof AnalysisReverseTokenFilter>
 
 export const AnalysisRussianStemTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('russian_stem')
-})
+}).meta({ id: 'AnalysisRussianStemTokenFilter' })
 export type AnalysisRussianStemTokenFilter = z.infer<typeof AnalysisRussianStemTokenFilter>
 
 export const AnalysisScandinavianFoldingTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('scandinavian_folding')
-})
+}).meta({ id: 'AnalysisScandinavianFoldingTokenFilter' })
 export type AnalysisScandinavianFoldingTokenFilter = z.infer<typeof AnalysisScandinavianFoldingTokenFilter>
 
 export const AnalysisScandinavianNormalizationTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('scandinavian_normalization')
-})
+}).meta({ id: 'AnalysisScandinavianNormalizationTokenFilter' })
 export type AnalysisScandinavianNormalizationTokenFilter = z.infer<typeof AnalysisScandinavianNormalizationTokenFilter>
 
 export const AnalysisSerbianNormalizationTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('serbian_normalization')
-})
+}).meta({ id: 'AnalysisSerbianNormalizationTokenFilter' })
 export type AnalysisSerbianNormalizationTokenFilter = z.infer<typeof AnalysisSerbianNormalizationTokenFilter>
 
 export const AnalysisShingleTokenFilter = z.object({
@@ -6352,41 +6352,41 @@ export const AnalysisShingleTokenFilter = z.object({
   output_unigrams: z.boolean().describe('If `true`, the output includes the original input tokens. If `false`, the output only includes shingles; the original input tokens are removed. Defaults to `true`.').optional(),
   output_unigrams_if_no_shingles: z.boolean().describe('If `true`, the output includes the original input tokens only if no shingles are produced; if shingles are produced, the output only includes shingles. Defaults to `false`.').optional(),
   token_separator: z.string().describe('Separator used to concatenate adjacent tokens to form a shingle. Defaults to a space (`" "`).').optional()
-})
+}).meta({ id: 'AnalysisShingleTokenFilter' })
 export type AnalysisShingleTokenFilter = z.infer<typeof AnalysisShingleTokenFilter>
 
 export const AnalysisSimplePatternSplitTokenizer = z.object({
   ...AnalysisTokenizerBase.shape,
   type: z.literal('simple_pattern_split'),
   pattern: z.string().optional()
-})
+}).meta({ id: 'AnalysisSimplePatternSplitTokenizer' })
 export type AnalysisSimplePatternSplitTokenizer = z.infer<typeof AnalysisSimplePatternSplitTokenizer>
 
 export const AnalysisSimplePatternTokenizer = z.object({
   ...AnalysisTokenizerBase.shape,
   type: z.literal('simple_pattern'),
   pattern: z.string().optional()
-})
+}).meta({ id: 'AnalysisSimplePatternTokenizer' })
 export type AnalysisSimplePatternTokenizer = z.infer<typeof AnalysisSimplePatternTokenizer>
 
 export const AnalysisSnowballTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('snowball'),
   language: AnalysisSnowballLanguage.describe('Controls the language used by the stemmer.').optional()
-})
+}).meta({ id: 'AnalysisSnowballTokenFilter' })
 export type AnalysisSnowballTokenFilter = z.infer<typeof AnalysisSnowballTokenFilter>
 
 export const AnalysisSoraniNormalizationTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('sorani_normalization')
-})
+}).meta({ id: 'AnalysisSoraniNormalizationTokenFilter' })
 export type AnalysisSoraniNormalizationTokenFilter = z.infer<typeof AnalysisSoraniNormalizationTokenFilter>
 
 export const AnalysisStandardTokenizer = z.object({
   ...AnalysisTokenizerBase.shape,
   type: z.literal('standard'),
   max_token_length: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'AnalysisStandardTokenizer' })
 export type AnalysisStandardTokenizer = z.infer<typeof AnalysisStandardTokenizer>
 
 export const AnalysisStemmerOverrideTokenFilter = z.object({
@@ -6394,7 +6394,7 @@ export const AnalysisStemmerOverrideTokenFilter = z.object({
   type: z.literal('stemmer_override'),
   rules: z.array(z.string()).describe('A list of mapping rules to use.').optional(),
   rules_path: z.string().describe('A path (either relative to `config` location, or absolute) to a list of mappings.').optional()
-})
+}).meta({ id: 'AnalysisStemmerOverrideTokenFilter' })
 export type AnalysisStemmerOverrideTokenFilter = z.infer<typeof AnalysisStemmerOverrideTokenFilter>
 
 export const AnalysisStemmerTokenFilter = z.object({
@@ -6402,7 +6402,7 @@ export const AnalysisStemmerTokenFilter = z.object({
   type: z.literal('stemmer'),
   language: z.string().optional(),
   name: z.string().optional()
-})
+}).meta({ id: 'AnalysisStemmerTokenFilter' })
 export type AnalysisStemmerTokenFilter = z.infer<typeof AnalysisStemmerTokenFilter>
 
 export const AnalysisStopTokenFilter = z.object({
@@ -6412,10 +6412,10 @@ export const AnalysisStopTokenFilter = z.object({
   remove_trailing: z.boolean().describe('If `true`, the last token of a stream is removed if it’s a stop word. Defaults to `true`.').optional(),
   stopwords: AnalysisStopWords.describe('Language value, such as `_arabic_` or `_thai_`. Defaults to `_english_`.').optional(),
   stopwords_path: z.string().describe('Path to a file that contains a list of stop words to remove. This path must be absolute or relative to the `config` location, and the file must be UTF-8 encoded. Each stop word in the file must be separated by a line break.').optional()
-})
+}).meta({ id: 'AnalysisStopTokenFilter' })
 export type AnalysisStopTokenFilter = z.infer<typeof AnalysisStopTokenFilter>
 
-export const AnalysisSynonymFormat = z.enum(['solr', 'wordnet'])
+export const AnalysisSynonymFormat = z.enum(['solr', 'wordnet']).meta({ id: 'AnalysisSynonymFormat' })
 export type AnalysisSynonymFormat = z.infer<typeof AnalysisSynonymFormat>
 
 export const AnalysisSynonymTokenFilterBase = z.object({
@@ -6428,51 +6428,51 @@ export const AnalysisSynonymTokenFilterBase = z.object({
   synonyms_set: z.string().describe('Provide a synonym set created via Synonyms Management APIs.').optional(),
   tokenizer: z.string().describe('Controls the tokenizers that will be used to tokenize the synonym, this parameter is for backwards compatibility for indices that created before 6.0.').optional(),
   updateable: z.boolean().describe('If `true` allows reloading search analyzers to pick up changes to synonym files. Only to be used for search analyzers. Defaults to `false`.').optional()
-})
+}).meta({ id: 'AnalysisSynonymTokenFilterBase' })
 export type AnalysisSynonymTokenFilterBase = z.infer<typeof AnalysisSynonymTokenFilterBase>
 
 export const AnalysisSynonymGraphTokenFilter = z.object({
   ...AnalysisSynonymTokenFilterBase.shape,
   type: z.literal('synonym_graph')
-})
+}).meta({ id: 'AnalysisSynonymGraphTokenFilter' })
 export type AnalysisSynonymGraphTokenFilter = z.infer<typeof AnalysisSynonymGraphTokenFilter>
 
 export const AnalysisSynonymTokenFilter = z.object({
   ...AnalysisSynonymTokenFilterBase.shape,
   type: z.literal('synonym')
-})
+}).meta({ id: 'AnalysisSynonymTokenFilter' })
 export type AnalysisSynonymTokenFilter = z.infer<typeof AnalysisSynonymTokenFilter>
 
 export const AnalysisThaiTokenizer = z.object({
   ...AnalysisTokenizerBase.shape,
   type: z.literal('thai')
-})
+}).meta({ id: 'AnalysisThaiTokenizer' })
 export type AnalysisThaiTokenizer = z.infer<typeof AnalysisThaiTokenizer>
 
 export const AnalysisTrimTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('trim')
-})
+}).meta({ id: 'AnalysisTrimTokenFilter' })
 export type AnalysisTrimTokenFilter = z.infer<typeof AnalysisTrimTokenFilter>
 
 export const AnalysisTruncateTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('truncate'),
   length: z.lazy(() => integer).describe('Character limit for each token. Tokens exceeding this limit are truncated. Defaults to `10`.').optional()
-})
+}).meta({ id: 'AnalysisTruncateTokenFilter' })
 export type AnalysisTruncateTokenFilter = z.infer<typeof AnalysisTruncateTokenFilter>
 
 export const AnalysisUniqueTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('unique'),
   only_on_same_position: z.boolean().describe('If `true`, only remove duplicate tokens in the same position. Defaults to `false`.').optional()
-})
+}).meta({ id: 'AnalysisUniqueTokenFilter' })
 export type AnalysisUniqueTokenFilter = z.infer<typeof AnalysisUniqueTokenFilter>
 
 export const AnalysisUppercaseTokenFilter = z.object({
   ...AnalysisTokenFilterBase.shape,
   type: z.literal('uppercase')
-})
+}).meta({ id: 'AnalysisUppercaseTokenFilter' })
 export type AnalysisUppercaseTokenFilter = z.infer<typeof AnalysisUppercaseTokenFilter>
 
 export const AnalysisWordDelimiterTokenFilterBase = z.object({
@@ -6490,7 +6490,7 @@ export const AnalysisWordDelimiterTokenFilterBase = z.object({
   stem_english_possessive: z.boolean().describe('If `true`, the filter removes the English possessive (`\'s`) from the end of each token. For example: O\'Neil\'s -> [ O, Neil ]. Defaults to `true`.').optional(),
   type_table: z.array(z.string()).describe('Array of custom type mappings for characters. This allows you to map non-alphanumeric characters as numeric or alphanumeric to avoid splitting on those characters.').optional(),
   type_table_path: z.string().describe('Path to a file that contains custom type mappings for characters. This allows you to map non-alphanumeric characters as numeric or alphanumeric to avoid splitting on those characters.').optional()
-})
+}).meta({ id: 'AnalysisWordDelimiterTokenFilterBase' })
 export type AnalysisWordDelimiterTokenFilterBase = z.infer<typeof AnalysisWordDelimiterTokenFilterBase>
 
 export const AnalysisWordDelimiterGraphTokenFilter = z.object({
@@ -6498,54 +6498,54 @@ export const AnalysisWordDelimiterGraphTokenFilter = z.object({
   type: z.literal('word_delimiter_graph'),
   adjust_offsets: z.boolean().describe('If `true`, the filter adjusts the offsets of split or catenated tokens to better reflect their actual position in the token stream. Defaults to `true`.').optional(),
   ignore_keywords: z.boolean().describe('If `true`, the filter skips tokens with a keyword attribute of true. Defaults to `false`.').optional()
-})
+}).meta({ id: 'AnalysisWordDelimiterGraphTokenFilter' })
 export type AnalysisWordDelimiterGraphTokenFilter = z.infer<typeof AnalysisWordDelimiterGraphTokenFilter>
 
 export const AnalysisWordDelimiterTokenFilter = z.object({
   ...AnalysisWordDelimiterTokenFilterBase.shape,
   type: z.literal('word_delimiter')
-})
+}).meta({ id: 'AnalysisWordDelimiterTokenFilter' })
 export type AnalysisWordDelimiterTokenFilter = z.infer<typeof AnalysisWordDelimiterTokenFilter>
 
-export const AnalysisTokenFilterDefinition = z.union([AnalysisApostropheTokenFilter, AnalysisArabicStemTokenFilter, AnalysisArabicNormalizationTokenFilter, AnalysisAsciiFoldingTokenFilter, AnalysisBengaliNormalizationTokenFilter, AnalysisBrazilianStemTokenFilter, AnalysisCjkBigramTokenFilter, AnalysisCjkWidthTokenFilter, AnalysisClassicTokenFilter, AnalysisCommonGramsTokenFilter, AnalysisConditionTokenFilter, AnalysisCzechStemTokenFilter, AnalysisDecimalDigitTokenFilter, AnalysisDelimitedPayloadTokenFilter, AnalysisDutchStemTokenFilter, AnalysisEdgeNGramTokenFilter, AnalysisElisionTokenFilter, AnalysisFingerprintTokenFilter, AnalysisFlattenGraphTokenFilter, AnalysisFrenchStemTokenFilter, AnalysisGermanNormalizationTokenFilter, AnalysisGermanStemTokenFilter, AnalysisHindiNormalizationTokenFilter, AnalysisHunspellTokenFilter, AnalysisHyphenationDecompounderTokenFilter, AnalysisIndicNormalizationTokenFilter, AnalysisKeepTypesTokenFilter, AnalysisKeepWordsTokenFilter, AnalysisKeywordMarkerTokenFilter, AnalysisKeywordRepeatTokenFilter, AnalysisKStemTokenFilter, AnalysisLengthTokenFilter, AnalysisLimitTokenCountTokenFilter, AnalysisLowercaseTokenFilter, AnalysisMinHashTokenFilter, AnalysisMultiplexerTokenFilter, AnalysisNGramTokenFilter, AnalysisNoriPartOfSpeechTokenFilter, AnalysisPatternCaptureTokenFilter, AnalysisPatternReplaceTokenFilter, AnalysisPersianNormalizationTokenFilter, AnalysisPersianStemTokenFilter, AnalysisPorterStemTokenFilter, AnalysisPredicateTokenFilter, AnalysisRemoveDuplicatesTokenFilter, AnalysisReverseTokenFilter, AnalysisRussianStemTokenFilter, AnalysisScandinavianFoldingTokenFilter, AnalysisScandinavianNormalizationTokenFilter, AnalysisSerbianNormalizationTokenFilter, AnalysisShingleTokenFilter, AnalysisSnowballTokenFilter, AnalysisSoraniNormalizationTokenFilter, AnalysisStemmerOverrideTokenFilter, AnalysisStemmerTokenFilter, AnalysisStopTokenFilter, AnalysisSynonymGraphTokenFilter, AnalysisSynonymTokenFilter, AnalysisTrimTokenFilter, AnalysisTruncateTokenFilter, AnalysisUniqueTokenFilter, AnalysisUppercaseTokenFilter, AnalysisWordDelimiterGraphTokenFilter, AnalysisWordDelimiterTokenFilter, AnalysisJaStopTokenFilter, AnalysisKuromojiStemmerTokenFilter, AnalysisKuromojiReadingFormTokenFilter, AnalysisKuromojiPartOfSpeechTokenFilter, AnalysisIcuCollationTokenFilter, AnalysisIcuFoldingTokenFilter, AnalysisIcuNormalizationTokenFilter, AnalysisIcuTransformTokenFilter, AnalysisPhoneticTokenFilter, AnalysisDictionaryDecompounderTokenFilter])
+export const AnalysisTokenFilterDefinition = z.union([AnalysisApostropheTokenFilter, AnalysisArabicStemTokenFilter, AnalysisArabicNormalizationTokenFilter, AnalysisAsciiFoldingTokenFilter, AnalysisBengaliNormalizationTokenFilter, AnalysisBrazilianStemTokenFilter, AnalysisCjkBigramTokenFilter, AnalysisCjkWidthTokenFilter, AnalysisClassicTokenFilter, AnalysisCommonGramsTokenFilter, AnalysisConditionTokenFilter, AnalysisCzechStemTokenFilter, AnalysisDecimalDigitTokenFilter, AnalysisDelimitedPayloadTokenFilter, AnalysisDutchStemTokenFilter, AnalysisEdgeNGramTokenFilter, AnalysisElisionTokenFilter, AnalysisFingerprintTokenFilter, AnalysisFlattenGraphTokenFilter, AnalysisFrenchStemTokenFilter, AnalysisGermanNormalizationTokenFilter, AnalysisGermanStemTokenFilter, AnalysisHindiNormalizationTokenFilter, AnalysisHunspellTokenFilter, AnalysisHyphenationDecompounderTokenFilter, AnalysisIndicNormalizationTokenFilter, AnalysisKeepTypesTokenFilter, AnalysisKeepWordsTokenFilter, AnalysisKeywordMarkerTokenFilter, AnalysisKeywordRepeatTokenFilter, AnalysisKStemTokenFilter, AnalysisLengthTokenFilter, AnalysisLimitTokenCountTokenFilter, AnalysisLowercaseTokenFilter, AnalysisMinHashTokenFilter, AnalysisMultiplexerTokenFilter, AnalysisNGramTokenFilter, AnalysisNoriPartOfSpeechTokenFilter, AnalysisPatternCaptureTokenFilter, AnalysisPatternReplaceTokenFilter, AnalysisPersianNormalizationTokenFilter, AnalysisPersianStemTokenFilter, AnalysisPorterStemTokenFilter, AnalysisPredicateTokenFilter, AnalysisRemoveDuplicatesTokenFilter, AnalysisReverseTokenFilter, AnalysisRussianStemTokenFilter, AnalysisScandinavianFoldingTokenFilter, AnalysisScandinavianNormalizationTokenFilter, AnalysisSerbianNormalizationTokenFilter, AnalysisShingleTokenFilter, AnalysisSnowballTokenFilter, AnalysisSoraniNormalizationTokenFilter, AnalysisStemmerOverrideTokenFilter, AnalysisStemmerTokenFilter, AnalysisStopTokenFilter, AnalysisSynonymGraphTokenFilter, AnalysisSynonymTokenFilter, AnalysisTrimTokenFilter, AnalysisTruncateTokenFilter, AnalysisUniqueTokenFilter, AnalysisUppercaseTokenFilter, AnalysisWordDelimiterGraphTokenFilter, AnalysisWordDelimiterTokenFilter, AnalysisJaStopTokenFilter, AnalysisKuromojiStemmerTokenFilter, AnalysisKuromojiReadingFormTokenFilter, AnalysisKuromojiPartOfSpeechTokenFilter, AnalysisIcuCollationTokenFilter, AnalysisIcuFoldingTokenFilter, AnalysisIcuNormalizationTokenFilter, AnalysisIcuTransformTokenFilter, AnalysisPhoneticTokenFilter, AnalysisDictionaryDecompounderTokenFilter]).meta({ id: 'AnalysisTokenFilterDefinition' })
 export type AnalysisTokenFilterDefinition = z.infer<typeof AnalysisTokenFilterDefinition>
 
-export const AnalysisTokenFilter = z.union([z.string(), AnalysisTokenFilterDefinition])
+export const AnalysisTokenFilter = z.union([z.string(), AnalysisTokenFilterDefinition]).meta({ id: 'AnalysisTokenFilter' })
 export type AnalysisTokenFilter = z.infer<typeof AnalysisTokenFilter>
 
 export const AnalysisUaxEmailUrlTokenizer = z.object({
   ...AnalysisTokenizerBase.shape,
   type: z.literal('uax_url_email'),
   max_token_length: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'AnalysisUaxEmailUrlTokenizer' })
 export type AnalysisUaxEmailUrlTokenizer = z.infer<typeof AnalysisUaxEmailUrlTokenizer>
 
 export const AnalysisWhitespaceTokenizer = z.object({
   ...AnalysisTokenizerBase.shape,
   type: z.literal('whitespace'),
   max_token_length: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'AnalysisWhitespaceTokenizer' })
 export type AnalysisWhitespaceTokenizer = z.infer<typeof AnalysisWhitespaceTokenizer>
 
-export const AnalysisTokenizerDefinition = z.union([AnalysisCharGroupTokenizer, AnalysisClassicTokenizer, AnalysisEdgeNGramTokenizer, AnalysisKeywordTokenizer, AnalysisLetterTokenizer, AnalysisLowercaseTokenizer, AnalysisNGramTokenizer, AnalysisPathHierarchyTokenizer, AnalysisPatternTokenizer, AnalysisSimplePatternTokenizer, AnalysisSimplePatternSplitTokenizer, AnalysisStandardTokenizer, AnalysisThaiTokenizer, AnalysisUaxEmailUrlTokenizer, AnalysisWhitespaceTokenizer, AnalysisIcuTokenizer, AnalysisKuromojiTokenizer, AnalysisNoriTokenizer])
+export const AnalysisTokenizerDefinition = z.union([AnalysisCharGroupTokenizer, AnalysisClassicTokenizer, AnalysisEdgeNGramTokenizer, AnalysisKeywordTokenizer, AnalysisLetterTokenizer, AnalysisLowercaseTokenizer, AnalysisNGramTokenizer, AnalysisPathHierarchyTokenizer, AnalysisPatternTokenizer, AnalysisSimplePatternTokenizer, AnalysisSimplePatternSplitTokenizer, AnalysisStandardTokenizer, AnalysisThaiTokenizer, AnalysisUaxEmailUrlTokenizer, AnalysisWhitespaceTokenizer, AnalysisIcuTokenizer, AnalysisKuromojiTokenizer, AnalysisNoriTokenizer]).meta({ id: 'AnalysisTokenizerDefinition' })
 export type AnalysisTokenizerDefinition = z.infer<typeof AnalysisTokenizerDefinition>
 
-export const AnalysisTokenizer = z.union([z.string(), AnalysisTokenizerDefinition])
+export const AnalysisTokenizer = z.union([z.string(), AnalysisTokenizerDefinition]).meta({ id: 'AnalysisTokenizer' })
 export type AnalysisTokenizer = z.infer<typeof AnalysisTokenizer>
 
-export const MappingOnScriptError = z.enum(['fail', 'continue'])
+export const MappingOnScriptError = z.enum(['fail', 'continue']).meta({ id: 'MappingOnScriptError' })
 export type MappingOnScriptError = z.infer<typeof MappingOnScriptError>
 
-export const MappingIndexOptions = z.enum(['docs', 'freqs', 'positions', 'offsets'])
+export const MappingIndexOptions = z.enum(['docs', 'freqs', 'positions', 'offsets']).meta({ id: 'MappingIndexOptions' })
 export type MappingIndexOptions = z.infer<typeof MappingIndexOptions>
 
 export const MappingTextIndexPrefixes = z.object({
   max_chars: z.lazy(() => integer),
   min_chars: z.lazy(() => integer)
-})
+}).meta({ id: 'MappingTextIndexPrefixes' })
 export type MappingTextIndexPrefixes = z.infer<typeof MappingTextIndexPrefixes>
 
-export const MappingTermVectorOption = z.enum(['no', 'yes', 'with_offsets', 'with_positions', 'with_positions_offsets', 'with_positions_offsets_payloads', 'with_positions_payloads'])
+export const MappingTermVectorOption = z.enum(['no', 'yes', 'with_offsets', 'with_positions', 'with_positions_offsets', 'with_positions_offsets_payloads', 'with_positions_payloads']).meta({ id: 'MappingTermVectorOption' })
 export type MappingTermVectorOption = z.infer<typeof MappingTermVectorOption>
 
 export interface MappingMatchOnlyTextPropertyShape {
@@ -6566,18 +6566,18 @@ export const MappingMatchOnlyTextProperty = z.object({
   get fields (): z.ZodOptional<z.ZodRecord<typeof PropertyName, typeof MappingProperty>> { return z.record(PropertyName, MappingProperty).describe('Multi-fields allow the same string value to be indexed in multiple ways for different purposes, such as one field for search and a multi-field for sorting and aggregations, or the same string value analyzed by different analyzers.').optional() },
   meta: z.record(z.string(), z.string()).describe('Metadata about the field.').optional(),
   copy_to: z.lazy(() => Fields).describe('Allows you to copy the values of multiple fields into a group field, which can then be queried as a single field.').optional()
-})
+}).meta({ id: 'MappingMatchOnlyTextProperty' })
 export type MappingMatchOnlyTextProperty = z.infer<typeof MappingMatchOnlyTextProperty>
 
-export const MappingDenseVectorElementType = z.enum(['bit', 'byte', 'float', 'bfloat16'])
+export const MappingDenseVectorElementType = z.enum(['bit', 'byte', 'float', 'bfloat16']).meta({ id: 'MappingDenseVectorElementType' })
 export type MappingDenseVectorElementType = z.infer<typeof MappingDenseVectorElementType>
 
-export const MappingDenseVectorIndexOptionsType = z.enum(['bbq_flat', 'bbq_hnsw', 'bbq_disk', 'flat', 'hnsw', 'int4_flat', 'int4_hnsw', 'int8_flat', 'int8_hnsw'])
+export const MappingDenseVectorIndexOptionsType = z.enum(['bbq_flat', 'bbq_hnsw', 'bbq_disk', 'flat', 'hnsw', 'int4_flat', 'int4_hnsw', 'int8_flat', 'int8_hnsw']).meta({ id: 'MappingDenseVectorIndexOptionsType' })
 export type MappingDenseVectorIndexOptionsType = z.infer<typeof MappingDenseVectorIndexOptionsType>
 
 export const MappingDenseVectorIndexOptionsRescoreVector = z.object({
   oversample: z.lazy(() => float).describe('The oversampling factor to use when searching for the nearest neighbor. This is only applicable to the quantized formats: `bbq_*`, `int4_*`, and `int8_*`. When provided, `oversample * k` vectors will be gathered and then their scores will be re-computed with the original vectors. valid values are between `1.0` and `10.0` (inclusive), or `0` exactly to disable oversampling.')
-})
+}).meta({ id: 'MappingDenseVectorIndexOptionsRescoreVector' })
 export type MappingDenseVectorIndexOptionsRescoreVector = z.infer<typeof MappingDenseVectorIndexOptionsRescoreVector>
 
 export const MappingDenseVectorIndexOptions = z.object({
@@ -6586,28 +6586,28 @@ export const MappingDenseVectorIndexOptions = z.object({
   m: z.lazy(() => integer).describe('The number of neighbors each node will be connected to in the HNSW graph. Only applicable to `hnsw`, `int8_hnsw`, `bbq_hnsw`, and `int4_hnsw` index types.').optional(),
   type: MappingDenseVectorIndexOptionsType.describe('The type of kNN algorithm to use.'),
   rescore_vector: MappingDenseVectorIndexOptionsRescoreVector.describe('The rescore vector options. This is only applicable to `bbq_disk`, `bbq_hnsw`, `int4_hnsw`, `int8_hnsw`, `bbq_flat`, `int4_flat`, and `int8_flat` index types.').optional()
-})
+}).meta({ id: 'MappingDenseVectorIndexOptions' })
 export type MappingDenseVectorIndexOptions = z.infer<typeof MappingDenseVectorIndexOptions>
 
-export const MappingDenseVectorSimilarity = z.enum(['cosine', 'dot_product', 'l2_norm', 'max_inner_product'])
+export const MappingDenseVectorSimilarity = z.enum(['cosine', 'dot_product', 'l2_norm', 'max_inner_product']).meta({ id: 'MappingDenseVectorSimilarity' })
 export type MappingDenseVectorSimilarity = z.infer<typeof MappingDenseVectorSimilarity>
 
-export const MappingSubobjects = z.union([z.boolean(), z.enum(['true', 'false', 'auto'])])
+export const MappingSubobjects = z.union([z.boolean(), z.enum(['true', 'false', 'auto'])]).meta({ id: 'MappingSubobjects' })
 export type MappingSubobjects = z.infer<typeof MappingSubobjects>
 
-export const MappingRankVectorElementType = z.enum(['byte', 'float', 'bit'])
+export const MappingRankVectorElementType = z.enum(['byte', 'float', 'bit']).meta({ id: 'MappingRankVectorElementType' })
 export type MappingRankVectorElementType = z.infer<typeof MappingRankVectorElementType>
 
 export const MappingSparseVectorIndexOptions = z.object({
   prune: z.boolean().describe('Whether to perform pruning, omitting the non-significant tokens from the query to improve query performance. If prune is true but the pruning_config is not specified, pruning will occur but default values will be used. Default: false').optional(),
   pruning_config: TokenPruningConfig.describe('Optional pruning configuration. If enabled, this will omit non-significant tokens from the query in order to improve query performance. This is only used if prune is set to true. If prune is set to true but pruning_config is not specified, default values will be used.').optional()
-})
+}).meta({ id: 'MappingSparseVectorIndexOptions' })
 export type MappingSparseVectorIndexOptions = z.infer<typeof MappingSparseVectorIndexOptions>
 
 export const MappingSemanticTextIndexOptions = z.object({
   dense_vector: MappingDenseVectorIndexOptions.optional(),
   sparse_vector: MappingSparseVectorIndexOptions.optional()
-})
+}).meta({ id: 'MappingSemanticTextIndexOptions' })
 export type MappingSemanticTextIndexOptions = z.infer<typeof MappingSemanticTextIndexOptions>
 
 export const MappingChunkingSettings = z.object({
@@ -6617,7 +6617,7 @@ export const MappingChunkingSettings = z.object({
   sentence_overlap: z.lazy(() => integer).describe('The number of overlapping sentences for chunks. It is applicable only for a `sentence` chunking strategy. It can be either `1` or `0`.').optional(),
   separator_group: z.string().describe('Only applicable to the `recursive` strategy and required when using it. Sets a predefined list of separators in the saved chunking settings based on the selected text type. Values can be `markdown` or `plaintext`. Using this parameter is an alternative to manually specifying a custom `separators` list.').optional(),
   separators: z.array(z.string()).describe('Only applicable to the `recursive` strategy and required when using it. A list of strings used as possible split points when chunking text. Each string can be a plain string or a regular expression (regex) pattern. The system tries each separator in order to split the text, starting from the first item in the list. After splitting, it attempts to recombine smaller pieces into larger chunks that stay within the `max_chunk_size` limit, to reduce the total number of chunks generated.').optional()
-})
+}).meta({ id: 'MappingChunkingSettings' })
 export type MappingChunkingSettings = z.infer<typeof MappingChunkingSettings>
 
 export interface MappingSemanticTextPropertyShape {
@@ -6637,7 +6637,7 @@ export const MappingSemanticTextProperty = z.object({
   index_options: MappingSemanticTextIndexOptions.describe('Settings for index_options that override any defaults used by semantic_text, for example specific quantization settings.').optional(),
   chunking_settings: z.union([MappingChunkingSettings, z.null()]).describe('Settings for chunking text into smaller passages. If specified, these will override the chunking settings sent in the inference endpoint associated with inference_id. If chunking settings are updated, they will not be applied to existing documents until they are reindexed.').optional(),
   get fields (): z.ZodOptional<z.ZodRecord<typeof PropertyName, typeof MappingProperty>> { return z.record(PropertyName, MappingProperty).describe('Multi-fields allow the same string value to be indexed in multiple ways for different purposes, such as one field for search and a multi-field for sorting and aggregations, or the same string value analyzed by different analyzers.').optional() }
-})
+}).meta({ id: 'MappingSemanticTextProperty' })
 export type MappingSemanticTextProperty = z.infer<typeof MappingSemanticTextProperty>
 
 export const MappingSuggestContext = z.object({
@@ -6645,26 +6645,26 @@ export const MappingSuggestContext = z.object({
   path: z.lazy(() => Field).optional(),
   type: z.string(),
   precision: z.union([z.lazy(() => integer), z.string()]).optional()
-})
+}).meta({ id: 'MappingSuggestContext' })
 export type MappingSuggestContext = z.infer<typeof MappingSuggestContext>
 
-export const MappingGeoPointMetricType = z.enum(['gauge', 'counter', 'position'])
+export const MappingGeoPointMetricType = z.enum(['gauge', 'counter', 'position']).meta({ id: 'MappingGeoPointMetricType' })
 export type MappingGeoPointMetricType = z.infer<typeof MappingGeoPointMetricType>
 
-export const MappingGeoOrientation = z.enum(['right', 'RIGHT', 'counterclockwise', 'ccw', 'left', 'LEFT', 'clockwise', 'cw'])
+export const MappingGeoOrientation = z.enum(['right', 'RIGHT', 'counterclockwise', 'ccw', 'left', 'LEFT', 'clockwise', 'cw']).meta({ id: 'MappingGeoOrientation' })
 export type MappingGeoOrientation = z.infer<typeof MappingGeoOrientation>
 
-export const MappingGeoStrategy = z.enum(['recursive', 'term'])
+export const MappingGeoStrategy = z.enum(['recursive', 'term']).meta({ id: 'MappingGeoStrategy' })
 export type MappingGeoStrategy = z.infer<typeof MappingGeoStrategy>
 
 export type MappingPropertyShape = MappingBinaryPropertyShape | MappingBooleanPropertyShape | MappingDynamicPropertyShape | MappingJoinPropertyShape | MappingKeywordPropertyShape | MappingMatchOnlyTextPropertyShape | MappingPercolatorPropertyShape | MappingRankFeaturePropertyShape | MappingRankFeaturesPropertyShape | MappingSearchAsYouTypePropertyShape | MappingTextPropertyShape | MappingVersionPropertyShape | MappingWildcardPropertyShape | MappingDateNanosPropertyShape | MappingDatePropertyShape | MappingAggregateMetricDoublePropertyShape | MappingDenseVectorPropertyShape | MappingFlattenedPropertyShape | MappingNestedPropertyShape | MappingObjectPropertyShape | MappingPassthroughObjectPropertyShape | MappingRankVectorPropertyShape | MappingSemanticTextPropertyShape | MappingSparseVectorPropertyShape | MappingCompletionPropertyShape | MappingConstantKeywordPropertyShape | MappingCountedKeywordPropertyShape | MappingFieldAliasPropertyShape | MappingHistogramPropertyShape | MappingExponentialHistogramPropertyShape | MappingIpPropertyShape | MappingMurmur3HashPropertyShape | MappingTokenCountPropertyShape | MappingGeoPointPropertyShape | MappingGeoShapePropertyShape | MappingPointPropertyShape | MappingShapePropertyShape | MappingByteNumberPropertyShape | MappingDoubleNumberPropertyShape | MappingFloatNumberPropertyShape | MappingHalfFloatNumberPropertyShape | MappingIntegerNumberPropertyShape | MappingLongNumberPropertyShape | MappingScaledFloatNumberPropertyShape | MappingShortNumberPropertyShape | MappingUnsignedLongNumberPropertyShape | MappingDateRangePropertyShape | MappingDoubleRangePropertyShape | MappingFloatRangePropertyShape | MappingIntegerRangePropertyShape | MappingIpRangePropertyShape | MappingLongRangePropertyShape | MappingIcuCollationPropertyShape
-export const MappingProperty: z.ZodType<MappingPropertyShape> = z.union([z.lazy(() => MappingBinaryProperty), z.lazy(() => MappingBooleanProperty), z.lazy(() => MappingDynamicProperty), z.lazy(() => MappingJoinProperty), z.lazy(() => MappingKeywordProperty), z.lazy(() => MappingMatchOnlyTextProperty), z.lazy(() => MappingPercolatorProperty), z.lazy(() => MappingRankFeatureProperty), z.lazy(() => MappingRankFeaturesProperty), z.lazy(() => MappingSearchAsYouTypeProperty), z.lazy(() => MappingTextProperty), z.lazy(() => MappingVersionProperty), z.lazy(() => MappingWildcardProperty), z.lazy(() => MappingDateNanosProperty), z.lazy(() => MappingDateProperty), z.lazy(() => MappingAggregateMetricDoubleProperty), z.lazy(() => MappingDenseVectorProperty), z.lazy(() => MappingFlattenedProperty), z.lazy(() => MappingNestedProperty), z.lazy(() => MappingObjectProperty), z.lazy(() => MappingPassthroughObjectProperty), z.lazy(() => MappingRankVectorProperty), z.lazy(() => MappingSemanticTextProperty), z.lazy(() => MappingSparseVectorProperty), z.lazy(() => MappingCompletionProperty), z.lazy(() => MappingConstantKeywordProperty), z.lazy(() => MappingCountedKeywordProperty), z.lazy(() => MappingFieldAliasProperty), z.lazy(() => MappingHistogramProperty), z.lazy(() => MappingExponentialHistogramProperty), z.lazy(() => MappingIpProperty), z.lazy(() => MappingMurmur3HashProperty), z.lazy(() => MappingTokenCountProperty), z.lazy(() => MappingGeoPointProperty), z.lazy(() => MappingGeoShapeProperty), z.lazy(() => MappingPointProperty), z.lazy(() => MappingShapeProperty), z.lazy(() => MappingByteNumberProperty), z.lazy(() => MappingDoubleNumberProperty), z.lazy(() => MappingFloatNumberProperty), z.lazy(() => MappingHalfFloatNumberProperty), z.lazy(() => MappingIntegerNumberProperty), z.lazy(() => MappingLongNumberProperty), z.lazy(() => MappingScaledFloatNumberProperty), z.lazy(() => MappingShortNumberProperty), z.lazy(() => MappingUnsignedLongNumberProperty), z.lazy(() => MappingDateRangeProperty), z.lazy(() => MappingDoubleRangeProperty), z.lazy(() => MappingFloatRangeProperty), z.lazy(() => MappingIntegerRangeProperty), z.lazy(() => MappingIpRangeProperty), z.lazy(() => MappingLongRangeProperty), z.lazy(() => MappingIcuCollationProperty)])
+export const MappingProperty: z.ZodType<MappingPropertyShape> = z.union([z.lazy(() => MappingBinaryProperty), z.lazy(() => MappingBooleanProperty), z.lazy(() => MappingDynamicProperty), z.lazy(() => MappingJoinProperty), z.lazy(() => MappingKeywordProperty), z.lazy(() => MappingMatchOnlyTextProperty), z.lazy(() => MappingPercolatorProperty), z.lazy(() => MappingRankFeatureProperty), z.lazy(() => MappingRankFeaturesProperty), z.lazy(() => MappingSearchAsYouTypeProperty), z.lazy(() => MappingTextProperty), z.lazy(() => MappingVersionProperty), z.lazy(() => MappingWildcardProperty), z.lazy(() => MappingDateNanosProperty), z.lazy(() => MappingDateProperty), z.lazy(() => MappingAggregateMetricDoubleProperty), z.lazy(() => MappingDenseVectorProperty), z.lazy(() => MappingFlattenedProperty), z.lazy(() => MappingNestedProperty), z.lazy(() => MappingObjectProperty), z.lazy(() => MappingPassthroughObjectProperty), z.lazy(() => MappingRankVectorProperty), z.lazy(() => MappingSemanticTextProperty), z.lazy(() => MappingSparseVectorProperty), z.lazy(() => MappingCompletionProperty), z.lazy(() => MappingConstantKeywordProperty), z.lazy(() => MappingCountedKeywordProperty), z.lazy(() => MappingFieldAliasProperty), z.lazy(() => MappingHistogramProperty), z.lazy(() => MappingExponentialHistogramProperty), z.lazy(() => MappingIpProperty), z.lazy(() => MappingMurmur3HashProperty), z.lazy(() => MappingTokenCountProperty), z.lazy(() => MappingGeoPointProperty), z.lazy(() => MappingGeoShapeProperty), z.lazy(() => MappingPointProperty), z.lazy(() => MappingShapeProperty), z.lazy(() => MappingByteNumberProperty), z.lazy(() => MappingDoubleNumberProperty), z.lazy(() => MappingFloatNumberProperty), z.lazy(() => MappingHalfFloatNumberProperty), z.lazy(() => MappingIntegerNumberProperty), z.lazy(() => MappingLongNumberProperty), z.lazy(() => MappingScaledFloatNumberProperty), z.lazy(() => MappingShortNumberProperty), z.lazy(() => MappingUnsignedLongNumberProperty), z.lazy(() => MappingDateRangeProperty), z.lazy(() => MappingDoubleRangeProperty), z.lazy(() => MappingFloatRangeProperty), z.lazy(() => MappingIntegerRangeProperty), z.lazy(() => MappingIpRangeProperty), z.lazy(() => MappingLongRangeProperty), z.lazy(() => MappingIcuCollationProperty)]).meta({ id: 'MappingProperty' })
 export type MappingProperty = z.infer<typeof MappingProperty>
 
-export const MappingDynamicMapping = z.union([z.boolean(), z.enum(['strict', 'runtime', 'true', 'false'])])
+export const MappingDynamicMapping = z.union([z.boolean(), z.enum(['strict', 'runtime', 'true', 'false'])]).meta({ id: 'MappingDynamicMapping' })
 export type MappingDynamicMapping = z.infer<typeof MappingDynamicMapping>
 
-export const MappingSyntheticSourceKeepEnum = z.enum(['none', 'arrays', 'all'])
+export const MappingSyntheticSourceKeepEnum = z.enum(['none', 'arrays', 'all']).meta({ id: 'MappingSyntheticSourceKeepEnum' })
 export type MappingSyntheticSourceKeepEnum = z.infer<typeof MappingSyntheticSourceKeepEnum>
 
 export interface MappingPropertyBaseShape {
@@ -6682,7 +6682,7 @@ export const MappingPropertyBase = z.object({
   dynamic: z.lazy(() => MappingDynamicMapping).optional(),
   get fields (): z.ZodOptional<z.ZodRecord<typeof PropertyName, typeof MappingProperty>> { return z.record(PropertyName, MappingProperty).optional() },
   synthetic_source_keep: MappingSyntheticSourceKeepEnum.optional()
-})
+}).meta({ id: 'MappingPropertyBase' })
 export type MappingPropertyBase = z.infer<typeof MappingPropertyBase>
 
 export interface MappingAggregateMetricDoublePropertyShape {
@@ -6710,7 +6710,7 @@ export const MappingAggregateMetricDoubleProperty = z.object({
   ignore_malformed: z.boolean().optional(),
   metrics: z.array(z.string()),
   time_series_metric: z.lazy(() => MappingTimeSeriesMetricType).optional()
-})
+}).meta({ id: 'MappingAggregateMetricDoubleProperty' })
 export type MappingAggregateMetricDoubleProperty = z.infer<typeof MappingAggregateMetricDoubleProperty>
 
 export const MappingAllField = z.object({
@@ -6724,7 +6724,7 @@ export const MappingAllField = z.object({
   store_term_vector_payloads: z.boolean(),
   store_term_vector_positions: z.boolean(),
   store_term_vectors: z.boolean()
-})
+}).meta({ id: 'MappingAllField' })
 export type MappingAllField = z.infer<typeof MappingAllField>
 
 export interface MappingCorePropertyBaseShape {
@@ -6746,7 +6746,7 @@ export const MappingCorePropertyBase = z.object({
   synthetic_source_keep: MappingSyntheticSourceKeepEnum.optional(),
   copy_to: z.lazy(() => Fields).optional(),
   store: z.boolean().optional()
-})
+}).meta({ id: 'MappingCorePropertyBase' })
 export type MappingCorePropertyBase = z.infer<typeof MappingCorePropertyBase>
 
 export interface MappingDocValuesPropertyBaseShape {
@@ -6770,7 +6770,7 @@ export const MappingDocValuesPropertyBase = z.object({
   copy_to: z.lazy(() => Fields).optional(),
   store: z.boolean().optional(),
   doc_values: z.boolean().optional()
-})
+}).meta({ id: 'MappingDocValuesPropertyBase' })
 export type MappingDocValuesPropertyBase = z.infer<typeof MappingDocValuesPropertyBase>
 
 export interface MappingBinaryPropertyShape {
@@ -6796,7 +6796,7 @@ export const MappingBinaryProperty = z.object({
   store: z.boolean().optional(),
   doc_values: z.boolean().optional(),
   type: z.literal('binary')
-})
+}).meta({ id: 'MappingBinaryProperty' })
 export type MappingBinaryProperty = z.infer<typeof MappingBinaryProperty>
 
 export interface MappingBooleanPropertyShape {
@@ -6838,7 +6838,7 @@ export const MappingBooleanProperty = z.object({
   on_script_error: MappingOnScriptError.optional(),
   time_series_dimension: z.boolean().describe('For internal use by Elastic only. Marks the field as a time series dimension. Defaults to false.').optional(),
   type: z.literal('boolean')
-})
+}).meta({ id: 'MappingBooleanProperty' })
 export type MappingBooleanProperty = z.infer<typeof MappingBooleanProperty>
 
 export interface MappingNumberPropertyBaseShape {
@@ -6878,7 +6878,7 @@ export const MappingNumberPropertyBase = z.object({
   get script () { return Script.optional() },
   time_series_metric: z.lazy(() => MappingTimeSeriesMetricType).describe('For internal use by Elastic only. Marks the field as a time series dimension. Defaults to false.').optional(),
   time_series_dimension: z.boolean().describe('For internal use by Elastic only. Marks the field as a time series dimension. Defaults to false.').optional()
-})
+}).meta({ id: 'MappingNumberPropertyBase' })
 export type MappingNumberPropertyBase = z.infer<typeof MappingNumberPropertyBase>
 
 export interface MappingByteNumberPropertyShape {
@@ -6922,7 +6922,7 @@ export const MappingByteNumberProperty = z.object({
   time_series_dimension: z.boolean().describe('For internal use by Elastic only. Marks the field as a time series dimension. Defaults to false.').optional(),
   type: z.literal('byte'),
   null_value: byte.optional()
-})
+}).meta({ id: 'MappingByteNumberProperty' })
 export type MappingByteNumberProperty = z.infer<typeof MappingByteNumberProperty>
 
 export interface MappingCompletionPropertyShape {
@@ -6960,7 +6960,7 @@ export const MappingCompletionProperty = z.object({
   preserve_separators: z.boolean().optional(),
   search_analyzer: z.string().optional(),
   type: z.literal('completion')
-})
+}).meta({ id: 'MappingCompletionProperty' })
 export type MappingCompletionProperty = z.infer<typeof MappingCompletionProperty>
 
 export interface MappingConstantKeywordPropertyShape {
@@ -6982,7 +6982,7 @@ export const MappingConstantKeywordProperty = z.object({
   synthetic_source_keep: MappingSyntheticSourceKeepEnum.optional(),
   value: z.any().optional(),
   type: z.literal('constant_keyword')
-})
+}).meta({ id: 'MappingConstantKeywordProperty' })
 export type MappingConstantKeywordProperty = z.infer<typeof MappingConstantKeywordProperty>
 
 export interface MappingCountedKeywordPropertyShape {
@@ -7004,12 +7004,12 @@ export const MappingCountedKeywordProperty = z.object({
   synthetic_source_keep: MappingSyntheticSourceKeepEnum.optional(),
   type: z.literal('counted_keyword'),
   index: z.boolean().optional()
-})
+}).meta({ id: 'MappingCountedKeywordProperty' })
 export type MappingCountedKeywordProperty = z.infer<typeof MappingCountedKeywordProperty>
 
 export const MappingDataStreamTimestamp = z.object({
   enabled: z.boolean()
-})
+}).meta({ id: 'MappingDataStreamTimestamp' })
 export type MappingDataStreamTimestamp = z.infer<typeof MappingDataStreamTimestamp>
 
 export interface MappingDateNanosPropertyShape {
@@ -7051,7 +7051,7 @@ export const MappingDateNanosProperty = z.object({
   null_value: z.lazy(() => DateTime).optional(),
   precision_step: z.lazy(() => integer).optional(),
   type: z.literal('date_nanos')
-})
+}).meta({ id: 'MappingDateNanosProperty' })
 export type MappingDateNanosProperty = z.infer<typeof MappingDateNanosProperty>
 
 export interface MappingDatePropertyShape {
@@ -7097,7 +7097,7 @@ export const MappingDateProperty = z.object({
   precision_step: z.lazy(() => integer).optional(),
   locale: z.string().optional(),
   type: z.literal('date')
-})
+}).meta({ id: 'MappingDateProperty' })
 export type MappingDateProperty = z.infer<typeof MappingDateProperty>
 
 export interface MappingRangePropertyBaseShape {
@@ -7127,7 +7127,7 @@ export const MappingRangePropertyBase = z.object({
   boost: z.lazy(() => double).optional(),
   coerce: z.boolean().optional(),
   index: z.boolean().optional()
-})
+}).meta({ id: 'MappingRangePropertyBase' })
 export type MappingRangePropertyBase = z.infer<typeof MappingRangePropertyBase>
 
 export interface MappingDateRangePropertyShape {
@@ -7161,7 +7161,7 @@ export const MappingDateRangeProperty = z.object({
   index: z.boolean().optional(),
   format: z.string().optional(),
   type: z.literal('date_range')
-})
+}).meta({ id: 'MappingDateRangeProperty' })
 export type MappingDateRangeProperty = z.infer<typeof MappingDateRangeProperty>
 
 export interface MappingDenseVectorPropertyShape {
@@ -7191,7 +7191,7 @@ export const MappingDenseVectorProperty = z.object({
   index: z.boolean().describe('If `true`, you can search this field using the kNN search API.').optional(),
   index_options: MappingDenseVectorIndexOptions.describe('An optional section that configures the kNN indexing algorithm. The HNSW algorithm has two internal parameters that influence how the data structure is built. These can be adjusted to improve the accuracy of results, at the expense of slower indexing speed. This parameter can only be specified when `index` is `true`.').optional(),
   similarity: MappingDenseVectorSimilarity.describe('The vector similarity metric to use in kNN search. Documents are ranked by their vector field\'s similarity to the query vector. The `_score` of each document will be derived from the similarity, in a way that ensures scores are positive and that a larger score corresponds to a higher ranking. Defaults to `l2_norm` when `element_type` is `bit` otherwise defaults to `cosine`. `bit` vectors only support `l2_norm` as their similarity metric. This parameter can only be specified when `index` is `true`.').optional()
-})
+}).meta({ id: 'MappingDenseVectorProperty' })
 export type MappingDenseVectorProperty = z.infer<typeof MappingDenseVectorProperty>
 
 export interface MappingDoubleNumberPropertyShape {
@@ -7235,7 +7235,7 @@ export const MappingDoubleNumberProperty = z.object({
   time_series_dimension: z.boolean().describe('For internal use by Elastic only. Marks the field as a time series dimension. Defaults to false.').optional(),
   type: z.literal('double'),
   null_value: z.lazy(() => double).optional()
-})
+}).meta({ id: 'MappingDoubleNumberProperty' })
 export type MappingDoubleNumberProperty = z.infer<typeof MappingDoubleNumberProperty>
 
 export interface MappingDoubleRangePropertyShape {
@@ -7267,7 +7267,7 @@ export const MappingDoubleRangeProperty = z.object({
   coerce: z.boolean().optional(),
   index: z.boolean().optional(),
   type: z.literal('double_range')
-})
+}).meta({ id: 'MappingDoubleRangeProperty' })
 export type MappingDoubleRangeProperty = z.infer<typeof MappingDoubleRangeProperty>
 
 export interface MappingDynamicPropertyShape {
@@ -7337,10 +7337,10 @@ export const MappingDynamicProperty = z.object({
   format: z.string().optional(),
   precision_step: z.lazy(() => integer).optional(),
   locale: z.string().optional()
-})
+}).meta({ id: 'MappingDynamicProperty' })
 export type MappingDynamicProperty = z.infer<typeof MappingDynamicProperty>
 
-export const MappingMatchType = z.enum(['simple', 'regex'])
+export const MappingMatchType = z.enum(['simple', 'regex']).meta({ id: 'MappingMatchType' })
 export type MappingMatchType = z.infer<typeof MappingMatchType>
 
 const MappingDynamicTemplateCommonProps = z.object({
@@ -7355,7 +7355,7 @@ const MappingDynamicTemplateCommonProps = z.object({
 
 const MappingDynamicTemplateExclusiveProps = z.union([z.object({ mapping: z.lazy(() => MappingProperty) }), z.object({ runtime: z.lazy(() => MappingRuntimeField) })])
 
-export const MappingDynamicTemplate = MappingDynamicTemplateCommonProps.and(MappingDynamicTemplateExclusiveProps)
+export const MappingDynamicTemplate = MappingDynamicTemplateCommonProps.and(MappingDynamicTemplateExclusiveProps).meta({ id: 'MappingDynamicTemplate' })
 export type MappingDynamicTemplate = z.infer<typeof MappingDynamicTemplate>
 
 export interface MappingExponentialHistogramPropertyShape {
@@ -7377,7 +7377,7 @@ export const MappingExponentialHistogramProperty = z.object({
   synthetic_source_keep: MappingSyntheticSourceKeepEnum.optional(),
   time_series_metric: z.lazy(() => MappingTimeSeriesMetricType).optional(),
   type: z.literal('exponential_histogram')
-})
+}).meta({ id: 'MappingExponentialHistogramProperty' })
 export type MappingExponentialHistogramProperty = z.infer<typeof MappingExponentialHistogramProperty>
 
 export interface MappingFieldAliasPropertyShape {
@@ -7399,18 +7399,18 @@ export const MappingFieldAliasProperty = z.object({
   synthetic_source_keep: MappingSyntheticSourceKeepEnum.optional(),
   path: z.lazy(() => Field).optional(),
   type: z.literal('alias')
-})
+}).meta({ id: 'MappingFieldAliasProperty' })
 export type MappingFieldAliasProperty = z.infer<typeof MappingFieldAliasProperty>
 
 export const MappingFieldMapping = z.object({
   full_name: z.string(),
   mapping: z.record(z.lazy(() => Field), z.lazy(() => MappingProperty))
-})
+}).meta({ id: 'MappingFieldMapping' })
 export type MappingFieldMapping = z.infer<typeof MappingFieldMapping>
 
 export const MappingFieldNamesField = z.object({
   enabled: z.boolean()
-})
+}).meta({ id: 'MappingFieldNamesField' })
 export type MappingFieldNamesField = z.infer<typeof MappingFieldNamesField>
 
 export interface MappingFlattenedPropertyShape {
@@ -7450,7 +7450,7 @@ export const MappingFlattenedProperty = z.object({
   split_queries_on_whitespace: z.boolean().optional(),
   time_series_dimensions: z.array(z.string()).optional(),
   type: z.literal('flattened')
-})
+}).meta({ id: 'MappingFlattenedProperty' })
 export type MappingFlattenedProperty = z.infer<typeof MappingFlattenedProperty>
 
 export interface MappingFloatNumberPropertyShape {
@@ -7494,7 +7494,7 @@ export const MappingFloatNumberProperty = z.object({
   time_series_dimension: z.boolean().describe('For internal use by Elastic only. Marks the field as a time series dimension. Defaults to false.').optional(),
   type: z.literal('float'),
   null_value: z.lazy(() => float).optional()
-})
+}).meta({ id: 'MappingFloatNumberProperty' })
 export type MappingFloatNumberProperty = z.infer<typeof MappingFloatNumberProperty>
 
 export interface MappingFloatRangePropertyShape {
@@ -7526,7 +7526,7 @@ export const MappingFloatRangeProperty = z.object({
   coerce: z.boolean().optional(),
   index: z.boolean().optional(),
   type: z.literal('float_range')
-})
+}).meta({ id: 'MappingFloatRangeProperty' })
 export type MappingFloatRangeProperty = z.infer<typeof MappingFloatRangeProperty>
 
 export interface MappingGeoPointPropertyShape {
@@ -7566,7 +7566,7 @@ export const MappingGeoPointProperty = z.object({
   get script () { return Script.optional() },
   type: z.literal('geo_point'),
   time_series_metric: MappingGeoPointMetricType.optional()
-})
+}).meta({ id: 'MappingGeoPointProperty' })
 export type MappingGeoPointProperty = z.infer<typeof MappingGeoPointProperty>
 
 export interface MappingGeoShapePropertyShape {
@@ -7608,7 +7608,7 @@ export const MappingGeoShapeProperty = z.object({
   orientation: MappingGeoOrientation.optional(),
   strategy: MappingGeoStrategy.optional(),
   type: z.literal('geo_shape')
-})
+}).meta({ id: 'MappingGeoShapeProperty' })
 export type MappingGeoShapeProperty = z.infer<typeof MappingGeoShapeProperty>
 
 export interface MappingHalfFloatNumberPropertyShape {
@@ -7652,7 +7652,7 @@ export const MappingHalfFloatNumberProperty = z.object({
   time_series_dimension: z.boolean().describe('For internal use by Elastic only. Marks the field as a time series dimension. Defaults to false.').optional(),
   type: z.literal('half_float'),
   null_value: z.lazy(() => float).optional()
-})
+}).meta({ id: 'MappingHalfFloatNumberProperty' })
 export type MappingHalfFloatNumberProperty = z.infer<typeof MappingHalfFloatNumberProperty>
 
 export interface MappingHistogramPropertyShape {
@@ -7676,7 +7676,7 @@ export const MappingHistogramProperty = z.object({
   ignore_malformed: z.boolean().optional(),
   time_series_metric: z.lazy(() => MappingTimeSeriesMetricType).optional(),
   type: z.literal('histogram')
-})
+}).meta({ id: 'MappingHistogramProperty' })
 export type MappingHistogramProperty = z.infer<typeof MappingHistogramProperty>
 
 export interface MappingIcuCollationPropertyShape {
@@ -7734,12 +7734,12 @@ export const MappingIcuCollationProperty = z.object({
   numeric: z.boolean().optional(),
   variable_top: z.string().optional(),
   hiragana_quaternary_mode: z.boolean().optional()
-})
+}).meta({ id: 'MappingIcuCollationProperty' })
 export type MappingIcuCollationProperty = z.infer<typeof MappingIcuCollationProperty>
 
 export const MappingIndexField = z.object({
   enabled: z.boolean()
-})
+}).meta({ id: 'MappingIndexField' })
 export type MappingIndexField = z.infer<typeof MappingIndexField>
 
 export interface MappingIntegerNumberPropertyShape {
@@ -7783,7 +7783,7 @@ export const MappingIntegerNumberProperty = z.object({
   time_series_dimension: z.boolean().describe('For internal use by Elastic only. Marks the field as a time series dimension. Defaults to false.').optional(),
   type: z.literal('integer'),
   null_value: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'MappingIntegerNumberProperty' })
 export type MappingIntegerNumberProperty = z.infer<typeof MappingIntegerNumberProperty>
 
 export interface MappingIntegerRangePropertyShape {
@@ -7815,7 +7815,7 @@ export const MappingIntegerRangeProperty = z.object({
   coerce: z.boolean().optional(),
   index: z.boolean().optional(),
   type: z.literal('integer_range')
-})
+}).meta({ id: 'MappingIntegerRangeProperty' })
 export type MappingIntegerRangeProperty = z.infer<typeof MappingIntegerRangeProperty>
 
 export interface MappingIpPropertyShape {
@@ -7855,7 +7855,7 @@ export const MappingIpProperty = z.object({
   get script () { return Script.optional() },
   time_series_dimension: z.boolean().describe('For internal use by Elastic only. Marks the field as a time series dimension. Defaults to false.').optional(),
   type: z.literal('ip')
-})
+}).meta({ id: 'MappingIpProperty' })
 export type MappingIpProperty = z.infer<typeof MappingIpProperty>
 
 export interface MappingIpRangePropertyShape {
@@ -7887,7 +7887,7 @@ export const MappingIpRangeProperty = z.object({
   coerce: z.boolean().optional(),
   index: z.boolean().optional(),
   type: z.literal('ip_range')
-})
+}).meta({ id: 'MappingIpRangeProperty' })
 export type MappingIpRangeProperty = z.infer<typeof MappingIpRangeProperty>
 
 export interface MappingJoinPropertyShape {
@@ -7911,7 +7911,7 @@ export const MappingJoinProperty = z.object({
   relations: z.record(RelationName, z.union([RelationName, z.array(RelationName)])).optional(),
   eager_global_ordinals: z.boolean().optional(),
   type: z.literal('join')
-})
+}).meta({ id: 'MappingJoinProperty' })
 export type MappingJoinProperty = z.infer<typeof MappingJoinProperty>
 
 export interface MappingKeywordPropertyShape {
@@ -7961,7 +7961,7 @@ export const MappingKeywordProperty = z.object({
   split_queries_on_whitespace: z.boolean().optional(),
   time_series_dimension: z.boolean().describe('For internal use by Elastic only. Marks the field as a time series dimension. Defaults to false.').optional(),
   type: z.literal('keyword')
-})
+}).meta({ id: 'MappingKeywordProperty' })
 export type MappingKeywordProperty = z.infer<typeof MappingKeywordProperty>
 
 export interface MappingLongNumberPropertyShape {
@@ -8005,7 +8005,7 @@ export const MappingLongNumberProperty = z.object({
   time_series_dimension: z.boolean().describe('For internal use by Elastic only. Marks the field as a time series dimension. Defaults to false.').optional(),
   type: z.literal('long'),
   null_value: z.lazy(() => long).optional()
-})
+}).meta({ id: 'MappingLongNumberProperty' })
 export type MappingLongNumberProperty = z.infer<typeof MappingLongNumberProperty>
 
 export interface MappingLongRangePropertyShape {
@@ -8037,7 +8037,7 @@ export const MappingLongRangeProperty = z.object({
   coerce: z.boolean().optional(),
   index: z.boolean().optional(),
   type: z.literal('long_range')
-})
+}).meta({ id: 'MappingLongRangeProperty' })
 export type MappingLongRangeProperty = z.infer<typeof MappingLongRangeProperty>
 
 export interface MappingMurmur3HashPropertyShape {
@@ -8063,7 +8063,7 @@ export const MappingMurmur3HashProperty = z.object({
   store: z.boolean().optional(),
   doc_values: z.boolean().optional(),
   type: z.literal('murmur3')
-})
+}).meta({ id: 'MappingMurmur3HashProperty' })
 export type MappingMurmur3HashProperty = z.infer<typeof MappingMurmur3HashProperty>
 
 export interface MappingNestedPropertyShape {
@@ -8093,7 +8093,7 @@ export const MappingNestedProperty = z.object({
   include_in_parent: z.boolean().optional(),
   include_in_root: z.boolean().optional(),
   type: z.literal('nested')
-})
+}).meta({ id: 'MappingNestedProperty' })
 export type MappingNestedProperty = z.infer<typeof MappingNestedProperty>
 
 export interface MappingObjectPropertyShape {
@@ -8121,7 +8121,7 @@ export const MappingObjectProperty = z.object({
   enabled: z.boolean().optional(),
   subobjects: MappingSubobjects.optional(),
   type: z.literal('object').optional()
-})
+}).meta({ id: 'MappingObjectProperty' })
 export type MappingObjectProperty = z.infer<typeof MappingObjectProperty>
 
 export interface MappingPassthroughObjectPropertyShape {
@@ -8151,7 +8151,7 @@ export const MappingPassthroughObjectProperty = z.object({
   enabled: z.boolean().optional(),
   priority: z.lazy(() => integer).optional(),
   time_series_dimension: z.boolean().optional()
-})
+}).meta({ id: 'MappingPassthroughObjectProperty' })
 export type MappingPassthroughObjectProperty = z.infer<typeof MappingPassthroughObjectProperty>
 
 export interface MappingPercolatorPropertyShape {
@@ -8171,7 +8171,7 @@ export const MappingPercolatorProperty = z.object({
   get fields (): z.ZodOptional<z.ZodRecord<typeof PropertyName, typeof MappingProperty>> { return z.record(PropertyName, MappingProperty).optional() },
   synthetic_source_keep: MappingSyntheticSourceKeepEnum.optional(),
   type: z.literal('percolator')
-})
+}).meta({ id: 'MappingPercolatorProperty' })
 export type MappingPercolatorProperty = z.infer<typeof MappingPercolatorProperty>
 
 export interface MappingPointPropertyShape {
@@ -8203,7 +8203,7 @@ export const MappingPointProperty = z.object({
   ignore_z_value: z.boolean().optional(),
   null_value: z.string().optional(),
   type: z.literal('point')
-})
+}).meta({ id: 'MappingPointProperty' })
 export type MappingPointProperty = z.infer<typeof MappingPointProperty>
 
 export interface MappingRankFeaturePropertyShape {
@@ -8225,7 +8225,7 @@ export const MappingRankFeatureProperty = z.object({
   synthetic_source_keep: MappingSyntheticSourceKeepEnum.optional(),
   positive_score_impact: z.boolean().optional(),
   type: z.literal('rank_feature')
-})
+}).meta({ id: 'MappingRankFeatureProperty' })
 export type MappingRankFeatureProperty = z.infer<typeof MappingRankFeatureProperty>
 
 export interface MappingRankFeaturesPropertyShape {
@@ -8247,7 +8247,7 @@ export const MappingRankFeaturesProperty = z.object({
   synthetic_source_keep: MappingSyntheticSourceKeepEnum.optional(),
   positive_score_impact: z.boolean().optional(),
   type: z.literal('rank_features')
-})
+}).meta({ id: 'MappingRankFeaturesProperty' })
 export type MappingRankFeaturesProperty = z.infer<typeof MappingRankFeaturesProperty>
 
 export interface MappingRankVectorPropertyShape {
@@ -8272,12 +8272,12 @@ export const MappingRankVectorProperty = z.object({
   type: z.literal('rank_vectors'),
   element_type: MappingRankVectorElementType.optional(),
   dims: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'MappingRankVectorProperty' })
 export type MappingRankVectorProperty = z.infer<typeof MappingRankVectorProperty>
 
 export const MappingRoutingField = z.object({
   required: z.boolean()
-})
+}).meta({ id: 'MappingRoutingField' })
 export type MappingRoutingField = z.infer<typeof MappingRoutingField>
 
 export interface MappingScaledFloatNumberPropertyShape {
@@ -8323,7 +8323,7 @@ export const MappingScaledFloatNumberProperty = z.object({
   type: z.literal('scaled_float'),
   null_value: z.lazy(() => double).optional(),
   scaling_factor: z.lazy(() => double).optional()
-})
+}).meta({ id: 'MappingScaledFloatNumberProperty' })
 export type MappingScaledFloatNumberProperty = z.infer<typeof MappingScaledFloatNumberProperty>
 
 export interface MappingSearchAsYouTypePropertyShape {
@@ -8365,7 +8365,7 @@ export const MappingSearchAsYouTypeProperty = z.object({
   similarity: z.union([z.string(), z.null()]).optional(),
   term_vector: MappingTermVectorOption.optional(),
   type: z.literal('search_as_you_type')
-})
+}).meta({ id: 'MappingSearchAsYouTypeProperty' })
 export type MappingSearchAsYouTypeProperty = z.infer<typeof MappingSearchAsYouTypeProperty>
 
 export interface MappingShapePropertyShape {
@@ -8403,7 +8403,7 @@ export const MappingShapeProperty = z.object({
   ignore_z_value: z.boolean().optional(),
   orientation: MappingGeoOrientation.optional(),
   type: z.literal('shape')
-})
+}).meta({ id: 'MappingShapeProperty' })
 export type MappingShapeProperty = z.infer<typeof MappingShapeProperty>
 
 export interface MappingShortNumberPropertyShape {
@@ -8447,15 +8447,15 @@ export const MappingShortNumberProperty = z.object({
   time_series_dimension: z.boolean().describe('For internal use by Elastic only. Marks the field as a time series dimension. Defaults to false.').optional(),
   type: z.literal('short'),
   null_value: short.optional()
-})
+}).meta({ id: 'MappingShortNumberProperty' })
 export type MappingShortNumberProperty = z.infer<typeof MappingShortNumberProperty>
 
 export const MappingSizeField = z.object({
   enabled: z.boolean()
-})
+}).meta({ id: 'MappingSizeField' })
 export type MappingSizeField = z.infer<typeof MappingSizeField>
 
-export const MappingSourceFieldMode = z.enum(['disabled', 'stored', 'synthetic'])
+export const MappingSourceFieldMode = z.enum(['disabled', 'stored', 'synthetic']).meta({ id: 'MappingSourceFieldMode' })
 export type MappingSourceFieldMode = z.infer<typeof MappingSourceFieldMode>
 
 export const MappingSourceField = z.object({
@@ -8465,7 +8465,7 @@ export const MappingSourceField = z.object({
   excludes: z.array(z.string()).optional(),
   includes: z.array(z.string()).optional(),
   mode: MappingSourceFieldMode.optional()
-})
+}).meta({ id: 'MappingSourceField' })
 export type MappingSourceField = z.infer<typeof MappingSourceField>
 
 export interface MappingSparseVectorPropertyShape {
@@ -8489,7 +8489,7 @@ export const MappingSparseVectorProperty = z.object({
   store: z.boolean().optional(),
   type: z.literal('sparse_vector'),
   index_options: MappingSparseVectorIndexOptions.describe('Additional index options for the sparse vector field that controls the token pruning behavior of the sparse vector field.').optional()
-})
+}).meta({ id: 'MappingSparseVectorProperty' })
 export type MappingSparseVectorProperty = z.infer<typeof MappingSparseVectorProperty>
 
 export interface MappingTextPropertyShape {
@@ -8543,7 +8543,7 @@ export const MappingTextProperty = z.object({
   similarity: z.union([z.string(), z.null()]).optional(),
   term_vector: MappingTermVectorOption.optional(),
   type: z.literal('text')
-})
+}).meta({ id: 'MappingTextProperty' })
 export type MappingTextProperty = z.infer<typeof MappingTextProperty>
 
 export interface MappingTokenCountPropertyShape {
@@ -8579,7 +8579,7 @@ export const MappingTokenCountProperty = z.object({
   null_value: z.lazy(() => double).optional(),
   enable_position_increments: z.boolean().optional(),
   type: z.literal('token_count')
-})
+}).meta({ id: 'MappingTokenCountProperty' })
 export type MappingTokenCountProperty = z.infer<typeof MappingTokenCountProperty>
 
 export const MappingTypeMapping = z.object({
@@ -8600,7 +8600,7 @@ export const MappingTypeMapping = z.object({
   enabled: z.boolean().optional(),
   subobjects: MappingSubobjects.optional(),
   _data_stream_timestamp: MappingDataStreamTimestamp.optional()
-})
+}).meta({ id: 'MappingTypeMapping' })
 export type MappingTypeMapping = z.infer<typeof MappingTypeMapping>
 
 export interface MappingUnsignedLongNumberPropertyShape {
@@ -8644,7 +8644,7 @@ export const MappingUnsignedLongNumberProperty = z.object({
   time_series_dimension: z.boolean().describe('For internal use by Elastic only. Marks the field as a time series dimension. Defaults to false.').optional(),
   type: z.literal('unsigned_long'),
   null_value: z.lazy(() => ulong).optional()
-})
+}).meta({ id: 'MappingUnsignedLongNumberProperty' })
 export type MappingUnsignedLongNumberProperty = z.infer<typeof MappingUnsignedLongNumberProperty>
 
 export interface MappingVersionPropertyShape {
@@ -8670,7 +8670,7 @@ export const MappingVersionProperty = z.object({
   store: z.boolean().optional(),
   doc_values: z.boolean().optional(),
   type: z.literal('version')
-})
+}).meta({ id: 'MappingVersionProperty' })
 export type MappingVersionProperty = z.infer<typeof MappingVersionProperty>
 
 export interface MappingWildcardPropertyShape {
@@ -8698,7 +8698,7 @@ export const MappingWildcardProperty = z.object({
   doc_values: z.boolean().optional(),
   type: z.literal('wildcard'),
   null_value: z.string().optional()
-})
+}).meta({ id: 'MappingWildcardProperty' })
 export type MappingWildcardProperty = z.infer<typeof MappingWildcardProperty>
 
 export const QueryDslDecayPlacement = z.object({
@@ -8706,7 +8706,7 @@ export const QueryDslDecayPlacement = z.object({
   offset: z.any().describe('If defined, the decay function will only compute the decay function for documents with a distance greater than the defined `offset`.').optional(),
   scale: z.any().describe('Defines the distance from origin + offset at which the computed score will equal `decay` parameter.').optional(),
   origin: z.any().describe('The point of origin used for calculating distance. Must be given as a number for numeric field, date for date fields and geo point for geo fields.').optional()
-})
+}).meta({ id: 'QueryDslDecayPlacement' })
 export type QueryDslDecayPlacement = z.infer<typeof QueryDslDecayPlacement>
 
 export const QueryDslFieldLookup = z.object({
@@ -8714,29 +8714,29 @@ export const QueryDslFieldLookup = z.object({
   index: z.lazy(() => IndexName).describe('Index from which to retrieve the document.').optional(),
   path: z.lazy(() => Field).describe('Name of the field.').optional(),
   routing: z.string().describe('Custom routing value.').optional()
-})
+}).meta({ id: 'QueryDslFieldLookup' })
 export type QueryDslFieldLookup = z.infer<typeof QueryDslFieldLookup>
 
 export const QueryDslGeoPolygonPoints = z.object({
   points: z.array(z.lazy(() => GeoLocation))
-})
+}).meta({ id: 'QueryDslGeoPolygonPoints' })
 export type QueryDslGeoPolygonPoints = z.infer<typeof QueryDslGeoPolygonPoints>
 
 export const QueryDslGeoShapeFieldQuery = z.object({
   shape: GeoShape.optional(),
   indexed_shape: QueryDslFieldLookup.describe('Query using an indexed shape retrieved from the the specified document and path.').optional(),
   relation: GeoShapeRelation.describe('Spatial relation operator used to search a geo field.').optional()
-})
+}).meta({ id: 'QueryDslGeoShapeFieldQuery' })
 export type QueryDslGeoShapeFieldQuery = z.infer<typeof QueryDslGeoShapeFieldQuery>
 
 export const QueryDslShapeFieldQuery = z.object({
   indexed_shape: QueryDslFieldLookup.describe('Queries using a pre-indexed shape.').optional(),
   relation: GeoShapeRelation.describe('Spatial relation between the query shape and the document shape.').optional(),
   shape: GeoShape.describe('Queries using an inline shape definition in GeoJSON or Well Known Text (WKT) format.').optional()
-})
+}).meta({ id: 'QueryDslShapeFieldQuery' })
 export type QueryDslShapeFieldQuery = z.infer<typeof QueryDslShapeFieldQuery>
 
-export const QueryDslSimpleQueryStringFlag = z.enum(['NONE', 'AND', 'NOT', 'OR', 'PREFIX', 'PHRASE', 'PRECEDENCE', 'ESCAPE', 'WHITESPACE', 'FUZZY', 'NEAR', 'SLOP', 'ALL'])
+export const QueryDslSimpleQueryStringFlag = z.enum(['NONE', 'AND', 'NOT', 'OR', 'PREFIX', 'PHRASE', 'PRECEDENCE', 'ESCAPE', 'WHITESPACE', 'FUZZY', 'NEAR', 'SLOP', 'ALL']).meta({ id: 'QueryDslSimpleQueryStringFlag' })
 export type QueryDslSimpleQueryStringFlag = z.infer<typeof QueryDslSimpleQueryStringFlag>
 
 export const QueryDslTermsLookup = z.object({
@@ -8744,8 +8744,8 @@ export const QueryDslTermsLookup = z.object({
   id: z.lazy(() => Id),
   path: z.lazy(() => Field),
   routing: z.string().optional()
-})
+}).meta({ id: 'QueryDslTermsLookup' })
 export type QueryDslTermsLookup = z.infer<typeof QueryDslTermsLookup>
 
-export const QueryDslTermsQueryField = z.union([z.array(z.lazy(() => FieldValue)), QueryDslTermsLookup])
+export const QueryDslTermsQueryField = z.union([z.array(z.lazy(() => FieldValue)), QueryDslTermsLookup]).meta({ id: 'QueryDslTermsQueryField' })
 export type QueryDslTermsQueryField = z.infer<typeof QueryDslTermsQueryField>

@@ -3,11 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
-import { SpecUtilsStringified } from './_spec_utils.ts'
 import { ByteSize, CommonStatsFlags, DateTime, Duration, DurationValue, EpochTime, ErrorCause, Field, Fields, Host, Id, Ip, Name, NodeIds, NodeRoles, NodeStatistics, NodeStatsLevel, Password, PluginStats, ThreadType, TransportAddress, VersionNumber, VersionString, double, float, integer, long } from './_types.ts'
 import { IndicesIndexRouting, IndicesStatsShardStats } from './indices.ts'
 
@@ -23,28 +22,28 @@ export const NodesClient = z.object({
   request_count: z.lazy(() => long).describe('Number of requests from this client.').optional(),
   request_size_bytes: z.lazy(() => long).describe('Cumulative size in bytes of all requests from this client.').optional(),
   x_opaque_id: z.string().describe('Value from the client’s `x-opaque-id` HTTP header. If unavailable, this property is not included in the response.').optional()
-})
+}).meta({ id: 'NodesClient' })
 export type NodesClient = z.infer<typeof NodesClient>
 
 export const NodesSizeHttpHistogram = z.object({
   count: z.lazy(() => long),
   ge_bytes: z.lazy(() => long).optional(),
   lt_bytes: z.lazy(() => long).optional()
-})
+}).meta({ id: 'NodesSizeHttpHistogram' })
 export type NodesSizeHttpHistogram = z.infer<typeof NodesSizeHttpHistogram>
 
 export const NodesHttpRouteRequests = z.object({
   count: z.lazy(() => long),
   total_size_in_bytes: z.lazy(() => long),
   size_histogram: z.array(NodesSizeHttpHistogram)
-})
+}).meta({ id: 'NodesHttpRouteRequests' })
 export type NodesHttpRouteRequests = z.infer<typeof NodesHttpRouteRequests>
 
 export const NodesTimeHttpHistogram = z.object({
   count: z.lazy(() => long),
   ge_millis: z.lazy(() => long).optional(),
   lt_millis: z.lazy(() => long).optional()
-})
+}).meta({ id: 'NodesTimeHttpHistogram' })
 export type NodesTimeHttpHistogram = z.infer<typeof NodesTimeHttpHistogram>
 
 export const NodesHttpRouteResponses = z.object({
@@ -52,20 +51,20 @@ export const NodesHttpRouteResponses = z.object({
   total_size_in_bytes: z.lazy(() => long),
   handling_time_histogram: z.array(NodesTimeHttpHistogram),
   size_histogram: z.array(NodesSizeHttpHistogram)
-})
+}).meta({ id: 'NodesHttpRouteResponses' })
 export type NodesHttpRouteResponses = z.infer<typeof NodesHttpRouteResponses>
 
 export const NodesHttpRoute = z.object({
   requests: NodesHttpRouteRequests,
   responses: NodesHttpRouteResponses
-})
+}).meta({ id: 'NodesHttpRoute' })
 export type NodesHttpRoute = z.infer<typeof NodesHttpRoute>
 
 export const NodesHttp = z.object({
   current_open: z.lazy(() => integer).describe('Current number of open HTTP connections for the node.').optional(),
   total_opened: z.lazy(() => long).describe('Total number of HTTP connections opened for the node.').optional(),
   clients: z.array(NodesClient).describe('Information on current and recently-closed HTTP client connections. Clients that have been closed longer than the `http.client_stats.closed_channels.max_age` setting will not be represented here.').optional()
-})
+}).meta({ id: 'NodesHttp' })
 export type NodesHttp = z.infer<typeof NodesHttp>
 
 export const NodesProcessor = z.object({
@@ -73,13 +72,13 @@ export const NodesProcessor = z.object({
   current: z.lazy(() => long).describe('Number of documents currently being transformed by the processor.').optional(),
   failed: z.lazy(() => long).describe('Number of failed operations for the processor.').optional(),
   time_in_millis: z.lazy(() => DurationValue).describe('Time, in milliseconds, spent by the processor transforming documents.').optional()
-})
+}).meta({ id: 'NodesProcessor' })
 export type NodesProcessor = z.infer<typeof NodesProcessor>
 
 export const NodesKeyedProcessor = z.object({
   stats: NodesProcessor.optional(),
   type: z.string().optional()
-})
+}).meta({ id: 'NodesKeyedProcessor' })
 export type NodesKeyedProcessor = z.infer<typeof NodesKeyedProcessor>
 
 export const NodesIngestStats = z.object({
@@ -90,7 +89,7 @@ export const NodesIngestStats = z.object({
   time_in_millis: z.lazy(() => DurationValue).describe('Total time, in milliseconds, spent preprocessing ingest documents during the lifetime of this node.'),
   ingested_as_first_pipeline_in_bytes: z.lazy(() => long).describe('Total number of bytes of all documents ingested by the pipeline. This field is only present on pipelines which are the first to process a document. Thus, it is not present on pipelines which only serve as a final pipeline after a default pipeline, a pipeline run after a reroute processor, or pipelines in pipeline processors.'),
   produced_as_first_pipeline_in_bytes: z.lazy(() => long).describe('Total number of bytes of all documents produced by the pipeline. This field is only present on pipelines which are the first to process a document. Thus, it is not present on pipelines which only serve as a final pipeline after a default pipeline, a pipeline run after a reroute processor, or pipelines in pipeline processors. In situations where there are subsequent pipelines, the value represents the size of the document after all pipelines have run.')
-})
+}).meta({ id: 'NodesIngestStats' })
 export type NodesIngestStats = z.infer<typeof NodesIngestStats>
 
 export const NodesIngestTotal = z.object({
@@ -98,13 +97,13 @@ export const NodesIngestTotal = z.object({
   current: z.lazy(() => long).describe('Total number of documents currently being ingested.'),
   failed: z.lazy(() => long).describe('Total number of failed ingest operations during the lifetime of this node.'),
   time_in_millis: z.lazy(() => DurationValue).describe('Total time, in milliseconds, spent preprocessing ingest documents during the lifetime of this node.')
-})
+}).meta({ id: 'NodesIngestTotal' })
 export type NodesIngestTotal = z.infer<typeof NodesIngestTotal>
 
 export const NodesIngest = z.object({
   pipelines: z.record(z.string(), NodesIngestStats).describe('Contains statistics about ingest pipelines for the node.').optional(),
   total: NodesIngestTotal.describe('Contains statistics about ingest operations for the node.').optional()
-})
+}).meta({ id: 'NodesIngest' })
 export type NodesIngest = z.infer<typeof NodesIngest>
 
 export const NodesThreadCount = z.object({
@@ -114,7 +113,7 @@ export const NodesThreadCount = z.object({
   queue: z.lazy(() => long).describe('Number of tasks in queue for the thread pool.').optional(),
   rejected: z.lazy(() => long).describe('Number of tasks rejected by the thread pool executor.').optional(),
   threads: z.lazy(() => long).describe('Number of threads in the thread pool.').optional()
-})
+}).meta({ id: 'NodesThreadCount' })
 export type NodesThreadCount = z.infer<typeof NodesThreadCount>
 
 export const NodesContext = z.object({
@@ -122,7 +121,7 @@ export const NodesContext = z.object({
   compilations: z.lazy(() => long).optional(),
   cache_evictions: z.lazy(() => long).optional(),
   compilation_limit_triggered: z.lazy(() => long).optional()
-})
+}).meta({ id: 'NodesContext' })
 export type NodesContext = z.infer<typeof NodesContext>
 
 export const NodesScripting = z.object({
@@ -131,7 +130,7 @@ export const NodesScripting = z.object({
   compilations_history: z.record(z.string(), z.lazy(() => long)).describe('Contains this recent history of script compilations.').optional(),
   compilation_limit_triggered: z.lazy(() => long).describe('Total number of times the script compilation circuit breaker has limited inline script compilations.').optional(),
   contexts: z.array(NodesContext).optional()
-})
+}).meta({ id: 'NodesScripting' })
 export type NodesScripting = z.infer<typeof NodesScripting>
 
 export const NodesPressureMemory = z.object({
@@ -150,7 +149,7 @@ export const NodesPressureMemory = z.object({
   replica_rejections: z.lazy(() => long).describe('Number of indexing requests rejected in the replica stage.').optional(),
   primary_document_rejections: z.lazy(() => long).optional(),
   large_operation_rejections: z.lazy(() => long).optional()
-})
+}).meta({ id: 'NodesPressureMemory' })
 export type NodesPressureMemory = z.infer<typeof NodesPressureMemory>
 
 export const NodesIndexingPressureMemory = z.object({
@@ -158,12 +157,12 @@ export const NodesIndexingPressureMemory = z.object({
   limit_in_bytes: z.lazy(() => long).describe('Configured memory limit, in bytes, for the indexing requests. Replica requests have an automatic limit that is 1.5x this value.').optional(),
   current: NodesPressureMemory.describe('Contains statistics for current indexing load.').optional(),
   total: NodesPressureMemory.describe('Contains statistics for the cumulative indexing load since the node started.').optional()
-})
+}).meta({ id: 'NodesIndexingPressureMemory' })
 export type NodesIndexingPressureMemory = z.infer<typeof NodesIndexingPressureMemory>
 
 export const NodesNodesResponseBase = z.object({
   node_stats: z.lazy(() => NodeStatistics).describe('Contains statistics about the number of nodes selected by the request’s node filters.').optional()
-})
+}).meta({ id: 'NodesNodesResponseBase' })
 export type NodesNodesResponseBase = z.infer<typeof NodesNodesResponseBase>
 
 export const NodesAdaptiveSelection = z.object({
@@ -174,7 +173,7 @@ export const NodesAdaptiveSelection = z.object({
   avg_service_time_ns: z.lazy(() => long).describe('The exponentially weighted moving average service time, in nanoseconds, of search requests on the keyed node.').optional(),
   outgoing_searches: z.lazy(() => long).describe('The number of outstanding search requests to the keyed node from the node these stats are for.').optional(),
   rank: z.string().describe('The rank of this node; used for shard selection when routing search requests.').optional()
-})
+}).meta({ id: 'NodesAdaptiveSelection' })
 export type NodesAdaptiveSelection = z.infer<typeof NodesAdaptiveSelection>
 
 export const NodesBreaker = z.object({
@@ -184,20 +183,20 @@ export const NodesBreaker = z.object({
   limit_size_in_bytes: z.lazy(() => long).describe('Memory limit, in bytes, for the circuit breaker.').optional(),
   overhead: z.lazy(() => float).describe('A constant that all estimates for the circuit breaker are multiplied with to calculate a final estimate.').optional(),
   tripped: z.lazy(() => float).describe('Total number of times the circuit breaker has been triggered and prevented an out of memory error.').optional()
-})
+}).meta({ id: 'NodesBreaker' })
 export type NodesBreaker = z.infer<typeof NodesBreaker>
 
 export const NodesCpuAcct = z.object({
   control_group: z.string().describe('The `cpuacct` control group to which the Elasticsearch process belongs.').optional(),
   usage_nanos: z.lazy(() => DurationValue).describe('The total CPU time, in nanoseconds, consumed by all tasks in the same cgroup as the Elasticsearch process.').optional()
-})
+}).meta({ id: 'NodesCpuAcct' })
 export type NodesCpuAcct = z.infer<typeof NodesCpuAcct>
 
 export const NodesCgroupCpuStat = z.object({
   number_of_elapsed_periods: z.lazy(() => long).describe('The number of reporting periods (as specified by `cfs_period_micros`) that have elapsed.').optional(),
   number_of_times_throttled: z.lazy(() => long).describe('The number of times all tasks in the same cgroup as the Elasticsearch process have been throttled.').optional(),
   time_throttled_nanos: z.lazy(() => DurationValue).describe('The total amount of time, in nanoseconds, for which all tasks in the same cgroup as the Elasticsearch process have been throttled.').optional()
-})
+}).meta({ id: 'NodesCgroupCpuStat' })
 export type NodesCgroupCpuStat = z.infer<typeof NodesCgroupCpuStat>
 
 export const NodesCgroupCpu = z.object({
@@ -205,21 +204,21 @@ export const NodesCgroupCpu = z.object({
   cfs_period_micros: z.lazy(() => integer).describe('The period of time, in microseconds, for how regularly all tasks in the same cgroup as the Elasticsearch process should have their access to CPU resources reallocated.').optional(),
   cfs_quota_micros: z.lazy(() => integer).describe('The total amount of time, in microseconds, for which all tasks in the same cgroup as the Elasticsearch process can run during one period `cfs_period_micros`.').optional(),
   stat: NodesCgroupCpuStat.describe('Contains CPU statistics for the node.').optional()
-})
+}).meta({ id: 'NodesCgroupCpu' })
 export type NodesCgroupCpu = z.infer<typeof NodesCgroupCpu>
 
 export const NodesCgroupMemory = z.object({
   control_group: z.string().describe('The `memory` control group to which the Elasticsearch process belongs.').optional(),
   limit_in_bytes: z.string().describe('The maximum amount of user memory (including file cache) allowed for all tasks in the same cgroup as the Elasticsearch process. This value can be too big to store in a `long`, so is returned as a string so that the value returned can exactly match what the underlying operating system interface returns. Any value that is too large to parse into a `long` almost certainly means no limit has been set for the cgroup.').optional(),
   usage_in_bytes: z.string().describe('The total current memory usage by processes in the cgroup, in bytes, by all tasks in the same cgroup as the Elasticsearch process. This value is stored as a string for consistency with `limit_in_bytes`.').optional()
-})
+}).meta({ id: 'NodesCgroupMemory' })
 export type NodesCgroupMemory = z.infer<typeof NodesCgroupMemory>
 
 export const NodesCgroup = z.object({
   cpuacct: NodesCpuAcct.describe('Contains statistics about `cpuacct` control group for the node.').optional(),
   cpu: NodesCgroupCpu.describe('Contains statistics about `cpu` control group for the node.').optional(),
   memory: NodesCgroupMemory.describe('Contains statistics about the memory control group for the node.').optional()
-})
+}).meta({ id: 'NodesCgroup' })
 export type NodesCgroup = z.infer<typeof NodesCgroup>
 
 export const NodesRecording = z.object({
@@ -227,19 +226,19 @@ export const NodesRecording = z.object({
   cumulative_execution_count: z.lazy(() => long).optional(),
   cumulative_execution_time: z.lazy(() => Duration).optional(),
   cumulative_execution_time_millis: z.lazy(() => DurationValue).optional()
-})
+}).meta({ id: 'NodesRecording' })
 export type NodesRecording = z.infer<typeof NodesRecording>
 
 export const NodesClusterAppliedStats = z.object({
   recordings: z.array(NodesRecording).optional()
-})
+}).meta({ id: 'NodesClusterAppliedStats' })
 export type NodesClusterAppliedStats = z.infer<typeof NodesClusterAppliedStats>
 
 export const NodesClusterStateQueue = z.object({
   total: z.lazy(() => long).describe('Total number of cluster states in queue.').optional(),
   pending: z.lazy(() => long).describe('Number of pending cluster states in queue.').optional(),
   committed: z.lazy(() => long).describe('Number of committed cluster states in queue.').optional()
-})
+}).meta({ id: 'NodesClusterStateQueue' })
 export type NodesClusterStateQueue = z.infer<typeof NodesClusterStateQueue>
 
 export const NodesClusterStateUpdate = z.object({
@@ -258,7 +257,7 @@ export const NodesClusterStateUpdate = z.object({
   master_apply_time_millis: z.lazy(() => DurationValue).describe('The cumulative amount of time, in milliseconds, spent successfully applying cluster state updates on the elected master since the node started.').optional(),
   notification_time: z.lazy(() => Duration).describe('The cumulative amount of time spent notifying listeners of a no-op cluster state update since the node started.').optional(),
   notification_time_millis: z.lazy(() => DurationValue).describe('The cumulative amount of time, in milliseconds, spent notifying listeners of a no-op cluster state update since the node started.').optional()
-})
+}).meta({ id: 'NodesClusterStateUpdate' })
 export type NodesClusterStateUpdate = z.infer<typeof NodesClusterStateUpdate>
 
 export const NodesCpu = z.object({
@@ -270,7 +269,7 @@ export const NodesCpu = z.object({
   user: z.lazy(() => Duration).optional(),
   user_in_millis: z.lazy(() => DurationValue).optional(),
   load_average: z.record(z.string(), z.lazy(() => double)).optional()
-})
+}).meta({ id: 'NodesCpu' })
 export type NodesCpu = z.infer<typeof NodesCpu>
 
 export const NodesDataPathStats = z.object({
@@ -290,14 +289,14 @@ export const NodesDataPathStats = z.object({
   total: z.string().describe('Total size of the file store.').optional(),
   total_in_bytes: z.lazy(() => long).describe('Total size of the file store in bytes.').optional(),
   type: z.string().describe('Type of the file store (ex: ext4).').optional()
-})
+}).meta({ id: 'NodesDataPathStats' })
 export type NodesDataPathStats = z.infer<typeof NodesDataPathStats>
 
 export const NodesPublishedClusterStates = z.object({
   full_states: z.lazy(() => long).describe('Number of published cluster states.').optional(),
   incompatible_diffs: z.lazy(() => long).describe('Number of incompatible differences between published cluster states.').optional(),
   compatible_diffs: z.lazy(() => long).describe('Number of compatible differences between published cluster states.').optional()
-})
+}).meta({ id: 'NodesPublishedClusterStates' })
 export type NodesPublishedClusterStates = z.infer<typeof NodesPublishedClusterStates>
 
 export const NodesSerializedClusterStateDetail = z.object({
@@ -306,13 +305,13 @@ export const NodesSerializedClusterStateDetail = z.object({
   uncompressed_size_in_bytes: z.lazy(() => long).optional(),
   compressed_size: z.string().optional(),
   compressed_size_in_bytes: z.lazy(() => long).optional()
-})
+}).meta({ id: 'NodesSerializedClusterStateDetail' })
 export type NodesSerializedClusterStateDetail = z.infer<typeof NodesSerializedClusterStateDetail>
 
 export const NodesSerializedClusterState = z.object({
   full_states: NodesSerializedClusterStateDetail.describe('Number of published cluster states.').optional(),
   diffs: NodesSerializedClusterStateDetail.optional()
-})
+}).meta({ id: 'NodesSerializedClusterState' })
 export type NodesSerializedClusterState = z.infer<typeof NodesSerializedClusterState>
 
 export const NodesDiscovery = z.object({
@@ -321,7 +320,7 @@ export const NodesDiscovery = z.object({
   cluster_state_update: z.record(z.string(), NodesClusterStateUpdate).describe('Contains low-level statistics about how long various activities took during cluster state updates while the node was the elected master. Omitted if the node is not master-eligible. Every field whose name ends in `_time` within this object is also represented as a raw number of milliseconds in a field whose name ends in `_time_millis`. The human-readable fields with a `_time` suffix are only returned if requested with the `?human=true` query parameter.').optional(),
   serialized_cluster_states: NodesSerializedClusterState.optional(),
   cluster_applier_stats: NodesClusterAppliedStats.optional()
-})
+}).meta({ id: 'NodesDiscovery' })
 export type NodesDiscovery = z.infer<typeof NodesDiscovery>
 
 export const NodesMemoryStats = z.object({
@@ -335,14 +334,14 @@ export const NodesMemoryStats = z.object({
   total_in_bytes: z.lazy(() => long).describe('Total amount of physical memory in bytes.').optional(),
   free_in_bytes: z.lazy(() => long).describe('Amount of free physical memory in bytes.').optional(),
   used_in_bytes: z.lazy(() => long).describe('Amount of used physical memory in bytes.').optional()
-})
+}).meta({ id: 'NodesMemoryStats' })
 export type NodesMemoryStats = z.infer<typeof NodesMemoryStats>
 
 export const NodesExtendedMemoryStats = z.object({
   ...NodesMemoryStats.shape,
   free_percent: z.lazy(() => integer).describe('Percentage of free memory.').optional(),
   used_percent: z.lazy(() => integer).describe('Percentage of used memory.').optional()
-})
+}).meta({ id: 'NodesExtendedMemoryStats' })
 export type NodesExtendedMemoryStats = z.infer<typeof NodesExtendedMemoryStats>
 
 export const NodesFileSystemTotal = z.object({
@@ -352,7 +351,7 @@ export const NodesFileSystemTotal = z.object({
   free_in_bytes: z.lazy(() => long).describe('Total number of unallocated bytes in all file stores.').optional(),
   total: z.string().describe('Total size of all file stores.').optional(),
   total_in_bytes: z.lazy(() => long).describe('Total size of all file stores in bytes.').optional()
-})
+}).meta({ id: 'NodesFileSystemTotal' })
 export type NodesFileSystemTotal = z.infer<typeof NodesFileSystemTotal>
 
 export const NodesIoStatDevice = z.object({
@@ -362,13 +361,13 @@ export const NodesIoStatDevice = z.object({
   read_operations: z.lazy(() => long).describe('The total number of read operations for the device completed since starting Elasticsearch.').optional(),
   write_kilobytes: z.lazy(() => long).describe('The total number of kilobytes written for the device since starting Elasticsearch.').optional(),
   write_operations: z.lazy(() => long).describe('The total number of write operations for the device completed since starting Elasticsearch.').optional()
-})
+}).meta({ id: 'NodesIoStatDevice' })
 export type NodesIoStatDevice = z.infer<typeof NodesIoStatDevice>
 
 export const NodesIoStats = z.object({
   devices: z.array(NodesIoStatDevice).describe('Array of disk metrics for each device that is backing an Elasticsearch data path. These disk metrics are probed periodically and averages between the last probe and the current probe are computed.').optional(),
   total: NodesIoStatDevice.describe('The sum of the disk metrics for all devices that back an Elasticsearch data path.').optional()
-})
+}).meta({ id: 'NodesIoStats' })
 export type NodesIoStats = z.infer<typeof NodesIoStats>
 
 export const NodesFileSystem = z.object({
@@ -376,24 +375,24 @@ export const NodesFileSystem = z.object({
   timestamp: z.lazy(() => long).describe('Last time the file stores statistics were refreshed. Recorded in milliseconds since the Unix Epoch.').optional(),
   total: NodesFileSystemTotal.describe('Contains statistics for all file stores of the node.').optional(),
   io_stats: NodesIoStats.describe('Contains I/O statistics for the node.').optional()
-})
+}).meta({ id: 'NodesFileSystem' })
 export type NodesFileSystem = z.infer<typeof NodesFileSystem>
 
 export const NodesGarbageCollectorTotal = z.object({
   collection_count: z.lazy(() => long).describe('Total number of JVM garbage collectors that collect objects.').optional(),
   collection_time: z.string().describe('Total time spent by JVM collecting objects.').optional(),
   collection_time_in_millis: z.lazy(() => long).describe('Total time, in milliseconds, spent by JVM collecting objects.').optional()
-})
+}).meta({ id: 'NodesGarbageCollectorTotal' })
 export type NodesGarbageCollectorTotal = z.infer<typeof NodesGarbageCollectorTotal>
 
 export const NodesGarbageCollector = z.object({
   collectors: z.record(z.string(), NodesGarbageCollectorTotal).describe('Contains statistics about JVM garbage collectors for the node.').optional()
-})
+}).meta({ id: 'NodesGarbageCollector' })
 export type NodesGarbageCollector = z.infer<typeof NodesGarbageCollector>
 
 export const NodesIndexingPressure = z.object({
   memory: z.lazy(() => NodesIndexingPressureMemory).describe('Contains statistics for memory consumption from indexing load.').optional()
-})
+}).meta({ id: 'NodesIndexingPressure' })
 export type NodesIndexingPressure = z.infer<typeof NodesIndexingPressure>
 
 export const NodesNodeBufferPool = z.object({
@@ -402,14 +401,14 @@ export const NodesNodeBufferPool = z.object({
   total_capacity_in_bytes: z.lazy(() => long).describe('Total capacity of buffer pools in bytes.').optional(),
   used: z.string().describe('Size of buffer pools.').optional(),
   used_in_bytes: z.lazy(() => long).describe('Size of buffer pools in bytes.').optional()
-})
+}).meta({ id: 'NodesNodeBufferPool' })
 export type NodesNodeBufferPool = z.infer<typeof NodesNodeBufferPool>
 
 export const NodesJvmClasses = z.object({
   current_loaded_count: z.lazy(() => long).describe('Number of classes currently loaded by JVM.').optional(),
   total_loaded_count: z.lazy(() => long).describe('Total number of classes loaded since the JVM started.').optional(),
   total_unloaded_count: z.lazy(() => long).describe('Total number of classes unloaded since the JVM started.').optional()
-})
+}).meta({ id: 'NodesJvmClasses' })
 export type NodesJvmClasses = z.infer<typeof NodesJvmClasses>
 
 export const NodesPool = z.object({
@@ -417,7 +416,7 @@ export const NodesPool = z.object({
   max_in_bytes: z.lazy(() => long).describe('Maximum amount of memory, in bytes, available for use by the heap.').optional(),
   peak_used_in_bytes: z.lazy(() => long).describe('Largest amount of memory, in bytes, historically used by the heap.').optional(),
   peak_max_in_bytes: z.lazy(() => long).describe('Largest amount of memory, in bytes, historically used by the heap.').optional()
-})
+}).meta({ id: 'NodesPool' })
 export type NodesPool = z.infer<typeof NodesPool>
 
 export const NodesJvmMemoryStats = z.object({
@@ -429,13 +428,13 @@ export const NodesJvmMemoryStats = z.object({
   non_heap_used_in_bytes: z.lazy(() => long).describe('Non-heap memory used, in bytes.').optional(),
   non_heap_committed_in_bytes: z.lazy(() => long).describe('Amount of non-heap memory available, in bytes.').optional(),
   pools: z.record(z.string(), NodesPool).describe('Contains statistics about heap memory usage for the node.').optional()
-})
+}).meta({ id: 'NodesJvmMemoryStats' })
 export type NodesJvmMemoryStats = z.infer<typeof NodesJvmMemoryStats>
 
 export const NodesJvmThreads = z.object({
   count: z.lazy(() => long).describe('Number of active threads in use by JVM.').optional(),
   peak_count: z.lazy(() => long).describe('Highest number of threads used by JVM.').optional()
-})
+}).meta({ id: 'NodesJvmThreads' })
 export type NodesJvmThreads = z.infer<typeof NodesJvmThreads>
 
 export const NodesJvm = z.object({
@@ -447,7 +446,7 @@ export const NodesJvm = z.object({
   timestamp: z.lazy(() => long).describe('Last time JVM statistics were refreshed.').optional(),
   uptime: z.string().describe('Human-readable JVM uptime. Only returned if the `human` query parameter is `true`.').optional(),
   uptime_in_millis: z.lazy(() => long).describe('JVM uptime in milliseconds.').optional()
-})
+}).meta({ id: 'NodesJvm' })
 export type NodesJvm = z.infer<typeof NodesJvm>
 
 export const NodesNodeReloadResult = z.object({
@@ -457,7 +456,7 @@ export const NodesNodeReloadResult = z.object({
   keystore_path: z.string().describe('The path to the keystore file.').optional(),
   keystore_digest: z.string().describe('A SHA-256 hash of the keystore file contents.').optional(),
   keystore_last_modified_time: z.lazy(() => DateTime).describe('The last modification time of the keystore file.').optional()
-})
+}).meta({ id: 'NodesNodeReloadResult' })
 export type NodesNodeReloadResult = z.infer<typeof NodesNodeReloadResult>
 
 export const NodesOperatingSystem = z.object({
@@ -466,7 +465,7 @@ export const NodesOperatingSystem = z.object({
   swap: NodesMemoryStats.optional(),
   cgroup: NodesCgroup.optional(),
   timestamp: z.lazy(() => long).optional()
-})
+}).meta({ id: 'NodesOperatingSystem' })
 export type NodesOperatingSystem = z.infer<typeof NodesOperatingSystem>
 
 export const NodesProcess = z.object({
@@ -475,14 +474,14 @@ export const NodesProcess = z.object({
   open_file_descriptors: z.lazy(() => integer).describe('Number of opened file descriptors associated with the current or `-1` if not supported.').optional(),
   max_file_descriptors: z.lazy(() => integer).describe('Maximum number of file descriptors allowed on the system, or `-1` if not supported.').optional(),
   timestamp: z.lazy(() => long).describe('Last time the statistics were refreshed. Recorded in milliseconds since the Unix Epoch.').optional()
-})
+}).meta({ id: 'NodesProcess' })
 export type NodesProcess = z.infer<typeof NodesProcess>
 
 export const NodesRepositoryLocation = z.object({
   base_path: z.string(),
   container: z.string().describe('Container name (Azure)').optional(),
   bucket: z.string().describe('Bucket name (GCP, S3)').optional()
-})
+}).meta({ id: 'NodesRepositoryLocation' })
 export type NodesRepositoryLocation = z.infer<typeof NodesRepositoryLocation>
 
 export const NodesRequestCounts = z.object({
@@ -497,7 +496,7 @@ export const NodesRequestCounts = z.object({
   InsertObject: z.lazy(() => long).describe('Number of insert object requests, including simple, multipart and resumable uploads. Resumable uploads can perform multiple http requests to insert a single object but they are considered as a single request since they are billed as an individual operation. (GCP)').optional(),
   PutObject: z.lazy(() => long).describe('Number of PutObject requests (S3)').optional(),
   PutMultipartObject: z.lazy(() => long).describe('Number of Multipart requests, including CreateMultipartUpload, UploadPart and CompleteMultipartUpload requests (S3)').optional()
-})
+}).meta({ id: 'NodesRequestCounts' })
 export type NodesRequestCounts = z.infer<typeof NodesRequestCounts>
 
 export const NodesRepositoryMeteringInformation = z.object({
@@ -510,7 +509,7 @@ export const NodesRepositoryMeteringInformation = z.object({
   archived: z.boolean().describe('A flag that tells whether or not this object has been archived. When a repository is closed or updated the repository metering information is archived and kept for a certain period of time. This allows retrieving the repository metering information of previous repository instantiations.'),
   cluster_version: z.lazy(() => VersionNumber).describe('The cluster state version when this object was archived, this field can be used as a logical timestamp to delete all the archived metrics up to an observed version. This field is only present for archived repository metering information objects. The main purpose of this field is to avoid possible race conditions during repository metering information deletions, i.e. deleting archived repositories metering information that we haven’t observed yet.').optional(),
   request_counts: NodesRequestCounts.describe('An object with the number of request performed against the repository grouped by request type.')
-})
+}).meta({ id: 'NodesRepositoryMeteringInformation' })
 export type NodesRepositoryMeteringInformation = z.infer<typeof NodesRepositoryMeteringInformation>
 
 export const NodesScriptCache = z.object({
@@ -518,14 +517,14 @@ export const NodesScriptCache = z.object({
   compilation_limit_triggered: z.lazy(() => long).describe('Total number of times the script compilation circuit breaker has limited inline script compilations.').optional(),
   compilations: z.lazy(() => long).describe('Total number of inline script compilations performed by the node.').optional(),
   context: z.string().optional()
-})
+}).meta({ id: 'NodesScriptCache' })
 export type NodesScriptCache = z.infer<typeof NodesScriptCache>
 
 export const NodesTransportHistogram = z.object({
   count: z.lazy(() => long).describe('The number of times a transport thread took a period of time within the bounds of this bucket to handle an inbound message.').optional(),
   lt_millis: z.lazy(() => long).describe('The exclusive upper bound of the bucket in milliseconds. May be omitted on the last bucket if this bucket has no upper bound.').optional(),
   ge_millis: z.lazy(() => long).describe('The inclusive lower bound of the bucket in milliseconds. May be omitted on the first bucket if this bucket has no lower bound.').optional()
-})
+}).meta({ id: 'NodesTransportHistogram' })
 export type NodesTransportHistogram = z.infer<typeof NodesTransportHistogram>
 
 export const NodesTransport = z.object({
@@ -539,7 +538,7 @@ export const NodesTransport = z.object({
   tx_size: z.string().describe('Size of TX packets sent by the node during internal cluster communication.').optional(),
   tx_size_in_bytes: z.lazy(() => long).describe('Size, in bytes, of TX packets sent by the node during internal cluster communication.').optional(),
   total_outbound_connections: z.lazy(() => long).describe('The cumulative number of outbound transport connections that this node has opened since it started. Each transport connection may comprise multiple TCP connections but is only counted once in this statistic. Transport connections are typically long-lived so this statistic should remain constant in a stable cluster.').optional()
-})
+}).meta({ id: 'NodesTransport' })
 export type NodesTransport = z.infer<typeof NodesTransport>
 
 export const NodesStats = z.object({
@@ -565,7 +564,7 @@ export const NodesStats = z.object({
   discovery: NodesDiscovery.describe('Contains node discovery statistics for the node.').optional(),
   indexing_pressure: NodesIndexingPressure.describe('Contains indexing pressure statistics for the node.').optional(),
   indices: z.lazy(() => IndicesStatsShardStats).describe('Indices stats about size, document count, indexing and deletion times, search times, field cache size, merges and flushes.').optional()
-})
+}).meta({ id: 'NodesStats' })
 export type NodesStats = z.infer<typeof NodesStats>
 
 /**
@@ -576,17 +575,17 @@ export type NodesStats = z.infer<typeof NodesStats>
 export const NodesClearRepositoriesMeteringArchiveRequest = z.object({
   node_id: z.lazy(() => NodeIds).describe('Comma-separated list of node IDs or names used to limit returned information.').meta({ found_in: 'path' }),
   max_archive_version: z.lazy(() => long).describe('Specifies the maximum `archive_version` to be cleared from the archive.').meta({ found_in: 'path' })
-})
+}).meta({ id: 'NodesClearRepositoriesMeteringArchiveRequest' })
 export type NodesClearRepositoriesMeteringArchiveRequest = z.infer<typeof NodesClearRepositoriesMeteringArchiveRequest>
 
 export const NodesClearRepositoriesMeteringArchiveResponseBase = z.object({
   node_stats: z.lazy(() => NodeStatistics).describe('Contains statistics about the number of nodes selected by the request’s node filters.').optional(),
   cluster_name: z.lazy(() => Name).describe('Name of the cluster. Based on the `cluster.name` setting.'),
   nodes: z.record(z.string(), NodesRepositoryMeteringInformation).describe('Contains repositories metering information for the nodes selected by the request.')
-})
+}).meta({ id: 'NodesClearRepositoriesMeteringArchiveResponseBase' })
 export type NodesClearRepositoriesMeteringArchiveResponseBase = z.infer<typeof NodesClearRepositoriesMeteringArchiveResponseBase>
 
-export const NodesClearRepositoriesMeteringArchiveResponse = NodesClearRepositoriesMeteringArchiveResponseBase
+export const NodesClearRepositoriesMeteringArchiveResponse = NodesClearRepositoriesMeteringArchiveResponseBase.meta({ id: 'NodesClearRepositoriesMeteringArchiveResponse' })
 export type NodesClearRepositoriesMeteringArchiveResponse = z.infer<typeof NodesClearRepositoriesMeteringArchiveResponse>
 
 /**
@@ -598,17 +597,17 @@ export type NodesClearRepositoriesMeteringArchiveResponse = z.infer<typeof Nodes
  */
 export const NodesGetRepositoriesMeteringInfoRequest = z.object({
   node_id: z.lazy(() => NodeIds).describe('Comma-separated list of node IDs or names used to limit returned information.').meta({ found_in: 'path' })
-})
+}).meta({ id: 'NodesGetRepositoriesMeteringInfoRequest' })
 export type NodesGetRepositoriesMeteringInfoRequest = z.infer<typeof NodesGetRepositoriesMeteringInfoRequest>
 
 export const NodesGetRepositoriesMeteringInfoResponseBase = z.object({
   node_stats: z.lazy(() => NodeStatistics).describe('Contains statistics about the number of nodes selected by the request’s node filters.').optional(),
   cluster_name: z.lazy(() => Name).describe('Name of the cluster. Based on the `cluster.name` setting.'),
   nodes: z.record(z.string(), NodesRepositoryMeteringInformation).describe('Contains repositories metering information for the nodes selected by the request.')
-})
+}).meta({ id: 'NodesGetRepositoriesMeteringInfoResponseBase' })
 export type NodesGetRepositoriesMeteringInfoResponseBase = z.infer<typeof NodesGetRepositoriesMeteringInfoResponseBase>
 
-export const NodesGetRepositoriesMeteringInfoResponse = NodesGetRepositoriesMeteringInfoResponseBase
+export const NodesGetRepositoriesMeteringInfoResponse = NodesGetRepositoriesMeteringInfoResponseBase.meta({ id: 'NodesGetRepositoriesMeteringInfoResponse' })
 export type NodesGetRepositoriesMeteringInfoResponse = z.infer<typeof NodesGetRepositoriesMeteringInfoResponse>
 
 /**
@@ -626,16 +625,16 @@ export const NodesHotThreadsRequest = z.object({
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   type: z.lazy(() => ThreadType).describe('The type to sample.').optional().meta({ found_in: 'query' }),
   sort: z.lazy(() => ThreadType).describe('The sort order for \'cpu\' type').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'NodesHotThreadsRequest' })
 export type NodesHotThreadsRequest = z.infer<typeof NodesHotThreadsRequest>
 
 export const NodesHotThreadsResponse = z.object({
-})
+}).meta({ id: 'NodesHotThreadsResponse' })
 export type NodesHotThreadsResponse = z.infer<typeof NodesHotThreadsResponse>
 
 export const NodesInfoDeprecationIndexing = z.object({
   enabled: z.union([z.boolean(), z.string()])
-})
+}).meta({ id: 'NodesInfoDeprecationIndexing' })
 export type NodesInfoDeprecationIndexing = z.infer<typeof NodesInfoDeprecationIndexing>
 
 export const NodesInfoNodeInfoHttp = z.object({
@@ -643,7 +642,7 @@ export const NodesInfoNodeInfoHttp = z.object({
   max_content_length: z.lazy(() => ByteSize).optional(),
   max_content_length_in_bytes: z.lazy(() => long),
   publish_address: z.string()
-})
+}).meta({ id: 'NodesInfoNodeInfoHttp' })
 export type NodesInfoNodeInfoHttp = z.infer<typeof NodesInfoNodeInfoHttp>
 
 export const NodesInfoNodeInfoJvmMemory = z.object({
@@ -657,7 +656,7 @@ export const NodesInfoNodeInfoJvmMemory = z.object({
   non_heap_init_in_bytes: z.lazy(() => long),
   non_heap_max: z.lazy(() => ByteSize).optional(),
   non_heap_max_in_bytes: z.lazy(() => long)
-})
+}).meta({ id: 'NodesInfoNodeInfoJvmMemory' })
 export type NodesInfoNodeInfoJvmMemory = z.infer<typeof NodesInfoNodeInfoJvmMemory>
 
 export const NodesInfoNodeJvmInfo = z.object({
@@ -673,7 +672,7 @@ export const NodesInfoNodeJvmInfo = z.object({
   using_bundled_jdk: z.boolean(),
   using_compressed_ordinary_object_pointers: z.union([z.boolean(), z.string()]).optional(),
   input_arguments: z.array(z.string())
-})
+}).meta({ id: 'NodesInfoNodeJvmInfo' })
 export type NodesInfoNodeJvmInfo = z.infer<typeof NodesInfoNodeJvmInfo>
 
 export const NodesInfoNodeInfoOSCPU = z.object({
@@ -685,13 +684,13 @@ export const NodesInfoNodeInfoOSCPU = z.object({
   total_cores: z.lazy(() => integer),
   total_sockets: z.lazy(() => integer),
   vendor: z.string()
-})
+}).meta({ id: 'NodesInfoNodeInfoOSCPU' })
 export type NodesInfoNodeInfoOSCPU = z.infer<typeof NodesInfoNodeInfoOSCPU>
 
 export const NodesInfoNodeInfoMemory = z.object({
   total: z.string(),
   total_in_bytes: z.lazy(() => long)
-})
+}).meta({ id: 'NodesInfoNodeInfoMemory' })
 export type NodesInfoNodeInfoMemory = z.infer<typeof NodesInfoNodeInfoMemory>
 
 export const NodesInfoNodeOperatingSystemInfo = z.object({
@@ -705,19 +704,19 @@ export const NodesInfoNodeOperatingSystemInfo = z.object({
   cpu: NodesInfoNodeInfoOSCPU.optional(),
   mem: NodesInfoNodeInfoMemory.optional(),
   swap: NodesInfoNodeInfoMemory.optional()
-})
+}).meta({ id: 'NodesInfoNodeOperatingSystemInfo' })
 export type NodesInfoNodeOperatingSystemInfo = z.infer<typeof NodesInfoNodeOperatingSystemInfo>
 
 export const NodesInfoNodeProcessInfo = z.object({
   id: z.lazy(() => long).describe('Process identifier (PID)'),
   mlockall: z.boolean().describe('Indicates if the process address space has been successfully locked in memory'),
   refresh_interval_in_millis: z.lazy(() => DurationValue).describe('Refresh interval for the process statistics')
-})
+}).meta({ id: 'NodesInfoNodeProcessInfo' })
 export type NodesInfoNodeProcessInfo = z.infer<typeof NodesInfoNodeProcessInfo>
 
 export const NodesInfoNodeInfoSettingsClusterElection = z.object({
   strategy: z.lazy(() => Name)
-})
+}).meta({ id: 'NodesInfoNodeInfoSettingsClusterElection' })
 export type NodesInfoNodeInfoSettingsClusterElection = z.infer<typeof NodesInfoNodeInfoSettingsClusterElection>
 
 export const NodesInfoNodeInfoSettingsCluster = z.object({
@@ -726,14 +725,14 @@ export const NodesInfoNodeInfoSettingsCluster = z.object({
   election: NodesInfoNodeInfoSettingsClusterElection,
   initial_master_nodes: z.union([z.array(z.string()), z.string()]).optional(),
   deprecation_indexing: NodesInfoDeprecationIndexing.optional()
-})
+}).meta({ id: 'NodesInfoNodeInfoSettingsCluster' })
 export type NodesInfoNodeInfoSettingsCluster = z.infer<typeof NodesInfoNodeInfoSettingsCluster>
 
 export const NodesInfoNodeInfoSettingsNode = z.object({
   name: z.lazy(() => Name),
   attr: z.record(z.string(), z.any()),
   max_local_storage_nodes: z.string().optional()
-})
+}).meta({ id: 'NodesInfoNodeInfoSettingsNode' })
 export type NodesInfoNodeInfoSettingsNode = z.infer<typeof NodesInfoNodeInfoSettingsNode>
 
 export const NodesInfoNodeInfoPath = z.object({
@@ -741,39 +740,39 @@ export const NodesInfoNodeInfoPath = z.object({
   home: z.string().optional(),
   repo: z.array(z.string()).optional(),
   data: z.union([z.string(), z.array(z.string())]).optional()
-})
+}).meta({ id: 'NodesInfoNodeInfoPath' })
 export type NodesInfoNodeInfoPath = z.infer<typeof NodesInfoNodeInfoPath>
 
 export const NodesInfoNodeInfoRepositoriesUrl = z.object({
   allowed_urls: z.string()
-})
+}).meta({ id: 'NodesInfoNodeInfoRepositoriesUrl' })
 export type NodesInfoNodeInfoRepositoriesUrl = z.infer<typeof NodesInfoNodeInfoRepositoriesUrl>
 
 export const NodesInfoNodeInfoRepositories = z.object({
   url: NodesInfoNodeInfoRepositoriesUrl
-})
+}).meta({ id: 'NodesInfoNodeInfoRepositories' })
 export type NodesInfoNodeInfoRepositories = z.infer<typeof NodesInfoNodeInfoRepositories>
 
 export const NodesInfoNodeInfoDiscover = z.object({
   seed_hosts: z.union([z.array(z.string()), z.string()]).optional(),
   type: z.string().optional(),
   seed_providers: z.array(z.string()).optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'NodesInfoNodeInfoDiscover' })
 export type NodesInfoNodeInfoDiscover = z.infer<typeof NodesInfoNodeInfoDiscover>
 
 export const NodesInfoNodeInfoAction = z.object({
   destructive_requires_name: z.string()
-})
+}).meta({ id: 'NodesInfoNodeInfoAction' })
 export type NodesInfoNodeInfoAction = z.infer<typeof NodesInfoNodeInfoAction>
 
 export const NodesInfoNodeInfoClient = z.object({
   type: z.string()
-})
+}).meta({ id: 'NodesInfoNodeInfoClient' })
 export type NodesInfoNodeInfoClient = z.infer<typeof NodesInfoNodeInfoClient>
 
 export const NodesInfoNodeInfoSettingsHttpType = z.object({
   default: z.string()
-})
+}).meta({ id: 'NodesInfoNodeInfoSettingsHttpType' })
 export type NodesInfoNodeInfoSettingsHttpType = z.infer<typeof NodesInfoNodeInfoSettingsHttpType>
 
 export const NodesInfoNodeInfoSettingsHttp = z.object({
@@ -781,73 +780,73 @@ export const NodesInfoNodeInfoSettingsHttp = z.object({
   'type.default': z.string().optional(),
   compression: z.union([z.boolean(), z.string()]).optional(),
   port: z.union([z.lazy(() => integer), z.string()]).optional()
-})
+}).meta({ id: 'NodesInfoNodeInfoSettingsHttp' })
 export type NodesInfoNodeInfoSettingsHttp = z.infer<typeof NodesInfoNodeInfoSettingsHttp>
 
 export const NodesInfoNodeInfoBootstrap = z.object({
   memory_lock: z.string()
-})
+}).meta({ id: 'NodesInfoNodeInfoBootstrap' })
 export type NodesInfoNodeInfoBootstrap = z.infer<typeof NodesInfoNodeInfoBootstrap>
 
 export const NodesInfoNodeInfoSettingsTransportType = z.object({
   default: z.string()
-})
+}).meta({ id: 'NodesInfoNodeInfoSettingsTransportType' })
 export type NodesInfoNodeInfoSettingsTransportType = z.infer<typeof NodesInfoNodeInfoSettingsTransportType>
 
 export const NodesInfoNodeInfoSettingsTransportFeatures = z.object({
   'x-pack': z.string()
-})
+}).meta({ id: 'NodesInfoNodeInfoSettingsTransportFeatures' })
 export type NodesInfoNodeInfoSettingsTransportFeatures = z.infer<typeof NodesInfoNodeInfoSettingsTransportFeatures>
 
 export const NodesInfoNodeInfoSettingsTransport = z.object({
   type: NodesInfoNodeInfoSettingsTransportType,
   'type.default': z.string().optional(),
   features: NodesInfoNodeInfoSettingsTransportFeatures.optional()
-})
+}).meta({ id: 'NodesInfoNodeInfoSettingsTransport' })
 export type NodesInfoNodeInfoSettingsTransport = z.infer<typeof NodesInfoNodeInfoSettingsTransport>
 
 export const NodesInfoNodeInfoSettingsNetwork = z.object({
   host: z.union([z.lazy(() => Host), z.array(z.lazy(() => Host))]).optional()
-})
+}).meta({ id: 'NodesInfoNodeInfoSettingsNetwork' })
 export type NodesInfoNodeInfoSettingsNetwork = z.infer<typeof NodesInfoNodeInfoSettingsNetwork>
 
 export const NodesInfoNodeInfoXpackLicenseType = z.object({
   type: z.string()
-})
+}).meta({ id: 'NodesInfoNodeInfoXpackLicenseType' })
 export type NodesInfoNodeInfoXpackLicenseType = z.infer<typeof NodesInfoNodeInfoXpackLicenseType>
 
 export const NodesInfoNodeInfoXpackLicense = z.object({
   self_generated: NodesInfoNodeInfoXpackLicenseType
-})
+}).meta({ id: 'NodesInfoNodeInfoXpackLicense' })
 export type NodesInfoNodeInfoXpackLicense = z.infer<typeof NodesInfoNodeInfoXpackLicense>
 
 export const NodesInfoNodeInfoXpackSecuritySsl = z.object({
   ssl: z.record(z.string(), z.string())
-})
+}).meta({ id: 'NodesInfoNodeInfoXpackSecuritySsl' })
 export type NodesInfoNodeInfoXpackSecuritySsl = z.infer<typeof NodesInfoNodeInfoXpackSecuritySsl>
 
 export const NodesInfoNodeInfoXpackSecurityAuthcRealmsStatus = z.object({
   enabled: z.string().optional(),
   order: z.string()
-})
+}).meta({ id: 'NodesInfoNodeInfoXpackSecurityAuthcRealmsStatus' })
 export type NodesInfoNodeInfoXpackSecurityAuthcRealmsStatus = z.infer<typeof NodesInfoNodeInfoXpackSecurityAuthcRealmsStatus>
 
 export const NodesInfoNodeInfoXpackSecurityAuthcRealms = z.object({
   file: z.record(z.string(), NodesInfoNodeInfoXpackSecurityAuthcRealmsStatus).optional(),
   native: z.record(z.string(), NodesInfoNodeInfoXpackSecurityAuthcRealmsStatus).optional(),
   pki: z.record(z.string(), NodesInfoNodeInfoXpackSecurityAuthcRealmsStatus).optional()
-})
+}).meta({ id: 'NodesInfoNodeInfoXpackSecurityAuthcRealms' })
 export type NodesInfoNodeInfoXpackSecurityAuthcRealms = z.infer<typeof NodesInfoNodeInfoXpackSecurityAuthcRealms>
 
 export const NodesInfoNodeInfoXpackSecurityAuthcToken = z.object({
   enabled: z.string()
-})
+}).meta({ id: 'NodesInfoNodeInfoXpackSecurityAuthcToken' })
 export type NodesInfoNodeInfoXpackSecurityAuthcToken = z.infer<typeof NodesInfoNodeInfoXpackSecurityAuthcToken>
 
 export const NodesInfoNodeInfoXpackSecurityAuthc = z.object({
   realms: NodesInfoNodeInfoXpackSecurityAuthcRealms.optional(),
   token: NodesInfoNodeInfoXpackSecurityAuthcToken.optional()
-})
+}).meta({ id: 'NodesInfoNodeInfoXpackSecurityAuthc' })
 export type NodesInfoNodeInfoXpackSecurityAuthc = z.infer<typeof NodesInfoNodeInfoXpackSecurityAuthc>
 
 export const NodesInfoNodeInfoXpackSecurity = z.object({
@@ -855,12 +854,12 @@ export const NodesInfoNodeInfoXpackSecurity = z.object({
   enabled: z.string(),
   transport: NodesInfoNodeInfoXpackSecuritySsl.optional(),
   authc: NodesInfoNodeInfoXpackSecurityAuthc.optional()
-})
+}).meta({ id: 'NodesInfoNodeInfoXpackSecurity' })
 export type NodesInfoNodeInfoXpackSecurity = z.infer<typeof NodesInfoNodeInfoXpackSecurity>
 
 export const NodesInfoNodeInfoXpackMl = z.object({
   use_auto_machine_memory_percent: z.boolean().optional()
-})
+}).meta({ id: 'NodesInfoNodeInfoXpackMl' })
 export type NodesInfoNodeInfoXpackMl = z.infer<typeof NodesInfoNodeInfoXpackMl>
 
 export const NodesInfoNodeInfoXpack = z.object({
@@ -868,33 +867,33 @@ export const NodesInfoNodeInfoXpack = z.object({
   security: NodesInfoNodeInfoXpackSecurity,
   notification: z.record(z.string(), z.any()).optional(),
   ml: NodesInfoNodeInfoXpackMl.optional()
-})
+}).meta({ id: 'NodesInfoNodeInfoXpack' })
 export type NodesInfoNodeInfoXpack = z.infer<typeof NodesInfoNodeInfoXpack>
 
 export const NodesInfoNodeInfoScript = z.object({
   allowed_types: z.string(),
   disable_max_compilations_rate: z.string().optional()
-})
+}).meta({ id: 'NodesInfoNodeInfoScript' })
 export type NodesInfoNodeInfoScript = z.infer<typeof NodesInfoNodeInfoScript>
 
 export const NodesInfoNodeInfoSearchRemote = z.object({
   connect: z.string()
-})
+}).meta({ id: 'NodesInfoNodeInfoSearchRemote' })
 export type NodesInfoNodeInfoSearchRemote = z.infer<typeof NodesInfoNodeInfoSearchRemote>
 
 export const NodesInfoNodeInfoSearch = z.object({
   remote: NodesInfoNodeInfoSearchRemote
-})
+}).meta({ id: 'NodesInfoNodeInfoSearch' })
 export type NodesInfoNodeInfoSearch = z.infer<typeof NodesInfoNodeInfoSearch>
 
 export const NodesInfoNodeInfoIngestDownloader = z.object({
   enabled: z.string()
-})
+}).meta({ id: 'NodesInfoNodeInfoIngestDownloader' })
 export type NodesInfoNodeInfoIngestDownloader = z.infer<typeof NodesInfoNodeInfoIngestDownloader>
 
 export const NodesInfoNodeInfoIngestInfo = z.object({
   downloader: NodesInfoNodeInfoIngestDownloader
-})
+}).meta({ id: 'NodesInfoNodeInfoIngestInfo' })
 export type NodesInfoNodeInfoIngestInfo = z.infer<typeof NodesInfoNodeInfoIngestInfo>
 
 export const NodesInfoNodeInfoSettingsIngest = z.object({
@@ -932,7 +931,7 @@ export const NodesInfoNodeInfoSettingsIngest = z.object({
   drop: NodesInfoNodeInfoIngestInfo.optional(),
   circle: NodesInfoNodeInfoIngestInfo.optional(),
   inference: NodesInfoNodeInfoIngestInfo.optional()
-})
+}).meta({ id: 'NodesInfoNodeInfoSettingsIngest' })
 export type NodesInfoNodeInfoSettingsIngest = z.infer<typeof NodesInfoNodeInfoSettingsIngest>
 
 export const NodesInfoNodeInfoSettings = z.object({
@@ -951,7 +950,7 @@ export const NodesInfoNodeInfoSettings = z.object({
   script: NodesInfoNodeInfoScript.optional(),
   search: NodesInfoNodeInfoSearch.optional(),
   ingest: NodesInfoNodeInfoSettingsIngest.optional()
-})
+}).meta({ id: 'NodesInfoNodeInfoSettings' })
 export type NodesInfoNodeInfoSettings = z.infer<typeof NodesInfoNodeInfoSettings>
 
 export const NodesInfoNodeThreadPoolInfo = z.object({
@@ -961,35 +960,35 @@ export const NodesInfoNodeThreadPoolInfo = z.object({
   queue_size: z.lazy(() => integer),
   size: z.lazy(() => integer).optional(),
   type: z.string()
-})
+}).meta({ id: 'NodesInfoNodeThreadPoolInfo' })
 export type NodesInfoNodeThreadPoolInfo = z.infer<typeof NodesInfoNodeThreadPoolInfo>
 
 export const NodesInfoNodeInfoTransport = z.object({
   bound_address: z.array(z.string()),
   publish_address: z.string(),
   profiles: z.record(z.string(), z.string())
-})
+}).meta({ id: 'NodesInfoNodeInfoTransport' })
 export type NodesInfoNodeInfoTransport = z.infer<typeof NodesInfoNodeInfoTransport>
 
 export const NodesInfoNodeInfoIngestProcessor = z.object({
   type: z.string()
-})
+}).meta({ id: 'NodesInfoNodeInfoIngestProcessor' })
 export type NodesInfoNodeInfoIngestProcessor = z.infer<typeof NodesInfoNodeInfoIngestProcessor>
 
 export const NodesInfoNodeInfoIngest = z.object({
   processors: z.array(NodesInfoNodeInfoIngestProcessor)
-})
+}).meta({ id: 'NodesInfoNodeInfoIngest' })
 export type NodesInfoNodeInfoIngest = z.infer<typeof NodesInfoNodeInfoIngest>
 
 export const NodesInfoNodeInfoAggregation = z.object({
   types: z.array(z.string())
-})
+}).meta({ id: 'NodesInfoNodeInfoAggregation' })
 export type NodesInfoNodeInfoAggregation = z.infer<typeof NodesInfoNodeInfoAggregation>
 
 export const NodesInfoRemoveClusterServer = z.object({
   bound_address: z.array(z.lazy(() => TransportAddress)),
   publish_address: z.lazy(() => TransportAddress)
-})
+}).meta({ id: 'NodesInfoRemoveClusterServer' })
 export type NodesInfoRemoveClusterServer = z.infer<typeof NodesInfoRemoveClusterServer>
 
 export const NodesInfoNodeInfo = z.object({
@@ -1020,13 +1019,13 @@ export const NodesInfoNodeInfo = z.object({
   ingest: NodesInfoNodeInfoIngest.optional(),
   aggregations: z.record(z.string(), NodesInfoNodeInfoAggregation).optional(),
   remote_cluster_server: NodesInfoRemoveClusterServer.optional()
-})
+}).meta({ id: 'NodesInfoNodeInfo' })
 export type NodesInfoNodeInfo = z.infer<typeof NodesInfoNodeInfo>
 
-export const NodesInfoNodesInfoMetric = z.enum(['_all', '_none', 'settings', 'os', 'process', 'jvm', 'thread_pool', 'transport', 'http', 'remote_cluster_server', 'plugins', 'ingest', 'aggregations', 'indices'])
+export const NodesInfoNodesInfoMetric = z.enum(['_all', '_none', 'settings', 'os', 'process', 'jvm', 'thread_pool', 'transport', 'http', 'remote_cluster_server', 'plugins', 'ingest', 'aggregations', 'indices']).meta({ id: 'NodesInfoNodesInfoMetric' })
 export type NodesInfoNodesInfoMetric = z.infer<typeof NodesInfoNodesInfoMetric>
 
-export const NodesInfoNodesInfoMetrics = z.union([NodesInfoNodesInfoMetric, z.array(NodesInfoNodesInfoMetric)])
+export const NodesInfoNodesInfoMetrics = z.union([NodesInfoNodesInfoMetric, z.array(NodesInfoNodesInfoMetric)]).meta({ id: 'NodesInfoNodesInfoMetrics' })
 export type NodesInfoNodesInfoMetrics = z.infer<typeof NodesInfoNodesInfoMetrics>
 
 /**
@@ -1039,17 +1038,17 @@ export const NodesInfoRequest = z.object({
   metric: NodesInfoNodesInfoMetrics.describe('Limits the information returned to the specific metrics. Supports a comma-separated list, such as http,ingest.').optional().meta({ found_in: 'path' }),
   flat_settings: z.boolean().describe('If true, returns settings in flat format.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'NodesInfoRequest' })
 export type NodesInfoRequest = z.infer<typeof NodesInfoRequest>
 
 export const NodesInfoResponseBase = z.object({
   node_stats: z.lazy(() => NodeStatistics).describe('Contains statistics about the number of nodes selected by the request’s node filters.').optional(),
   cluster_name: z.lazy(() => Name),
   nodes: z.record(z.string(), NodesInfoNodeInfo)
-})
+}).meta({ id: 'NodesInfoResponseBase' })
 export type NodesInfoResponseBase = z.infer<typeof NodesInfoResponseBase>
 
-export const NodesInfoResponse = NodesInfoResponseBase
+export const NodesInfoResponse = NodesInfoResponseBase.meta({ id: 'NodesInfoResponse' })
 export type NodesInfoResponse = z.infer<typeof NodesInfoResponse>
 
 /**
@@ -1067,23 +1066,23 @@ export const NodesReloadSecureSettingsRequest = z.object({
   node_id: z.lazy(() => NodeIds).describe('The names of particular nodes in the cluster to target.').optional().meta({ found_in: 'path' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   secure_settings_password: z.lazy(() => Password).describe('The password for the Elasticsearch keystore.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'NodesReloadSecureSettingsRequest' })
 export type NodesReloadSecureSettingsRequest = z.infer<typeof NodesReloadSecureSettingsRequest>
 
 export const NodesReloadSecureSettingsResponseBase = z.object({
   node_stats: z.lazy(() => NodeStatistics).describe('Contains statistics about the number of nodes selected by the request’s node filters.').optional(),
   cluster_name: z.lazy(() => Name),
   nodes: z.record(z.string(), NodesNodeReloadResult)
-})
+}).meta({ id: 'NodesReloadSecureSettingsResponseBase' })
 export type NodesReloadSecureSettingsResponseBase = z.infer<typeof NodesReloadSecureSettingsResponseBase>
 
-export const NodesReloadSecureSettingsResponse = NodesReloadSecureSettingsResponseBase
+export const NodesReloadSecureSettingsResponse = NodesReloadSecureSettingsResponseBase.meta({ id: 'NodesReloadSecureSettingsResponse' })
 export type NodesReloadSecureSettingsResponse = z.infer<typeof NodesReloadSecureSettingsResponse>
 
-export const NodesStatsNodeStatsMetric = z.enum(['_all', '_none', 'indices', 'os', 'process', 'jvm', 'thread_pool', 'fs', 'transport', 'http', 'breaker', 'script', 'discovery', 'ingest', 'adaptive_selection', 'script_cache', 'indexing_pressure', 'repositories', 'allocations'])
+export const NodesStatsNodeStatsMetric = z.enum(['_all', '_none', 'indices', 'os', 'process', 'jvm', 'thread_pool', 'fs', 'transport', 'http', 'breaker', 'script', 'discovery', 'ingest', 'adaptive_selection', 'script_cache', 'indexing_pressure', 'repositories', 'allocations']).meta({ id: 'NodesStatsNodeStatsMetric' })
 export type NodesStatsNodeStatsMetric = z.infer<typeof NodesStatsNodeStatsMetric>
 
-export const NodesStatsNodeStatsMetrics = z.union([NodesStatsNodeStatsMetric, z.array(NodesStatsNodeStatsMetric)])
+export const NodesStatsNodeStatsMetrics = z.union([NodesStatsNodeStatsMetric, z.array(NodesStatsNodeStatsMetric)]).meta({ id: 'NodesStatsNodeStatsMetrics' })
 export type NodesStatsNodeStatsMetrics = z.infer<typeof NodesStatsNodeStatsMetrics>
 
 /**
@@ -1105,17 +1104,17 @@ export const NodesStatsRequest = z.object({
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   types: z.array(z.string()).describe('A comma-separated list of document types for the indexing index metric.').optional().meta({ found_in: 'query' }),
   include_unloaded_segments: z.boolean().describe('If `true`, the response includes information from segments that are not loaded into memory.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'NodesStatsRequest' })
 export type NodesStatsRequest = z.infer<typeof NodesStatsRequest>
 
 export const NodesStatsResponseBase = z.object({
   node_stats: z.lazy(() => NodeStatistics).describe('Contains statistics about the number of nodes selected by the request’s node filters.').optional(),
   cluster_name: z.lazy(() => Name).optional(),
   nodes: z.record(z.string(), NodesStats)
-})
+}).meta({ id: 'NodesStatsResponseBase' })
 export type NodesStatsResponseBase = z.infer<typeof NodesStatsResponseBase>
 
-export const NodesStatsResponse = NodesStatsResponseBase
+export const NodesStatsResponse = NodesStatsResponseBase.meta({ id: 'NodesStatsResponse' })
 export type NodesStatsResponse = z.infer<typeof NodesStatsResponse>
 
 export const NodesUsageNodeUsage = z.object({
@@ -1123,13 +1122,13 @@ export const NodesUsageNodeUsage = z.object({
   since: z.lazy(() => EpochTime).describe('The timestamp for when the collection of these statistics started.'),
   timestamp: z.lazy(() => EpochTime).describe('The timestamp for when these statistics were collected.'),
   aggregations: z.record(z.string(), z.any()).describe('The total number of times search aggregations have been called on this node since the last restart.')
-})
+}).meta({ id: 'NodesUsageNodeUsage' })
 export type NodesUsageNodeUsage = z.infer<typeof NodesUsageNodeUsage>
 
-export const NodesUsageNodesUsageMetric = z.enum(['_all', 'rest_actions', 'aggregations'])
+export const NodesUsageNodesUsageMetric = z.enum(['_all', 'rest_actions', 'aggregations']).meta({ id: 'NodesUsageNodesUsageMetric' })
 export type NodesUsageNodesUsageMetric = z.infer<typeof NodesUsageNodesUsageMetric>
 
-export const NodesUsageNodesUsageMetrics = z.union([NodesUsageNodesUsageMetric, z.array(NodesUsageNodesUsageMetric)])
+export const NodesUsageNodesUsageMetrics = z.union([NodesUsageNodesUsageMetric, z.array(NodesUsageNodesUsageMetric)]).meta({ id: 'NodesUsageNodesUsageMetrics' })
 export type NodesUsageNodesUsageMetrics = z.infer<typeof NodesUsageNodesUsageMetrics>
 
 /** Get feature usage information. */
@@ -1137,15 +1136,15 @@ export const NodesUsageRequest = z.object({
   node_id: z.lazy(() => NodeIds).describe('A comma-separated list of node IDs or names to limit the returned information. Use `_local` to return information from the node you\'re connecting to, leave empty to get information from all nodes.').optional().meta({ found_in: 'path' }),
   metric: NodesUsageNodesUsageMetrics.describe('Limits the information returned to the specific metrics. A comma-separated list of the following options: `_all`, `rest_actions`, `aggregations`.').optional().meta({ found_in: 'path' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'NodesUsageRequest' })
 export type NodesUsageRequest = z.infer<typeof NodesUsageRequest>
 
 export const NodesUsageResponseBase = z.object({
   node_stats: z.lazy(() => NodeStatistics).describe('Contains statistics about the number of nodes selected by the request’s node filters.').optional(),
   cluster_name: z.lazy(() => Name),
   nodes: z.record(z.string(), NodesUsageNodeUsage)
-})
+}).meta({ id: 'NodesUsageResponseBase' })
 export type NodesUsageResponseBase = z.infer<typeof NodesUsageResponseBase>
 
-export const NodesUsageResponse = NodesUsageResponseBase
+export const NodesUsageResponse = NodesUsageResponseBase.meta({ id: 'NodesUsageResponse' })
 export type NodesUsageResponse = z.infer<typeof NodesUsageResponse>

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { SearchHitsMetadata } from './_global.ts'
@@ -18,34 +18,34 @@ export const RollupDateHistogramGrouping = z.object({
   calendar_interval: z.lazy(() => Duration).describe('The interval of time buckets to be generated when rolling up.').optional(),
   fixed_interval: z.lazy(() => Duration).describe('The interval of time buckets to be generated when rolling up.').optional(),
   time_zone: TimeZone.describe('Defines what `time_zone` the rollup documents are stored as. Unlike raw data, which can shift timezones on the fly, rolled documents have to be stored with a specific timezone. By default, rollup documents are stored in `UTC`.').optional()
-})
+}).meta({ id: 'RollupDateHistogramGrouping' })
 export type RollupDateHistogramGrouping = z.infer<typeof RollupDateHistogramGrouping>
 
-export const RollupMetric = z.enum(['min', 'max', 'sum', 'avg', 'value_count'])
+export const RollupMetric = z.enum(['min', 'max', 'sum', 'avg', 'value_count']).meta({ id: 'RollupMetric' })
 export type RollupMetric = z.infer<typeof RollupMetric>
 
 export const RollupFieldMetric = z.object({
   field: z.lazy(() => Field).describe('The field to collect metrics for. This must be a numeric of some kind.'),
   metrics: z.array(RollupMetric).describe('An array of metrics to collect for the field. At least one metric must be configured.')
-})
+}).meta({ id: 'RollupFieldMetric' })
 export type RollupFieldMetric = z.infer<typeof RollupFieldMetric>
 
 export const RollupHistogramGrouping = z.object({
   fields: z.lazy(() => Fields).describe('The set of fields that you wish to build histograms for. All fields specified must be some kind of numeric. Order does not matter.'),
   interval: z.lazy(() => long).describe('The interval of histogram buckets to be generated when rolling up. For example, a value of `5` creates buckets that are five units wide (`0-5`, `5-10`, etc). Note that only one interval can be specified in the histogram group, meaning that all fields being grouped via the histogram must share the same interval.')
-})
+}).meta({ id: 'RollupHistogramGrouping' })
 export type RollupHistogramGrouping = z.infer<typeof RollupHistogramGrouping>
 
 export const RollupTermsGrouping = z.object({
   fields: z.lazy(() => Fields).describe('The set of fields that you wish to collect terms for. This array can contain fields that are both keyword and numerics. Order does not matter.')
-})
+}).meta({ id: 'RollupTermsGrouping' })
 export type RollupTermsGrouping = z.infer<typeof RollupTermsGrouping>
 
 export const RollupGroupings = z.object({
   date_histogram: RollupDateHistogramGrouping.describe('A date histogram group aggregates a date field into time-based buckets. This group is mandatory; you currently cannot roll up documents without a timestamp and a `date_histogram` group.').optional(),
   histogram: RollupHistogramGrouping.describe('The histogram group aggregates one or more numeric fields into numeric histogram intervals.').optional(),
   terms: RollupTermsGrouping.describe('The terms group can be used on keyword or numeric fields to allow bucketing via the terms aggregation at a later point. The indexer enumerates and stores all values of a field for each time-period. This can be potentially costly for high-cardinality groups such as IP addresses, especially if the time-bucket is particularly sparse.').optional()
-})
+}).meta({ id: 'RollupGroupings' })
 export type RollupGroupings = z.infer<typeof RollupGroupings>
 
 /**
@@ -77,16 +77,16 @@ export type RollupGroupings = z.infer<typeof RollupGroupings>
  */
 export const RollupDeleteJobRequest = z.object({
   id: z.lazy(() => Id).describe('Identifier for the job.').meta({ found_in: 'path' })
-})
+}).meta({ id: 'RollupDeleteJobRequest' })
 export type RollupDeleteJobRequest = z.infer<typeof RollupDeleteJobRequest>
 
 export const RollupDeleteJobResponse = z.object({
   acknowledged: z.boolean(),
   task_failures: z.array(z.lazy(() => TaskFailure)).optional()
-})
+}).meta({ id: 'RollupDeleteJobResponse' })
 export type RollupDeleteJobResponse = z.infer<typeof RollupDeleteJobResponse>
 
-export const RollupGetJobsIndexingJobState = z.enum(['started', 'indexing', 'stopping', 'stopped', 'aborting'])
+export const RollupGetJobsIndexingJobState = z.enum(['started', 'indexing', 'stopping', 'stopped', 'aborting']).meta({ id: 'RollupGetJobsIndexingJobState' })
 export type RollupGetJobsIndexingJobState = z.infer<typeof RollupGetJobsIndexingJobState>
 
 /**
@@ -101,7 +101,7 @@ export type RollupGetJobsIndexingJobState = z.infer<typeof RollupGetJobsIndexing
  */
 export const RollupGetJobsRequest = z.object({
   id: z.lazy(() => Id).describe('Identifier for the rollup job. If it is `_all` or omitted, the API returns all rollup jobs.').optional().meta({ found_in: 'path' })
-})
+}).meta({ id: 'RollupGetJobsRequest' })
 export type RollupGetJobsRequest = z.infer<typeof RollupGetJobsRequest>
 
 export const RollupGetJobsRollupJobConfiguration = z.object({
@@ -113,7 +113,7 @@ export const RollupGetJobsRollupJobConfiguration = z.object({
   page_size: z.lazy(() => long),
   rollup_index: z.lazy(() => IndexName),
   timeout: z.lazy(() => Duration)
-})
+}).meta({ id: 'RollupGetJobsRollupJobConfiguration' })
 export type RollupGetJobsRollupJobConfiguration = z.infer<typeof RollupGetJobsRollupJobConfiguration>
 
 export const RollupGetJobsRollupJobStats = z.object({
@@ -129,26 +129,26 @@ export const RollupGetJobsRollupJobStats = z.object({
   trigger_count: z.lazy(() => long),
   processing_time_in_ms: z.lazy(() => DurationValue),
   processing_total: z.lazy(() => long)
-})
+}).meta({ id: 'RollupGetJobsRollupJobStats' })
 export type RollupGetJobsRollupJobStats = z.infer<typeof RollupGetJobsRollupJobStats>
 
 export const RollupGetJobsRollupJobStatus = z.object({
   current_position: z.record(z.string(), z.any()).optional(),
   job_state: RollupGetJobsIndexingJobState,
   upgraded_doc_id: z.boolean().optional()
-})
+}).meta({ id: 'RollupGetJobsRollupJobStatus' })
 export type RollupGetJobsRollupJobStatus = z.infer<typeof RollupGetJobsRollupJobStatus>
 
 export const RollupGetJobsRollupJob = z.object({
   config: RollupGetJobsRollupJobConfiguration.describe('The rollup job configuration.'),
   stats: RollupGetJobsRollupJobStats.describe('Transient statistics about the rollup job, such as how many documents have been processed and how many rollup summary docs have been indexed. These stats are not persisted. If a node is restarted, these stats are reset.'),
   status: RollupGetJobsRollupJobStatus.describe('The current status of the indexer for the rollup job.')
-})
+}).meta({ id: 'RollupGetJobsRollupJob' })
 export type RollupGetJobsRollupJob = z.infer<typeof RollupGetJobsRollupJob>
 
 export const RollupGetJobsResponse = z.object({
   jobs: z.array(RollupGetJobsRollupJob)
-})
+}).meta({ id: 'RollupGetJobsResponse' })
 export type RollupGetJobsResponse = z.infer<typeof RollupGetJobsResponse>
 
 /**
@@ -166,14 +166,14 @@ export type RollupGetJobsResponse = z.infer<typeof RollupGetJobsResponse>
  */
 export const RollupGetRollupCapsRequest = z.object({
   id: z.lazy(() => Id).describe('Index, indices or index-pattern to return rollup capabilities for. `_all` may be used to fetch rollup capabilities from all jobs.').optional().meta({ found_in: 'path' })
-})
+}).meta({ id: 'RollupGetRollupCapsRequest' })
 export type RollupGetRollupCapsRequest = z.infer<typeof RollupGetRollupCapsRequest>
 
 export const RollupGetRollupCapsRollupFieldSummary = z.object({
   agg: z.string(),
   calendar_interval: z.lazy(() => Duration).optional(),
   time_zone: TimeZone.optional()
-})
+}).meta({ id: 'RollupGetRollupCapsRollupFieldSummary' })
 export type RollupGetRollupCapsRollupFieldSummary = z.infer<typeof RollupGetRollupCapsRollupFieldSummary>
 
 export const RollupGetRollupCapsRollupCapabilitySummary = z.object({
@@ -181,22 +181,22 @@ export const RollupGetRollupCapsRollupCapabilitySummary = z.object({
   index_pattern: z.string(),
   job_id: z.string(),
   rollup_index: z.string()
-})
+}).meta({ id: 'RollupGetRollupCapsRollupCapabilitySummary' })
 export type RollupGetRollupCapsRollupCapabilitySummary = z.infer<typeof RollupGetRollupCapsRollupCapabilitySummary>
 
 export const RollupGetRollupCapsRollupCapabilities = z.object({
   rollup_jobs: z.array(RollupGetRollupCapsRollupCapabilitySummary).describe('There can be multiple, independent jobs configured for a single index or index pattern. Each of these jobs may have different configurations, so the API returns a list of all the various configurations available.')
-})
+}).meta({ id: 'RollupGetRollupCapsRollupCapabilities' })
 export type RollupGetRollupCapsRollupCapabilities = z.infer<typeof RollupGetRollupCapsRollupCapabilities>
 
-export const RollupGetRollupCapsResponse = z.record(z.lazy(() => IndexName), RollupGetRollupCapsRollupCapabilities)
+export const RollupGetRollupCapsResponse = z.record(z.lazy(() => IndexName), RollupGetRollupCapsRollupCapabilities).meta({ id: 'RollupGetRollupCapsResponse' })
 export type RollupGetRollupCapsResponse = z.infer<typeof RollupGetRollupCapsResponse>
 
 export const RollupGetRollupIndexCapsRollupJobSummaryField = z.object({
   agg: z.string(),
   time_zone: TimeZone.optional(),
   calendar_interval: z.lazy(() => Duration).optional()
-})
+}).meta({ id: 'RollupGetRollupIndexCapsRollupJobSummaryField' })
 export type RollupGetRollupIndexCapsRollupJobSummaryField = z.infer<typeof RollupGetRollupIndexCapsRollupJobSummaryField>
 
 export const RollupGetRollupIndexCapsRollupJobSummary = z.object({
@@ -204,12 +204,12 @@ export const RollupGetRollupIndexCapsRollupJobSummary = z.object({
   index_pattern: z.string(),
   job_id: z.lazy(() => Id),
   rollup_index: z.lazy(() => IndexName)
-})
+}).meta({ id: 'RollupGetRollupIndexCapsRollupJobSummary' })
 export type RollupGetRollupIndexCapsRollupJobSummary = z.infer<typeof RollupGetRollupIndexCapsRollupJobSummary>
 
 export const RollupGetRollupIndexCapsIndexCapabilities = z.object({
   rollup_jobs: z.array(RollupGetRollupIndexCapsRollupJobSummary)
-})
+}).meta({ id: 'RollupGetRollupIndexCapsIndexCapabilities' })
 export type RollupGetRollupIndexCapsIndexCapabilities = z.infer<typeof RollupGetRollupIndexCapsIndexCapabilities>
 
 /**
@@ -224,10 +224,10 @@ export type RollupGetRollupIndexCapsIndexCapabilities = z.infer<typeof RollupGet
  */
 export const RollupGetRollupIndexCapsRequest = z.object({
   index: z.lazy(() => Ids).describe('Data stream or index to check for rollup capabilities. Wildcard (`*`) expressions are supported.').meta({ found_in: 'path' })
-})
+}).meta({ id: 'RollupGetRollupIndexCapsRequest' })
 export type RollupGetRollupIndexCapsRequest = z.infer<typeof RollupGetRollupIndexCapsRequest>
 
-export const RollupGetRollupIndexCapsResponse = z.record(z.lazy(() => IndexName), RollupGetRollupIndexCapsIndexCapabilities)
+export const RollupGetRollupIndexCapsResponse = z.record(z.lazy(() => IndexName), RollupGetRollupIndexCapsIndexCapabilities).meta({ id: 'RollupGetRollupIndexCapsResponse' })
 export type RollupGetRollupIndexCapsResponse = z.infer<typeof RollupGetRollupIndexCapsResponse>
 
 /**
@@ -252,10 +252,10 @@ export const RollupPutJobRequest = z.object({
   rollup_index: z.lazy(() => IndexName).describe('The index that contains the rollup results. The index can be shared with other rollup jobs. The data is stored so that it doesn’t interfere with unrelated jobs.').meta({ found_in: 'body' }),
   timeout: z.lazy(() => Duration).describe('Time to wait for the request to complete.').optional().meta({ found_in: 'body' }),
   headers: z.lazy(() => HttpHeaders).optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'RollupPutJobRequest' })
 export type RollupPutJobRequest = z.infer<typeof RollupPutJobRequest>
 
-export const RollupPutJobResponse = z.lazy(() => AcknowledgedResponseBase)
+export const RollupPutJobResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'RollupPutJobResponse' })
 export type RollupPutJobResponse = z.infer<typeof RollupPutJobResponse>
 
 /**
@@ -281,7 +281,7 @@ export const RollupRollupSearchRequest = z.object({
   aggs: z.record(z.string(), z.lazy(() => AggregationsAggregationContainer)).describe('Specifies aggregations.').optional(),
   query: z.lazy(() => QueryDslQueryContainer).describe('Specifies a DSL query that is subject to some limitations.').optional().meta({ found_in: 'body' }),
   size: z.lazy(() => integer).describe('Must be zero if set, as rollups work on pre-aggregated data.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'RollupRollupSearchRequest' })
 export type RollupRollupSearchRequest = z.infer<typeof RollupRollupSearchRequest>
 
 export const RollupRollupSearchResponse = z.object({
@@ -291,7 +291,7 @@ export const RollupRollupSearchResponse = z.object({
   _shards: z.lazy(() => ShardStatistics),
   hits: z.lazy(() => SearchHitsMetadata),
   aggregations: z.any().optional()
-})
+}).meta({ id: 'RollupRollupSearchResponse' })
 export type RollupRollupSearchResponse = z.infer<typeof RollupRollupSearchResponse>
 
 /**
@@ -303,12 +303,12 @@ export type RollupRollupSearchResponse = z.infer<typeof RollupRollupSearchRespon
  */
 export const RollupStartJobRequest = z.object({
   id: z.lazy(() => Id).describe('Identifier for the rollup job.').meta({ found_in: 'path' })
-})
+}).meta({ id: 'RollupStartJobRequest' })
 export type RollupStartJobRequest = z.infer<typeof RollupStartJobRequest>
 
 export const RollupStartJobResponse = z.object({
   started: z.boolean()
-})
+}).meta({ id: 'RollupStartJobResponse' })
 export type RollupStartJobResponse = z.infer<typeof RollupStartJobResponse>
 
 /**
@@ -331,10 +331,10 @@ export const RollupStopJobRequest = z.object({
   id: z.lazy(() => Id).describe('Identifier for the rollup job.').meta({ found_in: 'path' }),
   timeout: z.lazy(() => Duration).describe('If `wait_for_completion` is `true`, the API blocks for (at maximum) the specified duration while waiting for the job to stop. If more than `timeout` time has passed, the API throws a timeout exception. NOTE: Even if a timeout occurs, the stop request is still processing and eventually moves the job to STOPPED. The timeout simply means the API call itself timed out while waiting for the status change.').optional().meta({ found_in: 'query' }),
   wait_for_completion: z.boolean().describe('If set to `true`, causes the API to block until the indexer state completely stops. If set to `false`, the API returns immediately and the indexer is stopped asynchronously in the background.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'RollupStopJobRequest' })
 export type RollupStopJobRequest = z.infer<typeof RollupStopJobRequest>
 
 export const RollupStopJobResponse = z.object({
   stopped: z.boolean()
-})
+}).meta({ id: 'RollupStopJobResponse' })
 export type RollupStopJobResponse = z.infer<typeof RollupStopJobResponse>

@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { ByteSize, Duration, ExpandWildcards, IndexName, Indices, Name, NodeIds, ShardStatistics, integer, long } from './_types.ts'
 
-export const SearchableSnapshotsStatsLevel = z.enum(['cluster', 'indices', 'shards'])
+export const SearchableSnapshotsStatsLevel = z.enum(['cluster', 'indices', 'shards']).meta({ id: 'SearchableSnapshotsStatsLevel' })
 export type SearchableSnapshotsStatsLevel = z.infer<typeof SearchableSnapshotsStatsLevel>
 
 export const SearchableSnapshotsCacheStatsShared = z.object({
@@ -21,12 +21,12 @@ export const SearchableSnapshotsCacheStatsShared = z.object({
   num_regions: z.lazy(() => integer),
   size_in_bytes: z.lazy(() => ByteSize),
   region_size_in_bytes: z.lazy(() => ByteSize)
-})
+}).meta({ id: 'SearchableSnapshotsCacheStatsShared' })
 export type SearchableSnapshotsCacheStatsShared = z.infer<typeof SearchableSnapshotsCacheStatsShared>
 
 export const SearchableSnapshotsCacheStatsNode = z.object({
   shared_cache: SearchableSnapshotsCacheStatsShared
-})
+}).meta({ id: 'SearchableSnapshotsCacheStatsNode' })
 export type SearchableSnapshotsCacheStatsNode = z.infer<typeof SearchableSnapshotsCacheStatsNode>
 
 /**
@@ -36,12 +36,12 @@ export type SearchableSnapshotsCacheStatsNode = z.infer<typeof SearchableSnapsho
  */
 export const SearchableSnapshotsCacheStatsRequest = z.object({
   node_id: z.lazy(() => NodeIds).describe('The names of the nodes in the cluster to target.').optional().meta({ found_in: 'path' })
-})
+}).meta({ id: 'SearchableSnapshotsCacheStatsRequest' })
 export type SearchableSnapshotsCacheStatsRequest = z.infer<typeof SearchableSnapshotsCacheStatsRequest>
 
 export const SearchableSnapshotsCacheStatsResponse = z.object({
   nodes: z.record(z.string(), SearchableSnapshotsCacheStatsNode)
-})
+}).meta({ id: 'SearchableSnapshotsCacheStatsResponse' })
 export type SearchableSnapshotsCacheStatsResponse = z.infer<typeof SearchableSnapshotsCacheStatsResponse>
 
 /**
@@ -54,20 +54,20 @@ export const SearchableSnapshotsClearCacheRequest = z.object({
   expand_wildcards: z.lazy(() => ExpandWildcards).describe('Whether to expand wildcard expression to concrete indices that are open, closed or both').optional().meta({ found_in: 'query' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'SearchableSnapshotsClearCacheRequest' })
 export type SearchableSnapshotsClearCacheRequest = z.infer<typeof SearchableSnapshotsClearCacheRequest>
 
-export const SearchableSnapshotsClearCacheResponse = z.any()
+export const SearchableSnapshotsClearCacheResponse = z.any().meta({ id: 'SearchableSnapshotsClearCacheResponse' })
 export type SearchableSnapshotsClearCacheResponse = z.infer<typeof SearchableSnapshotsClearCacheResponse>
 
 export const SearchableSnapshotsMountMountedSnapshot = z.object({
   snapshot: z.lazy(() => Name),
   indices: z.lazy(() => Indices),
   shards: z.lazy(() => ShardStatistics)
-})
+}).meta({ id: 'SearchableSnapshotsMountMountedSnapshot' })
 export type SearchableSnapshotsMountMountedSnapshot = z.infer<typeof SearchableSnapshotsMountMountedSnapshot>
 
-export const SearchableSnapshotsMountStorageOption = z.enum(['full_copy', 'shared_cache'])
+export const SearchableSnapshotsMountStorageOption = z.enum(['full_copy', 'shared_cache']).meta({ id: 'SearchableSnapshotsMountStorageOption' })
 export type SearchableSnapshotsMountStorageOption = z.infer<typeof SearchableSnapshotsMountStorageOption>
 
 /**
@@ -87,23 +87,23 @@ export const SearchableSnapshotsMountRequest = z.object({
   renamed_index: z.lazy(() => IndexName).describe('The name of the index that will be created.').optional().meta({ found_in: 'body' }),
   index_settings: z.record(z.string(), z.any()).describe('The settings that should be added to the index when it is mounted.').optional().meta({ found_in: 'body' }),
   ignore_index_settings: z.array(z.string()).describe('The names of settings that should be removed from the index when it is mounted.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'SearchableSnapshotsMountRequest' })
 export type SearchableSnapshotsMountRequest = z.infer<typeof SearchableSnapshotsMountRequest>
 
 export const SearchableSnapshotsMountResponse = z.object({
   snapshot: SearchableSnapshotsMountMountedSnapshot
-})
+}).meta({ id: 'SearchableSnapshotsMountResponse' })
 export type SearchableSnapshotsMountResponse = z.infer<typeof SearchableSnapshotsMountResponse>
 
 /** Get searchable snapshot statistics. */
 export const SearchableSnapshotsStatsRequest = z.object({
   index: z.lazy(() => Indices).describe('A comma-separated list of data streams and indices to retrieve statistics for.').optional().meta({ found_in: 'path' }),
   level: SearchableSnapshotsStatsLevel.describe('Return stats aggregated at cluster, index or shard level').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'SearchableSnapshotsStatsRequest' })
 export type SearchableSnapshotsStatsRequest = z.infer<typeof SearchableSnapshotsStatsRequest>
 
 export const SearchableSnapshotsStatsResponse = z.object({
   stats: z.any(),
   total: z.any()
-})
+}).meta({ id: 'SearchableSnapshotsStatsResponse' })
 export type SearchableSnapshotsStatsResponse = z.infer<typeof SearchableSnapshotsStatsResponse>

@@ -124,5 +124,5 @@ export const allApis: EsApiDefinition[] = [
   ...termvectorsApis,
   ...transformApis,
   ...updateApis,
-  ...updateByQueryApis,
+  ...updateByQueryApis
 ]

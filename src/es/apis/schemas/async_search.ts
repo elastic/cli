@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { SearchFieldCollapse, SearchHighlight, SearchHitsMetadata, SearchPointInTimeReference, SearchProfile, SearchRescore, SearchSourceConfig, SearchSuggest, SearchSuggester, SearchTrackHits } from './_global.ts'
-import { AcknowledgedResponseBase, AggregationsAggregationContainer, ClusterStatistics, DateTime, Duration, EpochTime, ErrorCause, ExpandWildcards, Field, Fields, Id, IndexName, Indices, KnnSearch, MappingRuntimeFields, ProjectRouting, QueryDslFieldAndFormat, QueryDslOperator, QueryDslQueryContainer, Routing, ScriptField, ScrollId, SearchType, ShardStatistics, SlicedScroll, Sort, SortResults, SuggestMode, SuggestionName, double, integer, long } from './_types.ts'
+import { AcknowledgedResponseBase, AggregationsAggregationContainer, ClusterStatistics, DateTime, Duration, EpochTime, ErrorCause, ExpandWildcards, Field, Fields, Id, IndexName, Indices, KnnSearch, MappingRuntimeFields, QueryDslFieldAndFormat, QueryDslOperator, QueryDslQueryContainer, Routing, ScriptField, ScrollId, SearchType, ShardStatistics, SlicedScroll, Sort, SortResults, SuggestMode, SuggestionName, double, integer, long } from './_types.ts'
 
 export const AsyncSearchAsyncSearch = z.object({
   aggregations: z.any().describe('Partial aggregations results, coming from the shards that have already completed running the query.').optional(),
@@ -25,7 +25,7 @@ export const AsyncSearchAsyncSearch = z.object({
   terminated_early: z.boolean().optional(),
   timed_out: z.boolean(),
   took: z.lazy(() => long)
-})
+}).meta({ id: 'AsyncSearchAsyncSearch' })
 export type AsyncSearchAsyncSearch = z.infer<typeof AsyncSearchAsyncSearch>
 
 export const AsyncSearchAsyncSearchResponseBase = z.object({
@@ -39,13 +39,13 @@ export const AsyncSearchAsyncSearchResponseBase = z.object({
   completion_time: z.lazy(() => DateTime).describe('Indicates when the async search completed. It is present only when the search has completed.').optional(),
   completion_time_in_millis: z.lazy(() => EpochTime).optional(),
   error: z.lazy(() => ErrorCause).optional()
-})
+}).meta({ id: 'AsyncSearchAsyncSearchResponseBase' })
 export type AsyncSearchAsyncSearchResponseBase = z.infer<typeof AsyncSearchAsyncSearchResponseBase>
 
 export const AsyncSearchAsyncSearchDocumentResponseBase = z.object({
   ...AsyncSearchAsyncSearchResponseBase.shape,
   response: AsyncSearchAsyncSearch
-})
+}).meta({ id: 'AsyncSearchAsyncSearchDocumentResponseBase' })
 export type AsyncSearchAsyncSearchDocumentResponseBase = z.infer<typeof AsyncSearchAsyncSearchDocumentResponseBase>
 
 export const AsyncSearchAsyncSearchResponseException = z.object({
@@ -59,7 +59,7 @@ export const AsyncSearchAsyncSearchResponseException = z.object({
   completion_time_in_millis: z.lazy(() => EpochTime).optional(),
   error: z.lazy(() => ErrorCause).optional(),
   response: AsyncSearchAsyncSearch.optional()
-})
+}).meta({ id: 'AsyncSearchAsyncSearchResponseException' })
 export type AsyncSearchAsyncSearchResponseException = z.infer<typeof AsyncSearchAsyncSearchResponseException>
 
 /**
@@ -71,10 +71,10 @@ export type AsyncSearchAsyncSearchResponseException = z.infer<typeof AsyncSearch
  */
 export const AsyncSearchDeleteRequest = z.object({
   id: z.lazy(() => Id).describe('A unique identifier for the async search.').meta({ found_in: 'path' })
-})
+}).meta({ id: 'AsyncSearchDeleteRequest' })
 export type AsyncSearchDeleteRequest = z.infer<typeof AsyncSearchDeleteRequest>
 
-export const AsyncSearchDeleteResponse = z.lazy(() => AcknowledgedResponseBase)
+export const AsyncSearchDeleteResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'AsyncSearchDeleteResponse' })
 export type AsyncSearchDeleteResponse = z.infer<typeof AsyncSearchDeleteResponse>
 
 /**
@@ -89,10 +89,10 @@ export const AsyncSearchGetRequest = z.object({
   typed_keys: z.boolean().describe('Specify whether aggregation and suggester names should be prefixed by their respective types in the response').optional().meta({ found_in: 'query' }),
   wait_for_completion_timeout: z.lazy(() => Duration).describe('Specifies to wait for the search to be completed up until the provided timeout. Final results will be returned if available before the timeout expires, otherwise the currently available results will be returned once the timeout expires. By default no timeout is set meaning that the currently available results will be returned without any additional wait.').optional().meta({ found_in: 'query' }),
   return_intermediate_results: z.boolean().describe('Specifies whether the response should contain intermediate results if the query is still running when the wait_for_completion_timeout expires or if no wait_for_completion_timeout is specified. If true and the search is still running, the search response will include any hits and partial aggregations that are available. If false and the search is still running, the search response will not include any hits (but possibly include total hits) nor will include any partial aggregations. When not specified, the intermediate results are returned for running queries.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'AsyncSearchGetRequest' })
 export type AsyncSearchGetRequest = z.infer<typeof AsyncSearchGetRequest>
 
-export const AsyncSearchGetResponse = AsyncSearchAsyncSearchDocumentResponseBase
+export const AsyncSearchGetResponse = AsyncSearchAsyncSearchDocumentResponseBase.meta({ id: 'AsyncSearchGetResponse' })
 export type AsyncSearchGetResponse = z.infer<typeof AsyncSearchGetResponse>
 
 /**
@@ -107,7 +107,7 @@ export type AsyncSearchGetResponse = z.infer<typeof AsyncSearchGetResponse>
 export const AsyncSearchStatusRequest = z.object({
   id: z.lazy(() => Id).describe('A unique identifier for the async search.').meta({ found_in: 'path' }),
   keep_alive: z.lazy(() => Duration).describe('The length of time that the async search needs to be available. Ongoing async searches and any saved search results are deleted after this period.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'AsyncSearchStatusRequest' })
 export type AsyncSearchStatusRequest = z.infer<typeof AsyncSearchStatusRequest>
 
 export const AsyncSearchStatusStatusResponseBase = z.object({
@@ -115,10 +115,10 @@ export const AsyncSearchStatusStatusResponseBase = z.object({
   _shards: z.lazy(() => ShardStatistics).describe('The number of shards that have run the query so far.'),
   _clusters: z.lazy(() => ClusterStatistics).describe('Metadata about clusters involved in the cross-cluster search. It is not shown for local-only searches.').optional(),
   completion_status: z.lazy(() => integer).describe('If the async search completed, this field shows the status code of the search. For example, `200` indicates that the async search was successfully completed. `503` indicates that the async search was completed with an error.').optional()
-})
+}).meta({ id: 'AsyncSearchStatusStatusResponseBase' })
 export type AsyncSearchStatusStatusResponseBase = z.infer<typeof AsyncSearchStatusStatusResponseBase>
 
-export const AsyncSearchStatusResponse = AsyncSearchStatusStatusResponseBase
+export const AsyncSearchStatusResponse = AsyncSearchStatusStatusResponseBase.meta({ id: 'AsyncSearchStatusResponse' })
 export type AsyncSearchStatusResponse = z.infer<typeof AsyncSearchStatusResponse>
 
 /**
@@ -195,8 +195,8 @@ export const AsyncSearchSubmitRequest = z.object({
   pit: SearchPointInTimeReference.describe('Limits the search to a point in time (PIT). If you provide a PIT, you cannot specify an <index> in the request path.').optional().meta({ found_in: 'body' }),
   runtime_mappings: z.lazy(() => MappingRuntimeFields).describe('Defines one or more runtime fields in the search request. These fields take precedence over mapped fields with the same name.').optional().meta({ found_in: 'body' }),
   stats: z.array(z.string()).describe('Stats groups to associate with the search. Each group maintains a statistics aggregation for its associated searches. You can retrieve these stats using the indices stats API.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'AsyncSearchSubmitRequest' })
 export type AsyncSearchSubmitRequest = z.infer<typeof AsyncSearchSubmitRequest>
 
-export const AsyncSearchSubmitResponse = AsyncSearchAsyncSearchDocumentResponseBase
+export const AsyncSearchSubmitResponse = AsyncSearchAsyncSearchDocumentResponseBase.meta({ id: 'AsyncSearchSubmitResponse' })
 export type AsyncSearchSubmitResponse = z.infer<typeof AsyncSearchSubmitResponse>

@@ -2297,7 +2297,7 @@ describe('forward-compatibility and extensibility', () => {
 
 describe('JSON schema in help output', () => {
   describe('human-readable help text', () => {
-    it('includes Input Schema section when command has an input schema', () => {
+    it('does NOT include Input Schema section when command has an input schema', () => {
       const cmd = defineCommand({
         name: 'search',
         description: 'Search an index',
@@ -2305,7 +2305,19 @@ describe('JSON schema in help output', () => {
         handler: () => ({}),
       })
       const help = cmd.helpInformation()
-      assert.match(help, /Input Schema:/)
+      assert.doesNotMatch(help, /Input Schema:/)
+    })
+
+    it('does NOT include JSON schema properties in human-readable help text', () => {
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search an index',
+        input: z.object({ index: z.string(), size: z.number() }),
+        handler: () => ({}),
+      })
+      const help = cmd.helpInformation()
+      assert.doesNotMatch(help, /"index"/)
+      assert.doesNotMatch(help, /"size"/)
     })
 
     it('does NOT include Input Schema section when command has no input schema', () => {
@@ -2316,44 +2328,6 @@ describe('JSON schema in help output', () => {
       })
       const help = cmd.helpInformation()
       assert.doesNotMatch(help, /Input Schema:/)
-    })
-
-    it('shows JSON schema properties in help text', () => {
-      const cmd = defineCommand({
-        name: 'search',
-        description: 'Search an index',
-        input: z.object({ index: z.string(), size: z.number() }),
-        handler: () => ({}),
-      })
-      const help = cmd.helpInformation()
-      assert.match(help, /"index"/)
-      assert.match(help, /"size"/)
-      assert.match(help, /"string"/)
-      assert.match(help, /"number"/)
-    })
-
-    it('shows required fields in JSON schema help text', () => {
-      const cmd = defineCommand({
-        name: 'search',
-        description: 'Search an index',
-        input: z.object({ index: z.string() }),
-        handler: () => ({}),
-      })
-      const help = cmd.helpInformation()
-      assert.match(help, /"required"/)
-      assert.match(help, /"index"/)
-    })
-
-    it('shows nested object schema in help text', () => {
-      const cmd = defineCommand({
-        name: 'create',
-        description: 'Create a resource',
-        input: z.object({ address: z.object({ zipCode: z.string() }) }),
-        handler: () => ({}),
-      })
-      const help = cmd.helpInformation()
-      assert.match(help, /"address"/)
-      assert.match(help, /"zipCode"/)
     })
   })
 

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { DateTime } from './_types.ts'
@@ -18,7 +18,7 @@ export const SslCertificatesCertificateInformation = z.object({
   path: z.string().describe('The path to the certificate, as configured in the `elasticsearch.yml` file.'),
   serial_number: z.string().describe('The hexadecimal representation of the certificate\'s serial number.'),
   subject_dn: z.string().describe('The Distinguished Name of the certificate\'s subject.')
-})
+}).meta({ id: 'SslCertificatesCertificateInformation' })
 export type SslCertificatesCertificateInformation = z.infer<typeof SslCertificatesCertificateInformation>
 
 /**
@@ -41,8 +41,8 @@ export type SslCertificatesCertificateInformation = z.infer<typeof SslCertificat
  * If Elasticsearch is configured to use a keystore or truststore, the API output includes all certificates in that store, even though some of the certificates might not be in active use within the cluster.
  */
 export const SslCertificatesRequest = z.object({
-})
+}).meta({ id: 'SslCertificatesRequest' })
 export type SslCertificatesRequest = z.infer<typeof SslCertificatesRequest>
 
-export const SslCertificatesResponse = z.array(SslCertificatesCertificateInformation)
+export const SslCertificatesResponse = z.array(SslCertificatesCertificateInformation).meta({ id: 'SslCertificatesResponse' })
 export type SslCertificatesResponse = z.infer<typeof SslCertificatesResponse>

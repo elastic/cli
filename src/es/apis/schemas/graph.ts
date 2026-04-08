@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { Duration, Field, Indices, QueryDslQueryContainer, Routing, ShardFailure, double, integer, long } from './_types.ts'
@@ -15,13 +15,13 @@ export const GraphConnection = z.object({
   source: z.lazy(() => long),
   target: z.lazy(() => long),
   weight: z.lazy(() => double)
-})
+}).meta({ id: 'GraphConnection' })
 export type GraphConnection = z.infer<typeof GraphConnection>
 
 export const GraphSampleDiversity = z.object({
   field: z.lazy(() => Field),
   max_docs_per_value: z.lazy(() => integer)
-})
+}).meta({ id: 'GraphSampleDiversity' })
 export type GraphSampleDiversity = z.infer<typeof GraphSampleDiversity>
 
 export const GraphExploreControls = z.object({
@@ -29,13 +29,13 @@ export const GraphExploreControls = z.object({
   sample_size: z.lazy(() => integer).describe('Each hop considers a sample of the best-matching documents on each shard. Using samples improves the speed of execution and keeps exploration focused on meaningfully-connected terms. Very small values (less than 50) might not provide sufficient weight-of-evidence to identify significant connections between terms. Very large sample sizes can dilute the quality of the results and increase execution times.').optional(),
   timeout: z.lazy(() => Duration).describe('The length of time in milliseconds after which exploration will be halted and the results gathered so far are returned. This timeout is honored on a best-effort basis. Execution might overrun this timeout if, for example, a long pause is encountered while FieldData is loaded for a field.').optional(),
   use_significance: z.boolean().describe('Filters associated terms so only those that are significantly associated with your query are included.')
-})
+}).meta({ id: 'GraphExploreControls' })
 export type GraphExploreControls = z.infer<typeof GraphExploreControls>
 
 export const GraphVertexInclude = z.object({
   boost: z.lazy(() => double).optional(),
   term: z.string()
-})
+}).meta({ id: 'GraphVertexInclude' })
 export type GraphVertexInclude = z.infer<typeof GraphVertexInclude>
 
 export const GraphVertexDefinition = z.object({
@@ -45,7 +45,7 @@ export const GraphVertexDefinition = z.object({
   min_doc_count: z.lazy(() => long).describe('Specifies how many documents must contain a pair of terms before it is considered to be a useful connection. This setting acts as a certainty threshold.').optional(),
   shard_min_doc_count: z.lazy(() => long).describe('Controls how many documents on a particular shard have to contain a pair of terms before the connection is returned for global consideration.').optional(),
   size: z.lazy(() => integer).describe('Specifies the maximum number of vertex terms returned for each field.').optional()
-})
+}).meta({ id: 'GraphVertexDefinition' })
 export type GraphVertexDefinition = z.infer<typeof GraphVertexDefinition>
 
 export interface GraphHopShape {
@@ -57,7 +57,7 @@ export const GraphHop = z.object({
   get connections () { return GraphHop.describe('Specifies one or more fields from which you want to extract terms that are associated with the specified vertices.').optional() },
   get query () { return QueryDslQueryContainer.describe('An optional guiding query that constrains the Graph API as it explores connected terms.').optional() },
   vertices: z.array(GraphVertexDefinition).describe('Contains the fields you are interested in.')
-})
+}).meta({ id: 'GraphHop' })
 export type GraphHop = z.infer<typeof GraphHop>
 
 export const GraphVertex = z.object({
@@ -65,7 +65,7 @@ export const GraphVertex = z.object({
   field: z.lazy(() => Field),
   term: z.string(),
   weight: z.lazy(() => double)
-})
+}).meta({ id: 'GraphVertex' })
 export type GraphVertex = z.infer<typeof GraphVertex>
 
 /**
@@ -85,7 +85,7 @@ export const GraphExploreRequest = z.object({
   controls: GraphExploreControls.describe('Direct the Graph API how to build the graph.').optional().meta({ found_in: 'body' }),
   query: z.lazy(() => QueryDslQueryContainer).describe('A seed query that identifies the documents of interest. Can be any valid Elasticsearch query.').optional().meta({ found_in: 'body' }),
   vertices: z.array(GraphVertexDefinition).describe('Specifies one or more fields that contain the terms you want to include in the graph as vertices.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'GraphExploreRequest' })
 export type GraphExploreRequest = z.infer<typeof GraphExploreRequest>
 
 export const GraphExploreResponse = z.object({
@@ -94,5 +94,5 @@ export const GraphExploreResponse = z.object({
   timed_out: z.boolean(),
   took: z.lazy(() => long),
   vertices: z.array(GraphVertex)
-})
+}).meta({ id: 'GraphExploreResponse' })
 export type GraphExploreResponse = z.infer<typeof GraphExploreResponse>

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { AcknowledgedResponseBase, ByteSize, Duration, DurationValue, ErrorCause, IndexName, IndexPattern, IndexPatterns, Indices, Name, SequenceNumber, ShardStatistics, Uuid, VersionNumber, WaitForActiveShards, integer, long } from './_types.ts'
@@ -14,7 +14,7 @@ export const CcrReadException = z.object({
   exception: z.lazy(() => ErrorCause).describe('The exception that caused the read to fail.'),
   from_seq_no: z.lazy(() => SequenceNumber).describe('The starting sequence number of the batch requested from the leader.'),
   retries: z.lazy(() => integer).describe('The number of times the batch has been retried.')
-})
+}).meta({ id: 'CcrReadException' })
 export type CcrReadException = z.infer<typeof CcrReadException>
 
 export const CcrShardStats = z.object({
@@ -51,13 +51,13 @@ export const CcrShardStats = z.object({
   total_write_time_millis: z.lazy(() => DurationValue).describe('The total time spent writing on the follower.'),
   write_buffer_operation_count: z.lazy(() => long).describe('The number of write operations queued on the follower.'),
   write_buffer_size_in_bytes: z.lazy(() => ByteSize).describe('The total number of bytes of operations currently queued for writing.')
-})
+}).meta({ id: 'CcrShardStats' })
 export type CcrShardStats = z.infer<typeof CcrShardStats>
 
 export const CcrFollowIndexStats = z.object({
   index: z.lazy(() => IndexName).describe('The name of the follower index.'),
   shards: z.array(CcrShardStats).describe('An array of shard-level following task statistics.')
-})
+}).meta({ id: 'CcrFollowIndexStats' })
 export type CcrFollowIndexStats = z.infer<typeof CcrFollowIndexStats>
 
 /**
@@ -68,10 +68,10 @@ export type CcrFollowIndexStats = z.infer<typeof CcrFollowIndexStats>
 export const CcrDeleteAutoFollowPatternRequest = z.object({
   name: z.lazy(() => Name).describe('The auto-follow pattern collection to delete.').meta({ found_in: 'path' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If the master node is not available before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CcrDeleteAutoFollowPatternRequest' })
 export type CcrDeleteAutoFollowPatternRequest = z.infer<typeof CcrDeleteAutoFollowPatternRequest>
 
-export const CcrDeleteAutoFollowPatternResponse = z.lazy(() => AcknowledgedResponseBase)
+export const CcrDeleteAutoFollowPatternResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'CcrDeleteAutoFollowPatternResponse' })
 export type CcrDeleteAutoFollowPatternResponse = z.infer<typeof CcrDeleteAutoFollowPatternResponse>
 
 /**
@@ -98,14 +98,14 @@ export const CcrFollowRequest = z.object({
   read_poll_timeout: z.lazy(() => Duration).describe('The maximum time to wait for new operations on the remote cluster when the follower index is synchronized with the leader index. When the timeout has elapsed, the poll for operations will return to the follower so that it can update some statistics. Then the follower will immediately attempt to read from the leader again.').optional().meta({ found_in: 'body' }),
   remote_cluster: z.string().describe('The remote cluster containing the leader index.').meta({ found_in: 'body' }),
   settings: z.lazy(() => IndicesIndexSettings).describe('Settings to override from the leader index.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'CcrFollowRequest' })
 export type CcrFollowRequest = z.infer<typeof CcrFollowRequest>
 
 export const CcrFollowResponse = z.object({
   follow_index_created: z.boolean(),
   follow_index_shards_acked: z.boolean(),
   index_following_started: z.boolean()
-})
+}).meta({ id: 'CcrFollowResponse' })
 export type CcrFollowResponse = z.infer<typeof CcrFollowResponse>
 
 export const CcrFollowInfoFollowerIndexParameters = z.object({
@@ -119,10 +119,10 @@ export const CcrFollowInfoFollowerIndexParameters = z.object({
   max_write_request_operation_count: z.lazy(() => integer).describe('The maximum number of operations per bulk write request executed on the follower.').optional(),
   max_write_request_size: z.lazy(() => ByteSize).describe('The maximum total bytes of operations per bulk write request executed on the follower.').optional(),
   read_poll_timeout: z.lazy(() => Duration).describe('The maximum time to wait for new operations on the remote cluster when the follower index is synchronized with the leader index. When the timeout has elapsed, the poll for operations will return to the follower so that it can update some statistics. Then the follower will immediately attempt to read from the leader again.').optional()
-})
+}).meta({ id: 'CcrFollowInfoFollowerIndexParameters' })
 export type CcrFollowInfoFollowerIndexParameters = z.infer<typeof CcrFollowInfoFollowerIndexParameters>
 
-export const CcrFollowInfoFollowerIndexStatus = z.enum(['active', 'paused'])
+export const CcrFollowInfoFollowerIndexStatus = z.enum(['active', 'paused']).meta({ id: 'CcrFollowInfoFollowerIndexStatus' })
 export type CcrFollowInfoFollowerIndexStatus = z.infer<typeof CcrFollowInfoFollowerIndexStatus>
 
 export const CcrFollowInfoFollowerIndex = z.object({
@@ -131,7 +131,7 @@ export const CcrFollowInfoFollowerIndex = z.object({
   parameters: CcrFollowInfoFollowerIndexParameters.describe('An object that encapsulates cross-cluster replication parameters. If the follower index\'s status is paused, this object is omitted.').optional(),
   remote_cluster: z.lazy(() => Name).describe('The remote cluster that contains the leader index.'),
   status: CcrFollowInfoFollowerIndexStatus.describe('The status of the index following: `active` or `paused`.')
-})
+}).meta({ id: 'CcrFollowInfoFollowerIndex' })
 export type CcrFollowInfoFollowerIndex = z.infer<typeof CcrFollowInfoFollowerIndex>
 
 /**
@@ -143,12 +143,12 @@ export type CcrFollowInfoFollowerIndex = z.infer<typeof CcrFollowInfoFollowerInd
 export const CcrFollowInfoRequest = z.object({
   index: z.lazy(() => Indices).describe('A comma-delimited list of follower index patterns.').meta({ found_in: 'path' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If the master node is not available before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CcrFollowInfoRequest' })
 export type CcrFollowInfoRequest = z.infer<typeof CcrFollowInfoRequest>
 
 export const CcrFollowInfoResponse = z.object({
   follower_indices: z.array(CcrFollowInfoFollowerIndex)
-})
+}).meta({ id: 'CcrFollowInfoResponse' })
 export type CcrFollowInfoResponse = z.infer<typeof CcrFollowInfoResponse>
 
 /**
@@ -160,12 +160,12 @@ export type CcrFollowInfoResponse = z.infer<typeof CcrFollowInfoResponse>
 export const CcrFollowStatsRequest = z.object({
   index: z.lazy(() => Indices).describe('A comma-delimited list of index patterns.').meta({ found_in: 'path' }),
   timeout: z.lazy(() => Duration).describe('The period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CcrFollowStatsRequest' })
 export type CcrFollowStatsRequest = z.infer<typeof CcrFollowStatsRequest>
 
 export const CcrFollowStatsResponse = z.object({
   indices: z.array(CcrFollowIndexStats).describe('An array of follower index statistics.')
-})
+}).meta({ id: 'CcrFollowStatsResponse' })
 export type CcrFollowStatsResponse = z.infer<typeof CcrFollowStatsResponse>
 
 /**
@@ -190,12 +190,12 @@ export const CcrForgetFollowerRequest = z.object({
   follower_index: z.lazy(() => IndexName).optional().meta({ found_in: 'body' }),
   follower_index_uuid: z.lazy(() => Uuid).optional().meta({ found_in: 'body' }),
   leader_remote_cluster: z.string().optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'CcrForgetFollowerRequest' })
 export type CcrForgetFollowerRequest = z.infer<typeof CcrForgetFollowerRequest>
 
 export const CcrForgetFollowerResponse = z.object({
   _shards: z.lazy(() => ShardStatistics)
-})
+}).meta({ id: 'CcrForgetFollowerResponse' })
 export type CcrForgetFollowerResponse = z.infer<typeof CcrForgetFollowerResponse>
 
 export const CcrGetAutoFollowPatternAutoFollowPatternSummary = z.object({
@@ -205,13 +205,13 @@ export const CcrGetAutoFollowPatternAutoFollowPatternSummary = z.object({
   leader_index_patterns: IndexPatterns.describe('An array of simple index patterns to match against indices in the remote cluster specified by the remote_cluster field.'),
   leader_index_exclusion_patterns: IndexPatterns.describe('An array of simple index patterns that can be used to exclude indices from being auto-followed.'),
   max_outstanding_read_requests: z.lazy(() => integer).describe('The maximum number of outstanding reads requests from the remote cluster.')
-})
+}).meta({ id: 'CcrGetAutoFollowPatternAutoFollowPatternSummary' })
 export type CcrGetAutoFollowPatternAutoFollowPatternSummary = z.infer<typeof CcrGetAutoFollowPatternAutoFollowPatternSummary>
 
 export const CcrGetAutoFollowPatternAutoFollowPattern = z.object({
   name: z.lazy(() => Name),
   pattern: CcrGetAutoFollowPatternAutoFollowPatternSummary
-})
+}).meta({ id: 'CcrGetAutoFollowPatternAutoFollowPattern' })
 export type CcrGetAutoFollowPatternAutoFollowPattern = z.infer<typeof CcrGetAutoFollowPatternAutoFollowPattern>
 
 /**
@@ -222,12 +222,12 @@ export type CcrGetAutoFollowPatternAutoFollowPattern = z.infer<typeof CcrGetAuto
 export const CcrGetAutoFollowPatternRequest = z.object({
   name: z.lazy(() => Name).describe('The auto-follow pattern collection that you want to retrieve. If you do not specify a name, the API returns information for all collections.').optional().meta({ found_in: 'path' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If the master node is not available before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CcrGetAutoFollowPatternRequest' })
 export type CcrGetAutoFollowPatternRequest = z.infer<typeof CcrGetAutoFollowPatternRequest>
 
 export const CcrGetAutoFollowPatternResponse = z.object({
   patterns: z.array(CcrGetAutoFollowPatternAutoFollowPattern)
-})
+}).meta({ id: 'CcrGetAutoFollowPatternResponse' })
 export type CcrGetAutoFollowPatternResponse = z.infer<typeof CcrGetAutoFollowPatternResponse>
 
 /**
@@ -244,10 +244,10 @@ export type CcrGetAutoFollowPatternResponse = z.infer<typeof CcrGetAutoFollowPat
 export const CcrPauseAutoFollowPatternRequest = z.object({
   name: z.lazy(() => Name).describe('The name of the auto-follow pattern to pause.').meta({ found_in: 'path' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If the master node is not available before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CcrPauseAutoFollowPatternRequest' })
 export type CcrPauseAutoFollowPatternRequest = z.infer<typeof CcrPauseAutoFollowPatternRequest>
 
-export const CcrPauseAutoFollowPatternResponse = z.lazy(() => AcknowledgedResponseBase)
+export const CcrPauseAutoFollowPatternResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'CcrPauseAutoFollowPatternResponse' })
 export type CcrPauseAutoFollowPatternResponse = z.infer<typeof CcrPauseAutoFollowPatternResponse>
 
 /**
@@ -261,10 +261,10 @@ export type CcrPauseAutoFollowPatternResponse = z.infer<typeof CcrPauseAutoFollo
 export const CcrPauseFollowRequest = z.object({
   index: z.lazy(() => IndexName).describe('The name of the follower index.').meta({ found_in: 'path' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If the master node is not available before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CcrPauseFollowRequest' })
 export type CcrPauseFollowRequest = z.infer<typeof CcrPauseFollowRequest>
 
-export const CcrPauseFollowResponse = z.lazy(() => AcknowledgedResponseBase)
+export const CcrPauseFollowResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'CcrPauseFollowResponse' })
 export type CcrPauseFollowResponse = z.infer<typeof CcrPauseFollowResponse>
 
 /**
@@ -295,10 +295,10 @@ export const CcrPutAutoFollowPatternRequest = z.object({
   max_write_buffer_size: z.lazy(() => ByteSize).describe('The maximum total bytes of operations that can be queued for writing. When this limit is reached, reads from the remote cluster will be deferred until the total bytes of queued operations goes below the limit.').optional().meta({ found_in: 'body' }),
   max_write_request_operation_count: z.lazy(() => integer).describe('The maximum number of operations per bulk write request executed on the follower.').optional().meta({ found_in: 'body' }),
   max_write_request_size: z.lazy(() => ByteSize).describe('The maximum total bytes of operations per bulk write request executed on the follower.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'CcrPutAutoFollowPatternRequest' })
 export type CcrPutAutoFollowPatternRequest = z.infer<typeof CcrPutAutoFollowPatternRequest>
 
-export const CcrPutAutoFollowPatternResponse = z.lazy(() => AcknowledgedResponseBase)
+export const CcrPutAutoFollowPatternResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'CcrPutAutoFollowPatternResponse' })
 export type CcrPutAutoFollowPatternResponse = z.infer<typeof CcrPutAutoFollowPatternResponse>
 
 /**
@@ -311,10 +311,10 @@ export type CcrPutAutoFollowPatternResponse = z.infer<typeof CcrPutAutoFollowPat
 export const CcrResumeAutoFollowPatternRequest = z.object({
   name: z.lazy(() => Name).describe('The name of the auto-follow pattern to resume.').meta({ found_in: 'path' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If the master node is not available before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CcrResumeAutoFollowPatternRequest' })
 export type CcrResumeAutoFollowPatternRequest = z.infer<typeof CcrResumeAutoFollowPatternRequest>
 
-export const CcrResumeAutoFollowPatternResponse = z.lazy(() => AcknowledgedResponseBase)
+export const CcrResumeAutoFollowPatternResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'CcrResumeAutoFollowPatternResponse' })
 export type CcrResumeAutoFollowPatternResponse = z.infer<typeof CcrResumeAutoFollowPatternResponse>
 
 /**
@@ -338,17 +338,17 @@ export const CcrResumeFollowRequest = z.object({
   max_write_request_operation_count: z.lazy(() => long).optional().meta({ found_in: 'body' }),
   max_write_request_size: z.string().optional().meta({ found_in: 'body' }),
   read_poll_timeout: z.lazy(() => Duration).optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'CcrResumeFollowRequest' })
 export type CcrResumeFollowRequest = z.infer<typeof CcrResumeFollowRequest>
 
-export const CcrResumeFollowResponse = z.lazy(() => AcknowledgedResponseBase)
+export const CcrResumeFollowResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'CcrResumeFollowResponse' })
 export type CcrResumeFollowResponse = z.infer<typeof CcrResumeFollowResponse>
 
 export const CcrStatsAutoFollowedCluster = z.object({
   cluster_name: z.lazy(() => Name),
   last_seen_metadata_version: z.lazy(() => VersionNumber),
   time_since_last_check_millis: z.lazy(() => DurationValue)
-})
+}).meta({ id: 'CcrStatsAutoFollowedCluster' })
 export type CcrStatsAutoFollowedCluster = z.infer<typeof CcrStatsAutoFollowedCluster>
 
 export const CcrStatsAutoFollowStats = z.object({
@@ -357,12 +357,12 @@ export const CcrStatsAutoFollowStats = z.object({
   number_of_failed_remote_cluster_state_requests: z.lazy(() => long).describe('The number of times that the auto-follow coordinator failed to retrieve the cluster state from a remote cluster registered in a collection of auto-follow patterns.'),
   number_of_successful_follow_indices: z.lazy(() => long).describe('The number of indices that the auto-follow coordinator successfully followed.'),
   recent_auto_follow_errors: z.array(z.lazy(() => ErrorCause)).describe('An array of objects representing failures by the auto-follow coordinator.')
-})
+}).meta({ id: 'CcrStatsAutoFollowStats' })
 export type CcrStatsAutoFollowStats = z.infer<typeof CcrStatsAutoFollowStats>
 
 export const CcrStatsFollowStats = z.object({
   indices: z.array(CcrFollowIndexStats)
-})
+}).meta({ id: 'CcrStatsFollowStats' })
 export type CcrStatsFollowStats = z.infer<typeof CcrStatsFollowStats>
 
 /**
@@ -373,13 +373,13 @@ export type CcrStatsFollowStats = z.infer<typeof CcrStatsFollowStats>
 export const CcrStatsRequest = z.object({
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If the master node is not available before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('The period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CcrStatsRequest' })
 export type CcrStatsRequest = z.infer<typeof CcrStatsRequest>
 
 export const CcrStatsResponse = z.object({
   auto_follow_stats: CcrStatsAutoFollowStats.describe('Statistics for the auto-follow coordinator.'),
   follow_stats: CcrStatsFollowStats.describe('Shard-level statistics for follower indices.')
-})
+}).meta({ id: 'CcrStatsResponse' })
 export type CcrStatsResponse = z.infer<typeof CcrStatsResponse>
 
 /**
@@ -395,8 +395,8 @@ export type CcrStatsResponse = z.infer<typeof CcrStatsResponse>
 export const CcrUnfollowRequest = z.object({
   index: z.lazy(() => IndexName).describe('The name of the follower index.').meta({ found_in: 'path' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If the master node is not available before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CcrUnfollowRequest' })
 export type CcrUnfollowRequest = z.infer<typeof CcrUnfollowRequest>
 
-export const CcrUnfollowResponse = z.lazy(() => AcknowledgedResponseBase)
+export const CcrUnfollowResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'CcrUnfollowResponse' })
 export type CcrUnfollowResponse = z.infer<typeof CcrUnfollowResponse>

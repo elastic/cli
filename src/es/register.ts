@@ -8,7 +8,7 @@ import { defineCommand, defineGroup } from '../factory.ts'
 import type { OpaqueCommandHandle } from '../factory.ts'
 import type { EsApiDefinition } from './types.ts'
 import { validateApiDefinition, resolveInput } from './types.ts'
-import { extractSchemaArgs } from '../lib/schema-args.ts'
+import type { SchemaArgDefinition } from '../lib/schema-args.ts'
 import { allApis } from './apis.ts'
 import { createEsHandler } from './handler.ts'
 
@@ -33,9 +33,11 @@ import { createEsHandler } from './handler.ts'
 export function registerEsCommands (
   definitions: EsApiDefinition[] = allApis
 ): OpaqueCommandHandle {
-  // validate all definitions up-front for fail-fast detection of bad configs
+  // validate all definitions up-front for fail-fast detection of bad configs;
+  // capture the returned SchemaArgDefinition[] to avoid re-running extractSchemaArgs later
+  const defSchemaArgs = new Map<EsApiDefinition, SchemaArgDefinition[]>()
   for (const def of definitions) {
-    validateApiDefinition(def)
+    defSchemaArgs.set(def, validateApiDefinition(def))
   }
 
   // separate definitions into namespaced groups and namespace-less root leaves
@@ -77,8 +79,8 @@ export function registerEsCommands (
     const leafHandles = defs.map((def) => {
       // resolve thunk or direct schema; fall back to empty loose schema when absent
       const schema = def.input != null ? resolveInput(def.input) : z.looseObject({})
-      // extract once at registration time; closed over by handler for routing
-      const schemaArgs = extractSchemaArgs(schema)
+      // reuse schemaArgs already computed by validateApiDefinition — no second pass
+      const schemaArgs = defSchemaArgs.get(def) ?? []
       return defineCommand({
         name: def.name,
         description: def.description,
@@ -101,7 +103,7 @@ export function registerEsCommands (
     topLevelNames.add(def.name)
 
     const schema = def.input != null ? resolveInput(def.input) : z.looseObject({})
-    const schemaArgs = extractSchemaArgs(schema)
+    const schemaArgs = defSchemaArgs.get(def) ?? []
     rootHandles.push(defineCommand({
       name: def.name,
       description: def.description,

@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
-import { AcknowledgedResponseBase, AggregateName, AggregationsAggregate, AggregationsAggregationContainer, BulkIndexByScrollFailure, ClusterStatistics, Conflicts, Duration, DurationValue, ElasticsearchVersionInfo, EpochTime, ErrorCause, ErrorResponseBase, ExpandWildcards, Field, Fields, Fuzziness, GeoHashPrecision, GeoLocation, Host, HttpHeaders, Id, Ids, IndexName, Indices, InlineGet, Ip, KnnSearch, LifecycleOperationMode, MapboxVectorTiles, MappingRuntimeFields, MappingTimeSeriesMetricType, Metadata, Name, NodeId, NodeName, NodeRoles, NodeShard, NodeStatistics, OpType, Password, ProjectRouting, QueryDslFieldAndFormat, QueryDslOperator, QueryDslQueryContainer, QueryVector, RankContainer, Refresh, ReindexStatus, Result, Retries, RetrieverContainer, Routing, Script, ScriptField, ScriptLanguage, ScriptSource, ScrollId, ScrollIds, SearchType, SequenceNumber, ShardStatistics, SlicedScroll, Slices, Sort, SortResults, StoredScript, SuggestMode, SuggestionName, TaskFailure, TaskId, TransportAddress, Username, Uuid, VersionNumber, VersionString, VersionType, WaitForActiveShards, WriteResponseBase, double, float, integer, long } from './_types.ts'
+import { AcknowledgedResponseBase, AggregateName, AggregationsAggregate, AggregationsAggregationContainer, BulkIndexByScrollFailure, ClusterStatistics, Conflicts, Duration, DurationValue, ElasticsearchVersionInfo, EpochTime, ErrorCause, ErrorResponseBase, ExpandWildcards, Field, Fields, Fuzziness, GeoHashPrecision, GeoLocation, Host, HttpHeaders, Id, Ids, IndexName, Indices, InlineGet, Ip, KnnSearch, LifecycleOperationMode, MapboxVectorTiles, MappingRuntimeFields, MappingTimeSeriesMetricType, Metadata, Name, NodeId, NodeName, NodeRoles, NodeShard, NodeStatistics, OpType, Password, ProjectRouting, QueryDslFieldAndFormat, QueryDslOperator, QueryDslQueryContainer, QueryVector, Refresh, ReindexStatus, Result, Retries, RetrieverContainer, Routing, Script, ScriptField, ScriptLanguage, ScriptSource, ScrollId, ScrollIds, SearchType, SequenceNumber, ShardStatistics, SlicedScroll, Slices, Sort, SortResults, StoredScript, SuggestMode, SuggestionName, TaskFailure, TaskId, TransportAddress, Username, Uuid, VersionNumber, VersionString, VersionType, WaitForActiveShards, WriteResponseBase, double, float, integer, long } from './_types.ts'
 import type { AggregationsAggregationContainerShape, KnnSearchShape, MappingRuntimeFieldsShape, QueryDslQueryContainerShape, RetrieverContainerShape, ScriptFieldShape, ScriptShape, SortShape } from './_types.ts'
-import { TasksGroupBy, TasksTaskInfo, TasksTaskListResponseBase } from './tasks.ts'
+import { TasksTaskInfo, TasksTaskListResponseBase } from './tasks.ts'
 
 export const BulkOperationBase = z.object({
   _id: z.lazy(() => Id).describe('The document ID.').optional(),
@@ -19,7 +19,7 @@ export const BulkOperationBase = z.object({
   if_seq_no: z.lazy(() => SequenceNumber).optional(),
   version: z.lazy(() => VersionNumber).optional(),
   version_type: z.lazy(() => VersionType).optional()
-})
+}).meta({ id: 'BulkOperationBase' })
 export type BulkOperationBase = z.infer<typeof BulkOperationBase>
 
 export const BulkWriteOperation = z.object({
@@ -27,47 +27,47 @@ export const BulkWriteOperation = z.object({
   dynamic_templates: z.record(z.string(), z.string()).describe('A map from the full name of fields to the name of dynamic templates. It defaults to an empty map. If a name matches a dynamic template, that template will be applied regardless of other match predicates defined in the template. If a field is already defined in the mapping, then this parameter won\'t be used.').optional(),
   pipeline: z.string().describe('The ID of the pipeline to use to preprocess incoming documents. If the index has a default ingest pipeline specified, setting the value to `_none` turns off the default ingest pipeline for this request. If a final pipeline is configured, it will always run regardless of the value of this parameter.').optional(),
   require_alias: z.boolean().describe('If `true`, the request\'s actions must target an index alias.').optional()
-})
+}).meta({ id: 'BulkWriteOperation' })
 export type BulkWriteOperation = z.infer<typeof BulkWriteOperation>
 
 export const BulkCreateOperation = z.object({
   ...BulkWriteOperation.shape
-})
+}).meta({ id: 'BulkCreateOperation' })
 export type BulkCreateOperation = z.infer<typeof BulkCreateOperation>
 
 export const BulkDeleteOperation = z.object({
   ...BulkOperationBase.shape
-})
+}).meta({ id: 'BulkDeleteOperation' })
 export type BulkDeleteOperation = z.infer<typeof BulkDeleteOperation>
 
-export const BulkFailureStoreStatus = z.enum(['not_applicable_or_unknown', 'used', 'not_enabled', 'failed'])
+export const BulkFailureStoreStatus = z.enum(['not_applicable_or_unknown', 'used', 'not_enabled', 'failed']).meta({ id: 'BulkFailureStoreStatus' })
 export type BulkFailureStoreStatus = z.infer<typeof BulkFailureStoreStatus>
 
 export const BulkIndexOperation = z.object({
   ...BulkWriteOperation.shape
-})
+}).meta({ id: 'BulkIndexOperation' })
 export type BulkIndexOperation = z.infer<typeof BulkIndexOperation>
 
 export const BulkUpdateOperation = z.object({
   ...BulkOperationBase.shape,
   require_alias: z.boolean().describe('If `true`, the request\'s actions must target an index alias.').optional(),
   retry_on_conflict: z.lazy(() => integer).describe('The number of times an update should be retried in the case of a version conflict.').optional()
-})
+}).meta({ id: 'BulkUpdateOperation' })
 export type BulkUpdateOperation = z.infer<typeof BulkUpdateOperation>
 
 const BulkOperationContainerExclusiveProps = z.union([z.object({ index: BulkIndexOperation }), z.object({ create: BulkCreateOperation }), z.object({ update: BulkUpdateOperation }), z.object({ delete: BulkDeleteOperation })])
 
-export const BulkOperationContainer = BulkOperationContainerExclusiveProps
+export const BulkOperationContainer = BulkOperationContainerExclusiveProps.meta({ id: 'BulkOperationContainer' })
 export type BulkOperationContainer = z.infer<typeof BulkOperationContainer>
 
-export const BulkOperationType = z.enum(['index', 'create', 'update', 'delete'])
+export const BulkOperationType = z.enum(['index', 'create', 'update', 'delete']).meta({ id: 'BulkOperationType' })
 export type BulkOperationType = z.infer<typeof BulkOperationType>
 
 /**
  * Defines how to fetch a source. Fetching can be disabled entirely, or the source can be filtered.
  * Used as a query parameter along with the `_source_includes` and `_source_excludes` parameters.
  */
-export const SearchSourceConfigParam = z.union([z.boolean(), z.lazy(() => Fields)])
+export const SearchSourceConfigParam = z.union([z.boolean(), z.lazy(() => Fields)]).meta({ id: 'SearchSourceConfigParam' })
 export type SearchSourceConfigParam = z.infer<typeof SearchSourceConfigParam>
 
 export interface SearchFieldCollapseShape {
@@ -81,22 +81,22 @@ export const SearchFieldCollapse = z.object({
   get inner_hits (): z.ZodOptional<z.ZodUnion<readonly [typeof SearchInnerHits, z.ZodArray<typeof SearchInnerHits>]>> { return z.union([SearchInnerHits, SearchInnerHits.array()]).describe('The number of inner hits and their sort order').optional() },
   max_concurrent_group_searches: z.lazy(() => integer).describe('The number of concurrent requests allowed to retrieve the inner_hits per group').optional(),
   get collapse () { return SearchFieldCollapse.optional() }
-})
+}).meta({ id: 'SearchFieldCollapse' })
 export type SearchFieldCollapse = z.infer<typeof SearchFieldCollapse>
 
-export const SearchHighlighterType = z.union([z.enum(['plain', 'fvh', 'unified']), z.string()])
+export const SearchHighlighterType = z.union([z.enum(['plain', 'fvh', 'unified']), z.string()]).meta({ id: 'SearchHighlighterType' })
 export type SearchHighlighterType = z.infer<typeof SearchHighlighterType>
 
-export const SearchBoundaryScanner = z.enum(['chars', 'sentence', 'word'])
+export const SearchBoundaryScanner = z.enum(['chars', 'sentence', 'word']).meta({ id: 'SearchBoundaryScanner' })
 export type SearchBoundaryScanner = z.infer<typeof SearchBoundaryScanner>
 
-export const SearchHighlighterFragmenter = z.enum(['simple', 'span'])
+export const SearchHighlighterFragmenter = z.enum(['simple', 'span']).meta({ id: 'SearchHighlighterFragmenter' })
 export type SearchHighlighterFragmenter = z.infer<typeof SearchHighlighterFragmenter>
 
-export const SearchHighlighterOrder = z.enum(['score'])
+export const SearchHighlighterOrder = z.enum(['score']).meta({ id: 'SearchHighlighterOrder' })
 export type SearchHighlighterOrder = z.infer<typeof SearchHighlighterOrder>
 
-export const SearchHighlighterTagsSchema = z.enum(['styled'])
+export const SearchHighlighterTagsSchema = z.enum(['styled']).meta({ id: 'SearchHighlighterTagsSchema' })
 export type SearchHighlighterTagsSchema = z.infer<typeof SearchHighlighterTagsSchema>
 
 export interface SearchHighlightBaseShape {
@@ -144,10 +144,10 @@ export const SearchHighlightBase = z.object({
   pre_tags: z.array(z.string()).describe('Use in conjunction with `post_tags` to define the HTML tags to use for the highlighted text. By default, highlighted text is wrapped in `<em>` and `</em>` tags.').optional(),
   require_field_match: z.boolean().describe('By default, only fields that contains a query match are highlighted. Set to `false` to highlight all fields.').optional(),
   tags_schema: SearchHighlighterTagsSchema.describe('Set to `styled` to use the built-in tag schema.').optional()
-})
+}).meta({ id: 'SearchHighlightBase' })
 export type SearchHighlightBase = z.infer<typeof SearchHighlightBase>
 
-export const SearchHighlighterEncoder = z.enum(['default', 'html'])
+export const SearchHighlighterEncoder = z.enum(['default', 'html']).meta({ id: 'SearchHighlighterEncoder' })
 export type SearchHighlighterEncoder = z.infer<typeof SearchHighlighterEncoder>
 
 export interface SearchHighlightFieldShape {
@@ -199,7 +199,7 @@ export const SearchHighlightField = z.object({
   tags_schema: SearchHighlighterTagsSchema.describe('Set to `styled` to use the built-in tag schema.').optional(),
   fragment_offset: z.lazy(() => integer).optional(),
   matched_fields: z.lazy(() => Fields).optional()
-})
+}).meta({ id: 'SearchHighlightField' })
 export type SearchHighlightField = z.infer<typeof SearchHighlightField>
 
 export interface SearchHighlightShape {
@@ -251,7 +251,7 @@ export const SearchHighlight = z.object({
   tags_schema: SearchHighlighterTagsSchema.describe('Set to `styled` to use the built-in tag schema.').optional(),
   encoder: SearchHighlighterEncoder.optional(),
   get fields (): z.ZodUnion<readonly [z.ZodRecord<typeof Field, typeof SearchHighlightField>, z.ZodArray<z.ZodRecord<typeof Field, typeof SearchHighlightField>>]> { return z.union([z.record(Field, SearchHighlightField), z.array(z.record(Field, SearchHighlightField))]) }
-})
+}).meta({ id: 'SearchHighlight' })
 export type SearchHighlight = z.infer<typeof SearchHighlight>
 
 export const SearchSourceFilter = z.object({
@@ -260,11 +260,11 @@ export const SearchSourceFilter = z.object({
   exclude: z.lazy(() => Fields).describe('A list of fields to exclude from the returned source.').optional(),
   includes: z.lazy(() => Fields).describe('A list of fields to include in the returned source.').optional(),
   include: z.lazy(() => Fields).describe('A list of fields to include in the returned source.').optional()
-})
+}).meta({ id: 'SearchSourceFilter' })
 export type SearchSourceFilter = z.infer<typeof SearchSourceFilter>
 
 /** Defines how to fetch a source. Fetching can be disabled entirely, or the source can be filtered. */
-export const SearchSourceConfig = z.union([z.boolean(), SearchSourceFilter])
+export const SearchSourceConfig = z.union([z.boolean(), SearchSourceFilter]).meta({ id: 'SearchSourceConfig' })
 export type SearchSourceConfig = z.infer<typeof SearchSourceConfig>
 
 export interface SearchInnerHitsShape {
@@ -302,7 +302,7 @@ export const SearchInnerHits = z.object({
   stored_fields: z.lazy(() => Fields).optional(),
   track_scores: z.boolean().optional(),
   version: z.boolean().optional()
-})
+}).meta({ id: 'SearchInnerHits' })
 export type SearchInnerHits = z.infer<typeof SearchInnerHits>
 
 /**
@@ -311,10 +311,10 @@ export type SearchInnerHits = z.infer<typeof SearchInnerHits>
  * response does not include the total number of hits matching the query.
  * Defaults to 10,000 hits.
  */
-export const SearchTrackHits = z.union([z.boolean(), z.lazy(() => integer)])
+export const SearchTrackHits = z.union([z.boolean(), z.lazy(() => integer)]).meta({ id: 'SearchTrackHits' })
 export type SearchTrackHits = z.infer<typeof SearchTrackHits>
 
-export const SearchScoreMode = z.enum(['avg', 'max', 'min', 'multiply', 'total'])
+export const SearchScoreMode = z.enum(['avg', 'max', 'min', 'multiply', 'total']).meta({ id: 'SearchScoreMode' })
 export type SearchScoreMode = z.infer<typeof SearchScoreMode>
 
 export interface SearchRescoreQueryShape {
@@ -328,13 +328,13 @@ export const SearchRescoreQuery = z.object({
   query_weight: z.lazy(() => double).describe('Relative importance of the original query versus the rescore query.').optional(),
   rescore_query_weight: z.lazy(() => double).describe('Relative importance of the rescore query versus the original query.').optional(),
   score_mode: SearchScoreMode.describe('Determines how scores are combined.').optional()
-})
+}).meta({ id: 'SearchRescoreQuery' })
 export type SearchRescoreQuery = z.infer<typeof SearchRescoreQuery>
 
 export const SearchLearningToRank = z.object({
   model_id: z.string().describe('The unique identifier of the trained model uploaded to Elasticsearch'),
   params: z.record(z.string(), z.any()).describe('Named parameters to be passed to the query templates used for feature').optional()
-})
+}).meta({ id: 'SearchLearningToRank' })
 export type SearchLearningToRank = z.infer<typeof SearchLearningToRank>
 
 export interface SearchScriptRescoreShape {
@@ -342,7 +342,7 @@ export interface SearchScriptRescoreShape {
 }
 export const SearchScriptRescore = z.object({
   get script () { return Script }
-})
+}).meta({ id: 'SearchScriptRescore' })
 export type SearchScriptRescore = z.infer<typeof SearchScriptRescore>
 
 const SearchRescoreCommonProps = z.object({
@@ -357,18 +357,18 @@ export interface SearchRescoreShape {
   learning_to_rank?: SearchLearningToRank | undefined
   script?: SearchScriptRescore | undefined
 }
-export const SearchRescore: z.ZodType<SearchRescoreShape> = SearchRescoreCommonProps.and(SearchRescoreExclusiveProps)
+export const SearchRescore: z.ZodType<SearchRescoreShape> = SearchRescoreCommonProps.and(SearchRescoreExclusiveProps).meta({ id: 'SearchRescore' })
 export type SearchRescore = z.infer<typeof SearchRescore>
 
 export const SearchSuggester = z.object({
   text: z.string().describe('Global suggest text, to avoid repetition when the same text is used in several suggesters').optional()
-}).catchall(z.any())
+}).catchall(z.any()).meta({ id: 'SearchSuggester' })
 export type SearchSuggester = z.infer<typeof SearchSuggester>
 
 export const SearchPointInTimeReference = z.object({
   id: z.lazy(() => Id),
   keep_alive: z.lazy(() => Duration).optional()
-})
+}).meta({ id: 'SearchPointInTimeReference' })
 export type SearchPointInTimeReference = z.infer<typeof SearchPointInTimeReference>
 
 export interface SearchSearchRequestBodyShape {
@@ -440,7 +440,7 @@ export const SearchSearchRequestBody = z.object({
   pit: SearchPointInTimeReference.describe('Limit the search to a point in time (PIT). If you provide a PIT, you cannot specify an `<index>` in the request path.').optional(),
   get runtime_mappings () { return MappingRuntimeFields.describe('One or more runtime fields in the search request. These fields take precedence over mapped fields with the same name.').optional() },
   stats: z.array(z.string()).describe('The stats groups to associate with the search. Each group maintains a statistics aggregation for its associated searches. You can retrieve these stats using the indices stats API.').optional()
-})
+}).meta({ id: 'SearchSearchRequestBody' })
 export type SearchSearchRequestBody = z.infer<typeof SearchSearchRequestBody>
 
 export const BulkUpdateAction = z.object({
@@ -451,7 +451,7 @@ export const BulkUpdateAction = z.object({
   scripted_upsert: z.boolean().describe('Set to `true` to run the script whether or not the document exists.').optional(),
   _source: z.lazy(() => SearchSourceConfig).describe('If `false`, source retrieval is turned off. You can also specify a comma-separated list of the fields you want to retrieve.').optional(),
   upsert: z.any().describe('If the document does not already exist, the contents of `upsert` are inserted as a new document. If the document exists, the `script` is run.').optional()
-})
+}).meta({ id: 'BulkUpdateAction' })
 export type BulkUpdateAction = z.infer<typeof BulkUpdateAction>
 
 /**
@@ -587,7 +587,7 @@ export const BulkRequest = z.object({
   require_alias: z.boolean().describe('If `true`, the request\'s actions must target an index alias.').optional().meta({ found_in: 'query' }),
   require_data_stream: z.boolean().describe('If `true`, the request\'s actions must target a data stream (existing or to be created).').optional().meta({ found_in: 'query' }),
   operations: z.array(z.union([BulkOperationContainer, BulkUpdateAction, z.any()])).optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'BulkRequest' })
 export type BulkRequest = z.infer<typeof BulkRequest>
 
 export const BulkResponseItem = z.object({
@@ -603,7 +603,7 @@ export const BulkResponseItem = z.object({
   _version: z.lazy(() => VersionNumber).describe('The document version associated with the operation. The document version is incremented each time the document is updated. This property is returned only for successful actions.').optional(),
   forced_refresh: z.boolean().optional(),
   get: z.lazy(() => InlineGet).optional()
-})
+}).meta({ id: 'BulkResponseItem' })
 export type BulkResponseItem = z.infer<typeof BulkResponseItem>
 
 export const BulkResponse = z.object({
@@ -611,15 +611,15 @@ export const BulkResponse = z.object({
   items: z.array(z.record(BulkOperationType, BulkResponseItem)).describe('The result of each operation in the bulk request, in the order they were submitted.'),
   took: z.lazy(() => long).describe('The length of time, in milliseconds, it took to process the bulk request.'),
   ingest_took: z.lazy(() => long).optional()
-})
+}).meta({ id: 'BulkResponse' })
 export type BulkResponse = z.infer<typeof BulkResponse>
 
 export const CapabilitiesFailedNodeException = z.object({
   node_id: z.lazy(() => Id)
-})
+}).meta({ id: 'CapabilitiesFailedNodeException' })
 export type CapabilitiesFailedNodeException = z.infer<typeof CapabilitiesFailedNodeException>
 
-export const CapabilitiesRestMethod = z.enum(['GET', 'HEAD', 'POST', 'PUT', 'DELETE'])
+export const CapabilitiesRestMethod = z.enum(['GET', 'HEAD', 'POST', 'PUT', 'DELETE']).meta({ id: 'CapabilitiesRestMethod' })
 export type CapabilitiesRestMethod = z.infer<typeof CapabilitiesRestMethod>
 
 /** Checks if the specified combination of method, API, parameters, and arbitrary capabilities are supported. */
@@ -630,7 +630,7 @@ export const CapabilitiesRequest = z.object({
   capabilities: z.union([z.string(), z.array(z.string())]).describe('Comma-separated list of arbitrary API capabilities to check').optional().meta({ found_in: 'query' }),
   local_only: z.boolean().describe('True if only the node being called should be considered').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'CapabilitiesRequest' })
 export type CapabilitiesRequest = z.infer<typeof CapabilitiesRequest>
 
 export const CapabilitiesResponse = z.object({
@@ -638,7 +638,7 @@ export const CapabilitiesResponse = z.object({
   cluster_name: z.lazy(() => Name),
   supported: z.union([z.boolean(), z.null()]),
   failures: z.array(CapabilitiesFailedNodeException).optional()
-})
+}).meta({ id: 'CapabilitiesResponse' })
 export type CapabilitiesResponse = z.infer<typeof CapabilitiesResponse>
 
 /**
@@ -648,13 +648,13 @@ export type CapabilitiesResponse = z.infer<typeof CapabilitiesResponse>
  */
 export const ClearScrollRequest = z.object({
   scroll_id: z.lazy(() => ScrollIds).describe('The scroll IDs to clear. To clear all scroll IDs, use `_all`.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ClearScrollRequest' })
 export type ClearScrollRequest = z.infer<typeof ClearScrollRequest>
 
 export const ClearScrollResponse = z.object({
   succeeded: z.boolean().describe('If `true`, the request succeeded. This does not indicate whether any scrolling search requests were cleared.'),
   num_freed: z.lazy(() => integer).describe('The number of scrolling search requests cleared.')
-})
+}).meta({ id: 'ClearScrollResponse' })
 export type ClearScrollResponse = z.infer<typeof ClearScrollResponse>
 
 /**
@@ -667,13 +667,13 @@ export type ClearScrollResponse = z.infer<typeof ClearScrollResponse>
  */
 export const ClosePointInTimeRequest = z.object({
   id: z.lazy(() => Id).describe('The ID of the point-in-time.').meta({ found_in: 'body' })
-})
+}).meta({ id: 'ClosePointInTimeRequest' })
 export type ClosePointInTimeRequest = z.infer<typeof ClosePointInTimeRequest>
 
 export const ClosePointInTimeResponse = z.object({
   succeeded: z.boolean().describe('If `true`, all search contexts associated with the point-in-time ID were successfully closed.'),
   num_freed: z.lazy(() => integer).describe('The number of search contexts that were successfully closed.')
-})
+}).meta({ id: 'ClosePointInTimeResponse' })
 export type ClosePointInTimeResponse = z.infer<typeof ClosePointInTimeResponse>
 
 /**
@@ -707,13 +707,13 @@ export const CountRequest = z.object({
   terminate_after: z.lazy(() => long).describe('The maximum number of documents to collect for each shard. If a query reaches this limit, Elasticsearch terminates the query early. Elasticsearch collects documents before sorting. IMPORTANT: Use with caution. Elasticsearch applies this parameter to each shard handling the request. When possible, let Elasticsearch perform early termination automatically. Avoid specifying this parameter for requests that target data streams with backing indices across multiple data tiers.').optional().meta({ found_in: 'query' }),
   q: z.string().describe('The query in Lucene query string syntax. This parameter cannot be used with a request body.').optional().meta({ found_in: 'query' }),
   query: z.lazy(() => QueryDslQueryContainer).describe('Defines the search query using Query DSL. A request body query cannot be used with the `q` query string parameter.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'CountRequest' })
 export type CountRequest = z.infer<typeof CountRequest>
 
 export const CountResponse = z.object({
   count: z.lazy(() => long),
   _shards: z.lazy(() => ShardStatistics)
-})
+}).meta({ id: 'CountResponse' })
 export type CountResponse = z.infer<typeof CountResponse>
 
 /**
@@ -804,10 +804,10 @@ export const CreateRequest = z.object({
   version_type: z.lazy(() => VersionType).describe('The version type.').optional().meta({ found_in: 'query' }),
   wait_for_active_shards: z.lazy(() => WaitForActiveShards).describe('The number of shard copies that must be active before proceeding with the operation. You can set it to `all` or any positive integer up to the total number of shards in the index (`number_of_replicas+1`). The default value of `1` means it waits for each primary shard to be active.').optional().meta({ found_in: 'query' }),
   document: z.any().optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'CreateRequest' })
 export type CreateRequest = z.infer<typeof CreateRequest>
 
-export const CreateResponse = z.lazy(() => WriteResponseBase)
+export const CreateResponse = z.lazy(() => WriteResponseBase).meta({ id: 'CreateResponse' })
 export type CreateResponse = z.infer<typeof CreateResponse>
 
 /**
@@ -862,10 +862,10 @@ export const DeleteRequest = z.object({
   version: z.lazy(() => VersionNumber).describe('An explicit version number for concurrency control. It must match the current version of the document for the request to succeed.').optional().meta({ found_in: 'query' }),
   version_type: z.lazy(() => VersionType).describe('The version type.').optional().meta({ found_in: 'query' }),
   wait_for_active_shards: z.lazy(() => WaitForActiveShards).describe('The minimum number of shard copies that must be active before proceeding with the operation. You can set it to `all` or any positive integer up to the total number of shards in the index (`number_of_replicas+1`). The default value of `1` means it waits for each primary shard to be active.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'DeleteRequest' })
 export type DeleteRequest = z.infer<typeof DeleteRequest>
 
-export const DeleteResponse = z.lazy(() => WriteResponseBase)
+export const DeleteResponse = z.lazy(() => WriteResponseBase).meta({ id: 'DeleteResponse' })
 export type DeleteResponse = z.infer<typeof DeleteResponse>
 
 /**
@@ -983,7 +983,7 @@ export const DeleteByQueryRequest = z.object({
   query: z.lazy(() => QueryDslQueryContainer).describe('The documents to delete specified with Query DSL.').optional().meta({ found_in: 'body' }),
   slice: z.lazy(() => SlicedScroll).describe('Slice the request manually using the provided slice ID and total number of slices.').optional().meta({ found_in: 'body' }),
   sort: z.lazy(() => Sort).describe('A sort object that specifies the order of deleted documents.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'DeleteByQueryRequest' })
 export type DeleteByQueryRequest = z.infer<typeof DeleteByQueryRequest>
 
 export const DeleteByQueryResponse = z.object({
@@ -1004,7 +1004,7 @@ export const DeleteByQueryResponse = z.object({
   took: z.lazy(() => DurationValue).describe('The number of milliseconds from start to end of the whole operation.').optional(),
   total: z.lazy(() => long).describe('The number of documents that were successfully processed.').optional(),
   version_conflicts: z.lazy(() => long).describe('The number of version conflicts that the delete by query hit.').optional()
-})
+}).meta({ id: 'DeleteByQueryResponse' })
 export type DeleteByQueryResponse = z.infer<typeof DeleteByQueryResponse>
 
 /**
@@ -1016,10 +1016,10 @@ export type DeleteByQueryResponse = z.infer<typeof DeleteByQueryResponse>
 export const DeleteByQueryRethrottleRequest = z.object({
   task_id: z.lazy(() => TaskId).describe('The ID for the task.').meta({ found_in: 'path' }),
   requests_per_second: z.lazy(() => float).describe('The throttle for this request in sub-requests per second. To disable throttling, set it to `-1`.').meta({ found_in: 'query' })
-})
+}).meta({ id: 'DeleteByQueryRethrottleRequest' })
 export type DeleteByQueryRethrottleRequest = z.infer<typeof DeleteByQueryRethrottleRequest>
 
-export const DeleteByQueryRethrottleResponse = z.lazy(() => TasksTaskListResponseBase)
+export const DeleteByQueryRethrottleResponse = z.lazy(() => TasksTaskListResponseBase).meta({ id: 'DeleteByQueryRethrottleResponse' })
 export type DeleteByQueryRethrottleResponse = z.infer<typeof DeleteByQueryRethrottleResponse>
 
 /**
@@ -1031,10 +1031,10 @@ export const DeleteScriptRequest = z.object({
   id: z.lazy(() => Id).describe('The identifier for the stored script or search template.').meta({ found_in: 'path' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('The period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'DeleteScriptRequest' })
 export type DeleteScriptRequest = z.infer<typeof DeleteScriptRequest>
 
-export const DeleteScriptResponse = z.lazy(() => AcknowledgedResponseBase)
+export const DeleteScriptResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'DeleteScriptResponse' })
 export type DeleteScriptResponse = z.infer<typeof DeleteScriptResponse>
 
 /**
@@ -1071,10 +1071,10 @@ export const ExistsRequest = z.object({
   stored_fields: z.lazy(() => Fields).describe('A comma-separated list of stored fields to return as part of a hit. If no fields are specified, no stored fields are included in the response. If this field is specified, the `_source` parameter defaults to `false`.').optional().meta({ found_in: 'query' }),
   version: z.lazy(() => VersionNumber).describe('Explicit version number for concurrency control. The specified version must match the current version of the document for the request to succeed.').optional().meta({ found_in: 'query' }),
   version_type: z.lazy(() => VersionType).describe('The version type.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ExistsRequest' })
 export type ExistsRequest = z.infer<typeof ExistsRequest>
 
-export const ExistsResponse = z.boolean()
+export const ExistsResponse = z.boolean().meta({ id: 'ExistsResponse' })
 export type ExistsResponse = z.infer<typeof ExistsResponse>
 
 /**
@@ -1101,10 +1101,10 @@ export const ExistsSourceRequest = z.object({
   _source_includes: z.lazy(() => Fields).describe('A comma-separated list of source fields to include in the response.').optional().meta({ found_in: 'query' }),
   version: z.lazy(() => VersionNumber).describe('The version number for concurrency control. It must match the current version of the document for the request to succeed.').optional().meta({ found_in: 'query' }),
   version_type: z.lazy(() => VersionType).describe('The version type.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'ExistsSourceRequest' })
 export type ExistsSourceRequest = z.infer<typeof ExistsSourceRequest>
 
-export const ExistsSourceResponse = z.boolean()
+export const ExistsSourceResponse = z.boolean().meta({ id: 'ExistsSourceResponse' })
 export type ExistsSourceResponse = z.infer<typeof ExistsSourceResponse>
 
 export interface ExplainExplanationDetailShape {
@@ -1116,14 +1116,14 @@ export const ExplainExplanationDetail = z.object({
   description: z.string(),
   get details () { return ExplainExplanationDetail.array().optional() },
   value: z.lazy(() => float)
-})
+}).meta({ id: 'ExplainExplanationDetail' })
 export type ExplainExplanationDetail = z.infer<typeof ExplainExplanationDetail>
 
 export const ExplainExplanation = z.object({
   description: z.string(),
   details: z.array(z.lazy(() => ExplainExplanationDetail)),
   value: z.lazy(() => float)
-})
+}).meta({ id: 'ExplainExplanation' })
 export type ExplainExplanation = z.infer<typeof ExplainExplanation>
 
 /**
@@ -1148,7 +1148,7 @@ export const ExplainRequest = z.object({
   stored_fields: z.lazy(() => Fields).describe('A comma-separated list of stored fields to return in the response.').optional().meta({ found_in: 'query' }),
   q: z.string().describe('The query in the Lucene query string syntax.').optional().meta({ found_in: 'query' }),
   query: z.lazy(() => QueryDslQueryContainer).describe('Defines the search definition using the Query DSL.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ExplainRequest' })
 export type ExplainRequest = z.infer<typeof ExplainRequest>
 
 export const ExplainResponse = z.object({
@@ -1157,7 +1157,7 @@ export const ExplainResponse = z.object({
   matched: z.boolean(),
   explanation: z.lazy(() => ExplainExplanationDetail).optional(),
   get: z.lazy(() => InlineGet).optional()
-})
+}).meta({ id: 'ExplainResponse' })
 export type ExplainResponse = z.infer<typeof ExplainResponse>
 
 export const FieldCapsFieldCapability = z.object({
@@ -1173,7 +1173,7 @@ export const FieldCapsFieldCapability = z.object({
   time_series_metric: z.lazy(() => MappingTimeSeriesMetricType).describe('Contains metric type if this fields is used as a time series metrics, absent if the field is not used as metric.').optional(),
   non_dimension_indices: z.array(z.lazy(() => IndexName)).describe('If this list is present in response then some indices have the field marked as a dimension and other indices, the ones in this list, do not.').optional(),
   metric_conflicts_indices: z.array(z.lazy(() => IndexName)).describe('The list of indices where this field is present if these indices don’t have the same `time_series_metric` value for this field.').optional()
-})
+}).meta({ id: 'FieldCapsFieldCapability' })
 export type FieldCapsFieldCapability = z.infer<typeof FieldCapsFieldCapability>
 
 /**
@@ -1197,13 +1197,13 @@ export const FieldCapsRequest = z.object({
   fields: z.lazy(() => Fields).describe('A list of fields to retrieve capabilities for. Wildcard (`*`) expressions are supported.').optional().meta({ found_in: 'body' }),
   index_filter: z.lazy(() => QueryDslQueryContainer).describe('Filter indices if the provided query rewrites to `match_none` on every shard. IMPORTANT: The filtering is done on a best-effort basis, it uses index statistics and mappings to rewrite queries to `match_none` instead of fully running the request. For instance a range query over a date field can rewrite to `match_none` if all documents within a shard (including deleted documents) are outside of the provided range. However, not all queries can rewrite to `match_none` so this API may return an index even if the provided filter matches no document.').optional().meta({ found_in: 'body' }),
   runtime_mappings: z.lazy(() => MappingRuntimeFields).describe('Define ad-hoc runtime fields in the request similar to the way it is done in search requests. These fields exist only as part of the query and take precedence over fields defined with the same name in the index mappings.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'FieldCapsRequest' })
 export type FieldCapsRequest = z.infer<typeof FieldCapsRequest>
 
 export const FieldCapsResponse = z.object({
   indices: z.lazy(() => Indices).describe('The list of indices where this field has the same type family, or null if all indices have the same type family for the field.'),
   fields: z.record(z.lazy(() => Field), z.record(z.string(), FieldCapsFieldCapability))
-})
+}).meta({ id: 'FieldCapsResponse' })
 export type FieldCapsResponse = z.infer<typeof FieldCapsResponse>
 
 export const GetGetResult = z.object({
@@ -1217,7 +1217,7 @@ export const GetGetResult = z.object({
   _seq_no: z.lazy(() => SequenceNumber).describe('The sequence number assigned to the document for the indexing operation. Sequence numbers are used to ensure an older version of a document doesn\'t overwrite a newer version.').optional(),
   _source: z.any().describe('If `found` is `true`, it contains the document data formatted in JSON. If the `_source` parameter is set to `false` or the `stored_fields` parameter is set to `true`, it is excluded.').optional(),
   _version: z.lazy(() => VersionNumber).describe('The document version, which is ncremented each time the document is updated.').optional()
-})
+}).meta({ id: 'GetGetResult' })
 export type GetGetResult = z.infer<typeof GetGetResult>
 
 /**
@@ -1294,10 +1294,10 @@ export const GetRequest = z.object({
   stored_fields: z.lazy(() => Fields).describe('A comma-separated list of stored fields to return as part of a hit. If no fields are specified, no stored fields are included in the response. If this field is specified, the `_source` parameter defaults to `false`. Only leaf fields can be retrieved with the `stored_fields` option. Object fields can\'t be returned; if specified, the request fails.').optional().meta({ found_in: 'query' }),
   version: z.lazy(() => VersionNumber).describe('The version number for concurrency control. It must match the current version of the document for the request to succeed.').optional().meta({ found_in: 'query' }),
   version_type: z.lazy(() => VersionType).describe('The version type.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'GetRequest' })
 export type GetRequest = z.infer<typeof GetRequest>
 
-export const GetResponse = GetGetResult
+export const GetResponse = GetGetResult.meta({ id: 'GetResponse' })
 export type GetResponse = z.infer<typeof GetResponse>
 
 /**
@@ -1308,33 +1308,33 @@ export type GetResponse = z.infer<typeof GetResponse>
 export const GetScriptRequest = z.object({
   id: z.lazy(() => Id).describe('The identifier for the stored script or search template.').meta({ found_in: 'path' }),
   master_timeout: z.lazy(() => Duration).describe('The period to wait for the master node. If the master node is not available before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'GetScriptRequest' })
 export type GetScriptRequest = z.infer<typeof GetScriptRequest>
 
 export const GetScriptResponse = z.object({
   _id: z.lazy(() => Id),
   found: z.boolean(),
   script: z.lazy(() => StoredScript).optional()
-})
+}).meta({ id: 'GetScriptResponse' })
 export type GetScriptResponse = z.infer<typeof GetScriptResponse>
 
 export const GetScriptContextContextMethodParam = z.object({
   name: z.lazy(() => Name),
   type: z.string()
-})
+}).meta({ id: 'GetScriptContextContextMethodParam' })
 export type GetScriptContextContextMethodParam = z.infer<typeof GetScriptContextContextMethodParam>
 
 export const GetScriptContextContextMethod = z.object({
   name: z.lazy(() => Name),
   return_type: z.string(),
   params: z.array(GetScriptContextContextMethodParam)
-})
+}).meta({ id: 'GetScriptContextContextMethod' })
 export type GetScriptContextContextMethod = z.infer<typeof GetScriptContextContextMethod>
 
 export const GetScriptContextContext = z.object({
   methods: z.array(GetScriptContextContextMethod),
   name: z.lazy(() => Name)
-})
+}).meta({ id: 'GetScriptContextContext' })
 export type GetScriptContextContext = z.infer<typeof GetScriptContextContext>
 
 /**
@@ -1343,18 +1343,18 @@ export type GetScriptContextContext = z.infer<typeof GetScriptContextContext>
  * Get a list of supported script contexts and their methods.
  */
 export const GetScriptContextRequest = z.object({
-})
+}).meta({ id: 'GetScriptContextRequest' })
 export type GetScriptContextRequest = z.infer<typeof GetScriptContextRequest>
 
 export const GetScriptContextResponse = z.object({
   contexts: z.array(GetScriptContextContext)
-})
+}).meta({ id: 'GetScriptContextResponse' })
 export type GetScriptContextResponse = z.infer<typeof GetScriptContextResponse>
 
 export const GetScriptLanguagesLanguageContext = z.object({
   contexts: z.array(z.string()),
   language: z.lazy(() => ScriptLanguage)
-})
+}).meta({ id: 'GetScriptLanguagesLanguageContext' })
 export type GetScriptLanguagesLanguageContext = z.infer<typeof GetScriptLanguagesLanguageContext>
 
 /**
@@ -1363,13 +1363,13 @@ export type GetScriptLanguagesLanguageContext = z.infer<typeof GetScriptLanguage
  * Get a list of available script types, languages, and contexts.
  */
 export const GetScriptLanguagesRequest = z.object({
-})
+}).meta({ id: 'GetScriptLanguagesRequest' })
 export type GetScriptLanguagesRequest = z.infer<typeof GetScriptLanguagesRequest>
 
 export const GetScriptLanguagesResponse = z.object({
   language_contexts: z.array(GetScriptLanguagesLanguageContext),
   types_allowed: z.array(z.string())
-})
+}).meta({ id: 'GetScriptLanguagesResponse' })
 export type GetScriptLanguagesResponse = z.infer<typeof GetScriptLanguagesResponse>
 
 /**
@@ -1400,16 +1400,16 @@ export const GetSourceRequest = z.object({
   _source_includes: z.lazy(() => Fields).describe('A comma-separated list of source fields to include in the response.').optional().meta({ found_in: 'query' }),
   version: z.lazy(() => VersionNumber).describe('The version number for concurrency control. It must match the current version of the document for the request to succeed.').optional().meta({ found_in: 'query' }),
   version_type: z.lazy(() => VersionType).describe('The version type.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'GetSourceRequest' })
 export type GetSourceRequest = z.infer<typeof GetSourceRequest>
 
-export const GetSourceResponse = z.any()
+export const GetSourceResponse = z.any().meta({ id: 'GetSourceResponse' })
 export type GetSourceResponse = z.infer<typeof GetSourceResponse>
 
-export const HealthReportIndicatorHealthStatus = z.enum(['green', 'yellow', 'red', 'unknown', 'unavailable'])
+export const HealthReportIndicatorHealthStatus = z.enum(['green', 'yellow', 'red', 'unknown', 'unavailable']).meta({ id: 'HealthReportIndicatorHealthStatus' })
 export type HealthReportIndicatorHealthStatus = z.infer<typeof HealthReportIndicatorHealthStatus>
 
-export const HealthReportImpactArea = z.enum(['search', 'ingest', 'backup', 'deployment_management'])
+export const HealthReportImpactArea = z.enum(['search', 'ingest', 'backup', 'deployment_management']).meta({ id: 'HealthReportImpactArea' })
 export type HealthReportImpactArea = z.infer<typeof HealthReportImpactArea>
 
 export const HealthReportImpact = z.object({
@@ -1417,13 +1417,13 @@ export const HealthReportImpact = z.object({
   id: z.string(),
   impact_areas: z.array(HealthReportImpactArea),
   severity: z.lazy(() => integer)
-})
+}).meta({ id: 'HealthReportImpact' })
 export type HealthReportImpact = z.infer<typeof HealthReportImpact>
 
 export const HealthReportIndicatorNode = z.object({
   name: z.union([z.string(), z.null()]),
   node_id: z.union([z.string(), z.null()])
-})
+}).meta({ id: 'HealthReportIndicatorNode' })
 export type HealthReportIndicatorNode = z.infer<typeof HealthReportIndicatorNode>
 
 export const HealthReportDiagnosisAffectedResources = z.object({
@@ -1432,7 +1432,7 @@ export const HealthReportDiagnosisAffectedResources = z.object({
   slm_policies: z.array(z.string()).optional(),
   feature_states: z.array(z.string()).optional(),
   snapshot_repositories: z.array(z.string()).optional()
-})
+}).meta({ id: 'HealthReportDiagnosisAffectedResources' })
 export type HealthReportDiagnosisAffectedResources = z.infer<typeof HealthReportDiagnosisAffectedResources>
 
 export const HealthReportDiagnosis = z.object({
@@ -1441,7 +1441,7 @@ export const HealthReportDiagnosis = z.object({
   affected_resources: HealthReportDiagnosisAffectedResources,
   cause: z.string(),
   help_url: z.string()
-})
+}).meta({ id: 'HealthReportDiagnosis' })
 export type HealthReportDiagnosis = z.infer<typeof HealthReportDiagnosis>
 
 export const HealthReportBaseIndicator = z.object({
@@ -1449,28 +1449,28 @@ export const HealthReportBaseIndicator = z.object({
   symptom: z.string(),
   impacts: z.array(HealthReportImpact).optional(),
   diagnosis: z.array(HealthReportDiagnosis).optional()
-})
+}).meta({ id: 'HealthReportBaseIndicator' })
 export type HealthReportBaseIndicator = z.infer<typeof HealthReportBaseIndicator>
 
 export const HealthReportStagnatingBackingIndices = z.object({
   index_name: z.lazy(() => IndexName),
   first_occurrence_timestamp: z.lazy(() => long),
   retry_count: z.lazy(() => integer)
-})
+}).meta({ id: 'HealthReportStagnatingBackingIndices' })
 export type HealthReportStagnatingBackingIndices = z.infer<typeof HealthReportStagnatingBackingIndices>
 
 export const HealthReportDataStreamLifecycleDetails = z.object({
   stagnating_backing_indices_count: z.lazy(() => integer),
   total_backing_indices_in_error: z.lazy(() => integer),
   stagnating_backing_indices: z.array(HealthReportStagnatingBackingIndices).optional()
-})
+}).meta({ id: 'HealthReportDataStreamLifecycleDetails' })
 export type HealthReportDataStreamLifecycleDetails = z.infer<typeof HealthReportDataStreamLifecycleDetails>
 
 /** DATA_STREAM_LIFECYCLE */
 export const HealthReportDataStreamLifecycleIndicator = z.object({
   ...HealthReportBaseIndicator.shape,
   details: HealthReportDataStreamLifecycleDetails.optional()
-})
+}).meta({ id: 'HealthReportDataStreamLifecycleIndicator' })
 export type HealthReportDataStreamLifecycleIndicator = z.infer<typeof HealthReportDataStreamLifecycleIndicator>
 
 export const HealthReportDiskIndicatorDetails = z.object({
@@ -1479,54 +1479,54 @@ export const HealthReportDiskIndicatorDetails = z.object({
   nodes_over_high_watermark: z.lazy(() => long),
   nodes_over_flood_stage_watermark: z.lazy(() => long),
   nodes_with_unknown_disk_status: z.lazy(() => long)
-})
+}).meta({ id: 'HealthReportDiskIndicatorDetails' })
 export type HealthReportDiskIndicatorDetails = z.infer<typeof HealthReportDiskIndicatorDetails>
 
 /** DISK */
 export const HealthReportDiskIndicator = z.object({
   ...HealthReportBaseIndicator.shape,
   details: HealthReportDiskIndicatorDetails.optional()
-})
+}).meta({ id: 'HealthReportDiskIndicator' })
 export type HealthReportDiskIndicator = z.infer<typeof HealthReportDiskIndicator>
 
 export const HealthReportFileSettingsIndicatorDetails = z.object({
   failure_streak: z.lazy(() => long),
   most_recent_failure: z.string()
-})
+}).meta({ id: 'HealthReportFileSettingsIndicatorDetails' })
 export type HealthReportFileSettingsIndicatorDetails = z.infer<typeof HealthReportFileSettingsIndicatorDetails>
 
 /** FILE_SETTINGS */
 export const HealthReportFileSettingsIndicator = z.object({
   ...HealthReportBaseIndicator.shape,
   details: HealthReportFileSettingsIndicatorDetails.optional()
-})
+}).meta({ id: 'HealthReportFileSettingsIndicator' })
 export type HealthReportFileSettingsIndicator = z.infer<typeof HealthReportFileSettingsIndicator>
 
 export const HealthReportIlmIndicatorDetails = z.object({
   ilm_status: z.lazy(() => LifecycleOperationMode),
   policies: z.lazy(() => long),
   stagnating_indices: z.lazy(() => integer)
-})
+}).meta({ id: 'HealthReportIlmIndicatorDetails' })
 export type HealthReportIlmIndicatorDetails = z.infer<typeof HealthReportIlmIndicatorDetails>
 
 /** ILM */
 export const HealthReportIlmIndicator = z.object({
   ...HealthReportBaseIndicator.shape,
   details: HealthReportIlmIndicatorDetails.optional()
-})
+}).meta({ id: 'HealthReportIlmIndicator' })
 export type HealthReportIlmIndicator = z.infer<typeof HealthReportIlmIndicator>
 
 export const HealthReportMasterIsStableIndicatorExceptionFetchingHistory = z.object({
   message: z.string(),
   stack_trace: z.string()
-})
+}).meta({ id: 'HealthReportMasterIsStableIndicatorExceptionFetchingHistory' })
 export type HealthReportMasterIsStableIndicatorExceptionFetchingHistory = z.infer<typeof HealthReportMasterIsStableIndicatorExceptionFetchingHistory>
 
 export const HealthReportMasterIsStableIndicatorClusterFormationNode = z.object({
   name: z.string().optional(),
   node_id: z.string(),
   cluster_formation_message: z.string()
-})
+}).meta({ id: 'HealthReportMasterIsStableIndicatorClusterFormationNode' })
 export type HealthReportMasterIsStableIndicatorClusterFormationNode = z.infer<typeof HealthReportMasterIsStableIndicatorClusterFormationNode>
 
 export const HealthReportMasterIsStableIndicatorDetails = z.object({
@@ -1534,14 +1534,14 @@ export const HealthReportMasterIsStableIndicatorDetails = z.object({
   recent_masters: z.array(HealthReportIndicatorNode),
   exception_fetching_history: HealthReportMasterIsStableIndicatorExceptionFetchingHistory.optional(),
   cluster_formation: z.array(HealthReportMasterIsStableIndicatorClusterFormationNode).optional()
-})
+}).meta({ id: 'HealthReportMasterIsStableIndicatorDetails' })
 export type HealthReportMasterIsStableIndicatorDetails = z.infer<typeof HealthReportMasterIsStableIndicatorDetails>
 
 /** MASTER_IS_STABLE */
 export const HealthReportMasterIsStableIndicator = z.object({
   ...HealthReportBaseIndicator.shape,
   details: HealthReportMasterIsStableIndicatorDetails.optional()
-})
+}).meta({ id: 'HealthReportMasterIsStableIndicator' })
 export type HealthReportMasterIsStableIndicator = z.infer<typeof HealthReportMasterIsStableIndicator>
 
 export const HealthReportShardsAvailabilityIndicatorDetails = z.object({
@@ -1555,67 +1555,67 @@ export const HealthReportShardsAvailabilityIndicatorDetails = z.object({
   started_replicas: z.lazy(() => long),
   unassigned_primaries: z.lazy(() => long),
   unassigned_replicas: z.lazy(() => long)
-})
+}).meta({ id: 'HealthReportShardsAvailabilityIndicatorDetails' })
 export type HealthReportShardsAvailabilityIndicatorDetails = z.infer<typeof HealthReportShardsAvailabilityIndicatorDetails>
 
 /** SHARDS_AVAILABILITY */
 export const HealthReportShardsAvailabilityIndicator = z.object({
   ...HealthReportBaseIndicator.shape,
   details: HealthReportShardsAvailabilityIndicatorDetails.optional()
-})
+}).meta({ id: 'HealthReportShardsAvailabilityIndicator' })
 export type HealthReportShardsAvailabilityIndicator = z.infer<typeof HealthReportShardsAvailabilityIndicator>
 
 export const HealthReportRepositoryIntegrityIndicatorDetails = z.object({
   total_repositories: z.lazy(() => long).optional(),
   corrupted_repositories: z.lazy(() => long).optional(),
   corrupted: z.array(z.string()).optional()
-})
+}).meta({ id: 'HealthReportRepositoryIntegrityIndicatorDetails' })
 export type HealthReportRepositoryIntegrityIndicatorDetails = z.infer<typeof HealthReportRepositoryIntegrityIndicatorDetails>
 
 /** REPOSITORY_INTEGRITY */
 export const HealthReportRepositoryIntegrityIndicator = z.object({
   ...HealthReportBaseIndicator.shape,
   details: HealthReportRepositoryIntegrityIndicatorDetails.optional()
-})
+}).meta({ id: 'HealthReportRepositoryIntegrityIndicator' })
 export type HealthReportRepositoryIntegrityIndicator = z.infer<typeof HealthReportRepositoryIntegrityIndicator>
 
 export const HealthReportSlmIndicatorUnhealthyPolicies = z.object({
   count: z.lazy(() => long),
   invocations_since_last_success: z.record(z.string(), z.lazy(() => long)).optional()
-})
+}).meta({ id: 'HealthReportSlmIndicatorUnhealthyPolicies' })
 export type HealthReportSlmIndicatorUnhealthyPolicies = z.infer<typeof HealthReportSlmIndicatorUnhealthyPolicies>
 
 export const HealthReportSlmIndicatorDetails = z.object({
   slm_status: z.lazy(() => LifecycleOperationMode),
   policies: z.lazy(() => long),
   unhealthy_policies: HealthReportSlmIndicatorUnhealthyPolicies.optional()
-})
+}).meta({ id: 'HealthReportSlmIndicatorDetails' })
 export type HealthReportSlmIndicatorDetails = z.infer<typeof HealthReportSlmIndicatorDetails>
 
 /** SLM */
 export const HealthReportSlmIndicator = z.object({
   ...HealthReportBaseIndicator.shape,
   details: HealthReportSlmIndicatorDetails.optional()
-})
+}).meta({ id: 'HealthReportSlmIndicator' })
 export type HealthReportSlmIndicator = z.infer<typeof HealthReportSlmIndicator>
 
 export const HealthReportShardsCapacityIndicatorTierDetail = z.object({
   max_shards_in_cluster: z.lazy(() => integer),
   current_used_shards: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'HealthReportShardsCapacityIndicatorTierDetail' })
 export type HealthReportShardsCapacityIndicatorTierDetail = z.infer<typeof HealthReportShardsCapacityIndicatorTierDetail>
 
 export const HealthReportShardsCapacityIndicatorDetails = z.object({
   data: HealthReportShardsCapacityIndicatorTierDetail,
   frozen: HealthReportShardsCapacityIndicatorTierDetail
-})
+}).meta({ id: 'HealthReportShardsCapacityIndicatorDetails' })
 export type HealthReportShardsCapacityIndicatorDetails = z.infer<typeof HealthReportShardsCapacityIndicatorDetails>
 
 /** SHARDS_CAPACITY */
 export const HealthReportShardsCapacityIndicator = z.object({
   ...HealthReportBaseIndicator.shape,
   details: HealthReportShardsCapacityIndicatorDetails.optional()
-})
+}).meta({ id: 'HealthReportShardsCapacityIndicator' })
 export type HealthReportShardsCapacityIndicator = z.infer<typeof HealthReportShardsCapacityIndicator>
 
 export const HealthReportIndicators = z.object({
@@ -1628,7 +1628,7 @@ export const HealthReportIndicators = z.object({
   slm: HealthReportSlmIndicator.optional(),
   shards_capacity: HealthReportShardsCapacityIndicator.optional(),
   file_settings: HealthReportFileSettingsIndicator.optional()
-})
+}).meta({ id: 'HealthReportIndicators' })
 export type HealthReportIndicators = z.infer<typeof HealthReportIndicators>
 
 /**
@@ -1657,14 +1657,14 @@ export const HealthReportRequest = z.object({
   timeout: z.lazy(() => Duration).describe('Explicit operation timeout.').optional().meta({ found_in: 'query' }),
   verbose: z.boolean().describe('Opt-in for more information about the health of the system.').optional().meta({ found_in: 'query' }),
   size: z.lazy(() => integer).describe('Limit the number of affected resources the health report API returns.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'HealthReportRequest' })
 export type HealthReportRequest = z.infer<typeof HealthReportRequest>
 
 export const HealthReportResponse = z.object({
   cluster_name: z.string(),
   indicators: HealthReportIndicators,
   status: HealthReportIndicatorHealthStatus.optional()
-})
+}).meta({ id: 'HealthReportResponse' })
 export type HealthReportResponse = z.infer<typeof HealthReportResponse>
 
 /**
@@ -1806,10 +1806,10 @@ export const IndexRequest = z.object({
   require_alias: z.boolean().describe('If `true`, the destination must be an index alias.').optional().meta({ found_in: 'query' }),
   require_data_stream: z.boolean().describe('If `true`, the request\'s actions must target a data stream (existing or to be created).').optional().meta({ found_in: 'query' }),
   document: z.any().optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'IndexRequest' })
 export type IndexRequest = z.infer<typeof IndexRequest>
 
-export const IndexResponse = z.lazy(() => WriteResponseBase)
+export const IndexResponse = z.lazy(() => WriteResponseBase).meta({ id: 'IndexResponse' })
 export type IndexResponse = z.infer<typeof IndexResponse>
 
 /**
@@ -1819,7 +1819,7 @@ export type IndexResponse = z.infer<typeof IndexResponse>
  * ::: In Serverless, this API is retained for backward compatibility only. Some response fields, such as the version number, should be ignored.
  */
 export const InfoRequest = z.object({
-})
+}).meta({ id: 'InfoRequest' })
 export type InfoRequest = z.infer<typeof InfoRequest>
 
 export const InfoResponse = z.object({
@@ -1828,7 +1828,7 @@ export const InfoResponse = z.object({
   name: z.lazy(() => Name).describe('The responding node\'s name.'),
   tagline: z.string(),
   version: z.lazy(() => ElasticsearchVersionInfo).describe('The running version of Elasticsearch.')
-})
+}).meta({ id: 'InfoResponse' })
 export type InfoResponse = z.infer<typeof InfoResponse>
 
 export const KnnSearchKnnSearchQuery = z.object({
@@ -1836,7 +1836,7 @@ export const KnnSearchKnnSearchQuery = z.object({
   query_vector: z.lazy(() => QueryVector).describe('The query vector'),
   k: z.lazy(() => integer).describe('The final number of nearest neighbors to return as top hits'),
   num_candidates: z.lazy(() => integer).describe('The number of nearest neighbor candidates to consider per shard')
-})
+}).meta({ id: 'KnnSearchKnnSearchQuery' })
 export type KnnSearchKnnSearchQuery = z.infer<typeof KnnSearchKnnSearchQuery>
 
 /**
@@ -1854,16 +1854,16 @@ export const KnnSearchRequest = z.object({
   fields: z.lazy(() => Fields).describe('The request returns values for field names matching these patterns in the `hits.fields` property of the response. It accepts wildcard (`*`) patterns.').optional().meta({ found_in: 'body' }),
   filter: z.union([z.lazy(() => QueryDslQueryContainer), z.array(z.lazy(() => QueryDslQueryContainer))]).describe('A query to filter the documents that can match. The kNN search will return the top `k` documents that also match this filter. The value can be a single query or a list of queries. If `filter` isn\'t provided, all documents are allowed to match.').optional().meta({ found_in: 'body' }),
   knn: KnnSearchKnnSearchQuery.describe('The kNN query to run.').meta({ found_in: 'body' })
-})
+}).meta({ id: 'KnnSearchRequest' })
 export type KnnSearchRequest = z.infer<typeof KnnSearchRequest>
 
-export const SearchTotalHitsRelation = z.enum(['eq', 'gte'])
+export const SearchTotalHitsRelation = z.enum(['eq', 'gte']).meta({ id: 'SearchTotalHitsRelation' })
 export type SearchTotalHitsRelation = z.infer<typeof SearchTotalHitsRelation>
 
 export const SearchTotalHits = z.object({
   relation: SearchTotalHitsRelation,
   value: z.lazy(() => long)
-})
+}).meta({ id: 'SearchTotalHits' })
 export type SearchTotalHits = z.infer<typeof SearchTotalHits>
 
 export interface SearchInnerHitsResultShape {
@@ -1871,7 +1871,7 @@ export interface SearchInnerHitsResultShape {
 }
 export const SearchInnerHitsResult = z.object({
   get hits () { return SearchHitsMetadata }
-})
+}).meta({ id: 'SearchInnerHitsResult' })
 export type SearchInnerHitsResult = z.infer<typeof SearchInnerHitsResult>
 
 export interface SearchNestedIdentityShape {
@@ -1883,7 +1883,7 @@ export const SearchNestedIdentity = z.object({
   field: z.lazy(() => Field),
   offset: z.lazy(() => integer),
   get _nested () { return SearchNestedIdentity.optional() }
-})
+}).meta({ id: 'SearchNestedIdentity' })
 export type SearchNestedIdentity = z.infer<typeof SearchNestedIdentity>
 
 export interface SearchHitShape {
@@ -1929,7 +1929,7 @@ export const SearchHit = z.object({
   _primary_term: z.lazy(() => long).optional(),
   _version: z.lazy(() => VersionNumber).optional(),
   sort: z.lazy(() => SortResults).optional()
-})
+}).meta({ id: 'SearchHit' })
 export type SearchHit = z.infer<typeof SearchHit>
 
 export interface SearchHitsMetadataShape {
@@ -1941,7 +1941,7 @@ export const SearchHitsMetadata = z.object({
   total: z.union([SearchTotalHits, z.lazy(() => long)]).describe('Total hit count information, present only if `track_total_hits` wasn\'t `false` in the search request.').optional(),
   get hits () { return SearchHit.array() },
   max_score: z.union([z.lazy(() => double), z.null()]).optional()
-})
+}).meta({ id: 'SearchHitsMetadata' })
 export type SearchHitsMetadata = z.infer<typeof SearchHitsMetadata>
 
 export const KnnSearchResponse = z.object({
@@ -1951,14 +1951,14 @@ export const KnnSearchResponse = z.object({
   hits: z.lazy(() => SearchHitsMetadata).describe('The returned documents and metadata.'),
   fields: z.record(z.string(), z.any()).describe('The field values for the documents. These fields must be specified in the request using the `fields` parameter.').optional(),
   max_score: z.lazy(() => double).describe('The highest returned document score. This value is null for requests that do not sort by score.').optional()
-})
+}).meta({ id: 'KnnSearchResponse' })
 export type KnnSearchResponse = z.infer<typeof KnnSearchResponse>
 
 export const MgetMultiGetError = z.object({
   error: z.lazy(() => ErrorCause),
   _id: z.lazy(() => Id),
   _index: z.lazy(() => IndexName)
-})
+}).meta({ id: 'MgetMultiGetError' })
 export type MgetMultiGetError = z.infer<typeof MgetMultiGetError>
 
 export const MgetOperation = z.object({
@@ -1969,7 +1969,7 @@ export const MgetOperation = z.object({
   stored_fields: z.lazy(() => Fields).describe('The stored fields you want to retrieve.').optional(),
   version: z.lazy(() => VersionNumber).optional(),
   version_type: z.lazy(() => VersionType).optional()
-})
+}).meta({ id: 'MgetOperation' })
 export type MgetOperation = z.infer<typeof MgetOperation>
 
 /**
@@ -2003,15 +2003,15 @@ export const MgetRequest = z.object({
   stored_fields: z.lazy(() => Fields).describe('If `true`, retrieves the document fields stored in the index rather than the document `_source`.').optional().meta({ found_in: 'query' }),
   docs: z.array(MgetOperation).describe('The documents you want to retrieve. Required if no index is specified in the request URI.').optional().meta({ found_in: 'body' }),
   ids: z.lazy(() => Ids).describe('The IDs of the documents you want to retrieve. Allowed when the index is specified in the request URI.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'MgetRequest' })
 export type MgetRequest = z.infer<typeof MgetRequest>
 
-export const MgetResponseItem = z.union([GetGetResult, MgetMultiGetError])
+export const MgetResponseItem = z.union([GetGetResult, MgetMultiGetError]).meta({ id: 'MgetResponseItem' })
 export type MgetResponseItem = z.infer<typeof MgetResponseItem>
 
 export const MgetResponse = z.object({
   docs: z.array(MgetResponseItem).describe('The response includes a docs array that contains the documents in the order specified in the request. The structure of the returned documents is similar to that returned by the get API. If there is a failure getting a particular document, the error is included in place of the document.')
-})
+}).meta({ id: 'MgetResponse' })
 export type MgetResponse = z.infer<typeof MgetResponse>
 
 export const SearchAggregationBreakdown = z.object({
@@ -2027,7 +2027,7 @@ export const SearchAggregationBreakdown = z.object({
   post_collection_count: z.lazy(() => long).optional(),
   reduce: z.lazy(() => long),
   reduce_count: z.lazy(() => long)
-})
+}).meta({ id: 'SearchAggregationBreakdown' })
 export type SearchAggregationBreakdown = z.infer<typeof SearchAggregationBreakdown>
 
 export const SearchAggregationProfileDelegateDebugFilter = z.object({
@@ -2035,7 +2035,7 @@ export const SearchAggregationProfileDelegateDebugFilter = z.object({
   query: z.string().optional(),
   specialized_for: z.string().optional(),
   segments_counted_in_constant_time: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'SearchAggregationProfileDelegateDebugFilter' })
 export type SearchAggregationProfileDelegateDebugFilter = z.infer<typeof SearchAggregationProfileDelegateDebugFilter>
 
 export interface SearchAggregationProfileDebugShape {
@@ -2105,7 +2105,7 @@ export const SearchAggregationProfileDebug = z.object({
   dynamic_pruning_attempted: z.lazy(() => integer).optional(),
   dynamic_pruning_used: z.lazy(() => integer).optional(),
   skipped_due_to_no_data: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'SearchAggregationProfileDebug' })
 export type SearchAggregationProfileDebug = z.infer<typeof SearchAggregationProfileDebug>
 
 export interface SearchAggregationProfileShape {
@@ -2123,7 +2123,7 @@ export const SearchAggregationProfile = z.object({
   type: z.string(),
   get debug () { return SearchAggregationProfileDebug.optional() },
   get children () { return SearchAggregationProfile.array().optional() }
-})
+}).meta({ id: 'SearchAggregationProfile' })
 export type SearchAggregationProfile = z.infer<typeof SearchAggregationProfile>
 
 export const SearchDfsStatisticsBreakdown = z.object({
@@ -2135,7 +2135,7 @@ export const SearchDfsStatisticsBreakdown = z.object({
   rewrite_count: z.lazy(() => long),
   term_statistics: z.lazy(() => long),
   term_statistics_count: z.lazy(() => long)
-})
+}).meta({ id: 'SearchDfsStatisticsBreakdown' })
 export type SearchDfsStatisticsBreakdown = z.infer<typeof SearchDfsStatisticsBreakdown>
 
 export interface SearchDfsStatisticsProfileShape {
@@ -2155,7 +2155,7 @@ export const SearchDfsStatisticsProfile = z.object({
   breakdown: SearchDfsStatisticsBreakdown,
   debug: z.record(z.string(), z.any()).optional(),
   get children () { return SearchDfsStatisticsProfile.array().optional() }
-})
+}).meta({ id: 'SearchDfsStatisticsProfile' })
 export type SearchDfsStatisticsProfile = z.infer<typeof SearchDfsStatisticsProfile>
 
 export const SearchKnnQueryProfileBreakdown = z.object({
@@ -2179,7 +2179,7 @@ export const SearchKnnQueryProfileBreakdown = z.object({
   set_min_competitive_score_count: z.lazy(() => long),
   shallow_advance: z.lazy(() => long),
   shallow_advance_count: z.lazy(() => long)
-})
+}).meta({ id: 'SearchKnnQueryProfileBreakdown' })
 export type SearchKnnQueryProfileBreakdown = z.infer<typeof SearchKnnQueryProfileBreakdown>
 
 export interface SearchKnnQueryProfileResultShape {
@@ -2199,7 +2199,7 @@ export const SearchKnnQueryProfileResult = z.object({
   breakdown: SearchKnnQueryProfileBreakdown,
   debug: z.record(z.string(), z.any()).optional(),
   get children () { return SearchKnnQueryProfileResult.array().optional() }
-})
+}).meta({ id: 'SearchKnnQueryProfileResult' })
 export type SearchKnnQueryProfileResult = z.infer<typeof SearchKnnQueryProfileResult>
 
 export interface SearchKnnCollectorResultShape {
@@ -2215,7 +2215,7 @@ export const SearchKnnCollectorResult = z.object({
   time: z.lazy(() => Duration).optional(),
   time_in_nanos: z.lazy(() => DurationValue),
   get children () { return SearchKnnCollectorResult.array().optional() }
-})
+}).meta({ id: 'SearchKnnCollectorResult' })
 export type SearchKnnCollectorResult = z.infer<typeof SearchKnnCollectorResult>
 
 export const SearchDfsKnnProfile = z.object({
@@ -2223,13 +2223,13 @@ export const SearchDfsKnnProfile = z.object({
   query: z.array(z.lazy(() => SearchKnnQueryProfileResult)),
   rewrite_time: z.lazy(() => long),
   collector: z.array(z.lazy(() => SearchKnnCollectorResult))
-})
+}).meta({ id: 'SearchDfsKnnProfile' })
 export type SearchDfsKnnProfile = z.infer<typeof SearchDfsKnnProfile>
 
 export const SearchDfsProfile = z.object({
   statistics: z.lazy(() => SearchDfsStatisticsProfile).optional(),
   knn: z.array(SearchDfsKnnProfile).optional()
-})
+}).meta({ id: 'SearchDfsProfile' })
 export type SearchDfsProfile = z.infer<typeof SearchDfsProfile>
 
 export const SearchFetchProfileBreakdown = z.object({
@@ -2241,13 +2241,13 @@ export const SearchFetchProfileBreakdown = z.object({
   next_reader_count: z.lazy(() => integer).optional(),
   process_count: z.lazy(() => integer).optional(),
   process: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'SearchFetchProfileBreakdown' })
 export type SearchFetchProfileBreakdown = z.infer<typeof SearchFetchProfileBreakdown>
 
 export const SearchFetchProfileDebug = z.object({
   stored_fields: z.array(z.string()).optional(),
   fast_path: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'SearchFetchProfileDebug' })
 export type SearchFetchProfileDebug = z.infer<typeof SearchFetchProfileDebug>
 
 export interface SearchFetchProfileShape {
@@ -2265,7 +2265,7 @@ export const SearchFetchProfile = z.object({
   breakdown: SearchFetchProfileBreakdown,
   debug: SearchFetchProfileDebug.optional(),
   get children () { return SearchFetchProfile.array().optional() }
-})
+}).meta({ id: 'SearchFetchProfile' })
 export type SearchFetchProfile = z.infer<typeof SearchFetchProfile>
 
 export interface SearchCollectorShape {
@@ -2279,7 +2279,7 @@ export const SearchCollector = z.object({
   reason: z.string(),
   time_in_nanos: z.lazy(() => DurationValue),
   get children () { return SearchCollector.array().optional() }
-})
+}).meta({ id: 'SearchCollector' })
 export type SearchCollector = z.infer<typeof SearchCollector>
 
 export const SearchQueryBreakdown = z.object({
@@ -2303,7 +2303,7 @@ export const SearchQueryBreakdown = z.object({
   count_weight_count: z.lazy(() => long),
   set_min_competitive_score: z.lazy(() => long),
   set_min_competitive_score_count: z.lazy(() => long)
-})
+}).meta({ id: 'SearchQueryBreakdown' })
 export type SearchQueryBreakdown = z.infer<typeof SearchQueryBreakdown>
 
 export interface SearchQueryProfileShape {
@@ -2319,14 +2319,14 @@ export const SearchQueryProfile = z.object({
   time_in_nanos: z.lazy(() => DurationValue),
   type: z.string(),
   get children () { return SearchQueryProfile.array().optional() }
-})
+}).meta({ id: 'SearchQueryProfile' })
 export type SearchQueryProfile = z.infer<typeof SearchQueryProfile>
 
 export const SearchSearchProfile = z.object({
   collector: z.array(z.lazy(() => SearchCollector)),
   query: z.array(z.lazy(() => SearchQueryProfile)),
   rewrite_time: z.lazy(() => long)
-})
+}).meta({ id: 'SearchSearchProfile' })
 export type SearchSearchProfile = z.infer<typeof SearchSearchProfile>
 
 export const SearchShardProfile = z.object({
@@ -2339,23 +2339,23 @@ export const SearchShardProfile = z.object({
   node_id: z.lazy(() => NodeId),
   searches: z.array(SearchSearchProfile),
   shard_id: z.lazy(() => integer)
-})
+}).meta({ id: 'SearchShardProfile' })
 export type SearchShardProfile = z.infer<typeof SearchShardProfile>
 
 export const SearchProfile = z.object({
   shards: z.array(SearchShardProfile)
-})
+}).meta({ id: 'SearchProfile' })
 export type SearchProfile = z.infer<typeof SearchProfile>
 
 export const SearchSuggestBase = z.object({
   length: z.lazy(() => integer),
   offset: z.lazy(() => integer),
   text: z.string()
-})
+}).meta({ id: 'SearchSuggestBase' })
 export type SearchSuggestBase = z.infer<typeof SearchSuggestBase>
 
 /** Text or location that we want similar documents for or a lookup to a document's field for the text. */
-export const SearchContext = z.union([z.string(), z.lazy(() => GeoLocation)])
+export const SearchContext = z.union([z.string(), z.lazy(() => GeoLocation)]).meta({ id: 'SearchContext' })
 export type SearchContext = z.infer<typeof SearchContext>
 
 export const SearchCompletionSuggestOption = z.object({
@@ -2369,13 +2369,13 @@ export const SearchCompletionSuggestOption = z.object({
   _source: z.any().optional(),
   text: z.string(),
   score: z.lazy(() => double).optional()
-})
+}).meta({ id: 'SearchCompletionSuggestOption' })
 export type SearchCompletionSuggestOption = z.infer<typeof SearchCompletionSuggestOption>
 
 export const SearchCompletionSuggest = z.object({
   ...SearchSuggestBase.shape,
   options: z.union([SearchCompletionSuggestOption, z.array(SearchCompletionSuggestOption)])
-})
+}).meta({ id: 'SearchCompletionSuggest' })
 export type SearchCompletionSuggest = z.infer<typeof SearchCompletionSuggest>
 
 export const SearchPhraseSuggestOption = z.object({
@@ -2383,13 +2383,13 @@ export const SearchPhraseSuggestOption = z.object({
   score: z.lazy(() => double),
   highlighted: z.string().optional(),
   collate_match: z.boolean().optional()
-})
+}).meta({ id: 'SearchPhraseSuggestOption' })
 export type SearchPhraseSuggestOption = z.infer<typeof SearchPhraseSuggestOption>
 
 export const SearchPhraseSuggest = z.object({
   ...SearchSuggestBase.shape,
   options: z.union([SearchPhraseSuggestOption, z.array(SearchPhraseSuggestOption)])
-})
+}).meta({ id: 'SearchPhraseSuggest' })
 export type SearchPhraseSuggest = z.infer<typeof SearchPhraseSuggest>
 
 export const SearchTermSuggestOption = z.object({
@@ -2398,16 +2398,16 @@ export const SearchTermSuggestOption = z.object({
   freq: z.lazy(() => long),
   highlighted: z.string().optional(),
   collate_match: z.boolean().optional()
-})
+}).meta({ id: 'SearchTermSuggestOption' })
 export type SearchTermSuggestOption = z.infer<typeof SearchTermSuggestOption>
 
 export const SearchTermSuggest = z.object({
   ...SearchSuggestBase.shape,
   options: z.union([SearchTermSuggestOption, z.array(SearchTermSuggestOption)])
-})
+}).meta({ id: 'SearchTermSuggest' })
 export type SearchTermSuggest = z.infer<typeof SearchTermSuggest>
 
-export const SearchSuggest = z.union([SearchCompletionSuggest, SearchPhraseSuggest, SearchTermSuggest])
+export const SearchSuggest = z.union([SearchCompletionSuggest, SearchPhraseSuggest, SearchTermSuggest]).meta({ id: 'SearchSuggest' })
 export type SearchSuggest = z.infer<typeof SearchSuggest>
 
 export const SearchResponseBody = z.object({
@@ -2425,22 +2425,22 @@ export const SearchResponseBody = z.object({
   _scroll_id: z.lazy(() => ScrollId).describe('The identifier for the search and its search context. You can use this scroll ID with the scroll API to retrieve the next batch of search results for the request. This property is returned only if the `scroll` query parameter is specified in the request.').optional(),
   suggest: z.record(z.lazy(() => SuggestionName), z.array(SearchSuggest)).optional(),
   terminated_early: z.boolean().optional()
-})
+}).meta({ id: 'SearchResponseBody' })
 export type SearchResponseBody = z.infer<typeof SearchResponseBody>
 
 export const MsearchMultiSearchItem = z.object({
   ...SearchResponseBody.shape,
   status: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'MsearchMultiSearchItem' })
 export type MsearchMultiSearchItem = z.infer<typeof MsearchMultiSearchItem>
 
-export const MsearchResponseItem = z.union([MsearchMultiSearchItem, z.lazy(() => ErrorResponseBase)])
+export const MsearchResponseItem = z.union([MsearchMultiSearchItem, z.lazy(() => ErrorResponseBase)]).meta({ id: 'MsearchResponseItem' })
 export type MsearchResponseItem = z.infer<typeof MsearchResponseItem>
 
 export const MsearchMultiSearchResult = z.object({
   took: z.lazy(() => long),
   responses: z.array(MsearchResponseItem)
-})
+}).meta({ id: 'MsearchMultiSearchResult' })
 export type MsearchMultiSearchResult = z.infer<typeof MsearchMultiSearchResult>
 
 /** Contains parameters used to limit or change the subsequent search body request. */
@@ -2457,10 +2457,10 @@ export const MsearchMultisearchHeader = z.object({
   ccs_minimize_roundtrips: z.boolean().optional(),
   allow_partial_search_results: z.boolean().optional(),
   ignore_throttled: z.boolean().optional()
-})
+}).meta({ id: 'MsearchMultisearchHeader' })
 export type MsearchMultisearchHeader = z.infer<typeof MsearchMultisearchHeader>
 
-export const MsearchRequestItem = z.union([MsearchMultisearchHeader, z.lazy(() => SearchSearchRequestBody)])
+export const MsearchRequestItem = z.union([MsearchMultisearchHeader, z.lazy(() => SearchSearchRequestBody)]).meta({ id: 'MsearchRequestItem' })
 export type MsearchRequestItem = z.infer<typeof MsearchRequestItem>
 
 /**
@@ -2498,10 +2498,10 @@ export const MsearchRequest = z.object({
   search_type: z.lazy(() => SearchType).describe('Indicates whether global term and document frequencies should be used when scoring returned documents.').optional().meta({ found_in: 'query' }),
   typed_keys: z.boolean().describe('Specifies whether aggregation and suggester names should be prefixed by their respective types in the response.').optional().meta({ found_in: 'query' }),
   searches: z.array(MsearchRequestItem).optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'MsearchRequest' })
 export type MsearchRequest = z.infer<typeof MsearchRequest>
 
-export const MsearchResponse = MsearchMultiSearchResult
+export const MsearchResponse = MsearchMultiSearchResult.meta({ id: 'MsearchResponse' })
 export type MsearchResponse = z.infer<typeof MsearchResponse>
 
 export const MsearchTemplateTemplateConfig = z.object({
@@ -2510,10 +2510,10 @@ export const MsearchTemplateTemplateConfig = z.object({
   params: z.record(z.string(), z.any()).describe('Key-value pairs used to replace Mustache variables in the template. The key is the variable name. The value is the variable value.').optional(),
   profile: z.boolean().describe('If `true`, the query execution is profiled.').optional(),
   source: z.lazy(() => ScriptSource).describe('An inline search template. Supports the same parameters as the search API\'s request body. It also supports Mustache variables. If no `id` is specified, this parameter is required.').optional()
-})
+}).meta({ id: 'MsearchTemplateTemplateConfig' })
 export type MsearchTemplateTemplateConfig = z.infer<typeof MsearchTemplateTemplateConfig>
 
-export const MsearchTemplateRequestItem = z.union([MsearchMultisearchHeader, MsearchTemplateTemplateConfig])
+export const MsearchTemplateRequestItem = z.union([MsearchMultisearchHeader, MsearchTemplateTemplateConfig]).meta({ id: 'MsearchTemplateRequestItem' })
 export type MsearchTemplateRequestItem = z.infer<typeof MsearchTemplateRequestItem>
 
 /**
@@ -2541,10 +2541,10 @@ export const MsearchTemplateRequest = z.object({
   rest_total_hits_as_int: z.boolean().describe('If `true`, the response returns `hits.total` as an integer. If `false`, it returns `hits.total` as an object.').optional().meta({ found_in: 'query' }),
   typed_keys: z.boolean().describe('If `true`, the response prefixes aggregation and suggester names with their respective types.').optional().meta({ found_in: 'query' }),
   search_templates: z.array(MsearchTemplateRequestItem).optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'MsearchTemplateRequest' })
 export type MsearchTemplateRequest = z.infer<typeof MsearchTemplateRequest>
 
-export const MsearchTemplateResponse = MsearchMultiSearchResult
+export const MsearchTemplateResponse = MsearchMultiSearchResult.meta({ id: 'MsearchTemplateResponse' })
 export type MsearchTemplateResponse = z.infer<typeof MsearchTemplateResponse>
 
 export const TermvectorsFilter = z.object({
@@ -2555,7 +2555,7 @@ export const TermvectorsFilter = z.object({
   min_doc_freq: z.lazy(() => integer).describe('Ignore terms which do not occur in at least this many docs.').optional(),
   min_term_freq: z.lazy(() => integer).describe('Ignore words with less than this frequency in the source doc.').optional(),
   min_word_length: z.lazy(() => integer).describe('The minimum word length below which words will be ignored.').optional()
-})
+}).meta({ id: 'TermvectorsFilter' })
 export type TermvectorsFilter = z.infer<typeof TermvectorsFilter>
 
 export const MtermvectorsOperation = z.object({
@@ -2572,7 +2572,7 @@ export const MtermvectorsOperation = z.object({
   term_statistics: z.boolean().describe('If true, the response includes term frequency and document frequency.').optional(),
   version: z.lazy(() => VersionNumber).describe('If `true`, returns the document version as part of a hit.').optional(),
   version_type: z.lazy(() => VersionType).describe('Specific version type.').optional()
-})
+}).meta({ id: 'MtermvectorsOperation' })
 export type MtermvectorsOperation = z.infer<typeof MtermvectorsOperation>
 
 /**
@@ -2604,14 +2604,14 @@ export const MtermvectorsRequest = z.object({
   version_type: z.lazy(() => VersionType).describe('The version type.').optional().meta({ found_in: 'query' }),
   docs: z.array(MtermvectorsOperation).describe('An array of existing or artificial documents.').optional().meta({ found_in: 'body' }),
   ids: z.array(z.lazy(() => Id)).describe('A simplified syntax to specify documents by their ID if they\'re in the same index.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'MtermvectorsRequest' })
 export type MtermvectorsRequest = z.infer<typeof MtermvectorsRequest>
 
 export const TermvectorsFieldStatistics = z.object({
   doc_count: z.lazy(() => integer),
   sum_doc_freq: z.lazy(() => long),
   sum_ttf: z.lazy(() => long)
-})
+}).meta({ id: 'TermvectorsFieldStatistics' })
 export type TermvectorsFieldStatistics = z.infer<typeof TermvectorsFieldStatistics>
 
 export const TermvectorsToken = z.object({
@@ -2619,7 +2619,7 @@ export const TermvectorsToken = z.object({
   payload: z.string().optional(),
   position: z.lazy(() => integer),
   start_offset: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'TermvectorsToken' })
 export type TermvectorsToken = z.infer<typeof TermvectorsToken>
 
 export const TermvectorsTerm = z.object({
@@ -2628,13 +2628,13 @@ export const TermvectorsTerm = z.object({
   term_freq: z.lazy(() => integer),
   tokens: z.array(TermvectorsToken).optional(),
   ttf: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'TermvectorsTerm' })
 export type TermvectorsTerm = z.infer<typeof TermvectorsTerm>
 
 export const TermvectorsTermVector = z.object({
   field_statistics: TermvectorsFieldStatistics.optional(),
   terms: z.record(z.string(), TermvectorsTerm)
-})
+}).meta({ id: 'TermvectorsTermVector' })
 export type TermvectorsTermVector = z.infer<typeof TermvectorsTermVector>
 
 export const MtermvectorsTermVectorsResult = z.object({
@@ -2645,12 +2645,12 @@ export const MtermvectorsTermVectorsResult = z.object({
   found: z.boolean().optional(),
   term_vectors: z.record(z.lazy(() => Field), TermvectorsTermVector).optional(),
   error: z.lazy(() => ErrorCause).optional()
-})
+}).meta({ id: 'MtermvectorsTermVectorsResult' })
 export type MtermvectorsTermVectorsResult = z.infer<typeof MtermvectorsTermVectorsResult>
 
 export const MtermvectorsResponse = z.object({
   docs: z.array(MtermvectorsTermVectorsResult)
-})
+}).meta({ id: 'MtermvectorsResponse' })
 export type MtermvectorsResponse = z.infer<typeof MtermvectorsResponse>
 
 /**
@@ -2702,13 +2702,13 @@ export const OpenPointInTimeRequest = z.object({
   allow_partial_search_results: z.boolean().describe('Indicates whether the point in time tolerates unavailable shards or shard failures when initially creating the PIT. If `false`, creating a point in time request when a shard is missing or unavailable will throw an exception. If `true`, the point in time will contain all the shards that are available at the time of the request.').optional().meta({ found_in: 'query' }),
   max_concurrent_shard_requests: z.lazy(() => integer).describe('Maximum number of concurrent shard requests that each sub-search request executes per node.').optional().meta({ found_in: 'query' }),
   index_filter: z.lazy(() => QueryDslQueryContainer).describe('Filter indices if the provided query rewrites to `match_none` on every shard.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'OpenPointInTimeRequest' })
 export type OpenPointInTimeRequest = z.infer<typeof OpenPointInTimeRequest>
 
 export const OpenPointInTimeResponse = z.object({
   _shards: z.lazy(() => ShardStatistics).describe('Shards used to create the PIT'),
   id: z.lazy(() => Id)
-})
+}).meta({ id: 'OpenPointInTimeResponse' })
 export type OpenPointInTimeResponse = z.infer<typeof OpenPointInTimeResponse>
 
 /**
@@ -2717,10 +2717,10 @@ export type OpenPointInTimeResponse = z.infer<typeof OpenPointInTimeResponse>
  * Get information about whether the cluster is running.
  */
 export const PingRequest = z.object({
-})
+}).meta({ id: 'PingRequest' })
 export type PingRequest = z.infer<typeof PingRequest>
 
-export const PingResponse = z.boolean()
+export const PingResponse = z.boolean().meta({ id: 'PingResponse' })
 export type PingResponse = z.infer<typeof PingResponse>
 
 /**
@@ -2734,74 +2734,74 @@ export const PutScriptRequest = z.object({
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('The period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' }),
   script: z.lazy(() => StoredScript).describe('The script or search template, its parameters, and its language.').meta({ found_in: 'body' })
-})
+}).meta({ id: 'PutScriptRequest' })
 export type PutScriptRequest = z.infer<typeof PutScriptRequest>
 
-export const PutScriptResponse = z.lazy(() => AcknowledgedResponseBase)
+export const PutScriptResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'PutScriptResponse' })
 export type PutScriptResponse = z.infer<typeof PutScriptResponse>
 
 export const RankEvalDocumentRating = z.object({
   _id: z.lazy(() => Id).describe('The document ID.'),
   _index: z.lazy(() => IndexName).describe('The document’s index. For data streams, this should be the document’s backing index.'),
   rating: z.lazy(() => integer).describe('The document’s relevance with regard to this search request.')
-})
+}).meta({ id: 'RankEvalDocumentRating' })
 export type RankEvalDocumentRating = z.infer<typeof RankEvalDocumentRating>
 
 export const RankEvalRankEvalHit = z.object({
   _id: z.lazy(() => Id),
   _index: z.lazy(() => IndexName),
   _score: z.lazy(() => double)
-})
+}).meta({ id: 'RankEvalRankEvalHit' })
 export type RankEvalRankEvalHit = z.infer<typeof RankEvalRankEvalHit>
 
 export const RankEvalRankEvalHitItem = z.object({
   hit: RankEvalRankEvalHit,
   rating: z.union([z.lazy(() => double), z.null()]).optional()
-})
+}).meta({ id: 'RankEvalRankEvalHitItem' })
 export type RankEvalRankEvalHitItem = z.infer<typeof RankEvalRankEvalHitItem>
 
 export const RankEvalRankEvalMetricBase = z.object({
   k: z.lazy(() => integer).describe('Sets the maximum number of documents retrieved per query. This value will act in place of the usual size parameter in the query.').optional()
-})
+}).meta({ id: 'RankEvalRankEvalMetricBase' })
 export type RankEvalRankEvalMetricBase = z.infer<typeof RankEvalRankEvalMetricBase>
 
 export const RankEvalRankEvalMetricRatingTreshold = z.object({
   ...RankEvalRankEvalMetricBase.shape,
   relevant_rating_threshold: z.lazy(() => integer).describe('Sets the rating threshold above which documents are considered to be "relevant".').optional()
-})
+}).meta({ id: 'RankEvalRankEvalMetricRatingTreshold' })
 export type RankEvalRankEvalMetricRatingTreshold = z.infer<typeof RankEvalRankEvalMetricRatingTreshold>
 
 /** Precision at K (P@k) */
 export const RankEvalRankEvalMetricPrecision = z.object({
   ...RankEvalRankEvalMetricRatingTreshold.shape,
   ignore_unlabeled: z.boolean().describe('Controls how unlabeled documents in the search results are counted. If set to true, unlabeled documents are ignored and neither count as relevant or irrelevant. Set to false (the default), they are treated as irrelevant.').optional()
-})
+}).meta({ id: 'RankEvalRankEvalMetricPrecision' })
 export type RankEvalRankEvalMetricPrecision = z.infer<typeof RankEvalRankEvalMetricPrecision>
 
 /** Recall at K (R@k) */
 export const RankEvalRankEvalMetricRecall = z.object({
   ...RankEvalRankEvalMetricRatingTreshold.shape
-})
+}).meta({ id: 'RankEvalRankEvalMetricRecall' })
 export type RankEvalRankEvalMetricRecall = z.infer<typeof RankEvalRankEvalMetricRecall>
 
 /** Mean Reciprocal Rank */
 export const RankEvalRankEvalMetricMeanReciprocalRank = z.object({
   ...RankEvalRankEvalMetricRatingTreshold.shape
-})
+}).meta({ id: 'RankEvalRankEvalMetricMeanReciprocalRank' })
 export type RankEvalRankEvalMetricMeanReciprocalRank = z.infer<typeof RankEvalRankEvalMetricMeanReciprocalRank>
 
 /** Discounted cumulative gain (DCG) */
 export const RankEvalRankEvalMetricDiscountedCumulativeGain = z.object({
   ...RankEvalRankEvalMetricBase.shape,
   normalize: z.boolean().describe('If set to true, this metric will calculate the Normalized DCG.').optional()
-})
+}).meta({ id: 'RankEvalRankEvalMetricDiscountedCumulativeGain' })
 export type RankEvalRankEvalMetricDiscountedCumulativeGain = z.infer<typeof RankEvalRankEvalMetricDiscountedCumulativeGain>
 
 /** Expected Reciprocal Rank (ERR) */
 export const RankEvalRankEvalMetricExpectedReciprocalRank = z.object({
   ...RankEvalRankEvalMetricBase.shape,
   maximum_relevance: z.lazy(() => integer).describe('The highest relevance grade used in the user-supplied relevance judgments.')
-})
+}).meta({ id: 'RankEvalRankEvalMetricExpectedReciprocalRank' })
 export type RankEvalRankEvalMetricExpectedReciprocalRank = z.infer<typeof RankEvalRankEvalMetricExpectedReciprocalRank>
 
 export const RankEvalRankEvalMetric = z.object({
@@ -2810,13 +2810,13 @@ export const RankEvalRankEvalMetric = z.object({
   mean_reciprocal_rank: RankEvalRankEvalMetricMeanReciprocalRank.optional(),
   dcg: RankEvalRankEvalMetricDiscountedCumulativeGain.optional(),
   expected_reciprocal_rank: RankEvalRankEvalMetricExpectedReciprocalRank.optional()
-})
+}).meta({ id: 'RankEvalRankEvalMetric' })
 export type RankEvalRankEvalMetric = z.infer<typeof RankEvalRankEvalMetric>
 
 export const RankEvalUnratedDocument = z.object({
   _id: z.lazy(() => Id),
   _index: z.lazy(() => IndexName)
-})
+}).meta({ id: 'RankEvalUnratedDocument' })
 export type RankEvalUnratedDocument = z.infer<typeof RankEvalUnratedDocument>
 
 export const RankEvalRankEvalMetricDetail = z.object({
@@ -2824,13 +2824,13 @@ export const RankEvalRankEvalMetricDetail = z.object({
   unrated_docs: z.array(RankEvalUnratedDocument).describe('The unrated_docs section contains an _index and _id entry for each document in the search result for this query that didn’t have a ratings value. This can be used to ask the user to supply ratings for these documents'),
   hits: z.array(RankEvalRankEvalHitItem).describe('The hits section shows a grouping of the search results with their supplied ratings'),
   metric_details: z.record(z.string(), z.record(z.string(), z.any())).describe('The metric_details give additional information about the calculated quality metric (e.g. how many of the retrieved documents were relevant). The content varies for each metric but allows for better interpretation of the results')
-})
+}).meta({ id: 'RankEvalRankEvalMetricDetail' })
 export type RankEvalRankEvalMetricDetail = z.infer<typeof RankEvalRankEvalMetricDetail>
 
 export const RankEvalRankEvalQuery = z.object({
   query: z.lazy(() => QueryDslQueryContainer),
   size: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'RankEvalRankEvalQuery' })
 export type RankEvalRankEvalQuery = z.infer<typeof RankEvalRankEvalQuery>
 
 export const RankEvalRankEvalRequestItem = z.object({
@@ -2839,7 +2839,7 @@ export const RankEvalRankEvalRequestItem = z.object({
   ratings: z.array(RankEvalDocumentRating).describe('List of document ratings'),
   template_id: z.lazy(() => Id).describe('The search template Id').optional(),
   params: z.record(z.string(), z.any()).describe('The search template parameters.').optional()
-})
+}).meta({ id: 'RankEvalRankEvalRequestItem' })
 export type RankEvalRankEvalRequestItem = z.infer<typeof RankEvalRankEvalRequestItem>
 
 /**
@@ -2855,14 +2855,14 @@ export const RankEvalRequest = z.object({
   search_type: z.lazy(() => SearchType).describe('Search operation type').optional().meta({ found_in: 'query' }),
   requests: z.array(RankEvalRankEvalRequestItem).describe('A set of typical search requests, together with their provided ratings.').meta({ found_in: 'body' }),
   metric: RankEvalRankEvalMetric.describe('Definition of the evaluation metric to calculate.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'RankEvalRequest' })
 export type RankEvalRequest = z.infer<typeof RankEvalRequest>
 
 export const RankEvalResponse = z.object({
   metric_score: z.lazy(() => double).describe('The overall evaluation quality calculated by the defined metric'),
   details: z.record(z.lazy(() => Id), RankEvalRankEvalMetricDetail).describe('The details section contains one entry for every query in the original requests section, keyed by the search request id'),
   failures: z.record(z.string(), z.any())
-})
+}).meta({ id: 'RankEvalResponse' })
 export type RankEvalResponse = z.infer<typeof RankEvalResponse>
 
 export const ReindexDestination = z.object({
@@ -2871,7 +2871,7 @@ export const ReindexDestination = z.object({
   pipeline: z.string().describe('The name of the pipeline to use.').optional(),
   routing: z.string().describe('By default, a document\'s routing is preserved unless it\'s changed by the script. If it is `keep`, the routing on the bulk request sent for each match is set to the routing on the match. If it is `discard`, the routing on the bulk request sent for each match is set to `null`. If it is `=value`, the routing on the bulk request sent for each match is set to all value specified after the equals sign (`=`).').optional(),
   version_type: z.lazy(() => VersionType).describe('The versioning to use for the indexing operation.').optional()
-})
+}).meta({ id: 'ReindexDestination' })
 export type ReindexDestination = z.infer<typeof ReindexDestination>
 
 export const ReindexRemoteSource = z.object({
@@ -2882,7 +2882,7 @@ export const ReindexRemoteSource = z.object({
   password: z.lazy(() => Password).describe('The password to use for authentication with the remote host (required when using basic auth).').optional(),
   api_key: z.string().describe('The API key to use for authentication with the remote host (as an alternative to basic auth when the remote cluster is in Elastic Cloud). (It is not permitted to set this and also to set an `Authorization` header via `headers`.)').optional(),
   socket_timeout: z.lazy(() => Duration).describe('The remote socket read timeout.').optional()
-})
+}).meta({ id: 'ReindexRemoteSource' })
 export type ReindexRemoteSource = z.infer<typeof ReindexRemoteSource>
 
 export const ReindexSource = z.object({
@@ -2894,7 +2894,7 @@ export const ReindexSource = z.object({
   sort: z.lazy(() => Sort).describe('A comma-separated list of `<field>:<direction>` pairs to sort by before indexing. Use it in conjunction with `max_docs` to control what documents are reindexed. WARNING: Sort in reindex is deprecated. Sorting in reindex was never guaranteed to index documents in order and prevents further development of reindex such as resilience and performance improvements. If used in combination with `max_docs`, consider using a query filter instead.').optional(),
   source_fields: z.lazy(() => SearchSourceConfig).describe('If `true`, reindex all source fields. Set it to a list to reindex select fields.').optional(),
   runtime_mappings: z.lazy(() => MappingRuntimeFields).optional()
-})
+}).meta({ id: 'ReindexSource' })
 export type ReindexSource = z.infer<typeof ReindexSource>
 
 /**
@@ -2962,7 +2962,7 @@ export const ReindexRequest = z.object({
   max_docs: z.lazy(() => long).describe('The maximum number of documents to reindex. By default, all documents are reindexed. If it is a value less then or equal to `scroll_size`, a scroll will not be used to retrieve the results for the operation. If `conflicts` is set to `proceed`, the reindex operation could attempt to reindex more documents from the source than `max_docs` until it has successfully indexed `max_docs` documents into the target or it has gone through every document in the source query.').optional().meta({ found_in: 'body' }),
   script: z.lazy(() => Script).describe('The script to run to update the document source or metadata when reindexing.').optional().meta({ found_in: 'body' }),
   source: ReindexSource.describe('The source you are copying from.').meta({ found_in: 'body' })
-})
+}).meta({ id: 'ReindexRequest' })
 export type ReindexRequest = z.infer<typeof ReindexRequest>
 
 export const ReindexResponse = z.object({
@@ -2983,7 +2983,7 @@ export const ReindexResponse = z.object({
   total: z.lazy(() => long).describe('The number of documents that were successfully processed.').optional(),
   updated: z.lazy(() => long).describe('The number of documents that were successfully updated. That is to say, a document with the same ID already existed before the reindex updated it.').optional(),
   version_conflicts: z.lazy(() => long).describe('The number of version conflicts that occurred.').optional()
-})
+}).meta({ id: 'ReindexResponse' })
 export type ReindexResponse = z.infer<typeof ReindexResponse>
 
 export const ReindexRethrottleReindexTask = z.object({
@@ -2998,13 +2998,13 @@ export const ReindexRethrottleReindexTask = z.object({
   status: z.lazy(() => ReindexStatus),
   type: z.string(),
   headers: z.lazy(() => HttpHeaders)
-})
+}).meta({ id: 'ReindexRethrottleReindexTask' })
 export type ReindexRethrottleReindexTask = z.infer<typeof ReindexRethrottleReindexTask>
 
 export const ReindexRethrottleParentReindexTask = z.object({
   ...ReindexRethrottleReindexTask.shape,
   children: z.array(ReindexRethrottleReindexTask).optional()
-})
+}).meta({ id: 'ReindexRethrottleParentReindexTask' })
 export type ReindexRethrottleParentReindexTask = z.infer<typeof ReindexRethrottleParentReindexTask>
 
 export const ReindexRethrottleReindexNode = z.object({
@@ -3015,10 +3015,10 @@ export const ReindexRethrottleReindexNode = z.object({
   roles: z.lazy(() => NodeRoles).optional(),
   transport_address: z.lazy(() => TransportAddress),
   tasks: z.record(z.lazy(() => TaskId), ReindexRethrottleReindexTask)
-})
+}).meta({ id: 'ReindexRethrottleReindexNode' })
 export type ReindexRethrottleReindexNode = z.infer<typeof ReindexRethrottleReindexNode>
 
-export const ReindexRethrottleReindexTasks = z.union([z.array(ReindexRethrottleReindexTask), z.record(z.string(), ReindexRethrottleParentReindexTask)])
+export const ReindexRethrottleReindexTasks = z.union([z.array(ReindexRethrottleReindexTask), z.record(z.string(), ReindexRethrottleParentReindexTask)]).meta({ id: 'ReindexRethrottleReindexTasks' })
 export type ReindexRethrottleReindexTasks = z.infer<typeof ReindexRethrottleReindexTasks>
 
 /**
@@ -3038,7 +3038,7 @@ export type ReindexRethrottleReindexTasks = z.infer<typeof ReindexRethrottleRein
 export const ReindexRethrottleRequest = z.object({
   task_id: z.lazy(() => Id).describe('The task identifier, which can be found by using the tasks API.').meta({ found_in: 'path' }),
   requests_per_second: z.lazy(() => float).describe('The throttle for this request in sub-requests per second. It can be either `-1` to turn off throttling or any decimal number like `1.7` or `12` to throttle to that level.').meta({ found_in: 'query' })
-})
+}).meta({ id: 'ReindexRethrottleRequest' })
 export type ReindexRethrottleRequest = z.infer<typeof ReindexRethrottleRequest>
 
 export const ReindexRethrottleResponse = z.object({
@@ -3046,7 +3046,7 @@ export const ReindexRethrottleResponse = z.object({
   task_failures: z.array(z.lazy(() => TaskFailure)).optional(),
   nodes: z.record(z.string(), ReindexRethrottleReindexNode).optional(),
   tasks: ReindexRethrottleReindexTasks.optional()
-})
+}).meta({ id: 'ReindexRethrottleResponse' })
 export type ReindexRethrottleResponse = z.infer<typeof ReindexRethrottleResponse>
 
 /**
@@ -3059,22 +3059,22 @@ export const RenderSearchTemplateRequest = z.object({
   file: z.string().optional().meta({ found_in: 'body' }),
   params: z.record(z.string(), z.any()).describe('Key-value pairs used to replace Mustache variables in the template. The key is the variable name. The value is the variable value.').optional().meta({ found_in: 'body' }),
   source: z.lazy(() => ScriptSource).describe('An inline search template. It supports the same parameters as the search API\'s request body. These parameters also support Mustache variables. If no `id` or `<templated-id>` is specified, this parameter is required.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'RenderSearchTemplateRequest' })
 export type RenderSearchTemplateRequest = z.infer<typeof RenderSearchTemplateRequest>
 
 export const RenderSearchTemplateResponse = z.object({
   template_output: z.record(z.string(), z.any())
-})
+}).meta({ id: 'RenderSearchTemplateResponse' })
 export type RenderSearchTemplateResponse = z.infer<typeof RenderSearchTemplateResponse>
 
-export const ScriptsPainlessExecutePainlessContext = z.enum(['painless_test', 'filter', 'score', 'boolean_field', 'date_field', 'double_field', 'geo_point_field', 'ip_field', 'keyword_field', 'long_field', 'composite_field'])
+export const ScriptsPainlessExecutePainlessContext = z.enum(['painless_test', 'filter', 'score', 'boolean_field', 'date_field', 'double_field', 'geo_point_field', 'ip_field', 'keyword_field', 'long_field', 'composite_field']).meta({ id: 'ScriptsPainlessExecutePainlessContext' })
 export type ScriptsPainlessExecutePainlessContext = z.infer<typeof ScriptsPainlessExecutePainlessContext>
 
 export const ScriptsPainlessExecutePainlessContextSetup = z.object({
   document: z.any().describe('Document that\'s temporarily indexed in-memory and accessible from the script.'),
   index: z.lazy(() => IndexName).describe('Index containing a mapping that\'s compatible with the indexed document. You may specify a remote index by prefixing the index with the remote cluster alias. For example, `remote1:my_index` indicates that you want to run the painless script against the "my_index" index on the "remote1" cluster. This request will be forwarded to the "remote1" cluster if you have configured a connection to that remote cluster. NOTE: Wildcards are not accepted in the index expression for this endpoint. The expression `*:myindex` will return the error "No such remote cluster" and the expression `logs*` or `remote1:logs*` will return the error "index not found".'),
   query: z.lazy(() => QueryDslQueryContainer).describe('Use this parameter to specify a query for computing a score.').optional()
-})
+}).meta({ id: 'ScriptsPainlessExecutePainlessContextSetup' })
 export type ScriptsPainlessExecutePainlessContextSetup = z.infer<typeof ScriptsPainlessExecutePainlessContextSetup>
 
 /**
@@ -3092,12 +3092,12 @@ export const ScriptsPainlessExecuteRequest = z.object({
   context: ScriptsPainlessExecutePainlessContext.describe('The context that the script should run in. NOTE: Result ordering in the field contexts is not guaranteed.').optional().meta({ found_in: 'body' }),
   context_setup: ScriptsPainlessExecutePainlessContextSetup.describe('Additional parameters for the `context`. NOTE: This parameter is required for all contexts except `painless_test`, which is the default if no value is provided for `context`.').optional().meta({ found_in: 'body' }),
   script: z.lazy(() => Script).describe('The Painless script to run.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'ScriptsPainlessExecuteRequest' })
 export type ScriptsPainlessExecuteRequest = z.infer<typeof ScriptsPainlessExecuteRequest>
 
 export const ScriptsPainlessExecuteResponse = z.object({
   result: z.any()
-})
+}).meta({ id: 'ScriptsPainlessExecuteResponse' })
 export type ScriptsPainlessExecuteResponse = z.infer<typeof ScriptsPainlessExecuteResponse>
 
 /**
@@ -3120,10 +3120,10 @@ export const ScrollRequest = z.object({
   rest_total_hits_as_int: z.boolean().describe('If true, the API response’s hit.total property is returned as an integer. If false, the API response’s hit.total property is returned as an object.').optional().meta({ found_in: 'query' }),
   scroll: z.lazy(() => Duration).describe('The period to retain the search context for scrolling.').optional().meta({ found_in: 'body' }),
   scroll_id: z.lazy(() => ScrollId).describe('The scroll ID of the search.').meta({ found_in: 'body' })
-})
+}).meta({ id: 'ScrollRequest' })
 export type ScrollRequest = z.infer<typeof ScrollRequest>
 
-export const ScrollResponse = SearchResponseBody
+export const ScrollResponse = SearchResponseBody.meta({ id: 'ScrollResponse' })
 export type ScrollResponse = z.infer<typeof ScrollResponse>
 
 /**
@@ -3213,10 +3213,10 @@ export const SearchRequest = z.object({
   pit: SearchPointInTimeReference.describe('Limit the search to a point in time (PIT). If you provide a PIT, you cannot specify an `<index>` in the request path.').optional().meta({ found_in: 'body' }),
   runtime_mappings: z.lazy(() => MappingRuntimeFields).describe('One or more runtime fields in the search request. These fields take precedence over mapped fields with the same name.').optional().meta({ found_in: 'body' }),
   stats: z.array(z.string()).describe('The stats groups to associate with the search. Each group maintains a statistics aggregation for its associated searches. You can retrieve these stats using the indices stats API.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'SearchRequest' })
 export type SearchRequest = z.infer<typeof SearchRequest>
 
-export const SearchResponse = SearchResponseBody
+export const SearchResponse = SearchResponseBody.meta({ id: 'SearchResponse' })
 export type SearchResponse = z.infer<typeof SearchResponse>
 
 export const SearchCompletionContext = z.object({
@@ -3225,14 +3225,14 @@ export const SearchCompletionContext = z.object({
   neighbours: z.array(z.lazy(() => GeoHashPrecision)).describe('An array of precision values at which neighboring geohashes should be taken into account. Precision value can be a distance value (`5m`, `10km`, etc.) or a raw geohash precision (`1`..`12`). Defaults to generating neighbors for index time precision level.').optional(),
   precision: z.lazy(() => GeoHashPrecision).describe('The precision of the geohash to encode the query geo point. Can be specified as a distance value (`5m`, `10km`, etc.), or as a raw geohash precision (`1`..`12`). Defaults to index time precision level.').optional(),
   prefix: z.boolean().describe('Whether the category value should be treated as a prefix or not.').optional()
-})
+}).meta({ id: 'SearchCompletionContext' })
 export type SearchCompletionContext = z.infer<typeof SearchCompletionContext>
 
 export const SearchSuggesterBase = z.object({
   field: z.lazy(() => Field).describe('The field to fetch the candidate suggestions from. Needs to be set globally or per suggestion.'),
   analyzer: z.string().describe('The analyzer to analyze the suggest text with. Defaults to the search analyzer of the suggest field.').optional(),
   size: z.lazy(() => integer).describe('The maximum corrections to be returned per suggest text token.').optional()
-})
+}).meta({ id: 'SearchSuggesterBase' })
 export type SearchSuggesterBase = z.infer<typeof SearchSuggesterBase>
 
 export const SearchSuggestFuzziness = z.object({
@@ -3241,13 +3241,13 @@ export const SearchSuggestFuzziness = z.object({
   prefix_length: z.lazy(() => integer).describe('Minimum length of the input, which is not checked for fuzzy alternatives.').optional(),
   transpositions: z.boolean().describe('If set to `true`, transpositions are counted as one change instead of two.').optional(),
   unicode_aware: z.boolean().describe('If `true`, all measurements (like fuzzy edit distance, transpositions, and lengths) are measured in Unicode code points instead of in bytes. This is slightly slower than raw bytes.').optional()
-})
+}).meta({ id: 'SearchSuggestFuzziness' })
 export type SearchSuggestFuzziness = z.infer<typeof SearchSuggestFuzziness>
 
 export const SearchRegexOptions = z.object({
   flags: z.union([z.lazy(() => integer), z.string()]).describe('Optional operators for the regular expression.').optional(),
   max_determinized_states: z.lazy(() => integer).describe('Maximum number of automaton states required for the query.').optional()
-})
+}).meta({ id: 'SearchRegexOptions' })
 export type SearchRegexOptions = z.infer<typeof SearchRegexOptions>
 
 export const SearchCompletionSuggester = z.object({
@@ -3256,7 +3256,7 @@ export const SearchCompletionSuggester = z.object({
   fuzzy: SearchSuggestFuzziness.describe('Enables fuzziness, meaning you can have a typo in your search and still get results back.').optional(),
   regex: SearchRegexOptions.describe('A regex query that expresses a prefix as a regular expression.').optional(),
   skip_duplicates: z.boolean().describe('Whether duplicate suggestions should be filtered out.').optional()
-})
+}).meta({ id: 'SearchCompletionSuggester' })
 export type SearchCompletionSuggester = z.infer<typeof SearchCompletionSuggester>
 
 export const SearchDirectGenerator = z.object({
@@ -3271,48 +3271,48 @@ export const SearchDirectGenerator = z.object({
   prefix_length: z.lazy(() => integer).describe('The number of minimal prefix characters that must match in order be a candidate suggestions. Increasing this number improves spellcheck performance.').optional(),
   size: z.lazy(() => integer).describe('The maximum corrections to be returned per suggest text token.').optional(),
   suggest_mode: z.lazy(() => SuggestMode).describe('Controls what suggestions are included on the suggestions generated on each shard.').optional()
-})
+}).meta({ id: 'SearchDirectGenerator' })
 export type SearchDirectGenerator = z.infer<typeof SearchDirectGenerator>
 
 export const SearchPhraseSuggestCollateQuery = z.object({
   id: z.lazy(() => Id).describe('The search template ID.').optional(),
   source: z.lazy(() => ScriptSource).describe('The query source.').optional()
-})
+}).meta({ id: 'SearchPhraseSuggestCollateQuery' })
 export type SearchPhraseSuggestCollateQuery = z.infer<typeof SearchPhraseSuggestCollateQuery>
 
 export const SearchPhraseSuggestCollate = z.object({
   params: z.record(z.string(), z.any()).describe('Parameters to use if the query is templated.').optional(),
   prune: z.boolean().describe('Returns all suggestions with an extra `collate_match` option indicating whether the generated phrase matched any document.').optional(),
   query: SearchPhraseSuggestCollateQuery.describe('A collate query that is run once for every suggestion.')
-})
+}).meta({ id: 'SearchPhraseSuggestCollate' })
 export type SearchPhraseSuggestCollate = z.infer<typeof SearchPhraseSuggestCollate>
 
 export const SearchPhraseSuggestHighlight = z.object({
   post_tag: z.string().describe('Use in conjunction with `pre_tag` to define the HTML tags to use for the highlighted text.'),
   pre_tag: z.string().describe('Use in conjunction with `post_tag` to define the HTML tags to use for the highlighted text.')
-})
+}).meta({ id: 'SearchPhraseSuggestHighlight' })
 export type SearchPhraseSuggestHighlight = z.infer<typeof SearchPhraseSuggestHighlight>
 
 export const SearchLaplaceSmoothingModel = z.object({
   alpha: z.lazy(() => double).describe('A constant that is added to all counts to balance weights.')
-})
+}).meta({ id: 'SearchLaplaceSmoothingModel' })
 export type SearchLaplaceSmoothingModel = z.infer<typeof SearchLaplaceSmoothingModel>
 
 export const SearchLinearInterpolationSmoothingModel = z.object({
   bigram_lambda: z.lazy(() => double),
   trigram_lambda: z.lazy(() => double),
   unigram_lambda: z.lazy(() => double)
-})
+}).meta({ id: 'SearchLinearInterpolationSmoothingModel' })
 export type SearchLinearInterpolationSmoothingModel = z.infer<typeof SearchLinearInterpolationSmoothingModel>
 
 export const SearchStupidBackoffSmoothingModel = z.object({
   discount: z.lazy(() => double).describe('A constant factor that the lower order n-gram model is discounted by.')
-})
+}).meta({ id: 'SearchStupidBackoffSmoothingModel' })
 export type SearchStupidBackoffSmoothingModel = z.infer<typeof SearchStupidBackoffSmoothingModel>
 
 const SearchSmoothingModelContainerExclusiveProps = z.union([z.object({ laplace: SearchLaplaceSmoothingModel }), z.object({ linear_interpolation: SearchLinearInterpolationSmoothingModel }), z.object({ stupid_backoff: SearchStupidBackoffSmoothingModel })])
 
-export const SearchSmoothingModelContainer = SearchSmoothingModelContainerExclusiveProps
+export const SearchSmoothingModelContainer = SearchSmoothingModelContainerExclusiveProps.meta({ id: 'SearchSmoothingModelContainer' })
 export type SearchSmoothingModelContainer = z.infer<typeof SearchSmoothingModelContainer>
 
 export const SearchPhraseSuggester = z.object({
@@ -3329,13 +3329,13 @@ export const SearchPhraseSuggester = z.object({
   shard_size: z.lazy(() => integer).describe('Sets the maximum number of suggested terms to be retrieved from each individual shard.').optional(),
   smoothing: SearchSmoothingModelContainer.describe('The smoothing model used to balance weight between infrequent grams (grams (shingles) are not existing in the index) and frequent grams (appear at least once in the index). The default model is Stupid Backoff.').optional(),
   token_limit: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'SearchPhraseSuggester' })
 export type SearchPhraseSuggester = z.infer<typeof SearchPhraseSuggester>
 
-export const SearchSuggestSort = z.enum(['score', 'frequency'])
+export const SearchSuggestSort = z.enum(['score', 'frequency']).meta({ id: 'SearchSuggestSort' })
 export type SearchSuggestSort = z.infer<typeof SearchSuggestSort>
 
-export const SearchStringDistance = z.enum(['internal', 'damerau_levenshtein', 'levenshtein', 'jaro_winkler', 'ngram'])
+export const SearchStringDistance = z.enum(['internal', 'damerau_levenshtein', 'levenshtein', 'jaro_winkler', 'ngram']).meta({ id: 'SearchStringDistance' })
 export type SearchStringDistance = z.infer<typeof SearchStringDistance>
 
 export const SearchTermSuggester = z.object({
@@ -3351,7 +3351,7 @@ export const SearchTermSuggester = z.object({
   sort: SearchSuggestSort.describe('Defines how suggestions should be sorted per suggest text term.').optional(),
   string_distance: SearchStringDistance.describe('The string distance implementation to use for comparing how similar suggested terms are.').optional(),
   suggest_mode: z.lazy(() => SuggestMode).describe('Controls what suggestions are included or controls for what suggest text terms, suggestions should be suggested.').optional()
-})
+}).meta({ id: 'SearchTermSuggester' })
 export type SearchTermSuggester = z.infer<typeof SearchTermSuggester>
 
 const SearchFieldSuggesterCommonProps = z.object({
@@ -3362,19 +3362,19 @@ const SearchFieldSuggesterCommonProps = z.object({
 
 const SearchFieldSuggesterExclusiveProps = z.union([z.object({ completion: SearchCompletionSuggester }), z.object({ phrase: SearchPhraseSuggester }), z.object({ term: SearchTermSuggester })])
 
-export const SearchFieldSuggester = SearchFieldSuggesterCommonProps.and(SearchFieldSuggesterExclusiveProps)
+export const SearchFieldSuggester = SearchFieldSuggesterCommonProps.and(SearchFieldSuggesterExclusiveProps).meta({ id: 'SearchFieldSuggester' })
 export type SearchFieldSuggester = z.infer<typeof SearchFieldSuggester>
 
-export const SearchMvtZoomLevel = z.lazy(() => integer)
+export const SearchMvtZoomLevel = z.lazy(() => integer).meta({ id: 'SearchMvtZoomLevel' })
 export type SearchMvtZoomLevel = z.infer<typeof SearchMvtZoomLevel>
 
-export const SearchMvtCoordinate = z.lazy(() => integer)
+export const SearchMvtCoordinate = z.lazy(() => integer).meta({ id: 'SearchMvtCoordinate' })
 export type SearchMvtCoordinate = z.infer<typeof SearchMvtCoordinate>
 
-export const SearchMvtGridAggregationType = z.enum(['geotile', 'geohex'])
+export const SearchMvtGridAggregationType = z.enum(['geotile', 'geohex']).meta({ id: 'SearchMvtGridAggregationType' })
 export type SearchMvtGridAggregationType = z.infer<typeof SearchMvtGridAggregationType>
 
-export const SearchMvtGridType = z.enum(['grid', 'point', 'centroid'])
+export const SearchMvtGridType = z.enum(['grid', 'point', 'centroid']).meta({ id: 'SearchMvtGridType' })
 export type SearchMvtGridType = z.infer<typeof SearchMvtGridType>
 
 /**
@@ -3488,10 +3488,10 @@ export const SearchMvtRequest = z.object({
   sort: z.lazy(() => Sort).describe('Sort the features in the hits layer. By default, the API calculates a bounding box for each feature. It sorts features based on this box\'s diagonal length, from longest to shortest.').optional().meta({ found_in: 'body' }),
   track_total_hits: SearchTrackHits.describe('The number of hits matching the query to count accurately. If `true`, the exact number of hits is returned at the cost of some performance. If `false`, the response does not include the total number of hits matching the query.').optional().meta({ found_in: 'body' }),
   with_labels: z.boolean().describe('If `true`, the hits and aggs layers will contain additional point features representing suggested label positions for the original features. * `Point` and `MultiPoint` features will have one of the points selected. * `Polygon` and `MultiPolygon` features will have a single point generated, either the centroid, if it is within the polygon, or another point within the polygon selected from the sorted triangle-tree. * `LineString` features will likewise provide a roughly central point selected from the triangle-tree. * The aggregation results will provide one central point for each aggregation bucket. All attributes from the original features will also be copied to the new label features. In addition, the new features will be distinguishable using the tag `_mvt_label_position`.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'SearchMvtRequest' })
 export type SearchMvtRequest = z.infer<typeof SearchMvtRequest>
 
-export const SearchMvtResponse = z.lazy(() => MapboxVectorTiles)
+export const SearchMvtResponse = z.lazy(() => MapboxVectorTiles).meta({ id: 'SearchMvtResponse' })
 export type SearchMvtResponse = z.infer<typeof SearchMvtResponse>
 
 /**
@@ -3512,7 +3512,7 @@ export const SearchShardsRequest = z.object({
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If the master node is not available before the timeout expires, the request fails and returns an error. IT can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' }),
   preference: z.string().describe('The node or shard the operation should be performed on. It is random by default.').optional().meta({ found_in: 'query' }),
   routing: z.lazy(() => Routing).describe('A custom value used to route operations to a specific shard.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'SearchShardsRequest' })
 export type SearchShardsRequest = z.infer<typeof SearchShardsRequest>
 
 export const SearchShardsSearchShardsNodeAttributes = z.object({
@@ -3525,20 +3525,20 @@ export const SearchShardsSearchShardsNodeAttributes = z.object({
   version: z.lazy(() => VersionString),
   min_index_version: z.lazy(() => integer),
   max_index_version: z.lazy(() => integer)
-})
+}).meta({ id: 'SearchShardsSearchShardsNodeAttributes' })
 export type SearchShardsSearchShardsNodeAttributes = z.infer<typeof SearchShardsSearchShardsNodeAttributes>
 
 export const SearchShardsShardStoreIndex = z.object({
   aliases: z.array(z.lazy(() => Name)).optional(),
   filter: z.lazy(() => QueryDslQueryContainer).optional()
-})
+}).meta({ id: 'SearchShardsShardStoreIndex' })
 export type SearchShardsShardStoreIndex = z.infer<typeof SearchShardsShardStoreIndex>
 
 export const SearchShardsResponse = z.object({
   nodes: z.record(z.lazy(() => NodeId), SearchShardsSearchShardsNodeAttributes),
   shards: z.array(z.array(z.lazy(() => NodeShard))),
   indices: z.record(z.lazy(() => IndexName), SearchShardsShardStoreIndex)
-})
+}).meta({ id: 'SearchShardsResponse' })
 export type SearchShardsResponse = z.infer<typeof SearchShardsResponse>
 
 /** Run a search with a search template. */
@@ -3560,7 +3560,7 @@ export const SearchTemplateRequest = z.object({
   params: z.record(z.string(), z.any()).describe('Key-value pairs used to replace Mustache variables in the template. The key is the variable name. The value is the variable value.').optional().meta({ found_in: 'body' }),
   profile: z.boolean().describe('If `true`, the query execution is profiled.').optional().meta({ found_in: 'body' }),
   source: z.lazy(() => ScriptSource).describe('An inline search template. Supports the same parameters as the search API\'s request body. It also supports Mustache variables. If no `id` is specified, this parameter is required.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'SearchTemplateRequest' })
 export type SearchTemplateRequest = z.infer<typeof SearchTemplateRequest>
 
 export const SearchTemplateResponse = z.object({
@@ -3578,7 +3578,7 @@ export const SearchTemplateResponse = z.object({
   _scroll_id: z.lazy(() => ScrollId).optional(),
   suggest: z.record(z.lazy(() => SuggestionName), z.array(SearchSuggest)).optional(),
   terminated_early: z.boolean().optional()
-})
+}).meta({ id: 'SearchTemplateResponse' })
 export type SearchTemplateResponse = z.infer<typeof SearchTemplateResponse>
 
 /**
@@ -3599,14 +3599,14 @@ export const TermsEnumRequest = z.object({
   index_filter: z.lazy(() => QueryDslQueryContainer).describe('Filter an index shard if the provided query rewrites to `match_none`.').optional().meta({ found_in: 'body' }),
   string: z.string().describe('The string to match at the start of indexed terms. If it is not provided, all terms in the field are considered. > info > The prefix string cannot be larger than the largest possible keyword value, which is Lucene\'s term byte-length limit of 32766.').optional().meta({ found_in: 'body' }),
   search_after: z.string().describe('The string after which terms in the index should be returned. It allows for a form of pagination if the last result from one request is passed as the `search_after` parameter for a subsequent request.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'TermsEnumRequest' })
 export type TermsEnumRequest = z.infer<typeof TermsEnumRequest>
 
 export const TermsEnumResponse = z.object({
   _shards: z.lazy(() => ShardStatistics),
   terms: z.array(z.string()),
   complete: z.boolean().describe('If `false`, the returned terms set may be incomplete and should be treated as approximate. This can occur due to a few reasons, such as a request timeout or a node error.')
-})
+}).meta({ id: 'TermsEnumResponse' })
 export type TermsEnumResponse = z.infer<typeof TermsEnumResponse>
 
 /**
@@ -3670,7 +3670,7 @@ export const TermvectorsRequest = z.object({
   routing: z.lazy(() => Routing).describe('A custom value that is used to route operations to a specific shard.').optional().meta({ found_in: 'body' }),
   version: z.lazy(() => VersionNumber).describe('If `true`, returns the document version as part of a hit.').optional().meta({ found_in: 'body' }),
   version_type: z.lazy(() => VersionType).describe('The version type.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'TermvectorsRequest' })
 export type TermvectorsRequest = z.infer<typeof TermvectorsRequest>
 
 export const TermvectorsResponse = z.object({
@@ -3680,7 +3680,7 @@ export const TermvectorsResponse = z.object({
   term_vectors: z.record(z.lazy(() => Field), TermvectorsTermVector).optional(),
   took: z.lazy(() => long),
   _version: z.lazy(() => VersionNumber)
-})
+}).meta({ id: 'TermvectorsResponse' })
 export type TermvectorsResponse = z.infer<typeof TermvectorsResponse>
 
 /**
@@ -3727,7 +3727,7 @@ export const UpdateRequest = z.object({
   scripted_upsert: z.boolean().describe('If `true`, run the script whether or not the document exists.').optional().meta({ found_in: 'body' }),
   _source: z.lazy(() => SearchSourceConfig).describe('If `false`, turn off source retrieval. You can also specify a comma-separated list of the fields you want to retrieve.').optional().meta({ found_in: 'body' }),
   upsert: z.any().describe('If the document does not already exist, the contents of \'upsert\' are inserted as a new document. If the document exists, the \'script\' is run.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'UpdateRequest' })
 export type UpdateRequest = z.infer<typeof UpdateRequest>
 
 export const UpdateUpdateWriteResponseBase = z.object({
@@ -3741,10 +3741,10 @@ export const UpdateUpdateWriteResponseBase = z.object({
   failure_store: z.lazy(() => BulkFailureStoreStatus).describe('The role of the failure store in this document response').optional(),
   forced_refresh: z.boolean().optional(),
   get: z.lazy(() => InlineGet).optional()
-})
+}).meta({ id: 'UpdateUpdateWriteResponseBase' })
 export type UpdateUpdateWriteResponseBase = z.infer<typeof UpdateUpdateWriteResponseBase>
 
-export const UpdateResponse = UpdateUpdateWriteResponseBase
+export const UpdateResponse = UpdateUpdateWriteResponseBase.meta({ id: 'UpdateResponse' })
 export type UpdateResponse = z.infer<typeof UpdateResponse>
 
 /**
@@ -3879,7 +3879,7 @@ export const UpdateByQueryRequest = z.object({
   script: z.lazy(() => Script).describe('The script to run to update the document source or metadata when updating.').optional().meta({ found_in: 'body' }),
   slice: z.lazy(() => SlicedScroll).describe('Slice the request manually using the provided slice ID and total number of slices.').optional().meta({ found_in: 'body' }),
   conflicts: z.lazy(() => Conflicts).describe('The preferred behavior when update by query hits version conflicts: `abort` or `proceed`.').optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'UpdateByQueryRequest' })
 export type UpdateByQueryRequest = z.infer<typeof UpdateByQueryRequest>
 
 export const UpdateByQueryResponse = z.object({
@@ -3900,7 +3900,7 @@ export const UpdateByQueryResponse = z.object({
   throttled_millis: z.lazy(() => DurationValue).describe('The number of milliseconds the request slept to conform to `requests_per_second`.').optional(),
   throttled_until: z.lazy(() => Duration).optional(),
   throttled_until_millis: z.lazy(() => DurationValue).describe('This field should always be equal to zero in an _update_by_query response. It only has meaning when using the task API, where it indicates the next time (in milliseconds since epoch) a throttled request will be run again in order to conform to `requests_per_second`.').optional()
-})
+}).meta({ id: 'UpdateByQueryResponse' })
 export type UpdateByQueryResponse = z.infer<typeof UpdateByQueryResponse>
 
 /**
@@ -3912,7 +3912,7 @@ export type UpdateByQueryResponse = z.infer<typeof UpdateByQueryResponse>
 export const UpdateByQueryRethrottleRequest = z.object({
   task_id: z.lazy(() => Id).describe('The ID for the task.').meta({ found_in: 'path' }),
   requests_per_second: z.lazy(() => float).describe('The throttle for this request in sub-requests per second. To turn off throttling, set it to `-1`.').meta({ found_in: 'query' })
-})
+}).meta({ id: 'UpdateByQueryRethrottleRequest' })
 export type UpdateByQueryRethrottleRequest = z.infer<typeof UpdateByQueryRethrottleRequest>
 
 export const UpdateByQueryRethrottleUpdateByQueryRethrottleNode = z.object({
@@ -3923,10 +3923,10 @@ export const UpdateByQueryRethrottleUpdateByQueryRethrottleNode = z.object({
   roles: z.lazy(() => NodeRoles).optional(),
   transport_address: z.lazy(() => TransportAddress),
   tasks: z.record(z.lazy(() => TaskId), z.lazy(() => TasksTaskInfo))
-})
+}).meta({ id: 'UpdateByQueryRethrottleUpdateByQueryRethrottleNode' })
 export type UpdateByQueryRethrottleUpdateByQueryRethrottleNode = z.infer<typeof UpdateByQueryRethrottleUpdateByQueryRethrottleNode>
 
 export const UpdateByQueryRethrottleResponse = z.object({
   nodes: z.record(z.string(), UpdateByQueryRethrottleUpdateByQueryRethrottleNode)
-})
+}).meta({ id: 'UpdateByQueryRethrottleResponse' })
 export type UpdateByQueryRethrottleResponse = z.infer<typeof UpdateByQueryRethrottleResponse>

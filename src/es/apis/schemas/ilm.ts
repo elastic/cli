@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
-import { AcknowledgedResponseBase, ByteSize, DateTime, Duration, DurationLarge, DurationValue, EmptyObject, EpochTime, IndexName, Indices, LifecycleOperationMode, Metadata, Name, VersionNumber, integer, long } from './_types.ts'
+import { AcknowledgedResponseBase, ByteSize, DateTime, Duration, DurationLarge, EmptyObject, EpochTime, IndexName, Indices, LifecycleOperationMode, Metadata, Name, VersionNumber, integer, long } from './_types.ts'
 
 export const IlmAllocateAction = z.object({
   number_of_replicas: z.lazy(() => integer).optional(),
@@ -15,29 +15,29 @@ export const IlmAllocateAction = z.object({
   include: z.record(z.string(), z.string()).optional(),
   exclude: z.record(z.string(), z.string()).optional(),
   require: z.record(z.string(), z.string()).optional()
-})
+}).meta({ id: 'IlmAllocateAction' })
 export type IlmAllocateAction = z.infer<typeof IlmAllocateAction>
 
 export const IlmDeleteAction = z.object({
   delete_searchable_snapshot: z.boolean().optional()
-})
+}).meta({ id: 'IlmDeleteAction' })
 export type IlmDeleteAction = z.infer<typeof IlmDeleteAction>
 
 export const IlmDownsampleAction = z.object({
   fixed_interval: z.lazy(() => DurationLarge),
   wait_timeout: z.lazy(() => Duration).optional()
-})
+}).meta({ id: 'IlmDownsampleAction' })
 export type IlmDownsampleAction = z.infer<typeof IlmDownsampleAction>
 
 export const IlmForceMergeAction = z.object({
   max_num_segments: z.lazy(() => integer),
   index_codec: z.string().optional()
-})
+}).meta({ id: 'IlmForceMergeAction' })
 export type IlmForceMergeAction = z.infer<typeof IlmForceMergeAction>
 
 export const IlmMigrateAction = z.object({
   enabled: z.boolean().optional()
-})
+}).meta({ id: 'IlmMigrateAction' })
 export type IlmMigrateAction = z.infer<typeof IlmMigrateAction>
 
 export const IlmRolloverAction = z.object({
@@ -51,30 +51,30 @@ export const IlmRolloverAction = z.object({
   min_age: z.lazy(() => Duration).optional(),
   min_docs: z.lazy(() => long).optional(),
   min_primary_shard_docs: z.lazy(() => long).optional()
-})
+}).meta({ id: 'IlmRolloverAction' })
 export type IlmRolloverAction = z.infer<typeof IlmRolloverAction>
 
 export const IlmSetPriorityAction = z.object({
   priority: z.lazy(() => integer).optional()
-})
+}).meta({ id: 'IlmSetPriorityAction' })
 export type IlmSetPriorityAction = z.infer<typeof IlmSetPriorityAction>
 
 export const IlmSearchableSnapshotAction = z.object({
   snapshot_repository: z.string(),
   force_merge_index: z.boolean().optional()
-})
+}).meta({ id: 'IlmSearchableSnapshotAction' })
 export type IlmSearchableSnapshotAction = z.infer<typeof IlmSearchableSnapshotAction>
 
 export const IlmShrinkAction = z.object({
   number_of_shards: z.lazy(() => integer).optional(),
   max_primary_shard_size: z.lazy(() => ByteSize).optional(),
   allow_write_after_shrink: z.boolean().optional()
-})
+}).meta({ id: 'IlmShrinkAction' })
 export type IlmShrinkAction = z.infer<typeof IlmShrinkAction>
 
 export const IlmWaitForSnapshotAction = z.object({
   policy: z.string()
-})
+}).meta({ id: 'IlmWaitForSnapshotAction' })
 export type IlmWaitForSnapshotAction = z.infer<typeof IlmWaitForSnapshotAction>
 
 export const IlmActions = z.object({
@@ -91,13 +91,13 @@ export const IlmActions = z.object({
   shrink: IlmShrinkAction.describe('Phases allowed: hot, warm.').optional(),
   unfollow: EmptyObject.describe('Phases allowed: hot, warm, cold, frozen.').optional(),
   wait_for_snapshot: IlmWaitForSnapshotAction.describe('Phases allowed: delete.').optional()
-})
+}).meta({ id: 'IlmActions' })
 export type IlmActions = z.infer<typeof IlmActions>
 
 export const IlmPhase = z.object({
   actions: IlmActions.optional(),
   min_age: z.lazy(() => Duration).optional()
-})
+}).meta({ id: 'IlmPhase' })
 export type IlmPhase = z.infer<typeof IlmPhase>
 
 export const IlmPhases = z.object({
@@ -106,13 +106,13 @@ export const IlmPhases = z.object({
   frozen: IlmPhase.optional(),
   hot: IlmPhase.optional(),
   warm: IlmPhase.optional()
-})
+}).meta({ id: 'IlmPhases' })
 export type IlmPhases = z.infer<typeof IlmPhases>
 
 export const IlmPolicy = z.object({
   phases: IlmPhases,
   _meta: z.lazy(() => Metadata).describe('Arbitrary metadata that is not automatically generated or used by Elasticsearch.').optional()
-})
+}).meta({ id: 'IlmPolicy' })
 export type IlmPolicy = z.infer<typeof IlmPolicy>
 
 /**
@@ -124,10 +124,10 @@ export const IlmDeleteLifecycleRequest = z.object({
   name: z.lazy(() => Name).describe('Identifier for the policy.').meta({ found_in: 'path' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'IlmDeleteLifecycleRequest' })
 export type IlmDeleteLifecycleRequest = z.infer<typeof IlmDeleteLifecycleRequest>
 
-export const IlmDeleteLifecycleResponse = z.lazy(() => AcknowledgedResponseBase)
+export const IlmDeleteLifecycleResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IlmDeleteLifecycleResponse' })
 export type IlmDeleteLifecycleResponse = z.infer<typeof IlmDeleteLifecycleResponse>
 
 export const IlmExplainLifecycleLifecycleExplainPhaseExecution = z.object({
@@ -135,7 +135,7 @@ export const IlmExplainLifecycleLifecycleExplainPhaseExecution = z.object({
   policy: z.lazy(() => Name),
   version: z.lazy(() => VersionNumber),
   modified_date_in_millis: z.lazy(() => EpochTime)
-})
+}).meta({ id: 'IlmExplainLifecycleLifecycleExplainPhaseExecution' })
 export type IlmExplainLifecycleLifecycleExplainPhaseExecution = z.infer<typeof IlmExplainLifecycleLifecycleExplainPhaseExecution>
 
 export const IlmExplainLifecycleLifecycleExplainManaged = z.object({
@@ -167,16 +167,16 @@ export const IlmExplainLifecycleLifecycleExplainManaged = z.object({
   phase_execution: IlmExplainLifecycleLifecycleExplainPhaseExecution.optional(),
   time_since_index_creation: z.lazy(() => Duration).optional(),
   skip: z.boolean()
-})
+}).meta({ id: 'IlmExplainLifecycleLifecycleExplainManaged' })
 export type IlmExplainLifecycleLifecycleExplainManaged = z.infer<typeof IlmExplainLifecycleLifecycleExplainManaged>
 
 export const IlmExplainLifecycleLifecycleExplainUnmanaged = z.object({
   index: z.lazy(() => IndexName),
   managed: z.literal(false)
-})
+}).meta({ id: 'IlmExplainLifecycleLifecycleExplainUnmanaged' })
 export type IlmExplainLifecycleLifecycleExplainUnmanaged = z.infer<typeof IlmExplainLifecycleLifecycleExplainUnmanaged>
 
-export const IlmExplainLifecycleLifecycleExplain = z.union([IlmExplainLifecycleLifecycleExplainManaged, IlmExplainLifecycleLifecycleExplainUnmanaged])
+export const IlmExplainLifecycleLifecycleExplain = z.union([IlmExplainLifecycleLifecycleExplainManaged, IlmExplainLifecycleLifecycleExplainUnmanaged]).meta({ id: 'IlmExplainLifecycleLifecycleExplain' })
 export type IlmExplainLifecycleLifecycleExplain = z.infer<typeof IlmExplainLifecycleLifecycleExplain>
 
 /**
@@ -192,19 +192,19 @@ export const IlmExplainLifecycleRequest = z.object({
   only_errors: z.boolean().describe('Filters the returned indices to only indices that are managed by ILM and are in an error state, either due to an encountering an error while executing the policy, or attempting to use a policy that does not exist.').optional().meta({ found_in: 'query' }),
   only_managed: z.boolean().describe('Filters the returned indices to only indices that are managed by ILM.').optional().meta({ found_in: 'query' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'IlmExplainLifecycleRequest' })
 export type IlmExplainLifecycleRequest = z.infer<typeof IlmExplainLifecycleRequest>
 
 export const IlmExplainLifecycleResponse = z.object({
   indices: z.record(z.lazy(() => IndexName), IlmExplainLifecycleLifecycleExplain)
-})
+}).meta({ id: 'IlmExplainLifecycleResponse' })
 export type IlmExplainLifecycleResponse = z.infer<typeof IlmExplainLifecycleResponse>
 
 export const IlmGetLifecycleLifecycle = z.object({
   modified_date: z.lazy(() => DateTime),
   policy: IlmPolicy,
   version: z.lazy(() => VersionNumber)
-})
+}).meta({ id: 'IlmGetLifecycleLifecycle' })
 export type IlmGetLifecycleLifecycle = z.infer<typeof IlmGetLifecycleLifecycle>
 
 /** Get lifecycle policies. */
@@ -212,10 +212,10 @@ export const IlmGetLifecycleRequest = z.object({
   name: z.lazy(() => Name).describe('Identifier for the policy.').optional().meta({ found_in: 'path' }),
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'IlmGetLifecycleRequest' })
 export type IlmGetLifecycleRequest = z.infer<typeof IlmGetLifecycleRequest>
 
-export const IlmGetLifecycleResponse = z.record(z.string(), IlmGetLifecycleLifecycle)
+export const IlmGetLifecycleResponse = z.record(z.string(), IlmGetLifecycleLifecycle).meta({ id: 'IlmGetLifecycleResponse' })
 export type IlmGetLifecycleResponse = z.infer<typeof IlmGetLifecycleResponse>
 
 /**
@@ -224,12 +224,12 @@ export type IlmGetLifecycleResponse = z.infer<typeof IlmGetLifecycleResponse>
  * Get the current index lifecycle management status.
  */
 export const IlmGetStatusRequest = z.object({
-})
+}).meta({ id: 'IlmGetStatusRequest' })
 export type IlmGetStatusRequest = z.infer<typeof IlmGetStatusRequest>
 
 export const IlmGetStatusResponse = z.object({
   operation_mode: z.lazy(() => LifecycleOperationMode)
-})
+}).meta({ id: 'IlmGetStatusResponse' })
 export type IlmGetStatusResponse = z.infer<typeof IlmGetStatusResponse>
 
 /**
@@ -254,7 +254,7 @@ export const IlmMigrateToDataTiersRequest = z.object({
   master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' }),
   legacy_template_to_delete: z.string().optional().meta({ found_in: 'body' }),
   node_attribute: z.string().optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'IlmMigrateToDataTiersRequest' })
 export type IlmMigrateToDataTiersRequest = z.infer<typeof IlmMigrateToDataTiersRequest>
 
 export const IlmMigrateToDataTiersResponse = z.object({
@@ -265,14 +265,14 @@ export const IlmMigrateToDataTiersResponse = z.object({
   migrated_legacy_templates: z.array(z.string()).describe('The legacy index templates that were updated to not contain custom routing settings for the provided data attribute.'),
   migrated_composable_templates: z.array(z.string()).describe('The composable index templates that were updated to not contain custom routing settings for the provided data attribute.'),
   migrated_component_templates: z.array(z.string()).describe('The component templates that were updated to not contain custom routing settings for the provided data attribute.')
-})
+}).meta({ id: 'IlmMigrateToDataTiersResponse' })
 export type IlmMigrateToDataTiersResponse = z.infer<typeof IlmMigrateToDataTiersResponse>
 
 export const IlmMoveToStepStepKey = z.object({
   action: z.string().describe('The optional action to which the index will be moved.').optional(),
   name: z.string().describe('The optional step name to which the index will be moved.').optional(),
   phase: z.string()
-})
+}).meta({ id: 'IlmMoveToStepStepKey' })
 export type IlmMoveToStepStepKey = z.infer<typeof IlmMoveToStepStepKey>
 
 /**
@@ -296,10 +296,10 @@ export const IlmMoveToStepRequest = z.object({
   index: z.lazy(() => IndexName).describe('The name of the index whose lifecycle step is to change').meta({ found_in: 'path' }),
   current_step: IlmMoveToStepStepKey.describe('The step that the index is expected to be in.').meta({ found_in: 'body' }),
   next_step: IlmMoveToStepStepKey.describe('The step that you want to run.').meta({ found_in: 'body' })
-})
+}).meta({ id: 'IlmMoveToStepRequest' })
 export type IlmMoveToStepRequest = z.infer<typeof IlmMoveToStepRequest>
 
-export const IlmMoveToStepResponse = z.lazy(() => AcknowledgedResponseBase)
+export const IlmMoveToStepResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IlmMoveToStepResponse' })
 export type IlmMoveToStepResponse = z.infer<typeof IlmMoveToStepResponse>
 
 /**
@@ -314,10 +314,10 @@ export const IlmPutLifecycleRequest = z.object({
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   policy: IlmPolicy.optional().meta({ found_in: 'body' })
-})
+}).meta({ id: 'IlmPutLifecycleRequest' })
 export type IlmPutLifecycleRequest = z.infer<typeof IlmPutLifecycleRequest>
 
-export const IlmPutLifecycleResponse = z.lazy(() => AcknowledgedResponseBase)
+export const IlmPutLifecycleResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IlmPutLifecycleResponse' })
 export type IlmPutLifecycleResponse = z.infer<typeof IlmPutLifecycleResponse>
 
 /**
@@ -328,13 +328,13 @@ export type IlmPutLifecycleResponse = z.infer<typeof IlmPutLifecycleResponse>
  */
 export const IlmRemovePolicyRequest = z.object({
   index: z.lazy(() => IndexName).describe('The name of the index to remove policy on').meta({ found_in: 'path' })
-})
+}).meta({ id: 'IlmRemovePolicyRequest' })
 export type IlmRemovePolicyRequest = z.infer<typeof IlmRemovePolicyRequest>
 
 export const IlmRemovePolicyResponse = z.object({
   failed_indexes: z.array(z.lazy(() => IndexName)),
   has_failures: z.boolean()
-})
+}).meta({ id: 'IlmRemovePolicyResponse' })
 export type IlmRemovePolicyResponse = z.infer<typeof IlmRemovePolicyResponse>
 
 /**
@@ -346,10 +346,10 @@ export type IlmRemovePolicyResponse = z.infer<typeof IlmRemovePolicyResponse>
  */
 export const IlmRetryRequest = z.object({
   index: z.lazy(() => IndexName).describe('The name of the indices (comma-separated) whose failed lifecycle step is to be retry').meta({ found_in: 'path' })
-})
+}).meta({ id: 'IlmRetryRequest' })
 export type IlmRetryRequest = z.infer<typeof IlmRetryRequest>
 
-export const IlmRetryResponse = z.lazy(() => AcknowledgedResponseBase)
+export const IlmRetryResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IlmRetryResponse' })
 export type IlmRetryResponse = z.infer<typeof IlmRetryResponse>
 
 /**
@@ -362,10 +362,10 @@ export type IlmRetryResponse = z.infer<typeof IlmRetryResponse>
 export const IlmStartRequest = z.object({
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'IlmStartRequest' })
 export type IlmStartRequest = z.infer<typeof IlmStartRequest>
 
-export const IlmStartResponse = z.lazy(() => AcknowledgedResponseBase)
+export const IlmStartResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IlmStartResponse' })
 export type IlmStartResponse = z.infer<typeof IlmStartResponse>
 
 /**
@@ -380,8 +380,8 @@ export type IlmStartResponse = z.infer<typeof IlmStartResponse>
 export const IlmStopRequest = z.object({
   master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
-})
+}).meta({ id: 'IlmStopRequest' })
 export type IlmStopRequest = z.infer<typeof IlmStopRequest>
 
-export const IlmStopResponse = z.lazy(() => AcknowledgedResponseBase)
+export const IlmStopResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IlmStopResponse' })
 export type IlmStopResponse = z.infer<typeof IlmStopResponse>

@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable @typescript-eslint/no-redeclare */
+ 
+ 
 import { z } from 'zod'
 
 import { ErrorCause, IndexName, VersionString } from './_types.ts'
 
-export const MigrationDeprecationsDeprecationLevel = z.enum(['none', 'info', 'warning', 'critical'])
+export const MigrationDeprecationsDeprecationLevel = z.enum(['none', 'info', 'warning', 'critical']).meta({ id: 'MigrationDeprecationsDeprecationLevel' })
 export type MigrationDeprecationsDeprecationLevel = z.infer<typeof MigrationDeprecationsDeprecationLevel>
 
 export const MigrationDeprecationsDeprecation = z.object({
@@ -19,7 +19,7 @@ export const MigrationDeprecationsDeprecation = z.object({
   url: z.string().describe('A link to the breaking change documentation, where you can find more information about this change.'),
   resolve_during_rolling_upgrade: z.boolean(),
   _meta: z.record(z.string(), z.any()).optional()
-})
+}).meta({ id: 'MigrationDeprecationsDeprecation' })
 export type MigrationDeprecationsDeprecation = z.infer<typeof MigrationDeprecationsDeprecation>
 
 /**
@@ -38,7 +38,7 @@ export type MigrationDeprecationsDeprecation = z.infer<typeof MigrationDeprecati
  */
 export const MigrationDeprecationsRequest = z.object({
   index: z.lazy(() => IndexName).describe('Comma-separate list of data streams or indices to check. Wildcard (*) expressions are supported.').optional().meta({ found_in: 'path' })
-})
+}).meta({ id: 'MigrationDeprecationsRequest' })
 export type MigrationDeprecationsRequest = z.infer<typeof MigrationDeprecationsRequest>
 
 export const MigrationDeprecationsResponse = z.object({
@@ -49,17 +49,17 @@ export const MigrationDeprecationsResponse = z.object({
   ml_settings: z.array(MigrationDeprecationsDeprecation).describe('Machine learning-related deprecation warnings.'),
   templates: z.record(z.string(), z.array(MigrationDeprecationsDeprecation)).describe('Template warnings are sectioned off per template and include deprecations for both component templates and index templates.'),
   ilm_policies: z.record(z.string(), z.array(MigrationDeprecationsDeprecation)).describe('ILM policy warnings are sectioned off per policy.')
-})
+}).meta({ id: 'MigrationDeprecationsResponse' })
 export type MigrationDeprecationsResponse = z.infer<typeof MigrationDeprecationsResponse>
 
-export const MigrationGetFeatureUpgradeStatusMigrationStatus = z.enum(['NO_MIGRATION_NEEDED', 'MIGRATION_NEEDED', 'IN_PROGRESS', 'ERROR'])
+export const MigrationGetFeatureUpgradeStatusMigrationStatus = z.enum(['NO_MIGRATION_NEEDED', 'MIGRATION_NEEDED', 'IN_PROGRESS', 'ERROR']).meta({ id: 'MigrationGetFeatureUpgradeStatusMigrationStatus' })
 export type MigrationGetFeatureUpgradeStatusMigrationStatus = z.infer<typeof MigrationGetFeatureUpgradeStatusMigrationStatus>
 
 export const MigrationGetFeatureUpgradeStatusMigrationFeatureIndexInfo = z.object({
   index: z.lazy(() => IndexName),
   version: z.lazy(() => VersionString),
   failure_cause: z.lazy(() => ErrorCause).optional()
-})
+}).meta({ id: 'MigrationGetFeatureUpgradeStatusMigrationFeatureIndexInfo' })
 export type MigrationGetFeatureUpgradeStatusMigrationFeatureIndexInfo = z.infer<typeof MigrationGetFeatureUpgradeStatusMigrationFeatureIndexInfo>
 
 export const MigrationGetFeatureUpgradeStatusMigrationFeature = z.object({
@@ -67,7 +67,7 @@ export const MigrationGetFeatureUpgradeStatusMigrationFeature = z.object({
   minimum_index_version: z.lazy(() => VersionString),
   migration_status: MigrationGetFeatureUpgradeStatusMigrationStatus,
   indices: z.array(MigrationGetFeatureUpgradeStatusMigrationFeatureIndexInfo)
-})
+}).meta({ id: 'MigrationGetFeatureUpgradeStatusMigrationFeature' })
 export type MigrationGetFeatureUpgradeStatusMigrationFeature = z.infer<typeof MigrationGetFeatureUpgradeStatusMigrationFeature>
 
 /**
@@ -80,18 +80,18 @@ export type MigrationGetFeatureUpgradeStatusMigrationFeature = z.infer<typeof Mi
  * You are strongly recommended to use the Upgrade Assistant.
  */
 export const MigrationGetFeatureUpgradeStatusRequest = z.object({
-})
+}).meta({ id: 'MigrationGetFeatureUpgradeStatusRequest' })
 export type MigrationGetFeatureUpgradeStatusRequest = z.infer<typeof MigrationGetFeatureUpgradeStatusRequest>
 
 export const MigrationGetFeatureUpgradeStatusResponse = z.object({
   features: z.array(MigrationGetFeatureUpgradeStatusMigrationFeature),
   migration_status: MigrationGetFeatureUpgradeStatusMigrationStatus
-})
+}).meta({ id: 'MigrationGetFeatureUpgradeStatusResponse' })
 export type MigrationGetFeatureUpgradeStatusResponse = z.infer<typeof MigrationGetFeatureUpgradeStatusResponse>
 
 export const MigrationPostFeatureUpgradeMigrationFeature = z.object({
   feature_name: z.string()
-})
+}).meta({ id: 'MigrationPostFeatureUpgradeMigrationFeature' })
 export type MigrationPostFeatureUpgradeMigrationFeature = z.infer<typeof MigrationPostFeatureUpgradeMigrationFeature>
 
 /**
@@ -105,12 +105,12 @@ export type MigrationPostFeatureUpgradeMigrationFeature = z.infer<typeof Migrati
  * TIP: The API is designed for indirect use by the Upgrade Assistant. We strongly recommend you use the Upgrade Assistant.
  */
 export const MigrationPostFeatureUpgradeRequest = z.object({
-})
+}).meta({ id: 'MigrationPostFeatureUpgradeRequest' })
 export type MigrationPostFeatureUpgradeRequest = z.infer<typeof MigrationPostFeatureUpgradeRequest>
 
 export const MigrationPostFeatureUpgradeResponse = z.object({
   accepted: z.boolean(),
   features: z.array(MigrationPostFeatureUpgradeMigrationFeature).optional(),
   reason: z.string().optional()
-})
+}).meta({ id: 'MigrationPostFeatureUpgradeResponse' })
 export type MigrationPostFeatureUpgradeResponse = z.infer<typeof MigrationPostFeatureUpgradeResponse>
