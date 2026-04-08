@@ -57,16 +57,25 @@ const pingCmd = defineCommand({
   }
 })
 program.addCommand(pingCmd)
-// Lazily load the full ES command tree only when an `es` subcommand is actually
-// invoked. For all other invocations (including `elastic --help`), register a
-// lightweight stub so that `es` appears in the top-level help text without paying
-// the cost of loading and compiling all Elasticsearch API schemas.
-const esArgs = process.argv.slice(2)
-if (esArgs[0] === 'es') {
+
+// Lazily load command trees only when the relevant top-level subcommand is actually
+// invoked. For all other invocations (including `elastic --help`), a lightweight stub
+// is registered so the group appears in help text without paying the cost of loading
+// and compiling all API schemas.
+const firstArg = process.argv[2]
+
+if (firstArg === 'es') {
   const { registerEsCommands } = await import('./es/register.ts')
   program.addCommand(registerEsCommands())
 } else {
   program.addCommand(defineGroup({ name: 'es', description: 'Interact with the Elasticsearch API' }))
+}
+
+if (firstArg === 'cloud') {
+  const { registerCloudCommands } = await import('./cloud/register.ts')
+  program.addCommand(registerCloudCommands())
+} else {
+  program.addCommand(defineGroup({ name: 'cloud', description: 'Manage Elastic Cloud deployments and serverless projects' }))
 }
 
 if (process.argv.slice(2).length === 0) {
