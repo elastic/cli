@@ -9,6 +9,7 @@ import { createRequire } from 'node:module'
 import { defineCommand } from './factory.js'
 import type { ParsedResult } from './factory.js'
 import { registerEsCommands } from './es/register.ts'
+import { registerCloudCommands } from './cloud/register.ts'
 import { loadConfig } from './config/loader.ts'
 import { setResolvedConfig } from './config/store.ts'
 
@@ -56,6 +57,7 @@ const pingCmd = defineCommand({
 })
 program.addCommand(pingCmd)
 program.addCommand(registerEsCommands())
+program.addCommand(registerCloudCommands())
 
 if (process.argv.slice(2).length === 0) {
   program.outputHelp()
