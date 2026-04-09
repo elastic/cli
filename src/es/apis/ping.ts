@@ -9,15 +9,15 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { CountRequest } from './schemas/_global.ts'
+import { PingRequest } from './schemas/_global.ts'
 import type { EsApiDefinition } from '../types.ts'
 
-export const countApis: EsApiDefinition[] = [
-  {
-    name: 'count',
-    description: 'Count search results.',
-    method: 'POST',
-    path: '/{index}/_count',
-    input: CountRequest
-  }
+export const pingApis: EsApiDefinition[] = [
+ {
+  name: "ping",
+  description: "Ping the cluster.",
+  method: "HEAD",
+  path: "/",
+  input: PingRequest,
+ },
 ]

@@ -1,8 +1,12 @@
+/*
+ * Copyright Elasticsearch B.V. and contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import eslint from '@eslint/js'
-import { defineConfig } from 'eslint/config'
 import tseslint from 'typescript-eslint'
 
-export default defineConfig(
+export default tseslint.config(
   eslint.configs.recommended,
   tseslint.configs.recommended,
   {
@@ -14,10 +18,6 @@ export default defineConfig(
     }
   },
   {
-    // Generated Zod schemas use two patterns that trigger lint rules:
-    //   1. `export const Foo` + `export type Foo = z.infer<typeof Foo>` — no-redeclare
-    //   2. Forward references via z.lazy(() => Name) — no-use-before-define
-    // Both are intentional, correct TypeScript. Suppress them for this directory only.
     files: ['src/es/apis/schemas/**/*.ts'],
     rules: {
       'no-redeclare': 'off',
