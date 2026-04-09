@@ -50,14 +50,30 @@ export const ContextSchema = z
     { error: 'at least one service block (elasticsearch, kibana, or cloud) is required' }
   )
 
+/**
+ * Policy controlling which commands are permitted to run.
+ * Only one of `allowed` or `blocked` may be present.
+ * Entries may use a trailing wildcard (e.g. `elasticsearch.*`) to match a namespace.
+ */
+export const CommandPolicySchema = z
+  .looseObject({
+    allowed: z.array(z.string().min(1)).min(1).optional(),
+    blocked: z.array(z.string().min(1)).min(1).optional(),
+  })
+  .refine(
+    (p) => !(p.allowed != null && p.blocked != null),
+    { error: 'commands: "allowed" and "blocked" are mutually exclusive' },
+  )
+
 /** The root configuration file structure. */
 export const ConfigFileSchema = z
   .looseObject({
     current_context: z.string().min(1),
     contexts: z.record(z.string(), ContextSchema).refine(
       (map) => Object.keys(map).length > 0,
-      { error: 'contexts must contain at least one entry' }
-    )
+      { error: 'contexts must contain at least one entry' },
+    ),
+    commands: CommandPolicySchema.optional(),
   })
   .refine(
     (cfg) => cfg.current_context in cfg.contexts,

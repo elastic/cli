@@ -63,7 +63,9 @@ export function resolveContext (config: ConfigFile, contextName: string): Resolv
   if (ctx.elasticsearch != null) resolved.elasticsearch = ctx.elasticsearch
   if (ctx.kibana != null) resolved.kibana = ctx.kibana
   if (ctx.cloud != null) resolved.cloud = ctx.cloud
-  return { context: resolved }
+  const result: ResolvedConfig = { context: resolved }
+  if (config.commands != null) result.commands = config.commands
+  return result
 }
 
 /** Options accepted by {@link loadConfig}. */

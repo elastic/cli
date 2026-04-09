@@ -5,7 +5,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { ApiKeyAuthSchema, BasicAuthSchema, AuthSchema, ServiceBlockSchema, ContextSchema, ConfigFileSchema } from '../../src/config/schema.ts'
+import { ApiKeyAuthSchema, BasicAuthSchema, AuthSchema, ServiceBlockSchema, ContextSchema, ConfigFileSchema, CommandPolicySchema } from '../../src/config/schema.ts'
 
 const esBlock = { url: 'https://es.example.com:9200', auth: { api_key: 'key1' } }
 const kibanaBlock = { url: 'https://kibana.example.com:5601', auth: { username: 'u', password: 'p' } }
@@ -208,6 +208,69 @@ describe('ContextSchema', () => {
   })
 })
 
+describe('CommandPolicySchema', () => {
+  it('accepts an allowed list', () => {
+    const result = CommandPolicySchema.safeParse({ allowed: ['ping', 'elasticsearch.search'] })
+    assert.equal(result.success, true)
+    if (result.success) {
+      assert.deepEqual(result.data.allowed, ['ping', 'elasticsearch.search'])
+      assert.equal(result.data.blocked, undefined)
+    }
+  })
+
+  it('accepts a blocked list', () => {
+    const result = CommandPolicySchema.safeParse({ blocked: ['elasticsearch.bulk', 'config.set'] })
+    assert.equal(result.success, true)
+    if (result.success) {
+      assert.deepEqual(result.data.blocked, ['elasticsearch.bulk', 'config.set'])
+      assert.equal(result.data.allowed, undefined)
+    }
+  })
+
+  it('accepts wildcard entries in allowed list', () => {
+    const result = CommandPolicySchema.safeParse({ allowed: ['elasticsearch.*', 'ping'] })
+    assert.equal(result.success, true)
+  })
+
+  it('accepts wildcard entries in blocked list', () => {
+    const result = CommandPolicySchema.safeParse({ blocked: ['config.*'] })
+    assert.equal(result.success, true)
+  })
+
+  it('accepts neither allowed nor blocked (no-op policy)', () => {
+    const result = CommandPolicySchema.safeParse({})
+    assert.equal(result.success, true)
+  })
+
+  it('rejects both allowed and blocked being present', () => {
+    const result = CommandPolicySchema.safeParse({
+      allowed: ['ping'],
+      blocked: ['elasticsearch.bulk'],
+    })
+    assert.equal(result.success, false)
+  })
+
+  it('rejects an empty allowed array', () => {
+    const result = CommandPolicySchema.safeParse({ allowed: [] })
+    assert.equal(result.success, false)
+  })
+
+  it('rejects an empty blocked array', () => {
+    const result = CommandPolicySchema.safeParse({ blocked: [] })
+    assert.equal(result.success, false)
+  })
+
+  it('rejects empty strings in allowed list', () => {
+    const result = CommandPolicySchema.safeParse({ allowed: ['ping', ''] })
+    assert.equal(result.success, false)
+  })
+
+  it('rejects empty strings in blocked list', () => {
+    const result = CommandPolicySchema.safeParse({ blocked: [''] })
+    assert.equal(result.success, false)
+  })
+})
+
 describe('ConfigFileSchema', () => {
   const validContexts = {
     production: { elasticsearch: esBlock },
@@ -279,5 +342,35 @@ describe('ConfigFileSchema', () => {
       extra: 'ignored',
     })
     assert.equal(result.success, true)
+  })
+
+  it('accepts a valid commands.allowed section', () => {
+    const result = ConfigFileSchema.safeParse({
+      'current_context': 'production',
+      contexts: { production: { elasticsearch: esBlock } },
+      commands: { allowed: ['ping', 'elasticsearch.search'] },
+    })
+    assert.equal(result.success, true)
+    if (result.success) {
+      assert.deepEqual(result.data.commands?.allowed, ['ping', 'elasticsearch.search'])
+    }
+  })
+
+  it('accepts a valid commands.blocked section', () => {
+    const result = ConfigFileSchema.safeParse({
+      'current_context': 'production',
+      contexts: { production: { elasticsearch: esBlock } },
+      commands: { blocked: ['elasticsearch.bulk'] },
+    })
+    assert.equal(result.success, true)
+  })
+
+  it('rejects commands with both allowed and blocked', () => {
+    const result = ConfigFileSchema.safeParse({
+      'current_context': 'production',
+      contexts: { production: { elasticsearch: esBlock } },
+      commands: { allowed: ['ping'], blocked: ['elasticsearch.bulk'] },
+    })
+    assert.equal(result.success, false)
   })
 })

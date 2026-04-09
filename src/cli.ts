@@ -6,7 +6,7 @@
 
 import { Command } from 'commander'
 import { createRequire } from 'node:module'
-import { defineCommand, defineGroup } from './factory.ts'
+import { defineCommand, defineGroup, hideBlockedCommands } from './factory.js'
 import { loadConfig } from './config/loader.ts'
 import { setResolvedConfig } from './config/store.ts'
 
@@ -67,9 +67,18 @@ if (firstArg === 'cloud') {
   program.addCommand(defineGroup({ name: 'cloud', description: 'Manage Elastic Cloud deployments and serverless projects' }))
 }
 
+// Load config before Commander parses so --help can hide blocked commands.
+// Uses cosmiconfig auto-discovery (the preAction hook re-loads with any
+// --config/--context overrides when an actual command runs).
+const earlyResult = await loadConfig({})
+if (earlyResult.ok) {
+  setResolvedConfig(earlyResult.value)
+  hideBlockedCommands(program, earlyResult.value.commands)
+}
+
 if (process.argv.slice(2).length === 0) {
   program.outputHelp()
   process.exit(0)
 }
 
-program.parseAsync(process.argv)
+await program.parseAsync(process.argv)
