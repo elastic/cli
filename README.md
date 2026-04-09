@@ -1,7 +1,5 @@
 # Elastic CLI
 
-## :warning: the `mvp` branch is a work in progress starting from scratch, not a finished tool
-
 Interact with Elasticsearch, Elastic Serverless and Elastic Cloud APIs from the command line.
 
 ## Installation
@@ -32,7 +30,7 @@ fallback it also checks the platform-specific user config directory
 
 The following file names are recognised in each directory (checked in this order):
 
-1. `package.json` — `elastic` key
+1. `package.json` - `elastic` key
 2. `.elasticrc`
 3. `.elasticrc.json`
 4. `.elasticrc.yaml`
@@ -41,7 +39,7 @@ The following file names are recognised in each directory (checked in this order
 7. `.config/elasticrc` (and `.json` / `.yaml` / `.yml` / `.js` / `.ts` / `.cjs` / `.mjs` variants)
 8. `elastic.config.js` / `.ts` / `.cjs` / `.mjs`
 
-**Only the first matching file is used — configs are not merged.** Place your
+**Only the first matching file is used - configs are not merged.** Place your
 personal config at `~/.elasticrc.yml` (recommended) so it applies everywhere, or
 put one in a project root to override it for that project.
 
@@ -90,7 +88,7 @@ elastic version
 elastic --json version
 ```
 
-### `es` — Elasticsearch API
+### `es` - Elasticsearch API
 
 Run Elasticsearch API calls. Commands map directly to Elasticsearch API endpoints.
 
@@ -107,27 +105,27 @@ All `es` subcommands support:
 
 **Subcommand groups** (each with their own subcommands):
 
-- `async-search` — async search APIs
-- `cat` — cat APIs
-- `cluster` — cluster management
-- `connector` — connector management
-- `enrich` — enrich policies
-- `eql` — EQL search
-- `esql` — ES|QL queries
-- `indices` — index management
-- `inference` — inference endpoints
-- `ingest` — ingest pipelines
-- `license` — license management
-- `logstash` — Logstash pipelines
-- `ml` — machine learning
-- `project` — project management
-- `query-rules` — query rules
-- `search-application` — search applications
-- `security` — security APIs
-- `sql` — SQL queries
-- `synonyms` — synonym sets
-- `tasks` — task management
-- `transform` — transforms
+- `async-search` - async search APIs
+- `cat` - cat APIs
+- `cluster` - cluster management
+- `connector` - connector management
+- `enrich` - enrich policies
+- `eql` - EQL search
+- `esql` - ES|QL queries
+- `indices` - index management
+- `inference` - inference endpoints
+- `ingest` - ingest pipelines
+- `license` - license management
+- `logstash` - Logstash pipelines
+- `ml` - machine learning
+- `project` - project management
+- `query-rules` - query rules
+- `search-application` - search applications
+- `security` - security APIs
+- `sql` - SQL queries
+- `synonyms` - synonym sets
+- `tasks` - task management
+- `transform` - transforms
 
 **Top-level `es` commands** (examples):
 
@@ -145,7 +143,7 @@ elastic es update --index my-index --id abc123
 
 Run `elastic es <command> --help` for all available options on any command.
 
-### `cloud` — Elastic Cloud control plane
+### `cloud` - Elastic Cloud control plane
 
 Manage Elastic Cloud deployments and Elasticsearch serverless projects.
 Requires a `cloud` service block in the active context.
