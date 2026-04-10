@@ -30,9 +30,12 @@ describe('ApiKeyAuthSchema', () => {
     assert.equal(result.success, false)
   })
 
-  it('silently ignores unknown extra fields', () => {
+  it('strips unknown extra fields from output', () => {
     const result = ApiKeyAuthSchema.safeParse({ api_key: 'abc123', extra: 'ignored' })
     assert.equal(result.success, true)
+    if (!result.success) return
+    assert.deepEqual(result.data, { api_key: 'abc123' })
+    assert.equal('extra' in result.data, false)
   })
 })
 
@@ -65,9 +68,12 @@ describe('BasicAuthSchema', () => {
     assert.equal(result.success, false)
   })
 
-  it('silently ignores unknown extra fields', () => {
+  it('strips unknown extra fields from output', () => {
     const result = BasicAuthSchema.safeParse({ username: 'admin', password: 's3cret', extra: 'ignored' })
     assert.equal(result.success, true)
+    if (!result.success) return
+    assert.deepEqual(result.data, { username: 'admin', password: 's3cret' })
+    assert.equal('extra' in result.data, false)
   })
 })
 
@@ -150,13 +156,15 @@ describe('ServiceBlockSchema', () => {
     assert.equal(result.success, false)
   })
 
-  it('silently ignores unknown extra fields', () => {
+  it('strips unknown extra fields from output', () => {
     const result = ServiceBlockSchema.safeParse({
       url: 'https://es.example.com:9200',
       auth: { api_key: 'abc123' },
       extra: 'ignored',
     })
     assert.equal(result.success, true)
+    if (!result.success) return
+    assert.deepEqual(Object.keys(result.data).sort(), ['auth', 'url'])
   })
 })
 
@@ -202,9 +210,11 @@ describe('ContextSchema', () => {
     assert.equal(result.success, false)
   })
 
-  it('silently ignores unknown extra fields', () => {
+  it('strips unknown extra fields from output', () => {
     const result = ContextSchema.safeParse({ elasticsearch: esBlock, extra: 'ignored' })
     assert.equal(result.success, true)
+    if (!result.success) return
+    assert.equal('extra' in result.data, false)
   })
 })
 
@@ -335,13 +345,15 @@ describe('ConfigFileSchema', () => {
     assert.equal(result.success, false)
   })
 
-  it('silently ignores unknown top-level fields', () => {
+  it('strips unknown top-level fields from output', () => {
     const result = ConfigFileSchema.safeParse({
       'current_context': 'production',
       contexts: { production: { elasticsearch: esBlock } },
       extra: 'ignored',
     })
     assert.equal(result.success, true)
+    if (!result.success) return
+    assert.equal('extra' in result.data, false)
   })
 
   it('accepts a valid commands.allowed section', () => {

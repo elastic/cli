@@ -14,17 +14,17 @@ import { z } from 'zod'
  * 3. Context schema: at least one service block (elasticsearch/kibana/cloud)
  * 4. ConfigFile root schema: current_context + contexts map (z.record) + cross-field refinement
  *
- * All schemas use `z.looseObject()` to silently ignore unknown fields per spec.
+ * All schemas use `z.object()` so unknown fields are stripped during parsing.
  * Refinements enforce business rules (at-least-one-service, non-empty contexts map, valid current_context key).
  */
 
 /** API key authentication credentials. Auth type is inferred from the presence of `api_key`. */
-export const ApiKeyAuthSchema = z.looseObject({
+export const ApiKeyAuthSchema = z.object({
   api_key: z.string().min(1)
 })
 
 /** Basic (username + password) authentication credentials. Auth type is inferred from the presence of `username` and `password`. */
-export const BasicAuthSchema = z.looseObject({
+export const BasicAuthSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1)
 })
@@ -33,14 +33,14 @@ export const BasicAuthSchema = z.looseObject({
 export const AuthSchema = z.union([ApiKeyAuthSchema, BasicAuthSchema])
 
 /** Endpoint URL and authentication credentials for a single service. */
-export const ServiceBlockSchema = z.looseObject({
+export const ServiceBlockSchema = z.object({
   url: z.string().min(1),
   auth: AuthSchema
 })
 
 /** A context value: optional service blocks with at least one present. */
 export const ContextSchema = z
-  .looseObject({
+  .object({
     elasticsearch: ServiceBlockSchema.optional(),
     kibana: ServiceBlockSchema.optional(),
     cloud: ServiceBlockSchema.optional()
@@ -56,7 +56,7 @@ export const ContextSchema = z
  * Entries may use a trailing wildcard (e.g. `elasticsearch.*`) to match a namespace.
  */
 export const CommandPolicySchema = z
-  .looseObject({
+  .object({
     allowed: z.array(z.string().min(1)).min(1).optional(),
     blocked: z.array(z.string().min(1)).min(1).optional(),
   })
@@ -67,7 +67,7 @@ export const CommandPolicySchema = z
 
 /** The root configuration file structure. */
 export const ConfigFileSchema = z
-  .looseObject({
+  .object({
     current_context: z.string().min(1),
     contexts: z.record(z.string(), ContextSchema).refine(
       (map) => Object.keys(map).length > 0,
