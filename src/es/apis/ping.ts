@@ -13,11 +13,11 @@ import { PingRequest } from './schemas/_global.ts'
 import type { EsApiDefinition } from '../types.ts'
 
 export const pingApis: EsApiDefinition[] = [
- {
-  name: "ping",
-  description: "Ping the cluster.",
-  method: "HEAD",
-  path: "/",
-  input: PingRequest,
- },
+  {
+    name: 'ping',
+    description: 'Ping the cluster.',
+    method: 'HEAD',
+    path: '/',
+    input: PingRequest
+  }
 ]

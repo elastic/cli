@@ -9,10 +9,18 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { EsqlGetQueryRequest, EsqlListQueriesRequest, EsqlQueryRequest } from './schemas/esql.ts'
+import { EsqlDeleteViewRequest, EsqlGetQueryRequest, EsqlGetViewRequest, EsqlListQueriesRequest, EsqlPutViewRequest, EsqlQueryRequest } from './schemas/esql.ts'
 import type { EsApiDefinition } from '../types.ts'
 
 export const esqlApis: EsApiDefinition[] = [
+  {
+    name: 'delete-view',
+    namespace: 'esql',
+    description: 'Delete an ES|QL view.',
+    method: 'DELETE',
+    path: '/_query/view/{name}',
+    input: EsqlDeleteViewRequest
+  },
   {
     name: 'get-query',
     namespace: 'esql',
@@ -22,12 +30,28 @@ export const esqlApis: EsApiDefinition[] = [
     input: EsqlGetQueryRequest
   },
   {
+    name: 'get-view',
+    namespace: 'esql',
+    description: 'Get an ES|QL view.',
+    method: 'GET',
+    path: '/_query/view/{name}',
+    input: EsqlGetViewRequest
+  },
+  {
     name: 'list-queries',
     namespace: 'esql',
     description: 'Get running ES|QL queries information.',
     method: 'GET',
     path: '/_query/queries',
     input: EsqlListQueriesRequest
+  },
+  {
+    name: 'put-view',
+    namespace: 'esql',
+    description: 'Create or update an ES|QL view.',
+    method: 'PUT',
+    path: '/_query/view/{name}',
+    input: EsqlPutViewRequest
   },
   {
     name: 'query',

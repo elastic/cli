@@ -37,7 +37,8 @@ export const trafficFiltersApis: CloudApiDefinition[] = [
     method: "GET",
     path: "/api/v1/serverless/traffic-filters/metadata",
     queryParams: [
-    { name: "region", type: "string", description: "Filter metadata to a specific AWS region." },
+    { name: "region", type: "string", description: "Filter metadata to a specific region (e.g. aws-eu-west-1, azure-australiaeast)." },
+    { name: "csp", type: "string", description: "Filter metadata to a specific cloud service provider (aws, azure, gcp)." },
     ],
   },
   {

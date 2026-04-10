@@ -22,7 +22,7 @@ export const linkedCandidateProjectsApis: CloudApiDefinition[] = [
     { name: "id", description: "The ID of the project", required: true },
     ],
     queryParams: [
-    { name: "type", type: "string", description: "The type of projects to return as link candidates." },
+    { name: "types", type: "string", description: "One or more types of projects to return as link candidates." },
     { name: "csp", type: "string", description: "The Cloud Service Provider to filter the link candidate projects by." },
     { name: "region", type: "string", description: "The region to filter the link candidate projects by." },
     { name: "name", type: "string", description: "The project name to filter the link candidates by." },
@@ -39,7 +39,7 @@ export const linkedCandidateProjectsApis: CloudApiDefinition[] = [
     { name: "id", description: "The ID of the project", required: true },
     ],
     queryParams: [
-    { name: "type", type: "string", description: "The type of projects to return as link candidates." },
+    { name: "types", type: "string", description: "One or more types of projects to return as link candidates." },
     { name: "csp", type: "string", description: "The Cloud Service Provider to filter the link candidate projects by." },
     { name: "region", type: "string", description: "The region to filter the link candidate projects by." },
     { name: "name", type: "string", description: "The project name to filter the link candidates by." },
@@ -56,7 +56,7 @@ export const linkedCandidateProjectsApis: CloudApiDefinition[] = [
     { name: "id", description: "The ID of the project", required: true },
     ],
     queryParams: [
-    { name: "type", type: "string", description: "The type of projects to return as link candidates." },
+    { name: "types", type: "string", description: "One or more types of projects to return as link candidates." },
     { name: "csp", type: "string", description: "The Cloud Service Provider to filter the link candidate projects by." },
     { name: "region", type: "string", description: "The region to filter the link candidate projects by." },
     { name: "name", type: "string", description: "The project name to filter the link candidates by." },
