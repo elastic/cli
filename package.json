@@ -22,7 +22,18 @@
     "elastic",
     "agents"
   ],
-  "author": "Josh Mock <joshua.mock@elastic.co>",
+  "author": {
+    "name": "Elastic Client Library Maintainers",
+    "company": "Elastic BV"
+  },
+  "homepage": "https://github.com/elastic/cli#readme",
+  "bugs": {
+    "url": "https://github.com/elastic/cli/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elastic/cli.git"
+  },
   "license": "Apache-2.0",
   "type": "module",
   "dependencies": {
