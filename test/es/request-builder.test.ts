@@ -164,4 +164,21 @@ describe('buildRequestParams', () => {
     assert.equal(result.path, '/logs')
     assert.deepEqual(result.querystring, { pretty: true })
   })
+
+  it('encodes path params to prevent path traversal (#106)', () => {
+    const input = z.looseObject({ index: z.string().describe('Index').meta({ found_in: 'path' }) })
+    const def = makeDefinition({ path: '/{index}/_search', input })
+    const result = buildRequestParams(def, parsedResult({ index: '_cluster/health?#' }), args(input))
+    assert.ok(!result.path.includes('_cluster/health'), 'slash must be encoded to prevent traversal')
+    assert.ok(!result.path.includes('?'), 'question mark must be encoded')
+    assert.ok(!result.path.includes('#'), 'hash must be encoded')
+    assert.equal(result.path, '/_cluster%2Fhealth%3F%23/_search')
+  })
+
+  it('preserves comma-separated multi-index values after encoding', () => {
+    const input = z.looseObject({ index: z.string().describe('Index').meta({ found_in: 'path' }) })
+    const def = makeDefinition({ path: '/{index}/_search', input })
+    const result = buildRequestParams(def, parsedResult({ index: 'idx1, idx2' }), args(input))
+    assert.equal(result.path, '/idx1,idx2/_search')
+  })
 })

@@ -144,4 +144,44 @@ describe('getCloudClient', () => {
     const result = await client.request({ method: 'DELETE', path: '/api/v1/something' })
     assert.deepEqual(result, {})
   })
+
+  it('warns on plaintext HTTP for non-localhost URLs (#107)', () => {
+    const chunks: string[] = []
+    const origWrite = process.stderr.write
+    process.stderr.write = ((chunk: string) => { chunks.push(chunk); return true }) as typeof process.stderr.write
+    try {
+      setResolvedConfig({ context: { cloud: { url: 'http://cloud.example.com', auth: { api_key: 'k' } } } })
+      getCloudClient()
+      assert.ok(chunks.some((c) => c.includes('plaintext HTTP')), 'should warn about plaintext HTTP')
+    } finally {
+      process.stderr.write = origWrite
+    }
+  })
+
+  it('sets redirect to error to prevent credential forwarding (#108)', async () => {
+    setResolvedConfig({ context: { cloud: { url: 'https://api.elastic-cloud.com', auth: { api_key: 'k' } } } })
+    const client = getCloudClient()
+
+    let capturedInit: RequestInit = {}
+    client._testSetFetch(((url: string, init: RequestInit) => {
+      capturedInit = init
+      return Promise.resolve(new Response('{}', { status: 200 }))
+    }) as typeof fetch)
+
+    await client.request({ method: 'GET', path: '/test' })
+    assert.equal(capturedInit.redirect, 'error', 'redirect must be set to error')
+  })
+
+  it('does not warn on HTTP for localhost', () => {
+    const chunks: string[] = []
+    const origWrite = process.stderr.write
+    process.stderr.write = ((chunk: string) => { chunks.push(chunk); return true }) as typeof process.stderr.write
+    try {
+      setResolvedConfig({ context: { cloud: { url: 'http://localhost:9200', auth: { api_key: 'k' } } } })
+      getCloudClient()
+      assert.ok(!chunks.some((c) => c.includes('plaintext HTTP')), 'should not warn for localhost')
+    } finally {
+      process.stderr.write = origWrite
+    }
+  })
 })

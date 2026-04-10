@@ -35,6 +35,14 @@ export function buildCloudRequestParams(
   return params
 }
 
+/**
+ * Encodes a single path parameter value, percent-encoding special characters
+ * like `/`, `?`, and `#` to prevent path traversal (#106).
+ */
+function encodePathParam(value: string): string {
+  return encodeURIComponent(value)
+}
+
 function interpolatePath(
   def: CloudApiDefinition,
   input: Record<string, unknown>,
@@ -44,7 +52,7 @@ function interpolatePath(
   for (const param of def.pathParams ?? []) {
     const value = input[param.name]
     if (value !== undefined) {
-      path = path.replace(`{${param.name}}`, String(value))
+      path = path.replace(`{${param.name}}`, encodePathParam(String(value)))
     } else if (!param.required) {
       path = path.replace(new RegExp(`/?\\{${param.name}\\}/?`), '')
       path = path.replace(/\/$/, '') || '/'
