@@ -4,6 +4,7 @@ build
 *.log
 .env*
 .DS_Store
+.elasticrc.yml
 Thumbs.db
 *.tmp
 *.swp
