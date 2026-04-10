@@ -109,7 +109,7 @@ function parseSteps (raw: unknown[]): Step[] {
 }
 
 /** Keys in a `do` block that are metadata, not the API action. */
-const DO_META_KEYS = new Set(['catch', 'headers', 'ignore'])
+const DO_META_KEYS = new Set(['catch', 'headers'])
 
 function parseDo (raw: Record<string, unknown>): DoStep {
   let catchValue: string | undefined
@@ -118,7 +118,6 @@ function parseDo (raw: Record<string, unknown>): DoStep {
   }
 
   const headers = raw.headers as Record<string, string> | undefined
-  const ignore = raw.ignore as number | number[] | undefined
 
   // The action key is the first key that isn't metadata
   let action = ''
@@ -132,14 +131,16 @@ function parseDo (raw: Record<string, unknown>): DoStep {
     break
   }
 
-  const { body, ...params } = actionValue
+  // Separate body and ignore from other params
+  const { body, ignore, ...params } = actionValue
 
   const step: DoStep = { kind: 'do', action, params }
   if (body !== undefined) step.body = body
   if (catchValue !== undefined) step.catch = catchValue
   if (headers !== undefined) step.headers = headers
   if (ignore !== undefined) {
-    step.ignore = Array.isArray(ignore) ? ignore : [ignore]
+    const ignoreVal = ignore as number | number[]
+    step.ignore = Array.isArray(ignoreVal) ? ignoreVal : [ignoreVal]
   }
   return step
 }
