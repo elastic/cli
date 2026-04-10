@@ -11,13 +11,20 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     steps:
+      - name: Fetch ephemeral Github token
+        id: fetch-token
+        uses: elastic/ci-gh-actions/fetch-github-token@8a7604dfdd4e7fe21f969bfe9ff96e17635ea577 # v1.0.0
+        with:
+          vault-instance: "ci-prod"
       - uses: googleapis/release-please-action@v4
         id: release
         with:
           release-type: node
           package-name: "@elastic/cli"
-          token: ${{ secrets.RELEASE_PLEASE }}
+          token: ${{ steps.fetch-token.outputs.token }}
 
   publish:
     needs: release-please
