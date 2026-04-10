@@ -33,6 +33,9 @@ program.hook('preAction', async (thisCommand) => {
   })
   if (result.ok) {
     setResolvedConfig(result.value)
+  } else if (configPath != null || contextName != null) {
+    process.stderr.write(`Error: ${result.error.message}\n`)
+    process.exit(1)
   }
 })
 

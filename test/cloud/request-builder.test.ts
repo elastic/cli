@@ -148,4 +148,20 @@ describe('buildCloudRequestParams', () => {
     assert.deepEqual(result.querystring, { validate_only: 'true' })
     assert.deepEqual(result.body, { name: 'new-name' })
   })
+
+  it('encodes path params to prevent path traversal (#106)', () => {
+    const def: CloudApiDefinition = {
+      name: 'get',
+      namespace: 'deployments',
+      description: 'Get deployment',
+      method: 'GET',
+      path: '/api/v1/deployments/{deployment_id}',
+      pathParams: [{ name: 'deployment_id', description: 'ID', required: true }],
+    }
+    const result = buildCloudRequestParams(def, parsed({ deployment_id: '../../../secret?#' }))
+    assert.ok(!result.path.includes('../'), 'dot-dot-slash must be encoded')
+    assert.ok(!result.path.includes('?'), 'question mark must be encoded')
+    assert.ok(!result.path.includes('#'), 'hash must be encoded')
+    assert.equal(result.path, '/api/v1/deployments/..%2F..%2F..%2Fsecret%3F%23')
+  })
 })

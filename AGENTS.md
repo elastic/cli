@@ -54,6 +54,33 @@ Do not stop between writing test and implementation. Proceed through the full cy
 
 **Task completion**: All tests pass (`npm test` exits 0), lint checks pass, no style violations.
 
+## Thorough Testing
+
+After every implementation change, you MUST:
+
+1. **Run the full test suite** (`npm test`) before considering work complete. Never skip this step.
+2. **Write regression tests for every bug fix.** Each fix must have at least one test that would have caught the original bug.
+3. **Test adversarial and edge-case inputs.** For any function that processes user input -- especially strings going into URLs, paths, commands, or queries -- add tests with malicious or unexpected values (`../`, `?#`, empty strings, special characters).
+4. **Test configuration, not just output.** When testing HTTP clients or request builders, assert on the full configuration object (e.g., `RequestInit` options like `redirect`, `credentials`), not only the response.
+5. **Don't copy test patterns from existing code without auditing them.** Existing tests may have gaps. When writing code modeled after another file, independently evaluate what tests are needed.
+6. **Manually verify fixes when feasible.** After unit tests pass, build (`npm run build`) and run the CLI end-to-end to confirm the fix works. Document the manual test commands in your response.
+7. **Check for lint errors** on all modified files before declaring work complete.
+8. **Never mold tests to make them pass.** If a test fails, investigate the implementation first -- the test may be correct and the code may be wrong. Never weaken assertions, skip test cases, or change expected values just to get green. The test is the spec; fix the code to match it, not the other way around.
+9. **Never mold code to make tests pass incorrectly.** Don't add special cases, workarounds, or dead code paths in production code solely to satisfy a poorly written test. If the test is wrong, fix the test with a clear explanation of why.
+10. **Test all code paths, not just the happy path.** For every function, ask: what happens with missing input, empty input, null, wrong types, boundary values? For HTTP code: what about redirects, timeouts, empty responses, error status codes?
+11. **Run the code you wrote.** Don't just run unit tests. Build the project and exercise the feature manually. If writing a CLI command, run it. If writing an API endpoint, call it. If writing a request builder, trace the actual HTTP request it produces.
+
+## Security Checklist
+
+When creating or modifying code that constructs URLs, sends credentials, or makes HTTP requests:
+
+- **Encode path parameters.** Never interpolate user input into URL paths with bare `String(value)`. Always use `encodeURIComponent()` or a wrapper that encodes each segment.
+- **Validate URL schemes.** Reject anything other than `http://` and `https://`. Warn on plaintext `http://` for non-localhost targets.
+- **Don't copy patterns blindly.** If replicating URL-building logic from another file, audit the source for encoding and validation gaps before copying.
+- **Set `redirect: 'error'`** (or `'manual'`) on every `fetch` call that sends credentials. Never rely on the default `'follow'` behavior.
+- **Assert on `RequestInit` configuration in tests**, not just on response output. Verify `redirect`, `method`, and `headers` are set as intended.
+- **Add at least one adversarial input test** for any function that accepts user-provided strings and embeds them in URLs or paths.
+
 ## Spec-Kit Workflow
 
 The project uses [spec-kit](https://github.com/github/spec-kit) for AI-assisted feature development.

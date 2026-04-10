@@ -34,7 +34,10 @@ export const AuthSchema = z.union([ApiKeyAuthSchema, BasicAuthSchema])
 
 /** Endpoint URL and authentication credentials for a single service. */
 export const ServiceBlockSchema = z.looseObject({
-  url: z.string().min(1),
+  url: z.string().url().refine(
+    (u) => u.startsWith('https://') || u.startsWith('http://'),
+    { message: 'URL must use http:// or https:// scheme' }
+  ),
   auth: AuthSchema
 })
 

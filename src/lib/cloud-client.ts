@@ -31,6 +31,9 @@ export class CloudClient {
   constructor(baseUrl: string, apiKey: string) {
     this.baseUrl = baseUrl.replace(/\/+$/, '')
     this.apiKey = apiKey
+    if (this.baseUrl.startsWith('http://') && !/localhost|127\.0\.0\.1/.test(this.baseUrl)) {
+      process.stderr.write('Warning: using plaintext HTTP. Credentials will be sent unencrypted.\n')
+    }
   }
 
   /**
@@ -53,7 +56,7 @@ export class CloudClient {
       'Accept': 'application/json',
     }
 
-    const init: RequestInit = { method: params.method, headers }
+    const init: RequestInit = { method: params.method, headers, redirect: 'error' }
 
     if (params.body !== undefined) {
       headers['Content-Type'] = 'application/json'

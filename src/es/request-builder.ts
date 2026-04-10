@@ -49,6 +49,15 @@ export function buildRequestParams (
  * The schema key is both the `{token}` name in the template and the lookup key in `input`.
  * For optional params that are absent, trailing `/{param}` segments are stripped.
  */
+/**
+ * Encodes a single path parameter value. Splits on commas so ES multi-target
+ * syntax (e.g. "idx1,idx2") is preserved, while special characters like `/`,
+ * `?`, and `#` are percent-encoded to prevent path traversal (#106).
+ */
+function encodePathParam (value: string): string {
+  return value.split(',').map((s) => encodeURIComponent(s.trim())).join(',')
+}
+
 function interpolatePath (
   path: string,
   schemaArgs: SchemaArgDefinition[],
@@ -57,7 +66,7 @@ function interpolatePath (
   for (const arg of schemaArgs.filter((a) => a.foundIn === 'path')) {
     const value = input[arg.schemaKey]
     if (value !== undefined) {
-      path = path.replace(`{${arg.schemaKey}}`, String(value))
+      path = path.replace(`{${arg.schemaKey}}`, encodePathParam(String(value)))
     } else if (!arg.required) {
       // strip the trailing optional segment: e.g. "/_cat/shards/{index}" -> "/_cat/shards"
       path = path.replace(new RegExp(`/?\\{${arg.schemaKey}\\}/?`), '')

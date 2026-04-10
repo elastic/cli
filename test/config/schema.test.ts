@@ -158,6 +158,30 @@ describe('ServiceBlockSchema', () => {
     })
     assert.equal(result.success, true)
   })
+
+  it('rejects non-http/https URL schemes (#107)', () => {
+    const result = ServiceBlockSchema.safeParse({
+      url: 'ftp://es.example.com:9200',
+      auth: { api_key: 'abc123' },
+    })
+    assert.equal(result.success, false)
+  })
+
+  it('rejects non-URL strings (#107)', () => {
+    const result = ServiceBlockSchema.safeParse({
+      url: 'not-a-url',
+      auth: { api_key: 'abc123' },
+    })
+    assert.equal(result.success, false)
+  })
+
+  it('accepts http:// URLs (with warning at runtime)', () => {
+    const result = ServiceBlockSchema.safeParse({
+      url: 'http://localhost:9200',
+      auth: { api_key: 'abc123' },
+    })
+    assert.equal(result.success, true)
+  })
 })
 
 describe('ContextSchema', () => {
