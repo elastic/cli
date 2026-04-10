@@ -85,3 +85,26 @@ describe('elastic CLI -- global flags', () => {
     assert.equal(prog.opts()['useContext'], 'staging')
   })
 })
+
+describe('elastic CLI -- config-free commands', () => {
+  it('`elastic version` succeeds without a config file', async () => {
+    const { execFile } = await import('node:child_process')
+    const { promisify } = await import('node:util')
+    const { mkdtemp, rm } = await import('node:fs/promises')
+    const { join } = await import('node:path')
+    const { tmpdir } = await import('node:os')
+    const exec = promisify(execFile)
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-'))
+    try {
+      const { stdout } = await exec(
+        process.execPath,
+        [join(process.cwd(), 'dist', 'cli.js'), 'version', '--json'],
+        { cwd: dir, env: { ...process.env, HOME: dir } }
+      )
+      const parsed = JSON.parse(stdout)
+      assert.ok('version' in parsed)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+})

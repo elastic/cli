@@ -68,13 +68,14 @@ if (firstArg === 'cloud') {
   program.addCommand(defineGroup({ name: 'cloud', description: 'Manage Elastic Cloud deployments and serverless projects' }))
 }
 
-// Load config before Commander parses so --help can hide blocked commands.
-// Uses cosmiconfig auto-discovery (the preAction hook re-loads with any
-// --config/--context overrides when an actual command runs).
-const earlyResult = await loadConfig({})
-if (earlyResult.ok) {
-  setResolvedConfig(earlyResult.value)
-  hideBlockedCommands(program, earlyResult.value.commands)
+// Load config early so --help can hide blocked commands. Skip for commands
+// that don't need config (e.g. `version`) to avoid unnecessary file I/O.
+if (firstArg !== 'version') {
+  const earlyResult = await loadConfig({})
+  if (earlyResult.ok) {
+    setResolvedConfig(earlyResult.value)
+    hideBlockedCommands(program, earlyResult.value.commands)
+  }
 }
 
 if (process.argv.slice(2).length === 0) {
