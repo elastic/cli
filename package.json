@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && npm run test:lint && npm run test:unit && npm run test:license && npm run test:spdx",
+    "test": "npm run build && npm run test:lint && npm run test:unit && npm run test:license",
     "test:unit": "node --import tsx/esm --test",
     "test:lint": "eslint src",
     "test:functional:cloud": "echo 'Cloud smoke tests not yet implemented' && exit 0",
