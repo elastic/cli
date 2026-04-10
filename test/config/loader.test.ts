@@ -333,3 +333,83 @@ commands:
     assert.match(result.error.message, /mutually exclusive/)
   })
 })
+
+describe('security: executable config formats are rejected', () => {
+  let tmpDir: string
+  before(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-security-'))
+  })
+  after(async () => rm(tmpDir, { recursive: true }))
+
+  describe('createExplorer rejects executable loaders', () => {
+    for (const ext of ['.js', '.ts', '.mjs', '.cjs']) {
+      it(`throws for .elasticrc${ext}`, async () => {
+        const filePath = join(tmpDir, `.elasticrc${ext}`)
+        await writeFile(filePath, 'export default {}')
+        const explorer = createExplorer()
+        await assert.rejects(
+          () => explorer.load(filePath),
+          (err: Error) => {
+            assert.match(err.message, /not supported.*security/)
+            return true
+          }
+        )
+      })
+    }
+
+    it('still loads .yml files', async () => {
+      const filePath = join(tmpDir, '.elasticrc.yml')
+      await writeFile(filePath, VALID_CONFIG_YAML)
+      const explorer = createExplorer()
+      const result = await explorer.load(filePath)
+      assert.ok(result != null)
+      assert.equal(result!.config['current_context'], 'local')
+    })
+
+    it('still loads .json files', async () => {
+      const filePath = join(tmpDir, '.elasticrc.json')
+      await writeFile(filePath, JSON.stringify(VALID_CONFIG_OBJECT))
+      const explorer = createExplorer()
+      const result = await explorer.load(filePath)
+      assert.ok(result != null)
+      assert.equal(result!.config['current_context'], 'local')
+    })
+  })
+
+  describe('loadConfig returns error for executable config files', () => {
+    for (const ext of ['.js', '.mjs']) {
+      it(`returns error for ${ext} config file`, async () => {
+        const filePath = join(tmpDir, `.elasticrc${ext}`)
+        await writeFile(filePath, 'export default {}')
+        const result = await loadConfig({ configPath: filePath })
+        assert.ok(!result.ok)
+        if (result.ok) return
+        assert.match(result.error.message, /not supported.*security/)
+      })
+    }
+  })
+
+  describe('search does not discover executable config files', () => {
+    for (const name of ['elastic.config.js', 'elastic.config.mjs', 'elastic.config.cjs', 'elastic.config.ts']) {
+      it(`skips ${name}`, async () => {
+        const searchDir = await mkdtemp(join(tmpdir(), 'elastic-cli-search-'))
+        const filePath = join(searchDir, name)
+        await writeFile(filePath, 'export default {}')
+        const explorer = createExplorer()
+        const result = await explorer.search(searchDir)
+        assert.ok(result == null || result.filepath !== filePath)
+        await rm(searchDir, { recursive: true })
+      })
+    }
+
+    it('still discovers .elasticrc.yml', async () => {
+      const searchDir = await mkdtemp(join(tmpdir(), 'elastic-cli-yml-'))
+      await writeFile(join(searchDir, '.elasticrc.yml'), VALID_CONFIG_YAML)
+      const explorer = createExplorer()
+      const result = await explorer.search(searchDir)
+      assert.ok(result != null)
+      assert.equal(result!.config['current_context'], 'local')
+      await rm(searchDir, { recursive: true })
+    })
+  })
+})

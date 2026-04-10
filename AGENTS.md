@@ -38,6 +38,10 @@ All code files **MUST** start with:
 - **YAML config**: ALL key names use `snake_case` (e.g. `api_key`, `current_context`). Never camelCase or kebab-case
 - **Files**: Proper trailing newline, no trailing whitespace
 
+### Use dependencies wisely
+
+When writing code that does something that is not critical to this tool's core domain (i.e. interacting with Elastic APIs), and an installed dependency can likely handle it, **always** try to leverage that dependency in your solution first. For example, for an argument-parsing bug, check if `commander` can help solve it instead of using `process.argv` directly. Only apply a manual solution if that strategy does not succeed.
+
 ### TypeScript Configuration
 - Strict mode: `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `strict`, `verbatimModuleSyntax`, `isolatedModules`, `noUncheckedSideEffectImports`, `moduleDetection: force`
 - Source maps and declaration maps enabled

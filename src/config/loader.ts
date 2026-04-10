@@ -26,19 +26,47 @@ import { ConfigFileSchema } from './schema.ts'
 import type { ConfigFile, ResolvedConfig, ResolvedContext } from './types.ts'
 
 /**
+ * Loader that rejects executable config formats for security.
+ *
+ * Cosmiconfig's default loaders will `import()` JavaScript and TypeScript
+ * files, which enables arbitrary code execution from untrusted directories.
+ * This loader throws a descriptive error instead.
+ */
+function rejectExecutableLoader (): never {
+  throw new Error(
+    'JavaScript and TypeScript config files are not supported for security reasons. Use .elasticrc.yml instead.'
+  )
+}
+
+/**
  * Creates a cosmiconfig explorer configured for the Elastic CLI.
  *
  * Uses application ID `elastic`, which causes cosmiconfig to search for:
  * - `.elasticrc`, `.elasticrc.yml`, `.elasticrc.yaml`, `.elasticrc.json`
- * - `elastic.config.js` / `.cjs` / `.mjs`
  * - `elastic` property in `package.json`
+ *
+ * Executable config formats (`.js`, `.ts`, `.mjs`, `.cjs`) are explicitly
+ * blocked to prevent arbitrary code execution from untrusted directories.
  *
  * The explorer searches from the given directory upward toward the home
  * directory (`searchStrategy: 'global'`).
  */
 export function createExplorer () {
   return cosmiconfig('elastic', {
-    searchStrategy: 'global'
+    searchStrategy: 'global',
+    searchPlaces: [
+      'package.json',
+      '.elasticrc',
+      '.elasticrc.json',
+      '.elasticrc.yaml',
+      '.elasticrc.yml',
+    ],
+    loaders: {
+      '.js': rejectExecutableLoader,
+      '.ts': rejectExecutableLoader,
+      '.mjs': rejectExecutableLoader,
+      '.cjs': rejectExecutableLoader,
+    },
   })
 }
 
