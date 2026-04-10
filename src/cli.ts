@@ -9,7 +9,6 @@ import { createRequire } from 'node:module'
 import { defineCommand, defineGroup, hideBlockedCommands } from './factory.js'
 import { loadConfig } from './config/loader.ts'
 import { setResolvedConfig } from './config/store.ts'
-import { firstSubcommand } from './lib/argv.ts'
 
 const require = createRequire(import.meta.url)
 const { version } = require('../package.json') as { version: string }
@@ -52,7 +51,8 @@ program.addCommand(versionCmd)
 // invoked. For all other invocations (including `elastic --help`), a lightweight stub
 // is registered so the group appears in help text without paying the cost of loading
 // and compiling all API schemas.
-const firstArg = firstSubcommand(process.argv)
+const { operands } = program.parseOptions(process.argv.slice(2))
+const firstArg = operands[0]
 
 if (firstArg === 'es') {
   const { registerEsCommands } = await import('./es/register.ts')
