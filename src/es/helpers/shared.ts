@@ -69,7 +69,7 @@ export function globFiles (dir: string, pattern: string): string[] {
  */
 export function buildBulkNdjsonBody (
   docs: unknown[],
-  opts: { index?: string, pipeline?: string, routing?: string }
+  opts: { index?: string | undefined, pipeline?: string | undefined, routing?: string | undefined }
 ): string {
   const lines: string[] = []
   for (const doc of docs) {

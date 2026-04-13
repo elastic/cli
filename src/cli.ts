@@ -5,13 +5,13 @@
  */
 
 import { Command } from 'commander'
-import { createRequire } from 'node:module'
 import { defineCommand, defineGroup, hideBlockedCommands } from './factory.js'
 import { loadConfig } from './config/loader.ts'
 import { setResolvedConfig } from './config/store.ts'
 
-const require = createRequire(import.meta.url)
-const { version } = require('../package.json') as { version: string }
+// x-release-please-start-version
+const VERSION = '0.1.0-alpha.1';
+// x-release-please-end
 
 const program = new Command()
 
@@ -47,7 +47,7 @@ program.hook('preAction', async (thisCommand, actionCommand) => {
 const versionCmd = defineCommand({
   name: 'version',
   description: 'Print the elastic CLI version',
-  handler: () => ({ version })
+  handler: () => ({ version: VERSION })
 })
 program.addCommand(versionCmd)
 
