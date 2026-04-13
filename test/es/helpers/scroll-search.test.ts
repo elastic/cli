@@ -63,20 +63,31 @@ async function runCommand (args: string[], deps: ScrollSearchDeps): Promise<{ re
   program.addCommand(cmd)
 
   const progChunks: string[] = []
-  const origWrite = process.stdout.write.bind(process.stdout)
+  const errChunks: string[] = []
+  const origStdoutWrite = process.stdout.write.bind(process.stdout)
+  const origStderrWrite = process.stderr.write.bind(process.stderr)
   process.stdout.write = ((chunk: string) => {
     progChunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
     return true
   }) as typeof process.stdout.write
+  process.stderr.write = ((chunk: string) => {
+    errChunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
+    return true
+  }) as typeof process.stderr.write
 
   try {
     await program.parseAsync(['node', 'test', 'scroll-search', ...args])
   } finally {
-    process.stdout.write = origWrite
+    process.stdout.write = origStdoutWrite
+    process.stderr.write = origStderrWrite
+    process.exitCode = 0
   }
 
   let result: unknown
-  const output = progChunks.join('')
+  // Prefer stderr (error results) over stdout; parse whichever has content
+  const errOutput = errChunks.join('')
+  const stdOutput = progChunks.join('')
+  const output = errOutput.trim().length > 0 ? errOutput : stdOutput
   if (output.trim().length > 0) {
     try { result = JSON.parse(output.trim()) } catch { result = output.trim() }
   }
