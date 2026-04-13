@@ -1009,17 +1009,15 @@ describe('defineCommand', () => {
       assert.match(err, /--input-file: invalid JSON: empty content/)
     })
 
-    it('parsed.input is undefined when input is a schema, no --input-file provided, and stdin is a TTY', async () => {
-      const received: ParsedResult[] = []
+    it('validation error when input is a schema with required fields, no --input-file provided, and stdin is a TTY', async () => {
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
         input: z.object({ q: z.string() }),
-        handler: (parsed) => { received.push(parsed); return {} },
+        handler: () => ({}),
       })
-      await invokeAsync(cmd, [])
-      assert.equal(received.length, 1)
-      assert.equal(received[0].input, undefined)
+      const err = await captureErrAsync(cmd, [])
+      assert.match(err, /input validation failed/i)
     })
   })
 
@@ -1231,8 +1229,35 @@ describe('defineCommand', () => {
       assert.match(err, /unexpected/)
     })
 
-    it('handler receives undefined for input when schema is configured but no input is provided', async () => {
+    it('validation fails when schema has required fields but no input is provided', async () => {
       const schema = z.object({ index: z.string() })
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => ({}),
+      })
+      // stdin is TTY (set in beforeEach), no --input-file flag, no CLI args
+      const err = await captureErrAsync(cmd, [])
+      assert.match(err, /input validation failed/i)
+      assert.match(err, /index/)
+    })
+
+    it('handler is NOT invoked when required schema fields are missing and no input is provided', async () => {
+      const schema = z.object({ index: z.string() })
+      let handlerCalled = false
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => { handlerCalled = true; return {} },
+      })
+      await captureErrAsync(cmd, [])
+      assert.equal(handlerCalled, false)
+    })
+
+    it('all-optional schema succeeds with no input provided', async () => {
+      const schema = z.object({ size: z.number().default(10), verbose: z.boolean().default(false) })
       const received: unknown[] = []
       const cmd = defineCommand({
         name: 'search',
@@ -1240,9 +1265,8 @@ describe('defineCommand', () => {
         input: schema,
         handler: (parsed) => { received.push(parsed.input); return {} },
       })
-      // stdin is TTY (set in beforeEach), no --input-file flag - no input provided
       await invokeAsync(cmd, [])
-      assert.equal(received[0], undefined)
+      assert.deepEqual(received[0], { size: 10, verbose: false })
     })
   })
 
@@ -1481,6 +1505,23 @@ describe('defineCommand', () => {
       const err = await captureErrAsync(cmd, ['--input-file', filePath])
       assert.match(err, /input validation failed/)
       assert.match(err, /index/)
+    })
+
+    it('emits structured JSON error when --json and no input provided for required schema', async () => {
+      const schema = z.object({ index: z.string() })
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => ({}),
+      })
+      const { parsed } = await invokeWithJsonFormat(cmd, [])
+      assert.ok(parsed !== null, 'output was not valid JSON')
+      const p = parsed as Record<string, unknown>
+      assert.ok('error' in p, 'expected top-level "error" key')
+      const err = p['error'] as Record<string, unknown>
+      assert.equal(err['code'], 'input_validation_failed')
+      assert.ok(Array.isArray(err['issues']) && (err['issues'] as unknown[]).length > 0)
     })
   })
   describe('global options', () => {
@@ -2561,6 +2602,176 @@ describe('defineCommand schema input - CLI arguments', () => {
     // provide index but not size; size should receive its schema default
     await invokeAsync(cmd, ['--index', 'my-index'])
     assert.deepEqual(captured, { index: 'my-index', size: 10 })
+  })
+})
+
+describe('repeated flags', () => {
+  let origIsTTY: boolean | undefined
+  beforeEach(() => {
+    origIsTTY = process.stdin.isTTY
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true, writable: true })
+  })
+  afterEach(() => {
+    Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+  })
+
+  it('string OptionDefinition accumulates repeated values with comma separation', () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'tag',
+      description: 'Tag',
+      options: [{ long: 'tag', description: 'Tag value', type: 'string' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    cmd.exitOverride()
+    cmd.parse(['--tag', 'a', '--tag', 'b'], { from: 'user' })
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['tag'], 'a,b')
+  })
+
+  it('string OptionDefinition with three repetitions joins all values', () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'tag',
+      description: 'Tag',
+      options: [{ long: 'tag', description: 'Tag value', type: 'string' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    cmd.exitOverride()
+    cmd.parse(['--tag', 'a', '--tag', 'b', '--tag', 'c'], { from: 'user' })
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['tag'], 'a,b,c')
+  })
+
+  it('single string occurrence is unchanged (regression guard)', () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'tag',
+      description: 'Tag',
+      options: [{ long: 'tag', description: 'Tag value', type: 'string' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    cmd.exitOverride()
+    cmd.parse(['--tag', 'only-one'], { from: 'user' })
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['tag'], 'only-one')
+  })
+
+  it('string OptionDefinition with defaultValue does not accumulate default into CLI value', () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'tag',
+      description: 'Tag',
+      options: [{ long: 'tag', description: 'Tag value', type: 'string', defaultValue: 'default-val' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    cmd.exitOverride()
+    cmd.parse(['--tag', 'cli-val'], { from: 'user' })
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['tag'], 'cli-val')
+  })
+
+  it('number OptionDefinition rejects repeated values', () => {
+    const cmd = defineCommand({
+      name: 'run',
+      description: 'Run',
+      options: [{ long: 'count', description: 'Count', type: 'number' }],
+      handler: () => ({}),
+    })
+    let err = ''
+    cmd.exitOverride()
+    cmd.configureOutput({ writeErr: (s) => { err += s } })
+    try { cmd.parse(['--count', '5', '--count', '10'], { from: 'user' }) } catch { /* CommanderError */ }
+    assert.match(err, /cannot be specified more than once/)
+  })
+
+  it('boolean OptionDefinition is idempotent when repeated', () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'run',
+      description: 'Run',
+      options: [{ long: 'verbose', description: 'Verbose', type: 'boolean' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    cmd.exitOverride()
+    cmd.parse(['--verbose', '--verbose'], { from: 'user' })
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['verbose'], true)
+  })
+
+  it('schema-derived string accumulates repeated values', async () => {
+    const schema = z.object({ index: z.string().describe('Index name') })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    await invokeAsync(cmd, ['--index', 'idx-a', '--index', 'idx-b'])
+    assert.deepEqual(captured, { index: 'idx-a,idx-b' })
+  })
+
+  it('schema-derived number rejects repeated values', async () => {
+    const schema = z.object({ size: z.number().describe('Result size') })
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: schema,
+      handler: () => ({}),
+    })
+    const err = await captureErrAsync(cmd, ['--size', '5', '--size', '10'])
+    assert.match(err, /cannot be specified more than once/)
+  })
+
+  it('schema-derived enum rejects repeated values', async () => {
+    const schema = z.object({ mode: z.enum(['fast', 'slow']).describe('Mode') })
+    const cmd = defineCommand({
+      name: 'run',
+      description: 'Run',
+      input: schema,
+      handler: () => ({}),
+    })
+    const err = await captureErrAsync(cmd, ['--mode', 'fast', '--mode', 'slow'])
+    assert.match(err, /cannot be specified more than once/)
+  })
+
+  it('schema-derived string with Zod default does not accumulate default into CLI value', async () => {
+    const schema = z.object({ index: z.string().default('default-idx').describe('Index name') })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    await invokeAsync(cmd, ['--index', 'my-idx'])
+    assert.deepEqual(captured, { index: 'my-idx' })
+  })
+
+  it('schema-derived string with Zod default accumulates repeated CLI values', async () => {
+    const schema = z.object({ index: z.string().default('default-idx').describe('Index name') })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    await invokeAsync(cmd, ['--index', 'idx-a', '--index', 'idx-b'])
+    assert.deepEqual(captured, { index: 'idx-a,idx-b' })
+  })
+
+  it('schema-derived object rejects repeated values', async () => {
+    const schema = z.object({ mappings: z.object({}).passthrough().describe('Mappings') })
+    const cmd = defineCommand({
+      name: 'create',
+      description: 'Create',
+      input: schema,
+      handler: () => ({}),
+    })
+    const err = await captureErrAsync(cmd, ['--mappings', '{}', '--mappings', '{"a":1}'])
+    assert.match(err, /cannot be specified more than once/)
   })
 })
 

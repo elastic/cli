@@ -237,6 +237,34 @@ function camelCase (s: string): string {
   return s.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())
 }
 
+/**
+ * Creates a parseArg function that accumulates repeated string flag values with comma separation.
+ * Uses Commander's option value source tracking: first CLI occurrence replaces any default,
+ * subsequent CLI occurrences append with a comma separator.
+ */
+function stringAccumulator (cmd: Command, attrName: string): (value: string, previous: string | undefined) => string {
+  return (value: string, previous: string | undefined): string => {
+    if (cmd.getOptionValueSource(attrName) === 'cli') return `${previous},${value}`
+    return value
+  }
+}
+
+/**
+ * Creates a parseArg function that rejects repeated flag occurrences for singular-value options.
+ * Wraps an optional inner parser (e.g. number coercion) and errors via Commander
+ * if the option has already been set from the CLI.
+ */
+function singleValueGuard<T> (
+  cmd: Command, attrName: string, flagDisplay: string, innerParse?: (val: string) => T,
+): (value: string, previous: T | undefined) => T {
+  return (value: string): T => {
+    if (cmd.getOptionValueSource(attrName) === 'cli') {
+      cmd.error(`option ${flagDisplay} cannot be specified more than once`)
+    }
+    return innerParse != null ? innerParse(value) : value as unknown as T
+  }
+}
+
 /** valid command/group name: non-empty, lowercase alphanumeric characters and hyphens only */
 const VALID_NAME = /^[a-z0-9][a-z0-9-]*$/
 
@@ -474,17 +502,19 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     } else if (opt.type === 'number') {
       // <number> placeholder communicates type in help text; parseArg coerces and validates inline
       const flagWithArg = `${flag} <number>`
-      const parseArg = (val: string): number => {
+      const attrName = camelCase(opt.long)
+      const parseNum = (val: string): number => {
         const result = numberSchema.safeParse(val)
         if (!result.success) {
           cmd.error(`option --${opt.long}: expected a number, got: ${val}`)
         }
         return result.data!
       }
-      register(flagWithArg, opt.description, parseArg, opt.defaultValue as number | undefined)
+      register(flagWithArg, opt.description, singleValueGuard(cmd, attrName, `--${opt.long}`, parseNum), opt.defaultValue as number | undefined)
     } else {
-      // string options: <string> placeholder communicates type in help text
-      register(`${flag} <string>`, opt.description, opt.defaultValue !== undefined ? String(opt.defaultValue) : undefined)
+      // string options: accumulate repeated values with comma separation
+      const attrName = camelCase(opt.long)
+      register(`${flag} <string>`, opt.description, stringAccumulator(cmd, attrName), opt.defaultValue !== undefined ? String(opt.defaultValue) : undefined)
     }
   }
 
@@ -502,19 +532,23 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
         // booleans omit the suffix; flag-style convention makes it clear
         cmd.option(`--${arg.cliFlag} [value]`, arg.description)
       } else if (arg.type === 'number') {
+        const attrName = camelCase(arg.cliFlag)
         const parseNum = (val: string): number => {
           const r = numberSchema.safeParse(val)
           if (!r.success) cmd.error(`option --${arg.cliFlag}: expected a number, got: ${val}`)
           return r.data!
         }
-        cmd.option(`--${arg.cliFlag} <number>`, desc, parseNum)
+        cmd.option(`--${arg.cliFlag} <number>`, desc, singleValueGuard(cmd, attrName, `--${arg.cliFlag}`, parseNum))
       } else if (arg.type === 'object' || arg.type === 'array') {
-        cmd.option(`--${arg.cliFlag} <json>`, desc)
+        const attrName = camelCase(arg.cliFlag)
+        cmd.option(`--${arg.cliFlag} <json>`, desc, singleValueGuard<string>(cmd, attrName, `--${arg.cliFlag}`))
       } else if (arg.type === 'enum') {
-        cmd.option(`--${arg.cliFlag} <value>`, desc)
+        const attrName = camelCase(arg.cliFlag)
+        cmd.option(`--${arg.cliFlag} <value>`, desc, singleValueGuard<string>(cmd, attrName, `--${arg.cliFlag}`))
       } else {
-        // string: passed through as-is, no coercion
-        cmd.option(`--${arg.cliFlag} <string>`, desc)
+        // string: accumulate repeated values with comma separation
+        const attrName = camelCase(arg.cliFlag)
+        cmd.option(`--${arg.cliFlag} <string>`, desc, stringAccumulator(cmd, attrName))
       }
     }
   }
@@ -593,6 +627,11 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       }
       if (Object.keys(cliInput).length > 0) {
         inputValue = { ...(inputValue as Record<string, unknown> ?? {}), ...cliInput }
+      }
+      // always validate against the schema, even when no input was provided,
+      // so that missing required fields are caught by Zod
+      if (inputValue === undefined) {
+        inputValue = {}
       }
     }
 
