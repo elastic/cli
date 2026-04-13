@@ -52,6 +52,6 @@
     "license-checker": "24.1.0",
     "tsx": "4.21.0",
     "typescript": "6.0.2",
-    "typescript-eslint": "8.57.3-alpha.6"
+    "typescript-eslint": "8.58.0"
   }
 }
