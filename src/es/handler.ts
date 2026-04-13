@@ -108,7 +108,7 @@ function transportError (err: unknown): JsonValue {
 }
 
 function connectionMessage (err: errors.ConnectionError): string {
-  const reason = err.message || 'connection failed'
+  const reason = err.message ?? 'connection failed'
   // err.meta is DiagnosticResult; .meta.connection is the nested transport metadata
   const url = err.meta?.meta?.connection?.url?.toString()
   return url ? `${reason} (${url})` : reason
