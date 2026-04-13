@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { errors } from '@elastic/transport'
 import type { Transport } from '@elastic/transport'
 import type { EsApiDefinition } from './types.ts'
 import type { SchemaArgDefinition } from '../lib/schema-args.ts'
 import { buildRequestParams } from './request-builder.ts'
 import { getTransport } from '../lib/transport.ts'
+import { missingConfigError, transportError } from './errors.ts'
 import type { JsonValue, ParsedResult } from '../factory.ts'
 
 /**
@@ -76,24 +76,3 @@ export function createEsHandler (
   }
 }
 
-/** builds a `missing_config` error payload from a thrown error */
-function missingConfigError (err: unknown): JsonValue {
-  const message = err instanceof Error ? err.message : String(err)
-  return { error: { code: 'missing_config', message } }
-}
-
-/** builds a `transport_error` payload from a thrown transport error */
-function transportError (err: unknown): JsonValue {
-  if (err instanceof errors.ResponseError) {
-    return {
-      error: {
-        code: 'transport_error',
-        status_code: err.statusCode ?? null,
-        body: err.body as JsonValue ?? null
-      }
-    }
-  }
-
-  const message = err instanceof Error ? err.message : String(err)
-  return { error: { code: 'transport_error', message } }
-}

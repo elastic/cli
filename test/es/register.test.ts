@@ -34,7 +34,7 @@ describe('registerEsCommands', () => {
   it('creates one child group per unique namespace', () => {
     const handle = registerEsCommands(testDefs)
     const groupNames = handle.commands.map((c) => c.name()).sort()
-    assert.deepEqual(groupNames, ['cat', 'indices'])
+    assert.deepEqual(groupNames, ['cat', 'helpers', 'indices'])
   })
 
   it('each namespace group has leaf commands matching definition names', () => {
@@ -62,9 +62,11 @@ describe('registerEsCommands', () => {
   it('works with a single namespace', () => {
     const defs: EsApiDefinition[] = [makeDef('health', 'cat'), makeDef('nodes', 'cat')]
     const handle = registerEsCommands(defs)
-    assert.equal(handle.commands.length, 1)
-    assert.equal(handle.commands[0]?.name(), 'cat')
-    assert.equal(handle.commands[0]?.commands.length, 2)
+    // 1 namespace group + 1 helpers group
+    assert.equal(handle.commands.length, 2)
+    const cat = handle.commands.find((c) => c.name() === 'cat')
+    assert.ok(cat != null)
+    assert.equal(cat.commands.length, 2)
   })
 
   it('throws on duplicate command names within a namespace', () => {
@@ -149,7 +151,7 @@ describe('registerEsCommands - namespace-less (root) definitions', () => {
     const defs: EsApiDefinition[] = [makeRootDef('bulk'), makeRootDef('search')]
     const handle = registerEsCommands(defs)
     const names = handle.commands.map((c) => c.name()).sort()
-    assert.deepEqual(names, ['bulk', 'search'])
+    assert.deepEqual(names, ['bulk', 'helpers', 'search'])
   })
 
   it('namespace-less and namespaced definitions coexist under `es`', () => {
@@ -161,7 +163,7 @@ describe('registerEsCommands - namespace-less (root) definitions', () => {
     const handle = registerEsCommands(defs)
     // `cat` group and `search` leaf are both direct children of `es`
     const topNames = handle.commands.map((c) => c.name()).sort()
-    assert.deepEqual(topNames, ['cat', 'search'])
+    assert.deepEqual(topNames, ['cat', 'helpers', 'search'])
     const cat = handle.commands.find((c) => c.name() === 'cat')
     assert.ok(cat != null)
     assert.deepEqual(cat.commands.map((c) => c.name()).sort(), ['health', 'indices'])
@@ -211,7 +213,7 @@ describe('registerEsCommands - extensibility', () => {
     ]
     const handle = registerEsCommands(defs)
     const groupNames = handle.commands.map((c) => c.name()).sort()
-    assert.deepEqual(groupNames, ['cat', 'cluster'])
+    assert.deepEqual(groupNames, ['cat', 'cluster', 'helpers'])
     const cluster = handle.commands.find((c) => c.name() === 'cluster')
     assert.ok(cluster != null)
     assert.equal(cluster.commands.length, 2)
