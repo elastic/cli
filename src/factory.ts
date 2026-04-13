@@ -583,6 +583,11 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       if (Object.keys(cliInput).length > 0) {
         inputValue = { ...(inputValue as Record<string, unknown> ?? {}), ...cliInput }
       }
+      // always validate against the schema, even when no input was provided,
+      // so that missing required fields are caught by Zod
+      if (inputValue === undefined) {
+        inputValue = {}
+      }
     }
 
     const resolvedConfig = getResolvedConfig()

@@ -1009,17 +1009,15 @@ describe('defineCommand', () => {
       assert.match(err, /--input-file: invalid JSON: empty content/)
     })
 
-    it('parsed.input is undefined when input is a schema, no --input-file provided, and stdin is a TTY', async () => {
-      const received: ParsedResult[] = []
+    it('validation error when input is a schema with required fields, no --input-file provided, and stdin is a TTY', async () => {
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
         input: z.object({ q: z.string() }),
-        handler: (parsed) => { received.push(parsed); return {} },
+        handler: () => ({}),
       })
-      await invokeAsync(cmd, [])
-      assert.equal(received.length, 1)
-      assert.equal(received[0].input, undefined)
+      const err = await captureErrAsync(cmd, [])
+      assert.match(err, /input validation failed/i)
     })
   })
 
@@ -1228,8 +1226,35 @@ describe('defineCommand', () => {
       assert.match(err, /unexpected/)
     })
 
-    it('handler receives undefined for input when schema is configured but no input is provided', async () => {
+    it('validation fails when schema has required fields but no input is provided', async () => {
       const schema = z.object({ index: z.string() })
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => ({}),
+      })
+      // stdin is TTY (set in beforeEach), no --input-file flag, no CLI args
+      const err = await captureErrAsync(cmd, [])
+      assert.match(err, /input validation failed/i)
+      assert.match(err, /index/)
+    })
+
+    it('handler is NOT invoked when required schema fields are missing and no input is provided', async () => {
+      const schema = z.object({ index: z.string() })
+      let handlerCalled = false
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => { handlerCalled = true; return {} },
+      })
+      await captureErrAsync(cmd, [])
+      assert.equal(handlerCalled, false)
+    })
+
+    it('all-optional schema succeeds with no input provided', async () => {
+      const schema = z.object({ size: z.number().default(10), verbose: z.boolean().default(false) })
       const received: unknown[] = []
       const cmd = defineCommand({
         name: 'search',
@@ -1237,9 +1262,8 @@ describe('defineCommand', () => {
         input: schema,
         handler: (parsed) => { received.push(parsed.input); return {} },
       })
-      // stdin is TTY (set in beforeEach), no --input-file flag - no input provided
       await invokeAsync(cmd, [])
-      assert.equal(received[0], undefined)
+      assert.deepEqual(received[0], { size: 10, verbose: false })
     })
   })
 
@@ -1476,6 +1500,23 @@ describe('defineCommand', () => {
       const err = await captureErrAsync(cmd, ['--input-file', filePath])
       assert.match(err, /input validation failed/)
       assert.match(err, /index/)
+    })
+
+    it('emits structured JSON error when --json and no input provided for required schema', async () => {
+      const schema = z.object({ index: z.string() })
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => ({}),
+      })
+      const { parsed } = await invokeWithJsonFormat(cmd, [])
+      assert.ok(parsed !== null, 'output was not valid JSON')
+      const p = parsed as Record<string, unknown>
+      assert.ok('error' in p, 'expected top-level "error" key')
+      const err = p['error'] as Record<string, unknown>
+      assert.equal(err['code'], 'input_validation_failed')
+      assert.ok(Array.isArray(err['issues']) && (err['issues'] as unknown[]).length > 0)
     })
   })
   describe('global options', () => {
