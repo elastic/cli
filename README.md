@@ -1,168 +1,165 @@
-# elastic
+# Elastic CLI
 
-`elastic` is the CLI for Elastic.
+Interact with Elasticsearch, Elastic Serverless and Elastic Cloud APIs from the command line.
 
-## Install / Build
+## Installation
 
-From the repo root:
+This CLI is not yet available on npm.
+To install it, clone the repository, install dependencies, build and link:
 
 ```bash
-go install ./cmd/elastic
+git clone git@github.com:elastic/cli.git
+cd cli
+npm install
+npm run build
+npm link
+```
+
+Then you should be able to run `elastic` commands:
+
+```bash
+elastic --help
 ```
 
 ## Configuration
 
-`elastic` stores its config in the OS-appropriate per-user config directory (via Go's `os.UserConfigDir()`):
+The CLI searches for a config file starting from the current working directory and
+walks up toward your home directory, stopping at the first file found. As a final
+fallback it also checks the platform-specific user config directory
+(`~/.config/elastic/` on Linux/macOS, `%APPDATA%\elastic\` on Windows).
 
-- **Linux**: `$XDG_CONFIG_HOME/elastic/config.yaml` (fallback `~/.config/elastic/config.yaml`)
-- **macOS**: `~/Library/Application Support/elastic/config.yaml`
-- **Windows**: `%AppData%\\elastic\\config.yaml`
+The following file names are recognised in each directory (checked in this order):
 
-On first run, `elastic` will create this file if it does not exist, including a commented-out example configuration.
+1. `package.json` - `elastic` key
+2. `.elasticrc`
+3. `.elasticrc.json`
+4. `.elasticrc.yaml`
+5. `.elasticrc.yml`
+6. `.elasticrc.js` / `.elasticrc.ts` / `.elasticrc.cjs` / `.elasticrc.mjs`
+7. `.config/elasticrc` (and `.json` / `.yaml` / `.yml` / `.js` / `.ts` / `.cjs` / `.mjs` variants)
+8. `elastic.config.js` / `.ts` / `.cjs` / `.mjs`
 
-### Manual migration from older locations
+**Only the first matching file is used - configs are not merged.** Place your
+personal config at `~/.elasticrc.yml` (recommended) so it applies everywhere, or
+put one in a project root to override it for that project.
 
-If you previously used `~/.elastic/config.yaml` (or an older `~/.elk/config.yaml`), copy it into the new location above.
+```yaml
+current_context: local
 
-## Quickstart
-
-### 1) Create a context
-
-```bash
-./elastic config context set prod \
-  --cloud-id 'my-deploy:...' \
-  --api-key '...'
+contexts:
+  local:
+    elasticsearch:
+      url: https://localhost:9200
+      auth:
+        api_key: your-api-key-here
+  staging:
+    elasticsearch:
+      url: https://my-cluster.es.us-east-1.aws.elastic.cloud
+      auth:
+        api_key: your-api-key-here
+    cloud:
+      url: https://api.elastic-cloud.com
+      auth:
+        api_key: your-cloud-api-key-here
 ```
 
-Or use basic auth instead of an API key:
+Multiple contexts are supported.
+Override `current_context` for a single command with `--use-context <name>`.
+
+Each context can have any combination of service blocks (`elasticsearch`, `kibana`, `cloud`).
+Authentication can also use `username` + `password` instead of `api_key`.
+
+## Global options
+
+| Option | Description |
+|---|---|
+| `--config-file <path>` | Path to a config file, bypassing automatic discovery |
+| `--use-context <name>` | Override the active context from the config file |
+| `--json` | Output results as JSON |
+
+## Commands
+
+### `version`
+
+Print the CLI version.
 
 ```bash
-./elastic config context set prod \
-  --cloud-id 'my-deploy:...' \
-  --username 'elastic' \
-  --password '...'
+elastic version
+elastic --json version
 ```
 
-Or use a direct Elasticsearch URL (self-managed or custom endpoint):
+### `es` - Elasticsearch API
+
+Run Elasticsearch API calls. Commands map directly to Elasticsearch API endpoints.
 
 ```bash
-./elastic config context set local \
-  --elasticsearch-url 'https://localhost:9200' \
-  --api-key '...'
+elastic es --help
 ```
 
-### 2) Select the active context
+All `es` subcommands support:
+
+| Option | Description |
+|---|---|
+| `--dry-run` | Validate inputs and exit without making any API call |
+| `--input-file <path>` | Load command input from a JSON file instead of CLI flags |
+
+**Subcommand groups** (each with their own subcommands):
+
+- `async-search` - async search APIs
+- `cat` - cat APIs
+- `cluster` - cluster management
+- `connector` - connector management
+- `enrich` - enrich policies
+- `eql` - EQL search
+- `esql` - ES|QL queries
+- `indices` - index management
+- `inference` - inference endpoints
+- `ingest` - ingest pipelines
+- `license` - license management
+- `logstash` - Logstash pipelines
+- `ml` - machine learning
+- `project` - project management
+- `query-rules` - query rules
+- `search-application` - search applications
+- `security` - security APIs
+- `sql` - SQL queries
+- `synonyms` - synonym sets
+- `tasks` - task management
+- `transform` - transforms
+
+**Top-level `es` commands** (examples):
 
 ```bash
-./elastic config context use prod
-./elastic config context list
+elastic es search --index my-index
+elastic es get --index my-index --id abc123
+elastic es index --index my-index --id abc123
+elastic es delete --index my-index --id abc123
+elastic es count --index my-index
+elastic es info
+elastic es bulk
+elastic es reindex
+elastic es update --index my-index --id abc123
 ```
 
-### 3) Run an ES|QL query
+Run `elastic es <command> --help` for all available options on any command.
+
+### `cloud` - Elastic Cloud control plane
+
+Manage Elastic Cloud deployments and Elasticsearch serverless projects.
+Requires a `cloud` service block in the active context.
+
+#### `cloud deployments`
 
 ```bash
-./elastic es query 'FROM logs-* | LIMIT 5'
-./elastic es query --wait 'length(values) > `0`' --interval 1s --timeout 30s 'FROM logs-* | LIMIT 1'
+elastic cloud deployments list
+elastic cloud deployments get --deployment-id <id>
+elastic cloud deployments shutdown --deployment-id <id>
 ```
 
-Output formats:
+#### `cloud projects`
 
 ```bash
-./elastic es query -f table 'FROM logs-* | LIMIT 5'
-./elastic es query -f json  'FROM logs-* | LIMIT 1'
-./elastic es query -f csv   'FROM logs-* | LIMIT 10'
-./elastic es query -f yaml  'FROM logs-* | LIMIT 5'
+elastic cloud projects list
+elastic cloud projects get --project-id <id>
+elastic cloud projects delete --project-id <id>
 ```
-
-By default, columns where every value is null are omitted. To include them:
-
-```bash
-./elastic es query --null 'FROM logs-* | LIMIT 5'
-```
-
-### 4) List resources
-
-```bash
-./elastic es indices list
-./elastic es data-streams list
-./elastic es remote-clusters list
-./elastic es cluster health
-./elastic slos list
-./elastic slos list-definitions
-```
-
-### 5) Check Kibana task manager health
-
-```bash
-./elastic kb task-manager health
-./elastic kb task-manager health -f json
-```
-
-### 6) Manage Kibana dashboards
-
-```bash
-./elastic kb dashboard list
-./elastic kb dashboard list "APM"
-./elastic kb dashboard get <id>
-./elastic kb dashboard create --title "My Dashboard"
-./elastic kb dashboard schema -f json
-./elastic kb dashboard delete <id>
-```
-
-### 7) Search and read Elastic documentation
-
-```bash
-./elastic docs search "elasticsearch getting started"
-./elastic docs read /reference/elasticsearch
-./elastic docs read "ingest pipelines"
-./elastic docs ask "What is Elasticsearch?"
-```
-
-Filter by name or glob pattern:
-
-```bash
-./elastic es indices list 'logs-*'
-./elastic es data-streams list 'metrics-*'
-```
-
-Short aliases work too (`cfg`, `idx`, `ds`, `rc`):
-
-```bash
-./elastic cfg context list
-./elastic es ds list
-./elastic es rc list
-```
-
-## Docs
-
-- [`docs/config.md`](docs/config.md)
-- [`docs/auth.md`](docs/auth.md) — future OAuth2 / UIAM authentication
-- [`docs/api.md`](docs/api.md)
-- [`docs/esql.md`](docs/esql.md)
-- [`docs/get.md`](docs/get.md)
-- [`docs/kb.md`](docs/kb.md) — Kibana commands (`task-manager`, `dashboard`)
-- [`docs/docs.md`](docs/docs.md) — Elastic documentation commands (`search`, `read`, `ask`)
-
-## Functional tests
-
-Run the docker-compose functional smoke test suite with:
-
-```bash
-go test -tags functional ./tests/functional -v
-```
-
-## Agentic scenario tests
-
-Agentic scenario tests are opt-in (gated by `ELASTIC_AGENTIC_TESTS=1`).
-They use the [GitHub Copilot SDK](https://github.com/github/copilot-sdk) to
-drive an agentic session against the local stack:
-
-```bash
-ELASTIC_AGENTIC_TESTS=1 \
-go test ./tests/agentic -v
-```
-
-The tests require `copilot` in `PATH`. To use a different CLI path, set
-`ELASTIC_AGENTIC_COPILOT_CLI`.
-
-Scenarios live in `tests/agentic/scenarios/`, and harness code lives in `tests/agentic/harness/`.

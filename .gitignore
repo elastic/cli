@@ -1,1 +1,15 @@
-/elastic
+node_modules
+dist
+build
+*.log
+.env*
+.DS_Store
+.elasticrc.yml
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/
+
+# Generated functional test scripts
+test/functional/es/

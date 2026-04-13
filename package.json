@@ -1,0 +1,57 @@
+{
+  "name": "@elastic/cli",
+  "version": "0.1.0-alpha.1",
+  "description": "Interact with Elasticsearch, Elastic Serverless and Elastic Cloud APIs from the command line.",
+  "main": "dist/cli.js",
+  "bin": {
+    "elastic": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && npm run test:lint && npm run test:unit && npm run test:license",
+    "test:unit": "node --import tsx/esm --test",
+    "test:lint": "eslint src",
+    "codegen:functional": "npx tsx codegen/functional/index.ts --tests-dir ../elasticsearch-clients-tests/tests",
+    "test:functional:es": "bash test/functional/es/run.sh",
+    "test:functional:cloud": "bash test/functional/cloud/smoke.sh",
+    "test:license": "license-checker --production",
+    "test:spdx": "./scripts/check-spdx"
+  },
+  "keywords": [
+    "cli",
+    "elasticsearch",
+    "elastic",
+    "agents"
+  ],
+  "author": {
+    "name": "Elastic Client Library Maintainers",
+    "company": "Elastic BV"
+  },
+  "homepage": "https://github.com/elastic/cli#readme",
+  "bugs": {
+    "url": "https://github.com/elastic/cli/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elastic/cli.git"
+  },
+  "license": "Apache-2.0",
+  "type": "module",
+  "dependencies": {
+    "@elastic/transport": "^9.3.5",
+    "cli-table3": "^0.6.5",
+    "commander": "^14.0.3",
+    "cosmiconfig": "^9.0.1",
+    "yaml": "^2.8.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "25.5.0",
+    "eslint": "10.1.0",
+    "license-checker": "24.1.0",
+    "tsx": "4.21.0",
+    "typescript": "6.0.2",
+    "typescript-eslint": "8.57.3-alpha.6"
+  }
+}

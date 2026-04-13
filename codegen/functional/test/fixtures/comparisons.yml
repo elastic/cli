@@ -1,0 +1,30 @@
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      indices.delete:
+        index: cmp_test
+        ignore: 404
+---
+'comparisons':
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - index:
+              _index: cmp_test
+              _id: '1'
+          - val: 10
+          - index:
+              _index: cmp_test
+              _id: '2'
+          - val: 20
+  - do:
+      count:
+        index: cmp_test
+  - gte: { count: 1 }
+  - gt: { count: 0 }
+  - lte: { count: 100 }

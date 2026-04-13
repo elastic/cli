@@ -1,0 +1,9 @@
+---
+requires:
+  serverless: true
+  stack: true
+---
+'catch test':
+  - do:
+      tasks.get: { task_id: 'node_id:123456' }
+      catch: resource_not_found_exception

@@ -1,0 +1,59 @@
+# .specify/hooks.yml
+#
+# Git (and other) hooks for the specify workflow.
+#
+# Each hook is a named list of shell commands that scripts run at specific
+# points in the workflow. To disable a hook entirely, remove its commands
+# or comment them out. To add extra steps (e.g. push, notify), append more
+# commands under the relevant hook.
+#
+# Template variables: use {{variable_name}} in any command string and the
+# corresponding key=value argument passed by the script will be substituted.
+
+hooks:
+  # Fetch all remotes so that branch listings are up-to-date before
+  # auto-numbering a new feature branch.
+  fetch_remotes:
+    - git fetch --all --prune
+
+  # List branches for auto-numbering. The output of this hook is captured
+  # and parsed; each line should be one branch name (git branch -a format).
+  list_branches:
+    - git branch -a
+
+  # Create the feature branch after a new feature is initialised.
+  # {{branch_name}} is replaced with the computed branch name, e.g. 003-user-auth.
+  create_branch:
+    - git checkout -b "{{branch_name}}"
+
+  # Get current feature identifier from VCS.
+  # This hook determines what identifies the current feature being worked on.
+  # For git, this is the branch name. For other systems, it could be a feature ID from a manifest.
+  # Output: feature identifier string (e.g., "001-user-auth", "feat-auth", etc.)
+  get_current_feature:
+    - |
+      if [[ -n "${SPECIFY_FEATURE:-}" ]]; then
+        echo "$SPECIFY_FEATURE"
+      else
+        git rev-parse --abbrev-ref HEAD
+      fi
+
+  # Verify VCS is initialized and ready.
+  # Returns: exit code 0 on success, 1 on failure.
+  # Stdout is ignored; used only for success/failure validation.
+  verify_vcs_ready:
+    - git rev-parse --show-toplevel >/dev/null 2>&1
+
+  # Format a feature identifier from components.
+  # {{feature_num}} = numeric ID (e.g., "003")
+  # {{short_name}} = feature short name (e.g., "user-auth")
+  # Output: formatted feature identifier suitable for branch and directory names
+  format_feature_id:
+    - echo "{{feature_num}}-{{short_name}}"
+
+  # Get feature directory path for a feature.
+  # {{repo_root}} = repository root
+  # {{feature_id}} = feature identifier (e.g., "003-user-auth")
+  # Output: absolute path to feature directory in specs/
+  get_feature_dir:
+    - echo "{{repo_root}}/specs/{{feature_id}}"

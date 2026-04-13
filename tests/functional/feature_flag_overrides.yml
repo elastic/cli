@@ -1,2 +1,0 @@
-feature_flags.overrides:
-  lens.apiFormat: true
