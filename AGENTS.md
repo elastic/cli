@@ -114,3 +114,108 @@ The project uses [spec-kit](https://github.com/github/spec-kit) for AI-assisted 
 | `.specify/templates/` | Markdown templates |
 | `.specify/scripts/` | Helper shell scripts |
 | `.specify/hooks.yml` | CI/automation hook definitions |
+
+## Conventional Commits
+
+All commit messages and PR titles MUST follow the [Conventional Commits v1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) specification. PR titles are validated in CI.
+
+### Format
+
+```
+<type>(<optional scope>)<optional !>: <description>
+
+<optional body>
+
+<optional footers>
+```
+
+### Types
+
+| Type | When to use | Triggers release? |
+|------|-------------|-------------------|
+| `feat` | New user-facing feature or capability | Yes (minor) |
+| `fix` | Bug fix | Yes (patch) |
+| `perf` | Performance improvement with no API change | Yes (patch) |
+| `docs` | Documentation only | No |
+| `test` | Adding or updating tests | No |
+| `ci` | CI/CD pipeline changes | No |
+| `chore` | Dependency bumps, tooling, repo maintenance | No |
+| `refactor` | Code restructuring with no behavior change | No |
+| `revert` | Reverts a previous commit | Depends on reverted type |
+
+### Scope
+
+Use a scope when the change is clearly confined to one area of the codebase. Omit it for cross-cutting changes.
+
+```
+feat(cli): add --format flag to search command
+fix(config): handle missing YAML key gracefully
+ci: add PR title validation step
+chore: update dependencies
+```
+
+Common scopes for this project: `cli`, `config`, `auth`, `cloud`, `es`, `serverless`.
+
+### Breaking Changes
+
+A breaking change triggers a **major** version bump. Indicate it one of two ways (or both):
+
+1. **`!` after the type/scope**, immediately before the colon:
+   ```
+   feat!: remove deprecated --legacy flag
+   feat(cli)!: rename --output to --format
+   ```
+
+2. **`BREAKING CHANGE` footer** in the commit body:
+   ```
+   feat: switch config format from JSON to YAML
+
+   BREAKING CHANGE: existing .elasticrc.json files must be migrated to .elasticrc.yml
+   ```
+
+   Using both `!` and the footer is valid. The footer is preferred when the breaking change needs a longer explanation than fits in the subject line.
+
+### Release-Please Integration
+
+This project uses [release-please](https://github.com/googleapis/release-please) to automate versioning and changelogs. It reads commit messages (via squash-merge) to determine version bumps.
+
+**Overriding commit messages after merge.** If a PR was already merged with a wrong or incomplete commit message, edit the merged PR's body on GitHub and add:
+
+```
+BEGIN_COMMIT_OVERRIDE
+feat(cli): correct description of the change
+
+fix(config): secondary fix included in same PR
+END_COMMIT_OVERRIDE
+```
+
+Release-please will use the override block instead of the actual merge commit. This only works with squash-merge.
+
+**Multiple changes in one commit.** Use conventional commit lines as footers to represent additional changes:
+
+```
+feat: add v2 API support
+
+Adds the new /v2 endpoints for project management.
+
+fix(auth): token refresh no longer drops scopes
+  BREAKING-CHANGE: v1 token format is no longer accepted
+```
+
+**Forcing a specific version.** Use the `Release-As` trailer:
+
+```
+chore: release 3.0.0
+
+Release-As: 3.0.0
+```
+
+### Common Mistakes
+
+- `Feat:` or `FIX:` -- types must be lowercase.
+- `feat(CLI):` -- scopes should be lowercase.
+- `feat : add thing` -- no space before the colon.
+- `feat:add thing` -- must have a space after the colon.
+- `feat: Add thing.` -- description should not be capitalized or end with a period.
+- `feat(): add thing` -- empty scope parentheses; omit them entirely.
+- `update README` -- missing type prefix entirely.
