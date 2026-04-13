@@ -541,9 +541,6 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     let inputValue: unknown
     if (config.input instanceof z.ZodType) {
       const filePath = cmd.getOptionValue('inputFile') as string | undefined
-      if (filePath !== undefined && !process.stdin.isTTY) {
-        return cmd.error('cannot read input from both --input-file and stdin; provide one or the other')
-      }
       if (filePath !== undefined) {
         let fileContent: string
         try {

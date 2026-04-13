@@ -1104,23 +1104,26 @@ describe('defineCommand', () => {
       Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
     })
 
-    it('errors with conflict message when both --input-file and stdin are provided', async () => {
+    it('--input-file takes precedence over stdin in non-TTY context', async () => {
       const filePath = join(tmpDir, 'input.json')
       writeFileSync(filePath, JSON.stringify({ index: 'my-index' }))
       const restore = _testSetStdinReader(() => JSON.stringify({ index: 'other-index' }))
       try {
+        const received: ParsedResult[] = []
         const cmd = defineCommand({
           name: 'search',
           description: 'Run a search',
-        input: z.object({ index: z.string() }),
-          handler: () => ({}),
+          input: z.object({ index: z.string() }),
+          handler: (parsed) => { received.push(parsed); return {} },
         })
-        const err = await captureErrAsync(cmd, ['--input-file', filePath])
-        assert.match(err, /cannot read input from both --input-file and stdin/)
+        await invokeAsync(cmd, ['--input-file', filePath])
+        assert.strictEqual(received.length, 1)
+        assert.deepStrictEqual(received[0]!.input, { index: 'my-index' })
       } finally {
         restore()
       }
     })
+
   })
   describe('schema input - type acceptance', () => {
     it('accepts a Zod object schema as input without throwing', () => {
