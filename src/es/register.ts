@@ -11,6 +11,7 @@ import { validateApiDefinition, resolveInput } from './types.ts'
 import type { SchemaArgDefinition } from '../lib/schema-args.ts'
 import { allApis } from './apis.ts'
 import { createEsHandler } from './handler.ts'
+import { registerHelperCommands } from './helpers/register.ts'
 
 /** Builds a leaf command handle from a definition and its pre-computed schema args. */
 function buildLeafHandle (
@@ -108,5 +109,7 @@ export function registerEsCommands (
     rootHandles.push(buildLeafHandle(def, defSchemaArgs))
   }
 
-  return defineGroup({ name: 'es', description: 'Interact with the Elasticsearch API' }, ...namespaceHandles, ...rootHandles)
+  const helpersGroup = registerHelperCommands()
+
+  return defineGroup({ name: 'es', description: 'Interact with the Elasticsearch API' }, ...namespaceHandles, ...rootHandles, helpersGroup)
 }

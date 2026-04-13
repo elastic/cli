@@ -397,6 +397,20 @@ function parseJsonContent (raw: string, source: string, cmd: OpaqueCommandHandle
   }
 }
 
+function isErrorResult (value: JsonValue): boolean {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    'error' in value &&
+    typeof value.error === 'object' &&
+    value.error !== null &&
+    !Array.isArray(value.error) &&
+    'code' in value.error &&
+    typeof value.error.code === 'string'
+  )
+}
+
 /**
  * Creates a leaf command from a declarative config and returns an opaque handle.
  *
@@ -541,9 +555,6 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     let inputValue: unknown
     if (config.input instanceof z.ZodType) {
       const filePath = cmd.getOptionValue('inputFile') as string | undefined
-      if (filePath !== undefined && !process.stdin.isTTY) {
-        return cmd.error('cannot read input from both --input-file and stdin; provide one or the other')
-      }
       if (filePath !== undefined) {
         let fileContent: string
         try {
@@ -595,7 +606,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       const dotPath = (parts.length > 1 ? parts.slice(1) : parts).join('.')
       if (!isCommandAllowed(dotPath, resolvedConfig.commands)) {
         if (jsonFormat === true) {
-          process.stdout.write(JSON.stringify({
+          process.stderr.write(JSON.stringify({
             error: {
               code: 'command_blocked',
               message: `command "${dotPath}" is not allowed by the current policy`,
@@ -626,7 +637,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       } else {
         if (jsonFormat === true) {
           const issues = result.error.issues
-          process.stdout.write(JSON.stringify({
+          process.stderr.write(JSON.stringify({
             error: {
               code: 'input_validation_failed',
               message: `Input validation failed with ${issues.length} issue(s)`,
@@ -642,12 +653,21 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     if (allRaw['dryRun'] === true) {
       if (jsonFormat) {
         process.stdout.write(JSON.stringify({ success: true }) + '\n')
+      } else {
+        process.stdout.write('dry run: inputs valid, no action performed\n')
       }
       return
     }
     const handlerResult = await config.handler(parsed)
     assert(handlerResult !== undefined, `command ${JSON.stringify(config.name)}: handler must return a JsonValue`)
-    if (jsonFormat === true) {
+    if (isErrorResult(handlerResult)) {
+      if (jsonFormat === true) {
+        process.stderr.write(JSON.stringify(handlerResult) + '\n')
+      } else {
+        process.stderr.write(renderText(handlerResult))
+      }
+      process.exitCode = 1
+    } else if (jsonFormat === true) {
       process.stdout.write(JSON.stringify(handlerResult) + '\n')
     } else if (config.formatOutput !== undefined) {
       process.stdout.write(config.formatOutput(handlerResult, parsed))

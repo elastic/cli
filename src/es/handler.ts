@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { errors } from '@elastic/transport'
 import type { Transport } from '@elastic/transport'
 import type { EsApiDefinition } from './types.ts'
 import type { SchemaArgDefinition } from '../lib/schema-args.ts'
 import { buildRequestParams } from './request-builder.ts'
 import { getTransport } from '../lib/transport.ts'
+import { missingConfigError, transportError } from './errors.ts'
 import type { JsonValue, ParsedResult } from '../factory.ts'
 
 /**
