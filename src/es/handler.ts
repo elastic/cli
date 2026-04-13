@@ -99,7 +99,7 @@ function transportError (err: unknown): JsonValue {
   }
 
   if (err instanceof errors.TimeoutError) {
-    const message = err.message || 'request timed out'
+    const message = err.message ?? 'request timed out'
     return { error: { code: 'timeout_error', message } }
   }
 
