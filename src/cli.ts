@@ -25,7 +25,8 @@ program
 // Before every sub-command action, load and resolve the config file.
 // On error, print a structured message and exit -- never let a config failure
 // silently propagate into the command handler.
-program.hook('preAction', async (thisCommand) => {
+program.hook('preAction', async (thisCommand, actionCommand) => {
+  if (actionCommand.name() === 'version') return
   const { configFile: configPath, useContext: contextName } = thisCommand.opts()
   const result = await loadConfig({
     ...(configPath != null && { configPath }),
@@ -33,7 +34,7 @@ program.hook('preAction', async (thisCommand) => {
   })
   if (result.ok) {
     setResolvedConfig(result.value)
-  } else if (configPath != null || contextName != null) {
+  } else {
     process.stderr.write(`Error: ${result.error.message}\n`)
     process.exit(1)
   }
