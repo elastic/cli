@@ -1384,7 +1384,7 @@ describe('defineCommand', () => {
     })
 
 
-    /** mounts cmd under a root program with --json, captures stdout, returns parsed JSON */
+    /** mounts cmd under a root program with --json, captures stdout + stderr, returns parsed JSON */
     async function invokeWithJsonFormat(cmd: OpaqueCommandHandle, argv: string[]): Promise<{ out: string, parsed: unknown }> {
       const { Command } = await import('commander')
       const prog = new Command('elastic')
@@ -1393,9 +1393,10 @@ describe('defineCommand', () => {
       prog.exitOverride()
       cmd.exitOverride()
       let out = ''
-      // intercept process.stdout.write so JSON written directly to stdout is captured
-      const origWrite = process.stdout.write.bind(process.stdout)
+      const origOut = process.stdout.write.bind(process.stdout)
+      const origErr = process.stderr.write.bind(process.stderr)
       process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
+      process.stderr.write = (chunk: unknown) => { out += String(chunk); return true }
       prog.configureOutput({ writeOut: (s) => { out += s }, writeErr: (s) => { out += s } })
       cmd.configureOutput({ writeOut: (s) => { out += s }, writeErr: (s) => { out += s } })
       try {
@@ -1403,7 +1404,8 @@ describe('defineCommand', () => {
       } catch {
         // exitOverride throws on cmd.error(); that's expected
       } finally {
-        process.stdout.write = origWrite
+        process.stdout.write = origOut
+        process.stderr.write = origErr
       }
       let parsed: unknown = null
       try { parsed = JSON.parse(out) } catch { /* not JSON - test will fail on assertion */ }
@@ -2315,15 +2317,16 @@ describe('command policy enforcement', () => {
     assert.equal(handlerCalled, true)
   })
 
-  it('emits structured JSON error when --json and command is blocked', async () => {
+  it('emits structured JSON error to stderr when --json and command is blocked', async () => {
     setResolvedConfig({ context: {}, commands: { allowed: ['ping'] } })
     const cmd = defineCommand({
       name: 'search',
       description: 'Search',
       handler: () => ({}),
     })
-    const out = await invokeUnderRoot(cmd, ['--json'], [])
-    const parsed = JSON.parse(out) as Record<string, unknown>
+    const { stdout, stderr } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.equal(stdout, '', 'stdout should be empty for blocked command errors')
+    const parsed = JSON.parse(stderr) as Record<string, unknown>
     assert.ok('error' in parsed)
     const err = parsed['error'] as Record<string, unknown>
     assert.equal(err['code'], 'command_blocked')
@@ -3022,3 +3025,129 @@ async function invokeUnderRoot(cmd: OpaqueCommandHandle, rootArgv: string[], cmd
   cmd.exitOverride()
   return captureStdout(() => prog.parseAsync([...rootArgv, cmd.name(), ...cmdArgv], { from: 'user' }))
 }
+
+/** captures stdout, stderr, and exitCode separately */
+async function captureStreams(fn: () => Promise<void>): Promise<{ stdout: string, stderr: string, exitCode: number }> {
+  let stdout = ''
+  let stderr = ''
+  let exitCode = 0
+  const origOut = process.stdout.write.bind(process.stdout)
+  const origErr = process.stderr.write.bind(process.stderr)
+  const origExitCode = process.exitCode
+  process.exitCode = 0
+  process.stdout.write = (chunk: unknown) => { stdout += String(chunk); return true }
+  process.stderr.write = (chunk: unknown) => { stderr += String(chunk); return true }
+  try {
+    await fn()
+  } catch {
+    /* swallow -- caller inspects captured output */
+  } finally {
+    exitCode = process.exitCode ?? 0
+    process.stdout.write = origOut
+    process.stderr.write = origErr
+    process.exitCode = origExitCode as typeof process.exitCode
+  }
+  return { stdout, stderr, exitCode }
+}
+
+/** mounts a command under a root program and captures stdout, stderr, exitCode */
+async function invokeCapturingStreams(
+  cmd: OpaqueCommandHandle,
+  rootArgv: string[],
+  cmdArgv: string[],
+): Promise<{ stdout: string, stderr: string, exitCode: number }> {
+  const { Command } = await import('commander')
+  const prog = new Command('elastic')
+  prog.option('--json', 'output as JSON')
+  prog.addCommand(cmd)
+  prog.exitOverride()
+  cmd.exitOverride()
+  return captureStreams(() => prog.parseAsync([...rootArgv, cmd.name(), ...cmdArgv], { from: 'user' }))
+}
+
+describe('error result detection', () => {
+  it('error result in JSON mode goes to stderr with non-zero exit', async () => {
+    const cmd = defineCommand({
+      name: 'fail',
+      description: 'Fail',
+      handler: () => ({ error: { code: 'transport_error', message: 'connection refused' } }),
+    })
+    const { stdout, stderr, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.equal(stdout, '', 'stdout should be empty for error results')
+    const parsed = JSON.parse(stderr) as Record<string, unknown>
+    const err = parsed['error'] as Record<string, unknown>
+    assert.equal(err['code'], 'transport_error')
+    assert.equal(err['message'], 'connection refused')
+    assert.equal(exitCode, 1)
+  })
+
+  it('error result in text mode goes to stderr with non-zero exit', async () => {
+    const cmd = defineCommand({
+      name: 'fail',
+      description: 'Fail',
+      handler: () => ({ error: { code: 'missing_config', message: 'No ES configured' } }),
+    })
+    const { stdout, stderr, exitCode } = await invokeCapturingStreams(cmd, [], [])
+    assert.equal(stdout, '', 'stdout should be empty for error results')
+    assert.ok(stderr.length > 0, 'stderr should contain error output')
+    assert.match(stderr, /missing_config/)
+    assert.equal(exitCode, 1)
+  })
+
+  it('successful result in JSON mode goes to stdout with exit 0', async () => {
+    const cmd = defineCommand({
+      name: 'ok',
+      description: 'OK',
+      handler: () => ({ status: 'green' }),
+    })
+    const { stdout, stderr, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.deepEqual(JSON.parse(stdout), { status: 'green' })
+    assert.equal(stderr, '')
+    assert.equal(exitCode, 0)
+  })
+
+  it('result with non-contract error shape is not treated as error', async () => {
+    const cmd = defineCommand({
+      name: 'ok',
+      description: 'OK',
+      handler: () => ({ error: 'just a string' }),
+    })
+    const { stdout, stderr, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.deepEqual(JSON.parse(stdout), { error: 'just a string' })
+    assert.equal(stderr, '')
+    assert.equal(exitCode, 0)
+  })
+
+  it('error result with status_code and body is written to stderr', async () => {
+    const cmd = defineCommand({
+      name: 'fail',
+      description: 'Fail',
+      handler: () => ({
+        error: {
+          code: 'transport_error',
+          status_code: 404,
+          body: { error: { type: 'index_not_found_exception' } },
+        },
+      }),
+    })
+    const { stdout, stderr, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.equal(stdout, '')
+    const parsed = JSON.parse(stderr) as Record<string, unknown>
+    const err = parsed['error'] as Record<string, unknown>
+    assert.equal(err['code'], 'transport_error')
+    assert.equal(err['status_code'], 404)
+    assert.equal(exitCode, 1)
+  })
+
+  it('formatOutput is not called for error results', async () => {
+    let formatCalled = false
+    const cmd = defineCommand({
+      name: 'fail',
+      description: 'Fail',
+      handler: () => ({ error: { code: 'cloud_api_error', message: 'bad' } }),
+      formatOutput: () => { formatCalled = true; return 'custom\n' },
+    })
+    await invokeCapturingStreams(cmd, [], [])
+    assert.equal(formatCalled, false)
+  })
+})
