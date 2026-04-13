@@ -41,8 +41,7 @@ export function buildRequestParams (
 
   if (body !== undefined) {
     if (def.bodyFormat === 'ndjson') {
-      params.body = toNdjson(body)
-      params.headers = { 'content-type': 'application/x-ndjson' }
+      params.bulkBody = toNdjson(body)
     } else {
       params.body = body as NonNullable<TransportRequestParams['body']>
     }
