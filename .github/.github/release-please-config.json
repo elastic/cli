@@ -6,7 +6,11 @@
   "always-update": true,
   "bootstrap-sha": "b056a344e6b9b27e09bb2b6270be2e6b8c5bf2fc",
   "packages" : {
-    ".": {}
+    ".": {
+        "extra-files": [
+            "src/cli.ts"
+        ]
+    }
   },
   "plugins": [
     {
