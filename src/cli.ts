@@ -10,7 +10,7 @@ import { loadConfig } from './config/loader.ts'
 import { setResolvedConfig } from './config/store.ts'
 
 // x-release-please-start-version
-export const VERSION = '0.1.0-alpha.1';
+const VERSION = '0.1.0-alpha.1';
 // x-release-please-end
 
 const program = new Command()
