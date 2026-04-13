@@ -181,4 +181,45 @@ describe('buildRequestParams', () => {
     const result = buildRequestParams(def, parsedResult({ index: 'idx1, idx2' }), args(input))
     assert.equal(result.path, '/idx1,idx2/_search')
   })
+
+  it('promotes "document" field to be the entire body (#95)', () => {
+    const input = z.looseObject({
+      index: z.string().describe('Index').meta({ found_in: 'path' }),
+      document: z.any().optional().meta({ found_in: 'body' }),
+    })
+    const def = makeDefinition({ method: 'PUT', path: '/{index}/_doc', input })
+    const doc = { title: 'Hello', count: 42 }
+    const result = buildRequestParams(def, parsedResult({ index: 'my-index', document: doc }), args(input))
+    assert.deepEqual(result.body, { title: 'Hello', count: 42 }, 'document value should be the body itself, not nested')
+  })
+
+  it('does not promote non-document body fields', () => {
+    const input = z.looseObject({
+      settings: z.record(z.string(), z.unknown()).optional().meta({ found_in: 'body' }),
+    })
+    const def = makeDefinition({ method: 'PUT', input })
+    const result = buildRequestParams(def, parsedResult({ settings: { number_of_shards: 1 } }), args(input))
+    assert.deepEqual(result.body, { settings: { number_of_shards: 1 } })
+  })
+
+  it('serializes body as NDJSON via bulkBody when bodyFormat is "ndjson" (#94)', () => {
+    const input = z.looseObject({
+      operations: z.array(z.any()).optional().meta({ found_in: 'body' }),
+    })
+    const ops = [{ index: { _id: '1' } }, { title: 'Doc 1' }]
+    const def = makeDefinition({ method: 'POST', input, bodyFormat: 'ndjson' })
+    const result = buildRequestParams(def, parsedResult({ operations: ops }), args(input))
+    assert.equal(result.bulkBody, '{"index":{"_id":"1"}}\n{"title":"Doc 1"}\n')
+    assert.equal(result.body, undefined, 'body should not be set for NDJSON')
+  })
+
+  it('NDJSON format applies to msearch searches field', () => {
+    const input = z.looseObject({
+      searches: z.array(z.any()).optional().meta({ found_in: 'body' }),
+    })
+    const items = [{ index: 'my-index' }, { query: { match_all: {} } }]
+    const def = makeDefinition({ method: 'GET', input, bodyFormat: 'ndjson' })
+    const result = buildRequestParams(def, parsedResult({ searches: items }), args(input))
+    assert.equal(result.bulkBody, '{"index":"my-index"}\n{"query":{"match_all":{}}}\n')
+  })
 })

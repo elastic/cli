@@ -5,7 +5,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { createCloudHandler } from '../../src/cloud/handler.ts'
+import { createCloudHandler, isCreateProjectCommand } from '../../src/cloud/handler.ts'
 import type { CloudApiDefinition } from '../../src/cloud/types.ts'
 import type { CloudClient, CloudRequestParams } from '../../src/lib/cloud-client.ts'
 import type { ParsedResult } from '../../src/factory.ts'
@@ -20,8 +20,18 @@ function listDef(): CloudApiDefinition {
   }
 }
 
-function parsed(input?: Record<string, unknown>): ParsedResult {
-  return { options: {}, ...(input !== undefined ? { input } : {}) }
+function createEsProjectDef(): CloudApiDefinition {
+  return {
+    name: 'create-elasticsearch-project',
+    namespace: 'elasticsearch-projects',
+    description: 'Create an Elasticsearch project',
+    method: 'POST',
+    path: '/api/v1/serverless/projects/elasticsearch',
+  }
+}
+
+function parsed(input?: Record<string, unknown>, options: Record<string, unknown> = {}): ParsedResult {
+  return { options, ...(input !== undefined ? { input } : {}) }
 }
 
 function stubClient(response: unknown): CloudClient {
@@ -109,5 +119,91 @@ describe('createCloudHandler', () => {
     assert.deepEqual(result, {
       error: { code: 'cloud_api_error', message: 'Cloud API error 404: {"errors":[{"message":"not found"}]}' },
     })
+  })
+})
+
+describe('isCreateProjectCommand', () => {
+  it('matches all three project types', () => {
+    assert.ok(isCreateProjectCommand('create-elasticsearch-project'))
+    assert.ok(isCreateProjectCommand('create-observability-project'))
+    assert.ok(isCreateProjectCommand('create-security-project'))
+  })
+
+  it('does not match other commands', () => {
+    assert.ok(!isCreateProjectCommand('list-elasticsearch-projects'))
+    assert.ok(!isCreateProjectCommand('delete-elasticsearch-project'))
+    assert.ok(!isCreateProjectCommand('create'))
+  })
+})
+
+describe('--wait polling (#91)', () => {
+  it('polls status endpoint until initialized when --wait is set', async () => {
+    let pollCount = 0
+    const client = {
+      baseUrl: 'https://api.elastic-cloud.com',
+      request: async (params: CloudRequestParams) => {
+        if (params.method === 'POST') {
+          return { id: 'proj-123', name: 'demo' }
+        }
+        pollCount++
+        if (pollCount < 3) return { phase: 'initializing' }
+        return { phase: 'initialized' }
+      },
+      _testSetFetch: () => {},
+    } as unknown as CloudClient
+
+    const handler = createCloudHandler(createEsProjectDef(), {
+      getCloudClient: () => client,
+      buildCloudRequestParams: () => ({ method: 'POST', path: '/api/v1/serverless/projects/elasticsearch' }),
+      pollIntervalMs: 10,
+      pollTimeoutMs: 5000,
+    })
+
+    const result = await handler(parsed(undefined, { wait: true }))
+    assert.deepEqual(result, { id: 'proj-123', name: 'demo' })
+    assert.equal(pollCount, 3)
+  })
+
+  it('does not poll when --wait is not set', async () => {
+    let pollCount = 0
+    const client = {
+      baseUrl: 'https://api.elastic-cloud.com',
+      request: async (params: CloudRequestParams) => {
+        if (params.method === 'POST') return { id: 'proj-123' }
+        pollCount++
+        return { phase: 'initialized' }
+      },
+      _testSetFetch: () => {},
+    } as unknown as CloudClient
+
+    const handler = createCloudHandler(createEsProjectDef(), {
+      getCloudClient: () => client,
+      buildCloudRequestParams: () => ({ method: 'POST', path: '/api/v1/serverless/projects/elasticsearch' }),
+      pollIntervalMs: 10,
+    })
+
+    await handler(parsed())
+    assert.equal(pollCount, 0, 'should not poll without --wait')
+  })
+
+  it('returns cloud_api_error on poll timeout', async () => {
+    const client = {
+      baseUrl: 'https://api.elastic-cloud.com',
+      request: async (params: CloudRequestParams) => {
+        if (params.method === 'POST') return { id: 'proj-123' }
+        return { phase: 'initializing' }
+      },
+      _testSetFetch: () => {},
+    } as unknown as CloudClient
+
+    const handler = createCloudHandler(createEsProjectDef(), {
+      getCloudClient: () => client,
+      buildCloudRequestParams: () => ({ method: 'POST', path: '/api/v1/serverless/projects/elasticsearch' }),
+      pollIntervalMs: 10,
+      pollTimeoutMs: 50,
+    })
+
+    const result = await handler(parsed(undefined, { wait: true })) as { error: { message: string } }
+    assert.ok(result.error.message.includes('Timed out'))
   })
 })

@@ -38,7 +38,14 @@ export function buildRequestParams (
 
   const params: TransportRequestParams = { method: def.method, path }
   if (Object.keys(querystring).length > 0) params.querystring = querystring
-  if (body !== undefined) params.body = body as NonNullable<TransportRequestParams['body']>
+
+  if (body !== undefined) {
+    if (def.bodyFormat === 'ndjson') {
+      params.bulkBody = toNdjson(body)
+    } else {
+      params.body = body as NonNullable<TransportRequestParams['body']>
+    }
+  }
   return params
 }
 
@@ -93,8 +100,34 @@ function buildQuerystring (
 }
 
 /**
+ * Serializes a body object into NDJSON format for bulk/msearch APIs.
+ *
+ * Finds the first array-valued field in the body and emits each element as
+ * a separate JSON line. If no array field is found, the body itself is
+ * serialized as a single JSON line. The result always ends with a trailing
+ * newline as required by Elasticsearch.
+ */
+function toNdjson (body: Record<string, unknown>): string {
+  for (const value of Object.values(body)) {
+    if (Array.isArray(value)) {
+      return value.map((item) => JSON.stringify(item)).join('\n') + '\n'
+    }
+  }
+  return JSON.stringify(body) + '\n'
+}
+
+/**
+ * Fields whose value should replace the entire body rather than being nested
+ * under a key. The ES index/create APIs expect the document to BE the body.
+ */
+const BODY_ROOT_FIELDS = new Set(['document'])
+
+/**
  * Collects request body fields from entries with `foundIn === "body"` or no `foundIn`.
  * Returns `undefined` when no body fields are present in the input.
+ *
+ * Special case: when the only body field with a value is in `BODY_ROOT_FIELDS`
+ * (e.g. `document`), its value is promoted to be the entire body (#95).
  */
 function collectBody (
   schemaArgs: SchemaArgDefinition[],
@@ -108,5 +141,12 @@ function collectBody (
     if (value !== undefined) body[arg.schemaKey] = value
   }
 
-  return Object.keys(body).length > 0 ? body : undefined
+  if (Object.keys(body).length === 0) return undefined
+
+  const keys = Object.keys(body)
+  if (keys.length === 1 && BODY_ROOT_FIELDS.has(keys[0]!)) {
+    return body[keys[0]!] as Record<string, unknown>
+  }
+
+  return body
 }

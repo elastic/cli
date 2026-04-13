@@ -1,0 +1,23 @@
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      indices.create: { index: 'get_test' }
+---
+teardown:
+  - do:
+      indices.delete: { index: 'get_test' }
+---
+'get':
+  - do:
+      index:
+        index: 'get_test'
+        body: { name: 'test', service: 'serverless' }
+  - set: { _id: id }
+
+  - do:
+      get: { index: 'get_test', id: $id }
+  - match: { _id: $id }

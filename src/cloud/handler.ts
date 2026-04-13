@@ -9,12 +9,17 @@ import { getCloudClient } from '../lib/cloud-client.ts'
 import { buildCloudRequestParams } from './request-builder.ts'
 import type { JsonValue, ParsedResult } from '../factory.ts'
 
+const DEFAULT_POLL_INTERVAL_MS = 10_000
+const DEFAULT_POLL_TIMEOUT_MS = 300_000
+
 /**
  * Dependencies for `createCloudHandler`. 
  */
 export interface CloudHandlerDeps {
   getCloudClient: () => CloudClient
   buildCloudRequestParams: typeof buildCloudRequestParams
+  pollIntervalMs?: number
+  pollTimeoutMs?: number
 }
 
 const defaultDeps: CloudHandlerDeps = { getCloudClient, buildCloudRequestParams }
@@ -47,11 +52,53 @@ export function createCloudHandler(
 
     try {
       const body = await client.request(params)
+
+      if (parsed.options.wait === true && isCreateProjectCommand(def.name)) {
+        const id = (body as Record<string, unknown>)?.id as string | undefined
+        if (id != null) {
+          const statusPath = `${def.path}/${id}/status`
+          await pollProjectStatus(client, statusPath, deps)
+          process.stderr.write(`Project ${id} is ready.\n`)
+        }
+      }
+
       return body as JsonValue
     } catch (err) {
       return cloudApiError(err)
     }
   }
+}
+
+const CREATE_PROJECT_RE = /^create-(?:elasticsearch|observability|security)-project$/
+
+export function isCreateProjectCommand (name: string): boolean {
+  return CREATE_PROJECT_RE.test(name)
+}
+
+async function pollProjectStatus (
+  client: CloudClient,
+  statusPath: string,
+  deps: CloudHandlerDeps
+): Promise<void> {
+  const interval = deps.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS
+  const timeout = deps.pollTimeoutMs ?? DEFAULT_POLL_TIMEOUT_MS
+  const start = Date.now()
+
+  while (Date.now() - start < timeout) {
+    await sleep(interval)
+    try {
+      const status = await client.request({ method: 'GET', path: statusPath }) as Record<string, unknown>
+      if (status.phase === 'initialized') return
+      process.stderr.write(`Waiting for project... phase: ${status.phase ?? 'unknown'}\n`)
+    } catch {
+      process.stderr.write('Waiting for project... (status check failed, retrying)\n')
+    }
+  }
+  throw new Error('Timed out waiting for project to reach "initialized" phase')
+}
+
+function sleep (ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 function missingConfigError(err: unknown): JsonValue {

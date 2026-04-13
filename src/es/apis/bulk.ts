@@ -18,6 +18,7 @@ export const bulkApis: EsApiDefinition[] = [
     description: 'Bulk index or delete documents.',
     method: 'POST',
     path: '/{index}/_bulk',
-    input: BulkRequest
+    input: BulkRequest,
+    bodyFormat: 'ndjson'
   }
 ]

@@ -1,9 +1,9 @@
 # Functional test pipeline for the Elastic CLI.
 #
-# Runs Cloud and ES smoke tests
-# Secrets are pulled from Vault with setup-env.sh.
+# Runs ES functional tests (Docker Elasticsearch + codegen'd bash scripts)
+# and Cloud smoke tests (against live api.elastic-cloud.com).
 #
-# Vault path must be registered before this pipeline works:
+# Vault paths must be registered before Cloud tests work:
 #   secret/ci/elastic-cli/cloud-access
 #
 # Need to register this pipeline by contacting Platform team.
@@ -13,9 +13,27 @@ env:
   NODE_VERSION: "22"
 
 steps:
-  - group: "Functional Tests"
+  - group: "ES Functional Tests"
     steps:
-      - label: "Cloud smoke tests — Node {{matrix.node}}"
+      - label: ":elasticsearch: ES functional tests — Node {{matrix.node}}"
+        key: "es-functional"
+        matrix:
+          setup:
+            node:
+              - "20"
+              - "22"
+              - "24"
+        agents:
+          provider: gcp
+          image: family/core-ubuntu-2204
+        env:
+          NODE_VERSION: "{{matrix.node}}"
+          STACK_VERSION: "9.1.0"
+        command: ".buildkite/run-es-tests.sh"
+
+  - group: "Cloud Smoke Tests"
+    steps:
+      - label: ":cloud: Cloud smoke tests — Node {{matrix.node}}"
         key: "cloud-smoke"
         matrix:
           setup:

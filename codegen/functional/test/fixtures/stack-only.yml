@@ -1,0 +1,9 @@
+---
+requires:
+  serverless: false
+  stack: true
+---
+'stack test':
+  - do:
+      info: {}
+  - is_true: ''
