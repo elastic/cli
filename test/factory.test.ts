@@ -1609,7 +1609,7 @@ describe('defineCommand', () => {
       })
       const out = await invokeUnderRoot(cmd, [], ['--dry-run'])
       assert.equal(handlerCalled, false, 'handler must not be called with --dry-run')
-      assert.equal(out, '', 'no output expected in text mode')
+      assert.equal(out, 'dry run: inputs valid, no action performed\n')
     })
 
     it('outputs {"success":true} and skips handler with valid JSON input via --input-file', async () => {

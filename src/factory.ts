@@ -642,6 +642,8 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     if (allRaw['dryRun'] === true) {
       if (jsonFormat) {
         process.stdout.write(JSON.stringify({ success: true }) + '\n')
+      } else {
+        process.stdout.write('dry run: inputs valid, no action performed\n')
       }
       return
     }
