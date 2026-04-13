@@ -2558,6 +2558,176 @@ describe('defineCommand schema input - CLI arguments', () => {
   })
 })
 
+describe('repeated flags', () => {
+  let origIsTTY: boolean | undefined
+  beforeEach(() => {
+    origIsTTY = process.stdin.isTTY
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true, writable: true })
+  })
+  afterEach(() => {
+    Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+  })
+
+  it('string OptionDefinition accumulates repeated values with comma separation', () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'tag',
+      description: 'Tag',
+      options: [{ long: 'tag', description: 'Tag value', type: 'string' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    cmd.exitOverride()
+    cmd.parse(['--tag', 'a', '--tag', 'b'], { from: 'user' })
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['tag'], 'a,b')
+  })
+
+  it('string OptionDefinition with three repetitions joins all values', () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'tag',
+      description: 'Tag',
+      options: [{ long: 'tag', description: 'Tag value', type: 'string' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    cmd.exitOverride()
+    cmd.parse(['--tag', 'a', '--tag', 'b', '--tag', 'c'], { from: 'user' })
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['tag'], 'a,b,c')
+  })
+
+  it('single string occurrence is unchanged (regression guard)', () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'tag',
+      description: 'Tag',
+      options: [{ long: 'tag', description: 'Tag value', type: 'string' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    cmd.exitOverride()
+    cmd.parse(['--tag', 'only-one'], { from: 'user' })
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['tag'], 'only-one')
+  })
+
+  it('string OptionDefinition with defaultValue does not accumulate default into CLI value', () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'tag',
+      description: 'Tag',
+      options: [{ long: 'tag', description: 'Tag value', type: 'string', defaultValue: 'default-val' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    cmd.exitOverride()
+    cmd.parse(['--tag', 'cli-val'], { from: 'user' })
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['tag'], 'cli-val')
+  })
+
+  it('number OptionDefinition rejects repeated values', () => {
+    const cmd = defineCommand({
+      name: 'run',
+      description: 'Run',
+      options: [{ long: 'count', description: 'Count', type: 'number' }],
+      handler: () => ({}),
+    })
+    let err = ''
+    cmd.exitOverride()
+    cmd.configureOutput({ writeErr: (s) => { err += s } })
+    try { cmd.parse(['--count', '5', '--count', '10'], { from: 'user' }) } catch { /* CommanderError */ }
+    assert.match(err, /cannot be specified more than once/)
+  })
+
+  it('boolean OptionDefinition is idempotent when repeated', () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'run',
+      description: 'Run',
+      options: [{ long: 'verbose', description: 'Verbose', type: 'boolean' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    cmd.exitOverride()
+    cmd.parse(['--verbose', '--verbose'], { from: 'user' })
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['verbose'], true)
+  })
+
+  it('schema-derived string accumulates repeated values', async () => {
+    const schema = z.object({ index: z.string().describe('Index name') })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    await invokeAsync(cmd, ['--index', 'idx-a', '--index', 'idx-b'])
+    assert.deepEqual(captured, { index: 'idx-a,idx-b' })
+  })
+
+  it('schema-derived number rejects repeated values', async () => {
+    const schema = z.object({ size: z.number().describe('Result size') })
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: schema,
+      handler: () => ({}),
+    })
+    const err = await captureErrAsync(cmd, ['--size', '5', '--size', '10'])
+    assert.match(err, /cannot be specified more than once/)
+  })
+
+  it('schema-derived enum rejects repeated values', async () => {
+    const schema = z.object({ mode: z.enum(['fast', 'slow']).describe('Mode') })
+    const cmd = defineCommand({
+      name: 'run',
+      description: 'Run',
+      input: schema,
+      handler: () => ({}),
+    })
+    const err = await captureErrAsync(cmd, ['--mode', 'fast', '--mode', 'slow'])
+    assert.match(err, /cannot be specified more than once/)
+  })
+
+  it('schema-derived string with Zod default does not accumulate default into CLI value', async () => {
+    const schema = z.object({ index: z.string().default('default-idx').describe('Index name') })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    await invokeAsync(cmd, ['--index', 'my-idx'])
+    assert.deepEqual(captured, { index: 'my-idx' })
+  })
+
+  it('schema-derived string with Zod default accumulates repeated CLI values', async () => {
+    const schema = z.object({ index: z.string().default('default-idx').describe('Index name') })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    await invokeAsync(cmd, ['--index', 'idx-a', '--index', 'idx-b'])
+    assert.deepEqual(captured, { index: 'idx-a,idx-b' })
+  })
+
+  it('schema-derived object rejects repeated values', async () => {
+    const schema = z.object({ mappings: z.object({}).passthrough().describe('Mappings') })
+    const cmd = defineCommand({
+      name: 'create',
+      description: 'Create',
+      input: schema,
+      handler: () => ({}),
+    })
+    const err = await captureErrAsync(cmd, ['--mappings', '{}', '--mappings', '{"a":1}'])
+    assert.match(err, /cannot be specified more than once/)
+  })
+})
+
 describe('defineCommand schema input - strict validation', () => {
   let tmpDir: string
   let origIsTTY: boolean | undefined
