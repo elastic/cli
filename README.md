@@ -143,30 +143,55 @@ elastic es update --index my-index --id abc123
 
 Run `elastic es <command> --help` for all available options on any command.
 
-### `cloud` - Elastic Cloud control plane
+### `cloud` - Elastic Cloud (hosted)
 
-Manage Elastic Cloud deployments and Elasticsearch serverless projects.
+Manage Elastic Cloud hosted deployments.
 Requires a `cloud` service block in the active context.
 
 #### `cloud deployments`
 
 ```bash
-elastic cloud deployments list                      # alias for list-deployments
-elastic cloud deployments get --id <id>             # alias for get-deployment
-elastic cloud deployments shutdown --id <id>        # alias for shutdown-deployment
-elastic cloud deployments create <<< '{"name":"my-deployment",...}'
+elastic cloud deployments list-deployments
+elastic cloud deployments get-deployment --id <id>
+elastic cloud deployments shutdown-deployment --id <id>
+elastic cloud deployments create-deployment <<< '{"name":"my-deployment",...}'
 ```
 
-#### `cloud elasticsearch-projects`
+Run `elastic cloud --help` for all available namespace groups (accounts,
+billing-costs-analysis, deployment-templates, extensions, organizations, etc.).
+
+### `serverless` - Elastic Serverless
+
+Manage Elastic Serverless projects and resources.
+Requires a `cloud` service block in the active context.
+
+#### `serverless es projects` - Elasticsearch projects
 
 ```bash
-elastic cloud elasticsearch-projects list           # alias for list-elasticsearch-projects
-elastic cloud elasticsearch-projects create <<< '{"name":"demo","region_id":"aws-us-east-1"}'
-elastic cloud elasticsearch-projects create --wait <<< '{"name":"demo","region_id":"aws-us-east-1"}'
-elastic cloud elasticsearch-projects get --id <id>  # alias for get-elasticsearch-project
-elastic cloud elasticsearch-projects delete --id <id>
+elastic serverless es projects list
+elastic serverless es projects create <<< '{"name":"demo","region_id":"aws-us-east-1"}'
+elastic serverless es projects create --wait <<< '{"name":"demo","region_id":"aws-us-east-1"}'
+elastic serverless es projects get --id <id>
+elastic serverless es projects delete --id <id>
+elastic serverless es projects get-status --id <id>
+elastic serverless es projects get-roles --id <id>
+elastic serverless es projects reset-credentials --id <id>
 ```
 
-Similar namespaces exist for `observability-projects` and `security-projects`.
+#### `serverless observability projects` / `serverless security projects`
 
-Run `elastic cloud --help` for all available namespace groups.
+Same commands as `es projects` but for Observability and Security project types:
+
+```bash
+elastic serverless observability projects list
+elastic serverless security projects create --wait <<< '{"name":"demo","region_id":"aws-us-east-1"}'
+```
+
+#### Other serverless resources
+
+```bash
+elastic serverless regions list-regions
+elastic serverless traffic-filters list-traffic-filters
+```
+
+Run `elastic serverless --help` for all available groups.
