@@ -7,6 +7,7 @@ import { defineGroup } from '../../factory.ts'
 import type { OpaqueCommandHandle } from '../../factory.ts'
 import { createScrollSearchCommand } from './scroll-search.ts'
 import { createBulkIngestCommand } from './bulk-ingest.ts'
+import { createMsearchCommand } from './msearch.ts'
 
 /**
  * Registers all high-level helper commands under a `helpers` group.
@@ -19,6 +20,7 @@ export function registerHelperCommands (): OpaqueCommandHandle {
   return defineGroup(
     { name: 'helpers', description: 'High-level helper commands for common Elasticsearch workflows' },
     createScrollSearchCommand(),
-    createBulkIngestCommand()
+    createBulkIngestCommand(),
+    createMsearchCommand()
   )
 }
