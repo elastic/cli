@@ -18,6 +18,7 @@ export const msearchApis: EsApiDefinition[] = [
     description: 'Run multiple searches.',
     method: 'GET',
     path: '/{index}/_msearch',
-    input: MsearchRequest
+    input: MsearchRequest,
+    bodyFormat: 'ndjson'
   }
 ]

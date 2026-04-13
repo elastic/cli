@@ -79,6 +79,8 @@ export interface EsApiDefinition {
   input?: z.ZodObject<z.ZodRawShape> | (() => z.ZodObject<z.ZodRawShape>)
   /** how to handle the response body; defaults to `"json"` */
   responseType?: 'json' | 'text'
+  /** how to serialize the request body; defaults to `"json"` */
+  bodyFormat?: 'json' | 'ndjson'
 }
 
 /** valid command/namespace name: lowercase alphanumeric with hyphens (from `defineCommand` rules) */

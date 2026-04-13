@@ -230,3 +230,45 @@ describe('extractSchemaArgs foundIn population', () => {
     assert.equal(args[0]?.foundIn, undefined)
   })
 })
+
+describe('unwrapField handles complex Zod types (#92)', () => {
+  it('resolves z.lazy() to the underlying type', () => {
+    const schema = z.object({
+      size: z.lazy(() => z.number()).optional(),
+    })
+    const args = extractSchemaArgs(schema)
+    assert.equal(args[0]?.type, 'number')
+  })
+
+  it('classifies z.record() as object', () => {
+    const schema = z.object({
+      properties: z.record(z.string(), z.unknown()).optional(),
+    })
+    const args = extractSchemaArgs(schema)
+    assert.equal(args[0]?.type, 'object')
+  })
+
+  it('classifies z.any() as object', () => {
+    const schema = z.object({
+      document: z.any().optional(),
+    })
+    const args = extractSchemaArgs(schema)
+    assert.equal(args[0]?.type, 'object')
+  })
+
+  it('resolves z.union() to the first member type', () => {
+    const schema = z.object({
+      value: z.union([z.string(), z.number()]).optional(),
+    })
+    const args = extractSchemaArgs(schema)
+    assert.equal(args[0]?.type, 'string')
+  })
+
+  it('resolves nested z.lazy(() => z.record())', () => {
+    const schema = z.object({
+      query: z.lazy(() => z.record(z.string(), z.unknown())).optional(),
+    })
+    const args = extractSchemaArgs(schema)
+    assert.equal(args[0]?.type, 'object')
+  })
+})

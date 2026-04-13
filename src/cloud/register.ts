@@ -4,13 +4,14 @@
  */
 
 import { z } from 'zod'
+import { Command } from 'commander'
 import { defineCommand, defineGroup } from '../factory.ts'
 import type { OpaqueCommandHandle } from '../factory.ts'
 import type { CloudApiDefinition, CloudPathParam, CloudQueryParam } from './types.ts'
 import { validateCloudApiDefinition } from './types.ts'
 import { allCloudApis } from './apis.ts'
 import { allServerlessApis } from './serverless-apis.ts'
-import { createCloudHandler } from './handler.ts'
+import { createCloudHandler, isCreateProjectCommand } from './handler.ts'
 
 /**
  * Builds the unified flat Zod schema for a Cloud API command.
@@ -99,12 +100,16 @@ export function registerCloudCommands(
 
     const leafHandles = defs.map((def) => {
       const schema = buildCommandSchema(def)
-      return defineCommand({
+      const cmd = defineCommand({
         name: def.name,
         description: def.description,
         input: schema,
         handler: createCloudHandler(def),
       })
+      if (isCreateProjectCommand(def.name)) {
+        (cmd as Command).option('--wait', 'Wait for the project to reach "initialized" phase before returning')
+      }
+      return cmd
     })
 
     namespaceHandles.push(
