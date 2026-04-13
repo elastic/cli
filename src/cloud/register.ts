@@ -61,12 +61,29 @@ function queryParamToZod(q: CloudQueryParam): z.ZodType {
 }
 
 /**
+ * Strips the namespace (or its singular form) suffix from a command name
+ * to produce a short alias. E.g. "list-deployments" in namespace "deployments"
+ * becomes "list"; "get-deployment" also becomes "get".
+ */
+function stripNamespaceSuffix (name: string, namespace: string): string {
+  const suffixes = [namespace]
+  if (namespace.endsWith('s')) suffixes.push(namespace.slice(0, -1))
+  for (const suffix of suffixes) {
+    if (name.endsWith(`-${suffix}`)) {
+      return name.slice(0, -(suffix.length + 1))
+    }
+  }
+  return name
+}
+
+/**
  * Registers all Cloud control plane API commands under a top-level `cloud` group.
  *
  * For each definition:
  * 1. A unified flat Zod schema is built from `pathParams` + `queryParams` + optional `body`.
  * 2. `defineCommand` is called with that schema as `input`.
  * 3. Commands are grouped by namespace (e.g. `deployments`, `projects`).
+ * 4. Short aliases are added when unambiguous (e.g. `list` for `list-deployments`).
  *
  * @param definitions - flat array of API definitions; defaults to the full built-in registry
  * @returns an `OpaqueCommandHandle` for the top-level `cloud` group
@@ -98,6 +115,16 @@ export function registerCloudCommands(
       seen.add(def.name)
     }
 
+    const shortNames = new Map<string, string>()
+    for (const def of defs) {
+      const short = stripNamespaceSuffix(def.name, namespace)
+      if (short !== def.name) shortNames.set(def.name, short)
+    }
+    const shortCounts = new Map<string, number>()
+    for (const short of shortNames.values()) {
+      shortCounts.set(short, (shortCounts.get(short) ?? 0) + 1)
+    }
+
     const leafHandles = defs.map((def) => {
       const schema = buildCommandSchema(def)
       const cmd = defineCommand({
@@ -108,6 +135,10 @@ export function registerCloudCommands(
       })
       if (isCreateProjectCommand(def.name)) {
         (cmd as Command).option('--wait', 'Wait for the project to reach "initialized" phase before returning')
+      }
+      const short = shortNames.get(def.name)
+      if (short != null && shortCounts.get(short) === 1) {
+        (cmd as Command).alias(short)
       }
       return cmd
     })

@@ -79,18 +79,33 @@ function buildQuerystring(
   return qs
 }
 
+const BODY_METHODS: ReadonlySet<string> = new Set(['POST', 'PUT', 'PATCH'])
+
 function collectBody(
   def: CloudApiDefinition,
   input: Record<string, unknown>,
 ): Record<string, unknown> | undefined {
-  if (!(def.body instanceof z.ZodObject)) return undefined
-
-  const body: Record<string, unknown> = {}
-  for (const fieldName of Object.keys(def.body.shape as Record<string, unknown>)) {
-    if (input[fieldName] !== undefined) {
-      body[fieldName] = input[fieldName]
+  if (def.body instanceof z.ZodObject) {
+    const body: Record<string, unknown> = {}
+    for (const fieldName of Object.keys(def.body.shape as Record<string, unknown>)) {
+      if (input[fieldName] !== undefined) {
+        body[fieldName] = input[fieldName]
+      }
     }
+    return Object.keys(body).length > 0 ? body : undefined
   }
 
+  if (!BODY_METHODS.has(def.method)) return undefined
+
+  const reserved = new Set([
+    ...(def.pathParams ?? []).map((p) => p.name),
+    ...(def.queryParams ?? []).map((q) => q.cliFlag ?? q.name),
+  ])
+  const body: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(input)) {
+    if (!reserved.has(key) && value !== undefined) {
+      body[key] = value
+    }
+  }
   return Object.keys(body).length > 0 ? body : undefined
 }

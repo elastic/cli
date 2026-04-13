@@ -101,6 +101,14 @@ When creating or modifying code that constructs URLs, sends credentials, or make
 
 6. **When consuming codegen output, treat it as untrusted input.** The codegen produces valid schemas, but the CLI's generic layers made assumptions about which Zod types would appear. Validate those assumptions with tests that exercise actual generated output.
 
+7. **Inspect the type definition before setting properties on shared types.** When building an object typed as an external interface (e.g., `TransportRequestParams` from `@elastic/transport`), read the type definition first. Don't assume it has a property just because it seems logical -- `TransportRequestParams` has `bulkBody` for NDJSON, not `body` + `headers`. JavaScript silently allows setting non-existent properties, so only `tsc --noEmit` or CI will catch this. Always run a type-check (`npx tsc --noEmit`) locally before pushing, not just tests.
+
+8. **Guard clauses that silently discard data are dangerous.** `collectBody()` had `if (!(def.body instanceof z.ZodObject)) return undefined` -- a guard clause that silently threw away all stdin/`--input-file` input for every Cloud POST command without an explicit body schema. That was the *common* case, not the edge case. When writing a guard clause that returns early with no data, ask: "what happens to the caller's input?" If the answer is "it gets silently dropped," that's almost certainly a bug. Prefer forwarding unknown input (with clear passthrough semantics) over silently discarding it.
+
+9. **Trace the full data flow across layers for every combination of modes.** The `--json` flag broke cat APIs because the handler returned raw text and the factory blindly called `JSON.stringify()` on it. Neither layer was wrong in isolation -- the handler correctly returned text, the factory correctly serialized JSON. But together, the combination of `responseType: 'text'` + `--json` was never traced end-to-end. When a feature involves two cooperating layers (handler + output formatter, request builder + transport), enumerate all mode combinations and verify each one produces correct output.
+
+10. **Codegen output needs a UX review.** Machine-generated command names (e.g., `list-deployments` from `listDeployments` operationId) are precise but verbose. Users will instinctively try shorter forms (`list`, `get`). When registering auto-generated commands, add short aliases where unambiguous, and test that users can discover commands with intuitive names.
+
 ## Spec-Kit Workflow
 
 The project uses [spec-kit](https://github.com/github/spec-kit) for AI-assisted feature development.

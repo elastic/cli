@@ -267,4 +267,63 @@ describe('createEsHandler', () => {
     assert.equal(err['code'], 'transport_error')
     assert.equal(err['message'], 'something unexpected')
   })
+
+  it('injects format=json and parses as JSON when --json is active with responseType: text (#88)', async () => {
+    const capturedParams: TransportRequestParams[] = []
+    const jsonBody = [{ alias: '.kibana', index: '.kibana_1' }]
+    const deps = makeDeps({
+      getTransport: () => ({
+        request: async (params: TransportRequestParams) => {
+          capturedParams.push(params)
+          return jsonBody
+        },
+      } as unknown as Transport),
+      buildRequestParams: () => ({ method: 'GET', path: '/_cat/aliases' }),
+    })
+
+    const handler = createEsHandler(makeDef({ responseType: 'text' }), [], deps)
+    const result = await handler(parsedInput({}, { json: true }))
+
+    assert.deepEqual(result, jsonBody)
+    assert.equal((capturedParams[0]?.querystring as Record<string, unknown>)?.format, 'json')
+  })
+
+  it('does not inject format=json when --json is not active with responseType: text', async () => {
+    const capturedParams: TransportRequestParams[] = []
+    const deps = makeDeps({
+      getTransport: () => ({
+        request: async (params: TransportRequestParams) => {
+          capturedParams.push(params)
+          return 'green\n'
+        },
+      } as unknown as Transport),
+      buildRequestParams: () => ({ method: 'GET', path: '/_cat/health' }),
+    })
+
+    const handler = createEsHandler(makeDef({ responseType: 'text' }), [], deps)
+    const result = await handler(parsedInput())
+
+    assert.equal(result, 'green\n')
+    assert.equal(capturedParams[0]?.querystring, undefined)
+  })
+
+  it('does not inject format=json for responseType: json even with --json', async () => {
+    const capturedParams: TransportRequestParams[] = []
+    const jsonBody = { status: 'green' }
+    const deps = makeDeps({
+      getTransport: () => ({
+        request: async (params: TransportRequestParams) => {
+          capturedParams.push(params)
+          return jsonBody
+        },
+      } as unknown as Transport),
+      buildRequestParams: () => ({ method: 'GET', path: '/_cluster/health' }),
+    })
+
+    const handler = createEsHandler(makeDef({ responseType: 'json' }), [], deps)
+    const result = await handler(parsedInput({}, { json: true }))
+
+    assert.deepEqual(result, jsonBody)
+    assert.equal(capturedParams[0]?.querystring, undefined)
+  })
 })

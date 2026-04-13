@@ -49,7 +49,7 @@ current_context: local
 contexts:
   local:
     elasticsearch:
-      url: https://localhost:9200
+      url: http://localhost:9200
       auth:
         api_key: your-api-key-here
   staging:
@@ -151,15 +151,22 @@ Requires a `cloud` service block in the active context.
 #### `cloud deployments`
 
 ```bash
-elastic cloud deployments list
-elastic cloud deployments get --deployment-id <id>
-elastic cloud deployments shutdown --deployment-id <id>
+elastic cloud deployments list                      # alias for list-deployments
+elastic cloud deployments get --id <id>             # alias for get-deployment
+elastic cloud deployments shutdown --id <id>        # alias for shutdown-deployment
+elastic cloud deployments create <<< '{"name":"my-deployment",...}'
 ```
 
-#### `cloud projects`
+#### `cloud elasticsearch-projects`
 
 ```bash
-elastic cloud projects list
-elastic cloud projects get --project-id <id>
-elastic cloud projects delete --project-id <id>
+elastic cloud elasticsearch-projects list           # alias for list-elasticsearch-projects
+elastic cloud elasticsearch-projects create <<< '{"name":"demo","region_id":"aws-us-east-1"}'
+elastic cloud elasticsearch-projects create --wait <<< '{"name":"demo","region_id":"aws-us-east-1"}'
+elastic cloud elasticsearch-projects get --id <id>  # alias for get-elasticsearch-project
+elastic cloud elasticsearch-projects delete --id <id>
 ```
+
+Similar namespaces exist for `observability-projects` and `security-projects`.
+
+Run `elastic cloud --help` for all available namespace groups.

@@ -94,4 +94,48 @@ describe('registerCloudCommands', () => {
       assert.ok(leafNames.includes('create-elasticsearch-project'))
     })
   })
+
+  describe('short aliases (#87)', () => {
+    it('adds short alias when command name ends with namespace suffix', () => {
+      const defs: CloudApiDefinition[] = [
+        { name: 'list-deployments', namespace: 'deployments', description: 'List', method: 'GET', path: '/api/v1/deployments' },
+        { name: 'get-deployment', namespace: 'deployments', description: 'Get', method: 'GET', path: '/api/v1/deployments/{id}', pathParams: [{ name: 'id', description: 'ID', required: true }] },
+      ]
+      const group = registerCloudCommands(defs)
+      const deploymentsGroup = group.commands.find((c) => c.name() === 'deployments')!
+      const listCmd = deploymentsGroup.commands.find((c) => c.name() === 'list-deployments')!
+      const getCmd = deploymentsGroup.commands.find((c) => c.name() === 'get-deployment')!
+      assert.ok(listCmd.aliases().includes('list'), 'list-deployments should have alias "list"')
+      assert.ok(getCmd.aliases().includes('get'), 'get-deployment should have alias "get"')
+    })
+
+    it('does not add alias when short name collides within namespace', () => {
+      const defs: CloudApiDefinition[] = [
+        { name: 'get-items', namespace: 'items', description: 'A', method: 'GET', path: '/a' },
+        { name: 'get-item', namespace: 'items', description: 'B', method: 'GET', path: '/b' },
+      ]
+      const group = registerCloudCommands(defs)
+      const itemsGroup = group.commands.find((c) => c.name() === 'items')!
+      for (const cmd of itemsGroup.commands) {
+        assert.deepEqual(cmd.aliases(), [], `${cmd.name()} should have no alias since both resolve to "get"`)
+      }
+    })
+
+    it('does not add alias when command name does not match namespace suffix', () => {
+      const defs: CloudApiDefinition[] = [
+        { name: 'shutdown', namespace: 'deployments', description: 'Shutdown', method: 'POST', path: '/api/v1/shutdown' },
+      ]
+      const group = registerCloudCommands(defs)
+      const deploymentsGroup = group.commands.find((c) => c.name() === 'deployments')!
+      const cmd = deploymentsGroup.commands.find((c) => c.name() === 'shutdown')!
+      assert.deepEqual(cmd.aliases(), [])
+    })
+
+    it('deployments namespace has working "list" alias for "list-deployments"', () => {
+      const group = registerCloudCommands()
+      const deploymentsGroup = group.commands.find((c) => c.name() === 'deployments')!
+      const listCmd = deploymentsGroup.commands.find((c) => c.name() === 'list-deployments')!
+      assert.ok(listCmd.aliases().includes('list'))
+    })
+  })
 })

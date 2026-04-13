@@ -62,8 +62,15 @@ export function createEsHandler (
 
     try {
       const responseType = def.responseType ?? 'json'
+      const jsonRequested = parsed.options.json === true
 
-      if (responseType === 'text') {
+      if (responseType === 'text' && jsonRequested) {
+        const qs = (params.querystring ?? {}) as Record<string, unknown>
+        qs.format = 'json'
+        params.querystring = qs
+        const body = await transport.request<JsonValue>(params)
+        return body
+      } else if (responseType === 'text') {
         const body = await transport.request<string>(params)
         return body
       } else {
