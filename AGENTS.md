@@ -85,6 +85,22 @@ When creating or modifying code that constructs URLs, sends credentials, or make
 - **Assert on `RequestInit` configuration in tests**, not just on response output. Verify `redirect`, `method`, and `headers` are set as intended.
 - **Add at least one adversarial input test** for any function that accepts user-provided strings and embeds them in URLs or paths.
 
+## Generic Abstractions Must Handle Real-World Variation
+
+### Lessons
+
+1. **Enumerate all variants a system can produce, not just the ones you see first.** `unwrapField()` only handled `optional` and `default` because those were the only wrappers visible in the initial hand-written schemas. When codegen produced schemas using `z.lazy()`, `z.record()`, `z.any()`, and `z.union()`, they all silently fell through to a catch-all that mapped them to `"string"`. Before writing a generic handler, inspect the full set of types/formats the upstream system can produce and add explicit branches or a loud failure for unrecognized cases.
+
+2. **Fail loudly on unrecognized input instead of falling through to a default.** The `unwrapField` catch-all `return { typeName: def.type, isOptional: false }` silently returned garbage. A `throw new Error('unhandled Zod type: ' + def.type)` would have surfaced the problem immediately at registration time instead of producing subtle runtime validation failures across 1400+ fields.
+
+3. **Test with real generated schemas, not just hand-crafted toy schemas.** If our `extractSchemaArgs` tests had included even one actual schema from the codegen output (which uses `z.lazy` extensively), the bug would have been caught before merging.
+
+4. **Generic request builders need escape hatches for endpoint-specific semantics.** The ES bulk API needs NDJSON; the index API needs body promotion. A "one size fits all" `collectBody()` silently produced wrong output for both. When designing generic abstractions, ask: "what endpoint-specific behavior could this need?" and add explicit extension points (`bodyFormat`, `BODY_ROOT_FIELDS`) rather than special-casing later.
+
+5. **User-facing error messages should diagnose common mistakes.** Raw error propagation (e.g., `SSL routines:tls_get_more_records:packet length too long`) is unhelpful. When you catch an error class that has known causes (TLS mismatch, auth failure, DNS resolution), pattern-match on the message and append a human-readable hint with a suggested fix.
+
+6. **When consuming codegen output, treat it as untrusted input.** The codegen produces valid schemas, but the CLI's generic layers made assumptions about which Zod types would appear. Validate those assumptions with tests that exercise actual generated output.
+
 ## Spec-Kit Workflow
 
 The project uses [spec-kit](https://github.com/github/spec-kit) for AI-assisted feature development.

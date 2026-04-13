@@ -5,6 +5,10 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
+import { spawn } from 'node:child_process'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { Command } from 'commander'
 
 /**
@@ -86,21 +90,55 @@ describe('elastic CLI -- global flags', () => {
   })
 })
 
-describe('elastic CLI -- config-free commands', () => {
-  it('`elastic version` succeeds without a config file', async () => {
-    const { execFile } = await import('node:child_process')
-    const { promisify } = await import('node:util')
-    const { mkdtemp, rm } = await import('node:fs/promises')
-    const { join } = await import('node:path')
-    const { tmpdir } = await import('node:os')
-    const exec = promisify(execFile)
+function runCli (args: string[], opts: { cwd?: string, env?: Record<string, string> } = {}): Promise<{ code: number | null, stdout: string, stderr: string }> {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [join(process.cwd(), 'dist', 'cli.js'), ...args], {
+      cwd: opts.cwd,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, ...opts.env }
+    })
+    child.stdin.end('')
+    let stdout = '', stderr = ''
+    child.stdout.on('data', (d: Buffer) => { stdout += d })
+    child.stderr.on('data', (d: Buffer) => { stderr += d })
+    child.on('close', (code: number | null) => resolve({ code, stdout, stderr }))
+  })
+}
+
+describe('elastic CLI -- preAction config error handling', () => {
+  it('exits with error when no config file is found', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-'))
     try {
-      const { stdout } = await exec(
-        process.execPath,
-        [join(process.cwd(), 'dist', 'cli.js'), 'version', '--json'],
-        { cwd: dir, env: { ...process.env, HOME: dir } }
+      const { code, stderr } = await runCli(['es', 'info'], { cwd: dir, env: { HOME: dir, XDG_CONFIG_HOME: dir } })
+      assert.equal(code, 1, `expected exit code 1, got ${code}`)
+      assert.ok(stderr.includes('Error:'), `expected stderr to contain "Error:", got: ${stderr}`)
+      assert.ok(stderr.includes('No configuration file found'), `expected config error message, got: ${stderr}`)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('exits with error when --config-file points to a nonexistent file', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-badconfig-'))
+    try {
+      const { code, stderr } = await runCli(
+        ['es', 'info', '--config-file', '/nonexistent/path.yml'],
+        { cwd: dir, env: { HOME: dir, XDG_CONFIG_HOME: dir } }
       )
+      assert.equal(code, 1, `expected exit code 1, got ${code}`)
+      assert.ok(stderr.includes('Error:'), `expected stderr to contain "Error:", got: ${stderr}`)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+})
+
+describe('elastic CLI -- config-free commands', () => {
+  it('`elastic version` succeeds without a config file', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-'))
+    try {
+      const { code, stdout } = await runCli(['version', '--json'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
       const parsed = JSON.parse(stdout)
       assert.ok('version' in parsed)
     } finally {

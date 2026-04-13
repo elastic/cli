@@ -18,6 +18,7 @@ export const msearchTemplateApis: EsApiDefinition[] = [
     description: 'Run multiple templated searches.',
     method: 'GET',
     path: '/{index}/_msearch/template',
-    input: MsearchTemplateRequest
+    input: MsearchTemplateRequest,
+    bodyFormat: 'ndjson'
   }
 ]

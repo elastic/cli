@@ -237,6 +237,34 @@ function camelCase (s: string): string {
   return s.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())
 }
 
+/**
+ * Creates a parseArg function that accumulates repeated string flag values with comma separation.
+ * Uses Commander's option value source tracking: first CLI occurrence replaces any default,
+ * subsequent CLI occurrences append with a comma separator.
+ */
+function stringAccumulator (cmd: Command, attrName: string): (value: string, previous: string | undefined) => string {
+  return (value: string, previous: string | undefined): string => {
+    if (cmd.getOptionValueSource(attrName) === 'cli') return `${previous},${value}`
+    return value
+  }
+}
+
+/**
+ * Creates a parseArg function that rejects repeated flag occurrences for singular-value options.
+ * Wraps an optional inner parser (e.g. number coercion) and errors via Commander
+ * if the option has already been set from the CLI.
+ */
+function singleValueGuard<T> (
+  cmd: Command, attrName: string, flagDisplay: string, innerParse?: (val: string) => T,
+): (value: string, previous: T | undefined) => T {
+  return (value: string): T => {
+    if (cmd.getOptionValueSource(attrName) === 'cli') {
+      cmd.error(`option ${flagDisplay} cannot be specified more than once`)
+    }
+    return innerParse != null ? innerParse(value) : value as unknown as T
+  }
+}
+
 /** valid command/group name: non-empty, lowercase alphanumeric characters and hyphens only */
 const VALID_NAME = /^[a-z0-9][a-z0-9-]*$/
 
@@ -397,6 +425,20 @@ function parseJsonContent (raw: string, source: string, cmd: OpaqueCommandHandle
   }
 }
 
+function isErrorResult (value: JsonValue): boolean {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    'error' in value &&
+    typeof value.error === 'object' &&
+    value.error !== null &&
+    !Array.isArray(value.error) &&
+    'code' in value.error &&
+    typeof value.error.code === 'string'
+  )
+}
+
 /**
  * Creates a leaf command from a declarative config and returns an opaque handle.
  *
@@ -460,17 +502,19 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     } else if (opt.type === 'number') {
       // <number> placeholder communicates type in help text; parseArg coerces and validates inline
       const flagWithArg = `${flag} <number>`
-      const parseArg = (val: string): number => {
+      const attrName = camelCase(opt.long)
+      const parseNum = (val: string): number => {
         const result = numberSchema.safeParse(val)
         if (!result.success) {
           cmd.error(`option --${opt.long}: expected a number, got: ${val}`)
         }
         return result.data!
       }
-      register(flagWithArg, opt.description, parseArg, opt.defaultValue as number | undefined)
+      register(flagWithArg, opt.description, singleValueGuard(cmd, attrName, `--${opt.long}`, parseNum), opt.defaultValue as number | undefined)
     } else {
-      // string options: <string> placeholder communicates type in help text
-      register(`${flag} <string>`, opt.description, opt.defaultValue !== undefined ? String(opt.defaultValue) : undefined)
+      // string options: accumulate repeated values with comma separation
+      const attrName = camelCase(opt.long)
+      register(`${flag} <string>`, opt.description, stringAccumulator(cmd, attrName), opt.defaultValue !== undefined ? String(opt.defaultValue) : undefined)
     }
   }
 
@@ -488,19 +532,23 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
         // booleans omit the suffix; flag-style convention makes it clear
         cmd.option(`--${arg.cliFlag} [value]`, arg.description)
       } else if (arg.type === 'number') {
+        const attrName = camelCase(arg.cliFlag)
         const parseNum = (val: string): number => {
           const r = numberSchema.safeParse(val)
           if (!r.success) cmd.error(`option --${arg.cliFlag}: expected a number, got: ${val}`)
           return r.data!
         }
-        cmd.option(`--${arg.cliFlag} <number>`, desc, parseNum)
+        cmd.option(`--${arg.cliFlag} <number>`, desc, singleValueGuard(cmd, attrName, `--${arg.cliFlag}`, parseNum))
       } else if (arg.type === 'object' || arg.type === 'array') {
-        cmd.option(`--${arg.cliFlag} <json>`, desc)
+        const attrName = camelCase(arg.cliFlag)
+        cmd.option(`--${arg.cliFlag} <json>`, desc, singleValueGuard<string>(cmd, attrName, `--${arg.cliFlag}`))
       } else if (arg.type === 'enum') {
-        cmd.option(`--${arg.cliFlag} <value>`, desc)
+        const attrName = camelCase(arg.cliFlag)
+        cmd.option(`--${arg.cliFlag} <value>`, desc, singleValueGuard<string>(cmd, attrName, `--${arg.cliFlag}`))
       } else {
-        // string: passed through as-is, no coercion
-        cmd.option(`--${arg.cliFlag} <string>`, desc)
+        // string: accumulate repeated values with comma separation
+        const attrName = camelCase(arg.cliFlag)
+        cmd.option(`--${arg.cliFlag} <string>`, desc, stringAccumulator(cmd, attrName))
       }
     }
   }
@@ -541,9 +589,6 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     let inputValue: unknown
     if (config.input instanceof z.ZodType) {
       const filePath = cmd.getOptionValue('inputFile') as string | undefined
-      if (filePath !== undefined && !process.stdin.isTTY) {
-        return cmd.error('cannot read input from both --input-file and stdin; provide one or the other')
-      }
       if (filePath !== undefined) {
         let fileContent: string
         try {
@@ -583,6 +628,11 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       if (Object.keys(cliInput).length > 0) {
         inputValue = { ...(inputValue as Record<string, unknown> ?? {}), ...cliInput }
       }
+      // always validate against the schema, even when no input was provided,
+      // so that missing required fields are caught by Zod
+      if (inputValue === undefined) {
+        inputValue = {}
+      }
     }
 
     const resolvedConfig = getResolvedConfig()
@@ -595,7 +645,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       const dotPath = (parts.length > 1 ? parts.slice(1) : parts).join('.')
       if (!isCommandAllowed(dotPath, resolvedConfig.commands)) {
         if (jsonFormat === true) {
-          process.stdout.write(JSON.stringify({
+          process.stderr.write(JSON.stringify({
             error: {
               code: 'command_blocked',
               message: `command "${dotPath}" is not allowed by the current policy`,
@@ -626,7 +676,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       } else {
         if (jsonFormat === true) {
           const issues = result.error.issues
-          process.stdout.write(JSON.stringify({
+          process.stderr.write(JSON.stringify({
             error: {
               code: 'input_validation_failed',
               message: `Input validation failed with ${issues.length} issue(s)`,
@@ -642,12 +692,21 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     if (allRaw['dryRun'] === true) {
       if (jsonFormat) {
         process.stdout.write(JSON.stringify({ success: true }) + '\n')
+      } else {
+        process.stdout.write('dry run: inputs valid, no action performed\n')
       }
       return
     }
     const handlerResult = await config.handler(parsed)
     assert(handlerResult !== undefined, `command ${JSON.stringify(config.name)}: handler must return a JsonValue`)
-    if (jsonFormat === true) {
+    if (isErrorResult(handlerResult)) {
+      if (jsonFormat === true) {
+        process.stderr.write(JSON.stringify(handlerResult) + '\n')
+      } else {
+        process.stderr.write(renderText(handlerResult))
+      }
+      process.exitCode = 1
+    } else if (jsonFormat === true) {
       process.stdout.write(JSON.stringify(handlerResult) + '\n')
     } else if (config.formatOutput !== undefined) {
       process.stdout.write(config.formatOutput(handlerResult, parsed))

@@ -1009,17 +1009,15 @@ describe('defineCommand', () => {
       assert.match(err, /--input-file: invalid JSON: empty content/)
     })
 
-    it('parsed.input is undefined when input is a schema, no --input-file provided, and stdin is a TTY', async () => {
-      const received: ParsedResult[] = []
+    it('validation error when input is a schema with required fields, no --input-file provided, and stdin is a TTY', async () => {
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
         input: z.object({ q: z.string() }),
-        handler: (parsed) => { received.push(parsed); return {} },
+        handler: () => ({}),
       })
-      await invokeAsync(cmd, [])
-      assert.equal(received.length, 1)
-      assert.equal(received[0].input, undefined)
+      const err = await captureErrAsync(cmd, [])
+      assert.match(err, /input validation failed/i)
     })
   })
 
@@ -1104,23 +1102,26 @@ describe('defineCommand', () => {
       Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
     })
 
-    it('errors with conflict message when both --input-file and stdin are provided', async () => {
+    it('--input-file takes precedence over stdin in non-TTY context', async () => {
       const filePath = join(tmpDir, 'input.json')
       writeFileSync(filePath, JSON.stringify({ index: 'my-index' }))
       const restore = _testSetStdinReader(() => JSON.stringify({ index: 'other-index' }))
       try {
+        const received: ParsedResult[] = []
         const cmd = defineCommand({
           name: 'search',
           description: 'Run a search',
-        input: z.object({ index: z.string() }),
-          handler: () => ({}),
+          input: z.object({ index: z.string() }),
+          handler: (parsed) => { received.push(parsed); return {} },
         })
-        const err = await captureErrAsync(cmd, ['--input-file', filePath])
-        assert.match(err, /cannot read input from both --input-file and stdin/)
+        await invokeAsync(cmd, ['--input-file', filePath])
+        assert.strictEqual(received.length, 1)
+        assert.deepStrictEqual(received[0]!.input, { index: 'my-index' })
       } finally {
         restore()
       }
     })
+
   })
   describe('schema input - type acceptance', () => {
     it('accepts a Zod object schema as input without throwing', () => {
@@ -1228,8 +1229,35 @@ describe('defineCommand', () => {
       assert.match(err, /unexpected/)
     })
 
-    it('handler receives undefined for input when schema is configured but no input is provided', async () => {
+    it('validation fails when schema has required fields but no input is provided', async () => {
       const schema = z.object({ index: z.string() })
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => ({}),
+      })
+      // stdin is TTY (set in beforeEach), no --input-file flag, no CLI args
+      const err = await captureErrAsync(cmd, [])
+      assert.match(err, /input validation failed/i)
+      assert.match(err, /index/)
+    })
+
+    it('handler is NOT invoked when required schema fields are missing and no input is provided', async () => {
+      const schema = z.object({ index: z.string() })
+      let handlerCalled = false
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => { handlerCalled = true; return {} },
+      })
+      await captureErrAsync(cmd, [])
+      assert.equal(handlerCalled, false)
+    })
+
+    it('all-optional schema succeeds with no input provided', async () => {
+      const schema = z.object({ size: z.number().default(10), verbose: z.boolean().default(false) })
       const received: unknown[] = []
       const cmd = defineCommand({
         name: 'search',
@@ -1237,9 +1265,8 @@ describe('defineCommand', () => {
         input: schema,
         handler: (parsed) => { received.push(parsed.input); return {} },
       })
-      // stdin is TTY (set in beforeEach), no --input-file flag - no input provided
       await invokeAsync(cmd, [])
-      assert.equal(received[0], undefined)
+      assert.deepEqual(received[0], { size: 10, verbose: false })
     })
   })
 
@@ -1384,7 +1411,7 @@ describe('defineCommand', () => {
     })
 
 
-    /** mounts cmd under a root program with --json, captures stdout, returns parsed JSON */
+    /** mounts cmd under a root program with --json, captures stdout + stderr, returns parsed JSON */
     async function invokeWithJsonFormat(cmd: OpaqueCommandHandle, argv: string[]): Promise<{ out: string, parsed: unknown }> {
       const { Command } = await import('commander')
       const prog = new Command('elastic')
@@ -1393,9 +1420,10 @@ describe('defineCommand', () => {
       prog.exitOverride()
       cmd.exitOverride()
       let out = ''
-      // intercept process.stdout.write so JSON written directly to stdout is captured
-      const origWrite = process.stdout.write.bind(process.stdout)
+      const origOut = process.stdout.write.bind(process.stdout)
+      const origErr = process.stderr.write.bind(process.stderr)
       process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
+      process.stderr.write = (chunk: unknown) => { out += String(chunk); return true }
       prog.configureOutput({ writeOut: (s) => { out += s }, writeErr: (s) => { out += s } })
       cmd.configureOutput({ writeOut: (s) => { out += s }, writeErr: (s) => { out += s } })
       try {
@@ -1403,7 +1431,8 @@ describe('defineCommand', () => {
       } catch {
         // exitOverride throws on cmd.error(); that's expected
       } finally {
-        process.stdout.write = origWrite
+        process.stdout.write = origOut
+        process.stderr.write = origErr
       }
       let parsed: unknown = null
       try { parsed = JSON.parse(out) } catch { /* not JSON - test will fail on assertion */ }
@@ -1476,6 +1505,23 @@ describe('defineCommand', () => {
       const err = await captureErrAsync(cmd, ['--input-file', filePath])
       assert.match(err, /input validation failed/)
       assert.match(err, /index/)
+    })
+
+    it('emits structured JSON error when --json and no input provided for required schema', async () => {
+      const schema = z.object({ index: z.string() })
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => ({}),
+      })
+      const { parsed } = await invokeWithJsonFormat(cmd, [])
+      assert.ok(parsed !== null, 'output was not valid JSON')
+      const p = parsed as Record<string, unknown>
+      assert.ok('error' in p, 'expected top-level "error" key')
+      const err = p['error'] as Record<string, unknown>
+      assert.equal(err['code'], 'input_validation_failed')
+      assert.ok(Array.isArray(err['issues']) && (err['issues'] as unknown[]).length > 0)
     })
   })
   describe('global options', () => {
@@ -1609,7 +1655,7 @@ describe('defineCommand', () => {
       })
       const out = await invokeUnderRoot(cmd, [], ['--dry-run'])
       assert.equal(handlerCalled, false, 'handler must not be called with --dry-run')
-      assert.equal(out, '', 'no output expected in text mode')
+      assert.equal(out, 'dry run: inputs valid, no action performed\n')
     })
 
     it('outputs {"success":true} and skips handler with valid JSON input via --input-file', async () => {
@@ -2315,15 +2361,16 @@ describe('command policy enforcement', () => {
     assert.equal(handlerCalled, true)
   })
 
-  it('emits structured JSON error when --json and command is blocked', async () => {
+  it('emits structured JSON error to stderr when --json and command is blocked', async () => {
     setResolvedConfig({ context: {}, commands: { allowed: ['ping'] } })
     const cmd = defineCommand({
       name: 'search',
       description: 'Search',
       handler: () => ({}),
     })
-    const out = await invokeUnderRoot(cmd, ['--json'], [])
-    const parsed = JSON.parse(out) as Record<string, unknown>
+    const { stdout, stderr } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.equal(stdout, '', 'stdout should be empty for blocked command errors')
+    const parsed = JSON.parse(stderr) as Record<string, unknown>
     assert.ok('error' in parsed)
     const err = parsed['error'] as Record<string, unknown>
     assert.equal(err['code'], 'command_blocked')
@@ -2555,6 +2602,176 @@ describe('defineCommand schema input - CLI arguments', () => {
     // provide index but not size; size should receive its schema default
     await invokeAsync(cmd, ['--index', 'my-index'])
     assert.deepEqual(captured, { index: 'my-index', size: 10 })
+  })
+})
+
+describe('repeated flags', () => {
+  let origIsTTY: boolean | undefined
+  beforeEach(() => {
+    origIsTTY = process.stdin.isTTY
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true, writable: true })
+  })
+  afterEach(() => {
+    Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+  })
+
+  it('string OptionDefinition accumulates repeated values with comma separation', () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'tag',
+      description: 'Tag',
+      options: [{ long: 'tag', description: 'Tag value', type: 'string' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    cmd.exitOverride()
+    cmd.parse(['--tag', 'a', '--tag', 'b'], { from: 'user' })
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['tag'], 'a,b')
+  })
+
+  it('string OptionDefinition with three repetitions joins all values', () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'tag',
+      description: 'Tag',
+      options: [{ long: 'tag', description: 'Tag value', type: 'string' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    cmd.exitOverride()
+    cmd.parse(['--tag', 'a', '--tag', 'b', '--tag', 'c'], { from: 'user' })
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['tag'], 'a,b,c')
+  })
+
+  it('single string occurrence is unchanged (regression guard)', () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'tag',
+      description: 'Tag',
+      options: [{ long: 'tag', description: 'Tag value', type: 'string' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    cmd.exitOverride()
+    cmd.parse(['--tag', 'only-one'], { from: 'user' })
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['tag'], 'only-one')
+  })
+
+  it('string OptionDefinition with defaultValue does not accumulate default into CLI value', () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'tag',
+      description: 'Tag',
+      options: [{ long: 'tag', description: 'Tag value', type: 'string', defaultValue: 'default-val' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    cmd.exitOverride()
+    cmd.parse(['--tag', 'cli-val'], { from: 'user' })
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['tag'], 'cli-val')
+  })
+
+  it('number OptionDefinition rejects repeated values', () => {
+    const cmd = defineCommand({
+      name: 'run',
+      description: 'Run',
+      options: [{ long: 'count', description: 'Count', type: 'number' }],
+      handler: () => ({}),
+    })
+    let err = ''
+    cmd.exitOverride()
+    cmd.configureOutput({ writeErr: (s) => { err += s } })
+    try { cmd.parse(['--count', '5', '--count', '10'], { from: 'user' }) } catch { /* CommanderError */ }
+    assert.match(err, /cannot be specified more than once/)
+  })
+
+  it('boolean OptionDefinition is idempotent when repeated', () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'run',
+      description: 'Run',
+      options: [{ long: 'verbose', description: 'Verbose', type: 'boolean' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    cmd.exitOverride()
+    cmd.parse(['--verbose', '--verbose'], { from: 'user' })
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['verbose'], true)
+  })
+
+  it('schema-derived string accumulates repeated values', async () => {
+    const schema = z.object({ index: z.string().describe('Index name') })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    await invokeAsync(cmd, ['--index', 'idx-a', '--index', 'idx-b'])
+    assert.deepEqual(captured, { index: 'idx-a,idx-b' })
+  })
+
+  it('schema-derived number rejects repeated values', async () => {
+    const schema = z.object({ size: z.number().describe('Result size') })
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: schema,
+      handler: () => ({}),
+    })
+    const err = await captureErrAsync(cmd, ['--size', '5', '--size', '10'])
+    assert.match(err, /cannot be specified more than once/)
+  })
+
+  it('schema-derived enum rejects repeated values', async () => {
+    const schema = z.object({ mode: z.enum(['fast', 'slow']).describe('Mode') })
+    const cmd = defineCommand({
+      name: 'run',
+      description: 'Run',
+      input: schema,
+      handler: () => ({}),
+    })
+    const err = await captureErrAsync(cmd, ['--mode', 'fast', '--mode', 'slow'])
+    assert.match(err, /cannot be specified more than once/)
+  })
+
+  it('schema-derived string with Zod default does not accumulate default into CLI value', async () => {
+    const schema = z.object({ index: z.string().default('default-idx').describe('Index name') })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    await invokeAsync(cmd, ['--index', 'my-idx'])
+    assert.deepEqual(captured, { index: 'my-idx' })
+  })
+
+  it('schema-derived string with Zod default accumulates repeated CLI values', async () => {
+    const schema = z.object({ index: z.string().default('default-idx').describe('Index name') })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    await invokeAsync(cmd, ['--index', 'idx-a', '--index', 'idx-b'])
+    assert.deepEqual(captured, { index: 'idx-a,idx-b' })
+  })
+
+  it('schema-derived object rejects repeated values', async () => {
+    const schema = z.object({ mappings: z.object({}).passthrough().describe('Mappings') })
+    const cmd = defineCommand({
+      name: 'create',
+      description: 'Create',
+      input: schema,
+      handler: () => ({}),
+    })
+    const err = await captureErrAsync(cmd, ['--mappings', '{}', '--mappings', '{"a":1}'])
+    assert.match(err, /cannot be specified more than once/)
   })
 })
 
@@ -3022,3 +3239,129 @@ async function invokeUnderRoot(cmd: OpaqueCommandHandle, rootArgv: string[], cmd
   cmd.exitOverride()
   return captureStdout(() => prog.parseAsync([...rootArgv, cmd.name(), ...cmdArgv], { from: 'user' }))
 }
+
+/** captures stdout, stderr, and exitCode separately */
+async function captureStreams(fn: () => Promise<void>): Promise<{ stdout: string, stderr: string, exitCode: number }> {
+  let stdout = ''
+  let stderr = ''
+  let exitCode = 0
+  const origOut = process.stdout.write.bind(process.stdout)
+  const origErr = process.stderr.write.bind(process.stderr)
+  const origExitCode = process.exitCode
+  process.exitCode = 0
+  process.stdout.write = (chunk: unknown) => { stdout += String(chunk); return true }
+  process.stderr.write = (chunk: unknown) => { stderr += String(chunk); return true }
+  try {
+    await fn()
+  } catch {
+    /* swallow -- caller inspects captured output */
+  } finally {
+    exitCode = process.exitCode ?? 0
+    process.stdout.write = origOut
+    process.stderr.write = origErr
+    process.exitCode = origExitCode as typeof process.exitCode
+  }
+  return { stdout, stderr, exitCode }
+}
+
+/** mounts a command under a root program and captures stdout, stderr, exitCode */
+async function invokeCapturingStreams(
+  cmd: OpaqueCommandHandle,
+  rootArgv: string[],
+  cmdArgv: string[],
+): Promise<{ stdout: string, stderr: string, exitCode: number }> {
+  const { Command } = await import('commander')
+  const prog = new Command('elastic')
+  prog.option('--json', 'output as JSON')
+  prog.addCommand(cmd)
+  prog.exitOverride()
+  cmd.exitOverride()
+  return captureStreams(() => prog.parseAsync([...rootArgv, cmd.name(), ...cmdArgv], { from: 'user' }))
+}
+
+describe('error result detection', () => {
+  it('error result in JSON mode goes to stderr with non-zero exit', async () => {
+    const cmd = defineCommand({
+      name: 'fail',
+      description: 'Fail',
+      handler: () => ({ error: { code: 'transport_error', message: 'connection refused' } }),
+    })
+    const { stdout, stderr, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.equal(stdout, '', 'stdout should be empty for error results')
+    const parsed = JSON.parse(stderr) as Record<string, unknown>
+    const err = parsed['error'] as Record<string, unknown>
+    assert.equal(err['code'], 'transport_error')
+    assert.equal(err['message'], 'connection refused')
+    assert.equal(exitCode, 1)
+  })
+
+  it('error result in text mode goes to stderr with non-zero exit', async () => {
+    const cmd = defineCommand({
+      name: 'fail',
+      description: 'Fail',
+      handler: () => ({ error: { code: 'missing_config', message: 'No ES configured' } }),
+    })
+    const { stdout, stderr, exitCode } = await invokeCapturingStreams(cmd, [], [])
+    assert.equal(stdout, '', 'stdout should be empty for error results')
+    assert.ok(stderr.length > 0, 'stderr should contain error output')
+    assert.match(stderr, /missing_config/)
+    assert.equal(exitCode, 1)
+  })
+
+  it('successful result in JSON mode goes to stdout with exit 0', async () => {
+    const cmd = defineCommand({
+      name: 'ok',
+      description: 'OK',
+      handler: () => ({ status: 'green' }),
+    })
+    const { stdout, stderr, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.deepEqual(JSON.parse(stdout), { status: 'green' })
+    assert.equal(stderr, '')
+    assert.equal(exitCode, 0)
+  })
+
+  it('result with non-contract error shape is not treated as error', async () => {
+    const cmd = defineCommand({
+      name: 'ok',
+      description: 'OK',
+      handler: () => ({ error: 'just a string' }),
+    })
+    const { stdout, stderr, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.deepEqual(JSON.parse(stdout), { error: 'just a string' })
+    assert.equal(stderr, '')
+    assert.equal(exitCode, 0)
+  })
+
+  it('error result with status_code and body is written to stderr', async () => {
+    const cmd = defineCommand({
+      name: 'fail',
+      description: 'Fail',
+      handler: () => ({
+        error: {
+          code: 'transport_error',
+          status_code: 404,
+          body: { error: { type: 'index_not_found_exception' } },
+        },
+      }),
+    })
+    const { stdout, stderr, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.equal(stdout, '')
+    const parsed = JSON.parse(stderr) as Record<string, unknown>
+    const err = parsed['error'] as Record<string, unknown>
+    assert.equal(err['code'], 'transport_error')
+    assert.equal(err['status_code'], 404)
+    assert.equal(exitCode, 1)
+  })
+
+  it('formatOutput is not called for error results', async () => {
+    let formatCalled = false
+    const cmd = defineCommand({
+      name: 'fail',
+      description: 'Fail',
+      handler: () => ({ error: { code: 'cloud_api_error', message: 'bad' } }),
+      formatOutput: () => { formatCalled = true; return 'custom\n' },
+    })
+    await invokeCapturingStreams(cmd, [], [])
+    assert.equal(formatCalled, false)
+  })
+})

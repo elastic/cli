@@ -69,16 +69,16 @@ interface ZodFieldDef {
   type: string
   innerType?: { def: ZodFieldDef }
   defaultValue?: unknown
+  getter?: () => z.ZodType
+  options?: z.ZodType[]
 }
 
 /**
- * Unwraps `optional` and `default` wrapper types from a Zod schema field,
- * returning the underlying type name, optional status, and default value.
+ * Unwraps wrapper types from a Zod schema field, resolving lazy thunks,
+ * records, unions, and any/unknown to their CLI-appropriate type names.
  */
 function unwrapField (field: z.ZodType): { typeName: string, isOptional: boolean, defaultValue?: unknown } {
   const def = field.def as ZodFieldDef
-  // date/bigint/symbol/undefined/void/never cannot be represented in JSON Schema
-  // and would cause z.toJSONSchema() to throw when help is rendered -- fail fast here
   if (def.type === 'date') {
     throw new Error('Date cannot be represented in JSON Schema: use z.string() with an ISO-8601 description instead of z.date()')
   }
@@ -91,6 +91,18 @@ function unwrapField (field: z.ZodType): { typeName: string, isOptional: boolean
   if (def.type === 'default') {
     const inner = unwrapField(def.innerType as z.ZodType)
     return { ...inner, defaultValue: def.defaultValue, isOptional: false }
+  }
+
+  if (def.type === 'lazy' && typeof def.getter === 'function') {
+    return unwrapField(def.getter())
+  }
+
+  if (def.type === 'record' || def.type === 'any' || def.type === 'unknown') {
+    return { typeName: 'object', isOptional: false }
+  }
+
+  if (def.type === 'union' && Array.isArray(def.options) && def.options.length > 0) {
+    return unwrapField(def.options[0] as z.ZodType)
   }
 
   return { typeName: def.type, isOptional: false }

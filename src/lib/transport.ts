@@ -30,7 +30,7 @@ export function getTransport (): Transport {
   if (es == null) {
     const err = new Error(
       'missing_config: No Elasticsearch connection configured in the active context. ' +
-      'Run `elastic config set` to configure an Elasticsearch endpoint.'
+      'Add an elasticsearch block to your .elasticrc.yml config file.'
     )
     throw err
   }

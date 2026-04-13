@@ -5,13 +5,13 @@
  */
 
 import { Command } from 'commander'
-import { createRequire } from 'node:module'
 import { defineCommand, defineGroup, hideBlockedCommands } from './factory.js'
 import { loadConfig } from './config/loader.ts'
 import { setResolvedConfig } from './config/store.ts'
 
-const require = createRequire(import.meta.url)
-const { version } = require('../package.json') as { version: string }
+// x-release-please-start-version
+const VERSION = '0.1.0-alpha.1';
+// x-release-please-end
 
 const program = new Command()
 
@@ -25,7 +25,8 @@ program
 // Before every sub-command action, load and resolve the config file.
 // On error, print a structured message and exit -- never let a config failure
 // silently propagate into the command handler.
-program.hook('preAction', async (thisCommand) => {
+program.hook('preAction', async (thisCommand, actionCommand) => {
+  if (actionCommand.name() === 'version') return
   const { configFile: configPath, useContext: contextName } = thisCommand.opts()
   const result = await loadConfig({
     ...(configPath != null && { configPath }),
@@ -33,7 +34,7 @@ program.hook('preAction', async (thisCommand) => {
   })
   if (result.ok) {
     setResolvedConfig(result.value)
-  } else if (configPath != null || contextName != null) {
+  } else {
     process.stderr.write(`Error: ${result.error.message}\n`)
     process.exit(1)
   }
@@ -46,7 +47,7 @@ program.hook('preAction', async (thisCommand) => {
 const versionCmd = defineCommand({
   name: 'version',
   description: 'Print the elastic CLI version',
-  handler: () => ({ version })
+  handler: () => ({ version: VERSION })
 })
 program.addCommand(versionCmd)
 

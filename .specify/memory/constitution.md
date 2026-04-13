@@ -1,13 +1,10 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.2.0 → 1.2.1 (PATCH — wording update to reflect renamed global flags)
+Version change: 1.2.1 → 1.2.2 (PATCH — clarify error output goes to stderr with non-zero exit)
 
 Modified principles:
-  - Principle II: updated `--file=<path>` → `--input-file=<path>`, `--format=json` → `--json`.
-  - Principle III: updated `--format=json` error payload reference → `--json`.
-  - Principle IV: updated `--context=<name>` → `--use-context=<name>`.
-  - Development Standards: updated `--format=json` error reference → `--json`.
+  - Development Standards: Error messages clause now requires stderr output and non-zero exit code.
 
 Added sections:
   - None.
@@ -141,7 +138,9 @@ behave differently on any of these three platforms.
   rather than authored manually. Any exception requires written justification.
 - **Error messages**: Errors MUST be structured and distinguishable (error code +
   human message). When `--json`, errors MUST serialize to JSON with at
-  minimum `{"error": {"code": "…", "message": "…"}}`.
+  minimum `{"error": {"code": "…", "message": "…"}}`. All structured errors
+  MUST be written to stderr (never stdout) and the process MUST exit with a
+  non-zero status code so that scripts and CI pipelines can detect failures.
 - **Node.js ecosystem conventions**: Standard JavaScript/TypeScript idioms, `npm test`,
   MUST pass before merge. Any deviation from ecosystem idioms MUST be
   explained in a comment or docstring at the point of deviation.
@@ -182,4 +181,4 @@ or error messages.
 - Schema introspection tooling for *developers* of the CLI itself (not end users)
   may inspect `found_in` values internally, but MUST NOT propagate them outward.
 
-**Version**: 1.2.1 | **Ratified**: TODO(RATIFICATION_DATE): confirm adoption date | **Last Amended**: 2026-04-06
+**Version**: 1.2.2 | **Ratified**: TODO(RATIFICATION_DATE): confirm adoption date | **Last Amended**: 2026-04-13
