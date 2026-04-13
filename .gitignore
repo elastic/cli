@@ -10,3 +10,6 @@ Thumbs.db
 *.swp
 .vscode/
 .idea/
+
+# Generated functional test scripts
+test/functional/es/

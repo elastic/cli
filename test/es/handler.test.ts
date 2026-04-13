@@ -56,6 +56,20 @@ function spy<T extends (...args: never[]) => unknown>(fn: T): T & { calls: Param
   return wrapper
 }
 
+function makeDiagnostic (url: string) {
+  return {
+    body: null,
+    statusCode: null,
+    headers: {},
+    warnings: null,
+    meta: {
+      context: null, name: 'test', attempts: 1, aborted: false,
+      request: { params: { method: 'GET', path: '/' }, options: {}, id: 1 },
+      connection: { url: new URL(url) },
+    },
+  }
+}
+
 describe('createEsHandler', () => {
   it('calls buildRequestParams with the definition and parsed input', async () => {
     const def = makeDef()
@@ -161,7 +175,7 @@ describe('createEsHandler', () => {
     assert.deepEqual(err['body'], esErrorBody)
   })
 
-  it('returns transport_error with message for non-ResponseError transport errors', async () => {
+  it('returns connection_error with message for ConnectionError with non-empty message', async () => {
     const deps = makeDeps({
       getTransport: () => ({
         request: async () => { throw new errors.ConnectionError('Connection refused') },
@@ -172,8 +186,85 @@ describe('createEsHandler', () => {
     const result = await handler(parsedInput()) as Record<string, unknown>
 
     const err = result['error'] as Record<string, unknown>
+    assert.equal(err['code'], 'connection_error')
+    assert.equal(err['message'], 'Connection refused')
+  })
+
+  it('returns connection_error with URL from meta when message is empty', async () => {
+    const connErr = new errors.ConnectionError('', makeDiagnostic('http://localhost:19999') as never)
+    const deps = makeDeps({
+      getTransport: () => ({
+        request: async () => { throw connErr },
+      } as unknown as Transport),
+    })
+
+    const handler = createEsHandler(makeDef(), [], deps)
+    const result = await handler(parsedInput()) as Record<string, unknown>
+
+    const err = result['error'] as Record<string, unknown>
+    assert.equal(err['code'], 'connection_error')
+    assert.equal(err['message'], 'connection failed (http://localhost:19999/)')
+  })
+
+  it('includes both message and URL when ConnectionError has both', async () => {
+    const connErr = new errors.ConnectionError('Connection refused', makeDiagnostic('http://localhost:19999') as never)
+    const deps = makeDeps({
+      getTransport: () => ({
+        request: async () => { throw connErr },
+      } as unknown as Transport),
+    })
+
+    const handler = createEsHandler(makeDef(), [], deps)
+    const result = await handler(parsedInput()) as Record<string, unknown>
+
+    const err = result['error'] as Record<string, unknown>
+    assert.equal(err['code'], 'connection_error')
+    assert.equal(err['message'], 'Connection refused (http://localhost:19999/)')
+  })
+
+  it('returns connection_error with fallback message when both message and cause are empty', async () => {
+    const connErr = new errors.ConnectionError('')
+    const deps = makeDeps({
+      getTransport: () => ({
+        request: async () => { throw connErr },
+      } as unknown as Transport),
+    })
+
+    const handler = createEsHandler(makeDef(), [], deps)
+    const result = await handler(parsedInput()) as Record<string, unknown>
+
+    const err = result['error'] as Record<string, unknown>
+    assert.equal(err['code'], 'connection_error')
+    assert.ok((err['message'] as string).length > 0, 'message should not be empty')
+  })
+
+  it('returns timeout_error for TimeoutError', async () => {
+    const deps = makeDeps({
+      getTransport: () => ({
+        request: async () => { throw new errors.TimeoutError('Request timed out') },
+      } as unknown as Transport),
+    })
+
+    const handler = createEsHandler(makeDef(), [], deps)
+    const result = await handler(parsedInput()) as Record<string, unknown>
+
+    const err = result['error'] as Record<string, unknown>
+    assert.equal(err['code'], 'timeout_error')
+    assert.equal(err['message'], 'Request timed out')
+  })
+
+  it('returns transport_error with message for non-ResponseError non-ConnectionError errors', async () => {
+    const deps = makeDeps({
+      getTransport: () => ({
+        request: async () => { throw new Error('something unexpected') },
+      } as unknown as Transport),
+    })
+
+    const handler = createEsHandler(makeDef(), [], deps)
+    const result = await handler(parsedInput()) as Record<string, unknown>
+
+    const err = result['error'] as Record<string, unknown>
     assert.equal(err['code'], 'transport_error')
-    assert.ok(typeof err['message'] === 'string')
-    assert.equal(err['status_code'], undefined)
+    assert.equal(err['message'], 'something unexpected')
   })
 })
