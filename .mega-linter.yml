@@ -22,7 +22,9 @@ PRE_COMMANDS:
     cwd: "workspace"
 
 # Use project's ESLint 10 (flat config, --no-eslintrc removed in v9+)
-TYPESCRIPT_ES_CLI_EXECUTABLE: /tmp/lint/node_modules/.bin/eslint
+TYPESCRIPT_ES_CLI_EXECUTABLE:
+  - "node"
+  - "node_modules/.bin/eslint"
 TYPESCRIPT_ES_CONFIG_FILE: eslint.config.js
 TYPESCRIPT_ES_COMMAND_REMOVE_ARGUMENTS:
   - "--no-eslintrc"
