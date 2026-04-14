@@ -233,7 +233,8 @@ function passResolver (params: string): string {
     )
   }
 
-  const firstLine = output.split('\n')[0] ?? ''
+  const nl = output.indexOf('\n')
+  const firstLine = nl === -1 ? output : output.slice(0, nl)
   if (firstLine === '') {
     throw new Error(`pass returned empty output for "${path}"`)
   }
