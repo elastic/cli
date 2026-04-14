@@ -180,6 +180,29 @@ function keychainResolver (params: string): string {
   }
 }
 
+function secretServiceResolver (params: string): string {
+  if (_platform !== 'linux') {
+    throw new Error(
+      `The secret_service resolver is only supported on Linux (current platform: ${_platform})`
+    )
+  }
+
+  const { service, account } = parseServiceAccount(params, 'secret_service')
+
+  try {
+    return _execSync(
+      `secret-tool lookup service ${shellEscape(service)} account ${shellEscape(account)}`,
+      execOpts(5_000)
+    ).trimEnd()
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    throw new Error(
+      `Secret Service lookup failed for service="${service}", account="${account}": ${message}`,
+      { cause: err }
+    )
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
@@ -189,6 +212,7 @@ function registerBuiltins (): void {
   registerResolver('env', envResolver)
   registerResolver('cmd', cmdResolver)
   registerResolver('keychain', keychainResolver)
+  registerResolver('secret_service', secretServiceResolver)
 }
 
 registerBuiltins()

@@ -462,6 +462,173 @@ describe('keychain resolver', () => {
 })
 
 // ---------------------------------------------------------------------------
+// secret_service resolver
+// ---------------------------------------------------------------------------
+
+describe('secret_service resolver', () => {
+  it('resolves a secret on Linux', async () => {
+    const restorePlatform = _testSetPlatform('linux')
+    const restoreExec = _testSetExecSync(((cmd: string) => {
+      assert.match(cmd, /secret-tool lookup/)
+      assert.match(cmd, /service 'elastic-cli'/)
+      assert.match(cmd, /account 'my-api-key'/)
+      return 'secret-value\n'
+    }) as unknown as typeof import('node:child_process').execSync)
+    try {
+      const result = await resolveExpressions('$(secret_service:elastic-cli/my-api-key)')
+      assert.equal(result, 'secret-value')
+    } finally {
+      restoreExec()
+      restorePlatform()
+    }
+  })
+
+  it('throws on macOS', async () => {
+    const restorePlatform = _testSetPlatform('darwin')
+    try {
+      await assert.rejects(
+        () => resolveExpressions('$(secret_service:svc/acct)'),
+        (err: Error) => {
+          assert.match(err.message, /only supported on Linux/)
+          assert.match(err.message, /darwin/)
+          return true
+        }
+      )
+    } finally {
+      restorePlatform()
+    }
+  })
+
+  it('throws on Windows', async () => {
+    const restorePlatform = _testSetPlatform('win32')
+    try {
+      await assert.rejects(
+        () => resolveExpressions('$(secret_service:svc/acct)'),
+        (err: Error) => {
+          assert.match(err.message, /only supported on Linux/)
+          assert.match(err.message, /win32/)
+          return true
+        }
+      )
+    } finally {
+      restorePlatform()
+    }
+  })
+
+  it('throws for missing slash in parameter', async () => {
+    const restorePlatform = _testSetPlatform('linux')
+    try {
+      await assert.rejects(
+        () => resolveExpressions('$(secret_service:no-slash)'),
+        (err: Error) => {
+          assert.match(err.message, /expected format "service\/account"/)
+          return true
+        }
+      )
+    } finally {
+      restorePlatform()
+    }
+  })
+
+  it('throws for leading slash', async () => {
+    const restorePlatform = _testSetPlatform('linux')
+    try {
+      await assert.rejects(
+        () => resolveExpressions('$(secret_service:/account)'),
+        (err: Error) => {
+          assert.match(err.message, /expected format "service\/account"/)
+          return true
+        }
+      )
+    } finally {
+      restorePlatform()
+    }
+  })
+
+  it('throws for trailing slash', async () => {
+    const restorePlatform = _testSetPlatform('linux')
+    try {
+      await assert.rejects(
+        () => resolveExpressions('$(secret_service:service/)'),
+        (err: Error) => {
+          assert.match(err.message, /expected format "service\/account"/)
+          return true
+        }
+      )
+    } finally {
+      restorePlatform()
+    }
+  })
+
+  it('throws for non-printable characters', async () => {
+    const restorePlatform = _testSetPlatform('linux')
+    try {
+      await assert.rejects(
+        () => resolveExpressions('$(secret_service:svc/acct\x00)'),
+        (err: Error) => {
+          assert.match(err.message, /non-printable characters/)
+          return true
+        }
+      )
+    } finally {
+      restorePlatform()
+    }
+  })
+
+  it('splits on first slash only (account can contain slashes)', async () => {
+    const restorePlatform = _testSetPlatform('linux')
+    const restoreExec = _testSetExecSync(((cmd: string) => {
+      assert.match(cmd, /service 'my-service'/)
+      assert.match(cmd, /account 'path\/to\/key'/)
+      return 'value\n'
+    }) as unknown as typeof import('node:child_process').execSync)
+    try {
+      const result = await resolveExpressions('$(secret_service:my-service/path/to/key)')
+      assert.equal(result, 'value')
+    } finally {
+      restoreExec()
+      restorePlatform()
+    }
+  })
+
+  it('shell-escapes special characters', async () => {
+    const restorePlatform = _testSetPlatform('linux')
+    let capturedCmd = ''
+    const restoreExec = _testSetExecSync(((cmd: string) => {
+      capturedCmd = cmd
+      return 'val\n'
+    }) as unknown as typeof import('node:child_process').execSync)
+    try {
+      await resolveExpressions("$(secret_service:it's-a-service/acct)")
+      assert.ok(capturedCmd.includes("'it'\\''s-a-service'"), `expected shell-escaped service in: ${capturedCmd}`)
+    } finally {
+      restoreExec()
+      restorePlatform()
+    }
+  })
+
+  it('includes service and account in error on failure', async () => {
+    const restorePlatform = _testSetPlatform('linux')
+    const restoreExec = _testSetExecSync((() => {
+      throw new Error('secret-tool: not found')
+    }) as unknown as typeof import('node:child_process').execSync)
+    try {
+      await assert.rejects(
+        () => resolveExpressions('$(secret_service:my-svc/my-acct)'),
+        (err: Error) => {
+          assert.match(err.message, /service="my-svc"/)
+          assert.match(err.message, /account="my-acct"/)
+          return true
+        }
+      )
+    } finally {
+      restoreExec()
+      restorePlatform()
+    }
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Integration: loadConfig with expressions
 // ---------------------------------------------------------------------------
 
