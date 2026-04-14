@@ -50,7 +50,7 @@
     "@types/node": "25.5.0",
     "eslint": "10.1.0",
     "license-checker": "25.0.1",
-    "mega-linter-runner": "^9.4.0",
+    "mega-linter-runner": "9.4.0",
     "tsx": "4.21.0",
     "typescript": "6.0.2",
     "typescript-eslint": "8.58.0"
