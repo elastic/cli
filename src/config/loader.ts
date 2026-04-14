@@ -7,20 +7,23 @@
  * Configuration file discovery, loading, validation, and context resolution.
  *
  * Pipeline:
- * 1. Create cosmiconfig explorer with ID 'elastic' for discovery
+ * 1. Discover config file in home directory (or via --config-file / ELASTIC_CLI_CONFIG_FILE)
  * 2. Resolve expressions in config values (e.g. $(env:VAR), $(cmd:...), $(keychain:...))
  * 3. Validate resolved config with Zod schemas
  * 4. Resolve the active context (default or --use-context override)
  * 5. Return typed ResolvedConfig to command handlers
  *
  * Supports:
- * - cosmiconfig discovery (searches standard locations)
- * - --config-file <path> override (bypass discovery)
+ * - Home-directory discovery (~/.elasticrc.yml and variants)
+ * - --config-file <path> or ELASTIC_CLI_CONFIG_FILE env var (bypass discovery)
  * - --use-context <name> override (select non-default context)
  * - Clear error messages with field paths and context names
  * - Structured error payloads (code + message)
  */
 
+import { access, constants } from 'node:fs/promises'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { z } from 'zod'
 import { cosmiconfig } from 'cosmiconfig'
 import { ConfigFileSchema } from './schema.ts'
@@ -40,29 +43,45 @@ function rejectExecutableLoader (): never {
   )
 }
 
+/** File names checked during home-directory discovery, in priority order. */
+const CONFIG_FILE_NAMES = ['.elasticrc', '.elasticrc.json', '.elasticrc.yaml', '.elasticrc.yml']
+
+/** Environment variable that overrides config file discovery with an explicit path. */
+const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
+
+/**
+ * Searches a single directory for the first readable config file.
+ *
+ * Checks each file name in {@link CONFIG_FILE_NAMES} order. Returns the
+ * absolute path of the first readable match, or `null` if none is found.
+ *
+ * @param dir - Directory to search. Defaults to the user's home directory.
+ */
+export async function discoverConfigFile (dir?: string): Promise<string | null> {
+  const searchDir = dir ?? homedir()
+  for (const name of CONFIG_FILE_NAMES) {
+    const candidate = join(searchDir, name)
+    try {
+      await access(candidate, constants.R_OK)
+      return candidate
+    } catch { continue }
+  }
+  return null
+}
+
 /**
  * Creates a cosmiconfig explorer configured for the Elastic CLI.
  *
- * Uses application ID `elastic`, which causes cosmiconfig to search for:
- * - `.elasticrc`, `.elasticrc.yml`, `.elasticrc.yaml`, `.elasticrc.json`
- * - `elastic` property in `package.json`
+ * Used exclusively for {@link cosmiconfig.load | explorer.load()} to parse
+ * YAML and JSON config files. Discovery is handled separately by
+ * {@link discoverConfigFile}.
  *
  * Executable config formats (`.js`, `.ts`, `.mjs`, `.cjs`) are explicitly
- * blocked to prevent arbitrary code execution from untrusted directories.
- *
- * The explorer searches from the given directory upward toward the home
- * directory (`searchStrategy: 'global'`).
+ * blocked to prevent arbitrary code execution when a user passes
+ * `--config-file` pointing at an executable file.
  */
 export function createExplorer () {
   return cosmiconfig('elastic', {
-    searchStrategy: 'global',
-    searchPlaces: [
-      'package.json',
-      '.elasticrc',
-      '.elasticrc.json',
-      '.elasticrc.yaml',
-      '.elasticrc.yml',
-    ],
     loaders: {
       '.js': rejectExecutableLoader,
       '.ts': rejectExecutableLoader,
@@ -100,9 +119,7 @@ export function resolveContext (config: ConfigFile, contextName: string): Resolv
 
 /** Options accepted by {@link loadConfig}. */
 export interface LoadConfigOptions {
-  /** Directory to start cosmiconfig discovery from. Defaults to `process.cwd()`. */
-  searchFrom?: string
-  /** Explicit path to a config file. Bypasses cosmiconfig discovery when set. */
+  /** Explicit path to a config file. Bypasses discovery when set. */
   configPath?: string
   /** Context name override (`--use-context` flag). Overrides `current_context` in the file. */
   contextName?: string
@@ -133,20 +150,28 @@ export type LoadConfigResult = LoadConfigOk | LoadConfigErr
  * @returns A `LoadConfigResult` discriminated union.
  */
 export async function loadConfig (options: LoadConfigOptions = {}): Promise<LoadConfigResult> {
-  const { searchFrom, configPath, contextName } = options
+  const { configPath, contextName } = options
   const explorer = createExplorer()
 
   // Step 1: load raw config
+  // Precedence: --config-file flag > ELASTIC_CLI_CONFIG_FILE env var > home-directory discovery
   let raw: unknown
   try {
-    const result = configPath != null
-      ? await explorer.load(configPath)
-      : await explorer.search(searchFrom)
+    let result
+    const envConfigFile = process.env[ENV_CONFIG_FILE]
+    if (configPath != null) {
+      result = await explorer.load(configPath)
+    } else if (envConfigFile != null && envConfigFile.length > 0) {
+      result = await explorer.load(envConfigFile)
+    } else {
+      const foundPath = await discoverConfigFile()
+      result = foundPath != null ? await explorer.load(foundPath) : null
+    }
 
     if (result == null) {
       return {
         ok: false,
-        error: { message: 'No configuration file found. Create a .elasticrc.yml in your home directory or project root.' }
+        error: { message: 'No configuration file found. Create a .elasticrc.yml in your home directory, or use --config-file / ELASTIC_CLI_CONFIG_FILE to specify a path.' }
       }
     }
 

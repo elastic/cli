@@ -21,7 +21,7 @@ import { Command } from 'commander'
 function makeProgram(): InstanceType<typeof Command> {
   const prog = new Command('elastic')
   prog.exitOverride()
-  prog.option('--config-file <path>', 'path to a config file, bypassing cosmiconfig discovery')
+  prog.option('--config-file <path>', 'path to a config file (default: ~/.elasticrc.yml)')
   prog.option('--use-context <name>', 'override the active context from the config file')
   prog.option('--json', 'output as JSON')
   return prog

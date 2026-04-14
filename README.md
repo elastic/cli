@@ -24,18 +24,18 @@ elastic --help
 ## Configuration
 
 The CLI looks for a config file in your home directory. The following file names
-are recognised (checked in this order):
+are checked (in this order):
 
 1. `.elasticrc`
 2. `.elasticrc.json`
 3. `.elasticrc.yaml`
 4. `.elasticrc.yml`
 
-You can also point to a config file explicitly with `--config-file <path>` or
-the `ELASTIC_CLI_CONFIG_FILE` environment variable. Precedence:
-`--config-file` > `ELASTIC_CLI_CONFIG_FILE` > home directory discovery.
+Place your config at `~/.elasticrc.yml` (recommended).
 
-JavaScript and TypeScript config files are not supported for security reasons.
+To use a config file in a different location, pass `--config-file <path>` or set
+the `ELASTIC_CLI_CONFIG_FILE` environment variable. The flag takes precedence
+over the environment variable.
 
 ```yaml
 current_context: local
@@ -119,7 +119,7 @@ elasticsearch:
 
 | Option | Description |
 |---|---|
-| `--config-file <path>` | Path to a config file, bypassing automatic discovery |
+| `--config-file <path>` | Path to a config file (default: `~/.elasticrc.yml`) |
 | `--use-context <name>` | Override the active context from the config file |
 | `--json` | Output results as JSON |
 

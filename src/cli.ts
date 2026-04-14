@@ -18,7 +18,7 @@ const program = new Command()
 program
   .name('elastic')
   .description('Interface with Elasticsearch, Elastic Serverless and Elastic Cloud APIs from the command line.')
-  .option('--config-file <path>', 'path to a config file, bypassing cosmiconfig discovery')
+  .option('--config-file <path>', 'path to a config file (default: ~/.elasticrc.yml)')
   .option('--use-context <name>', 'override the active context from the config file')
   .option('--json', 'output as JSON')
 
