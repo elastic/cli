@@ -8,6 +8,12 @@ on:
 
 permissions:
   contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
 
 jobs:
   test-node:
@@ -66,6 +72,19 @@ jobs:
           task_types: '["feat","fix","docs","test","ci","refactor","perf","chore","revert"]'
           add_label: "false"
 
+  megalinter:
+    name: MegaLinter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+      - name: MegaLinter
+        uses: oxsecurity/megalinter/flavors/javascript@8fbdead70d1409964ab3d5afa885e18ee85388bb # v9.4.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_ALL_CODEBASE: ${{ github.event_name == 'push' }}
+
   ci:
     name: CI Result
     if: always()
@@ -75,6 +94,7 @@ jobs:
       - license-header
       - test-bun
       - validate-pr-title
+      - megalinter
     steps:
       - run: |
           if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
