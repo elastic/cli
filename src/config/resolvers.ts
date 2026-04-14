@@ -5,13 +5,7 @@
 
 import { execSync, type ExecSyncOptionsWithStringEncoding } from 'node:child_process'
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export interface ResolverContext {}
-
-export type ResolverFn = (params: string, context: ResolverContext) => string | Promise<string>
+export type ResolverFn = (params: string) => string | Promise<string>
 
 // ---------------------------------------------------------------------------
 // Registry
@@ -39,7 +33,6 @@ export function containsExpression (value: string): boolean {
 
 export async function resolveString (
   value: string,
-  context: ResolverContext,
   fieldPath: string
 ): Promise<string> {
   if (!containsExpression(value)) return value
@@ -59,7 +52,7 @@ export async function resolveString (
         `Available resolvers: ${[...registry.keys()].join(', ')}`
       )
     }
-    const resolved = await resolver(params, context)
+    const resolved = await resolver(params)
     result = result.replaceAll(full, resolved)
   }
 
@@ -72,20 +65,19 @@ export async function resolveString (
 
 export async function resolveExpressions (
   obj: unknown,
-  context: ResolverContext = {},
   path: string = ''
 ): Promise<unknown> {
   if (typeof obj === 'string') {
-    return resolveString(obj, context, path || '<root>')
+    return resolveString(obj, path || '<root>')
   }
   if (Array.isArray(obj)) {
-    return Promise.all(obj.map((item, i) => resolveExpressions(item, context, `${path}[${i}]`)))
+    return Promise.all(obj.map((item, i) => resolveExpressions(item, `${path}[${i}]`)))
   }
   if (obj !== null && typeof obj === 'object') {
     const result: Record<string, unknown> = {}
     for (const [key, value] of Object.entries(obj)) {
       const fieldPath = path ? `${path}.${key}` : key
-      result[key] = await resolveExpressions(value, context, fieldPath)
+      result[key] = await resolveExpressions(value, fieldPath)
     }
     return result
   }
@@ -120,7 +112,7 @@ function cmdResolver (params: string): string {
     return _execSync(params, execOpts(10_000)).trimEnd()
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    throw new Error(`Command failed: ${params}\n${message}`)
+    throw new Error(`Command failed: ${params}\n${message}`, { cause: err })
   }
 }
 
@@ -150,7 +142,8 @@ function keychainResolver (params: string): string {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     throw new Error(
-      `Keychain lookup failed for service="${service}", account="${account}": ${message}`
+      `Keychain lookup failed for service="${service}", account="${account}": ${message}`,
+      { cause: err }
     )
   }
 }

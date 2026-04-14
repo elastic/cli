@@ -47,36 +47,36 @@ describe('containsExpression', () => {
 
 describe('resolveString', () => {
   it('returns plain strings unchanged', async () => {
-    const result = await resolveString('hello', {}, 'test')
+    const result = await resolveString('hello', 'test')
     assert.equal(result, 'hello')
   })
 
   it('returns strings with $( but no valid expression unchanged', async () => {
-    const result = await resolveString('value $( not valid', {}, 'test')
+    const result = await resolveString('value $( not valid', 'test')
     assert.equal(result, 'value $( not valid')
   })
 
   it('resolves a single expression that is the entire value', async () => {
     registerResolver('echo', (params) => params)
-    const result = await resolveString('$(echo:hello)', {}, 'test')
+    const result = await resolveString('$(echo:hello)', 'test')
     assert.equal(result, 'hello')
   })
 
   it('resolves an expression embedded in a string', async () => {
     registerResolver('echo', (params) => params)
-    const result = await resolveString('https://$(echo:myhost):9200', {}, 'test')
+    const result = await resolveString('https://$(echo:myhost):9200', 'test')
     assert.equal(result, 'https://myhost:9200')
   })
 
   it('resolves multiple expressions in one string', async () => {
     registerResolver('echo', (params) => params)
-    const result = await resolveString('$(echo:https)://$(echo:myhost)', {}, 'test')
+    const result = await resolveString('$(echo:https)://$(echo:myhost)', 'test')
     assert.equal(result, 'https://myhost')
   })
 
   it('throws for an unknown resolver name', async () => {
     await assert.rejects(
-      () => resolveString('$(unknown:foo)', {}, 'my.field'),
+      () => resolveString('$(unknown:foo)', 'my.field'),
       (err: Error) => {
         assert.match(err.message, /Unknown resolver "unknown"/)
         assert.match(err.message, /my\.field/)
@@ -87,13 +87,13 @@ describe('resolveString', () => {
 
   it('replaces all occurrences of the same expression', async () => {
     registerResolver('echo', (params) => params)
-    const result = await resolveString('$(echo:val)-$(echo:val)', {}, 'test')
+    const result = await resolveString('$(echo:val)-$(echo:val)', 'test')
     assert.equal(result, 'val-val')
   })
 
   it('supports async resolvers', async () => {
     registerResolver('async_echo', async (params) => params)
-    const result = await resolveString('$(async_echo:world)', {}, 'test')
+    const result = await resolveString('$(async_echo:world)', 'test')
     assert.equal(result, 'world')
   })
 })
