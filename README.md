@@ -69,6 +69,16 @@ Instead of storing secrets in plaintext, any string value in the config file can
 use `$(resolver:params)` expressions to fetch values from external sources at
 runtime.
 
+#### `file` - read from a file
+
+Reads the contents of a file (trimmed). Useful for Docker/Kubernetes secrets
+mounted at `/run/secrets/`.
+
+```yaml
+auth:
+  api_key: $(file:/run/secrets/elastic_api_key)
+```
+
 #### `env` - environment variables
 
 ```yaml

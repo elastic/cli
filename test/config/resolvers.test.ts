@@ -174,6 +174,44 @@ describe('resolveExpressions', () => {
 })
 
 // ---------------------------------------------------------------------------
+// file resolver
+// ---------------------------------------------------------------------------
+
+describe('file resolver', () => {
+  let tmpDir: string
+
+  before(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-file-resolver-'))
+  })
+  after(async () => rm(tmpDir, { recursive: true }))
+
+  it('reads file contents with trailing newline trimmed', async () => {
+    const filePath = join(tmpDir, 'secret.txt')
+    await writeFile(filePath, 'my-secret-value\n')
+    const result = await resolveExpressions(`$(file:${filePath})`)
+    assert.equal(result, 'my-secret-value')
+  })
+
+  it('reads file contents without trailing newline', async () => {
+    const filePath = join(tmpDir, 'secret-no-newline.txt')
+    await writeFile(filePath, 'exact-value')
+    const result = await resolveExpressions(`$(file:${filePath})`)
+    assert.equal(result, 'exact-value')
+  })
+
+  it('throws for a nonexistent file', async () => {
+    await assert.rejects(
+      () => resolveExpressions(`$(file:${join(tmpDir, 'nonexistent.txt')})`),
+      (err: Error) => {
+        assert.match(err.message, /Failed to read file/)
+        assert.match(err.message, /nonexistent\.txt/)
+        return true
+      }
+    )
+  })
+})
+
+// ---------------------------------------------------------------------------
 // env resolver
 // ---------------------------------------------------------------------------
 

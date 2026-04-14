@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { readFileSync } from 'node:fs'
 import { execSync, type ExecSyncOptionsWithStringEncoding } from 'node:child_process'
 
 export type ResolverFn = (params: string) => string | Promise<string>
@@ -100,6 +101,15 @@ function shellEscape (value: string): string {
   return "'" + value.replace(/'/g, "'\\''") + "'"
 }
 
+function fileResolver (params: string): string {
+  try {
+    return readFileSync(params, 'utf-8').trimEnd()
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    throw new Error(`Failed to read file "${params}": ${message}`, { cause: err })
+  }
+}
+
 function envResolver (params: string): string {
   const value = process.env[params]
   if (value == null || value === '') {
@@ -160,6 +170,7 @@ function keychainResolver (params: string): string {
 // ---------------------------------------------------------------------------
 
 function registerBuiltins (): void {
+  registerResolver('file', fileResolver)
   registerResolver('env', envResolver)
   registerResolver('cmd', cmdResolver)
   registerResolver('keychain', keychainResolver)
