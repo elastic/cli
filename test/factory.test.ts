@@ -196,6 +196,60 @@ describe('defineCommand', () => {
     })
   })
 
+  describe('positionalArg', () => {
+    it('registers a required positional argument', () => {
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search docs',
+        positionalArg: { name: 'query', description: 'Search query', required: true },
+        handler: () => ({}),
+      })
+      const args = cmd.registeredArguments
+      assert.equal(args.length, 1)
+      assert.equal(args[0].name(), 'query')
+      assert.ok(args[0].required)
+    })
+
+    it('registers an optional positional argument', () => {
+      const cmd = defineCommand({
+        name: 'read',
+        description: 'Read a page',
+        positionalArg: { name: 'path', description: 'Docs path', required: false },
+        handler: () => ({}),
+      })
+      const args = cmd.registeredArguments
+      assert.equal(args.length, 1)
+      assert.equal(args[0].required, false)
+    })
+
+    it('populates parsed.arg with the positional value', async () => {
+      const received: ParsedResult[] = []
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search docs',
+        positionalArg: { name: 'query', description: 'Search query', required: true },
+        handler: (parsed) => { received.push(parsed); return {} },
+      })
+      cmd.exitOverride()
+      await cmd.parseAsync(['ingest pipelines'], { from: 'user' })
+      assert.equal(received.length, 1)
+      assert.equal(received[0].arg, 'ingest pipelines')
+    })
+
+    it('sets parsed.arg to undefined when no positionalArg is declared', async () => {
+      const received: ParsedResult[] = []
+      const cmd = defineCommand({
+        name: 'health',
+        description: 'Health check',
+        handler: (parsed) => { received.push(parsed); return {} },
+      })
+      cmd.exitOverride()
+      await cmd.parseAsync([], { from: 'user' })
+      assert.equal(received.length, 1)
+      assert.equal(received[0].arg, undefined)
+    })
+  })
+
   describe('boolean flag parsing', () => {
     function invoke(handle: OpaqueCommandHandle, argv: string[]): void {
       handle.exitOverride()

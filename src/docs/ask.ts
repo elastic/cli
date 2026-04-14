@@ -1,0 +1,53 @@
+/*
+ * Copyright Elasticsearch B.V. and contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { defineCommand } from '../factory.ts'
+import type { OpaqueCommandHandle, JsonValue, ParsedResult } from '../factory.ts'
+import { docsAskStream, newUuid, type AskStreamEvent } from './client.ts'
+import { startSpinner, streamAnswer } from './stream.ts'
+import { renderMarkdown } from './renderer.ts'
+
+export interface AskDeps {
+  docsAskStream: (message: string, conversationId: string) => AsyncGenerator<AskStreamEvent>
+  stdout: { write: (s: string) => boolean }
+  stderr: { write: (s: string) => boolean }
+}
+
+const defaultDeps: AskDeps = {
+  docsAskStream,
+  stdout: process.stdout,
+  stderr: process.stderr,
+}
+
+export function createAskCommand (deps: AskDeps = defaultDeps): OpaqueCommandHandle {
+  return defineCommand({
+    name: 'ask',
+    description: 'Ask a question about Elastic documentation using AI (single answer)',
+    positionalArg: { name: 'question', description: 'Question to ask', required: true },
+    handler: async (parsed: ParsedResult): Promise<JsonValue> => {
+      const question = (parsed.arg ?? '').trim()
+      if (question === '') return { error: { code: 'missing_input', message: 'question is required' } }
+
+      const conversationId = newUuid()
+      const spinner = startSpinner(deps.stderr, 'Thinking…')
+
+      try {
+        const gen = deps.docsAskStream(question, conversationId)
+        await streamAnswer(gen, renderMarkdown, deps.stdout, spinner)
+      } catch (err) {
+        spinner.stop()
+        return {
+          error: {
+            code: 'docs_error',
+            message: err instanceof Error ? err.message : String(err),
+          },
+        }
+      }
+
+      return null
+    },
+    formatOutput: () => '',
+  })
+}

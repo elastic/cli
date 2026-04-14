@@ -27,6 +27,8 @@ program
 // silently propagate into the command handler.
 program.hook('preAction', async (thisCommand, actionCommand) => {
   if (actionCommand.name() === 'version') return
+  // docs commands use public elastic.co APIs — no config required
+  if (actionCommand.parent?.name() === 'docs') return
   const { configFile: configPath, useContext: contextName } = thisCommand.opts()
   const result = await loadConfig({
     ...(configPath != null && { configPath }),
@@ -77,6 +79,13 @@ if (firstArg === 'serverless') {
   program.addCommand(registerServerlessCommands())
 } else {
   program.addCommand(defineGroup({ name: 'serverless', description: 'Manage Elastic Serverless projects and resources' }))
+}
+
+if (firstArg === 'docs') {
+  const { registerDocsCommands } = await import('./docs/register.ts')
+  program.addCommand(registerDocsCommands())
+} else {
+  program.addCommand(defineGroup({ name: 'docs', description: 'Search, read, and ask questions about Elastic documentation' }))
 }
 
 // Load config early so --help can hide blocked commands. Skip for commands

@@ -83,6 +83,8 @@ export interface ParsedResult<T = unknown> {
   config?: ResolvedConfig
   /** parsed JSON content when `input` is enabled and data is provided via --input-file or stdin */
   input?: T
+  /** value of the positional argument, if `positionalArg` was declared in the command config */
+  arg?: string
 }
 
 /**
@@ -110,8 +112,10 @@ export interface CommandConfig<T extends z.ZodType = z.ZodType> {
   name: string
   /** human-readable description shown in help text */
   description: string
-  /** option and flag definitions; all inputs are named options - positional arguments are not supported */
+  /** option and flag definitions */
   options?: OptionDefinition[]
+  /** optional single positional argument; appears in usage as `<name>` (required) or `[name]` (optional) */
+  positionalArg?: { name: string; description: string; required?: boolean }
   /**
    * invoked after successful parsing and type coercion.
    * errors thrown here propagate to the caller; the factory does not catch handler errors.
@@ -484,6 +488,13 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
   cmd.description(config.description)
   configureErrorOutput(cmd)
 
+  if (config.positionalArg != null) {
+    const placeholder = config.positionalArg.required !== false
+      ? `<${config.positionalArg.name}>`
+      : `[${config.positionalArg.name}]`
+    cmd.argument(placeholder, config.positionalArg.description)
+  }
+
   // EXTENSION POINT: output formatting (Principle II)
   // Future: inspect config for a `format?: 'text' | 'json'` field and configure
   // a global output serialiser here, before any option registration.
@@ -635,6 +646,10 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       }
     }
 
+    const positionalValue = config.positionalArg != null
+      ? (cmd.processedArgs[0] as string | undefined)
+      : undefined
+
     const resolvedConfig = getResolvedConfig()
 
     // enforce command policy before any other work
@@ -659,7 +674,8 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
 
     const parsed: ParsedResult<z.infer<T>> = {
       options,
-      ...(resolvedConfig != null ? { config: resolvedConfig } : {})
+      ...(resolvedConfig != null ? { config: resolvedConfig } : {}),
+      ...(positionalValue !== undefined ? { arg: positionalValue } : {})
     }
     if (inputValue !== undefined) {
       assert(config.input instanceof z.ZodType, `command ${JSON.stringify(config.name)}: input must be a Zod schema`)
