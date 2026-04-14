@@ -23,25 +23,19 @@ elastic --help
 
 ## Configuration
 
-The CLI searches for a config file starting from the current working directory and
-walks up toward your home directory, stopping at the first file found. As a final
-fallback it also checks the platform-specific user config directory
-(`~/.config/elastic/` on Linux/macOS, `%APPDATA%\elastic\` on Windows).
+The CLI looks for a config file in your home directory. The following file names
+are recognised (checked in this order):
 
-The following file names are recognised in each directory (checked in this order):
+1. `.elasticrc`
+2. `.elasticrc.json`
+3. `.elasticrc.yaml`
+4. `.elasticrc.yml`
 
-1. `package.json` - `elastic` key
-2. `.elasticrc`
-3. `.elasticrc.json`
-4. `.elasticrc.yaml`
-5. `.elasticrc.yml`
-6. `.elasticrc.js` / `.elasticrc.ts` / `.elasticrc.cjs` / `.elasticrc.mjs`
-7. `.config/elasticrc` (and `.json` / `.yaml` / `.yml` / `.js` / `.ts` / `.cjs` / `.mjs` variants)
-8. `elastic.config.js` / `.ts` / `.cjs` / `.mjs`
+You can also point to a config file explicitly with `--config-file <path>` or
+the `ELASTIC_CLI_CONFIG_FILE` environment variable. Precedence:
+`--config-file` > `ELASTIC_CLI_CONFIG_FILE` > home directory discovery.
 
-**Only the first matching file is used - configs are not merged.** Place your
-personal config at `~/.elasticrc.yml` (recommended) so it applies everywhere, or
-put one in a project root to override it for that project.
+JavaScript and TypeScript config files are not supported for security reasons.
 
 ```yaml
 current_context: local
@@ -68,6 +62,48 @@ Override `current_context` for a single command with `--use-context <name>`.
 
 Each context can have any combination of service blocks (`elasticsearch`, `kibana`, `cloud`).
 Authentication can also use `username` + `password` instead of `api_key`.
+
+### External credentials
+
+Instead of storing secrets in plaintext, any string value in the config file can
+use `$(resolver:params)` expressions to fetch values from external sources at
+runtime.
+
+#### `env` - environment variables
+
+```yaml
+auth:
+  api_key: $(env:ELASTIC_API_KEY)
+```
+
+#### `cmd` - shell command output
+
+The command is executed and its stdout (trimmed) is used as the value.
+
+```yaml
+auth:
+  api_key: $(cmd:pass show elastic/api-key)
+```
+
+#### `keychain` - macOS Keychain (macOS only)
+
+Reads a password from the macOS Keychain using the `service/account` format.
+
+```yaml
+auth:
+  api_key: $(keychain:elastic-cli/api-key)
+```
+
+To store a value: `security add-generic-password -s elastic-cli -a api-key -w`
+
+Expressions can appear in any string field, including URLs:
+
+```yaml
+elasticsearch:
+  url: https://$(env:ES_HOST):9200
+  auth:
+    api_key: $(keychain:elastic-cli/api-key)
+```
 
 ## Global options
 

@@ -8,9 +8,10 @@
  *
  * Pipeline:
  * 1. Create cosmiconfig explorer with ID 'elastic' for discovery
- * 2. Load and validate config file with Zod schemas
- * 3. Resolve the active context (default or --use-context override)
- * 4. Return typed ResolvedConfig to command handlers
+ * 2. Resolve expressions in config values (e.g. $(env:VAR), $(cmd:...), $(keychain:...))
+ * 3. Validate resolved config with Zod schemas
+ * 4. Resolve the active context (default or --use-context override)
+ * 5. Return typed ResolvedConfig to command handlers
  *
  * Supports:
  * - cosmiconfig discovery (searches standard locations)
@@ -23,6 +24,7 @@
 import { z } from 'zod'
 import { cosmiconfig } from 'cosmiconfig'
 import { ConfigFileSchema } from './schema.ts'
+import { resolveExpressions } from './resolvers.ts'
 import type { ConfigFile, ResolvedConfig, ResolvedContext } from './types.ts'
 
 /**
@@ -120,9 +122,10 @@ export type LoadConfigResult = LoadConfigOk | LoadConfigErr
  *
  * Steps:
  * 1. Load raw config via cosmiconfig (discovery or explicit path)
- * 2. Validate with `ConfigFileSchema` (Zod)
- * 3. Resolve the active context (from `contextName` override or `current_context`)
- * 4. Return a typed `ResolvedConfig`
+ * 2. Resolve expressions in string values (env, cmd, keychain)
+ * 3. Validate with `ConfigFileSchema` (Zod)
+ * 4. Resolve the active context (from `contextName` override or `current_context`)
+ * 5. Return a typed `ResolvedConfig`
  *
  * All failure modes return `{ ok: false, error: { message } }` -- never throw.
  *
@@ -153,7 +156,15 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     return { ok: false, error: { message } }
   }
 
-  // Step 2: validate with Zod
+  // Step 2: resolve expressions in string values
+  try {
+    raw = await resolveExpressions(raw)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return { ok: false, error: { message: `Failed to resolve config expressions: ${message}` } }
+  }
+
+  // Step 3: validate with Zod
   const parsed = ConfigFileSchema.safeParse(raw)
   if (!parsed.success) {
     return { ok: false, error: { message: z.prettifyError(parsed.error) } }
@@ -161,7 +172,7 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
 
   const config = parsed.data
 
-  // Step 3: resolve context name (--use-context override or current_context from file)
+  // Step 4: resolve context name (--use-context override or current_context from file)
   const resolvedContextName = contextName ?? config.current_context
 
   if (!(resolvedContextName in config.contexts)) {
@@ -174,6 +185,6 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     }
   }
 
-  // Step 4: resolve and return
+  // Step 5: resolve and return
   return { ok: true, value: resolveContext(config, resolvedContextName) }
 }
