@@ -82,3 +82,18 @@ export const ConfigFileSchema = z
     (cfg) => cfg.current_context in cfg.contexts,
     { error: 'current_context must reference an existing context key' }
   )
+
+/**
+ * Structural schema for first-pass validation before expression resolution.
+ * Validates the outer config shape (current_context, contexts keys, commands)
+ * without deeply validating context values (which may contain unresolved expressions).
+ */
+export const StructuralConfigSchema = z
+  .object({
+    current_context: z.string().min(1),
+    contexts: z.record(z.string(), z.record(z.string(), z.unknown())).refine(
+      (map) => Object.keys(map).length > 0,
+      { error: 'contexts must contain at least one entry' },
+    ),
+    commands: z.unknown().optional(),
+  })

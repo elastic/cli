@@ -6,12 +6,16 @@
 /**
  * Configuration file discovery, loading, validation, and context resolution.
  *
- * Pipeline:
+ * Pipeline (lazy validation):
  * 1. Discover config file in home directory (or via --config-file / ELASTIC_CLI_CONFIG_FILE)
- * 2. Resolve expressions in config values (e.g. $(env:VAR), $(cmd:...), $(keychain:...))
- * 3. Validate resolved config with Zod schemas
- * 4. Resolve the active context (default or --use-context override)
- * 5. Return typed ResolvedConfig to command handlers
+ * 2. Structural validation of the outer config shape (without resolving expressions)
+ * 3. Resolve context name (default or --use-context override)
+ * 4. Resolve expressions only in the active context and commands section
+ * 5. Validate active context with full Zod schemas
+ * 6. Return typed ResolvedConfig to command handlers
+ *
+ * Only the active context's expressions are resolved, so inactive contexts
+ * with unset environment variables or missing files will not cause failures.
  *
  * Supports:
  * - Home-directory discovery (~/.elasticrc.yml and variants)
@@ -26,7 +30,7 @@ import { homedir } from 'node:os'
 import { extname, join } from 'node:path'
 import { z } from 'zod'
 import { parse as parseYaml } from 'yaml'
-import { ConfigFileSchema } from './schema.ts'
+import { ContextSchema, CommandPolicySchema, StructuralConfigSchema } from './schema.ts'
 import { resolveExpressions } from './resolvers.ts'
 import type { ConfigFile, ResolvedConfig, ResolvedContext } from './types.ts'
 
@@ -128,14 +132,19 @@ export interface LoadConfigErr { ok: false, error: { message: string } }
 export type LoadConfigResult = LoadConfigOk | LoadConfigErr
 
 /**
- * Full config loading pipeline: discover/load → validate → resolve context.
+ * Full config loading pipeline with lazy expression resolution.
  *
  * Steps:
  * 1. Discover or resolve config file path, then read and parse it
- * 2. Resolve expressions in string values (env, cmd, keychain)
- * 3. Validate with `ConfigFileSchema` (Zod)
- * 4. Resolve the active context (from `contextName` override or `current_context`)
- * 5. Return a typed `ResolvedConfig`
+ * 2. Structural validation (shape only, no expression resolution)
+ * 3. Resolve context name (from `contextName` override or `current_context`)
+ * 4. Extract active context raw data + commands section
+ * 5. Resolve expressions only in the active context and commands
+ * 6. Validate active context with ContextSchema, commands with CommandPolicySchema
+ * 7. Return a typed `ResolvedConfig`
+ *
+ * Only the active context's expressions are resolved, so inactive contexts
+ * with unset environment variables or missing files will not cause failures.
  *
  * All failure modes return `{ ok: false, error: { message } }` -- never throw.
  *
@@ -172,27 +181,19 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     return { ok: false, error: { message } }
   }
 
-  // Step 2: resolve expressions in string values
-  try {
-    raw = await resolveExpressions(raw)
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    return { ok: false, error: { message: `Failed to resolve config expressions: ${message}` } }
+  // Step 2: structural validation (shape only, no deep context validation)
+  const structural = StructuralConfigSchema.safeParse(raw)
+  if (!structural.success) {
+    return { ok: false, error: { message: z.prettifyError(structural.error) } }
   }
 
-  // Step 3: validate with Zod
-  const parsed = ConfigFileSchema.safeParse(raw)
-  if (!parsed.success) {
-    return { ok: false, error: { message: z.prettifyError(parsed.error) } }
-  }
+  const { current_context, contexts, commands: rawCommands } = structural.data
 
-  const config = parsed.data
+  // Step 3: resolve context name (--use-context override or current_context from file)
+  const resolvedContextName = contextName ?? current_context
 
-  // Step 4: resolve context name (--use-context override or current_context from file)
-  const resolvedContextName = contextName ?? config.current_context
-
-  if (!(resolvedContextName in config.contexts)) {
-    const available = Object.keys(config.contexts).join(', ')
+  if (!(resolvedContextName in contexts)) {
+    const available = Object.keys(contexts).join(', ')
     return {
       ok: false,
       error: {
@@ -201,6 +202,41 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     }
   }
 
-  // Step 5: resolve and return
-  return { ok: true, value: resolveContext(config, resolvedContextName) }
+  // Step 4: resolve expressions only in active context and commands (in parallel)
+  let resolvedRawContext: unknown
+  let resolvedRawCommands: unknown
+  try {
+    [resolvedRawContext, resolvedRawCommands] = await Promise.all([
+      resolveExpressions(contexts[resolvedContextName], `contexts.${resolvedContextName}`),
+      rawCommands != null ? resolveExpressions(rawCommands, 'commands') : undefined,
+    ])
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return { ok: false, error: { message: `Failed to resolve config expressions: ${message}` } }
+  }
+
+  // Step 5: validate active context and commands with full schemas
+  const contextParsed = ContextSchema.safeParse(resolvedRawContext)
+  if (!contextParsed.success) {
+    return { ok: false, error: { message: z.prettifyError(contextParsed.error) } }
+  }
+
+  let commands: ConfigFile['commands']
+  if (resolvedRawCommands != null) {
+    const commandsParsed = CommandPolicySchema.safeParse(resolvedRawCommands)
+    if (!commandsParsed.success) {
+      return { ok: false, error: { message: z.prettifyError(commandsParsed.error) } }
+    }
+    commands = commandsParsed.data
+  }
+
+  // Step 6: build and return ResolvedConfig
+  const ctx = contextParsed.data
+  const resolved: ResolvedContext = {}
+  if (ctx.elasticsearch != null) resolved.elasticsearch = ctx.elasticsearch
+  if (ctx.kibana != null) resolved.kibana = ctx.kibana
+  if (ctx.cloud != null) resolved.cloud = ctx.cloud
+  const result: ResolvedConfig = { context: resolved }
+  if (commands != null) result.commands = commands
+  return { ok: true, value: result }
 }
