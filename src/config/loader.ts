@@ -230,13 +230,11 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     commands = commandsParsed.data
   }
 
-  // Step 6: build and return ResolvedConfig
-  const ctx = contextParsed.data
-  const resolved: ResolvedContext = {}
-  if (ctx.elasticsearch != null) resolved.elasticsearch = ctx.elasticsearch
-  if (ctx.kibana != null) resolved.kibana = ctx.kibana
-  if (ctx.cloud != null) resolved.cloud = ctx.cloud
-  const result: ResolvedConfig = { context: resolved }
-  if (commands != null) result.commands = commands
-  return { ok: true, value: result }
+  // Step 6: build and return ResolvedConfig (delegate to resolveContext)
+  const config: ConfigFile = {
+    current_context: resolvedContextName,
+    contexts: { [resolvedContextName]: contextParsed.data },
+    ...(commands != null && { commands }),
+  }
+  return { ok: true, value: resolveContext(config, resolvedContextName) }
 }
