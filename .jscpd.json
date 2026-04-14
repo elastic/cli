@@ -1,0 +1,21 @@
+{
+  "threshold": 5,
+  "reporters": ["console"],
+  "ignore": [
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    "src/es/apis/schemas/**",
+    "src/es/apis/**",
+    "src/cloud/apis/**",
+    "test/**",
+    "codegen/**",
+    "specs/**",
+    "**/*.json",
+    "**/*.yml",
+    "**/*.yaml",
+    "**/*.md"
+  ],
+  "minLines": 10,
+  "minTokens": 70
+}

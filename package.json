@@ -8,14 +8,15 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && npm run test:lint && npm run test:unit && npm run test:license",
+    "test": "npm run build && npm run test:unit && npm run test:license",
     "test:unit": "node --import tsx/esm --test",
     "test:lint": "eslint src",
     "codegen:functional": "npx tsx codegen/functional/index.ts --tests-dir ../elasticsearch-clients-tests/tests",
     "test:functional:es": "bash test/functional/es/run.sh",
     "test:functional:cloud": "bash test/functional/cloud/smoke.sh",
     "test:license": "license-checker --production",
-    "test:spdx": "./scripts/check-spdx"
+    "test:spdx": "./scripts/check-spdx",
+    "test:megalinter": "mega-linter-runner --flavor javascript"
   },
   "keywords": [
     "cli",
@@ -49,6 +50,7 @@
     "@types/node": "25.5.0",
     "eslint": "10.1.0",
     "license-checker": "25.0.1",
+    "mega-linter-runner": "^9.4.0",
     "tsx": "4.21.0",
     "typescript": "6.0.2",
     "typescript-eslint": "8.58.0"

@@ -11,7 +11,7 @@ It targets LLM-powered agents as first-class users by providing several guardrai
 - **Config Management**: cosmiconfig
 - **Config Serialization**: YAML
 - **Testing**: Node.js built-in test runner (node:test)
-- **Linting**: ESLint + TypeScript ESLint
+- **Linting**: ESLint + TypeScript ESLint, MegaLinter (CI + pre-commit)
 - **TypeScript**: Strict mode with ESNext + nodenext module resolution
 
 Adding other new third-party dependencies is highly discouraged to reduce supply-chain attack surface.
@@ -57,6 +57,14 @@ When writing code that does something that is not critical to this tool's core d
 Do not stop between writing test and implementation. Proceed through the full cycle.
 
 **Task completion**: All tests pass (`npm test` exits 0), lint checks pass, no style violations.
+
+## Pre-commit Linting
+
+This repo uses a [MegaLinter](https://megalinter.io/) pre-commit hook that runs automatically on every commit when `pre-commit install` has been run. It checks only staged files and catches: TypeScript lint errors, YAML formatting issues, unpinned GitHub Actions, accidental secrets, and copy-paste duplication. Docker must be running.
+
+If you are an AI agent and the pre-commit hook fails your commit, read the error output and fix the flagged files before retrying. Do not use `--no-verify` to bypass it. The hook exists to catch exactly the kinds of issues that agents commonly introduce.
+
+To run MegaLinter manually against the full codebase: `npm run test:megalinter` (requires Docker).
 
 ## Thorough Testing
 
