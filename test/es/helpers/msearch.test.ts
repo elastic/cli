@@ -41,20 +41,32 @@ async function runCommand (args: string[], deps: MsearchDeps): Promise<unknown> 
   program.option('--json', 'output as JSON')
   program.addCommand(cmd)
 
-  const chunks: string[] = []
-  const origWrite = process.stdout.write.bind(process.stdout)
+  // Capture stdout and stderr
+  const origStdoutWrite = process.stdout.write.bind(process.stdout)
+  const origStderrWrite = process.stderr.write.bind(process.stderr)
+  const stdoutChunks: string[] = []
+  const stderrChunks: string[] = []
   process.stdout.write = ((chunk: string) => {
-    chunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
+    stdoutChunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
     return true
   }) as typeof process.stdout.write
+  process.stderr.write = ((chunk: string) => {
+    stderrChunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
+    return true
+  }) as typeof process.stderr.write
 
   try {
     await program.parseAsync(['node', 'test', 'msearch', ...args])
   } finally {
-    process.stdout.write = origWrite
+    process.stdout.write = origStdoutWrite
+    process.stderr.write = origStderrWrite
+    process.exitCode = 0
   }
 
-  const output = chunks.join('')
+  // Prefer stderr (error results) over stdout; parse whichever has content
+  const errOutput = stderrChunks.join('')
+  const stdOutput = stdoutChunks.join('')
+  const output = errOutput.trim().length > 0 ? errOutput : stdOutput
   if (output.trim().length > 0) {
     try { return JSON.parse(output.trim()) } catch { return output.trim() }
   }
