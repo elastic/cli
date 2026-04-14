@@ -754,12 +754,15 @@ describe('pass resolver', () => {
 // ---------------------------------------------------------------------------
 
 describe('credential_manager resolver', () => {
-  it('resolves a credential on Windows', async () => {
+  it('resolves a credential on Windows via EncodedCommand', async () => {
     const restorePlatform = _testSetPlatform('win32')
     const restoreExec = _testSetExecSync(((cmd: string) => {
       assert.match(cmd, /powershell/)
-      assert.match(cmd, /Get-StoredCredential/)
-      assert.match(cmd, /elastic-cli\/my-api-key/)
+      assert.match(cmd, /-EncodedCommand/)
+      const b64 = cmd.split('-EncodedCommand ')[1]!
+      const decoded = Buffer.from(b64, 'base64').toString('utf16le')
+      assert.match(decoded, /Get-StoredCredential/)
+      assert.match(decoded, /elastic-cli\/my-api-key/)
       return 'credential-secret\n'
     }) as unknown as typeof import('node:child_process').execSync)
     try {
@@ -866,7 +869,9 @@ describe('credential_manager resolver', () => {
   it('splits on first slash only (account can contain slashes)', async () => {
     const restorePlatform = _testSetPlatform('win32')
     const restoreExec = _testSetExecSync(((cmd: string) => {
-      assert.match(cmd, /my-service\/path\/to\/key/)
+      const b64 = cmd.split('-EncodedCommand ')[1]!
+      const decoded = Buffer.from(b64, 'base64').toString('utf16le')
+      assert.match(decoded, /my-service\/path\/to\/key/)
       return 'value\n'
     }) as unknown as typeof import('node:child_process').execSync)
     try {
@@ -878,7 +883,7 @@ describe('credential_manager resolver', () => {
     }
   })
 
-  it('uses PowerShell escaping (doubled single quotes) not POSIX escaping', async () => {
+  it('uses PowerShell escaping (doubled single quotes) in encoded command', async () => {
     const restorePlatform = _testSetPlatform('win32')
     let capturedCmd = ''
     const restoreExec = _testSetExecSync(((cmd: string) => {
@@ -887,7 +892,27 @@ describe('credential_manager resolver', () => {
     }) as unknown as typeof import('node:child_process').execSync)
     try {
       await resolveExpressions("$(credential_manager:it's-a-service/acct)")
-      assert.ok(capturedCmd.includes("'it''s-a-service/acct'"), `expected PS-escaped target in: ${capturedCmd}`)
+      const b64 = capturedCmd.split('-EncodedCommand ')[1]!
+      const decoded = Buffer.from(b64, 'base64').toString('utf16le')
+      assert.ok(decoded.includes("'it''s-a-service/acct'"), `expected PS-escaped target in decoded command: ${decoded}`)
+    } finally {
+      restoreExec()
+      restorePlatform()
+    }
+  })
+
+  it('throws when credential manager returns empty password', async () => {
+    const restorePlatform = _testSetPlatform('win32')
+    const restoreExec = _testSetExecSync((() => '\n') as unknown as typeof import('node:child_process').execSync)
+    try {
+      await assert.rejects(
+        () => resolveExpressions('$(credential_manager:my-svc/my-acct)'),
+        (err: Error) => {
+          assert.match(err.message, /empty password/)
+          assert.match(err.message, /service="my-svc"/)
+          return true
+        }
+      )
     } finally {
       restoreExec()
       restorePlatform()

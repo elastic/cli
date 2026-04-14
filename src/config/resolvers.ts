@@ -101,8 +101,9 @@ function shellEscape (value: string): string {
   return "'" + value.replace(/'/g, "'\\''") + "'"
 }
 
-function psEscape (value: string): string {
-  return "'" + value.replace(/'/g, "''") + "'"
+function psEncodedCommand (expression: string): string {
+  const utf16le = Buffer.from(expression, 'utf16le')
+  return `powershell -NoProfile -NonInteractive -EncodedCommand ${utf16le.toString('base64')}`
 }
 
 const MAX_FILE_SIZE = 64 * 1024 // 64 KB
@@ -248,10 +249,12 @@ function credentialManagerResolver (params: string): string {
 
   const { service, account } = parseServiceAccount(params, 'credential_manager')
   const target = `${service}/${account}`
+  const expression = `(Get-StoredCredential -Target '${target.replace(/'/g, "''")}').GetNetworkCredential().Password`
 
+  let result: string
   try {
-    return _execSync(
-      `powershell -NoProfile -NonInteractive -Command "(Get-StoredCredential -Target ${psEscape(target)}).GetNetworkCredential().Password"`,
+    result = _execSync(
+      psEncodedCommand(expression),
       execOpts(10_000)
     ).trimEnd()
   } catch (err) {
@@ -261,6 +264,13 @@ function credentialManagerResolver (params: string): string {
       { cause: err }
     )
   }
+
+  if (result === '') {
+    throw new Error(
+      `Credential Manager returned empty password for service="${service}", account="${account}"`
+    )
+  }
+  return result
 }
 
 // ---------------------------------------------------------------------------
