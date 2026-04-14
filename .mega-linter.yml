@@ -20,6 +20,7 @@ PRE_COMMANDS:
   - command: "npm ci --ignore-scripts"
     cwd: "workspace"
 
+TYPESCRIPT_ES_CLI_EXECUTABLE: /tmp/lint/node_modules/.bin/eslint
 TYPESCRIPT_ES_CONFIG_FILE: eslint.config.js
 
 # Global exclusions
