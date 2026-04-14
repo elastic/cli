@@ -43,7 +43,7 @@ current_context: local
 contexts:
   local:
     elasticsearch:
-      url: https://localhost:9200
+      url: http://localhost:9200
       auth:
         api_key: your-api-key-here
   staging:
@@ -189,23 +189,55 @@ elastic es update --index my-index --id abc123
 
 Run `elastic es <command> --help` for all available options on any command.
 
-### `cloud` - Elastic Cloud control plane
+### `cloud` - Elastic Cloud (hosted)
 
-Manage Elastic Cloud deployments and Elasticsearch serverless projects.
+Manage Elastic Cloud hosted deployments.
 Requires a `cloud` service block in the active context.
 
 #### `cloud deployments`
 
 ```bash
-elastic cloud deployments list
-elastic cloud deployments get --deployment-id <id>
-elastic cloud deployments shutdown --deployment-id <id>
+elastic cloud deployments list-deployments
+elastic cloud deployments get-deployment --id <id>
+elastic cloud deployments shutdown-deployment --id <id>
+elastic cloud deployments create-deployment <<< '{"name":"my-deployment",...}'
 ```
 
-#### `cloud projects`
+Run `elastic cloud --help` for all available namespace groups (accounts,
+billing-costs-analysis, deployment-templates, extensions, organizations, etc.).
+
+### `serverless` - Elastic Serverless
+
+Manage Elastic Serverless projects and resources.
+Requires a `cloud` service block in the active context.
+
+#### `serverless es projects` - Elasticsearch projects
 
 ```bash
-elastic cloud projects list
-elastic cloud projects get --project-id <id>
-elastic cloud projects delete --project-id <id>
+elastic serverless es projects list
+elastic serverless es projects create <<< '{"name":"demo","region_id":"aws-us-east-1"}'
+elastic serverless es projects create --wait <<< '{"name":"demo","region_id":"aws-us-east-1"}'
+elastic serverless es projects get --id <id>
+elastic serverless es projects delete --id <id>
+elastic serverless es projects get-status --id <id>
+elastic serverless es projects get-roles --id <id>
+elastic serverless es projects reset-credentials --id <id>
 ```
+
+#### `serverless observability projects` / `serverless security projects`
+
+Same commands as `es projects` but for Observability and Security project types:
+
+```bash
+elastic serverless observability projects list
+elastic serverless security projects create --wait <<< '{"name":"demo","region_id":"aws-us-east-1"}'
+```
+
+#### Other serverless resources
+
+```bash
+elastic serverless regions list-regions
+elastic serverless traffic-filters list-traffic-filters
+```
+
+Run `elastic serverless --help` for all available groups.
