@@ -23,25 +23,19 @@ elastic --help
 
 ## Configuration
 
-The CLI searches for a config file starting from the current working directory and
-walks up toward your home directory, stopping at the first file found. As a final
-fallback it also checks the platform-specific user config directory
-(`~/.config/elastic/` on Linux/macOS, `%APPDATA%\elastic\` on Windows).
+The CLI looks for a config file in your home directory. The following file names
+are checked (in this order):
 
-The following file names are recognised in each directory (checked in this order):
+1. `.elasticrc`
+2. `.elasticrc.json`
+3. `.elasticrc.yaml`
+4. `.elasticrc.yml`
 
-1. `package.json` - `elastic` key
-2. `.elasticrc`
-3. `.elasticrc.json`
-4. `.elasticrc.yaml`
-5. `.elasticrc.yml`
-6. `.elasticrc.js` / `.elasticrc.ts` / `.elasticrc.cjs` / `.elasticrc.mjs`
-7. `.config/elasticrc` (and `.json` / `.yaml` / `.yml` / `.js` / `.ts` / `.cjs` / `.mjs` variants)
-8. `elastic.config.js` / `.ts` / `.cjs` / `.mjs`
+Place your config at `~/.elasticrc.yml` (recommended).
 
-**Only the first matching file is used - configs are not merged.** Place your
-personal config at `~/.elasticrc.yml` (recommended) so it applies everywhere, or
-put one in a project root to override it for that project.
+To use a config file in a different location, pass `--config-file <path>` or set
+the `ELASTIC_CLI_CONFIG_FILE` environment variable. The flag takes precedence
+over the environment variable.
 
 ```yaml
 current_context: local
@@ -69,11 +63,63 @@ Override `current_context` for a single command with `--use-context <name>`.
 Each context can have any combination of service blocks (`elasticsearch`, `kibana`, `cloud`).
 Authentication can also use `username` + `password` instead of `api_key`.
 
+### External credentials
+
+Instead of storing secrets in plaintext, any string value in the config file can
+use `$(resolver:params)` expressions to fetch values from external sources at
+runtime.
+
+#### `file` - read from a file
+
+Reads the contents of a file (trimmed). Useful for Docker/Kubernetes secrets
+mounted at `/run/secrets/`.
+
+```yaml
+auth:
+  api_key: $(file:/run/secrets/elastic_api_key)
+```
+
+#### `env` - environment variables
+
+```yaml
+auth:
+  api_key: $(env:ELASTIC_API_KEY)
+```
+
+#### `cmd` - shell command output
+
+The command is executed and its stdout (trimmed) is used as the value.
+
+```yaml
+auth:
+  api_key: $(cmd:pass show elastic/api-key)
+```
+
+#### `keychain` - macOS Keychain (macOS only)
+
+Reads a password from the macOS Keychain using the `service/account` format.
+
+```yaml
+auth:
+  api_key: $(keychain:elastic-cli/api-key)
+```
+
+To store a value: `security add-generic-password -s elastic-cli -a api-key -w`
+
+Expressions can appear in any string field, including URLs:
+
+```yaml
+elasticsearch:
+  url: https://$(env:ES_HOST):9200
+  auth:
+    api_key: $(keychain:elastic-cli/api-key)
+```
+
 ## Global options
 
 | Option | Description |
 |---|---|
-| `--config-file <path>` | Path to a config file, bypassing automatic discovery |
+| `--config-file <path>` | Path to a config file (default: `~/.elasticrc.yml`) |
 | `--use-context <name>` | Override the active context from the config file |
 | `--json` | Output results as JSON |
 

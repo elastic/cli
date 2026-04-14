@@ -5,10 +5,10 @@
 
 import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, writeFile, rm } from 'node:fs/promises'
+import { mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { createExplorer, resolveContext, loadConfig } from '../../src/config/loader.ts'
+import { loadConfigFile, discoverConfigFile, resolveContext, loadConfig } from '../../src/config/loader.ts'
 import type { ConfigFile, ResolvedConfig } from '../../src/config/types.ts'
 
 // ---------------------------------------------------------------------------
@@ -52,51 +52,80 @@ const VALID_CONFIG_OBJECT: ConfigFile = {
 
 // ---------------------------------------------------------------------------
 
-describe('createExplorer', () => {
-  it('exports a createExplorer function', () => {
-    assert.equal(typeof createExplorer, 'function')
+describe('loadConfigFile', () => {
+  let tmpDir: string
+  before(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-test-'))
+  })
+  after(async () => rm(tmpDir, { recursive: true }))
+
+  it('parses a YAML config file', async () => {
+    const filePath = join(tmpDir, 'config.yml')
+    await writeFile(filePath, VALID_CONFIG_YAML)
+    const result = await loadConfigFile(filePath) as Record<string, unknown>
+    assert.equal(result['current_context'], 'local')
   })
 
-  describe('search()', () => {
-    let tmpDir: string
-    before(async () => {
-      tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-test-'))
-      await writeFile(join(tmpDir, '.elasticrc.yml'), VALID_CONFIG_YAML)
-    })
-    after(async () => rm(tmpDir, { recursive: true }))
-
-    it('discovers a .elasticrc.yml file by searching from a directory', async () => {
-      const explorer = createExplorer()
-      const result = await explorer.search(tmpDir)
-      assert.ok(result != null, 'search() should find the config file')
-      assert.ok(result!.config != null, 'result.config should be the parsed YAML object')
-      assert.equal(result!.config['current_context'], 'local')
-    })
+  it('parses a JSON config file', async () => {
+    const filePath = join(tmpDir, 'config.json')
+    await writeFile(filePath, JSON.stringify(VALID_CONFIG_OBJECT))
+    const result = await loadConfigFile(filePath) as Record<string, unknown>
+    assert.equal(result['current_context'], 'local')
   })
 
-  describe('load()', () => {
-    let tmpDir: string
-    let configPath: string
-    before(async () => {
-      tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-test-'))
-      configPath = join(tmpDir, 'myconfig.yml')
-      await writeFile(configPath, VALID_CONFIG_YAML)
-    })
-    after(async () => rm(tmpDir, { recursive: true }))
+  it('parses an extensionless file as YAML', async () => {
+    const filePath = join(tmpDir, '.elasticrc')
+    await writeFile(filePath, VALID_CONFIG_YAML)
+    const result = await loadConfigFile(filePath) as Record<string, unknown>
+    assert.equal(result['current_context'], 'local')
+  })
 
-    it('loads a config file from an explicit path', async () => {
-      const explorer = createExplorer()
-      const result = await explorer.load(configPath)
-      assert.ok(result != null, 'load() should return a result for a valid path')
-      assert.equal(result!.config['current_context'], 'local')
-    })
+  it('throws for nonexistent file', async () => {
+    await assert.rejects(() => loadConfigFile(join(tmpDir, 'nope.yml')))
+  })
+})
 
-    it('returns the absolute file path in the result', async () => {
-      const explorer = createExplorer()
-      const result = await explorer.load(configPath)
-      assert.ok(result != null)
-      assert.equal(result!.filepath, configPath)
-    })
+// ---------------------------------------------------------------------------
+
+describe('discoverConfigFile', () => {
+  it('discovers a .elasticrc.yml in the given directory', async () => {
+    const tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-test-'))
+    await writeFile(join(tmpDir, '.elasticrc.yml'), VALID_CONFIG_YAML)
+    const found = await discoverConfigFile(tmpDir)
+    assert.ok(found != null)
+    assert.ok(found!.endsWith('.elasticrc.yml'))
+    await rm(tmpDir, { recursive: true })
+  })
+
+  it('returns null when no config exists', async () => {
+    const emptyDir = await mkdtemp(join(tmpdir(), 'elastic-cli-empty-'))
+    const found = await discoverConfigFile(emptyDir)
+    assert.equal(found, null)
+    await rm(emptyDir, { recursive: true })
+  })
+
+  it('does NOT discover config in parent directories (security regression)', async () => {
+    const parentDir = await mkdtemp(join(tmpdir(), 'elastic-cli-parent-'))
+    await writeFile(join(parentDir, '.elasticrc.yml'), VALID_CONFIG_YAML)
+    const childDir = join(parentDir, 'subdir')
+    await mkdir(childDir, { recursive: true })
+    const found = await discoverConfigFile(childDir)
+    assert.equal(found, null, 'must not walk up to parent directories')
+    await rm(parentDir, { recursive: true })
+  })
+
+  it('prefers earlier file names within the same directory', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-order-'))
+    await writeFile(join(dir, '.elasticrc.json'), JSON.stringify(VALID_CONFIG_OBJECT))
+    await writeFile(join(dir, '.elasticrc.yml'), VALID_CONFIG_YAML)
+    const found = await discoverConfigFile(dir)
+    assert.ok(found!.endsWith('.elasticrc.json'))
+    await rm(dir, { recursive: true })
+  })
+
+  it('returns null for a nonexistent directory', async () => {
+    const found = await discoverConfigFile('/nonexistent/path')
+    assert.equal(found, null)
   })
 })
 
@@ -151,14 +180,16 @@ describe('loadConfig -- default current_context', () => {
   })
 
   let tmpDir: string
+  let configPath: string
   before(async () => {
     tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-test-'))
-    await writeFile(join(tmpDir, '.elasticrc.yml'), VALID_CONFIG_YAML)
+    configPath = join(tmpDir, '.elasticrc.yml')
+    await writeFile(configPath, VALID_CONFIG_YAML)
   })
   after(async () => rm(tmpDir, { recursive: true }))
 
   it('discovers, validates, and resolves the default current_context', async () => {
-    const result = await loadConfig({ searchFrom: tmpDir })
+    const result = await loadConfig({ configPath })
     assert.ok(result.ok, `loadConfig should succeed, got: ${!result.ok ? result.error : ''}`)
     if (!result.ok) return
     assert.deepEqual(result.value, {
@@ -176,14 +207,16 @@ describe('loadConfig -- default current_context', () => {
 
 describe('loadConfig -- --use-context override', () => {
   let tmpDir: string
+  let configPath: string
   before(async () => {
     tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-test-'))
-    await writeFile(join(tmpDir, '.elasticrc.yml'), VALID_CONFIG_YAML)
+    configPath = join(tmpDir, '.elasticrc.yml')
+    await writeFile(configPath, VALID_CONFIG_YAML)
   })
   after(async () => rm(tmpDir, { recursive: true }))
 
   it('uses the supplied contextName vs current_context', async () => {
-    const result = await loadConfig({ searchFrom: tmpDir, contextName: 'staging' })
+    const result = await loadConfig({ configPath, contextName: 'staging' })
     assert.ok(result.ok, `loadConfig should succeed with --use-context staging`)
     if (!result.ok) return
     assert.deepEqual(result.value, {
@@ -194,7 +227,7 @@ describe('loadConfig -- --use-context override', () => {
   })
 
   it('returns an error when the overridden context name does not exist', async () => {
-    const result = await loadConfig({ searchFrom: tmpDir, contextName: 'nonexistent' })
+    const result = await loadConfig({ configPath, contextName: 'nonexistent' })
     assert.ok(!result.ok, 'loadConfig should fail for a nonexistent context override')
     if (result.ok) return
     assert.ok(result.error.message.includes('nonexistent'), 'error message should name the missing context')
@@ -224,7 +257,7 @@ describe('loadConfig -- --config-file override', () => {
   ]))
 
   it('loads from the explicit configPath, bypassing discovery', async () => {
-    const result = await loadConfig({ searchFrom: discoveryDir, configPath: explicitConfigPath })
+    const result = await loadConfig({ configPath: explicitConfigPath })
     assert.ok(result.ok, `loadConfig should succeed with explicit --config-file path, got: ${!result.ok ? result.error.message : ''}`)
     if (!result.ok) return
     assert.deepEqual(result.value, {
@@ -236,8 +269,90 @@ describe('loadConfig -- --config-file override', () => {
   })
 
   it('returns an error when the explicit path does not exist', async () => {
-    const result = await loadConfig({ searchFrom: discoveryDir, configPath: join(tmpDir, 'does-not-exist.yml') })
+    const result = await loadConfig({ configPath: join(tmpDir, 'does-not-exist.yml') })
     assert.ok(!result.ok, 'loadConfig should fail for a nonexistent explicit config path')
+  })
+})
+
+// ---------------------------------------------------------------------------
+
+describe('loadConfig -- ELASTIC_CLI_CONFIG_FILE env var', () => {
+  let tmpDir: string
+  let envConfigPath: string
+  before(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-envvar-'))
+    envConfigPath = join(tmpDir, 'env-config.yml')
+    await writeFile(envConfigPath, VALID_CONFIG_YAML)
+  })
+  after(async () => rm(tmpDir, { recursive: true }))
+
+  it('loads config from ELASTIC_CLI_CONFIG_FILE when set', async () => {
+    const original = process.env['ELASTIC_CLI_CONFIG_FILE']
+    try {
+      process.env['ELASTIC_CLI_CONFIG_FILE'] = envConfigPath
+      const result = await loadConfig({})
+      assert.ok(result.ok, `loadConfig should succeed via env var`)
+      if (!result.ok) return
+      assert.deepEqual(result.value, {
+        context: {
+          elasticsearch: { url: 'http://localhost:9200', auth: { username: 'elastic', password: 'changeme' } },
+          kibana: { url: 'http://localhost:5601', auth: { api_key: 'kb-key-123' } },
+        },
+      } satisfies ResolvedConfig)
+    } finally {
+      if (original === undefined) delete process.env['ELASTIC_CLI_CONFIG_FILE']
+      else process.env['ELASTIC_CLI_CONFIG_FILE'] = original
+    }
+  })
+
+  it('--config-file flag takes precedence over ELASTIC_CLI_CONFIG_FILE', async () => {
+    const otherDir = await mkdtemp(join(tmpdir(), 'elastic-cli-other-'))
+    const flagConfigPath = join(otherDir, 'flag-config.yml')
+    const envYaml = `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: http://env-host:9200
+      auth:
+        api_key: env-key
+`.trimStart()
+    const flagYaml = `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: http://flag-host:9200
+      auth:
+        api_key: flag-key
+`.trimStart()
+    await writeFile(envConfigPath, envYaml)
+    await writeFile(flagConfigPath, flagYaml)
+
+    const original = process.env['ELASTIC_CLI_CONFIG_FILE']
+    try {
+      process.env['ELASTIC_CLI_CONFIG_FILE'] = envConfigPath
+      const result = await loadConfig({ configPath: flagConfigPath })
+      assert.ok(result.ok)
+      if (!result.ok) return
+      assert.equal(result.value.context.elasticsearch!.url, 'http://flag-host:9200')
+    } finally {
+      if (original === undefined) delete process.env['ELASTIC_CLI_CONFIG_FILE']
+      else process.env['ELASTIC_CLI_CONFIG_FILE'] = original
+      await rm(otherDir, { recursive: true })
+    }
+  })
+
+  it('returns error when ELASTIC_CLI_CONFIG_FILE points to nonexistent file', async () => {
+    const original = process.env['ELASTIC_CLI_CONFIG_FILE']
+    try {
+      process.env['ELASTIC_CLI_CONFIG_FILE'] = '/nonexistent/config.yml'
+      const result = await loadConfig({})
+      assert.ok(!result.ok)
+    } finally {
+      if (original === undefined) delete process.env['ELASTIC_CLI_CONFIG_FILE']
+      else process.env['ELASTIC_CLI_CONFIG_FILE'] = original
+    }
   })
 })
 
@@ -341,14 +456,13 @@ describe('security: executable config formats are rejected', () => {
   })
   after(async () => rm(tmpDir, { recursive: true }))
 
-  describe('createExplorer rejects executable loaders', () => {
+  describe('loadConfigFile rejects executable formats', () => {
     for (const ext of ['.js', '.ts', '.mjs', '.cjs']) {
       it(`throws for .elasticrc${ext}`, async () => {
         const filePath = join(tmpDir, `.elasticrc${ext}`)
         await writeFile(filePath, 'export default {}')
-        const explorer = createExplorer()
         await assert.rejects(
-          () => explorer.load(filePath),
+          () => loadConfigFile(filePath),
           (err: Error) => {
             assert.match(err.message, /not supported.*security/)
             return true
@@ -360,19 +474,15 @@ describe('security: executable config formats are rejected', () => {
     it('still loads .yml files', async () => {
       const filePath = join(tmpDir, '.elasticrc.yml')
       await writeFile(filePath, VALID_CONFIG_YAML)
-      const explorer = createExplorer()
-      const result = await explorer.load(filePath)
-      assert.ok(result != null)
-      assert.equal(result!.config['current_context'], 'local')
+      const result = await loadConfigFile(filePath) as Record<string, unknown>
+      assert.equal(result['current_context'], 'local')
     })
 
     it('still loads .json files', async () => {
       const filePath = join(tmpDir, '.elasticrc.json')
       await writeFile(filePath, JSON.stringify(VALID_CONFIG_OBJECT))
-      const explorer = createExplorer()
-      const result = await explorer.load(filePath)
-      assert.ok(result != null)
-      assert.equal(result!.config['current_context'], 'local')
+      const result = await loadConfigFile(filePath) as Record<string, unknown>
+      assert.equal(result['current_context'], 'local')
     })
   })
 
@@ -389,27 +499,24 @@ describe('security: executable config formats are rejected', () => {
     }
   })
 
-  describe('search does not discover executable config files', () => {
-    for (const name of ['elastic.config.js', 'elastic.config.mjs', 'elastic.config.cjs', 'elastic.config.ts']) {
-      it(`skips ${name}`, async () => {
-        const searchDir = await mkdtemp(join(tmpdir(), 'elastic-cli-search-'))
-        const filePath = join(searchDir, name)
-        await writeFile(filePath, 'export default {}')
-        const explorer = createExplorer()
-        const result = await explorer.search(searchDir)
-        assert.ok(result == null || result.filepath !== filePath)
-        await rm(searchDir, { recursive: true })
+  describe('discoverConfigFile ignores executable file names', () => {
+    for (const name of ['.elasticrc.js', '.elasticrc.ts', '.elasticrc.mjs', '.elasticrc.cjs']) {
+      it(`does not discover ${name}`, async () => {
+        const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-exec-'))
+        await writeFile(join(dir, name), 'export default {}')
+        const found = await discoverConfigFile(dir)
+        assert.equal(found, null, `should not discover ${name}`)
+        await rm(dir, { recursive: true })
       })
     }
 
     it('still discovers .elasticrc.yml', async () => {
-      const searchDir = await mkdtemp(join(tmpdir(), 'elastic-cli-yml-'))
-      await writeFile(join(searchDir, '.elasticrc.yml'), VALID_CONFIG_YAML)
-      const explorer = createExplorer()
-      const result = await explorer.search(searchDir)
-      assert.ok(result != null)
-      assert.equal(result!.config['current_context'], 'local')
-      await rm(searchDir, { recursive: true })
+      const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-yml-'))
+      await writeFile(join(dir, '.elasticrc.yml'), VALID_CONFIG_YAML)
+      const found = await discoverConfigFile(dir)
+      assert.ok(found != null)
+      assert.ok(found!.endsWith('.elasticrc.yml'))
+      await rm(dir, { recursive: true })
     })
   })
 })
