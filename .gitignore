@@ -11,5 +11,8 @@ Thumbs.db
 .vscode/
 .idea/
 
+# MegaLinter reports
+megalinter-reports/
+
 # Generated functional test scripts
 test/functional/es/
