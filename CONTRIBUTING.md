@@ -48,11 +48,11 @@ Thanks for your interest in contributing! We love receiving contributions from o
 
 | Command | Purpose |
 |---------|---------|
-| `npm test` | Build, lint, and run unit tests |
+| `npm test` | Build and run unit tests |
 | `npm run test:unit` | Run unit tests only |
 | `npm run test:lint` | Run ESLint |
 | `npm run test:lint -- --fix` | Fix linter errors automatically |
-| `npm run lint` | Run MegaLinter locally (requires Docker) |
+| `npm run test:megalinter` | Run MegaLinter locally (requires Docker) |
 
 ## Linting
 
@@ -67,7 +67,7 @@ If Docker is not running when you commit, the hook is skipped. You can also skip
 ### Running MegaLinter manually
 
 ```bash
-npm run lint
+npm run test:megalinter
 ```
 
 This pulls the MegaLinter JavaScript flavor Docker image and runs all configured linters against the full codebase. Reports are written to `megalinter-reports/` (gitignored).

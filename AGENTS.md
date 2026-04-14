@@ -64,7 +64,7 @@ This repo uses a [MegaLinter](https://megalinter.io/) pre-commit hook that runs 
 
 If you are an AI agent and the pre-commit hook fails your commit, read the error output and fix the flagged files before retrying. Do not use `--no-verify` to bypass it. The hook exists to catch exactly the kinds of issues that agents commonly introduce.
 
-To run MegaLinter manually against the full codebase: `npm run lint` (requires Docker).
+To run MegaLinter manually against the full codebase: `npm run test:megalinter` (requires Docker).
 
 ## Thorough Testing
 
