@@ -137,6 +137,26 @@ function cmdResolver (params: string): string {
   }
 }
 
+const PRINTABLE_ASCII_RE = /^[\x20-\x7e]+$/
+
+function parseServiceAccount (params: string, resolverName: string): { service: string; account: string } {
+  if (!PRINTABLE_ASCII_RE.test(params)) {
+    throw new Error(
+      `Invalid ${resolverName} parameter "${params}": contains non-printable characters`
+    )
+  }
+
+  const slashIndex = params.indexOf('/')
+  if (slashIndex === -1 || slashIndex === 0 || slashIndex === params.length - 1) {
+    throw new Error(
+      `Invalid ${resolverName} parameter "${params}": expected format "service/account" ` +
+      `(e.g., "elastic-cli/api-key")`
+    )
+  }
+
+  return { service: params.slice(0, slashIndex), account: params.slice(slashIndex + 1) }
+}
+
 function keychainResolver (params: string): string {
   if (_platform !== 'darwin') {
     throw new Error(
@@ -144,22 +164,7 @@ function keychainResolver (params: string): string {
     )
   }
 
-  if (!/^[\x20-\x7e]+$/.test(params)) {
-    throw new Error(
-      `Invalid keychain parameter "${params}": contains non-printable characters`
-    )
-  }
-
-  const slashIndex = params.indexOf('/')
-  if (slashIndex === -1 || slashIndex === 0 || slashIndex === params.length - 1) {
-    throw new Error(
-      `Invalid keychain parameter "${params}": expected format "service/account" ` +
-      `(e.g., "elastic-cli/api-key")`
-    )
-  }
-
-  const service = params.slice(0, slashIndex)
-  const account = params.slice(slashIndex + 1)
+  const { service, account } = parseServiceAccount(params, 'keychain')
 
   try {
     return _execSync(
