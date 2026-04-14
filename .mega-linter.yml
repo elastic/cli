@@ -15,13 +15,17 @@ SARIF_REPORTER: false
 FLAVOR_SUGGESTIONS: false
 REPORTERS_MARKDOWN_TYPE: simple
 
-# Install project deps so eslint.config.js can resolve its imports
+# Install project deps (eslint, typescript-eslint) so eslint.config.js resolves.
+# NODE_ENV=production in the container skips devDependencies by default.
 PRE_COMMANDS:
-  - command: "npm ci --ignore-scripts"
+  - command: "NODE_ENV=development npm ci --ignore-scripts"
     cwd: "workspace"
 
+# Use project's ESLint 10 (flat config, --no-eslintrc removed in v9+)
 TYPESCRIPT_ES_CLI_EXECUTABLE: /tmp/lint/node_modules/.bin/eslint
 TYPESCRIPT_ES_CONFIG_FILE: eslint.config.js
+TYPESCRIPT_ES_COMMAND_REMOVE_ARGUMENTS:
+  - "--no-eslintrc"
 
 # Global exclusions
 FILTER_REGEX_EXCLUDE: "(node_modules/|dist/|build/|\\.git/)"
