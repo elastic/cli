@@ -209,6 +209,29 @@ describe('file resolver', () => {
       }
     )
   })
+
+  it('throws for a directory', async () => {
+    await assert.rejects(
+      () => resolveExpressions(`$(file:${tmpDir})`),
+      (err: Error) => {
+        assert.match(err.message, /not a regular file/)
+        return true
+      }
+    )
+  })
+
+  it('throws for a file exceeding the size limit', async () => {
+    const filePath = join(tmpDir, 'large.txt')
+    await writeFile(filePath, 'x'.repeat(65 * 1024))
+    await assert.rejects(
+      () => resolveExpressions(`$(file:${filePath})`),
+      (err: Error) => {
+        assert.match(err.message, /bytes/)
+        assert.match(err.message, /max/)
+        return true
+      }
+    )
+  })
 })
 
 // ---------------------------------------------------------------------------

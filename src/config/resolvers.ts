@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, statSync } from 'node:fs'
 import { execSync, type ExecSyncOptionsWithStringEncoding } from 'node:child_process'
 
 export type ResolverFn = (params: string) => string | Promise<string>
@@ -101,13 +101,23 @@ function shellEscape (value: string): string {
   return "'" + value.replace(/'/g, "'\\''") + "'"
 }
 
+const MAX_FILE_SIZE = 64 * 1024 // 64 KB
+
 function fileResolver (params: string): string {
+  let stat
   try {
-    return readFileSync(params, 'utf-8').trimEnd()
+    stat = statSync(params)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     throw new Error(`Failed to read file "${params}": ${message}`, { cause: err })
   }
+  if (!stat.isFile()) {
+    throw new Error(`Failed to read file "${params}": not a regular file`)
+  }
+  if (stat.size > MAX_FILE_SIZE) {
+    throw new Error(`Failed to read file "${params}": file is ${stat.size} bytes (max ${MAX_FILE_SIZE})`)
+  }
+  return readFileSync(params, 'utf-8').trimEnd()
 }
 
 function envResolver (params: string): string {
