@@ -2,6 +2,9 @@ repos:
   - repo: https://github.com/oxsecurity/megalinter
     rev: v9.4.0
     hooks:
-      - id: megalinter-incremental
+      - id: megalinter-incremental # Faster, less thorough
         stages:
           - pre-commit
+      - id: megalinter-full # Slower, more thorough
+        stages:
+          - pre-push
