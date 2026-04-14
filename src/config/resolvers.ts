@@ -203,6 +203,38 @@ function secretServiceResolver (params: string): string {
   }
 }
 
+function passResolver (params: string): string {
+  const path = params.trim()
+  if (path === '') {
+    throw new Error('Invalid pass parameter: path must not be empty')
+  }
+  if (!PRINTABLE_ASCII_RE.test(path)) {
+    throw new Error(
+      `Invalid pass parameter "${path}": contains non-printable characters`
+    )
+  }
+
+  let output: string
+  try {
+    output = _execSync(
+      `pass show ${shellEscape(path)}`,
+      execOpts(5_000)
+    ).trimEnd()
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    throw new Error(
+      `pass lookup failed for "${path}": ${message}`,
+      { cause: err }
+    )
+  }
+
+  const firstLine = output.split('\n')[0] ?? ''
+  if (firstLine === '') {
+    throw new Error(`pass returned empty output for "${path}"`)
+  }
+  return firstLine
+}
+
 // ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
@@ -213,6 +245,7 @@ function registerBuiltins (): void {
   registerResolver('cmd', cmdResolver)
   registerResolver('keychain', keychainResolver)
   registerResolver('secret_service', secretServiceResolver)
+  registerResolver('pass', passResolver)
 }
 
 registerBuiltins()

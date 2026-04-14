@@ -629,6 +629,127 @@ describe('secret_service resolver', () => {
 })
 
 // ---------------------------------------------------------------------------
+// pass resolver
+// ---------------------------------------------------------------------------
+
+describe('pass resolver', () => {
+  it('resolves the first line of pass output', async () => {
+    const restoreExec = _testSetExecSync((() => {
+      return 'my-password\nUsername: user\nURL: https://example.com\n'
+    }) as unknown as typeof import('node:child_process').execSync)
+    try {
+      const result = await resolveExpressions('$(pass:elastic/api-key)')
+      assert.equal(result, 'my-password')
+    } finally {
+      restoreExec()
+    }
+  })
+
+  it('resolves single-line output', async () => {
+    const restoreExec = _testSetExecSync((() => {
+      return 'simple-password\n'
+    }) as unknown as typeof import('node:child_process').execSync)
+    try {
+      const result = await resolveExpressions('$(pass:elastic/api-key)')
+      assert.equal(result, 'simple-password')
+    } finally {
+      restoreExec()
+    }
+  })
+
+  it('throws for empty parameter', async () => {
+    await assert.rejects(
+      () => resolveExpressions('$(pass: )'),
+      (err: Error) => {
+        assert.match(err.message, /path must not be empty/)
+        return true
+      }
+    )
+  })
+
+  it('throws for non-printable characters', async () => {
+    await assert.rejects(
+      () => resolveExpressions('$(pass:elastic/key\x00)'),
+      (err: Error) => {
+        assert.match(err.message, /non-printable characters/)
+        return true
+      }
+    )
+  })
+
+  it('shell-escapes the path', async () => {
+    let capturedCmd = ''
+    const restoreExec = _testSetExecSync(((cmd: string) => {
+      capturedCmd = cmd
+      return 'val\n'
+    }) as unknown as typeof import('node:child_process').execSync)
+    try {
+      await resolveExpressions("$(pass:it's/a-key)")
+      assert.ok(capturedCmd.includes("'it'\\''s/a-key'"), `expected shell-escaped path in: ${capturedCmd}`)
+    } finally {
+      restoreExec()
+    }
+  })
+
+  it('works on macOS', async () => {
+    const restorePlatform = _testSetPlatform('darwin')
+    const restoreExec = _testSetExecSync((() => 'val\n') as unknown as typeof import('node:child_process').execSync)
+    try {
+      const result = await resolveExpressions('$(pass:key)')
+      assert.equal(result, 'val')
+    } finally {
+      restoreExec()
+      restorePlatform()
+    }
+  })
+
+  it('works on Linux', async () => {
+    const restorePlatform = _testSetPlatform('linux')
+    const restoreExec = _testSetExecSync((() => 'val\n') as unknown as typeof import('node:child_process').execSync)
+    try {
+      const result = await resolveExpressions('$(pass:key)')
+      assert.equal(result, 'val')
+    } finally {
+      restoreExec()
+      restorePlatform()
+    }
+  })
+
+  it('throws when pass command fails', async () => {
+    const restoreExec = _testSetExecSync((() => {
+      throw new Error('pass: key not found')
+    }) as unknown as typeof import('node:child_process').execSync)
+    try {
+      await assert.rejects(
+        () => resolveExpressions('$(pass:elastic/missing)'),
+        (err: Error) => {
+          assert.match(err.message, /pass lookup failed/)
+          assert.match(err.message, /elastic\/missing/)
+          return true
+        }
+      )
+    } finally {
+      restoreExec()
+    }
+  })
+
+  it('throws when pass returns empty output', async () => {
+    const restoreExec = _testSetExecSync((() => '\n') as unknown as typeof import('node:child_process').execSync)
+    try {
+      await assert.rejects(
+        () => resolveExpressions('$(pass:elastic/empty)'),
+        (err: Error) => {
+          assert.match(err.message, /empty output/)
+          return true
+        }
+      )
+    } finally {
+      restoreExec()
+    }
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Integration: loadConfig with expressions
 // ---------------------------------------------------------------------------
 
