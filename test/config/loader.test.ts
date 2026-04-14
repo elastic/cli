@@ -8,7 +8,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { createExplorer, discoverConfigFile, resolveContext, loadConfig } from '../../src/config/loader.ts'
+import { loadConfigFile, discoverConfigFile, resolveContext, loadConfig } from '../../src/config/loader.ts'
 import type { ConfigFile, ResolvedConfig } from '../../src/config/types.ts'
 
 // ---------------------------------------------------------------------------
@@ -52,34 +52,36 @@ const VALID_CONFIG_OBJECT: ConfigFile = {
 
 // ---------------------------------------------------------------------------
 
-describe('createExplorer', () => {
-  it('exports a createExplorer function', () => {
-    assert.equal(typeof createExplorer, 'function')
+describe('loadConfigFile', () => {
+  let tmpDir: string
+  before(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-test-'))
+  })
+  after(async () => rm(tmpDir, { recursive: true }))
+
+  it('parses a YAML config file', async () => {
+    const filePath = join(tmpDir, 'config.yml')
+    await writeFile(filePath, VALID_CONFIG_YAML)
+    const result = await loadConfigFile(filePath) as Record<string, unknown>
+    assert.equal(result['current_context'], 'local')
   })
 
-  describe('load()', () => {
-    let tmpDir: string
-    let configPath: string
-    before(async () => {
-      tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-test-'))
-      configPath = join(tmpDir, 'myconfig.yml')
-      await writeFile(configPath, VALID_CONFIG_YAML)
-    })
-    after(async () => rm(tmpDir, { recursive: true }))
+  it('parses a JSON config file', async () => {
+    const filePath = join(tmpDir, 'config.json')
+    await writeFile(filePath, JSON.stringify(VALID_CONFIG_OBJECT))
+    const result = await loadConfigFile(filePath) as Record<string, unknown>
+    assert.equal(result['current_context'], 'local')
+  })
 
-    it('loads a config file from an explicit path', async () => {
-      const explorer = createExplorer()
-      const result = await explorer.load(configPath)
-      assert.ok(result != null, 'load() should return a result for a valid path')
-      assert.equal(result!.config['current_context'], 'local')
-    })
+  it('parses an extensionless file as YAML', async () => {
+    const filePath = join(tmpDir, '.elasticrc')
+    await writeFile(filePath, VALID_CONFIG_YAML)
+    const result = await loadConfigFile(filePath) as Record<string, unknown>
+    assert.equal(result['current_context'], 'local')
+  })
 
-    it('returns the absolute file path in the result', async () => {
-      const explorer = createExplorer()
-      const result = await explorer.load(configPath)
-      assert.ok(result != null)
-      assert.equal(result!.filepath, configPath)
-    })
+  it('throws for nonexistent file', async () => {
+    await assert.rejects(() => loadConfigFile(join(tmpDir, 'nope.yml')))
   })
 })
 
@@ -454,14 +456,13 @@ describe('security: executable config formats are rejected', () => {
   })
   after(async () => rm(tmpDir, { recursive: true }))
 
-  describe('createExplorer rejects executable loaders', () => {
+  describe('loadConfigFile rejects executable formats', () => {
     for (const ext of ['.js', '.ts', '.mjs', '.cjs']) {
       it(`throws for .elasticrc${ext}`, async () => {
         const filePath = join(tmpDir, `.elasticrc${ext}`)
         await writeFile(filePath, 'export default {}')
-        const explorer = createExplorer()
         await assert.rejects(
-          () => explorer.load(filePath),
+          () => loadConfigFile(filePath),
           (err: Error) => {
             assert.match(err.message, /not supported.*security/)
             return true
@@ -473,19 +474,15 @@ describe('security: executable config formats are rejected', () => {
     it('still loads .yml files', async () => {
       const filePath = join(tmpDir, '.elasticrc.yml')
       await writeFile(filePath, VALID_CONFIG_YAML)
-      const explorer = createExplorer()
-      const result = await explorer.load(filePath)
-      assert.ok(result != null)
-      assert.equal(result!.config['current_context'], 'local')
+      const result = await loadConfigFile(filePath) as Record<string, unknown>
+      assert.equal(result['current_context'], 'local')
     })
 
     it('still loads .json files', async () => {
       const filePath = join(tmpDir, '.elasticrc.json')
       await writeFile(filePath, JSON.stringify(VALID_CONFIG_OBJECT))
-      const explorer = createExplorer()
-      const result = await explorer.load(filePath)
-      assert.ok(result != null)
-      assert.equal(result!.config['current_context'], 'local')
+      const result = await loadConfigFile(filePath) as Record<string, unknown>
+      assert.equal(result['current_context'], 'local')
     })
   })
 

@@ -21,27 +21,17 @@
  * - Structured error payloads (code + message)
  */
 
-import { access, constants } from 'node:fs/promises'
+import { access, constants, readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { extname, join } from 'node:path'
 import { z } from 'zod'
-import { cosmiconfig } from 'cosmiconfig'
+import { parse as parseYaml } from 'yaml'
 import { ConfigFileSchema } from './schema.ts'
 import { resolveExpressions } from './resolvers.ts'
 import type { ConfigFile, ResolvedConfig, ResolvedContext } from './types.ts'
 
-/**
- * Loader that rejects executable config formats for security.
- *
- * Cosmiconfig's default loaders will `import()` JavaScript and TypeScript
- * files, which enables arbitrary code execution from untrusted directories.
- * This loader throws a descriptive error instead.
- */
-function rejectExecutableLoader (): never {
-  throw new Error(
-    'JavaScript and TypeScript config files are not supported for security reasons. Use .elasticrc.yml instead.'
-  )
-}
+/** Extensions that are rejected to prevent arbitrary code execution. */
+const EXECUTABLE_EXTENSIONS = new Set(['.js', '.ts', '.mjs', '.cjs'])
 
 /** File names checked during home-directory discovery, in priority order. */
 const CONFIG_FILE_NAMES = ['.elasticrc', '.elasticrc.json', '.elasticrc.yaml', '.elasticrc.yml']
@@ -70,25 +60,28 @@ export async function discoverConfigFile (dir?: string): Promise<string | null> 
 }
 
 /**
- * Creates a cosmiconfig explorer configured for the Elastic CLI.
+ * Reads and parses a config file from disk.
  *
- * Used exclusively for {@link cosmiconfig.load | explorer.load()} to parse
- * YAML and JSON config files. Discovery is handled separately by
- * {@link discoverConfigFile}.
+ * Supports YAML (`.yml`, `.yaml`) and JSON (`.json`) files, plus
+ * extensionless files (parsed as YAML, which is a superset of JSON).
  *
- * Executable config formats (`.js`, `.ts`, `.mjs`, `.cjs`) are explicitly
- * blocked to prevent arbitrary code execution when a user passes
- * `--config-file` pointing at an executable file.
+ * Executable formats (`.js`, `.ts`, `.mjs`, `.cjs`) are rejected to
+ * prevent arbitrary code execution.
+ *
+ * @param filePath - Absolute path to the config file.
+ * @returns The parsed config object.
  */
-export function createExplorer () {
-  return cosmiconfig('elastic', {
-    loaders: {
-      '.js': rejectExecutableLoader,
-      '.ts': rejectExecutableLoader,
-      '.mjs': rejectExecutableLoader,
-      '.cjs': rejectExecutableLoader,
-    },
-  })
+export async function loadConfigFile (filePath: string): Promise<unknown> {
+  const ext = extname(filePath)
+  if (EXECUTABLE_EXTENSIONS.has(ext)) {
+    throw new Error(
+      'JavaScript and TypeScript config files are not supported for security reasons. Use .elasticrc.yml instead.'
+    )
+  }
+
+  const content = await readFile(filePath, 'utf-8')
+  if (ext === '.json') return JSON.parse(content) as unknown
+  return parseYaml(content) as unknown
 }
 
 /**
@@ -138,7 +131,7 @@ export type LoadConfigResult = LoadConfigOk | LoadConfigErr
  * Full config loading pipeline: discover/load → validate → resolve context.
  *
  * Steps:
- * 1. Load raw config via cosmiconfig (discovery or explicit path)
+ * 1. Discover or resolve config file path, then read and parse it
  * 2. Resolve expressions in string values (env, cmd, keychain)
  * 3. Validate with `ConfigFileSchema` (Zod)
  * 4. Resolve the active context (from `contextName` override or `current_context`)
@@ -151,31 +144,29 @@ export type LoadConfigResult = LoadConfigOk | LoadConfigErr
  */
 export async function loadConfig (options: LoadConfigOptions = {}): Promise<LoadConfigResult> {
   const { configPath, contextName } = options
-  const explorer = createExplorer()
 
   // Step 1: load raw config
   // Precedence: --config-file flag > ELASTIC_CLI_CONFIG_FILE env var > home-directory discovery
   let raw: unknown
   try {
-    let result
     const envConfigFile = process.env[ENV_CONFIG_FILE]
+    let resolvedPath: string | null
     if (configPath != null) {
-      result = await explorer.load(configPath)
+      resolvedPath = configPath
     } else if (envConfigFile != null && envConfigFile.length > 0) {
-      result = await explorer.load(envConfigFile)
+      resolvedPath = envConfigFile
     } else {
-      const foundPath = await discoverConfigFile()
-      result = foundPath != null ? await explorer.load(foundPath) : null
+      resolvedPath = await discoverConfigFile()
     }
 
-    if (result == null) {
+    if (resolvedPath == null) {
       return {
         ok: false,
         error: { message: 'No configuration file found. Create a .elasticrc.yml in your home directory, or use --config-file / ELASTIC_CLI_CONFIG_FILE to specify a path.' }
       }
     }
 
-    raw = result.config
+    raw = await loadConfigFile(resolvedPath)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     return { ok: false, error: { message } }
