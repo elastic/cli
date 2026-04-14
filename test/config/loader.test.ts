@@ -449,6 +449,190 @@ commands:
   })
 })
 
+// ---------------------------------------------------------------------------
+// Lazy validation: only resolve expressions for the active context (#144)
+// ---------------------------------------------------------------------------
+
+describe('lazy validation: inactive context expressions are not resolved', () => {
+  const ACTIVE_VAR = 'ELASTIC_CLI_TEST_ACTIVE_KEY'
+  const INACTIVE_VAR = 'ELASTIC_CLI_TEST_INACTIVE_KEY'
+  let tmpDir: string
+
+  before(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-lazy-'))
+  })
+  after(async () => {
+    delete process.env[ACTIVE_VAR]
+    delete process.env[INACTIVE_VAR]
+    await rm(tmpDir, { recursive: true })
+  })
+
+  it('succeeds when the active context resolves but an inactive context would fail', async () => {
+    process.env[ACTIVE_VAR] = 'active-api-key'
+    delete process.env[INACTIVE_VAR]
+    const yaml = `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: http://localhost:9200
+      auth:
+        api_key: $(env:${ACTIVE_VAR})
+  staging:
+    elasticsearch:
+      url: https://staging.example.com:9200
+      auth:
+        api_key: $(env:${INACTIVE_VAR})
+`.trimStart()
+    const configPath = join(tmpDir, 'lazy-ok.yml')
+    await writeFile(configPath, yaml)
+    const result = await loadConfig({ configPath })
+    assert.ok(result.ok, `expected ok, got: ${!result.ok ? result.error.message : ''}`)
+    if (!result.ok) return
+    assert.equal(
+      (result.value.context.elasticsearch!.auth as { api_key: string }).api_key,
+      'active-api-key'
+    )
+  })
+
+  it('still fails when the active context has an unresolvable expression', async () => {
+    delete process.env[ACTIVE_VAR]
+    delete process.env[INACTIVE_VAR]
+    const yaml = `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: http://localhost:9200
+      auth:
+        api_key: $(env:${ACTIVE_VAR})
+  staging:
+    elasticsearch:
+      url: https://staging.example.com:9200
+      auth:
+        api_key: $(env:${INACTIVE_VAR})
+`.trimStart()
+    const configPath = join(tmpDir, 'lazy-fail.yml')
+    await writeFile(configPath, yaml)
+    const result = await loadConfig({ configPath })
+    assert.ok(!result.ok, 'expected failure for unresolvable active context expression')
+    if (result.ok) return
+    assert.match(result.error.message, new RegExp(ACTIVE_VAR))
+  })
+
+  it('resolves expressions in the active context selected via --use-context', async () => {
+    process.env[INACTIVE_VAR] = 'staging-key'
+    delete process.env[ACTIVE_VAR]
+    const yaml = `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: http://localhost:9200
+      auth:
+        api_key: $(env:${ACTIVE_VAR})
+  staging:
+    elasticsearch:
+      url: https://staging.example.com:9200
+      auth:
+        api_key: $(env:${INACTIVE_VAR})
+`.trimStart()
+    const configPath = join(tmpDir, 'lazy-override.yml')
+    await writeFile(configPath, yaml)
+    const result = await loadConfig({ configPath, contextName: 'staging' })
+    assert.ok(result.ok, `expected ok with --use-context staging, got: ${!result.ok ? result.error.message : ''}`)
+    if (!result.ok) return
+    assert.equal(
+      (result.value.context.elasticsearch!.auth as { api_key: string }).api_key,
+      'staging-key'
+    )
+  })
+
+  it('still validates structural config shape (missing current_context)', async () => {
+    const yaml = `
+contexts:
+  local:
+    elasticsearch:
+      url: http://localhost:9200
+      auth:
+        api_key: some-key
+`.trimStart()
+    const configPath = join(tmpDir, 'lazy-no-current.yml')
+    await writeFile(configPath, yaml)
+    const result = await loadConfig({ configPath })
+    assert.ok(!result.ok, 'should fail without current_context')
+  })
+
+  it('still validates structural config shape (empty contexts)', async () => {
+    const yaml = `
+current_context: local
+contexts: {}
+`.trimStart()
+    const configPath = join(tmpDir, 'lazy-empty-contexts.yml')
+    await writeFile(configPath, yaml)
+    const result = await loadConfig({ configPath })
+    assert.ok(!result.ok, 'should fail with empty contexts')
+  })
+
+  it('rejects current_context that references a nonexistent context key', async () => {
+    const yaml = `
+current_context: nonexistent
+contexts:
+  local:
+    elasticsearch:
+      url: http://localhost:9200
+      auth:
+        api_key: some-key
+`.trimStart()
+    const configPath = join(tmpDir, 'lazy-bad-ref.yml')
+    await writeFile(configPath, yaml)
+    const result = await loadConfig({ configPath })
+    assert.ok(!result.ok, 'should fail when current_context references missing key')
+    if (result.ok) return
+    assert.ok(result.error.message.includes('nonexistent'))
+  })
+
+  it('resolves expressions in commands section', async () => {
+    process.env[ACTIVE_VAR] = 'my-key'
+    const yaml = `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: http://localhost:9200
+      auth:
+        api_key: $(env:${ACTIVE_VAR})
+commands:
+  allowed:
+    - ping
+    - elasticsearch.search
+`.trimStart()
+    const configPath = join(tmpDir, 'lazy-commands.yml')
+    await writeFile(configPath, yaml)
+    const result = await loadConfig({ configPath })
+    assert.ok(result.ok, `expected ok, got: ${!result.ok ? result.error.message : ''}`)
+    if (!result.ok) return
+    assert.deepEqual(result.value.commands, { allowed: ['ping', 'elasticsearch.search'] })
+  })
+
+  it('validates active context with full schema after expression resolution', async () => {
+    process.env[ACTIVE_VAR] = 'resolved-key'
+    const yaml = `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: not-a-valid-url
+      auth:
+        api_key: $(env:${ACTIVE_VAR})
+`.trimStart()
+    const configPath = join(tmpDir, 'lazy-bad-url.yml')
+    await writeFile(configPath, yaml)
+    const result = await loadConfig({ configPath })
+    assert.ok(!result.ok, 'should fail when active context has invalid URL after resolution')
+  })
+})
+
 describe('security: executable config formats are rejected', () => {
   let tmpDir: string
   before(async () => {
