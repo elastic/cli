@@ -750,6 +750,172 @@ describe('pass resolver', () => {
 })
 
 // ---------------------------------------------------------------------------
+// credential_manager resolver
+// ---------------------------------------------------------------------------
+
+describe('credential_manager resolver', () => {
+  it('resolves a credential on Windows', async () => {
+    const restorePlatform = _testSetPlatform('win32')
+    const restoreExec = _testSetExecSync(((cmd: string) => {
+      assert.match(cmd, /powershell/)
+      assert.match(cmd, /Get-StoredCredential/)
+      assert.match(cmd, /elastic-cli\/my-api-key/)
+      return 'credential-secret\n'
+    }) as unknown as typeof import('node:child_process').execSync)
+    try {
+      const result = await resolveExpressions('$(credential_manager:elastic-cli/my-api-key)')
+      assert.equal(result, 'credential-secret')
+    } finally {
+      restoreExec()
+      restorePlatform()
+    }
+  })
+
+  it('throws on macOS', async () => {
+    const restorePlatform = _testSetPlatform('darwin')
+    try {
+      await assert.rejects(
+        () => resolveExpressions('$(credential_manager:svc/acct)'),
+        (err: Error) => {
+          assert.match(err.message, /only supported on Windows/)
+          assert.match(err.message, /darwin/)
+          return true
+        }
+      )
+    } finally {
+      restorePlatform()
+    }
+  })
+
+  it('throws on Linux', async () => {
+    const restorePlatform = _testSetPlatform('linux')
+    try {
+      await assert.rejects(
+        () => resolveExpressions('$(credential_manager:svc/acct)'),
+        (err: Error) => {
+          assert.match(err.message, /only supported on Windows/)
+          assert.match(err.message, /linux/)
+          return true
+        }
+      )
+    } finally {
+      restorePlatform()
+    }
+  })
+
+  it('throws for missing slash in parameter', async () => {
+    const restorePlatform = _testSetPlatform('win32')
+    try {
+      await assert.rejects(
+        () => resolveExpressions('$(credential_manager:no-slash)'),
+        (err: Error) => {
+          assert.match(err.message, /expected format "service\/account"/)
+          return true
+        }
+      )
+    } finally {
+      restorePlatform()
+    }
+  })
+
+  it('throws for leading slash', async () => {
+    const restorePlatform = _testSetPlatform('win32')
+    try {
+      await assert.rejects(
+        () => resolveExpressions('$(credential_manager:/account)'),
+        (err: Error) => {
+          assert.match(err.message, /expected format "service\/account"/)
+          return true
+        }
+      )
+    } finally {
+      restorePlatform()
+    }
+  })
+
+  it('throws for trailing slash', async () => {
+    const restorePlatform = _testSetPlatform('win32')
+    try {
+      await assert.rejects(
+        () => resolveExpressions('$(credential_manager:service/)'),
+        (err: Error) => {
+          assert.match(err.message, /expected format "service\/account"/)
+          return true
+        }
+      )
+    } finally {
+      restorePlatform()
+    }
+  })
+
+  it('throws for non-printable characters', async () => {
+    const restorePlatform = _testSetPlatform('win32')
+    try {
+      await assert.rejects(
+        () => resolveExpressions('$(credential_manager:svc/acct\x00)'),
+        (err: Error) => {
+          assert.match(err.message, /non-printable characters/)
+          return true
+        }
+      )
+    } finally {
+      restorePlatform()
+    }
+  })
+
+  it('splits on first slash only (account can contain slashes)', async () => {
+    const restorePlatform = _testSetPlatform('win32')
+    const restoreExec = _testSetExecSync(((cmd: string) => {
+      assert.match(cmd, /my-service\/path\/to\/key/)
+      return 'value\n'
+    }) as unknown as typeof import('node:child_process').execSync)
+    try {
+      const result = await resolveExpressions('$(credential_manager:my-service/path/to/key)')
+      assert.equal(result, 'value')
+    } finally {
+      restoreExec()
+      restorePlatform()
+    }
+  })
+
+  it('uses PowerShell escaping (doubled single quotes) not POSIX escaping', async () => {
+    const restorePlatform = _testSetPlatform('win32')
+    let capturedCmd = ''
+    const restoreExec = _testSetExecSync(((cmd: string) => {
+      capturedCmd = cmd
+      return 'val\n'
+    }) as unknown as typeof import('node:child_process').execSync)
+    try {
+      await resolveExpressions("$(credential_manager:it's-a-service/acct)")
+      assert.ok(capturedCmd.includes("'it''s-a-service/acct'"), `expected PS-escaped target in: ${capturedCmd}`)
+    } finally {
+      restoreExec()
+      restorePlatform()
+    }
+  })
+
+  it('includes service and account in error on failure', async () => {
+    const restorePlatform = _testSetPlatform('win32')
+    const restoreExec = _testSetExecSync((() => {
+      throw new Error('Get-StoredCredential is not recognized')
+    }) as unknown as typeof import('node:child_process').execSync)
+    try {
+      await assert.rejects(
+        () => resolveExpressions('$(credential_manager:my-svc/my-acct)'),
+        (err: Error) => {
+          assert.match(err.message, /service="my-svc"/)
+          assert.match(err.message, /account="my-acct"/)
+          return true
+        }
+      )
+    } finally {
+      restoreExec()
+      restorePlatform()
+    }
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Integration: loadConfig with expressions
 // ---------------------------------------------------------------------------
 

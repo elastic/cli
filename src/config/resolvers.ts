@@ -101,6 +101,10 @@ function shellEscape (value: string): string {
   return "'" + value.replace(/'/g, "'\\''") + "'"
 }
 
+function psEscape (value: string): string {
+  return "'" + value.replace(/'/g, "''") + "'"
+}
+
 const MAX_FILE_SIZE = 64 * 1024 // 64 KB
 
 function fileResolver (params: string): string {
@@ -235,6 +239,30 @@ function passResolver (params: string): string {
   return firstLine
 }
 
+function credentialManagerResolver (params: string): string {
+  if (_platform !== 'win32') {
+    throw new Error(
+      `The credential_manager resolver is only supported on Windows (current platform: ${_platform})`
+    )
+  }
+
+  const { service, account } = parseServiceAccount(params, 'credential_manager')
+  const target = `${service}/${account}`
+
+  try {
+    return _execSync(
+      `powershell -NoProfile -NonInteractive -Command "(Get-StoredCredential -Target ${psEscape(target)}).GetNetworkCredential().Password"`,
+      execOpts(10_000)
+    ).trimEnd()
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    throw new Error(
+      `Credential Manager lookup failed for service="${service}", account="${account}": ${message}`,
+      { cause: err }
+    )
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
@@ -246,6 +274,7 @@ function registerBuiltins (): void {
   registerResolver('keychain', keychainResolver)
   registerResolver('secret_service', secretServiceResolver)
   registerResolver('pass', passResolver)
+  registerResolver('credential_manager', credentialManagerResolver)
 }
 
 registerBuiltins()
