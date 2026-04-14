@@ -76,6 +76,7 @@ export async function resolveExpressions (
   if (obj !== null && typeof obj === 'object') {
     const result: Record<string, unknown> = {}
     for (const [key, value] of Object.entries(obj)) {
+      if (key === '__proto__' || key === 'constructor') continue
       const fieldPath = path ? `${path}.${key}` : key
       result[key] = await resolveExpressions(value, fieldPath)
     }
@@ -120,6 +121,12 @@ function keychainResolver (params: string): string {
   if (_platform !== 'darwin') {
     throw new Error(
       `The keychain resolver is only supported on macOS (current platform: ${_platform})`
+    )
+  }
+
+  if (!/^[\x20-\x7e]+$/.test(params)) {
+    throw new Error(
+      `Invalid keychain parameter "${params}": contains non-printable characters`
     )
   }
 
