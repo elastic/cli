@@ -38,12 +38,11 @@ export function createReadCommand (deps: ReadDeps = defaultDeps): OpaqueCommandH
         const path = await deps.resolveDocsPath(input)
         const markdown = await deps.docsRead(path)
 
-        if (raw) {
-          deps.stdout.write(markdown)
-        } else {
-          const rendered = renderMarkdown(markdown) + '\n'
-          deps.stdout.write(rendered)
+        if (parsed.options['json'] === true) {
+          return { markdown }
         }
+
+        deps.stdout.write(raw ? markdown : renderMarkdown(markdown) + '\n')
       } catch (err) {
         return {
           error: {

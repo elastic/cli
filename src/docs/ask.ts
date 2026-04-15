@@ -31,13 +31,14 @@ export function createAskCommand (deps: AskDeps = defaultDeps): OpaqueCommandHan
       if (question === '') return { error: { code: 'missing_input', message: 'question is required' } }
 
       const conversationId = newUuid()
-      const spinner = startSpinner(deps.stderr, 'Thinking…')
+      const interactive = process.stderr.isTTY === true && parsed.options['json'] !== true
+      const spinner = interactive ? startSpinner(deps.stderr, 'Thinking…') : undefined
 
       try {
         const gen = deps.docsAskStream(question, conversationId)
         await streamAnswer(gen, renderMarkdown, deps.stdout, spinner)
       } catch (err) {
-        spinner.stop()
+        spinner?.stop()
         return {
           error: {
             code: 'docs_error',
