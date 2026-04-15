@@ -106,6 +106,41 @@ auth:
 
 To store a value: `security add-generic-password -s elastic-cli -a api-key -w`
 
+#### `secret_service` - freedesktop Secret Service (Linux only)
+
+Reads a secret from GNOME Keyring or KWallet via `secret-tool`. Uses the same
+`service/account` format as `keychain`.
+
+```yaml
+auth:
+  api_key: $(secret_service:elastic-cli/api-key)
+```
+
+To store a value: `secret-tool store --label='Elastic API Key' service elastic-cli account api-key`
+
+#### `pass` - standard Unix password manager (cross-platform)
+
+Reads the first line from `pass show`. Works on Linux, macOS, and Windows (WSL).
+
+```yaml
+auth:
+  api_key: $(pass:elastic/api-key)
+```
+
+To store a value: `pass insert elastic/api-key`
+
+#### `credential_manager` - Windows Credential Manager (Windows only)
+
+Reads a credential from Windows Credential Manager using the `service/account`
+format. Requires the `CredentialManager` PowerShell module.
+
+```yaml
+auth:
+  api_key: $(credential_manager:elastic-cli/api-key)
+```
+
+To store a value: `New-StoredCredential -Target elastic-cli/api-key -UserName _ -Password <key>`
+
 Expressions can appear in any string field, including URLs:
 
 ```yaml

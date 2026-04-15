@@ -1,5 +1,5 @@
 ENABLE_LINTERS:
-  - TYPESCRIPT_ESLINT
+  - TYPESCRIPT_ES
   - YAML_YAMLLINT
   - ACTION_ACTIONLINT
   - DOCKERFILE_HADOLINT
@@ -15,19 +15,25 @@ SARIF_REPORTER: false
 FLAVOR_SUGGESTIONS: false
 REPORTERS_MARKDOWN_TYPE: simple
 
-# ESLint 10 compat: install project deps, use local eslint binary
+# Install project deps (eslint, typescript-eslint) so eslint.config.js resolves.
+# NODE_ENV=production in the container skips devDependencies by default.
 PRE_COMMANDS:
-  - command: "npm ci --ignore-scripts"
+  - command: "NODE_ENV=development npm ci --ignore-scripts"
     cwd: "workspace"
 
-TYPESCRIPT_ESLINT_CLI_EXECUTABLE: "./node_modules/.bin/eslint"
-TYPESCRIPT_ESLINT_CONFIG_FILE: eslint.config.js
+# Use project's ESLint 10 (flat config, --no-eslintrc removed in v9+)
+TYPESCRIPT_ES_CLI_EXECUTABLE:
+  - "node"
+  - "node_modules/.bin/eslint"
+TYPESCRIPT_ES_CONFIG_FILE: eslint.config.js
+TYPESCRIPT_ES_COMMAND_REMOVE_ARGUMENTS:
+  - "--no-eslintrc"
 
 # Global exclusions
 FILTER_REGEX_EXCLUDE: "(node_modules/|dist/|build/|\\.git/)"
 
 # Skip generated code for ESLint (39k lines of schemas + 2k lines of cloud APIs)
-TYPESCRIPT_ESLINT_FILTER_REGEX_EXCLUDE: "(src/es/apis/schemas/|src/cloud/apis/)"
+TYPESCRIPT_ES_FILTER_REGEX_EXCLUDE: "(src/es/apis/schemas/|src/cloud/apis/)"
 
 # yamllint: skip test fixtures (custom multi-doc YAML DSL)
 YAML_YAMLLINT_CONFIG_FILE: .yamllint.yml

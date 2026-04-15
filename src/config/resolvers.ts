@@ -101,6 +101,11 @@ function shellEscape (value: string): string {
   return "'" + value.replace(/'/g, "'\\''") + "'"
 }
 
+function psEncodedCommand (expression: string): string {
+  const utf16le = Buffer.from(expression, 'utf16le')
+  return `powershell -NoProfile -NonInteractive -EncodedCommand ${utf16le.toString('base64')}`
+}
+
 const MAX_FILE_SIZE = 64 * 1024 // 64 KB
 
 function fileResolver (params: string): string {
@@ -137,6 +142,26 @@ function cmdResolver (params: string): string {
   }
 }
 
+const PRINTABLE_ASCII_RE = /^[\x20-\x7e]+$/
+
+function parseServiceAccount (params: string, resolverName: string): { service: string; account: string } {
+  if (!PRINTABLE_ASCII_RE.test(params)) {
+    throw new Error(
+      `Invalid ${resolverName} parameter "${params}": contains non-printable characters`
+    )
+  }
+
+  const slashIndex = params.indexOf('/')
+  if (slashIndex === -1 || slashIndex === 0 || slashIndex === params.length - 1) {
+    throw new Error(
+      `Invalid ${resolverName} parameter "${params}": expected format "service/account" ` +
+      `(e.g., "elastic-cli/api-key")`
+    )
+  }
+
+  return { service: params.slice(0, slashIndex), account: params.slice(slashIndex + 1) }
+}
+
 function keychainResolver (params: string): string {
   if (_platform !== 'darwin') {
     throw new Error(
@@ -144,22 +169,7 @@ function keychainResolver (params: string): string {
     )
   }
 
-  if (!/^[\x20-\x7e]+$/.test(params)) {
-    throw new Error(
-      `Invalid keychain parameter "${params}": contains non-printable characters`
-    )
-  }
-
-  const slashIndex = params.indexOf('/')
-  if (slashIndex === -1 || slashIndex === 0 || slashIndex === params.length - 1) {
-    throw new Error(
-      `Invalid keychain parameter "${params}": expected format "service/account" ` +
-      `(e.g., "elastic-cli/api-key")`
-    )
-  }
-
-  const service = params.slice(0, slashIndex)
-  const account = params.slice(slashIndex + 1)
+  const { service, account } = parseServiceAccount(params, 'keychain')
 
   try {
     return _execSync(
@@ -175,6 +185,95 @@ function keychainResolver (params: string): string {
   }
 }
 
+function secretServiceResolver (params: string): string {
+  if (_platform !== 'linux') {
+    throw new Error(
+      `The secret_service resolver is only supported on Linux (current platform: ${_platform})`
+    )
+  }
+
+  const { service, account } = parseServiceAccount(params, 'secret_service')
+
+  try {
+    return _execSync(
+      `secret-tool lookup service ${shellEscape(service)} account ${shellEscape(account)}`,
+      execOpts(5_000)
+    ).trimEnd()
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    throw new Error(
+      `Secret Service lookup failed for service="${service}", account="${account}": ${message}`,
+      { cause: err }
+    )
+  }
+}
+
+function passResolver (params: string): string {
+  const path = params.trim()
+  if (path === '') {
+    throw new Error('Invalid pass parameter: path must not be empty')
+  }
+  if (!PRINTABLE_ASCII_RE.test(path)) {
+    throw new Error(
+      `Invalid pass parameter "${path}": contains non-printable characters`
+    )
+  }
+
+  let output: string
+  try {
+    output = _execSync(
+      `pass show ${shellEscape(path)}`,
+      execOpts(5_000)
+    ).trimEnd()
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    throw new Error(
+      `pass lookup failed for "${path}": ${message}`,
+      { cause: err }
+    )
+  }
+
+  const nl = output.indexOf('\n')
+  const firstLine = nl === -1 ? output : output.slice(0, nl)
+  if (firstLine === '') {
+    throw new Error(`pass returned empty output for "${path}"`)
+  }
+  return firstLine
+}
+
+function credentialManagerResolver (params: string): string {
+  if (_platform !== 'win32') {
+    throw new Error(
+      `The credential_manager resolver is only supported on Windows (current platform: ${_platform})`
+    )
+  }
+
+  const { service, account } = parseServiceAccount(params, 'credential_manager')
+  const target = `${service}/${account}`
+  const expression = `(Get-StoredCredential -Target '${target.replace(/'/g, "''")}').GetNetworkCredential().Password`
+
+  let result: string
+  try {
+    result = _execSync(
+      psEncodedCommand(expression),
+      execOpts(10_000)
+    ).trimEnd()
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    throw new Error(
+      `Credential Manager lookup failed for service="${service}", account="${account}": ${message}`,
+      { cause: err }
+    )
+  }
+
+  if (result === '') {
+    throw new Error(
+      `Credential Manager returned empty password for service="${service}", account="${account}"`
+    )
+  }
+  return result
+}
+
 // ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
@@ -184,6 +283,9 @@ function registerBuiltins (): void {
   registerResolver('env', envResolver)
   registerResolver('cmd', cmdResolver)
   registerResolver('keychain', keychainResolver)
+  registerResolver('secret_service', secretServiceResolver)
+  registerResolver('pass', passResolver)
+  registerResolver('credential_manager', credentialManagerResolver)
 }
 
 registerBuiltins()
