@@ -1420,6 +1420,78 @@ describe('defineCommand', () => {
     })
   })
 
+  describe('relaxed validation for JSON body fields (#156)', () => {
+    let origIsTTY: boolean | undefined
+
+    beforeEach(() => {
+      origIsTTY = process.stdin.isTTY
+      Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true, writable: true })
+    })
+    afterEach(() => {
+      Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+    })
+
+    it('accepts object-typed body fields that fail strict Zod validation', async () => {
+      const strictQuery = z.object({
+        term: z.object({ value: z.string() })
+      })
+      const schema = z.object({
+        index: z.string().optional().meta({ found_in: 'path' }),
+        query: strictQuery.optional().meta({ found_in: 'body' }),
+      })
+      const received: unknown[] = []
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: (parsed) => { received.push(parsed.input); return {} },
+      })
+      // Shorthand {"term":"canyon"} would fail strictQuery validation,
+      // but the factory should relax it and pass through
+      await invokeAsync(cmd, ['--query', '{"term":"canyon"}'])
+      assert.equal(received.length, 1)
+      const input = received[0] as Record<string, unknown>
+      assert.deepEqual(input.query, { term: 'canyon' })
+    })
+
+    it('still validates path and query params strictly', async () => {
+      const schema = z.object({
+        index: z.string().meta({ found_in: 'path' }),
+        size: z.number().optional().meta({ found_in: 'query' }),
+      })
+      const received: unknown[] = []
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: (parsed) => { received.push(parsed.input); return {} },
+      })
+      await invokeAsync(cmd, ['--index', 'logs', '--size', '5'])
+      const input = received[0] as Record<string, unknown>
+      assert.equal(input.index, 'logs')
+      assert.equal(input.size, 5)
+    })
+
+    it('relaxes array-typed body fields too', async () => {
+      const strictItem = z.object({ action: z.string() })
+      const schema = z.object({
+        operations: z.array(strictItem).optional().meta({ found_in: 'body' }),
+      })
+      const received: unknown[] = []
+      const cmd = defineCommand({
+        name: 'bulk',
+        description: 'Bulk',
+        input: schema,
+        handler: (parsed) => { received.push(parsed.input); return {} },
+      })
+      // Pass items that don't match strictItem schema
+      await invokeAsync(cmd, ['--operations', '[{"index":{}},{"name":"doc"}]'])
+      assert.equal(received.length, 1)
+      const input = received[0] as Record<string, unknown>
+      assert.deepEqual(input.operations, [{ index: {} }, { name: 'doc' }])
+    })
+  })
+
   describe('commands without input schema', () => {
     it('command with no input does not register --input-file option', () => {
       const cmd = defineCommand({

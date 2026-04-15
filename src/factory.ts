@@ -680,12 +680,28 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     if (inputValue !== undefined) {
       assert(config.input instanceof z.ZodType, `command ${JSON.stringify(config.name)}: input must be a Zod schema`)
       // apply strict mode to reject unknown keys, unless the author explicitly used .passthrough()
-      const validationSchema = (
+      let validationSchema: z.ZodType = (
         config.input instanceof z.ZodObject &&
         (config.input.def as unknown as { catchall?: { type: string } }).catchall?.type !== 'unknown'
       )
         ? config.input.strict()
         : config.input
+
+      // Relax validation for object/array body fields. These contain user-provided
+      // JSON (e.g. --query, --mappings) whose full DSL (including shorthand forms)
+      // is too complex for client-side Zod schemas. The CLI already validates that the
+      // JSON is syntactically correct; Elasticsearch validates the semantics server-side.
+      const jsonBodyFields = schemaArgs.filter(
+        a => (a.type === 'object' || a.type === 'array') && a.foundIn === 'body'
+      )
+      if (jsonBodyFields.length > 0 && validationSchema instanceof z.ZodObject) {
+        const overrides: Record<string, z.ZodType> = {}
+        for (const f of jsonBodyFields) {
+          overrides[f.schemaKey] = z.any()
+        }
+        validationSchema = (validationSchema as z.ZodObject<z.ZodRawShape>).extend(overrides)
+      }
+
       const result = validationSchema.safeParse(inputValue)
       if (result.success) {
         parsed.input = result.data as z.infer<T>
