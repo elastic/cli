@@ -83,3 +83,40 @@ export function renderText(value: JsonValue): string {
 
   return JSON.stringify(value, null, 2) + '\n'
 }
+
+/**
+ * Extracts a concise human-readable message from a handler error payload.
+ *
+ * Assumes `isHandlerError(value)` is `true`. Extraction rules (first match wins):
+ *
+ * - **`transport_error` with ES body** (`body.error.type` + `body.error.reason`):
+ *   `"index_not_found_exception: no such index [foo]"`
+ * - **`transport_error` with string body error** (`body.error` is a string):
+ *   that string
+ * - **`transport_error` with `status_code`** (no parseable body):
+ *   `"request failed with status 404"`
+ * - **Any error with `message`** (`missing_config`, `cloud_api_error`, generic):
+ *   that message
+ * - **Fallback**: `"unknown error (code: <code>)"`
+ */
+export function formatHandlerError (value: JsonValue): string {
+  const err = (value as Record<string, JsonValue>).error as Record<string, JsonValue>
+  const code = err.code as string
+
+  if (code === 'transport_error') {
+    const body = err.body
+    if (body !== null && typeof body === 'object' && !Array.isArray(body)) {
+      const nested = (body as Record<string, JsonValue>).error
+      if (nested !== null && typeof nested === 'object' && !Array.isArray(nested)) {
+        const t = (nested as Record<string, JsonValue>).type
+        const r = (nested as Record<string, JsonValue>).reason
+        if (typeof t === 'string' && typeof r === 'string') return `${t}: ${r}`
+      }
+      if (typeof nested === 'string') return nested
+    }
+    if (typeof err.status_code === 'number') return `request failed with status ${err.status_code}`
+  }
+
+  if (typeof err.message === 'string') return err.message
+  return `unknown error (code: ${code})`
+}

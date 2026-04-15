@@ -3295,7 +3295,7 @@ describe('error result detection', () => {
     assert.equal(exitCode, 1)
   })
 
-  it('error result in text mode goes to stderr with non-zero exit', async () => {
+  it('error result in text mode renders human-readable message to stderr', async () => {
     const cmd = defineCommand({
       name: 'fail',
       description: 'Fail',
@@ -3303,8 +3303,25 @@ describe('error result detection', () => {
     })
     const { stdout, stderr, exitCode } = await invokeCapturingStreams(cmd, [], [])
     assert.equal(stdout, '', 'stdout should be empty for error results')
-    assert.ok(stderr.length > 0, 'stderr should contain error output')
-    assert.match(stderr, /missing_config/)
+    assert.equal(stderr, 'Error: No ES configured\n')
+    assert.equal(exitCode, 1)
+  })
+
+  it('text mode extracts type and reason from transport_error with ES body', async () => {
+    const cmd = defineCommand({
+      name: 'fail',
+      description: 'Fail',
+      handler: () => ({
+        error: {
+          code: 'transport_error',
+          status_code: 404,
+          body: { error: { type: 'index_not_found_exception', reason: 'no such index [foo]' } },
+        },
+      }),
+    })
+    const { stdout, stderr, exitCode } = await invokeCapturingStreams(cmd, [], [])
+    assert.equal(stdout, '')
+    assert.equal(stderr, 'Error: index_not_found_exception: no such index [foo]\n')
     assert.equal(exitCode, 1)
   })
 

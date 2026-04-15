@@ -11,7 +11,7 @@ import type { ResolvedConfig, CommandPolicy } from './config/types.ts'
 import { getResolvedConfig } from './config/store.ts'
 import { extractSchemaArgs, validateSchemaArgs } from './lib/schema-args.ts'
 import type { SchemaArgDefinition } from './lib/schema-args.ts'
-import { renderText } from './output.ts'
+import { renderText, formatHandlerError } from './output.ts'
 
 /** pre-built schema for coercing string → number, reused per option invocation */
 const numberSchema = z.coerce.number()
@@ -703,7 +703,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       if (jsonFormat === true) {
         process.stderr.write(JSON.stringify(handlerResult) + '\n')
       } else {
-        process.stderr.write(renderText(handlerResult))
+        process.stderr.write(`Error: ${formatHandlerError(handlerResult)}\n`)
       }
       process.exitCode = 1
     } else if (jsonFormat === true) {

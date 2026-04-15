@@ -5,7 +5,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { renderText, renderTable } from '../src/output.ts'
+import { renderText, renderTable, formatHandlerError } from '../src/output.ts'
 
 describe('renderTable', () => {
   it('returns empty string for an empty array', () => {
@@ -145,5 +145,48 @@ describe('renderText', () => {
       const val = { status: 'ok', count: 3 }
       assert.equal(renderText(val), JSON.stringify(val, null, 2) + '\n')
     })
+  })
+})
+
+describe('formatHandlerError', () => {
+  it('extracts type and reason from transport_error with ES body', () => {
+    const val = {
+      error: {
+        code: 'transport_error',
+        status_code: 404,
+        body: { error: { type: 'index_not_found_exception', reason: 'no such index [foo]', root_cause: [] } }
+      }
+    }
+    assert.equal(formatHandlerError(val), 'index_not_found_exception: no such index [foo]')
+  })
+
+  it('returns string body.error when body.error is a string', () => {
+    const val = { error: { code: 'transport_error', status_code: 500, body: { error: 'internal failure' } } }
+    assert.equal(formatHandlerError(val), 'internal failure')
+  })
+
+  it('falls back to status_code when body has no parseable error', () => {
+    const val = { error: { code: 'transport_error', status_code: 503, body: { ok: false } } }
+    assert.equal(formatHandlerError(val), 'request failed with status 503')
+  })
+
+  it('returns message for missing_config', () => {
+    const val = { error: { code: 'missing_config', message: 'No Elasticsearch connection configured' } }
+    assert.equal(formatHandlerError(val), 'No Elasticsearch connection configured')
+  })
+
+  it('returns message for cloud_api_error', () => {
+    const val = { error: { code: 'cloud_api_error', message: 'Cloud API error 404: not found' } }
+    assert.equal(formatHandlerError(val), 'Cloud API error 404: not found')
+  })
+
+  it('returns message for transport_error without body', () => {
+    const val = { error: { code: 'transport_error', message: 'Connection refused' } }
+    assert.equal(formatHandlerError(val), 'Connection refused')
+  })
+
+  it('returns fallback for unknown code without message', () => {
+    const val = { error: { code: 'weird_error' } }
+    assert.equal(formatHandlerError(val), 'unknown error (code: weird_error)')
   })
 })
