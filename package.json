@@ -38,6 +38,10 @@
   },
   "license": "Apache-2.0",
   "type": "module",
+  "types": "./dist/cli.d.ts",
+  "directories": {
+    "test": "test"
+  },
   "dependencies": {
     "@elastic/transport": "^9.3.5",
     "cli-table3": "^0.6.5",
