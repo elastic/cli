@@ -42,6 +42,7 @@ steps:
               - "22"
         agents:
           provider: gcp
+          image: family/core-ubuntu-2204
         env:
           NODE_VERSION: "{{matrix.node}}"
         command: ".buildkite/run-cloud-tests.sh"
