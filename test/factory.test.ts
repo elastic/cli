@@ -3298,7 +3298,7 @@ async function invokeUnderRoot(cmd: OpaqueCommandHandle, rootArgv: string[], cmd
 async function captureStreams(fn: () => Promise<void>): Promise<{ stdout: string, stderr: string, exitCode: number }> {
   let stdout = ''
   let stderr = ''
-  let exitCode = 0
+  let exitCode: number
   const origOut = process.stdout.write.bind(process.stdout)
   const origErr = process.stderr.write.bind(process.stderr)
   const origExitCode = process.exitCode

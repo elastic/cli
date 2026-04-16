@@ -4,7 +4,7 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'node:fs'
-import { join, relative, dirname, basename } from 'node:path'
+import { join, relative, dirname } from 'node:path'
 import { parseArgs } from 'node:util'
 import { allApis } from '../../src/es/apis.ts'
 import { parseTestFile, isServerless } from './parser.ts'

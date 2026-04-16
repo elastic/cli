@@ -128,7 +128,7 @@ describe('scroll-search command', () => {
       {}
     ])
 
-    const { result } = await runCommand(
+    await runCommand(
       ['--index', 'test-idx', '--query', '{}', '--json'],
       makeDeps(transport, output)
     )

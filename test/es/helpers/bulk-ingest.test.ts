@@ -11,7 +11,6 @@ import { tmpdir } from 'node:os'
 import type { Transport, TransportRequestParams, TransportRequestOptions } from '@elastic/transport'
 import { createBulkIngestCommand } from '../../../src/es/helpers/bulk-ingest.ts'
 import type { BulkIngestDeps } from '../../../src/es/helpers/bulk-ingest.ts'
-import { _testSetStdinReader } from '../../../src/factory.ts'
 import { Command } from 'commander'
 
 /** Creates a mock transport that records requests and returns configurable responses. */
