@@ -39,6 +39,11 @@
   "license": "Apache-2.0",
   "type": "module",
   "types": "./dist/cli.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "NOTICE.txt"
+  ],
   "directories": {
     "test": "test"
   },
