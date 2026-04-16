@@ -111,12 +111,6 @@ fi
 
 # Check if cloud context is configured by trying a simple command.
 # If it fails, skip all tests gracefully.
-echo "Config search: HOME=$HOME"
-ls -la "$HOME/.elasticrc.yml" 2>&1 || echo "Config file not found at $HOME/.elasticrc.yml"
-echo "ELASTIC_CLOUD_ADMIN_API=${ELASTIC_CLOUD_ADMIN_API:-unset}"
-echo "Preflight: $CLI cloud accounts get-current-account --json"
-preflight_output=$($CLI cloud accounts get-current-account --json 2>&1) || true
-echo "Preflight result: $preflight_output"
 if ! $CLI cloud accounts get-current-account --json >/dev/null 2>&1; then
   echo ""
   echo "No Cloud credentials configured. Skipping all Cloud smoke tests."
