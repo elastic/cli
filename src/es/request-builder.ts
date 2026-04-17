@@ -85,8 +85,11 @@ function interpolatePath (
     if (value !== undefined) {
       path = path.replace(`{${arg.schemaKey}}`, encodePathParam(String(value)))
     } else if (!arg.required) {
-      // strip the trailing optional segment: e.g. "/_cat/shards/{index}" -> "/_cat/shards"
-      path = path.replace(new RegExp(`/?\\{${arg.schemaKey}\\}/?`), '')
+      // Strip the optional segment with its leading slash so the rest of the
+      // path remains valid. E.g.:
+      //   "/_inference/{task_type}/{inference_id}" (task_type absent)
+      //   → "/_inference/{inference_id}"   (not "/_inference{inference_id}")
+      path = path.replace(new RegExp(`/\\{${arg.schemaKey}\\}`), '')
       path = path.replace(/\/$/, '') || '/'
     }
   }
@@ -126,11 +129,11 @@ function toNdjson (body: Record<string, unknown>): string {
   return JSON.stringify(body) + '\n'
 }
 
-/**
- * Fields whose value should replace the entire body rather than being nested
- * under a key. The ES index/create APIs expect the document to BE the body.
- */
-const BODY_ROOT_FIELDS = new Set(['document'])
+// Each field listed here is a single body wrapper: the ES API expects its value
+// to be the entire request body (not nested under the field name).
+// - `document`: index/create APIs (the doc IS the body)
+// - `inference_config`: inference.put sends the config directly as the body
+const BODY_ROOT_FIELDS = new Set(['document', 'inference_config'])
 
 /**
  * Collects request body fields from entries with `foundIn === "body"` or no `foundIn`.

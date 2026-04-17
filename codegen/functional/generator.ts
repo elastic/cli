@@ -36,6 +36,7 @@ export function generateScript (
   lines.push(`# Generated from ${testFile.sourceFile}`)
   lines.push('set -euo pipefail')
   lines.push('')
+  lines.push('exec < /dev/null')
   lines.push('ELASTIC="elastic --json"')
   lines.push('RESPONSE=""')
   lines.push('')
@@ -228,11 +229,47 @@ function renderDo (
 
 function buildCommand (mapped: MappedAction, step: DoStep): string {
   const args = mapped.cliArgs.map(shellEscape).join(' ')
-  const base = `$ELASTIC ${args}`
+  let base = `$ELASTIC ${args}`
 
+  // Pass body fields as individual CLI flags.
   if (step.body != null) {
-    const json = JSON.stringify(step.body)
-    return `echo '${escapeSingleQuotes(json)}' | ${base} --file -`
+    const extraArgs: string[] = []
+
+    if (Array.isArray(step.body)) {
+      // Array bodies (e.g. bulk operations) — the whole array maps to the
+      // single body arg (e.g. --operations).
+      const arrayArgDef = [...mapped.bodyArgsByKey.values()].find(
+        (a) => a.foundIn === 'body'
+      )
+      if (arrayArgDef != null) {
+        extraArgs.push(`--${arrayArgDef.cliFlag}`, toShellArg(step.body))
+      }
+    } else {
+      // Object bodies — try matching each top-level key to a body schema arg.
+      const body = step.body as Record<string, unknown>
+      const matched: string[] = []
+      for (const [key, value] of Object.entries(body)) {
+        const argDef = mapped.bodyArgsByKey.get(key)
+        if (argDef == null || argDef.foundIn !== 'body') continue
+        matched.push(key)
+        extraArgs.push(`--${argDef.cliFlag}`, toShellArg(value))
+      }
+      // If no top-level keys matched body fields, the entire body is a freeform
+      // document (e.g. `index` where the body IS the document). Pass it to the
+      // single body arg (e.g. --document).
+      if (matched.length === 0) {
+        const singleBodyArg = [...mapped.bodyArgsByKey.values()].find(
+          (a) => a.foundIn === 'body'
+        )
+        if (singleBodyArg != null) {
+          extraArgs.push(`--${singleBodyArg.cliFlag}`, toShellArg(step.body))
+        }
+      }
+    }
+
+    if (extraArgs.length > 0) {
+      base = `${base} ${extraArgs.join(' ')}`
+    }
   }
 
   return base
@@ -248,16 +285,29 @@ function renderSet (step: SetStep, lines: string[], indent: string): void {
 
 function renderMatch (step: MatchStep, lines: string[], indent: string): void {
   for (const [path, expected] of Object.entries(step.assertions)) {
-    const jqPath = toJqPath(path)
-    const expectedStr = resolveExpectedValue(expected)
+    renderMatchValue(path, expected, lines, indent)
+  }
+}
 
-    if (typeof expected === 'number') {
-      lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "${expected}" ] || { echo "FAIL: expected ${path} = ${expected}"; exit 1; }`)
-    } else if (typeof expected === 'boolean') {
-      lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "${String(expected)}" ] || { echo "FAIL: expected ${path} = ${String(expected)}"; exit 1; }`)
-    } else {
-      lines.push(`${indent}[ "$(echo "$RESPONSE" | jq -r '${jqPath}')" = ${expectedStr} ] || { echo "FAIL: expected ${path} = ${expectedStr}"; exit 1; }`)
+function renderMatchValue (path: string, expected: unknown, lines: string[], indent: string): void {
+  if (expected !== null && typeof expected === 'object' && !Array.isArray(expected)) {
+    // Recursively expand object assertions into per-leaf checks
+    for (const [key, val] of Object.entries(expected as Record<string, unknown>)) {
+      const subPath = path === '' ? key : `${path}.${key}`
+      renderMatchValue(subPath, val, lines, indent)
     }
+    return
+  }
+
+  const jqPath = toJqPath(path)
+  const expectedStr = resolveExpectedValue(expected)
+
+  if (typeof expected === 'number') {
+    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "${expected}" ] || { echo "FAIL: expected ${path} = ${expected}"; exit 1; }`)
+  } else if (typeof expected === 'boolean') {
+    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "${String(expected)}" ] || { echo "FAIL: expected ${path} = ${String(expected)}"; exit 1; }`)
+  } else {
+    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq -r '${jqPath}')" = ${expectedStr} ] || { echo "FAIL: expected ${path} = ${expectedStr}"; exit 1; }`)
   }
 }
 
@@ -272,7 +322,8 @@ function renderIsTrue (step: IsTrueStep, lines: string[], indent: string): void 
 
 function renderIsFalse (step: IsFalseStep, lines: string[], indent: string): void {
   if (step.field === '') {
-    lines.push(`${indent}[ -z "$RESPONSE" ] || { echo "FAIL: expected empty response"; exit 1; }`)
+    // Accept empty, "false", or "null" — CLI uses "false" for failed HEAD requests
+    lines.push(`${indent}{ [ -z "$RESPONSE" ] || [ "$RESPONSE" = "false" ] || [ "$RESPONSE" = "null" ]; } || { echo "FAIL: expected empty/false response"; exit 1; }`)
   } else {
     const jqPath = toJqPath(step.field)
     lines.push(`${indent}echo "$RESPONSE" | jq -e '(${jqPath}) == null or (${jqPath}) == false' > /dev/null || { echo "FAIL: expected ${step.field} to be falsy"; exit 1; }`)
@@ -318,6 +369,31 @@ function renderContains (step: ContainsStep, lines: string[], indent: string): v
  * Convert a dotted response path to a jq expression.
  * Handles numeric indices (e.g. "hits.hits.0._source.name" -> ".hits.hits[0]._source.name")
  */
+/**
+ * Convert a YAML value to a CLI flag argument string.
+ * Strings are passed raw; objects and arrays are JSON-encoded so the CLI
+ * can parse them with z.any() / z.array() schemas.
+ * Returns `null` for variable references which need special bash quoting.
+ */
+function toArgValue (value: unknown): string {
+  if (typeof value === 'string') return value
+  return JSON.stringify(value)
+}
+
+/**
+ * Produce the shell-safe argument representation of a value.
+ * Variable references ($var) are emitted as double-quoted "$VAR" so bash expands them.
+ * Everything else is single-quoted via shellEscape.
+ */
+function toShellArg (value: unknown): string {
+  const s = toArgValue(value)
+  if (s.startsWith('$')) {
+    const varName = s.slice(1).toUpperCase().replace(/[^A-Z0-9]/g, '_')
+    return `"$${varName}"`
+  }
+  return shellEscape(s)
+}
+
 function toJqPath (path: string): string {
   if (path === '' || path === '$body') return '.'
 
@@ -325,7 +401,8 @@ function toJqPath (path: string): string {
   let jq = ''
   for (const part of parts) {
     if (/^\d+$/.test(part)) {
-      jq += `[${part}]`
+      // Numeric index: always prepend '.' to ensure valid jq (e.g. .[0] not [0])
+      jq += `.[${part}]`
     } else {
       jq += `.${part}`
     }

@@ -17,6 +17,10 @@ export interface MappedAction {
   cliArgs: string[]
   /** true if the action accepts a request body */
   hasBody: boolean
+  /** schema args lookup by key, for resolving body field flags */
+  bodyArgsByKey: Map<string, SchemaArgDefinition>
+  /** set of body field keys */
+  bodyFields: Set<string>
 }
 
 /**
@@ -69,15 +73,17 @@ export function mapAction (
   }
 
   for (const [key, value] of Object.entries(params)) {
-    if (bodyFields.has(key)) continue
     if (key === 'ignore') continue
 
     const argDef = argsByKey.get(key)
-    const flag = argDef != null ? argDef.cliFlag : key.replace(/_/g, '-')
+    // Skip params the CLI doesn't expose as flags (e.g. cat's 'format')
+    if (argDef == null) continue
 
-    args.push(`--${flag}`, String(value))
+    // Body fields from YAML params are passed as CLI flags (same as non-body params);
+    // they will be handled alongside any explicit body in buildCommand.
+    args.push(`--${argDef.cliFlag}`, String(value))
   }
 
   const hasBody = schemaArgs.some((a) => a.foundIn === 'body')
-  return { cliArgs: args, hasBody }
+  return { cliArgs: args, hasBody, bodyArgsByKey: argsByKey, bodyFields }
 }
