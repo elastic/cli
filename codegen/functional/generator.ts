@@ -11,6 +11,7 @@ import type {
 } from './types.ts'
 import { buildActionMap, mapAction } from './mapper.ts'
 import type { MappedAction } from './mapper.ts'
+import type { SchemaArgDefinition } from '../../src/lib/schema-args.ts'
 
 export interface GenerateResult {
   /** bash script content */
@@ -290,8 +291,19 @@ function buildCommand (mapped: MappedAction, step: DoStep): string {
   // Pass body fields as individual CLI flags.
   if (step.body != null) {
     const extraArgs: string[] = []
+    let body = step.body
 
-    if (Array.isArray(step.body)) {
+    // YAML `body: >` block scalars produce a string containing JSON.
+    // Parse it into an object so keys can be matched to CLI flags.
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body)
+      } catch {
+        // Not valid JSON — pass as-is to the first body arg
+      }
+    }
+
+    if (Array.isArray(body)) {
       // Array bodies (e.g. bulk operations) — the whole array maps to the
       // single body arg (e.g. --operations).
       const arrayArgDef = [...mapped.bodyArgsByKey.values()].find(
@@ -302,29 +314,52 @@ function buildCommand (mapped: MappedAction, step: DoStep): string {
         // as a `data` field inside the action metadata object:
         //   { index: { _index: ..., _id: ..., data: { field: value } } }
         // Expand these into proper alternating action+document NDJSON pairs.
-        const expanded = expandBulkDataFields(step.body as unknown[])
+        const expanded = expandBulkDataFields(body as unknown[])
         extraArgs.push(`--${arrayArgDef.cliFlag}`, toShellArg(expanded))
       }
-    } else {
+    } else if (typeof body === 'object' && body !== null) {
       // Object bodies — try matching each top-level key to a body schema arg.
-      const body = step.body as Record<string, unknown>
-      const matched: string[] = []
-      for (const [key, value] of Object.entries(body)) {
+      const bodyObj = body as Record<string, unknown>
+      const bodyMatched: string[] = []
+      // Track params already set via step.params to avoid duplicates
+      const alreadySetParams = new Set(Object.keys(step.params))
+      const bodyKeys = Object.keys(bodyObj)
+      for (const [key, value] of Object.entries(bodyObj)) {
         const argDef = mapped.bodyArgsByKey.get(key)
-        if (argDef == null || argDef.foundIn !== 'body') continue
-        matched.push(key)
-        extraArgs.push(`--${argDef.cliFlag}`, toShellArg(value))
+        if (argDef != null && argDef.foundIn === 'body') {
+          // Guard against name collisions between YAML sub-fields and CLI body args.
+          // If the CLI arg expects an object/array but the YAML value is a primitive,
+          // only match when this is the sole body key (the primitive IS the value).
+          // With multiple keys the body is a wrapper object whose sub-fields happen
+          // to share a name with the arg (e.g. logstash pipeline).
+          if (argDef.type === 'object' && typeof value !== 'object' && bodyKeys.length > 1) continue
+          if (argDef.type === 'array' && !Array.isArray(value) && bodyKeys.length > 1) continue
+          bodyMatched.push(key)
+          extraArgs.push(`--${argDef.cliFlag}`, coerceBodyArg(value, argDef))
+        } else if (argDef != null && (argDef.foundIn === 'path' || argDef.foundIn === 'query') && !alreadySetParams.has(key)) {
+          // Body keys that match path/query params not already set
+          // (e.g. render_search_template's "id" is a path param but YAML tests put it in the body)
+          extraArgs.push(`--${argDef.cliFlag}`, toShellArg(value))
+        }
       }
       // If no top-level keys matched body fields, the entire body is a freeform
       // document (e.g. `index` where the body IS the document). Pass it to the
       // single body arg (e.g. --document).
-      if (matched.length === 0) {
+      if (bodyMatched.length === 0) {
         const singleBodyArg = [...mapped.bodyArgsByKey.values()].find(
           (a) => a.foundIn === 'body'
         )
         if (singleBodyArg != null) {
-          extraArgs.push(`--${singleBodyArg.cliFlag}`, toShellArg(step.body))
+          extraArgs.push(`--${singleBodyArg.cliFlag}`, toShellArg(body))
         }
+      }
+    } else if (typeof body === 'string') {
+      // Unparseable string body — pass raw to the first body arg
+      const singleBodyArg = [...mapped.bodyArgsByKey.values()].find(
+        (a) => a.foundIn === 'body'
+      )
+      if (singleBodyArg != null) {
+        extraArgs.push(`--${singleBodyArg.cliFlag}`, toShellArg(body))
       }
     }
 
@@ -367,7 +402,6 @@ function renderMatchValue (path: string, expected: unknown, lines: string[], ind
   if (typeof expected === 'string' && expected.startsWith('/') && expected.endsWith('/')) {
     const pattern = expected.slice(1, -1)
     const jqPath = toJqPath(path)
-    // Skip $body regex matches — they test raw text format, not applicable in JSON mode
     if (path === '$body' || path === '') {
       lines.push(`${indent}# SKIPPED: regex match on response body (text-format assertion)`)
       return
@@ -377,6 +411,19 @@ function renderMatchValue (path: string, expected: unknown, lines: string[], ind
   }
 
   const jqPath = toJqPath(path)
+
+  if (Array.isArray(expected)) {
+    // Compare JSON representation (jq without -r to preserve array structure)
+    const expectedJson = JSON.stringify(expected)
+    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq -Sc '${jqPath}')" = '${escapeSingleQuotes(expectedJson)}' ] || { echo "FAIL: expected ${safeLabel} = ${escapeSingleQuotes(expectedJson)}"; exit 1; }`)
+    return
+  }
+
+  if (expected === null) {
+    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "null" ] || { echo "FAIL: expected ${safeLabel} = null"; exit 1; }`)
+    return
+  }
+
   const expectedStr = resolveExpectedValue(expected)
 
   if (typeof expected === 'number') {
@@ -452,6 +499,25 @@ function renderContains (step: ContainsStep, lines: string[], indent: string): v
  * can parse them with z.any() / z.array() schemas.
  * Returns `null` for variable references which need special bash quoting.
  */
+/**
+ * Coerce a YAML body value to a shell-safe CLI flag argument, accounting for
+ * type mismatches between YAML data and CLI schema arg types.
+ * - Arrays targeting string-typed flags are comma-joined (e.g. index_patterns).
+ * - Objects containing $var references use double-quoted JSON with embedded
+ *   variable expansion.
+ */
+function coerceBodyArg (value: unknown, argDef: SchemaArgDefinition): string {
+  // Array value → string-typed flag: join with commas (e.g. index_patterns)
+  if (Array.isArray(value) && argDef.type === 'string') {
+    return shellEscape(value.map(String).join(','))
+  }
+  // Object/array containing $var references needs special quoting
+  if (value !== null && typeof value === 'object' && containsVarRef(value)) {
+    return buildVarExpandingJson(value)
+  }
+  return toShellArg(value)
+}
+
 function toArgValue (value: unknown): string {
   if (typeof value === 'string') return value
   return JSON.stringify(value)
@@ -522,14 +588,17 @@ function toJqPath (path: string): string {
   const parts = path.split('.')
   let jq = ''
   for (const part of parts) {
+    if (part === '') continue
     if (/^\d+$/.test(part)) {
-      // Numeric index: always prepend '.' to ensure valid jq (e.g. .[0] not [0])
       jq += `.[${part}]`
-    } else {
+    } else if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(part)) {
       jq += `.${part}`
+    } else {
+      // Quote field names containing special chars (hyphens, dots, etc.)
+      jq += `.["${part}"]`
     }
   }
-  return jq
+  return jq || '.'
 }
 
 /**
@@ -545,6 +614,35 @@ function resolveExpectedValue (value: unknown): string {
     return `"${value}"`
   }
   return `"${String(value)}"`
+}
+
+/**
+ * Checks if a value (recursively) contains any bash variable reference ($var).
+ */
+function containsVarRef (val: unknown): boolean {
+  if (typeof val === 'string') return val.startsWith('$')
+  if (Array.isArray(val)) return val.some(containsVarRef)
+  if (val !== null && typeof val === 'object') {
+    return Object.values(val as Record<string, unknown>).some(containsVarRef)
+  }
+  return false
+}
+
+/**
+ * Build a shell argument for JSON containing bash variable references.
+ * Uses concatenation of single- and double-quoted segments so variables expand.
+ * E.g. {"id":"$id","keep_alive":"1m"} → '{"id":"'"$ID"'","keep_alive":"1m"}'
+ */
+function buildVarExpandingJson (value: unknown): string {
+  const json = JSON.stringify(value)
+  // First escape any literal single quotes in the JSON
+  const escaped = escapeSingleQuotes(json)
+  // Then replace "$varname" patterns with shell variable break-outs
+  const expanded = escaped.replace(/"\$([a-zA-Z_][a-zA-Z0-9_]*)"/g, (_match, varName: string) => {
+    const bashVar = varName.toUpperCase().replace(/[^A-Z0-9]/g, '_')
+    return `"'"$${bashVar}"'"`
+  })
+  return `'${expanded}'`
 }
 
 function shellEscape (arg: string): string {

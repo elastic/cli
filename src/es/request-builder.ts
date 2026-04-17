@@ -133,7 +133,7 @@ function toNdjson (body: Record<string, unknown>): string {
 // to be the entire request body (not nested under the field name).
 // - `document`: index/create APIs (the doc IS the body)
 // - `inference_config`: inference.put sends the config directly as the body
-const BODY_ROOT_FIELDS = new Set(['document', 'inference_config'])
+const BODY_ROOT_FIELDS = new Set(['document', 'inference_config', 'pipeline'])
 
 /**
  * Collects request body fields from entries with `foundIn === "body"` or no `foundIn`.

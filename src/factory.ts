@@ -629,7 +629,9 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
           try {
             cliInput[arg.schemaKey] = JSON.parse(raw as string)
           } catch {
-            return cmd.error(`option --${arg.cliFlag}: invalid JSON: ${raw}`)
+            // If JSON parse fails, pass the raw value — handles z.any() fields
+            // that accept plain strings (e.g. connector update-error --error)
+            cliInput[arg.schemaKey] = raw
           }
         } else {
           // string, number (already coerced by parseArg), enum
