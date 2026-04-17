@@ -213,6 +213,30 @@ describe('buildRequestParams', () => {
     assert.equal(result.body, undefined, 'body should not be set for NDJSON')
   })
 
+  it('switches from PUT to POST when an optional path param like {id} is absent (#168)', () => {
+    const input = z.looseObject({
+      index: z.string().describe('Index name').meta({ found_in: 'path' }),
+      id: z.string().optional().describe('Document ID').meta({ found_in: 'path' }),
+      document: z.any().optional().meta({ found_in: 'body' }),
+    })
+    const def = makeDefinition({ method: 'PUT', path: '/{index}/_doc/{id}', input })
+    const result = buildRequestParams(def, parsedResult({ index: 'test-index', document: { title: 'hello' } }), args(input))
+    assert.equal(result.method, 'POST', 'should use POST when id is absent')
+    assert.equal(result.path, '/test-index/_doc')
+  })
+
+  it('keeps PUT when the optional {id} path param is provided', () => {
+    const input = z.looseObject({
+      index: z.string().describe('Index name').meta({ found_in: 'path' }),
+      id: z.string().optional().describe('Document ID').meta({ found_in: 'path' }),
+      document: z.any().optional().meta({ found_in: 'body' }),
+    })
+    const def = makeDefinition({ method: 'PUT', path: '/{index}/_doc/{id}', input })
+    const result = buildRequestParams(def, parsedResult({ index: 'test-index', id: 'doc1', document: { title: 'hello' } }), args(input))
+    assert.equal(result.method, 'PUT', 'should keep PUT when id is provided')
+    assert.equal(result.path, '/test-index/_doc/doc1')
+  })
+
   it('NDJSON format applies to msearch searches field', () => {
     const input = z.looseObject({
       searches: z.array(z.any()).optional().meta({ found_in: 'body' }),
