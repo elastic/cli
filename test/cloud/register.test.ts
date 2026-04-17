@@ -201,11 +201,16 @@ describe('registerCloudCommands', () => {
   describe('default command aliases', () => {
     it('no commands have aliases', () => {
       const group = registerCloudCommands()
-      const visit = (cmd: { name(): string, aliases(): string[], commands: any[] }) => {
+      interface CommandNode {
+        name(): string
+        aliases(): string[]
+        commands: CommandNode[]
+      }
+      const visit = (cmd: CommandNode): void => {
         assert.deepEqual(cmd.aliases(), [], `${cmd.name()} should have no alias`)
         for (const child of cmd.commands) visit(child)
       }
-      for (const child of group.commands) visit(child)
+      for (const child of group.commands as unknown as CommandNode[]) visit(child)
     })
   })
 })
