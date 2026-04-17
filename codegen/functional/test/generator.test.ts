@@ -147,6 +147,32 @@ describe('generateScript', () => {
     assert.ok(teardownSection.includes('|| true'), 'teardown should use || true for ignored errors')
   })
 
+  it('emits a no-op in teardown when every step is skipped', () => {
+    const content = readFileSync(join(fixturesDir, 'skipped-teardown.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'skipped-teardown.yml')
+    const result = generateScript(testFile, testDefs)
+    const teardownSection = result.script.split('trap teardown EXIT')[0]
+    const body = teardownSection
+      .split('teardown() {')[1]
+      .split('}')[0]
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0)
+    assert.ok(
+      body.some((l) => l === ':'),
+      'teardown body with only skipped steps must contain a ":" no-op'
+    )
+  })
+
+  it('produces teardown that parses as valid bash when all steps are skipped', async () => {
+    const { spawnSync } = await import('node:child_process')
+    const content = readFileSync(join(fixturesDir, 'skipped-teardown.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'skipped-teardown.yml')
+    const result = generateScript(testFile, testDefs)
+    const parsed = spawnSync('bash', ['-n'], { input: result.script })
+    assert.equal(parsed.status, 0, `bash -n failed: ${parsed.stderr.toString()}`)
+  })
+
   it('prints PASS on success', () => {
     const content = readFileSync(join(fixturesDir, 'get.yml'), 'utf-8')
     const testFile = parseTestFile(content, 'get.yml')

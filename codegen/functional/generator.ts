@@ -42,7 +42,11 @@ export function generateScript (
 
   if (testFile.teardown.length > 0) {
     lines.push('teardown() {')
+    const teardownStart = lines.length
     renderSteps(testFile.teardown, actionMap, lines, skippedActions, '  ')
+    if (!hasExecutableLine(lines.slice(teardownStart))) {
+      lines.push('  :')
+    }
     lines.push('}')
     lines.push('trap teardown EXIT')
     lines.push('')
@@ -116,6 +120,18 @@ export function generateRunner (scriptPaths: string[]): string {
 // ---------------------------------------------------------------------------
 // Internal rendering helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * A bash function body must contain at least one executable statement.
+ * Returns true if any of the given lines is something other than a blank
+ * line or a shell comment.
+ */
+function hasExecutableLine (lines: string[]): boolean {
+  return lines.some((line) => {
+    const trimmed = line.trim()
+    return trimmed.length > 0 && !trimmed.startsWith('#')
+  })
+}
 
 function renderSteps (
   steps: Step[],

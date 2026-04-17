@@ -1,0 +1,12 @@
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      unregistered.action: { index: 'x' }
+---
+'test with only unmapped teardown':
+  - do:
+      indices.create: { index: 'x' }
