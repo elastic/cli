@@ -102,7 +102,7 @@ describe('generateScript', () => {
     const testFile = parseTestFile(content, 'get.yml')
     const result = generateScript(testFile, testDefs)
     assert.ok(result.script.includes('# --- Setup ---'))
-    assert.ok(result.script.includes('$ELASTIC es indices create'))
+    assert.ok(result.script.includes('$ELASTIC stack es indices create'))
   })
 
   it('generates teardown with trap', () => {
@@ -129,12 +129,14 @@ describe('generateScript', () => {
     assert.ok(result.script.includes('FAIL:'))
   })
 
-  it('generates body via stdin pipe', () => {
+  it('generates do-steps for actions with body', () => {
     const content = readFileSync(join(fixturesDir, 'get.yml'), 'utf-8')
     const testFile = parseTestFile(content, 'get.yml')
     const result = generateScript(testFile, testDefs)
-    assert.ok(result.script.includes("echo '"))
-    assert.ok(result.script.includes('--file -'))
+    assert.ok(
+      result.script.includes('$ELASTIC stack es index --index get_test'),
+      'should emit the index command even when body has no matching schema args'
+    )
   })
 
   it('skips catch steps with comment', () => {

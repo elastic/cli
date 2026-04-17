@@ -175,8 +175,19 @@ function renderSteps (
         hadSkippedDo = true
         continue
       }
-      responseFromLastDo = renderDo(step, actionMap, lines, skippedActions, indent, hadSkippedDo)
-      if (!responseFromLastDo) hadSkippedDo = true
+      // Only pass allowFailure from the setup→test propagation, not from
+      // prior skipped steps within the same section (those are unrelated).
+      const result = renderDo(step, actionMap, lines, skippedActions, indent, initialHadSkippedDo)
+      if (result === 'skipped') {
+        responseFromLastDo = false
+        hadSkippedDo = true
+      } else if (result === 'optional') {
+        // Mapped but ran with || true due to missing setup state.
+        // $RESPONSE may be stale — skip assertions.
+        responseFromLastDo = false
+      } else {
+        responseFromLastDo = true
+      }
       continue
     }
     if (step.kind === 'skip') continue
@@ -227,10 +238,11 @@ function renderSteps (
 }
 
 /**
- * Render a do-step. Returns true if an executable command was emitted and
- * $RESPONSE will hold the result afterwards; false when the step was
- * skipped (unsupported catch or unmapped action) and $RESPONSE is now
- * stale/empty.
+ * Render a do-step.
+ * Returns:
+ *   'executed' — command was emitted and $RESPONSE is reliable
+ *   'optional' — command was emitted with || true ($RESPONSE may be stale)
+ *   'skipped'  — command was not emitted (unmapped action, unsupported catch)
  */
 function renderDo (
   step: DoStep,
@@ -239,10 +251,10 @@ function renderDo (
   skippedActions: string[],
   indent: string,
   allowFailure = false
-): boolean {
+): 'executed' | 'optional' | 'skipped' {
   if (step.catch != null) {
     lines.push(`${indent}# SKIPPED: catch not supported in MVP (catch: ${step.catch})`)
-    return false
+    return 'skipped'
   }
 
   if (step.headers != null) {
@@ -253,22 +265,19 @@ function renderDo (
   if (mapped == null) {
     skippedActions.push(step.action)
     lines.push(`${indent}# SKIPPED: action "${step.action}" not registered in CLI`)
-    return false
+    return 'skipped'
   }
 
   const cmd = buildCommand(mapped, step)
 
-  // Use || true when the step may fail because preceding setup steps were
-  // skipped (state was never created), or when ignore codes are specified.
   const optional = allowFailure || (step.ignore != null && step.ignore.length > 0)
   if (optional) {
     lines.push(`${indent}RESPONSE=$(${cmd}) || true`)
-    // Don't report $RESPONSE as reliable since the command may have failed
-    return false
+    return 'optional'
   } else {
     lines.push(`${indent}RESPONSE=$(${cmd})`)
   }
-  return true
+  return 'executed'
 }
 
 function buildCommand (mapped: MappedAction, step: DoStep): string {

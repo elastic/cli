@@ -52,10 +52,14 @@ export function mapAction (
   params: Record<string, unknown>,
   actionMap: Map<string, EsApiDefinition>
 ): MappedAction | null {
-  const def = actionMap.get(action)
+  // YAML tests use underscore notation (e.g. "clear_scroll", "cat.ml_data_frame_analytics")
+  // but CLI definitions use kebab-case (e.g. "clear-scroll", "cat.ml-data-frame-analytics").
+  // Normalize by converting underscores to hyphens within each dot-separated segment.
+  const normalizedAction = action.split('.').map((s) => s.replace(/_/g, '-')).join('.')
+  const def = actionMap.get(action) ?? actionMap.get(normalizedAction)
   if (def == null) return null
 
-  const args: string[] = ['es']
+  const args: string[] = ['stack', 'es']
   if (def.namespace != null) args.push(def.namespace)
   args.push(def.name)
 
