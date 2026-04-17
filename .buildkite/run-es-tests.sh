@@ -40,8 +40,6 @@ npm ci
 
 echo "--- Building CLI"
 npm run build
-
-echo "--- Linking elastic binary onto PATH"
 npm link
 
 echo "--- Cloning elasticsearch-clients-tests"
@@ -80,14 +78,16 @@ until curl -sf http://localhost:9200/_cluster/health > /dev/null 2>&1; do
 done
 echo "Elasticsearch is ready"
 
-echo "--- Generating .elasticrc.yml for ES"
-cat > .elasticrc.yml <<EOF
+echo "--- Generating CI config file"
+CI_CONFIG_FILE="$(pwd)/.elasticrc-ci.yml"
+cat > "$CI_CONFIG_FILE" <<EOF
 contexts:
   ci:
-    es:
+    elasticsearch:
       url: http://localhost:9200
 current_context: ci
 EOF
+export ELASTIC_CLI_CONFIG_FILE="$CI_CONFIG_FILE"
 
 echo "--- Generating functional test scripts"
 npx tsx codegen/functional/index.ts --tests-dir elasticsearch-clients-tests/tests
