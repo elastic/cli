@@ -38,9 +38,9 @@ export function getTransport (): Transport {
   const { url, auth } = es
 
   let transportAuth: ApiKeyAuth | { username: string, password: string } | undefined
-  if ('api_key' in auth && typeof (auth as Record<string, unknown>).api_key === 'string') {
+  if (auth != null && 'api_key' in auth && typeof (auth as Record<string, unknown>).api_key === 'string') {
     transportAuth = { apiKey: (auth as Record<string, unknown>).api_key as string }
-  } else if ('username' in auth && 'password' in auth) {
+  } else if (auth != null && 'username' in auth && 'password' in auth) {
     const a = auth as Record<string, unknown>
     if (typeof a.username === 'string' && typeof a.password === 'string') {
       transportAuth = { username: a.username, password: a.password }
