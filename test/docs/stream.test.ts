@@ -5,7 +5,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { splitCompleteParagraph, streamAnswer } from '../../src/docs/stream.ts'
+import { splitCompleteParagraph, streamAnswer, startSpinner } from '../../src/docs/stream.ts'
 import type { AskStreamEvent } from '../../src/docs/client.ts'
 
 function chunks (...texts: string[]): AsyncGenerator<AskStreamEvent> {
@@ -117,5 +117,60 @@ describe('streamAnswer', () => {
     const output: string[] = []
     await streamAnswer((async function* () {})(), (md) => md, { write: (s) => { output.push(s); return true } })
     assert.equal(output.length, 0)
+  })
+
+  it('stops the spinner at end of stream when no output was flushed', async () => {
+    let stopped = false
+    const spinner = { setPhase: () => {}, stop: () => { stopped = true } }
+    async function* gen (): AsyncGenerator<AskStreamEvent> {
+      yield { kind: 'status', message: 'only status' }
+    }
+    await streamAnswer(gen(), (md) => md, { write: () => true }, spinner)
+    assert.ok(stopped)
+  })
+
+  it('strips a partial <!--REFERENCES prefix at end of stream', async () => {
+    const output: string[] = []
+    await streamAnswer(
+      chunks('Answer\n\n<!--REFER'),
+      (md) => md.trim(),
+      { write: (s: string) => { output.push(s); return true } },
+    )
+    const joined = output.join('')
+    assert.ok(joined.includes('Answer'))
+    assert.ok(!joined.includes('<!--REFER'))
+  })
+})
+
+describe('startSpinner', () => {
+  it('writes a frame and the provided phase to the stream after a tick', async () => {
+    const writes: string[] = []
+    const handle = startSpinner({ write: (s: string) => { writes.push(s); return true } }, 'Working…')
+
+    // wait longer than one interval (80ms) to trigger at least one frame write
+    await new Promise((r) => setTimeout(r, 120))
+    handle.stop()
+
+    assert.ok(writes.length >= 1)
+    assert.ok(writes.some((w) => w.includes('Working…')))
+  })
+
+  it('changes the phase label on setPhase()', async () => {
+    const writes: string[] = []
+    const handle = startSpinner({ write: (s: string) => { writes.push(s); return true } }, 'First')
+    handle.setPhase('Second')
+
+    await new Promise((r) => setTimeout(r, 120))
+    handle.stop()
+
+    assert.ok(writes.some((w) => w.includes('Second')))
+  })
+
+  it('stop() clears the spinner line', async () => {
+    const writes: string[] = []
+    const handle = startSpinner({ write: (s: string) => { writes.push(s); return true } })
+    handle.stop()
+    // stop emits a final \r + clear sequence
+    assert.ok(writes.some((w) => w.includes('\r')))
   })
 })

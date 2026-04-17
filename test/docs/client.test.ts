@@ -111,6 +111,20 @@ describe('docs client utilities', () => {
         /docs search error \(500\): Server Error/,
       )
     })
+
+    it('swallows errors from text() and falls back to statusText', async () => {
+      const fakeResponse = {
+        ok: false,
+        status: 502,
+        statusText: 'Bad Gateway',
+        text: async () => { throw new Error('stream read failed') },
+      } as unknown as Response
+      globalThis.fetch = (async () => fakeResponse) as typeof fetch
+      await assert.rejects(
+        docsSearch('x'),
+        /docs search error \(502\): Bad Gateway/,
+      )
+    })
   })
 
   describe('docsRead', () => {
@@ -241,6 +255,18 @@ describe('docs client utilities', () => {
       installFetch(async () => new Response(null, { status: 200 }))
       const gen = docsAskStream('hi', 'cid')
       await assert.rejects(gen.next(), /docs ask: response body is null/)
+    })
+
+    it('swallows errors from text() on non-ok response', async () => {
+      const fakeResponse = {
+        ok: false,
+        status: 500,
+        statusText: 'Server Error',
+        text: async () => { throw new Error('stream read failed') },
+      } as unknown as Response
+      globalThis.fetch = (async () => fakeResponse) as typeof fetch
+      const gen = docsAskStream('hi', 'cid')
+      await assert.rejects(gen.next(), /docs ask error \(500\): Server Error/)
     })
 
     it('yields status events for search_tool_call and tool_result, then chunks, and stops on message_complete', async () => {

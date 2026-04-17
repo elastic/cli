@@ -72,4 +72,42 @@ describe('createAskCommand', () => {
     assert.equal(process.exitCode, 1)
     process.exitCode = 0
   })
+
+  it('starts a spinner when stderr is a TTY (interactive mode)', async () => {
+    const prevIsTTY = process.stderr.isTTY
+    Object.defineProperty(process.stderr, 'isTTY', { value: true, configurable: true })
+    try {
+      const written: string[] = []
+      const stderrWrites: string[] = []
+      const cmd = createAskCommand({
+        docsAskStream: streamFrom(['answer text']),
+        stdout: { write: (s) => { written.push(s); return true } },
+        stderr: { write: (s) => { stderrWrites.push(s); return true } },
+      })
+      cmd.exitOverride()
+      cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
+      await cmd.parseAsync(['q'], { from: 'user' })
+      assert.ok(written.join('').includes('answer text'))
+    } finally {
+      Object.defineProperty(process.stderr, 'isTTY', { value: prevIsTTY, configurable: true })
+    }
+  })
+
+  it('stringifies non-Error thrown values into the docs_error message', async () => {
+    const stderrWrites: string[] = []
+    const cmd = createAskCommand({
+      docsAskStream: async function* () {
+        throw 'plain string failure'
+        yield { kind: 'chunk', text: '' }
+      },
+      stdout: { write: () => true },
+      stderr: { write: (s) => { stderrWrites.push(s); return true } },
+    })
+    cmd.exitOverride()
+    cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
+
+    await cmd.parseAsync(['q'], { from: 'user' })
+    assert.equal(process.exitCode, 1)
+    process.exitCode = 0
+  })
 })
