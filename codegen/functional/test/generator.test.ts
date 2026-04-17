@@ -83,6 +83,20 @@ describe('generateScript', () => {
     assert.ok(result.script.includes('set -euo pipefail'))
   })
 
+  it('invokes elastic with the supported --json flag', () => {
+    const content = readFileSync(join(fixturesDir, 'get.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'get.yml')
+    const result = generateScript(testFile, testDefs)
+    assert.ok(
+      result.script.includes('ELASTIC="elastic --json"'),
+      'generator must emit --json (--format=json is not a CLI option)'
+    )
+    assert.ok(
+      !result.script.includes('--format=json'),
+      'unsupported --format=json flag must not appear in generated scripts'
+    )
+  })
+
   it('generates setup steps', () => {
     const content = readFileSync(join(fixturesDir, 'get.yml'), 'utf-8')
     const testFile = parseTestFile(content, 'get.yml')
