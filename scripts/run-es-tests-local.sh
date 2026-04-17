@@ -85,8 +85,8 @@ echo "Elasticsearch is ready"
 
 # ── Config ────────────────────────────────────────────────────────────
 
-echo "--- Writing .elasticrc.yml"
-cat > .elasticrc.yml <<EOF
+echo "--- Writing ~/.elasticrc.yml"
+cat > "$HOME/.elasticrc.yml" <<EOF
 contexts:
   local:
     es:

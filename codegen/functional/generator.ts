@@ -147,14 +147,33 @@ function renderSteps (
   // that follows would assert against the wrong data — skip those too
   // until the next executed `do` resets the response.
   let responseFromLastDo = false
+  // Track bash variable names that were never assigned (set step was skipped).
+  // Do-steps that reference these variables in params are skipped to avoid
+  // "unbound variable" errors from set -u.
+  const unsetVars = new Set<string>()
+
   for (const step of steps) {
     if (step.kind === 'do') {
+      // Check if any param/body value (recursively) references an unset variable
+      const referencesUnset = valueReferencesUnset(step.params, unsetVars) ||
+        (step.body != null && valueReferencesUnset(step.body, unsetVars))
+      if (referencesUnset) {
+        lines.push(`${indent}# SKIPPED: step references undefined variable from skipped set`)
+        responseFromLastDo = false
+        continue
+      }
       responseFromLastDo = renderDo(step, actionMap, lines, skippedActions, indent)
       continue
     }
     if (step.kind === 'skip') continue
 
     if (!responseFromLastDo) {
+      if (step.kind === 'set') {
+        // Track variables that won't be set
+        for (const varName of Object.values(step.assignments)) {
+          unsetVars.add(varName.toUpperCase().replace(/[^A-Z0-9]/g, '_'))
+        }
+      }
       lines.push(`${indent}# SKIPPED: ${step.kind} assertion follows skipped do-step`)
       continue
     }
@@ -162,6 +181,10 @@ function renderSteps (
     switch (step.kind) {
       case 'set':
         renderSet(step, lines, indent)
+        // If a variable was previously unset, it's now set
+        for (const varName of Object.values(step.assignments)) {
+          unsetVars.delete(varName.toUpperCase().replace(/[^A-Z0-9]/g, '_'))
+        }
         break
       case 'match':
         renderMatch(step, lines, indent)
@@ -299,15 +322,31 @@ function renderMatchValue (path: string, expected: unknown, lines: string[], ind
     return
   }
 
+  // Safe label for error messages: escape $ to avoid unintended variable expansion
+  const safeLabel = path.replace(/\$/g, '\\$')
+
+  // Detect YAML regex pattern /.../ — use bash =~ operator
+  if (typeof expected === 'string' && expected.startsWith('/') && expected.endsWith('/')) {
+    const pattern = expected.slice(1, -1)
+    const jqPath = toJqPath(path)
+    // Skip $body regex matches — they test raw text format, not applicable in JSON mode
+    if (path === '$body' || path === '') {
+      lines.push(`${indent}# SKIPPED: regex match on response body (text-format assertion)`)
+      return
+    }
+    lines.push(`${indent}[[ "$(echo "$RESPONSE" | jq -r '${jqPath}')" =~ ${pattern} ]] || { echo 'FAIL: expected ${safeLabel} to match /${pattern}/'; exit 1; }`)
+    return
+  }
+
   const jqPath = toJqPath(path)
   const expectedStr = resolveExpectedValue(expected)
 
   if (typeof expected === 'number') {
-    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "${expected}" ] || { echo "FAIL: expected ${path} = ${expected}"; exit 1; }`)
+    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "${expected}" ] || { echo "FAIL: expected ${safeLabel} = ${expected}"; exit 1; }`)
   } else if (typeof expected === 'boolean') {
-    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "${String(expected)}" ] || { echo "FAIL: expected ${path} = ${String(expected)}"; exit 1; }`)
+    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "${String(expected)}" ] || { echo "FAIL: expected ${safeLabel} = ${String(expected)}"; exit 1; }`)
   } else {
-    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq -r '${jqPath}')" = ${expectedStr} ] || { echo "FAIL: expected ${path} = ${expectedStr}"; exit 1; }`)
+    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq -r '${jqPath}')" = ${expectedStr} ] || { echo "FAIL: expected ${safeLabel} = ${expectedStr}"; exit 1; }`)
   }
 }
 
@@ -378,6 +417,22 @@ function renderContains (step: ContainsStep, lines: string[], indent: string): v
 function toArgValue (value: unknown): string {
   if (typeof value === 'string') return value
   return JSON.stringify(value)
+}
+
+/**
+ * Recursively check if any string value in `val` is a bash variable reference
+ * (starts with `$`) pointing to a variable in `unsetVars`.
+ */
+function valueReferencesUnset (val: unknown, unsetVars: Set<string>): boolean {
+  if (typeof val === 'string' && val.startsWith('$')) {
+    const varName = val.slice(1).toUpperCase().replace(/[^A-Z0-9]/g, '_')
+    return unsetVars.has(varName)
+  }
+  if (Array.isArray(val)) return val.some((v) => valueReferencesUnset(v, unsetVars))
+  if (val !== null && typeof val === 'object') {
+    return Object.values(val).some((v) => valueReferencesUnset(v, unsetVars))
+  }
+  return false
 }
 
 /**
