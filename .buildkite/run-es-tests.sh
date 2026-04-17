@@ -21,18 +21,14 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "--- Setting up Node.js ${NODE_VERSION}"
-export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-# shellcheck source=/dev/null
-[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-nvm install "$NODE_VERSION"
-nvm use "$NODE_VERSION"
-
 echo "--- Installing dependencies"
 npm ci
 
 echo "--- Building CLI"
 npm run build
+
+echo "--- Linking elastic binary onto PATH"
+npm link
 
 echo "--- Cloning elasticsearch-clients-tests"
 git clone --depth 1 "$TESTS_REPO"

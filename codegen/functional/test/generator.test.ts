@@ -83,6 +83,20 @@ describe('generateScript', () => {
     assert.ok(result.script.includes('set -euo pipefail'))
   })
 
+  it('invokes elastic with the supported --json flag', () => {
+    const content = readFileSync(join(fixturesDir, 'get.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'get.yml')
+    const result = generateScript(testFile, testDefs)
+    assert.ok(
+      result.script.includes('ELASTIC="elastic --json"'),
+      'generator must emit --json (--format=json is not a CLI option)'
+    )
+    assert.ok(
+      !result.script.includes('--format=json'),
+      'unsupported --format=json flag must not appear in generated scripts'
+    )
+  })
+
   it('generates setup steps', () => {
     const content = readFileSync(join(fixturesDir, 'get.yml'), 'utf-8')
     const testFile = parseTestFile(content, 'get.yml')
@@ -145,6 +159,64 @@ describe('generateScript', () => {
     const result = generateScript(testFile, testDefs)
     const teardownSection = result.script.split('trap teardown EXIT')[0]
     assert.ok(teardownSection.includes('|| true'), 'teardown should use || true for ignored errors')
+  })
+
+  it('emits a no-op in teardown when every step is skipped', () => {
+    const content = readFileSync(join(fixturesDir, 'skipped-teardown.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'skipped-teardown.yml')
+    const result = generateScript(testFile, testDefs)
+    const teardownSection = result.script.split('trap teardown EXIT')[0]
+    const body = teardownSection
+      .split('teardown() {')[1]
+      .split('}')[0]
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0)
+    assert.ok(
+      body.some((l) => l === ':'),
+      'teardown body with only skipped steps must contain a ":" no-op'
+    )
+  })
+
+  it('produces teardown that parses as valid bash when all steps are skipped', async () => {
+    const { spawnSync } = await import('node:child_process')
+    const content = readFileSync(join(fixturesDir, 'skipped-teardown.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'skipped-teardown.yml')
+    const result = generateScript(testFile, testDefs)
+    const parsed = spawnSync('bash', ['-n'], { input: result.script })
+    assert.equal(parsed.status, 0, `bash -n failed: ${parsed.stderr.toString()}`)
+  })
+
+  it('skips assertions that follow an unmapped do-step', () => {
+    const content = readFileSync(join(fixturesDir, 'skipped-do-then-assert.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'skipped-do-then-assert.yml')
+    const result = generateScript(testFile, testDefs)
+
+    const matches = result.script.match(/assertion follows skipped do-step/g) ?? []
+    assert.ok(
+      matches.length >= 3,
+      `expected at least 3 skip-comments for match/is_true/set after unmapped do, got ${matches.length}`
+    )
+
+    // Assertions that follow a mapped do (indices.create) should still render.
+    assert.ok(
+      result.script.includes('FAIL: expected acknowledged = true'),
+      'assertion after a mapped do should still emit'
+    )
+  })
+
+  it('still emits assertions after a successful do resets the response', () => {
+    const content = readFileSync(join(fixturesDir, 'skipped-do-then-assert.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'skipped-do-then-assert.yml')
+    const result = generateScript(testFile, testDefs)
+
+    // Exactly one `match` should render as an actual assertion line — the
+    // one after indices.create. The earlier `match` after the unmapped do
+    // must not produce an executable comparison.
+    const emittedAssertions = result.script
+      .split('\n')
+      .filter((l) => l.includes('FAIL: expected acknowledged'))
+    assert.equal(emittedAssertions.length, 1)
   })
 
   it('prints PASS on success', () => {
