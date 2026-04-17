@@ -102,11 +102,14 @@ export function generateRunner (scriptPaths: string[]): string {
   lines.push('')
 
   for (const p of scriptPaths) {
-    lines.push(`if bash "$SCRIPT_DIR/${p}"; then`)
+    lines.push(`if OUTPUT=$(bash "$SCRIPT_DIR/${p}" 2>&1); then`)
     lines.push('  PASSED=$((PASSED + 1))')
+    lines.push(`  echo "PASS: ${p}"`)
     lines.push('else')
     lines.push('  FAILED=$((FAILED + 1))')
     lines.push(`  ERRORS="$ERRORS\\n  FAIL: ${p}"`)
+    lines.push(`  echo "FAIL: ${p}"`)
+    lines.push('  echo "$OUTPUT" | tail -5')
     lines.push('fi')
     lines.push('')
   }
