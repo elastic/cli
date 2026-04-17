@@ -60,7 +60,7 @@
     "@eslint/js": "10.0.1",
     "@types/marked-terminal": "6.1.1",
     "@types/node": "25.5.2",
-    "eslint": "10.1.0",
+    "eslint": "10.2.0",
     "license-checker": "25.0.1",
     "mega-linter-runner": "9.4.0",
     "tsx": "4.21.0",
