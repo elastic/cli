@@ -36,7 +36,17 @@ export function buildRequestParams (
   const querystring = buildQuerystring(schemaArgs, input)
   const body = collectBody(schemaArgs, input)
 
-  const params: TransportRequestParams = { method: def.method, path }
+  // When a PUT endpoint has optional path params that were omitted (e.g. {id}
+  // on the index API), ES expects POST instead of PUT for auto-generation.
+  let method = def.method
+  if (method === 'PUT') {
+    const hasAbsentOptionalPathParam = schemaArgs.some(
+      (a) => a.foundIn === 'path' && !a.required && input[a.schemaKey] === undefined
+    )
+    if (hasAbsentOptionalPathParam) method = 'POST'
+  }
+
+  const params: TransportRequestParams = { method, path }
   if (Object.keys(querystring).length > 0) params.querystring = querystring
 
   if (body !== undefined) {
