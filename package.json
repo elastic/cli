@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc",
     "test": "npm run build && npm run test:unit && npm run test:license",
-    "test:unit": "node --import tsx/esm --test",
+    "test:unit": "node --import tsx/esm --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=90 --test-coverage-functions=90 --test-coverage-include='src/**/*.ts' --test-coverage-exclude='src/es/apis/schemas/**' --test-coverage-exclude='src/cloud/apis/**' --test-coverage-exclude='src/es/apis.ts' --test-coverage-exclude='src/cloud/apis.ts' --test-coverage-exclude='src/cloud/serverless-apis.ts' --test-coverage-exclude='node_modules/**'",
     "test:lint": "eslint src",
     "codegen:functional": "npx tsx codegen/functional/index.ts --tests-dir ../elasticsearch-clients-tests/tests",
     "test:functional:es": "bash test/functional/es/run.sh",
@@ -59,7 +59,7 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/marked-terminal": "6.1.1",
-    "@types/node": "25.5.0",
+    "@types/node": "25.5.2",
     "eslint": "10.1.0",
     "license-checker": "25.0.1",
     "mega-linter-runner": "9.4.0",

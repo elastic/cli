@@ -1,0 +1,15 @@
+---
+requires:
+  serverless: true
+  stack: true
+---
+'skipped do then assertion should not run':
+  - do:
+      unregistered.action: { x: 'y' }
+  - match: { acknowledged: true }
+  - is_true: some.field
+  - set: { _id: id }
+
+  - do:
+      indices.create: { index: 'realindex' }
+  - match: { acknowledged: true }
