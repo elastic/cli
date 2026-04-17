@@ -23,14 +23,16 @@ if [ -z "$EC_API_KEY" ]; then
 fi
 
 echo "--- Generating .elasticrc.yml for CI"
-cat > .elasticrc.yml <<EOF
+cat > "$HOME/.elasticrc.yml" <<EOF
 contexts:
   ci:
     cloud:
-      url: https://api.elastic-cloud.com
+      url: https://admin.qa.cld.elstc.co
       auth:
         api_key: ${EC_API_KEY}
 current_context: ci
 EOF
 
-echo "Cloud config written to .elasticrc.yml"
+export ELASTIC_CLOUD_ADMIN_API=true
+
+echo "Cloud config written to ~/.elasticrc.yml (admin API mode enabled)"

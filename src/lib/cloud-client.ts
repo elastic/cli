@@ -42,7 +42,10 @@ export class CloudClient {
    * @throws {Error} on non-2xx responses, including the status code and response body
    */
   async request(params: CloudRequestParams): Promise<unknown> {
-    let url = `${this.baseUrl}${params.path}`
+    const path = process.env['ELASTIC_CLOUD_ADMIN_API'] === 'true'
+      ? params.path.replace('/api/v1/serverless/', '/api/v1/admin/serverless/')
+      : params.path
+    let url = `${this.baseUrl}${path}`
 
     if (params.querystring != null && Object.keys(params.querystring).length > 0) {
       const pieces = Object.entries(params.querystring)

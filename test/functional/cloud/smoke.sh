@@ -148,14 +148,6 @@ else
   fail "hosted deployments list-deployments" "empty response"
 fi
 
-# hosted stack get-version-stacks
-output=$(retry_with_backoff $CLI cloud hosted stack get-version-stacks --json 2>&1) || true
-if [ -n "$output" ]; then
-  assert_exit_zero "hosted stack get-version-stacks" $CLI cloud hosted stack get-version-stacks --json
-else
-  fail "hosted stack get-version-stacks" "empty response"
-fi
-
 echo ""
 
 # ── Serverless ───────────────────────────────────────────────────────

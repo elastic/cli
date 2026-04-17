@@ -1,7 +1,7 @@
 # Functional test pipeline for the Elastic CLI.
 #
 # Runs ES functional tests (Docker Elasticsearch + codegen'd bash scripts)
-# and Cloud smoke tests (against live api.elastic-cloud.com).
+# and Cloud smoke tests (against the QA Cloud API).
 #
 # Vault paths must be registered before Cloud tests work:
 #   secret/ci/elastic-cli/cloud-access
@@ -42,6 +42,7 @@ steps:
               - "22"
         agents:
           provider: gcp
+          image: family/core-ubuntu-2204
         env:
           NODE_VERSION: "{{matrix.node}}"
         command: ".buildkite/run-cloud-tests.sh"
