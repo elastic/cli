@@ -8,7 +8,7 @@ import assert from 'node:assert/strict'
 import { errors } from '@elastic/transport'
 import { transportError, missingConfigError } from '../../src/es/errors.ts'
 
-function makeDiagnosticMeta (overrides: Record<string, unknown> = {}): any {
+function makeDiagnosticMeta (overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     body: null,
     statusCode: 0,
