@@ -5,36 +5,171 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { registerCloudCommands, registerServerlessCommands, simplifyProjectCommandName } from '../../src/cloud/register.ts'
+import { registerCloudCommands, simplifyProjectCommandName } from '../../src/cloud/register.ts'
 import type { CloudApiDefinition } from '../../src/cloud/types.ts'
 
 describe('registerCloudCommands', () => {
-  describe('command tree structure', () => {
+  describe('top-level tree', () => {
     it('returns a top-level "cloud" group', () => {
       const group = registerCloudCommands([])
       assert.equal(group.name(), 'cloud')
     })
 
-    it('creates namespace subgroups from definitions', () => {
-      const defs: CloudApiDefinition[] = [
-        { name: 'list', namespace: 'deployments', description: 'List', method: 'GET', path: '/api/v1/deployments' },
-        { name: 'list', namespace: 'accounts', description: 'List', method: 'GET', path: '/api/v1/accounts' },
-      ]
-      const group = registerCloudCommands(defs)
+    it('has promoted, hosted, and serverless subgroups with default definitions', () => {
+      const group = registerCloudCommands()
       const subcommands = group.commands.map((c) => c.name())
-      assert.ok(subcommands.includes('deployments'))
-      assert.ok(subcommands.includes('accounts'))
+      assert.ok(subcommands.includes('accounts'), 'should have promoted "accounts"')
+      assert.ok(subcommands.includes('authentication'), 'should have promoted "authentication"')
+      assert.ok(subcommands.includes('organizations'), 'should have promoted "organizations"')
+      assert.ok(subcommands.includes('user-role-assignments'), 'should have promoted "user-role-assignments"')
+      assert.ok(subcommands.includes('hosted'), 'should have "hosted" subgroup')
+      assert.ok(subcommands.includes('serverless'), 'should have "serverless" subgroup')
     })
 
-    it('registers leaf commands under their namespace', () => {
+    it('does not expose hosted or serverless namespaces at the top level', () => {
+      const group = registerCloudCommands()
+      const subcommands = group.commands.map((c) => c.name())
+      assert.ok(!subcommands.includes('deployments'), 'deployments must live under hosted')
+      assert.ok(!subcommands.includes('extensions'), 'extensions must live under hosted')
+      assert.ok(!subcommands.includes('stack'), 'stack must live under hosted')
+      assert.ok(!subcommands.includes('regions'), 'regions must live under serverless')
+      assert.ok(!subcommands.includes('traffic-filters'), 'traffic-filters must live under serverless')
+      assert.ok(!subcommands.includes('elasticsearch-projects'), 'elasticsearch-projects must live under serverless es')
+    })
+  })
+
+  describe('promoted namespaces (cloud level)', () => {
+    it('accounts has its codegen command names preserved', () => {
+      const group = registerCloudCommands()
+      const accountsGroup = group.commands.find((c) => c.name() === 'accounts')!
+      const leafNames = accountsGroup.commands.map((c) => c.name())
+      assert.ok(leafNames.includes('get-current-account'))
+      assert.ok(leafNames.includes('update-current-account'))
+    })
+
+    it('organizations has its codegen command names preserved', () => {
+      const group = registerCloudCommands()
+      const orgsGroup = group.commands.find((c) => c.name() === 'organizations')!
+      const leafNames = orgsGroup.commands.map((c) => c.name())
+      assert.ok(leafNames.includes('list-organizations'))
+      assert.ok(leafNames.includes('get-organization'))
+    })
+
+    it('promoted synthetic defs are lifted out of hosted', () => {
       const defs: CloudApiDefinition[] = [
-        { name: 'list', namespace: 'deployments', description: 'List', method: 'GET', path: '/api/v1/deployments' },
-        { name: 'get', namespace: 'deployments', description: 'Get', method: 'GET', path: '/api/v1/deployments/{deployment_id}', pathParams: [{ name: 'deployment_id', description: 'ID', required: true }] },
+        { name: 'get-current-account', namespace: 'accounts', description: 'Get', method: 'GET', path: '/api/v1/account' },
+        { name: 'list-deployments', namespace: 'deployments', description: 'List', method: 'GET', path: '/api/v1/deployments' },
       ]
       const group = registerCloudCommands(defs)
-      const deploymentsGroup = group.commands.find((c) => c.name() === 'deployments')!
-      const leafNames = deploymentsGroup.commands.map((c) => c.name())
-      assert.deepEqual(leafNames, ['list', 'get'])
+      const top = group.commands.map((c) => c.name())
+      assert.ok(top.includes('accounts'))
+      assert.ok(top.includes('hosted'))
+      const hostedChildren = group.commands.find((c) => c.name() === 'hosted')!.commands.map((c) => c.name())
+      assert.ok(!hostedChildren.includes('accounts'), 'accounts must not appear under hosted')
+      assert.ok(hostedChildren.includes('deployments'))
+    })
+  })
+
+  describe('hosted subgroup', () => {
+    it('contains hosted-specific namespaces', () => {
+      const group = registerCloudCommands()
+      const hosted = group.commands.find((c) => c.name() === 'hosted')!
+      const namespaces = hosted.commands.map((c) => c.name())
+      assert.ok(namespaces.includes('deployments'))
+      assert.ok(namespaces.includes('deployment-templates'))
+      assert.ok(namespaces.includes('deployments-traffic-filter'))
+      assert.ok(namespaces.includes('extensions'))
+      assert.ok(namespaces.includes('stack'))
+      assert.ok(namespaces.includes('trusted-environments'))
+      assert.ok(namespaces.includes('billing-costs-analysis'))
+    })
+
+    it('does not contain promoted namespaces', () => {
+      const group = registerCloudCommands()
+      const hosted = group.commands.find((c) => c.name() === 'hosted')!
+      const namespaces = hosted.commands.map((c) => c.name())
+      assert.ok(!namespaces.includes('accounts'))
+      assert.ok(!namespaces.includes('authentication'))
+      assert.ok(!namespaces.includes('organizations'))
+      assert.ok(!namespaces.includes('user-role-assignments'))
+    })
+
+    it('deployments namespace has list, get, and shutdown commands', () => {
+      const group = registerCloudCommands()
+      const deployments = group.commands.find((c) => c.name() === 'hosted')!
+        .commands.find((c) => c.name() === 'deployments')!
+      const leafNames = deployments.commands.map((c) => c.name())
+      assert.ok(leafNames.includes('list-deployments'))
+      assert.ok(leafNames.includes('get-deployment'))
+      assert.ok(leafNames.includes('shutdown-deployment'))
+    })
+  })
+
+  describe('serverless subgroup', () => {
+    it('contains project-type groups and flat serverless namespaces', () => {
+      const group = registerCloudCommands()
+      const serverless = group.commands.find((c) => c.name() === 'serverless')!
+      const namespaces = serverless.commands.map((c) => c.name())
+      assert.ok(namespaces.includes('es'), 'should have "es" project-type group')
+      assert.ok(namespaces.includes('observability'))
+      assert.ok(namespaces.includes('security'))
+      assert.ok(namespaces.includes('regions'))
+      assert.ok(namespaces.includes('traffic-filters'))
+    })
+
+    it('es projects has CRUD commands with short names', () => {
+      const group = registerCloudCommands()
+      const projects = group.commands.find((c) => c.name() === 'serverless')!
+        .commands.find((c) => c.name() === 'es')!
+        .commands.find((c) => c.name() === 'projects')!
+      const leafNames = projects.commands.map((c) => c.name())
+      assert.ok(leafNames.includes('list'), 'should have list')
+      assert.ok(leafNames.includes('create'), 'should have create')
+      assert.ok(leafNames.includes('get'), 'should have get')
+      assert.ok(leafNames.includes('delete'), 'should have delete')
+      assert.ok(leafNames.includes('patch'), 'should have patch')
+      assert.ok(leafNames.includes('resume'), 'should have resume')
+      assert.ok(leafNames.includes('get-status'))
+      assert.ok(leafNames.includes('get-roles'))
+      assert.ok(leafNames.includes('reset-credentials'))
+    })
+
+    it('restructures synthetic project defs under serverless > <type> > projects', () => {
+      const defs: CloudApiDefinition[] = [
+        { name: 'list-observability-projects', namespace: 'observability-projects', description: 'List', method: 'GET', path: '/api/v1/serverless/projects/observability' },
+        { name: 'get-observability-project', namespace: 'observability-projects', description: 'Get', method: 'GET', path: '/api/v1/serverless/projects/observability/{id}', pathParams: [{ name: 'id', description: 'ID', required: true }] },
+      ]
+      const group = registerCloudCommands(defs)
+      const projects = group.commands.find((c) => c.name() === 'serverless')!
+        .commands.find((c) => c.name() === 'observability')!
+        .commands.find((c) => c.name() === 'projects')!
+      assert.deepEqual(projects.commands.map((c) => c.name()), ['list', 'get'])
+    })
+
+    it('keeps non-project serverless namespaces flat with codegen names', () => {
+      const defs: CloudApiDefinition[] = [
+        { name: 'list-regions', namespace: 'regions', description: 'List', method: 'GET', path: '/api/v1/serverless/regions' },
+        { name: 'get-region', namespace: 'regions', description: 'Get', method: 'GET', path: '/api/v1/serverless/regions/{id}', pathParams: [{ name: 'id', description: 'ID', required: true }] },
+      ]
+      const group = registerCloudCommands(defs)
+      const regions = group.commands.find((c) => c.name() === 'serverless')!
+        .commands.find((c) => c.name() === 'regions')!
+      assert.deepEqual(regions.commands.map((c) => c.name()), ['list-regions', 'get-region'])
+    })
+
+    it('adds --wait flag to create project commands only', () => {
+      const defs: CloudApiDefinition[] = [
+        { name: 'create-elasticsearch-project', namespace: 'elasticsearch-projects', description: 'Create', method: 'POST', path: '/api/v1/serverless/projects/elasticsearch' },
+        { name: 'list-elasticsearch-projects', namespace: 'elasticsearch-projects', description: 'List', method: 'GET', path: '/api/v1/serverless/projects/elasticsearch' },
+      ]
+      const group = registerCloudCommands(defs)
+      const projects = group.commands.find((c) => c.name() === 'serverless')!
+        .commands.find((c) => c.name() === 'es')!
+        .commands.find((c) => c.name() === 'projects')!
+      const createCmd = projects.commands.find((c) => c.name() === 'create')!
+      const listCmd = projects.commands.find((c) => c.name() === 'list')!
+      assert.ok(createCmd.options.map((o) => o.long).includes('--wait'))
+      assert.ok(!listCmd.options.map((o) => o.long).includes('--wait'))
     })
   })
 
@@ -46,162 +181,36 @@ describe('registerCloudCommands', () => {
       assert.throws(() => registerCloudCommands(defs), /invalid name/)
     })
 
-    it('throws on duplicate command names within a namespace', () => {
+    it('throws on duplicate command names within a hosted namespace', () => {
       const defs: CloudApiDefinition[] = [
         { name: 'list', namespace: 'deployments', description: 'List 1', method: 'GET', path: '/a' },
         { name: 'list', namespace: 'deployments', description: 'List 2', method: 'GET', path: '/b' },
       ]
       assert.throws(() => registerCloudCommands(defs), /duplicate/)
     })
+
+    it('throws on duplicate command names within a promoted namespace', () => {
+      const defs: CloudApiDefinition[] = [
+        { name: 'get-current-account', namespace: 'accounts', description: '1', method: 'GET', path: '/a' },
+        { name: 'get-current-account', namespace: 'accounts', description: '2', method: 'GET', path: '/b' },
+      ]
+      assert.throws(() => registerCloudCommands(defs), /duplicate/)
+    })
   })
 
-  describe('default API definitions (hosted cloud only)', () => {
-    it('includes hosted cloud namespaces', () => {
-      const group = registerCloudCommands()
-      const subcommands = group.commands.map((c) => c.name())
-      assert.ok(subcommands.includes('deployments'), 'should have deployments')
-      assert.ok(subcommands.includes('accounts'), 'should have accounts')
-      assert.ok(subcommands.includes('extensions'), 'should have extensions')
-    })
-
-    it('does not include serverless namespaces', () => {
-      const group = registerCloudCommands()
-      const subcommands = group.commands.map((c) => c.name())
-      assert.ok(!subcommands.includes('elasticsearch-projects'), 'should not have elasticsearch-projects')
-      assert.ok(!subcommands.includes('regions'), 'should not have regions')
-      assert.ok(!subcommands.includes('traffic-filters'), 'should not have traffic-filters')
-    })
-
-    it('deployments namespace has list, get, and shutdown commands', () => {
-      const group = registerCloudCommands()
-      const deploymentsGroup = group.commands.find((c) => c.name() === 'deployments')!
-      const leafNames = deploymentsGroup.commands.map((c) => c.name())
-      assert.ok(leafNames.includes('list-deployments'))
-      assert.ok(leafNames.includes('get-deployment'))
-      assert.ok(leafNames.includes('shutdown-deployment'))
-    })
-
-    it('accounts namespace has get and update commands', () => {
-      const group = registerCloudCommands()
-      const accountsGroup = group.commands.find((c) => c.name() === 'accounts')!
-      const leafNames = accountsGroup.commands.map((c) => c.name())
-      assert.ok(leafNames.includes('get-current-account'))
-      assert.ok(leafNames.includes('update-current-account'))
-    })
-
+  describe('default command aliases', () => {
     it('no commands have aliases', () => {
       const group = registerCloudCommands()
-      for (const ns of group.commands) {
-        for (const cmd of ns.commands) {
-          assert.deepEqual(cmd.aliases(), [], `${cmd.name()} should have no alias`)
-        }
+      interface CommandNode {
+        name(): string
+        aliases(): string[]
+        commands: CommandNode[]
       }
-    })
-  })
-})
-
-describe('registerServerlessCommands', () => {
-  describe('command tree structure', () => {
-    it('returns a top-level "serverless" group', () => {
-      const group = registerServerlessCommands([])
-      assert.equal(group.name(), 'serverless')
-    })
-
-    it('restructures elasticsearch-projects under serverless > es > projects', () => {
-      const defs: CloudApiDefinition[] = [
-        { name: 'list-elasticsearch-projects', namespace: 'elasticsearch-projects', description: 'List', method: 'GET', path: '/api/v1/serverless/projects/elasticsearch' },
-        { name: 'create-elasticsearch-project', namespace: 'elasticsearch-projects', description: 'Create', method: 'POST', path: '/api/v1/serverless/projects/elasticsearch' },
-      ]
-      const group = registerServerlessCommands(defs)
-      const esGroup = group.commands.find((c) => c.name() === 'es')!
-      assert.ok(esGroup, 'should have "es" subgroup')
-      const projectsGroup = esGroup.commands.find((c) => c.name() === 'projects')!
-      assert.ok(projectsGroup, 'should have "projects" under "es"')
-      const leafNames = projectsGroup.commands.map((c) => c.name())
-      assert.deepEqual(leafNames, ['list', 'create'])
-    })
-
-    it('restructures observability-projects under serverless > observability > projects', () => {
-      const defs: CloudApiDefinition[] = [
-        { name: 'list-observability-projects', namespace: 'observability-projects', description: 'List', method: 'GET', path: '/api/v1/serverless/projects/observability' },
-        { name: 'get-observability-project', namespace: 'observability-projects', description: 'Get', method: 'GET', path: '/api/v1/serverless/projects/observability/{id}', pathParams: [{ name: 'id', description: 'ID', required: true }] },
-      ]
-      const group = registerServerlessCommands(defs)
-      const obsGroup = group.commands.find((c) => c.name() === 'observability')!
-      const projectsGroup = obsGroup.commands.find((c) => c.name() === 'projects')!
-      const leafNames = projectsGroup.commands.map((c) => c.name())
-      assert.deepEqual(leafNames, ['list', 'get'])
-    })
-
-    it('restructures security-projects under serverless > security > projects', () => {
-      const defs: CloudApiDefinition[] = [
-        { name: 'delete-security-project', namespace: 'security-projects', description: 'Delete', method: 'DELETE', path: '/api/v1/serverless/projects/security/{id}', pathParams: [{ name: 'id', description: 'ID', required: true }] },
-      ]
-      const group = registerServerlessCommands(defs)
-      const secGroup = group.commands.find((c) => c.name() === 'security')!
-      const projectsGroup = secGroup.commands.find((c) => c.name() === 'projects')!
-      const leafNames = projectsGroup.commands.map((c) => c.name())
-      assert.deepEqual(leafNames, ['delete'])
-    })
-
-    it('keeps non-project namespaces as direct children of serverless', () => {
-      const defs: CloudApiDefinition[] = [
-        { name: 'list-regions', namespace: 'regions', description: 'List', method: 'GET', path: '/api/v1/serverless/regions' },
-        { name: 'get-region', namespace: 'regions', description: 'Get', method: 'GET', path: '/api/v1/serverless/regions/{id}', pathParams: [{ name: 'id', description: 'ID', required: true }] },
-      ]
-      const group = registerServerlessCommands(defs)
-      const regionsGroup = group.commands.find((c) => c.name() === 'regions')!
-      assert.ok(regionsGroup, 'should have "regions" subgroup')
-      const leafNames = regionsGroup.commands.map((c) => c.name())
-      assert.deepEqual(leafNames, ['list-regions', 'get-region'])
-    })
-
-    it('adds --wait flag to create project commands', () => {
-      const defs: CloudApiDefinition[] = [
-        { name: 'create-elasticsearch-project', namespace: 'elasticsearch-projects', description: 'Create', method: 'POST', path: '/api/v1/serverless/projects/elasticsearch' },
-        { name: 'list-elasticsearch-projects', namespace: 'elasticsearch-projects', description: 'List', method: 'GET', path: '/api/v1/serverless/projects/elasticsearch' },
-      ]
-      const group = registerServerlessCommands(defs)
-      const projectsGroup = group.commands.find((c) => c.name() === 'es')!.commands.find((c) => c.name() === 'projects')!
-      const createCmd = projectsGroup.commands.find((c) => c.name() === 'create')!
-      const listCmd = projectsGroup.commands.find((c) => c.name() === 'list')!
-      const createOpts = createCmd.options.map((o) => o.long)
-      const listOpts = listCmd.options.map((o) => o.long)
-      assert.ok(createOpts.includes('--wait'), 'create should have --wait')
-      assert.ok(!listOpts.includes('--wait'), 'list should not have --wait')
-    })
-  })
-
-  describe('default API definitions', () => {
-    it('includes project types as restructured groups', () => {
-      const group = registerServerlessCommands()
-      const subcommands = group.commands.map((c) => c.name())
-      assert.ok(subcommands.includes('es'), 'should have "es" group')
-      assert.ok(subcommands.includes('observability'), 'should have "observability" group')
-      assert.ok(subcommands.includes('security'), 'should have "security" group')
-    })
-
-    it('includes non-project serverless namespaces', () => {
-      const group = registerServerlessCommands()
-      const subcommands = group.commands.map((c) => c.name())
-      assert.ok(subcommands.includes('regions'), 'should have regions')
-      assert.ok(subcommands.includes('traffic-filters'), 'should have traffic-filters')
-    })
-
-    it('es projects has CRUD commands with short names', () => {
-      const group = registerServerlessCommands()
-      const esGroup = group.commands.find((c) => c.name() === 'es')!
-      const projectsGroup = esGroup.commands.find((c) => c.name() === 'projects')!
-      const leafNames = projectsGroup.commands.map((c) => c.name())
-      assert.ok(leafNames.includes('list'), 'should have list')
-      assert.ok(leafNames.includes('create'), 'should have create')
-      assert.ok(leafNames.includes('get'), 'should have get')
-      assert.ok(leafNames.includes('delete'), 'should have delete')
-      assert.ok(leafNames.includes('patch'), 'should have patch')
-      assert.ok(leafNames.includes('resume'), 'should have resume')
-      assert.ok(leafNames.includes('get-status'), 'should have get-status')
-      assert.ok(leafNames.includes('get-roles'), 'should have get-roles')
-      assert.ok(leafNames.includes('reset-credentials'), 'should have reset-credentials')
+      const visit = (cmd: CommandNode): void => {
+        assert.deepEqual(cmd.aliases(), [], `${cmd.name()} should have no alias`)
+        for (const child of cmd.commands) visit(child)
+      }
+      for (const child of group.commands as unknown as CommandNode[]) visit(child)
     })
   })
 })

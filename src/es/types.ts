@@ -25,7 +25,7 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD'
  *
  * @example
  * ```ts
- * // namespaced: registers as `elastic es indices create`
+ * // namespaced: registers as `elastic stack es indices create`
  * const createDef: EsApiDefinition = {
  *   name: 'create',
  *   namespace: 'indices',
@@ -39,7 +39,7 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD'
  *   }),
  * }
  *
- * // namespace-less: registers as `elastic es search`
+ * // namespace-less: registers as `elastic stack es search`
  * const searchDef: EsApiDefinition = {
  *   name: 'search',
  *   description: 'Run a search',

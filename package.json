@@ -1,7 +1,7 @@
 {
   "name": "@elastic/cli",
   "version": "0.1.0-alpha.1",
-  "description": "Interact with Elasticsearch, Elastic Serverless and Elastic Cloud APIs from the command line.",
+  "description": "Interact with the Elastic Stack and Elastic Cloud from the command line.",
   "main": "dist/cli.js",
   "bin": {
     "elastic": "dist/cli.js"

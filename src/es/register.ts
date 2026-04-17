@@ -29,10 +29,11 @@ function buildLeafHandle (
 }
 
 /**
- * Registers all Elasticsearch API commands under a top-level `es` group.
+ * Registers all Elasticsearch API commands under an `es` group, intended to be
+ * nested under the top-level `stack` group by the CLI entrypoint.
  *
- * Definitions with a `namespace` are grouped into a sub-group (`elastic es <namespace> <name>`).
- * Definitions without a `namespace` are registered as direct leaves (`elastic es <name>`).
+ * Definitions with a `namespace` are grouped into a sub-group (`elastic stack es <namespace> <name>`).
+ * Definitions without a `namespace` are registered as direct leaves (`elastic stack es <name>`).
  *
  * For each definition:
  * 1. `def.input` is passed directly to `defineCommand` as the `input` schema, so the

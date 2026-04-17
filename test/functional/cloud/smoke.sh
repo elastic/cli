@@ -121,11 +121,11 @@ fi
 
 echo ""
 
-# ── Cloud Hosted ─────────────────────────────────────────────────────
+# ── Cross-cutting ────────────────────────────────────────────────────
 
-echo "Cloud Hosted API:"
+echo "Cross-cutting API:"
 
-# accounts get-current-account
+# accounts get-current-account (promoted to cloud level)
 output=$(retry_with_backoff $CLI cloud accounts get-current-account --json 2>&1) || true
 if [ -n "$output" ]; then
   assert_exit_zero "accounts get-current-account" $CLI cloud accounts get-current-account --json
@@ -134,12 +134,18 @@ else
   fail "accounts get-current-account" "empty response"
 fi
 
-# deployments list-deployments
-output=$(retry_with_backoff $CLI cloud deployments list-deployments --json 2>&1) || true
+echo ""
+
+# ── Cloud Hosted ─────────────────────────────────────────────────────
+
+echo "Cloud Hosted API:"
+
+# hosted deployments list-deployments
+output=$(retry_with_backoff $CLI cloud hosted deployments list-deployments --json 2>&1) || true
 if [ -n "$output" ]; then
-  assert_exit_zero "deployments list-deployments" $CLI cloud deployments list-deployments --json
+  assert_exit_zero "hosted deployments list-deployments" $CLI cloud hosted deployments list-deployments --json
 else
-  fail "deployments list-deployments" "empty response"
+  fail "hosted deployments list-deployments" "empty response"
 fi
 
 echo ""
@@ -149,17 +155,17 @@ echo ""
 echo "Serverless API:"
 
 # serverless es projects list
-output=$(retry_with_backoff $CLI serverless es projects list --json 2>&1) || true
+output=$(retry_with_backoff $CLI cloud serverless es projects list --json 2>&1) || true
 if [ -n "$output" ]; then
-  assert_exit_zero "serverless es projects list" $CLI serverless es projects list --json
+  assert_exit_zero "serverless es projects list" $CLI cloud serverless es projects list --json
 else
   fail "serverless es projects list" "empty response"
 fi
 
 # serverless regions list-regions
-output=$(retry_with_backoff $CLI serverless regions list-regions --json 2>&1) || true
+output=$(retry_with_backoff $CLI cloud serverless regions list-regions --json 2>&1) || true
 if [ -n "$output" ]; then
-  assert_exit_zero "serverless regions list-regions" $CLI serverless regions list-regions --json
+  assert_exit_zero "serverless regions list-regions" $CLI cloud serverless regions list-regions --json
 else
   fail "serverless regions list-regions" "empty response"
 fi
