@@ -88,6 +88,13 @@ if (firstArg === 'docs') {
   program.addCommand(defineGroup({ name: 'docs', description: 'Search, read, and ask questions about Elastic documentation' }))
 }
 
+if (firstArg === 'kb') {
+  const { registerKbCommands } = await import('./kb/register.ts')
+  program.addCommand(registerKbCommands())
+} else {
+  program.addCommand(defineGroup({ name: 'kb', description: 'Interact with the Kibana API' }))
+}
+
 // Load config early so --help can hide blocked commands. Skip for commands
 // that don't need config (e.g. `version`) to avoid unnecessary file I/O.
 if (firstArg !== 'version') {

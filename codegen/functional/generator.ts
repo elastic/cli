@@ -36,7 +36,7 @@ export function generateScript (
   lines.push(`# Generated from ${testFile.sourceFile}`)
   lines.push('set -euo pipefail')
   lines.push('')
-  lines.push('ELASTIC="elastic --format=json"')
+  lines.push('ELASTIC="elastic --json"')
   lines.push('RESPONSE=""')
   lines.push('')
 
