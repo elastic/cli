@@ -173,6 +173,38 @@ describe('generateScript', () => {
     assert.equal(parsed.status, 0, `bash -n failed: ${parsed.stderr.toString()}`)
   })
 
+  it('skips assertions that follow an unmapped do-step', () => {
+    const content = readFileSync(join(fixturesDir, 'skipped-do-then-assert.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'skipped-do-then-assert.yml')
+    const result = generateScript(testFile, testDefs)
+
+    const matches = result.script.match(/assertion follows skipped do-step/g) ?? []
+    assert.ok(
+      matches.length >= 3,
+      `expected at least 3 skip-comments for match/is_true/set after unmapped do, got ${matches.length}`
+    )
+
+    // Assertions that follow a mapped do (indices.create) should still render.
+    assert.ok(
+      result.script.includes('FAIL: expected acknowledged = true'),
+      'assertion after a mapped do should still emit'
+    )
+  })
+
+  it('still emits assertions after a successful do resets the response', () => {
+    const content = readFileSync(join(fixturesDir, 'skipped-do-then-assert.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'skipped-do-then-assert.yml')
+    const result = generateScript(testFile, testDefs)
+
+    // Exactly one `match` should render as an actual assertion line — the
+    // one after indices.create. The earlier `match` after the unmapped do
+    // must not produce an executable comparison.
+    const emittedAssertions = result.script
+      .split('\n')
+      .filter((l) => l.includes('FAIL: expected acknowledged'))
+    assert.equal(emittedAssertions.length, 1)
+  })
+
   it('prints PASS on success', () => {
     const content = readFileSync(join(fixturesDir, 'get.yml'), 'utf-8')
     const testFile = parseTestFile(content, 'get.yml')

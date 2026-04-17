@@ -140,11 +140,25 @@ function renderSteps (
   skippedActions: string[],
   indent: string
 ): void {
+  // Assertions and set-steps read $RESPONSE, which is written by the most
+  // recent successful `do`. If the last `do` was skipped (unmapped action,
+  // unsupported catch, etc.) $RESPONSE is stale or empty, so any assertion
+  // that follows would assert against the wrong data — skip those too
+  // until the next executed `do` resets the response.
+  let responseFromLastDo = false
   for (const step of steps) {
+    if (step.kind === 'do') {
+      responseFromLastDo = renderDo(step, actionMap, lines, skippedActions, indent)
+      continue
+    }
+    if (step.kind === 'skip') continue
+
+    if (!responseFromLastDo) {
+      lines.push(`${indent}# SKIPPED: ${step.kind} assertion follows skipped do-step`)
+      continue
+    }
+
     switch (step.kind) {
-      case 'do':
-        renderDo(step, actionMap, lines, skippedActions, indent)
-        break
       case 'set':
         renderSet(step, lines, indent)
         break
@@ -169,22 +183,26 @@ function renderSteps (
       case 'contains':
         renderContains(step, lines, indent)
         break
-      case 'skip':
-        break
     }
   }
 }
 
+/**
+ * Render a do-step. Returns true if an executable command was emitted and
+ * $RESPONSE will hold the result afterwards; false when the step was
+ * skipped (unsupported catch or unmapped action) and $RESPONSE is now
+ * stale/empty.
+ */
 function renderDo (
   step: DoStep,
   actionMap: Map<string, EsApiDefinition>,
   lines: string[],
   skippedActions: string[],
   indent: string
-): void {
+): boolean {
   if (step.catch != null) {
     lines.push(`${indent}# SKIPPED: catch not supported in MVP (catch: ${step.catch})`)
-    return
+    return false
   }
 
   if (step.headers != null) {
@@ -195,7 +213,7 @@ function renderDo (
   if (mapped == null) {
     skippedActions.push(step.action)
     lines.push(`${indent}# SKIPPED: action "${step.action}" not registered in CLI`)
-    return
+    return false
   }
 
   const cmd = buildCommand(mapped, step)
@@ -205,6 +223,7 @@ function renderDo (
   } else {
     lines.push(`${indent}RESPONSE=$(${cmd})`)
   }
+  return true
 }
 
 function buildCommand (mapped: MappedAction, step: DoStep): string {
