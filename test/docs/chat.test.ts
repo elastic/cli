@@ -101,6 +101,30 @@ describe('createChatCommand', () => {
     }
   })
 
+  it('returns structured JSON with buffered answer when --json is active', async () => {
+    const captured: string[] = []
+    const origWrite = process.stdout.write
+    process.stdout.write = ((s: string) => { captured.push(s); return true }) as typeof process.stdout.write
+    try {
+      const cmd = createChatCommand({
+        docsAskStream: streamFrom(['chunk1', ' chunk2']),
+        stdout: { write: () => true },
+        stderr: { write: () => true },
+        getStdin: () => Readable.from([]),
+      })
+      cmd.option('--json', 'output as JSON')
+      cmd.exitOverride()
+      cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
+      await cmd.parseAsync(['what is elasticsearch', '--json'], { from: 'user' })
+
+      const output = captured.join('')
+      const parsed = JSON.parse(output)
+      assert.equal(parsed.answer, 'chunk1 chunk2')
+    } finally {
+      process.stdout.write = origWrite
+    }
+  })
+
   it('stringifies non-Error thrown values into the stderr message', async () => {
     const stderrWrites: string[] = []
     const cmd = createChatCommand({
