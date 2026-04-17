@@ -71,14 +71,7 @@ if (firstArg === 'cloud') {
   const { registerCloudCommands } = await import('./cloud/register.ts')
   program.addCommand(registerCloudCommands())
 } else {
-  program.addCommand(defineGroup({ name: 'cloud', description: 'Manage Elastic Cloud deployments' }))
-}
-
-if (firstArg === 'serverless') {
-  const { registerServerlessCommands } = await import('./cloud/register.ts')
-  program.addCommand(registerServerlessCommands())
-} else {
-  program.addCommand(defineGroup({ name: 'serverless', description: 'Manage Elastic Serverless projects and resources' }))
+  program.addCommand(defineGroup({ name: 'cloud', description: 'Manage Elastic Cloud (hosted deployments and serverless projects)' }))
 }
 
 if (firstArg === 'docs') {
