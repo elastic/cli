@@ -1,6 +1,6 @@
 # Elastic CLI
 
-Interact with Elasticsearch, Elastic Serverless and Elastic Cloud APIs from the command line.
+Interact with the Elastic Stack and Elastic Cloud from the command line.
 
 ## Installation
 
@@ -169,15 +169,21 @@ elastic version
 elastic --json version
 ```
 
-### `es` - Elasticsearch API
+### `stack` - Elastic Stack
+
+Interact with Elastic Stack components. Today only `stack es` (Elasticsearch) is
+wired up; `stack kibana` and `stack fleet` are reserved for future work.
+
+```bash
+elastic stack --help
+elastic stack es --help
+```
+
+#### `stack es` - Elasticsearch API
 
 Run Elasticsearch API calls. Commands map directly to Elasticsearch API endpoints.
 
-```bash
-elastic es --help
-```
-
-All `es` subcommands support:
+All `stack es` subcommands support:
 
 | Option | Description |
 |---|---|
@@ -208,21 +214,21 @@ All `es` subcommands support:
 - `tasks` - task management
 - `transform` - transforms
 
-**Top-level `es` commands** (examples):
+**Top-level `stack es` commands** (examples):
 
 ```bash
-elastic es search --index my-index
-elastic es get --index my-index --id abc123
-elastic es index --index my-index --id abc123
-elastic es delete --index my-index --id abc123
-elastic es count --index my-index
-elastic es info
-elastic es bulk
-elastic es reindex
-elastic es update --index my-index --id abc123
+elastic stack es search --index my-index
+elastic stack es get --index my-index --id abc123
+elastic stack es index --index my-index --id abc123
+elastic stack es delete --index my-index --id abc123
+elastic stack es count --index my-index
+elastic stack es info
+elastic stack es bulk
+elastic stack es reindex
+elastic stack es update --index my-index --id abc123
 ```
 
-Run `elastic es <command> --help` for all available options on any command.
+Run `elastic stack es <command> --help` for all available options on any command.
 
 ### `cloud` - Elastic Cloud (hosted)
 

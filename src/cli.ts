@@ -17,7 +17,7 @@ const program = new Command()
 
 program
   .name('elastic')
-  .description('Interface with Elasticsearch, Elastic Serverless and Elastic Cloud APIs from the command line.')
+  .description('Interface with the Elastic Stack and Elastic Cloud from the command line.')
   .option('--config-file <path>', 'path to a config file (default: ~/.elasticrc.yml)')
   .option('--use-context <name>', 'override the active context from the config file')
   .option('--json', 'output as JSON')
@@ -60,11 +60,14 @@ program.addCommand(versionCmd)
 const { operands } = program.parseOptions(process.argv.slice(2))
 const firstArg = operands[0]
 
-if (firstArg === 'es') {
+if (firstArg === 'stack') {
   const { registerEsCommands } = await import('./es/register.ts')
-  program.addCommand(registerEsCommands())
+  program.addCommand(defineGroup(
+    { name: 'stack', description: 'Interact with Elastic Stack components (Elasticsearch, Kibana, Fleet)' },
+    registerEsCommands()
+  ))
 } else {
-  program.addCommand(defineGroup({ name: 'es', description: 'Interact with the Elasticsearch API' }))
+  program.addCommand(defineGroup({ name: 'stack', description: 'Interact with Elastic Stack components (Elasticsearch, Kibana, Fleet)' }))
 }
 
 if (firstArg === 'cloud') {
