@@ -19,7 +19,8 @@ export interface TestFile {
 
 export interface Requires {
   serverless: boolean
-  stack: boolean
+  /** true = runs on stack, false = explicitly excluded from stack, null = not specified */
+  stack: boolean | null
 }
 
 /** A named test section (e.g. "get", "Basic bulk operation"). */

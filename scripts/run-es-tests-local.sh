@@ -3,8 +3,12 @@
 # Spins up a fresh no-auth ES container (matching CI), builds, links,
 # generates test scripts, and runs them — all locally.
 #
+# Isolation: uses its own Docker container/network names, a temp config
+# file (via ELASTIC_CLI_CONFIG_FILE), and clones test fixtures into /tmp
+# so nothing interferes with CI or your ~/.elasticrc.yml.
+#
 # Usage:
-#   bash scripts/run-es-tests-local.sh             # uses Node 20 (matches CI)
+#   bash scripts/run-es-tests-local.sh
 #   NODE_VERSION=22 bash scripts/run-es-tests-local.sh
 #   STACK_VERSION=8.17.0 bash scripts/run-es-tests-local.sh
 #
@@ -12,17 +16,21 @@
 
 set -euo pipefail
 
-NODE_VERSION="${NODE_VERSION:-20}"
+NODE_VERSION="${NODE_VERSION:-22}"
 STACK_VERSION="${STACK_VERSION:-9.1.0}"
 ES_CONTAINER_NAME="elastic-cli-es-local"
 NETWORK_NAME="elastic-cli-local-net"
 TESTS_REPO="https://github.com/elastic/elasticsearch-clients-tests.git"
 
+TMPDIR_LOCAL="$(mktemp -d)"
+CONFIG_FILE="$TMPDIR_LOCAL/.elasticrc.yml"
+TESTS_DIR="$TMPDIR_LOCAL/elasticsearch-clients-tests"
+
 cleanup() {
   echo "--- Cleaning up"
   docker rm -f "$ES_CONTAINER_NAME" 2>/dev/null || true
   docker network rm "$NETWORK_NAME" 2>/dev/null || true
-  rm -rf elasticsearch-clients-tests
+  rm -rf "$TMPDIR_LOCAL"
 }
 trap cleanup EXIT
 
@@ -83,24 +91,25 @@ until curl -sf http://localhost:9200/_cluster/health > /dev/null 2>&1; do
 done
 echo "Elasticsearch is ready"
 
-# ── Config ────────────────────────────────────────────────────────────
+# ── Config (isolated — does NOT touch ~/.elasticrc.yml) ──────────────
 
-echo "--- Writing ~/.elasticrc.yml"
-cat > "$HOME/.elasticrc.yml" <<EOF
+echo "--- Writing temp config: $CONFIG_FILE"
+cat > "$CONFIG_FILE" <<EOF
 contexts:
   local:
-    es:
+    elasticsearch:
       url: http://localhost:9200
 current_context: local
 EOF
+export ELASTIC_CLI_CONFIG_FILE="$CONFIG_FILE"
 
 # ── Tests ─────────────────────────────────────────────────────────────
 
-echo "--- Cloning elasticsearch-clients-tests"
-git clone --depth 1 "$TESTS_REPO"
+echo "--- Cloning elasticsearch-clients-tests into $TESTS_DIR"
+git clone --depth 1 "$TESTS_REPO" "$TESTS_DIR"
 
 echo "--- Generating functional test scripts"
-npx tsx codegen/functional/index.ts --tests-dir elasticsearch-clients-tests/tests
+npx tsx codegen/functional/index.ts --tests-dir "$TESTS_DIR/tests"
 
 echo "+++ Running ES functional tests"
 npm run test:functional:es

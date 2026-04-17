@@ -53,15 +53,20 @@ export function generateScript (
     lines.push('')
   }
 
+  // hadSkippedDo propagates from setup into test sections so that test-section
+  // do-steps depending on state that was never created (skipped setup actions)
+  // are run with `|| true` instead of hard-failing the script.
+  let hadSkippedDo = false
+
   if (testFile.setup.length > 0) {
     lines.push('# --- Setup ---')
-    renderSteps(testFile.setup, actionMap, lines, skippedActions, '')
+    hadSkippedDo = renderSteps(testFile.setup, actionMap, lines, skippedActions, '')
     lines.push('')
   }
 
   for (const section of testFile.tests) {
     lines.push(`# --- Test: ${section.name} ---`)
-    renderSteps(section.steps, actionMap, lines, skippedActions, '')
+    renderSteps(section.steps, actionMap, lines, skippedActions, '', hadSkippedDo)
     lines.push('')
   }
 
@@ -134,23 +139,30 @@ function hasExecutableLine (lines: string[]): boolean {
   })
 }
 
+/**
+ * Renders a sequence of test steps into bash lines.
+ * @param initialHadSkippedDo - if true, assume prior steps in an earlier
+ *   section (e.g. setup) already skipped do-steps, so the first mapped
+ *   do-step in this section gets `|| true`.
+ * @returns whether any do-step was skipped in this section (for chaining
+ *   into subsequent sections).
+ */
 function renderSteps (
   steps: Step[],
   actionMap: Map<string, EsApiDefinition>,
   lines: string[],
   skippedActions: string[],
-  indent: string
-): void {
+  indent: string,
+  initialHadSkippedDo = false
+): boolean {
   // Assertions and set-steps read $RESPONSE, which is written by the most
   // recent successful `do`. If the last `do` was skipped (unmapped action,
   // unsupported catch, etc.) $RESPONSE is stale or empty, so any assertion
   // that follows would assert against the wrong data — skip those too
   // until the next executed `do` resets the response.
   let responseFromLastDo = false
-  // Track bash variable names that were never assigned (set step was skipped).
-  // Do-steps that reference these variables in params are skipped to avoid
-  // "unbound variable" errors from set -u.
   const unsetVars = new Set<string>()
+  let hadSkippedDo = initialHadSkippedDo
 
   for (const step of steps) {
     if (step.kind === 'do') {
@@ -160,9 +172,11 @@ function renderSteps (
       if (referencesUnset) {
         lines.push(`${indent}# SKIPPED: step references undefined variable from skipped set`)
         responseFromLastDo = false
+        hadSkippedDo = true
         continue
       }
-      responseFromLastDo = renderDo(step, actionMap, lines, skippedActions, indent)
+      responseFromLastDo = renderDo(step, actionMap, lines, skippedActions, indent, hadSkippedDo)
+      if (!responseFromLastDo) hadSkippedDo = true
       continue
     }
     if (step.kind === 'skip') continue
@@ -209,6 +223,7 @@ function renderSteps (
         break
     }
   }
+  return hadSkippedDo
 }
 
 /**
@@ -222,7 +237,8 @@ function renderDo (
   actionMap: Map<string, EsApiDefinition>,
   lines: string[],
   skippedActions: string[],
-  indent: string
+  indent: string,
+  allowFailure = false
 ): boolean {
   if (step.catch != null) {
     lines.push(`${indent}# SKIPPED: catch not supported in MVP (catch: ${step.catch})`)
@@ -242,8 +258,13 @@ function renderDo (
 
   const cmd = buildCommand(mapped, step)
 
-  if (step.ignore != null && step.ignore.length > 0) {
+  // Use || true when the step may fail because preceding setup steps were
+  // skipped (state was never created), or when ignore codes are specified.
+  const optional = allowFailure || (step.ignore != null && step.ignore.length > 0)
+  if (optional) {
     lines.push(`${indent}RESPONSE=$(${cmd}) || true`)
+    // Don't report $RESPONSE as reliable since the command may have failed
+    return false
   } else {
     lines.push(`${indent}RESPONSE=$(${cmd})`)
   }
@@ -265,7 +286,12 @@ function buildCommand (mapped: MappedAction, step: DoStep): string {
         (a) => a.foundIn === 'body'
       )
       if (arrayArgDef != null) {
-        extraArgs.push(`--${arrayArgDef.cliFlag}`, toShellArg(step.body))
+        // Some YAML bulk tests use a compact format where the document is embedded
+        // as a `data` field inside the action metadata object:
+        //   { index: { _index: ..., _id: ..., data: { field: value } } }
+        // Expand these into proper alternating action+document NDJSON pairs.
+        const expanded = expandBulkDataFields(step.body as unknown[])
+        extraArgs.push(`--${arrayArgDef.cliFlag}`, toShellArg(expanded))
       }
     } else {
       // Object bodies — try matching each top-level key to a body schema arg.
@@ -417,6 +443,35 @@ function renderContains (step: ContainsStep, lines: string[], indent: string): v
 function toArgValue (value: unknown): string {
   if (typeof value === 'string') return value
   return JSON.stringify(value)
+}
+
+/**
+ * Expands bulk body items that use the compact YAML test format where the document
+ * is nested as `data` inside the action metadata:
+ *   { index: { _index: "x", _id: "1", data: { name: "foo" } } }
+ * becomes two items (action + document) as required by the ES bulk NDJSON format:
+ *   { index: { _index: "x", _id: "1" } }
+ *   { name: "foo" }
+ */
+function expandBulkDataFields (items: unknown[]): unknown[] {
+  const result: unknown[] = []
+  for (const item of items) {
+    if (item !== null && typeof item === 'object' && !Array.isArray(item)) {
+      const obj = item as Record<string, unknown>
+      const actionKey = ['index', 'create', 'update', 'delete'].find((k) => k in obj)
+      if (actionKey != null) {
+        const actionMeta = obj[actionKey] as Record<string, unknown>
+        if ('data' in actionMeta) {
+          const { data, ...rest } = actionMeta
+          result.push({ [actionKey]: rest })
+          result.push(data)
+          continue
+        }
+      }
+    }
+    result.push(item)
+  }
+  return result
 }
 
 /**

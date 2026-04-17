@@ -60,6 +60,13 @@ for (const yamlFile of yamlFiles) {
     continue
   }
 
+  // Skip tests that are explicitly excluded from stack (stack: false in YAML).
+  // These are serverless-only tests that cannot pass against a standard ES.
+  if (testFile.requires.stack === false) {
+    skippedNotServerless++
+    continue
+  }
+
   const result = generateScript(testFile, allApis)
 
   for (const action of result.skippedActions) {

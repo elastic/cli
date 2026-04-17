@@ -24,7 +24,7 @@ export function parseTestFile (yamlContent: string, sourceFile: string): TestFil
     .map((doc) => doc.toJSON() as Record<string, unknown> | null)
     .filter((v): v is Record<string, unknown> => v != null)
 
-  let requires: Requires = { serverless: false, stack: false }
+  let requires: Requires = { serverless: false, stack: null }
   let setup: Step[] = []
   let teardown: Step[] = []
   const tests: TestSection[] = []
@@ -34,7 +34,7 @@ export function parseTestFile (yamlContent: string, sourceFile: string): TestFil
       const r = section.requires as Record<string, unknown>
       requires = {
         serverless: r.serverless === true,
-        stack: r.stack === true
+        stack: 'stack' in r ? r.stack === true : null
       }
       continue
     }
