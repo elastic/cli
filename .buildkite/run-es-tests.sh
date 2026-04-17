@@ -27,6 +27,9 @@ npm ci
 echo "--- Building CLI"
 npm run build
 
+echo "--- Linking elastic binary onto PATH"
+npm link
+
 echo "--- Cloning elasticsearch-clients-tests"
 git clone --depth 1 "$TESTS_REPO"
 
