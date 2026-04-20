@@ -129,7 +129,7 @@ describe('scroll-search command', () => {
     ])
 
     await runCommand(
-      ['--index', 'test-idx', '--query', '{}', '--json'],
+      ['--index', 'test-idx', '--query', '{}'],
       makeDeps(transport, output)
     )
 
@@ -158,7 +158,7 @@ describe('scroll-search command', () => {
     ])
 
     await runCommand(
-      ['--index', 'test-idx', '--query', '{}', '--max-docs', '2', '--json'],
+      ['--index', 'test-idx', '--query', '{}', '--max-docs', '2'],
       makeDeps(transport, output)
     )
 
@@ -276,6 +276,34 @@ describe('scroll-search command', () => {
     const r = result as Record<string, unknown>
     const error = r.error as Record<string, unknown>
     assert.equal(error.code, 'missing_config')
+  })
+
+  it('returns all documents in a single JSON object when --json is active', async () => {
+    const output = captureOutput()
+    const { transport } = mockTransport([
+      {
+        _scroll_id: 'scroll-1',
+        hits: { hits: [{ _source: { id: 1 } }, { _source: { id: 2 } }] }
+      },
+      {
+        _scroll_id: 'scroll-1',
+        hits: { hits: [{ _source: { id: 3 } }] }
+      },
+      { hits: { hits: [] } },
+      {}
+    ])
+
+    const { result } = await runCommand(
+      ['--index', 'test-idx', '--query', '{}', '--json'],
+      makeDeps(transport, output)
+    )
+
+    const r = result as Record<string, unknown>
+    assert.ok(Array.isArray(r.documents), 'result should have a documents array')
+    assert.equal((r.documents as unknown[]).length, 3)
+    assert.equal(r.total_docs, 3)
+    assert.ok(typeof r.elapsed_ms === 'number')
+    assert.equal(output.stdout.chunks.length, 0, 'should not stream NDJSON to deps.stdout in --json mode')
   })
 
   it('writes summary to stderr', async () => {
