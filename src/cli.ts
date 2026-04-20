@@ -22,14 +22,21 @@ program
   .option('--use-context <name>', 'override the active context from the config file')
   .option('--json', 'output as JSON')
 
-// Before every sub-command action, load and resolve the config file.
-// On error, print a structured message and exit -- never let a config failure
-// silently propagate into the command handler.
+// Cached result from the early load.
+//  The preAction hook reuses this when no --config-file or --use-context 
+// overrides are specified avoiding a redundant load+resolve cycle.
+let earlyConfig: import('./config/loader.ts').LoadConfigResult | undefined
+
 program.hook('preAction', async (thisCommand, actionCommand) => {
   if (actionCommand.name() === 'version') return
-  // docs commands use public elastic.co APIs — no config required
   if (actionCommand.parent?.name() === 'docs') return
   const { configFile: configPath, useContext: contextName } = thisCommand.opts()
+
+  if (configPath == null && contextName == null && earlyConfig?.ok === true) {
+    setResolvedConfig(earlyConfig.value)
+    return
+  }
+
   const result = await loadConfig({
     ...(configPath != null && { configPath }),
     ...(contextName != null && { contextName })
@@ -86,11 +93,12 @@ if (firstArg === 'docs') {
 
 // Load config early so --help can hide blocked commands. Skip for commands
 // that don't need config (e.g. `version`) to avoid unnecessary file I/O.
+// The result is cached in earlyConfig so the preAction hook can reuse it.
 if (firstArg !== 'version') {
-  const earlyResult = await loadConfig({})
-  if (earlyResult.ok) {
-    setResolvedConfig(earlyResult.value)
-    hideBlockedCommands(program, earlyResult.value.commands)
+  earlyConfig = await loadConfig({})
+  if (earlyConfig.ok) {
+    setResolvedConfig(earlyConfig.value)
+    hideBlockedCommands(program, earlyConfig.value.commands)
   }
 }
 
