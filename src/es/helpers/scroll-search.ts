@@ -81,6 +81,8 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
       }
     }
 
+    const jsonMode = parsed.options['json'] === true
+    const documents: JsonValue[] = []
     const startTime = Date.now()
     let scrollId: string | undefined
     let totalDocs = 0
@@ -105,7 +107,11 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
       while (hits.length > 0 && totalDocs < maxDocs) {
         for (const hit of hits) {
           if (totalDocs >= maxDocs) break
-          deps.stdout.write(JSON.stringify(hit._source) + '\n')
+          if (jsonMode) {
+            documents.push(hit._source as JsonValue)
+          } else {
+            deps.stdout.write(JSON.stringify(hit._source) + '\n')
+          }
           totalDocs++
         }
 
@@ -141,6 +147,9 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
     const elapsed_ms = Date.now() - startTime
     deps.stderr.write(`Fetched ${totalDocs} documents in ${elapsed_ms}ms\n`)
 
+    if (jsonMode) {
+      return { documents, total_docs: totalDocs, elapsed_ms }
+    }
     return { total_docs: totalDocs, elapsed_ms }
   }
 }
