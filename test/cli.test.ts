@@ -153,7 +153,7 @@ describe('elastic CLI -- config caching (preAction reuse)', () => {
     await writeFile(configPath, configYaml)
 
     try {
-      await runCli(['stack', 'es', 'info', '--json'], { cwd: dir, env: { HOME: dir, XDG_CONFIG_HOME: dir } })
+      await runCli(['stack', 'es', 'info', '--json'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } })
       const content = await readFile(counterFile, 'utf-8')
       const invocations = content.trim().split('\n').length
       assert.equal(invocations, 1, `expected resolver to run once, but ran ${invocations} times`)
@@ -182,7 +182,7 @@ describe('elastic CLI -- config caching (preAction reuse)', () => {
     await writeFile(configPath, configYaml)
 
     try {
-      await runCli(['stack', 'es', 'info', '--json', '--config-file', configPath], { cwd: dir, env: { HOME: dir, XDG_CONFIG_HOME: dir } })
+      await runCli(['stack', 'es', 'info', '--json', '--config-file', configPath], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } })
       const content = await readFile(counterFile, 'utf-8')
       const invocations = content.trim().split('\n').length
       assert.equal(invocations, 2, `expected resolver to run twice (early + override), but ran ${invocations} times`)
