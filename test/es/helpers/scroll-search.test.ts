@@ -300,10 +300,31 @@ describe('scroll-search command', () => {
 
     const r = result as Record<string, unknown>
     assert.ok(Array.isArray(r.documents), 'result should have a documents array')
-    assert.equal((r.documents as unknown[]).length, 3)
+    assert.deepStrictEqual(r.documents, [{ id: 1 }, { id: 2 }, { id: 3 }])
     assert.equal(r.total_docs, 3)
     assert.ok(typeof r.elapsed_ms === 'number')
     assert.equal(output.stdout.chunks.length, 0, 'should not stream NDJSON to deps.stdout in --json mode')
+  })
+
+  it('respects --max-docs in --json mode', async () => {
+    const output = captureOutput()
+    const { transport } = mockTransport([
+      {
+        _scroll_id: 'scroll-1',
+        hits: { hits: [{ _source: { a: 1 } }, { _source: { a: 2 } }, { _source: { a: 3 } }] }
+      },
+      {}
+    ])
+
+    const { result } = await runCommand(
+      ['--index', 'test-idx', '--query', '{}', '--max-docs', '2', '--json'],
+      makeDeps(transport, output)
+    )
+
+    const r = result as Record<string, unknown>
+    assert.deepStrictEqual(r.documents, [{ a: 1 }, { a: 2 }])
+    assert.equal(r.total_docs, 2)
+    assert.equal(output.stdout.chunks.length, 0)
   })
 
   it('writes summary to stderr', async () => {

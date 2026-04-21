@@ -108,6 +108,7 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
         for (const hit of hits) {
           if (totalDocs >= maxDocs) break
           if (jsonMode) {
+            // _source is user-defined JSON — always a valid JsonValue at runtime
             documents.push(hit._source as JsonValue)
           } else {
             deps.stdout.write(JSON.stringify(hit._source) + '\n')
@@ -157,7 +158,7 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
 export function createScrollSearchCommand (deps?: ScrollSearchDeps): OpaqueCommandHandle {
   return defineCommand({
     name: 'scroll-search',
-    description: 'Scroll through all search results, streaming documents as NDJSON to stdout.',
+    description: 'Scroll through all search results, streaming documents as NDJSON to stdout, or returning a single JSON object when --json is set.',
     options: [
       { long: 'index', short: 'i', description: 'Target index', type: 'string', required: true },
       { long: 'query', short: 'q', description: 'Search query body as JSON string', type: 'string' },
