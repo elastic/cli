@@ -39,43 +39,17 @@ function walkYamlFiles (dir: string): string[] {
   return files
 }
 
-// Tests that require an enterprise/trial license or security to be enabled.
-// Skipped until CI runs an ES instance with the appropriate license.
-// See: https://www.elastic.co/subscriptions
+// Tests skipped due to infra requirements or known codegen gaps.
+// CI uses trial license, so most enterprise features are available.
 const SKIP_ENTERPRISE: Set<string> = new Set([
-  // ML — requires platinum/enterprise license
-  'machine_learning/10_trained_model.yml',
-  'machine_learning/30_trained_model_stack.yml',
-  'machine_learning/calendar_crud.yml',
-  'machine_learning/calendar_job.yml',
-  'machine_learning/data_frame_analytics.yml',
-  'machine_learning/data_frame_evaluate.yml',
-  'machine_learning/datafeed_crud.yml',
-  'machine_learning/jobs_crud.yml',
-  'machine_learning/jobs_reset.yml',
-  'machine_learning/model_snapshots.yml',
-  'machine_learning/post_data.yml',
-  'machine_learning/preview_datafeed.yml',
-  'machine_learning/revert_model_snapshot.yml',
-  'machine_learning/start_stop_datafeed.yml',
-  'machine_learning/trained_model_aliases.yml',
-  'machine_learning/update_model_snapshot.yml',
-  'machine_learning/upgrade_job_snapshot.yml',
-  // Inference — requires platinum/enterprise license
-  'inference/10_basic.yml',
-  // Query rules — requires trial/enterprise license
-  'query_rules/10_query_rules.yml',
-  'query_rules/20_rulesets.yml',
-  'query_rules/30_test.yml',
-  // Search applications — requires trial/platinum license
-  'search_application/10_basic.yml',
-  'search_application/20_behavioral_analytics.yml',
-  // Security — requires xpack.security.enabled=true
+  // Security — requires xpack.security.enabled=true (CI runs with it disabled)
   'security/10_api_key_basic.yml',
   'security/20_authenticate.yml',
-  // Enterprise Search connectors — blocked on basic license
-  'entsearch/20_connector.yml',
-  'entsearch/50_connector_updates.yml',
+  // Search applications — body field wrapping issue (codegen gap)
+  'search_application/10_basic.yml',
+  'search_application/20_behavioral_analytics.yml',
+  // ML preview_datafeed — assertion mismatch (codegen gap)
+  'machine_learning/preview_datafeed.yml',
 ])
 
 const yamlFiles = walkYamlFiles(testsDir)

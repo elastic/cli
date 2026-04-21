@@ -67,6 +67,7 @@ docker run \
   --publish 9200:9200 \
   --env "discovery.type=single-node" \
   --env "xpack.security.enabled=false" \
+  --env "xpack.license.self_generated.type=trial" \
   --env "action.destructive_requires_name=false" \
   --env "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
   --detach \

@@ -293,6 +293,9 @@ function buildCommand (mapped: MappedAction, step: DoStep): string {
   if (step.body != null) {
     const extraArgs: string[] = []
     let body = step.body
+    // Preserve the original string for block scalar bodies so we can pass it
+    // through without JSON round-tripping (which loses float notation like 0.0).
+    const originalBodyStr = typeof body === 'string' ? body.trim() : null
 
     // YAML `body: >` block scalars produce a string containing JSON.
     // Parse it into an object so keys can be matched to CLI flags.
@@ -327,7 +330,7 @@ function buildCommand (mapped: MappedAction, step: DoStep): string {
       const bodyKeys = Object.keys(bodyObj)
       for (const [key, value] of Object.entries(bodyObj)) {
         const argDef = mapped.bodyArgsByKey.get(key)
-        if (argDef != null && argDef.foundIn === 'body') {
+        if (argDef != null && (argDef.foundIn === 'body' || argDef.foundIn === undefined)) {
           // Guard against name collisions between YAML sub-fields and CLI body args.
           // If the CLI arg expects an object/array but the YAML value is a primitive,
           // only match when this is the sole body key (the primitive IS the value).
@@ -346,12 +349,17 @@ function buildCommand (mapped: MappedAction, step: DoStep): string {
       // If no top-level keys matched body fields, the entire body is a freeform
       // document (e.g. `index` where the body IS the document). Pass it to the
       // single body arg (e.g. --document).
+      // Prefer the original string to avoid JSON round-trip float loss (0.0 → 0).
       if (bodyMatched.length === 0) {
         const singleBodyArg = [...mapped.bodyArgsByKey.values()].find(
           (a) => a.foundIn === 'body'
         )
         if (singleBodyArg != null) {
-          extraArgs.push(`--${singleBodyArg.cliFlag}`, toShellArg(body))
+          if (originalBodyStr != null) {
+            extraArgs.push(`--${singleBodyArg.cliFlag}`, shellEscape(originalBodyStr))
+          } else {
+            extraArgs.push(`--${singleBodyArg.cliFlag}`, toShellArg(body))
+          }
         }
       }
     } else if (typeof body === 'string') {
