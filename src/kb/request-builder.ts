@@ -4,34 +4,30 @@
  */
 
 import type { KbApiDefinition } from './types.ts'
-import type { SchemaArgDefinition } from '../lib/schema-args.ts'
 import type { ParsedResult } from '../factory.ts'
 import type { KibanaRequestParams } from '../lib/kibana-client.ts'
 
 /**
- * Builds a `KibanaRequestParams` object from an API definition, parsed CLI input,
- * and the schema arg definitions extracted from `def.input`.
+ * Builds a `KibanaRequestParams` object from an API definition and parsed CLI input.
  *
- * Each `SchemaArgDefinition` carries a `foundIn` field that determines routing:
- * - `"path"` → value is interpolated into the URL path template
- * - `"query"` → value is added to the querystring
- * - `"body"` or `undefined` → value is collected into the request body
+ * Routing:
+ * - `pathParams` → interpolated into the URL path template
+ * - `queryParams` → sent as querystring params
+ * - `bodyParams` → collected into the JSON request body
  *
  * @param def - the API definition describing the Kibana endpoint
  * @param parsed - the CLI-parsed result; all API params live in `parsed.input`
- * @param schemaArgs - arg definitions extracted from `def.input` at registration time
  * @returns `KibanaRequestParams` ready to pass to `KibanaClient.request()`
  */
 export function buildKibanaRequestParams (
   def: KbApiDefinition,
-  parsed: ParsedResult,
-  schemaArgs: SchemaArgDefinition[]
+  parsed: ParsedResult
 ): KibanaRequestParams {
   const input = (parsed.input ?? {}) as Record<string, unknown>
 
-  const path = interpolatePath(def.path, schemaArgs, input)
-  const querystring = buildQuerystring(schemaArgs, input)
-  const body = collectBody(schemaArgs, input)
+  const path = interpolatePath(def, input)
+  const querystring = buildQuerystring(def, input)
+  const body = collectBody(def, input)
 
   const params: KibanaRequestParams = { method: def.method, path }
   if (Object.keys(querystring).length > 0) params.querystring = querystring
@@ -41,29 +37,19 @@ export function buildKibanaRequestParams (
 }
 
 /**
- * Percent-encodes a single path parameter value.
- * Unlike the ES variant, Kibana IDs are single values (no comma-separated multi-target syntax).
- */
-function encodePathParam (value: string): string {
-  return encodeURIComponent(value)
-}
-
-/**
- * Interpolates `{param}` tokens in the path template using values from the unified input object.
- *
- * For optional params that are absent, trailing `/{param}` segments are stripped.
+ * Interpolates `{param}` tokens in the path template.
  */
 function interpolatePath (
-  path: string,
-  schemaArgs: SchemaArgDefinition[],
+  def: KbApiDefinition,
   input: Record<string, unknown>
 ): string {
-  for (const arg of schemaArgs.filter((a) => a.foundIn === 'path')) {
-    const value = input[arg.schemaKey]
+  let path = def.path
+  for (const param of def.pathParams ?? []) {
+    const value = input[param.name]
     if (value !== undefined) {
-      path = path.replace(`{${arg.schemaKey}}`, encodePathParam(String(value)))
-    } else if (!arg.required) {
-      path = path.replace(new RegExp(`/?\\{${arg.schemaKey}\\}/?`), '')
+      path = path.replace(`{${param.name}}`, encodeURIComponent(String(value)))
+    } else if (!param.required) {
+      path = path.replace(new RegExp(`/?\\{${param.name}\\}/?`), '')
       path = path.replace(/\/$/, '') || '/'
     }
   }
@@ -71,35 +57,49 @@ function interpolatePath (
 }
 
 /**
- * Builds the querystring record from entries with `foundIn === "query"`.
+ * Builds the querystring record from query params.
  */
 function buildQuerystring (
-  schemaArgs: SchemaArgDefinition[],
+  def: KbApiDefinition,
   input: Record<string, unknown>
 ): Record<string, unknown> {
   const qs: Record<string, unknown> = {}
-  for (const arg of schemaArgs.filter((a) => a.foundIn === 'query')) {
-    const value = input[arg.schemaKey]
-    if (value !== undefined) qs[arg.schemaKey] = value
+  for (const param of def.queryParams ?? []) {
+    const key = param.cliFlag ?? param.name
+    const value = input[key]
+    if (value !== undefined) qs[param.name] = value
   }
   return qs
 }
 
 /**
- * Collects request body fields from entries with `foundIn === "body"` or no `foundIn`.
- * Returns `undefined` when no body fields are present in the input.
+ * Collects request body fields from body params.
+ * Returns `undefined` when no body fields are present.
  */
 function collectBody (
-  schemaArgs: SchemaArgDefinition[],
+  def: KbApiDefinition,
   input: Record<string, unknown>
 ): Record<string, unknown> | undefined {
-  const bodyArgs = schemaArgs.filter((a) => a.foundIn === 'body' || a.foundIn === undefined)
-  const body: Record<string, unknown> = {}
-
-  for (const arg of bodyArgs) {
-    const value = input[arg.schemaKey]
-    if (value !== undefined) body[arg.schemaKey] = value
+  const bodyParamNames = (def.bodyParams ?? []).map((p) => p.name)
+  if (bodyParamNames.length === 0) {
+    // No explicit body params — check for any remaining input keys
+    // not consumed by path/query params (freeform body).
+    const pathKeys = new Set((def.pathParams ?? []).map((p) => p.name))
+    const queryKeys = new Set((def.queryParams ?? []).map((p) => p.cliFlag ?? p.name))
+    const body: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(input)) {
+      if (!pathKeys.has(key) && !queryKeys.has(key) && value !== undefined) {
+        body[key] = value
+      }
+    }
+    return Object.keys(body).length === 0 ? undefined : body
   }
 
+  const body: Record<string, unknown> = {}
+  for (const param of def.bodyParams!) {
+    const key = param.cliFlag ?? param.name
+    const value = input[key]
+    if (value !== undefined) body[param.name] = value
+  }
   return Object.keys(body).length === 0 ? undefined : body
 }
