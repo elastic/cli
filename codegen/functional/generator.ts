@@ -628,7 +628,12 @@ function toJqPath (path: string): string {
   for (const part of parts) {
     if (part === '') continue
     if (/^\d+$/.test(part)) {
-      jq += `.[${part}]`
+      // Append [N] directly — avoid `.[N]` after a field name which older jq rejects.
+      if (jq === '') {
+        jq += `.[${part}]`
+      } else {
+        jq += `[${part}]`
+      }
     } else if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(part)) {
       jq += `.${part}`
     } else {

@@ -35,6 +35,14 @@ fi
 nvm install "$NODE_VERSION"
 nvm use "$NODE_VERSION"
 
+echo "--- Installing jq 1.7.1"
+JQ_VERSION="1.7.1"
+if ! jq --version 2>/dev/null | grep -q "$JQ_VERSION"; then
+  curl -sL "https://github.com/jqlang/jq/releases/download/jq-${JQ_VERSION}/jq-linux-amd64" -o /usr/local/bin/jq
+  chmod +x /usr/local/bin/jq
+fi
+echo "Using jq $(jq --version)"
+
 echo "--- Installing dependencies"
 npm ci
 
