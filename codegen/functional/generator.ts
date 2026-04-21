@@ -4,10 +4,11 @@
  */
 
 import type { EsApiDefinition } from '../../src/es/types.ts'
-import type {
-  TestFile, Step, DoStep, SetStep, MatchStep,
-  IsTrueStep, IsFalseStep, LengthStep,
-  GtStep, GteStep, LtStep, LteStep, ContainsStep
+import {
+  YamlFloat,
+  type TestFile, type Step, type DoStep, type SetStep, type MatchStep,
+  type IsTrueStep, type IsFalseStep, type LengthStep,
+  type GtStep, type GteStep, type LtStep, type LteStep, type ContainsStep
 } from './types.ts'
 import { buildActionMap, mapAction } from './mapper.ts'
 import type { MappedAction } from './mapper.ts'
@@ -413,8 +414,7 @@ function renderMatchValue (path: string, expected: unknown, lines: string[], ind
   const jqPath = toJqPath(path)
 
   if (Array.isArray(expected)) {
-    // Compare JSON representation (jq without -r to preserve array structure)
-    const expectedJson = JSON.stringify(expected)
+    const expectedJson = jsonStringify(expected)
     lines.push(`${indent}[ "$(echo "$RESPONSE" | jq -Sc '${jqPath}')" = '${escapeSingleQuotes(expectedJson)}' ] || { echo "FAIL: expected ${safeLabel} = ${escapeSingleQuotes(expectedJson)}"; exit 1; }`)
     return
   }
@@ -426,7 +426,13 @@ function renderMatchValue (path: string, expected: unknown, lines: string[], ind
 
   const expectedStr = resolveExpectedValue(expected)
 
-  if (typeof expected === 'number') {
+  if (expected instanceof YamlFloat) {
+    // YamlFloat wraps integer-valued YAML floats (e.g. 100.0) — exact match
+    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "${expected.value}" ] || { echo "FAIL: expected ${safeLabel} = ${expected.value}"; exit 1; }`)
+  } else if (typeof expected === 'number' && !Number.isInteger(expected)) {
+    // Non-integer float: use approximate comparison to avoid IEEE 754 precision issues
+    lines.push(`${indent}echo "$RESPONSE" | jq -e '(((${jqPath}) - ${expected}) | fabs) < 1e-6' > /dev/null || { echo "FAIL: expected ${safeLabel} ≈ ${expected}"; exit 1; }`)
+  } else if (typeof expected === 'number') {
     lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "${expected}" ] || { echo "FAIL: expected ${safeLabel} = ${expected}"; exit 1; }`)
   } else if (typeof expected === 'boolean') {
     lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "${String(expected)}" ] || { echo "FAIL: expected ${safeLabel} = ${String(expected)}"; exit 1; }`)
@@ -446,11 +452,11 @@ function renderIsTrue (step: IsTrueStep, lines: string[], indent: string): void 
 
 function renderIsFalse (step: IsFalseStep, lines: string[], indent: string): void {
   if (step.field === '') {
-    // Accept empty, "false", or "null" — CLI uses "false" for failed HEAD requests
     lines.push(`${indent}{ [ -z "$RESPONSE" ] || [ "$RESPONSE" = "false" ] || [ "$RESPONSE" = "null" ]; } || { echo "FAIL: expected empty/false response"; exit 1; }`)
   } else {
     const jqPath = toJqPath(step.field)
-    lines.push(`${indent}echo "$RESPONSE" | jq -e '(${jqPath}) == null or (${jqPath}) == false' > /dev/null || { echo "FAIL: expected ${step.field} to be falsy"; exit 1; }`)
+    // Accept null, false, "false", "0", or "" — ES returns string "false" for some settings
+    lines.push(`${indent}echo "$RESPONSE" | jq -e '(${jqPath}) == null or (${jqPath}) == false or (${jqPath}) == "false" or (${jqPath}) == "0" or (${jqPath}) == ""' > /dev/null || { echo "FAIL: expected ${step.field} to be falsy"; exit 1; }`)
   }
 }
 
@@ -480,7 +486,7 @@ function renderComparison (step: GtStep | GteStep | LtStep | LteStep, lines: str
 function renderContains (step: ContainsStep, lines: string[], indent: string): void {
   for (const [path, expected] of Object.entries(step.assertions)) {
     const jqPath = toJqPath(path)
-    const expectedJson = JSON.stringify(expected)
+    const expectedJson = jsonStringify(expected)
     lines.push(`${indent}echo "$RESPONSE" | jq -e '${jqPath} | contains([${escapeSingleQuotes(expectedJson)}])' > /dev/null || { echo "FAIL: expected ${path} to contain ${expectedJson}"; exit 1; }`)
   }
 }
@@ -520,6 +526,30 @@ function coerceBodyArg (value: unknown, argDef: SchemaArgDefinition): string {
 
 function toArgValue (value: unknown): string {
   if (typeof value === 'string') return value
+  if (value instanceof YamlFloat) return `${value.value}.0`
+  return jsonStringify(value)
+}
+
+/**
+ * Like JSON.stringify but emits integer-valued YamlFloat instances with
+ * a trailing `.0` so Painless (and similar) correctly treats them as floats.
+ */
+function jsonStringify (value: unknown): string {
+  if (value === null || value === undefined) return 'null'
+  if (value instanceof YamlFloat) {
+    return value.value % 1 === 0 ? `${value.value}.0` : String(value.value)
+  }
+  if (typeof value === 'boolean') return String(value)
+  if (typeof value === 'number') return String(value)
+  if (typeof value === 'string') return JSON.stringify(value)
+  if (Array.isArray(value)) {
+    return '[' + value.map(jsonStringify).join(',') + ']'
+  }
+  if (typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .map(([k, v]) => `${JSON.stringify(k)}:${jsonStringify(v)}`)
+    return '{' + entries.join(',') + '}'
+  }
   return JSON.stringify(value)
 }
 
@@ -634,7 +664,7 @@ function containsVarRef (val: unknown): boolean {
  * E.g. {"id":"$id","keep_alive":"1m"} → '{"id":"'"$ID"'","keep_alive":"1m"}'
  */
 function buildVarExpandingJson (value: unknown): string {
-  const json = JSON.stringify(value)
+  const json = jsonStringify(value)
   // First escape any literal single quotes in the JSON
   const escaped = escapeSingleQuotes(json)
   // Then replace "$varname" patterns with shell variable break-outs

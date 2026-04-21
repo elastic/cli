@@ -2579,7 +2579,7 @@ describe('no Commander API leaks', () => {
   it('factory module exports only public API and test seam at runtime', async () => {
     const factory = await import('../src/factory.ts')
     const exported = Object.keys(factory)
-    assert.deepEqual(exported.sort(), ['_testSetStdinReader', 'defineCommand', 'defineGroup', 'hideBlockedCommands', 'isCommandAllowed'])
+    assert.deepEqual(exported.sort(), ['RawJsonValue', '_testSetStdinReader', 'defineCommand', 'defineGroup', 'hideBlockedCommands', 'isCommandAllowed'])
   })
 
   it('defineCommand return value requires no Commander import to use', () => {

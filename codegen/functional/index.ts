@@ -39,6 +39,45 @@ function walkYamlFiles (dir: string): string[] {
   return files
 }
 
+// Tests that require an enterprise/trial license or security to be enabled.
+// Skipped until CI runs an ES instance with the appropriate license.
+// See: https://www.elastic.co/subscriptions
+const SKIP_ENTERPRISE: Set<string> = new Set([
+  // ML — requires platinum/enterprise license
+  'machine_learning/10_trained_model.yml',
+  'machine_learning/30_trained_model_stack.yml',
+  'machine_learning/calendar_crud.yml',
+  'machine_learning/calendar_job.yml',
+  'machine_learning/data_frame_analytics.yml',
+  'machine_learning/data_frame_evaluate.yml',
+  'machine_learning/datafeed_crud.yml',
+  'machine_learning/jobs_crud.yml',
+  'machine_learning/jobs_reset.yml',
+  'machine_learning/model_snapshots.yml',
+  'machine_learning/post_data.yml',
+  'machine_learning/preview_datafeed.yml',
+  'machine_learning/revert_model_snapshot.yml',
+  'machine_learning/start_stop_datafeed.yml',
+  'machine_learning/trained_model_aliases.yml',
+  'machine_learning/update_model_snapshot.yml',
+  'machine_learning/upgrade_job_snapshot.yml',
+  // Inference — requires platinum/enterprise license
+  'inference/10_basic.yml',
+  // Query rules — requires trial/enterprise license
+  'query_rules/10_query_rules.yml',
+  'query_rules/20_rulesets.yml',
+  'query_rules/30_test.yml',
+  // Search applications — requires trial/platinum license
+  'search_application/10_basic.yml',
+  'search_application/20_behavioral_analytics.yml',
+  // Security — requires xpack.security.enabled=true
+  'security/10_api_key_basic.yml',
+  'security/20_authenticate.yml',
+  // Enterprise Search connectors — blocked on basic license
+  'entsearch/20_connector.yml',
+  'entsearch/50_connector_updates.yml',
+])
+
 const yamlFiles = walkYamlFiles(testsDir)
 console.log(`Found ${yamlFiles.length} YAML test files in ${testsDir}`)
 
@@ -47,6 +86,7 @@ mkdirSync(outputDir, { recursive: true })
 let generated = 0
 let skippedNotServerless = 0
 let skippedNoActions = 0
+let skippedEnterprise = 0
 const scriptPaths: string[] = []
 const allSkippedActions = new Set<string>()
 
@@ -64,6 +104,11 @@ for (const yamlFile of yamlFiles) {
   // These are serverless-only tests that cannot pass against a standard ES.
   if (testFile.requires.stack === false) {
     skippedNotServerless++
+    continue
+  }
+
+  if (SKIP_ENTERPRISE.has(relPath)) {
+    skippedEnterprise++
     continue
   }
 
@@ -95,6 +140,7 @@ console.log('')
 console.log('=== Summary ===')
 console.log(`  Generated:              ${generated} scripts`)
 console.log(`  Skipped (not serverless): ${skippedNotServerless}`)
+console.log(`  Skipped (enterprise):     ${skippedEnterprise}`)
 console.log(`  Skipped (no CLI actions): ${skippedNoActions}`)
 
 if (allSkippedActions.size > 0) {
