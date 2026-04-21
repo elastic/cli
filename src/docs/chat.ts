@@ -54,6 +54,24 @@ export function createChatCommand (deps: ChatDeps = defaultDeps): OpaqueCommandH
       const interactive = process.stderr.isTTY === true && parsed.options['json'] !== true
 
       const conversationId = newUuid()
+
+      if (parsed.options['json'] === true) {
+        const chunks: string[] = []
+        try {
+          for await (const event of deps.docsAskStream(question, conversationId)) {
+            if (event.kind === 'chunk') chunks.push(event.text)
+          }
+        } catch (err) {
+          return {
+            error: {
+              code: 'docs_error',
+              message: err instanceof Error ? err.message : String(err),
+            },
+          }
+        }
+        return { answer: chunks.join('') }
+      }
+
       await askQuestion(question, conversationId, deps, interactive ? startSpinner(deps.stderr, 'Thinking…') : undefined)
 
       if (interactive) {

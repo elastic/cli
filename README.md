@@ -1,6 +1,6 @@
 # Elastic CLI
 
-Interact with Elasticsearch, Elastic Serverless and Elastic Cloud APIs from the command line.
+Interact with the Elastic Stack and Elastic Cloud from the command line.
 
 ## Installation
 
@@ -169,15 +169,21 @@ elastic version
 elastic --json version
 ```
 
-### `es` - Elasticsearch API
+### `stack` - Elastic Stack
+
+Interact with Elastic Stack components. Today only `stack es` (Elasticsearch) is
+wired up; `stack kibana` and `stack fleet` are reserved for future work.
+
+```bash
+elastic stack --help
+elastic stack es --help
+```
+
+#### `stack es` - Elasticsearch API
 
 Run Elasticsearch API calls. Commands map directly to Elasticsearch API endpoints.
 
-```bash
-elastic es --help
-```
-
-All `es` subcommands support:
+All `stack es` subcommands support:
 
 | Option | Description |
 |---|---|
@@ -208,71 +214,85 @@ All `es` subcommands support:
 - `tasks` - task management
 - `transform` - transforms
 
-**Top-level `es` commands** (examples):
+**Top-level `stack es` commands** (examples):
 
 ```bash
-elastic es search --index my-index
-elastic es get --index my-index --id abc123
-elastic es index --index my-index --id abc123
-elastic es delete --index my-index --id abc123
-elastic es count --index my-index
-elastic es info
-elastic es bulk
-elastic es reindex
-elastic es update --index my-index --id abc123
+elastic stack es search --index my-index
+elastic stack es get --index my-index --id abc123
+elastic stack es index --index my-index --id abc123
+elastic stack es delete --index my-index --id abc123
+elastic stack es count --index my-index
+elastic stack es info
+elastic stack es bulk
+elastic stack es reindex
+elastic stack es update --index my-index --id abc123
 ```
 
-Run `elastic es <command> --help` for all available options on any command.
+Run `elastic stack es <command> --help` for all available options on any command.
 
-### `cloud` - Elastic Cloud (hosted)
+### `cloud` - Elastic Cloud
 
-Manage Elastic Cloud hosted deployments.
+Manage Elastic Cloud: Hosted deployments and Serverless projects.
 Requires a `cloud` service block in the active context.
 
-#### `cloud deployments`
+The tree has three kinds of children:
+
+- Cross-cutting namespaces as direct children of `cloud` (APIs that apply to
+  both Hosted and Serverless).
+- `cloud hosted …` for Hosted-Deployment APIs.
+- `cloud serverless …` for Serverless-Project APIs.
+
+#### Cross-cutting (account, auth, orgs, roles)
 
 ```bash
-elastic cloud deployments list-deployments
-elastic cloud deployments get-deployment --id <id>
-elastic cloud deployments shutdown-deployment --id <id>
-elastic cloud deployments create-deployment <<< '{"name":"my-deployment",...}'
+elastic cloud accounts get-current-account
+elastic cloud authentication get-api-keys
+elastic cloud organizations list-organizations
+elastic cloud organizations get-organization --organization-id <id>
+elastic cloud user-role-assignments add-role-assignments --user-id <id> <<< '{...}'
 ```
 
-Run `elastic cloud --help` for all available namespace groups (accounts,
-billing-costs-analysis, deployment-templates, extensions, organizations, etc.).
-
-### `serverless` - Elastic Serverless
-
-Manage Elastic Serverless projects and resources.
-Requires a `cloud` service block in the active context.
-
-#### `serverless es projects` - Elasticsearch projects
+#### `cloud hosted` - Hosted Deployments
 
 ```bash
-elastic serverless es projects list
-elastic serverless es projects create <<< '{"name":"demo","region_id":"aws-us-east-1"}'
-elastic serverless es projects create --wait <<< '{"name":"demo","region_id":"aws-us-east-1"}'
-elastic serverless es projects get --id <id>
-elastic serverless es projects delete --id <id>
-elastic serverless es projects get-status --id <id>
-elastic serverless es projects get-roles --id <id>
-elastic serverless es projects reset-credentials --id <id>
+elastic cloud hosted deployments list-deployments
+elastic cloud hosted deployments get-deployment --id <id>
+elastic cloud hosted deployments shutdown-deployment --id <id>
+elastic cloud hosted deployments create-deployment <<< '{"name":"my-deployment",...}'
+elastic cloud hosted deployment-templates list-deployment-templates
+elastic cloud hosted extensions list-extensions
+elastic cloud hosted stack get-version-stacks
 ```
 
-#### `serverless observability projects` / `serverless security projects`
+Run `elastic cloud hosted --help` for all available namespace groups
+(billing-costs-analysis, deployment-templates, deployments, deployments-traffic-filter,
+extensions, stack, trusted-environments).
 
-Same commands as `es projects` but for Observability and Security project types:
+#### `cloud serverless` - Serverless Projects
 
 ```bash
-elastic serverless observability projects list
-elastic serverless security projects create --wait <<< '{"name":"demo","region_id":"aws-us-east-1"}'
+elastic cloud serverless es projects list
+elastic cloud serverless es projects create <<< '{"name":"demo","region_id":"aws-us-east-1"}'
+elastic cloud serverless es projects create --wait <<< '{"name":"demo","region_id":"aws-us-east-1"}'
+elastic cloud serverless es projects get --id <id>
+elastic cloud serverless es projects delete --id <id>
+elastic cloud serverless es projects get-status --id <id>
+elastic cloud serverless es projects get-roles --id <id>
+elastic cloud serverless es projects reset-credentials --id <id>
 ```
 
-#### Other serverless resources
+Same commands are available under `observability` and `security`:
 
 ```bash
-elastic serverless regions list-regions
-elastic serverless traffic-filters list-traffic-filters
+elastic cloud serverless observability projects list
+elastic cloud serverless security projects create --wait <<< '{"name":"demo","region_id":"aws-us-east-1"}'
 ```
 
-Run `elastic serverless --help` for all available groups.
+Other serverless resources:
+
+```bash
+elastic cloud serverless regions list-regions
+elastic cloud serverless traffic-filters list-traffic-filters
+```
+
+Run `elastic cloud serverless --help` for all available groups.

@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-STACK_VERSION="${STACK_VERSION:-9.1.0}"
+STACK_VERSION="${STACK_VERSION:-9.3.0}"
 ES_CONTAINER_NAME="elastic-cli-es-test"
 NETWORK_NAME="elastic-cli-test-net"
 TESTS_REPO="https://github.com/elastic/elasticsearch-clients-tests.git"
@@ -23,16 +23,34 @@ trap cleanup EXIT
 
 echo "--- Setting up Node.js ${NODE_VERSION}"
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+  echo "nvm not found, installing..."
+  mkdir -p "$NVM_DIR"
+  NVM_VERSION=$(curl -s https://api.github.com/repos/nvm-sh/nvm/releases/latest | jq -r '.tag_name // "v0.39.7"')
+  echo "Installing nvm ${NVM_VERSION}"
+  curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash
+fi
 # shellcheck source=/dev/null
-[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+. "$NVM_DIR/nvm.sh"
 nvm install "$NODE_VERSION"
 nvm use "$NODE_VERSION"
+
+echo "--- Installing jq 1.7.1"
+JQ_VERSION="1.7.1"
+if ! jq --version 2>/dev/null | grep -q "$JQ_VERSION"; then
+  mkdir -p "$HOME/.local/bin"
+  curl -sfL "https://github.com/jqlang/jq/releases/download/jq-${JQ_VERSION}/jq-linux-amd64" -o "$HOME/.local/bin/jq"
+  chmod +x "$HOME/.local/bin/jq"
+  export PATH="$HOME/.local/bin:$PATH"
+fi
+echo "Using jq $(jq --version)"
 
 echo "--- Installing dependencies"
 npm ci
 
 echo "--- Building CLI"
 npm run build
+npm link
 
 echo "--- Cloning elasticsearch-clients-tests"
 git clone --depth 1 "$TESTS_REPO"
@@ -46,6 +64,7 @@ docker run \
   --publish 9200:9200 \
   --env "discovery.type=single-node" \
   --env "xpack.security.enabled=false" \
+  --env "xpack.license.self_generated.type=trial" \
   --env "action.destructive_requires_name=false" \
   --env "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
   --detach \
@@ -70,14 +89,16 @@ until curl -sf http://localhost:9200/_cluster/health > /dev/null 2>&1; do
 done
 echo "Elasticsearch is ready"
 
-echo "--- Generating .elasticrc.yml for ES"
-cat > .elasticrc.yml <<EOF
+echo "--- Generating CI config file"
+CI_CONFIG_FILE="$(pwd)/.elasticrc-ci.yml"
+cat > "$CI_CONFIG_FILE" <<EOF
 contexts:
   ci:
-    es:
+    elasticsearch:
       url: http://localhost:9200
 current_context: ci
 EOF
+export ELASTIC_CLI_CONFIG_FILE="$CI_CONFIG_FILE"
 
 echo "--- Generating functional test scripts"
 npx tsx codegen/functional/index.ts --tests-dir elasticsearch-clients-tests/tests

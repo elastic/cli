@@ -109,7 +109,7 @@ describe('elastic CLI -- preAction config error handling', () => {
   it('exits with error when no config file is found', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-'))
     try {
-      const { code, stderr } = await runCli(['es', 'info'], { cwd: dir, env: { HOME: dir, XDG_CONFIG_HOME: dir } })
+      const { code, stderr } = await runCli(['stack', 'es', 'info'], { cwd: dir, env: { HOME: dir, XDG_CONFIG_HOME: dir } })
       assert.equal(code, 1, `expected exit code 1, got ${code}`)
       assert.ok(stderr.includes('Error:'), `expected stderr to contain "Error:", got: ${stderr}`)
       assert.ok(stderr.includes('No configuration file found'), `expected config error message, got: ${stderr}`)
@@ -122,7 +122,7 @@ describe('elastic CLI -- preAction config error handling', () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-badconfig-'))
     try {
       const { code, stderr } = await runCli(
-        ['es', 'info', '--config-file', '/nonexistent/path.yml'],
+        ['stack', 'es', 'info', '--config-file', '/nonexistent/path.yml'],
         { cwd: dir, env: { HOME: dir, XDG_CONFIG_HOME: dir } }
       )
       assert.equal(code, 1, `expected exit code 1, got ${code}`)
@@ -141,6 +141,44 @@ describe('elastic CLI -- config-free commands', () => {
       assert.equal(code, 0, `expected exit code 0, got ${code}`)
       const parsed = JSON.parse(stdout)
       assert.ok('version' in parsed)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+})
+
+describe('elastic CLI -- stack command tree', () => {
+  it('top-level help lists `stack` and not `es`', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-help-'))
+    try {
+      const { code, stdout } = await runCli(['--help'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      assert.match(stdout, /^\s*stack\s/m, 'expected `stack` in top-level help')
+      assert.doesNotMatch(stdout, /^\s*es\s/m, '`es` must not appear as a top-level command')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('`elastic stack --help` lists the `es` sub-group', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-stack-help-'))
+    try {
+      const { code, stdout } = await runCli(['stack', '--help'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      assert.match(stdout, /^\s*es\s/m, 'expected `es` under stack')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('`elastic stack es --help` lists namespace groups (indices, cluster, ml)', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-stack-es-help-'))
+    try {
+      const { code, stdout } = await runCli(['stack', 'es', '--help'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      assert.match(stdout, /^\s*indices\s/m, 'expected `indices` group')
+      assert.match(stdout, /^\s*cluster\s/m, 'expected `cluster` group')
+      assert.match(stdout, /^\s*ml\s/m, 'expected `ml` group')
     } finally {
       await rm(dir, { recursive: true })
     }

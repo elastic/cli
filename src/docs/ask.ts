@@ -35,6 +35,14 @@ export function createAskCommand (deps: AskDeps = defaultDeps): OpaqueCommandHan
       const spinner = interactive ? startSpinner(deps.stderr, 'Thinking…') : undefined
 
       try {
+        if (parsed.options['json'] === true) {
+          const chunks: string[] = []
+          for await (const event of deps.docsAskStream(question, conversationId)) {
+            if (event.kind === 'chunk') chunks.push(event.text)
+          }
+          return { answer: chunks.join('') }
+        }
+
         const gen = deps.docsAskStream(question, conversationId)
         await streamAnswer(gen, renderMarkdown, deps.stdout, spinner)
       } catch (err) {

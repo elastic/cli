@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, afterEach } from 'node:test'
+import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { getCloudClient, _testResetCloudClient } from '../../src/lib/cloud-client.ts'
 import { setResolvedConfig } from '../../src/config/store.ts'
@@ -183,5 +183,51 @@ describe('getCloudClient', () => {
     } finally {
       process.stderr.write = origWrite
     }
+  })
+
+  describe('ELASTIC_CLOUD_ADMIN_API path rewrite', () => {
+    let savedEnv: string | undefined
+
+    beforeEach(() => {
+      savedEnv = process.env['ELASTIC_CLOUD_ADMIN_API']
+    })
+
+    afterEach(() => {
+      if (savedEnv === undefined) {
+        delete process.env['ELASTIC_CLOUD_ADMIN_API']
+      } else {
+        process.env['ELASTIC_CLOUD_ADMIN_API'] = savedEnv
+      }
+    })
+
+    it('rewrites serverless paths when ELASTIC_CLOUD_ADMIN_API=true', async () => {
+      process.env['ELASTIC_CLOUD_ADMIN_API'] = 'true'
+      setResolvedConfig({ context: { cloud: { url: 'https://admin.qa.cld.elstc.co', auth: { api_key: 'k' } } } })
+      const client = getCloudClient()
+
+      const calls: { url: string }[] = []
+      client._testSetFetch(((url: string) => {
+        calls.push({ url })
+        return Promise.resolve(new Response('[]', { status: 200 }))
+      }) as typeof fetch)
+
+      await client.request({ method: 'GET', path: '/api/v1/serverless/regions' })
+      assert.equal(calls[0]!.url, 'https://admin.qa.cld.elstc.co/api/v1/admin/serverless/regions')
+    })
+
+    it('does not rewrite paths when env var is not set', async () => {
+      delete process.env['ELASTIC_CLOUD_ADMIN_API']
+      setResolvedConfig({ context: { cloud: { url: 'https://api.elastic-cloud.com', auth: { api_key: 'k' } } } })
+      const client = getCloudClient()
+
+      const calls: { url: string }[] = []
+      client._testSetFetch(((url: string) => {
+        calls.push({ url })
+        return Promise.resolve(new Response('[]', { status: 200 }))
+      }) as typeof fetch)
+
+      await client.request({ method: 'GET', path: '/api/v1/serverless/regions' })
+      assert.equal(calls[0]!.url, 'https://api.elastic-cloud.com/api/v1/serverless/regions')
+    })
   })
 })

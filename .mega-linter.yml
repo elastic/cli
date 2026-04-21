@@ -3,6 +3,7 @@ ENABLE_LINTERS:
   - YAML_YAMLLINT
   - ACTION_ACTIONLINT
   - DOCKERFILE_HADOLINT
+  - BASH_SHELLCHECK
   - COPYPASTE_JSCPD
   - REPOSITORY_GIT_DIFF
   - REPOSITORY_GITLEAKS
@@ -40,3 +41,6 @@ YAML_YAMLLINT_CONFIG_FILE: .yamllint.yml
 YAML_YAMLLINT_FILTER_REGEX_EXCLUDE: "(codegen/functional/test/fixtures/|node_modules/)"
 
 COPYPASTE_JSCPD_CONFIG_FILE: .jscpd.json
+
+# shellcheck: warn only until active script work stabilises
+BASH_SHELLCHECK_DISABLE_ERRORS: true
