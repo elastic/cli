@@ -133,6 +133,61 @@ describe('elastic CLI -- preAction config error handling', () => {
   })
 })
 
+describe('elastic CLI -- config caching (preAction reuse)', () => {
+  it('loads config once when no overrides are specified', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-cache-'))
+    const counterFile = join(dir, 'load-count.txt')
+    const configYaml = [
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '      auth:',
+      `        api_key: "$(cmd:echo invoked >> ${counterFile} && echo test-key)"`,
+    ].join('\n')
+    const configPath = join(dir, '.elasticrc.yml')
+    const { writeFile, readFile } = await import('node:fs/promises')
+    await writeFile(configPath, configYaml)
+
+    try {
+      await runCli(['stack', 'es', 'info', '--json'], { cwd: dir, env: { HOME: dir, XDG_CONFIG_HOME: dir } })
+      const content = await readFile(counterFile, 'utf-8')
+      const invocations = content.trim().split('\n').length
+      assert.equal(invocations, 1, `expected resolver to run once, but ran ${invocations} times`)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('loads config twice when --config-file override is specified', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-cache-override-'))
+    const counterFile = join(dir, 'load-count.txt')
+    const configYaml = [
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '      auth:',
+      `        api_key: "$(cmd:echo invoked >> ${counterFile} && echo test-key)"`,
+    ].join('\n')
+    const configPath = join(dir, 'custom.yml')
+    const { writeFile, readFile } = await import('node:fs/promises')
+    await writeFile(join(dir, '.elasticrc.yml'), configYaml)
+    await writeFile(configPath, configYaml)
+
+    try {
+      await runCli(['stack', 'es', 'info', '--json', '--config-file', configPath], { cwd: dir, env: { HOME: dir, XDG_CONFIG_HOME: dir } })
+      const content = await readFile(counterFile, 'utf-8')
+      const invocations = content.trim().split('\n').length
+      assert.equal(invocations, 2, `expected resolver to run twice (early + override), but ran ${invocations} times`)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+})
+
 describe('elastic CLI -- config-free commands', () => {
   it('`elastic version` succeeds without a config file', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-'))

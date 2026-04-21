@@ -6,7 +6,7 @@
 
 import { Command } from 'commander'
 import { defineCommand, defineGroup, hideBlockedCommands } from './factory.js'
-import { loadConfig } from './config/loader.ts'
+import { loadConfig, type LoadConfigResult } from './config/loader.ts'
 import { setResolvedConfig } from './config/store.ts'
 
 // x-release-please-start-version
@@ -22,13 +22,17 @@ program
   .option('--use-context <name>', 'override the active context from the config file')
   .option('--json', 'output as JSON')
 
-// Cached result from the early load.
-//  The preAction hook reuses this when no --config-file or --use-context 
-// overrides are specified avoiding a redundant load+resolve cycle.
-let earlyConfig: import('./config/loader.ts').LoadConfigResult | undefined
+// Before every sub-command action, load and resolve the config file.
+// On error, print a structured message and exit -- never let a config failure
+// silently propagate into the command handler.
+//
+// When no --config-file or --use-context overrides are specified, the hook
+// reuses the cached earlyConfig to avoid a redundant load+resolve cycle.
+let earlyConfig: LoadConfigResult | undefined
 
 program.hook('preAction', async (thisCommand, actionCommand) => {
   if (actionCommand.name() === 'version') return
+  // docs commands use public elastic.co APIs — no config required
   if (actionCommand.parent?.name() === 'docs') return
   const { configFile: configPath, useContext: contextName } = thisCommand.opts()
 
