@@ -6,7 +6,7 @@
 import type { TransportRequestParams } from '@elastic/transport'
 import type { EsApiDefinition } from './types.ts'
 import type { SchemaArgDefinition } from '../lib/schema-args.ts'
-import type { ParsedResult } from '../factory.ts'
+import type { RawJsonValue, ParsedResult } from '../factory.ts'
 
 /**
  * Builds a `TransportRequestParams` object from an API definition, parsed CLI input,
@@ -31,26 +31,29 @@ export function buildRequestParams (
   schemaArgs: SchemaArgDefinition[]
 ): TransportRequestParams {
   const input = (parsed.input ?? {}) as Record<string, unknown>
+  const rawBody = parsed.rawBodyValues ?? {}
 
   const path = interpolatePath(def.path, schemaArgs, input)
   const querystring = buildQuerystring(schemaArgs, input)
-  const body = collectBody(schemaArgs, input)
+  const body = collectBody(schemaArgs, input, rawBody, def.path, def.bodyFormat)
 
-  // When a PUT endpoint has optional path params that were omitted (e.g. {id}
-  // on the index API), ES expects POST instead of PUT for auto-generation.
+  // The index API uses PUT with {id} but POST without (auto-ID generation).
+  // Only switch PUT→POST for paths containing /{id} when id is omitted.
   let method = def.method
-  if (method === 'PUT') {
-    const hasAbsentOptionalPathParam = schemaArgs.some(
-      (a) => a.foundIn === 'path' && !a.required && input[a.schemaKey] === undefined
+  if (method === 'PUT' && def.path.includes('/{id}')) {
+    const idArg = schemaArgs.find(
+      (a) => a.schemaKey === 'id' && a.foundIn === 'path' && !a.required
     )
-    if (hasAbsentOptionalPathParam) method = 'POST'
+    if (idArg != null && input[idArg.schemaKey] === undefined) method = 'POST'
   }
 
   const params: TransportRequestParams = { method, path }
   if (Object.keys(querystring).length > 0) params.querystring = querystring
 
   if (body !== undefined) {
-    if (def.bodyFormat === 'ndjson') {
+    if (typeof body === 'string') {
+      params.body = body
+    } else if (def.bodyFormat === 'ndjson') {
       params.bulkBody = toNdjson(body)
     } else {
       params.body = body as NonNullable<TransportRequestParams['body']>
@@ -85,8 +88,11 @@ function interpolatePath (
     if (value !== undefined) {
       path = path.replace(`{${arg.schemaKey}}`, encodePathParam(String(value)))
     } else if (!arg.required) {
-      // strip the trailing optional segment: e.g. "/_cat/shards/{index}" -> "/_cat/shards"
-      path = path.replace(new RegExp(`/?\\{${arg.schemaKey}\\}/?`), '')
+      // Strip the optional segment with its leading slash so the rest of the
+      // path remains valid. E.g.:
+      //   "/_inference/{task_type}/{inference_id}" (task_type absent)
+      //   → "/_inference/{inference_id}"   (not "/_inference{inference_id}")
+      path = path.replace(new RegExp(`/\\{${arg.schemaKey}\\}`), '')
       path = path.replace(/\/$/, '') || '/'
     }
   }
@@ -126,23 +132,34 @@ function toNdjson (body: Record<string, unknown>): string {
   return JSON.stringify(body) + '\n'
 }
 
-/**
- * Fields whose value should replace the entire body rather than being nested
- * under a key. The ES index/create APIs expect the document to BE the body.
- */
-const BODY_ROOT_FIELDS = new Set(['document'])
+// Fields whose value should replace the entire request body (not nested under the key).
+// Mapped per-field to the set of API paths where unwrapping applies, or '*' for all.
+const BODY_ROOT_FIELDS: Record<string, Set<string> | '*'> = {
+  document: '*',
+  inference_config: '*',
+  mappings: new Set(['/_data_stream/{name}/_mappings']),
+  settings: new Set(['/_data_stream/{name}/_settings']),
+  pipeline: new Set(['/_logstash/pipeline/{id}'])
+}
 
 /**
  * Collects request body fields from entries with `foundIn === "body"` or no `foundIn`.
  * Returns `undefined` when no body fields are present in the input.
+ *
+ * When a body value is a `RawJsonValue` (from CLI JSON parsing), the original
+ * JSON string is preserved in the output so number formatting (e.g. `100.0`
+ * for Painless floats) survives the round-trip.
  *
  * Special case: when the only body field with a value is in `BODY_ROOT_FIELDS`
  * (e.g. `document`), its value is promoted to be the entire body (#95).
  */
 function collectBody (
   schemaArgs: SchemaArgDefinition[],
-  input: Record<string, unknown>
-): Record<string, unknown> | undefined {
+  input: Record<string, unknown>,
+  rawBody: Record<string, RawJsonValue>,
+  apiPath: string,
+  bodyFormat?: string
+): Record<string, unknown> | string | undefined {
   const bodyArgs = schemaArgs.filter((a) => a.foundIn === 'body' || a.foundIn === undefined)
   const body: Record<string, unknown> = {}
 
@@ -154,8 +171,26 @@ function collectBody (
   if (Object.keys(body).length === 0) return undefined
 
   const keys = Object.keys(body)
-  if (keys.length === 1 && BODY_ROOT_FIELDS.has(keys[0]!)) {
-    return body[keys[0]!] as Record<string, unknown>
+  if (keys.length === 1) {
+    const key = keys[0]!
+    const rule = BODY_ROOT_FIELDS[key]
+    if (rule === '*' || (rule instanceof Set && rule.has(apiPath))) {
+      if (key in rawBody) return rawBody[key]!.raw
+      return body[key] as Record<string, unknown>
+    }
+  }
+
+  // If any body value has a raw JSON string, build a pre-serialized JSON body
+  // so the transport sends it as-is (preserving number formatting like 100.0).
+  // Skip for NDJSON bodies which must go through toNdjson().
+  const hasRaw = bodyFormat !== 'ndjson' &&
+    bodyArgs.some((a) => a.schemaKey in rawBody)
+  if (hasRaw) {
+    const parts = keys.map((k) => {
+      if (k in rawBody) return `${JSON.stringify(k)}:${rawBody[k]!.raw}`
+      return `${JSON.stringify(k)}:${JSON.stringify(body[k])}`
+    })
+    return `{${parts.join(',')}}`
   }
 
   return body

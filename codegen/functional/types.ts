@@ -7,6 +7,17 @@
 // Parsed AST for elasticsearch-clients-tests YAML files
 // ---------------------------------------------------------------------------
 
+/**
+ * Wrapper to preserve YAML float notation for integer-valued numbers.
+ * YAML `100.0` is parsed as JS integer `100` — wrapping it in YamlFloat
+ * lets the JSON serialiser emit `100.0` so Painless does float division.
+ */
+export class YamlFloat {
+  constructor (public readonly value: number) {}
+  valueOf (): number { return this.value }
+  toJSON (): number { return this.value }
+}
+
 /** Top-level structure of a parsed YAML test file. */
 export interface TestFile {
   /** Source file path (relative to tests dir) */
@@ -19,7 +30,8 @@ export interface TestFile {
 
 export interface Requires {
   serverless: boolean
-  stack: boolean
+  /** true = runs on stack, false = explicitly excluded from stack, null = not specified */
+  stack: boolean | null
 }
 
 /** A named test section (e.g. "get", "Basic bulk operation"). */

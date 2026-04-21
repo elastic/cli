@@ -141,11 +141,11 @@ describe('ServiceBlockSchema', () => {
     assert.equal(result.success, false)
   })
 
-  it('rejects missing auth field', () => {
+  it('accepts missing auth field (no-auth mode)', () => {
     const result = ServiceBlockSchema.safeParse({
       url: 'https://es.example.com:9200',
     })
-    assert.equal(result.success, false)
+    assert.equal(result.success, true)
   })
 
   it('rejects auth with neither api_key nor username/password', () => {
