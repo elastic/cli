@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { parseAllDocuments, visit, isScalar } from 'yaml'
+import { parseAllDocuments, visit } from 'yaml'
 import {
   YamlFloat,
   type TestFile, type Requires, type TestSection, type Step,
@@ -33,7 +33,8 @@ export function parseTestFile (yamlContent: string, sourceFile: string): TestFil
           node.source != null &&
           node.source.includes('.')
         ) {
-          node.value = new YamlFloat(node.value) as any
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ;(node as any).value = new YamlFloat(node.value)
         }
       }
     })
