@@ -50,6 +50,8 @@ const SKIP_ENTERPRISE: Set<string> = new Set([
   'search_application/20_behavioral_analytics.yml',
   // ML preview_datafeed — assertion mismatch (codegen gap)
   'machine_learning/preview_datafeed.yml',
+  // ESQL view — /_query/view API does not exist in ES 9.3.0
+  'esql/40_view.yml',
 ])
 
 const yamlFiles = walkYamlFiles(testsDir)

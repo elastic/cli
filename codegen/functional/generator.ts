@@ -638,7 +638,12 @@ function toJqPath (path: string): string {
       jq += `.${part}`
     } else {
       // Quote field names containing special chars (hyphens, dots, etc.)
-      jq += `.["${part}"]`
+      // Avoid `.["..."]` after a prior component — older jq rejects the dot before `[`.
+      if (jq === '') {
+        jq += `.["${part}"]`
+      } else {
+        jq += `["${part}"]`
+      }
     }
   }
   return jq || '.'
