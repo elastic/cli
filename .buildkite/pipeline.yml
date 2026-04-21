@@ -20,7 +20,6 @@ steps:
         matrix:
           setup:
             node:
-              - "20"
               - "22"
               - "24"
         agents:
@@ -28,7 +27,7 @@ steps:
           image: family/core-ubuntu-2204
         env:
           NODE_VERSION: "{{matrix.node}}"
-          STACK_VERSION: "9.1.0"
+          STACK_VERSION: "9.3.0"
         command: ".buildkite/run-es-tests.sh"
 
   - group: "Cloud Smoke Tests"
@@ -38,8 +37,8 @@ steps:
         matrix:
           setup:
             node:
-              - "20"
               - "22"
+              - "24"
         agents:
           provider: gcp
           image: family/core-ubuntu-2204
