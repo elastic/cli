@@ -52,6 +52,9 @@ const SKIP_ENTERPRISE: Set<string> = new Set([
   'machine_learning/preview_datafeed.yml',
   // ESQL view — /_query/view API does not exist in ES 9.3.0
   'esql/40_view.yml',
+  // Enterprise Search connectors — system index write block even with trial license
+  'entsearch/20_connector.yml',
+  'entsearch/50_connector_updates.yml',
 ])
 
 const yamlFiles = walkYamlFiles(testsDir)
