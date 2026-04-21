@@ -58,6 +58,15 @@ export interface OptionDefinition {
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
 
 /**
+ * Wraps a JSON-parsed value alongside its original string representation.
+ * Used by body args so the request builder can emit the original JSON
+ * (preserving number formatting like `100.0`) instead of re-serializing.
+ */
+export class RawJsonValue {
+  constructor (public readonly raw: string, public readonly parsed: unknown) {}
+}
+
+/**
  * Typed output of option parsing passed to the command handler.
  * Options are keyed by their `long` name and coerced to their declared types.
  *
@@ -85,6 +94,11 @@ export interface ParsedResult<T = unknown> {
   input?: T
   /** value of the positional argument, if `positionalArg` was declared in the command config */
   arg?: string
+  /**
+   * Raw JSON strings for body args, preserving original formatting (e.g. float `100.0`).
+   * @internal used by the request builder — handlers should read `input` instead.
+   */
+  rawBodyValues?: Record<string, RawJsonValue>
 }
 
 /**
@@ -598,6 +612,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
 
     const jsonFormat = allRaw.json
     let inputValue: unknown
+    const rawBodyValues: Record<string, RawJsonValue> = {}
     if (config.input instanceof z.ZodType) {
       const filePath = cmd.getOptionValue('inputFile') as string | undefined
       if (filePath !== undefined) {
@@ -627,9 +642,15 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
           cliInput[arg.schemaKey] = raw !== 'false'
         } else if (arg.type === 'object' || arg.type === 'array') {
           try {
-            cliInput[arg.schemaKey] = JSON.parse(raw as string)
+            const parsed = JSON.parse(raw as string)
+            cliInput[arg.schemaKey] = parsed
+            if (arg.foundIn === 'body' || arg.foundIn === undefined) {
+              rawBodyValues[arg.schemaKey] = new RawJsonValue(raw as string, parsed)
+            }
           } catch {
-            return cmd.error(`option --${arg.cliFlag}: invalid JSON: ${raw}`)
+            // If JSON parse fails, pass the raw value — handles z.any() fields
+            // that accept plain strings (e.g. connector update-error --error)
+            cliInput[arg.schemaKey] = raw
           }
         } else {
           // string, number (already coerced by parseArg), enum
@@ -705,6 +726,9 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       const result = validationSchema.safeParse(inputValue)
       if (result.success) {
         parsed.input = result.data as z.infer<T>
+        if (Object.keys(rawBodyValues).length > 0) {
+          parsed.rawBodyValues = rawBodyValues
+        }
       } else {
         if (jsonFormat === true) {
           const issues = result.error.issues

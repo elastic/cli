@@ -17,6 +17,10 @@ export interface MappedAction {
   cliArgs: string[]
   /** true if the action accepts a request body */
   hasBody: boolean
+  /** schema args lookup by key, for resolving body field flags */
+  bodyArgsByKey: Map<string, SchemaArgDefinition>
+  /** set of body field keys */
+  bodyFields: Set<string>
 }
 
 /**
@@ -48,10 +52,14 @@ export function mapAction (
   params: Record<string, unknown>,
   actionMap: Map<string, EsApiDefinition>
 ): MappedAction | null {
-  const def = actionMap.get(action)
+  // YAML tests use underscore notation (e.g. "clear_scroll", "cat.ml_data_frame_analytics")
+  // but CLI definitions use kebab-case (e.g. "clear-scroll", "cat.ml-data-frame-analytics").
+  // Normalize by converting underscores to hyphens within each dot-separated segment.
+  const normalizedAction = action.split('.').map((s) => s.replace(/_/g, '-')).join('.')
+  const def = actionMap.get(action) ?? actionMap.get(normalizedAction)
   if (def == null) return null
 
-  const args: string[] = ['es']
+  const args: string[] = ['stack', 'es']
   if (def.namespace != null) args.push(def.namespace)
   args.push(def.name)
 
@@ -69,15 +77,17 @@ export function mapAction (
   }
 
   for (const [key, value] of Object.entries(params)) {
-    if (bodyFields.has(key)) continue
     if (key === 'ignore') continue
 
     const argDef = argsByKey.get(key)
-    const flag = argDef != null ? argDef.cliFlag : key.replace(/_/g, '-')
+    // Skip params the CLI doesn't expose as flags (e.g. cat's 'format')
+    if (argDef == null) continue
 
-    args.push(`--${flag}`, String(value))
+    // Body fields from YAML params are passed as CLI flags (same as non-body params);
+    // they will be handled alongside any explicit body in buildCommand.
+    args.push(`--${argDef.cliFlag}`, String(value))
   }
 
   const hasBody = schemaArgs.some((a) => a.foundIn === 'body')
-  return { cliArgs: args, hasBody }
+  return { cliArgs: args, hasBody, bodyArgsByKey: argsByKey, bodyFields }
 }

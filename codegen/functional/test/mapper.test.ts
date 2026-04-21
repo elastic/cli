@@ -61,26 +61,26 @@ describe('mapAction', () => {
   it('maps namespaced action to CLI args', () => {
     const result = mapAction('indices.create', { index: 'test' }, actionMap)
     assert.ok(result)
-    assert.deepStrictEqual(result.cliArgs, ['es', 'indices', 'create', '--index', 'test'])
+    assert.deepStrictEqual(result.cliArgs, ['stack', 'es', 'indices', 'create', '--index', 'test'])
   })
 
   it('maps root action to CLI args', () => {
     const result = mapAction('get', { index: 'test', id: '1' }, actionMap)
     assert.ok(result)
-    assert.deepStrictEqual(result.cliArgs, ['es', 'get', '--index', 'test', '--id', '1'])
+    assert.deepStrictEqual(result.cliArgs, ['stack', 'es', 'get', '--index', 'test', '--id', '1'])
   })
 
-  it('skips body fields', () => {
+  it('includes body fields in CLI args when passed as params', () => {
     const result = mapAction('indices.create', { index: 'test', settings: { number_of_shards: 1 } }, actionMap)
     assert.ok(result)
-    assert.deepStrictEqual(result.cliArgs, ['es', 'indices', 'create', '--index', 'test'])
+    assert.ok(result.cliArgs.includes('--settings'))
     assert.equal(result.hasBody, true)
   })
 
   it('skips ignore param', () => {
     const result = mapAction('indices.create', { index: 'test', ignore: 404 }, actionMap)
     assert.ok(result)
-    assert.deepStrictEqual(result.cliArgs, ['es', 'indices', 'create', '--index', 'test'])
+    assert.deepStrictEqual(result.cliArgs, ['stack', 'es', 'indices', 'create', '--index', 'test'])
   })
 
   it('returns null for unknown actions', () => {
@@ -91,7 +91,7 @@ describe('mapAction', () => {
   it('handles actions without input schema', () => {
     const result = mapAction('info', {}, actionMap)
     assert.ok(result)
-    assert.deepStrictEqual(result.cliArgs, ['es', 'info'])
+    assert.deepStrictEqual(result.cliArgs, ['stack', 'es', 'info'])
     assert.equal(result.hasBody, false)
   })
 

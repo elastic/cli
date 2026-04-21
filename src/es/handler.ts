@@ -64,17 +64,23 @@ export function createEsHandler (
       const responseType = def.responseType ?? 'json'
       const jsonRequested = parsed.options.json === true
 
+      // When the body is a pre-serialized JSON string (RawJsonValue passthrough),
+      // set the content-type explicitly so the transport doesn't default to text/plain.
+      const reqOpts = typeof params.body === 'string'
+        ? { headers: { 'content-type': 'application/json' as string } }
+        : undefined
+
       if (responseType === 'text' && jsonRequested) {
         const qs = (params.querystring ?? {}) as Record<string, unknown>
         qs.format = 'json'
         params.querystring = qs
-        const body = await transport.request<JsonValue>(params)
+        const body = await transport.request<JsonValue>(params, reqOpts)
         return body
       } else if (responseType === 'text') {
-        const body = await transport.request<string>(params)
+        const body = await transport.request<string>(params, reqOpts)
         return body
       } else {
-        const body = await transport.request<JsonValue>(params)
+        const body = await transport.request<JsonValue>(params, reqOpts)
         return body
       }
     } catch (err) {

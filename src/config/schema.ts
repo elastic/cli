@@ -38,7 +38,7 @@ export const ServiceBlockSchema = z.object({
     (u) => u.startsWith('https://') || u.startsWith('http://'),
     { message: 'URL must use http:// or https:// scheme' }
   ),
-  auth: AuthSchema
+  auth: AuthSchema.optional()
 })
 
 /** A context value: optional service blocks with at least one present. */

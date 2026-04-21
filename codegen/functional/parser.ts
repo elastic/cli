@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { parseAllDocuments } from 'yaml'
-import type {
-  TestFile, Requires, TestSection, Step,
-  DoStep, SetStep, MatchStep, IsTrueStep, IsFalseStep, LengthStep,
-  GtStep, GteStep, LtStep, LteStep, ContainsStep
+import { parseAllDocuments, visit } from 'yaml'
+import {
+  YamlFloat,
+  type TestFile, type Requires, type TestSection, type Step,
+  type DoStep, type SetStep, type MatchStep, type IsTrueStep, type IsFalseStep, type LengthStep,
+  type GtStep, type GteStep, type LtStep, type LteStep, type ContainsStep
 } from './types.ts'
 
 const RESERVED_KEYS = new Set(['requires', 'setup', 'teardown'])
@@ -20,11 +21,30 @@ const RESERVED_KEYS = new Set(['requires', 'setup', 'teardown'])
  */
 export function parseTestFile (yamlContent: string, sourceFile: string): TestFile {
   const docs = parseAllDocuments(yamlContent)
+
+  // Walk each document's AST and wrap integer-valued YAML floats (e.g. 100.0)
+  // so they survive JSON serialisation with their decimal notation intact.
+  for (const doc of docs) {
+    visit(doc, {
+      Scalar (_, node) {
+        if (
+          typeof node.value === 'number' &&
+          Number.isInteger(node.value) &&
+          node.source != null &&
+          node.source.includes('.')
+        ) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ;(node as any).value = new YamlFloat(node.value)
+        }
+      }
+    })
+  }
+
   const sections: Record<string, unknown>[] = docs
-    .map((doc) => doc.toJSON() as Record<string, unknown> | null)
+    .map((doc) => doc.toJS() as Record<string, unknown> | null)
     .filter((v): v is Record<string, unknown> => v != null)
 
-  let requires: Requires = { serverless: false, stack: false }
+  let requires: Requires = { serverless: false, stack: null }
   let setup: Step[] = []
   let teardown: Step[] = []
   const tests: TestSection[] = []
@@ -34,7 +54,7 @@ export function parseTestFile (yamlContent: string, sourceFile: string): TestFil
       const r = section.requires as Record<string, unknown>
       requires = {
         serverless: r.serverless === true,
-        stack: r.stack === true
+        stack: 'stack' in r ? r.stack === true : null
       }
       continue
     }
