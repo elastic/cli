@@ -137,6 +137,9 @@ describe('elastic CLI -- config caching (preAction reuse)', () => {
   it('loads config once when no overrides are specified', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-cache-'))
     const counterFile = join(dir, 'load-count.txt')
+    const scriptFile = join(dir, 'counter.js')
+    const { writeFile, readFile } = await import('node:fs/promises')
+    await writeFile(scriptFile, `require("fs").appendFileSync(${JSON.stringify(counterFile)},"x\\n");process.stdout.write("test-key")`)
     const configYaml = [
       'current_context: local',
       'contexts:',
@@ -144,10 +147,9 @@ describe('elastic CLI -- config caching (preAction reuse)', () => {
       '    elasticsearch:',
       '      url: http://localhost:9200',
       '      auth:',
-      `        api_key: "$(cmd:echo invoked >> ${counterFile} && echo test-key)"`,
+      `        api_key: "$(cmd:node ${scriptFile.replace(/\\/g, '/')})"`,
     ].join('\n')
     const configPath = join(dir, '.elasticrc.yml')
-    const { writeFile, readFile } = await import('node:fs/promises')
     await writeFile(configPath, configYaml)
 
     try {
@@ -163,6 +165,9 @@ describe('elastic CLI -- config caching (preAction reuse)', () => {
   it('loads config twice when --config-file override is specified', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-cache-override-'))
     const counterFile = join(dir, 'load-count.txt')
+    const scriptFile = join(dir, 'counter.js')
+    const { writeFile, readFile } = await import('node:fs/promises')
+    await writeFile(scriptFile, `require("fs").appendFileSync(${JSON.stringify(counterFile)},"x\\n");process.stdout.write("test-key")`)
     const configYaml = [
       'current_context: local',
       'contexts:',
@@ -170,10 +175,9 @@ describe('elastic CLI -- config caching (preAction reuse)', () => {
       '    elasticsearch:',
       '      url: http://localhost:9200',
       '      auth:',
-      `        api_key: "$(cmd:echo invoked >> ${counterFile} && echo test-key)"`,
+      `        api_key: "$(cmd:node ${scriptFile.replace(/\\/g, '/')})"`,
     ].join('\n')
     const configPath = join(dir, 'custom.yml')
-    const { writeFile, readFile } = await import('node:fs/promises')
     await writeFile(join(dir, '.elasticrc.yml'), configYaml)
     await writeFile(configPath, configYaml)
 
