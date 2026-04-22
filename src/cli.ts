@@ -91,8 +91,8 @@ if (firstArg === 'stack') {
   const kbArgs = new Set(['kb', 'kibana'])
 
   if (secondArg == null || esArgs.has(secondArg)) {
-    const { registerEsCommands } = await import('./es/register.ts')
-    const esGroup = registerEsCommands()
+    const { registerEsCommandsLazy } = await import('./es/register.ts')
+    const esGroup = await registerEsCommandsLazy()
     esGroup.alias('elasticsearch')
     stackChildren.push(esGroup)
   } else {

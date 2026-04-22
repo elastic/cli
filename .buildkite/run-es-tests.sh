@@ -48,6 +48,10 @@ echo "Using jq $(jq --version)"
 echo "--- Installing dependencies"
 npm ci
 
+# Per-endpoint Zod schemas (#171) make tsc's declaration emit exceed the 2 GB
+# default Node heap. Match the GitHub Actions ceiling so build and tests agree.
+export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=6144"
+
 echo "--- Building CLI"
 npm run build
 npm link

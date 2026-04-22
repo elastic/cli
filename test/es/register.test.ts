@@ -346,8 +346,10 @@ describe('registerEsCommands - external schema consumption', () => {
 })
 
 describe('registerEsCommands - built-in API surface', () => {
-  it('all built-in API schemas are JSON-Schema-serializable', () => {
-    assert.doesNotThrow(() => registerEsCommands())
+  it('all built-in API schemas are JSON-Schema-serializable', async () => {
+    const { loadAllEsApis } = await import('../../src/es/apis.ts')
+    const allApis = await loadAllEsApis()
+    assert.doesNotThrow(() => registerEsCommands(allApis))
   })
 
   it('throws at registration time when a schema contains z.date()', () => {
