@@ -3301,14 +3301,103 @@ describe('JSON schema in help output', () => {
       assert.ok(!('input_schema' in schema), 'expected no input_schema wrapper key')
     })
 
-    it('prints nothing for commands without an input schema', async () => {
+    it('prints nothing for commands with no input schema, no options, and no positional arg', async () => {
       const cmd = defineCommand({
         name: 'ping',
         description: 'Ping the cluster',
         handler: () => ({}),
       })
       const { out } = await captureJsonHelp(cmd)
-      assert.equal(out, '', 'expected empty output for command with no input schema')
+      assert.equal(out, '', 'expected empty output for parameter-less command')
+    })
+
+    it('builds a synthetic JSON schema from options when no input schema is present', async () => {
+      const cmd = defineCommand({
+        name: 'scroll-search',
+        description: 'Scroll through results',
+        options: [
+          { long: 'index', short: 'i', description: 'Target index', type: 'string', required: true },
+          { long: 'size', description: 'Documents per batch', type: 'number', defaultValue: 1000 },
+          { long: 'raw', description: 'Raw output', type: 'boolean' },
+        ],
+        handler: () => ({}),
+      })
+      const { parsed } = await captureJsonHelp(cmd)
+      const schema = parsed as Record<string, unknown>
+      assert.equal(schema['type'], 'object')
+      const props = schema['properties'] as Record<string, Record<string, unknown>>
+      assert.equal(props['index']!['type'], 'string')
+      assert.equal(props['index']!['description'], 'Target index')
+      assert.equal(props['size']!['type'], 'number')
+      assert.equal(props['size']!['default'], 1000)
+      assert.equal(props['raw']!['type'], 'boolean')
+      const required = schema['required'] as string[]
+      assert.deepEqual(required, ['index'])
+    })
+
+    it('includes a positional arg as a required string property', async () => {
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search docs',
+        positionalArg: { name: 'query', description: 'Search terms', required: true },
+        options: [
+          { long: 'page', description: 'Page number', type: 'number', defaultValue: 1 },
+        ],
+        handler: () => ({}),
+      })
+      const { parsed } = await captureJsonHelp(cmd)
+      const schema = parsed as Record<string, unknown>
+      const props = schema['properties'] as Record<string, Record<string, unknown>>
+      assert.equal(props['query']!['type'], 'string')
+      assert.equal(props['query']!['description'], 'Search terms')
+      assert.equal(props['page']!['type'], 'number')
+      assert.equal(props['page']!['default'], 1)
+      const required = schema['required'] as string[]
+      assert.ok(required.includes('query'), 'expected query in required')
+    })
+
+    it('omits non-finite number defaults (e.g. Infinity) from the synthetic schema', async () => {
+      const cmd = defineCommand({
+        name: 'scroll-search',
+        description: 'Scroll through results',
+        options: [
+          { long: 'max-docs', description: 'Max documents', type: 'number', defaultValue: Infinity },
+        ],
+        handler: () => ({}),
+      })
+      const { parsed } = await captureJsonHelp(cmd)
+      const schema = parsed as Record<string, unknown>
+      const props = schema['properties'] as Record<string, Record<string, unknown>>
+      assert.ok(!('default' in props['max-docs']!), 'Infinity default must be omitted so output is valid JSON')
+      assert.equal(props['max-docs']!['type'], 'number')
+    })
+
+    it('omits the required array when no fields are required in the synthetic schema', async () => {
+      const cmd = defineCommand({
+        name: 'msearch',
+        description: 'Multi-search',
+        options: [
+          { long: 'batch-size', description: 'Batch size', type: 'number', defaultValue: 5 },
+        ],
+        handler: () => ({}),
+      })
+      const { parsed } = await captureJsonHelp(cmd)
+      const schema = parsed as Record<string, unknown>
+      assert.ok(!('required' in schema), 'required array should be omitted when empty')
+    })
+
+    it('marks an optional positional arg as not required in the synthetic schema', async () => {
+      const cmd = defineCommand({
+        name: 'read',
+        description: 'Read a doc',
+        positionalArg: { name: 'path', description: 'Path', required: false },
+        handler: () => ({}),
+      })
+      const { parsed } = await captureJsonHelp(cmd)
+      const schema = parsed as Record<string, unknown>
+      const props = schema['properties'] as Record<string, Record<string, unknown>>
+      assert.equal(props['path']!['type'], 'string')
+      assert.ok(!('required' in schema), 'optional positional arg must not appear in required')
     })
 
     it('required fields appear in the JSON schema required array', async () => {
