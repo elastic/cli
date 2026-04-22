@@ -765,8 +765,8 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       }
       process.exitCode = 1
     } else {
-      const fieldsRaw = allRaw.fields as string | undefined
-      const templateRaw = allRaw.template as string | undefined
+      const fieldsRaw = allRaw.outputFields as string | undefined
+      const templateRaw = allRaw.outputTemplate as string | undefined
       let output = handlerResult
       if (fieldsRaw != null) {
         output = pickFields(output, parseFieldList(fieldsRaw))
