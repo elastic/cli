@@ -11,6 +11,7 @@ import type { ResolvedConfig, CommandPolicy } from './config/types.ts'
 import { getResolvedConfig } from './config/store.ts'
 import { extractSchemaArgs, validateSchemaArgs } from './lib/schema-args.ts'
 import type { SchemaArgDefinition } from './lib/schema-args.ts'
+import { simplifyZodIssues, formatIssuesText } from './lib/zod-error.ts'
 import { renderText, formatHandlerError } from './output.ts'
 
 /** pre-built schema for coercing string → number, reused per option invocation */
@@ -730,8 +731,8 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
           parsed.rawBodyValues = rawBodyValues
         }
       } else {
+        const issues = simplifyZodIssues(result.error.issues)
         if (jsonFormat === true) {
-          const issues = result.error.issues
           process.stderr.write(JSON.stringify({
             error: {
               code: 'input_validation_failed',
@@ -742,7 +743,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
           // throw to prevent handler execution - mirrors cmd.error() behaviour
           throw Object.assign(new Error('input_validation_failed'), { exitCode: 1 })
         }
-        return cmd.error(`input validation failed:\n${z.prettifyError(result.error)}`)
+        return cmd.error(`input validation failed:\n${formatIssuesText(issues)}`)
       }
     }
     if (allRaw['dryRun'] === true) {
