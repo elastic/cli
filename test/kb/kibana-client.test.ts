@@ -6,12 +6,12 @@
 import { describe, it, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { KibanaClient, getKibanaClient, _testResetKibanaClient } from '../../src/lib/kibana-client.ts'
-import { setResolvedConfig, _testResetResolvedConfig } from '../../src/config/store.ts'
+import { setResolvedConfig, _testResetConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
 
 afterEach(() => {
   _testResetKibanaClient()
-  _testResetResolvedConfig()
+  _testResetConfig()
 })
 
 // ---------------------------------------------------------------------------
