@@ -1,0 +1,108 @@
+name: Weekly Codegen
+
+# Regenerates the auto-generated ES and Cloud API bindings against the latest
+# upstream `elastic/elastic-client-generator-js` output and, when the diff is
+# non-empty, opens a PR. See https://github.com/elastic/cli/issues/79.
+on:
+  schedule:
+    # Monday 07:00 UTC — matches the cadence of the wider client-codegen suite
+    # run by elastic/devtools-team (which fires one hour earlier).
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  codegen:
+    name: Regenerate API bindings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 24
+      - name: Install repo dependencies
+        run: npm ci
+
+      - name: Prepare generator checkout (shared between codegen steps)
+        id: generator
+        shell: bash
+        run: |
+          dir="$RUNNER_TEMP/elastic-client-generator-js"
+          git clone --depth 1 --branch main https://github.com/elastic/elastic-client-generator-js.git "$dir"
+          (cd "$dir" && npm install --no-audit --no-fund)
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
+      - name: Regenerate ES bindings
+        env:
+          CODEGEN_GENERATOR_DIR: ${{ steps.generator.outputs.dir }}
+        run: npm run codegen:es
+      - name: Regenerate Cloud bindings
+        env:
+          CODEGEN_GENERATOR_DIR: ${{ steps.generator.outputs.dir }}
+        run: npm run codegen:cloud
+      # TODO(#79): add a `codegen:kibana` step here once the Kibana target
+      # lands in elastic/elastic-client-generator-js. The Kibana bindings
+      # tracking issue (elastic/cli#72) will gate this.
+
+      - name: Build
+        run: npm run build
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Detect generated diff
+        id: diff
+        shell: bash
+        run: |
+          if git diff --quiet -- src/es src/cloud; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No generated changes — nothing to PR."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git --no-pager diff --stat -- src/es src/cloud
+          fi
+
+      # NOTE: Using GITHUB_TOKEN means the resulting PR will NOT trigger further
+      # workflow runs (including `ci.yml`). To get CI on weekly codegen PRs,
+      # replace `GITHUB_TOKEN` below with a fine-grained PAT stored as
+      # `CODEGEN_PR_TOKEN`. See:
+      # https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication#using-the-github_token-in-a-workflow
+      - name: Create Pull Request
+        if: steps.diff.outputs.changed == 'true'
+        id: cpr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ secrets.CODEGEN_PR_TOKEN || secrets.GITHUB_TOKEN }}
+          branch: chore/weekly-codegen
+          delete-branch: true
+          base: main
+          commit-message: "chore(codegen): weekly update of generated API bindings"
+          title: "chore(codegen): weekly update of generated API bindings"
+          body: |
+            Automated weekly regeneration of the ES and Cloud API bindings
+            against the latest `elastic/elastic-client-generator-js` output.
+
+            - `src/es/apis/**` and `src/es/apis.ts` — produced by `npm run cli-es`
+            - `src/es/apis/schemas/**` — produced by `npm run zod`
+            - `src/cloud/apis/**` and `src/cloud/apis.ts` — produced by `npm run cli-cloud`
+
+            Run locally with `npm run codegen:es` / `npm run codegen:cloud`.
+
+            Refs: #79
+          committer: "elastic-machine <elasticmachine@users.noreply.github.com>"
+          author: "elastic-machine <elasticmachine@users.noreply.github.com>"
+          add-paths: |
+            src/es
+            src/cloud
+
+      - name: PR summary
+        if: steps.cpr.outputs.pull-request-url
+        shell: bash
+        run: |
+          echo "Opened: ${{ steps.cpr.outputs.pull-request-url }}" >> "$GITHUB_STEP_SUMMARY"
