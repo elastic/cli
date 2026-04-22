@@ -652,6 +652,16 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
             // that accept plain strings (e.g. connector update-error --error)
             cliInput[arg.schemaKey] = raw
           }
+        } else if (
+          arg.type === 'string' &&
+          arg.acceptsArrayForm === true &&
+          arg.foundIn === 'body' &&
+          typeof raw === 'string' &&
+          raw.includes(',')
+        ) {
+          // ES bodies need a JSON array for union(T, array(T)) fields like `fields`
+          // (#167). Querystring and path use CSV directly; ES splits those server-side.
+          cliInput[arg.schemaKey] = raw.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
         } else {
           // string, number (already coerced by parseArg), enum
           cliInput[arg.schemaKey] = raw

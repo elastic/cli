@@ -2899,6 +2899,66 @@ describe('repeated flags', () => {
     const err = await captureErrAsync(cmd, ['--mappings', '{}', '--mappings', '{"a":1}'])
     assert.match(err, /cannot be specified more than once/)
   })
+
+  it('schema-derived union(string, array) body arg splits CSV into an array (#167)', async () => {
+    const schema = z.object({
+      fields: z.union([z.string(), z.array(z.string())]).optional().meta({ found_in: 'body' }),
+    })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'field-caps',
+      description: 'Field caps',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    await invokeAsync(cmd, ['--fields', 'title,status'])
+    assert.deepEqual(captured, { fields: ['title', 'status'] })
+  })
+
+  it('single-value union(string, array) body arg stays a string', async () => {
+    const schema = z.object({
+      fields: z.union([z.string(), z.array(z.string())]).optional().meta({ found_in: 'body' }),
+    })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'field-caps',
+      description: 'Field caps',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    await invokeAsync(cmd, ['--fields', 'title'])
+    assert.deepEqual(captured, { fields: 'title' })
+  })
+
+  it('repeated --fields flags accumulate and then split into an array', async () => {
+    const schema = z.object({
+      fields: z.union([z.string(), z.array(z.string())]).optional().meta({ found_in: 'body' }),
+    })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'field-caps',
+      description: 'Field caps',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    await invokeAsync(cmd, ['--fields', 'title', '--fields', 'status'])
+    assert.deepEqual(captured, { fields: ['title', 'status'] })
+  })
+
+  it('union(string, array) query arg keeps CSV as a string (ES splits server-side)', async () => {
+    const schema = z.object({
+      filters: z.union([z.string(), z.array(z.string())]).optional().meta({ found_in: 'query' }),
+    })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'field-caps',
+      description: 'Field caps',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    await invokeAsync(cmd, ['--filters', 'a,b'])
+    assert.deepEqual(captured, { filters: 'a,b' })
+  })
 })
 
 describe('defineCommand schema input - strict validation', () => {
