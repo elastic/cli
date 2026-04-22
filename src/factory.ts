@@ -701,12 +701,13 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     }
     if (inputValue !== undefined) {
       assert(config.input instanceof z.ZodType, `command ${JSON.stringify(config.name)}: input must be a Zod schema`)
-      // apply strict mode to reject unknown keys, unless the author explicitly used .passthrough()
+      // Use passthrough so unknown fields (plugin-specific, newer ES versions) flow
+      // through to the server instead of being rejected client-side (#170).
       let validationSchema: z.ZodType = (
         config.input instanceof z.ZodObject &&
         (config.input.def as unknown as { catchall?: { type: string } }).catchall?.type !== 'unknown'
       )
-        ? config.input.strict()
+        ? config.input.passthrough()
         : config.input
 
       // Relax validation for object/array body fields. These contain user-provided
