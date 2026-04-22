@@ -67,6 +67,40 @@ Override `current_context` for a single command with `--use-context <name>`.
 Each context can have any combination of service blocks (`elasticsearch`, `kibana`, `cloud`).
 Authentication can also use `username` + `password` instead of `api_key`.
 
+### Authoring the config from the CLI
+
+Instead of hand-editing YAML, the `elastic config` command group creates and
+maintains contexts and stores secrets in the OS keychain when available
+(macOS Keychain, Linux libsecret, `pass`, Windows Credential Manager). The YAML
+then holds a `$(keychain:...)` / `$(secret_service:...)` / etc. resolver
+expression rather than the raw secret.
+
+```bash
+# Add a new context (API key goes to the keychain; YAML gets $(keychain:...))
+elastic config context add local \
+  --es-url http://localhost:9200 \
+  --es-api-key your-api-key
+
+# List contexts (the current one is marked)
+elastic config context list
+
+# Switch the active context
+elastic config current-context set staging
+
+# Flag-patch an existing context
+elastic config context edit local --es-url http://localhost:9201
+
+# Open the context as YAML in $EDITOR for free-form edits
+elastic config context edit local
+
+# Remove a context (keychain entries are cleaned up)
+elastic config context remove old-lab
+```
+
+If no OS keychain is available (or you pass `--inline-secrets`), the secret is
+written inline and the file is `chmod 0600`. A warning is emitted whenever a
+loaded config has inline secrets at looser-than-0600 permissions.
+
 ### External credentials
 
 Instead of storing secrets in plaintext, any string value in the config file can

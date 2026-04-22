@@ -25,13 +25,14 @@
  * - Structured error payloads (code + message)
  */
 
-import { access, constants, readFile } from 'node:fs/promises'
+import { access, constants, readFile, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { extname, join } from 'node:path'
 import { z } from 'zod'
 import { parse as parseYaml } from 'yaml'
 import { ContextSchema, CommandPolicySchema, StructuralConfigSchema } from './schema.ts'
 import { resolveExpressions } from '@elastic/config-resolver'
+import { hasInlineSecrets, type RawConfig } from './writer.ts'
 import type { ConfigFile, ResolvedConfig, ResolvedContext } from './types.ts'
 
 /** Extensions that are rejected to prevent arbitrary code execution. */
@@ -114,6 +115,35 @@ export function resolveContext (config: ConfigFile, contextName: string): Resolv
   return result
 }
 
+/**
+ * Emits a stderr warning when `path` is world/group-readable AND contains at
+ * least one unresolved inline secret (password / api_key without `$(...)`).
+ * Silent on Windows (mode bits are not meaningful). Errors are swallowed; a
+ * warning that fails to emit must not block command execution.
+ */
+async function warnOnLoosePermsIfInlineSecrets (path: string, raw: unknown): Promise<void> {
+  if (process.platform === 'win32') return
+  try {
+    const st = await stat(path)
+    const mode = st.mode & 0o777
+    if (mode === 0o600 || mode === 0o400) return
+    if (!isRawConfigLike(raw) || !hasInlineSecrets(raw)) return
+    process.stderr.write(
+      `Warning: config file "${path}" has permissions ${mode.toString(8).padStart(3, '0')} and contains inline secrets. ` +
+      'Run `chmod 0600 ' + path + '` to restrict access, or migrate secrets into the OS keychain via `elastic config context edit`.\n'
+    )
+  } catch {
+    // ignore
+  }
+}
+
+/** Narrows an unknown (just-parsed) value to something `hasInlineSecrets` can walk. */
+function isRawConfigLike (raw: unknown): raw is RawConfig {
+  if (raw == null || typeof raw !== 'object') return false
+  const contexts = (raw as Record<string, unknown>).contexts
+  return contexts != null && typeof contexts === 'object'
+}
+
 /** Options accepted by {@link loadConfig}. */
 export interface LoadConfigOptions {
   /** Explicit path to a config file. Bypasses discovery when set. */
@@ -157,9 +187,9 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
   // Step 1: load raw config
   // Precedence: --config-file flag > ELASTIC_CLI_CONFIG_FILE env var > home-directory discovery
   let raw: unknown
+  let resolvedPath: string | null
   try {
     const envConfigFile = process.env[ENV_CONFIG_FILE]
-    let resolvedPath: string | null
     if (configPath != null) {
       resolvedPath = configPath
     } else if (envConfigFile != null && envConfigFile.length > 0) {
@@ -179,6 +209,11 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     return { ok: false, error: { message } }
+  }
+
+  // Warn (stderr only) when the file has inline secrets AND looser-than-0600 perms.
+  if (resolvedPath != null) {
+    await warnOnLoosePermsIfInlineSecrets(resolvedPath, raw)
   }
 
   // Step 2: structural validation (shape only, no deep context validation)

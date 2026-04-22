@@ -37,6 +37,11 @@ program.hook('preAction', async (thisCommand, actionCommand) => {
   if (actionCommand.name() === 'version') return
   // docs commands use public elastic.co APIs — no config required
   if (actionCommand.parent?.name() === 'docs') return
+  // `config` commands author the config file itself — loading it would be
+  // circular (and must tolerate the absence of a file)
+  for (let c = actionCommand.parent; c != null; c = c.parent) {
+    if (c.name() === 'config') return
+  }
   const { configFile: configPath, useContext: contextName } = thisCommand.opts()
 
   if (configPath == null && contextName == null && earlyConfig?.ok === true) {
@@ -134,10 +139,17 @@ if (firstArg === 'docs') {
   program.addCommand(defineGroup({ name: 'docs', description: 'Search, read, and ask questions about Elastic documentation' }))
 }
 
+if (firstArg === 'config') {
+  const { registerConfigCommands } = await import('./config/commands.ts')
+  program.addCommand(registerConfigCommands())
+} else {
+  program.addCommand(defineGroup({ name: 'config', description: 'Author and maintain the elastic config file' }))
+}
 // Load config early so --help can hide blocked commands. Skip for commands
-// that don't need config (e.g. `version`) to avoid unnecessary file I/O.
+// that don't need config (e.g. `version`, or `config` which authors the file)
+// to avoid unnecessary file I/O and a confusing "no config found" path.
 // The result is cached in earlyConfig so the preAction hook can reuse it.
-if (firstArg !== 'version') {
+if (firstArg !== 'version' && firstArg !== 'config') {
   earlyConfig = await loadConfig({})
   if (earlyConfig.ok) {
     setResolvedConfig(earlyConfig.value)
