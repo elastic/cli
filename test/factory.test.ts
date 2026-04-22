@@ -1268,19 +1268,22 @@ describe('defineCommand', () => {
       assert.deepEqual(received[0], { index: 'logs', size: 10 })
     })
 
-    it('extra properties in JSON are rejected (strict mode)', async () => {
+    it('extra properties in JSON are passed through (passthrough mode)', async () => {
       const schema = z.object({ index: z.string() })
       const filePath = join(tmpDir, 'extra.json')
       writeFileSync(filePath, JSON.stringify({ index: 'logs', unexpected: 'field' }))
+      const received: unknown[] = []
       const cmd = defineCommand({
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: () => ({}),
+        handler: (parsed) => { received.push(parsed.input); return {} },
       })
-      const err = await captureErrAsync(cmd, ['--input-file', filePath])
-      assert.match(err, /input validation failed/i)
-      assert.match(err, /unexpected/)
+      await invokeAsync(cmd, ['--input-file', filePath])
+      assert.equal(received.length, 1)
+      const input = received[0] as Record<string, unknown>
+      assert.equal(input.index, 'logs')
+      assert.equal(input.unexpected, 'field')
     })
 
     it('validation fails when schema has required fields but no input is provided', async () => {
@@ -2966,7 +2969,7 @@ describe('repeated flags', () => {
   })
 })
 
-describe('defineCommand schema input - strict validation', () => {
+describe('defineCommand schema input - passthrough validation', () => {
   let tmpDir: string
   let origIsTTY: boolean | undefined
 
@@ -3002,35 +3005,39 @@ describe('defineCommand schema input - strict validation', () => {
     assert.deepEqual(captured, { index: 'logs', num_shards: 3 })
   })
 
-  it('JSON via --input-file with an unknown key is rejected with a validation error', async () => {
+  it('JSON via --input-file with an unknown key passes it through', async () => {
     const schema = z.object({ index: z.string().describe('Index') })
     const filePath = join(tmpDir, 'unknown-key.json')
     writeFileSync(filePath, JSON.stringify({ index: 'foo', bogus: 1 }))
+    let captured: unknown
     const cmd = defineCommand({
       name: 'search',
       description: 'Search',
       input: schema,
-      handler: () => ({}),
+      handler: (parsed) => { captured = parsed.input; return {} },
     })
-    const err = await captureErrAsync(cmd, ['--input-file', filePath])
-    assert.match(err, /input validation failed/i)
-    assert.match(err, /bogus/)
+    await invokeAsync(cmd, ['--input-file', filePath])
+    const input = captured as Record<string, unknown>
+    assert.equal(input.index, 'foo')
+    assert.equal(input.bogus, 1)
   })
 
-  it('JSON via stdin with an unknown key is rejected with a validation error', async () => {
+  it('JSON via stdin with an unknown key passes it through', async () => {
     const schema = z.object({ index: z.string().describe('Index') })
     const restore = _testSetStdinReader(() => JSON.stringify({ index: 'foo', bogus: 1 }))
     Object.defineProperty(process.stdin, 'isTTY', { value: undefined, configurable: true, writable: true })
     try {
+      let captured: unknown
       const cmd = defineCommand({
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: () => ({}),
+        handler: (parsed) => { captured = parsed.input; return {} },
       })
-      const err = await captureErrAsync(cmd, [])
-      assert.match(err, /input validation failed/i)
-      assert.match(err, /bogus/)
+      await invokeAsync(cmd, [])
+      const input = captured as Record<string, unknown>
+      assert.equal(input.index, 'foo')
+      assert.equal(input.bogus, 1)
     } finally {
       restore()
     }
@@ -3124,23 +3131,25 @@ describe('defineCommand schema input - JSON + CLI merge', () => {
     assert.deepEqual(captured, { index: 'my-index', num_shards: 4 })
   })
 
-  it('unknown key from JSON is still rejected after merging with CLI args', async () => {
+  it('unknown key from JSON is passed through after merging with CLI args', async () => {
     const schema = z.object({
       index: z.string().describe('Index'),
       num_shards: z.number().default(1).describe('Shards'),
     })
     const filePath = join(tmpDir, 't031.json')
-    writeFileSync(filePath, JSON.stringify({ index: 'logs', unknown_key: 'bad' }))
+    writeFileSync(filePath, JSON.stringify({ index: 'logs', unknown_key: 'extra' }))
+    let captured: unknown
     const cmd = defineCommand({
       name: 'create',
       description: 'Create index',
       input: schema,
-      handler: () => ({}),
+      handler: (parsed) => { captured = parsed.input; return {} },
     })
-    // CLI provides a valid key; JSON has an unknown one, so post-merge strict check fires
-    const err = await captureErrAsync(cmd, ['--input-file', filePath, '--num-shards', '3'])
-    assert.match(err, /input validation failed/i)
-    assert.match(err, /unknown_key/)
+    await invokeAsync(cmd, ['--input-file', filePath, '--num-shards', '3'])
+    const input = captured as Record<string, unknown>
+    assert.equal(input.index, 'logs')
+    assert.equal(input.num_shards, 3)
+    assert.equal(input.unknown_key, 'extra')
   })
 })
 describe('forward-compatibility and extensibility', () => {
