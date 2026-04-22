@@ -129,7 +129,7 @@ describe('scroll-search command', () => {
     ])
 
     await runCommand(
-      ['--index', 'test-idx', '--query', '{}', '--json'],
+      ['--index', 'test-idx', '--query', '{}'],
       makeDeps(transport, output)
     )
 
@@ -158,7 +158,7 @@ describe('scroll-search command', () => {
     ])
 
     await runCommand(
-      ['--index', 'test-idx', '--query', '{}', '--max-docs', '2', '--json'],
+      ['--index', 'test-idx', '--query', '{}', '--max-docs', '2'],
       makeDeps(transport, output)
     )
 
@@ -182,7 +182,7 @@ describe('scroll-search command', () => {
     assert.equal(qs.size, 500)
   })
 
-  it('passes query body from --query flag', async () => {
+  it('wraps --query value under "query" in the request body', async () => {
     const output = captureOutput()
     const { transport, requests } = mockTransport([
       { _scroll_id: 'scroll-1', hits: { hits: [] } },
@@ -195,13 +195,13 @@ describe('scroll-search command', () => {
     )
 
     const body = requests[0]!.params.body as Record<string, unknown>
-    assert.deepStrictEqual(body, { match: { title: 'test' } })
+    assert.deepStrictEqual(body, { query: { match: { title: 'test' } } })
   })
 
-  it('reads query from --input-file', async () => {
+  it('treats --input-file contents as the full search body', async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'scroll-test-'))
-    const filePath = join(tmpDir, 'query.json')
-    writeFileSync(filePath, '{"match_all":{}}')
+    const filePath = join(tmpDir, 'body.json')
+    writeFileSync(filePath, '{"query":{"match_all":{}},"sort":[{"_doc":"asc"}]}')
 
     const output = captureOutput()
     const { transport, requests } = mockTransport([
@@ -215,7 +215,7 @@ describe('scroll-search command', () => {
     )
 
     const body = requests[0]!.params.body as Record<string, unknown>
-    assert.deepStrictEqual(body, { match_all: {} })
+    assert.deepStrictEqual(body, { query: { match_all: {} }, sort: [{ _doc: 'asc' }] })
   })
 
   it('clears scroll context on completion', async () => {
@@ -276,6 +276,55 @@ describe('scroll-search command', () => {
     const r = result as Record<string, unknown>
     const error = r.error as Record<string, unknown>
     assert.equal(error.code, 'missing_config')
+  })
+
+  it('returns all documents in a single JSON object when --json is active', async () => {
+    const output = captureOutput()
+    const { transport } = mockTransport([
+      {
+        _scroll_id: 'scroll-1',
+        hits: { hits: [{ _source: { id: 1 } }, { _source: { id: 2 } }] }
+      },
+      {
+        _scroll_id: 'scroll-1',
+        hits: { hits: [{ _source: { id: 3 } }] }
+      },
+      { hits: { hits: [] } },
+      {}
+    ])
+
+    const { result } = await runCommand(
+      ['--index', 'test-idx', '--query', '{}', '--json'],
+      makeDeps(transport, output)
+    )
+
+    const r = result as Record<string, unknown>
+    assert.ok(Array.isArray(r.documents), 'result should have a documents array')
+    assert.deepStrictEqual(r.documents, [{ id: 1 }, { id: 2 }, { id: 3 }])
+    assert.equal(r.total_docs, 3)
+    assert.ok(typeof r.elapsed_ms === 'number')
+    assert.equal(output.stdout.chunks.length, 0, 'should not stream NDJSON to deps.stdout in --json mode')
+  })
+
+  it('respects --max-docs in --json mode', async () => {
+    const output = captureOutput()
+    const { transport } = mockTransport([
+      {
+        _scroll_id: 'scroll-1',
+        hits: { hits: [{ _source: { a: 1 } }, { _source: { a: 2 } }, { _source: { a: 3 } }] }
+      },
+      {}
+    ])
+
+    const { result } = await runCommand(
+      ['--index', 'test-idx', '--query', '{}', '--max-docs', '2', '--json'],
+      makeDeps(transport, output)
+    )
+
+    const r = result as Record<string, unknown>
+    assert.deepStrictEqual(r.documents, [{ a: 1 }, { a: 2 }])
+    assert.equal(r.total_docs, 2)
+    assert.equal(output.stdout.chunks.length, 0)
   })
 
   it('writes summary to stderr', async () => {

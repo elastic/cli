@@ -56,11 +56,15 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
       return missingConfigError(err)
     }
 
-    // Parse query body from --query flag, --input-file, or stdin (in that priority order)
+    // Build the search request body:
+    //   --query     → a Query DSL clause, wrapped as { query: <parsed> }
+    //   --input-file → a full search body (may contain query, sort, aggs, ...)
+    //   stdin        → a full search body (same as --input-file)
     let queryBody: Record<string, unknown> = {}
     try {
       if (opts.query != null) {
-        queryBody = JSON.parse(opts.query) as Record<string, unknown>
+        const parsed = JSON.parse(opts.query) as Record<string, unknown>
+        queryBody = { query: parsed }
       } else if (opts['input-file'] != null) {
         const raw = readRawInput(opts['input-file'])
         if (raw != null && raw.trim().length > 0) {
@@ -81,6 +85,8 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
       }
     }
 
+    const jsonMode = parsed.options['json'] === true
+    const documents: JsonValue[] = []
     const startTime = Date.now()
     let scrollId: string | undefined
     let totalDocs = 0
@@ -105,7 +111,12 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
       while (hits.length > 0 && totalDocs < maxDocs) {
         for (const hit of hits) {
           if (totalDocs >= maxDocs) break
-          deps.stdout.write(JSON.stringify(hit._source) + '\n')
+          if (jsonMode) {
+            // _source is user-defined JSON — always a valid JsonValue at runtime
+            documents.push(hit._source as JsonValue)
+          } else {
+            deps.stdout.write(JSON.stringify(hit._source) + '\n')
+          }
           totalDocs++
         }
 
@@ -141,6 +152,9 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
     const elapsed_ms = Date.now() - startTime
     deps.stderr.write(`Fetched ${totalDocs} documents in ${elapsed_ms}ms\n`)
 
+    if (jsonMode) {
+      return { documents, total_docs: totalDocs, elapsed_ms }
+    }
     return { total_docs: totalDocs, elapsed_ms }
   }
 }
@@ -148,11 +162,11 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
 export function createScrollSearchCommand (deps?: ScrollSearchDeps): OpaqueCommandHandle {
   return defineCommand({
     name: 'scroll-search',
-    description: 'Scroll through all search results, streaming documents as NDJSON to stdout.',
+    description: 'Scroll through all search results, streaming documents as NDJSON to stdout, or returning a single JSON object when --json is set.',
     options: [
       { long: 'index', short: 'i', description: 'Target index', type: 'string', required: true },
-      { long: 'query', short: 'q', description: 'Search query body as JSON string', type: 'string' },
-      { long: 'input-file', description: 'Path to file containing search body JSON', type: 'string' },
+      { long: 'query', short: 'q', description: 'Query DSL clause as JSON (wrapped under "query"), e.g. \'{"match_all":{}}\'', type: 'string' },
+      { long: 'input-file', description: 'Path to a file containing the full search body JSON (may include query, sort, aggs, ...)', type: 'string' },
       { long: 'scroll', description: 'Scroll keep-alive duration', type: 'string', defaultValue: '1m' },
       { long: 'size', description: 'Documents per scroll batch', type: 'number', defaultValue: 1000 },
       { long: 'max-docs', description: 'Maximum total documents to fetch (default: unlimited)', type: 'number', defaultValue: Infinity },

@@ -1418,6 +1418,71 @@ describe('defineCommand', () => {
       assert.match(err, /input validation failed/)
       assert.match(err, /address\.zipCode/)
     })
+
+    it('union-typed field surfaces the matching variant instead of all variants (#172)', async () => {
+      // Mirrors QueryDslQueryContainer-style validation: many variants, only
+      // one of which the user's input aligns with.
+      const schema = z.object({
+        query: z.union([
+          z.object({ bool: z.object({ must: z.array(z.unknown()) }) }),
+          z.object({ match_all: z.object({}) }),
+          z.object({ term: z.object({ category: z.object({ value: z.string() }) }) }),
+          z.object({ range: z.object({ field: z.string() }) }),
+        ])
+      })
+      const filePath = join(tmpDir, 'union-error.json')
+      writeFileSync(filePath, JSON.stringify({ query: { term: { category: 'canyon' } } }))
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => ({}),
+      })
+      const err = await captureErrAsync(cmd, ['--input-file', filePath])
+      assert.match(err, /input validation failed/)
+      assert.match(err, /query\.term\.category/)
+      assert.match(err, /expected object/i)
+      // None of the shallow "received undefined" discriminator noise leaks out
+      assert.ok(!/received undefined/.test(err),
+        `discriminator noise leaked: ${err}`)
+      // And none of the non-matching variant keys surface as errors
+      assert.ok(!/bool|match_all|range/.test(err),
+        `non-matching variants leaked: ${err}`)
+    })
+
+    it('JSON mode emits a single actionable issue for union failures (#172)', async () => {
+      const schema = z.object({
+        query: z.union([
+          z.object({ bool: z.object({ must: z.array(z.unknown()) }) }),
+          z.object({ match_all: z.object({}) }),
+          z.object({ term: z.object({ category: z.object({ value: z.string() }) }) }),
+          z.object({ range: z.object({ field: z.string() }) }),
+        ])
+      })
+      const filePath = join(tmpDir, 'union-json-error.json')
+      writeFileSync(filePath, JSON.stringify({ query: { term: { category: 'canyon' } } }))
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => ({}),
+      })
+      const { stderr } = await invokeCapturingStreams(cmd, ['--json'], ['--input-file', filePath])
+      const parsed = JSON.parse(stderr) as {
+        error: {
+          code: string
+          message: string
+          issues: Array<{ code: string; path: Array<string|number>; message: string }>
+        }
+      }
+      assert.equal(parsed.error.code, 'input_validation_failed')
+      assert.equal(parsed.error.issues.length, 1,
+        `expected exactly one issue, got ${parsed.error.issues.length}: ${JSON.stringify(parsed.error.issues)}`)
+      const [issue] = parsed.error.issues
+      assert.equal(issue.code, 'invalid_type')
+      assert.deepEqual(issue.path, ['query', 'term', 'category'])
+      assert.match(issue.message, /expected object/i)
+    })
   })
 
   describe('relaxed validation for JSON body fields (#156)', () => {
