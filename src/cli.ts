@@ -21,6 +21,8 @@ program
   .option('--config-file <path>', 'path to a config file (default: ~/.elasticrc.yml)')
   .option('--use-context <name>', 'override the active context from the config file')
   .option('--json', 'output as JSON')
+  .option('--fields <list>', 'comma-separated list of fields to include in output (dot-notation supported)')
+  .option('--template <string>', 'Mustache-like template for custom text output (e.g. "{{id}}: {{name}}")')
 
 // Before every sub-command action, load and resolve the config file.
 // On error, print a structured message and exit -- never let a config failure
