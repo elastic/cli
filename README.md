@@ -101,6 +101,28 @@ If no OS keychain is available (or you pass `--inline-secrets`), the secret is
 written inline and the file is `chmod 0600`. A warning is emitted whenever a
 loaded config has inline secrets at looser-than-0600 permissions.
 
+### Credential-safe project creation
+
+For agent/LLM workflows, `serverless projects create` and `reset-credentials`
+accept `--save-as <context>` to avoid leaking admin credentials through stdout:
+
+```bash
+elastic cloud serverless es projects create --wait --save-as scratch \
+  --name scratch-es --region-id aws-us-east-1
+
+# stdout has endpoints + a `savedAs: scratch` marker, password is redacted.
+# The keychain now holds scratch:elasticsearch.auth.password etc.
+elastic --use-context scratch stack es indices list
+
+# Rotate creds; URL stays, only the password moves.
+elastic cloud serverless es projects reset-credentials --id <id> \
+  --save-as scratch --force
+```
+
+`--credentials-file <path>` is an alternative that writes a standalone YAML
+config fragment (0600) at `<path>` instead of mutating the main config. Either
+flag makes stdout safe to capture into an LLM transcript.
+
 ### External credentials
 
 Instead of storing secrets in plaintext, any string value in the config file can

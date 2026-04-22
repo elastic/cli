@@ -12,6 +12,12 @@ import { validateCloudApiDefinition } from './types.ts'
 import { allCloudApis } from './apis.ts'
 import { allServerlessApis } from './serverless-apis.ts'
 import { createCloudHandler, isCreateProjectCommand } from './handler.ts'
+import {
+  applyCredentialPolicy,
+  isCredentialCommand,
+  readCredentialPolicyOptions,
+} from './credentials.ts'
+import type { JsonValue, ParsedResult } from '../factory.ts'
 
 /**
  * Builds the unified flat Zod schema for a Cloud API command.
@@ -172,14 +178,25 @@ function buildServerlessProjectGroup (
   const leaves = defs.map((def) => {
     const shortName = simplifyProjectCommandName(def.name, namespace)
     const schema = buildCommandSchema(def)
+    const baseHandler = createCloudHandler(def)
+    const handler: (parsed: ParsedResult) => Promise<JsonValue> = isCredentialCommand(def.name)
+      ? async (parsed) => wrapWithCredentialPolicy(def.name, baseHandler, parsed)
+      : baseHandler
     const cmd = defineCommand({
       name: shortName,
       description: def.description,
       input: schema,
-      handler: createCloudHandler(def),
+      handler,
     })
     if (isCreateProjectCommand(def.name)) {
       (cmd as Command).option('--wait', 'Wait for the project to reach "initialized" phase before returning')
+    }
+    if (isCredentialCommand(def.name)) {
+      (cmd as Command)
+        .option('--save-as <name>', 'store returned credentials in the OS keychain and upsert a context of this name')
+        .option('--credentials-file <path>', 'write credentials to a standalone YAML config fragment at this path (0600)')
+        .option('--config-file <path>', 'override the config file written by --save-as (defaults to ~/.elasticrc.yml)')
+        .option('--force', 'overwrite an existing context (--save-as) or file (--credentials-file)')
     }
     return cmd
   })
@@ -276,6 +293,36 @@ function partitionDefinitions (definitions: CloudApiDefinition[]): PartitionedDe
  *   registry (hosted + serverless APIs combined).
  * @returns an `OpaqueCommandHandle` for the top-level `cloud` group.
  */
+/**
+ * Runs the base cloud handler, then applies the credential-saving policy if
+ * the user passed `--save-as` / `--credentials-file`. Passthrough otherwise.
+ * Policy errors (name collisions, missing contexts) are converted to the
+ * factory's structured error shape so the CLI exits non-zero cleanly.
+ */
+async function wrapWithCredentialPolicy (
+  cmdName: string,
+  baseHandler: (parsed: ParsedResult) => Promise<JsonValue>,
+  parsed: ParsedResult,
+): Promise<JsonValue> {
+  const body = await baseHandler(parsed)
+  // If the base handler itself returned an error envelope, don't touch it.
+  if (body != null && typeof body === 'object' && !Array.isArray(body) && 'error' in body) {
+    return body
+  }
+  const opts = readCredentialPolicyOptions(parsed.options)
+  if (opts.saveAs == null && opts.credentialsFile == null) return body
+  try {
+    const result = await applyCredentialPolicy(cmdName, body, opts)
+    if (result.log.warnings.length > 0) {
+      for (const w of result.log.warnings) process.stderr.write(`Warning: ${w}\n`)
+    }
+    return result.body
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return { error: { code: 'credential_policy_error', message } }
+  }
+}
+
 export function registerCloudCommands(
   definitions: CloudApiDefinition[] = [...allCloudApis, ...allServerlessApis],
 ): OpaqueCommandHandle {
