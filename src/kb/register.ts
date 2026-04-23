@@ -73,12 +73,13 @@ function buildLeafHandle (def: KbApiDefinition): OpaqueCommandHandle {
 }
 
 /**
- * Registers all Kibana API commands under a top-level `kb` group.
+ * Registers all Kibana API commands under a `kb` group, intended to be
+ * nested under the top-level `stack` group by the CLI entrypoint.
  *
- * Definitions with a `namespace` are grouped into a sub-group (`elastic kb <namespace> <name>`).
+ * Definitions with a `namespace` are grouped into a sub-group (`elastic stack kb <namespace> <name>`).
  *
  * @param definitions - flat array of API definitions; defaults to the full built-in registry
- * @returns an `OpaqueCommandHandle` for the top-level `kb` group
+ * @returns an `OpaqueCommandHandle` for the `kb` group, ready for `program.addCommand()`
  */
 export function registerKbCommands (
   definitions: KbApiDefinition[] = allKbApis
