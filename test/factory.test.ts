@@ -1268,19 +1268,22 @@ describe('defineCommand', () => {
       assert.deepEqual(received[0], { index: 'logs', size: 10 })
     })
 
-    it('extra properties in JSON are rejected (strict mode)', async () => {
+    it('extra properties in JSON are passed through (passthrough mode)', async () => {
       const schema = z.object({ index: z.string() })
       const filePath = join(tmpDir, 'extra.json')
       writeFileSync(filePath, JSON.stringify({ index: 'logs', unexpected: 'field' }))
+      const received: unknown[] = []
       const cmd = defineCommand({
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: () => ({}),
+        handler: (parsed) => { received.push(parsed.input); return {} },
       })
-      const err = await captureErrAsync(cmd, ['--input-file', filePath])
-      assert.match(err, /input validation failed/i)
-      assert.match(err, /unexpected/)
+      await invokeAsync(cmd, ['--input-file', filePath])
+      assert.equal(received.length, 1)
+      const input = received[0] as Record<string, unknown>
+      assert.equal(input.index, 'logs')
+      assert.equal(input.unexpected, 'field')
     })
 
     it('validation fails when schema has required fields but no input is provided', async () => {
@@ -1417,6 +1420,71 @@ describe('defineCommand', () => {
       const err = await captureErrAsync(cmd, ['--input-file', filePath])
       assert.match(err, /input validation failed/)
       assert.match(err, /address\.zipCode/)
+    })
+
+    it('union-typed field surfaces the matching variant instead of all variants (#172)', async () => {
+      // Mirrors QueryDslQueryContainer-style validation: many variants, only
+      // one of which the user's input aligns with.
+      const schema = z.object({
+        query: z.union([
+          z.object({ bool: z.object({ must: z.array(z.unknown()) }) }),
+          z.object({ match_all: z.object({}) }),
+          z.object({ term: z.object({ category: z.object({ value: z.string() }) }) }),
+          z.object({ range: z.object({ field: z.string() }) }),
+        ])
+      })
+      const filePath = join(tmpDir, 'union-error.json')
+      writeFileSync(filePath, JSON.stringify({ query: { term: { category: 'canyon' } } }))
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => ({}),
+      })
+      const err = await captureErrAsync(cmd, ['--input-file', filePath])
+      assert.match(err, /input validation failed/)
+      assert.match(err, /query\.term\.category/)
+      assert.match(err, /expected object/i)
+      // None of the shallow "received undefined" discriminator noise leaks out
+      assert.ok(!/received undefined/.test(err),
+        `discriminator noise leaked: ${err}`)
+      // And none of the non-matching variant keys surface as errors
+      assert.ok(!/bool|match_all|range/.test(err),
+        `non-matching variants leaked: ${err}`)
+    })
+
+    it('JSON mode emits a single actionable issue for union failures (#172)', async () => {
+      const schema = z.object({
+        query: z.union([
+          z.object({ bool: z.object({ must: z.array(z.unknown()) }) }),
+          z.object({ match_all: z.object({}) }),
+          z.object({ term: z.object({ category: z.object({ value: z.string() }) }) }),
+          z.object({ range: z.object({ field: z.string() }) }),
+        ])
+      })
+      const filePath = join(tmpDir, 'union-json-error.json')
+      writeFileSync(filePath, JSON.stringify({ query: { term: { category: 'canyon' } } }))
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: () => ({}),
+      })
+      const { stderr } = await invokeCapturingStreams(cmd, ['--json'], ['--input-file', filePath])
+      const parsed = JSON.parse(stderr) as {
+        error: {
+          code: string
+          message: string
+          issues: Array<{ code: string; path: Array<string|number>; message: string }>
+        }
+      }
+      assert.equal(parsed.error.code, 'input_validation_failed')
+      assert.equal(parsed.error.issues.length, 1,
+        `expected exactly one issue, got ${parsed.error.issues.length}: ${JSON.stringify(parsed.error.issues)}`)
+      const [issue] = parsed.error.issues
+      assert.equal(issue.code, 'invalid_type')
+      assert.deepEqual(issue.path, ['query', 'term', 'category'])
+      assert.match(issue.message, /expected object/i)
     })
   })
 
@@ -2989,7 +3057,7 @@ describe('repeated flags', () => {
   })
 })
 
-describe('defineCommand schema input - strict validation', () => {
+describe('defineCommand schema input - passthrough validation', () => {
   let tmpDir: string
   let origIsTTY: boolean | undefined
 
@@ -3025,35 +3093,39 @@ describe('defineCommand schema input - strict validation', () => {
     assert.deepEqual(captured, { index: 'logs', num_shards: 3 })
   })
 
-  it('JSON via --input-file with an unknown key is rejected with a validation error', async () => {
+  it('JSON via --input-file with an unknown key passes it through', async () => {
     const schema = z.object({ index: z.string().describe('Index') })
     const filePath = join(tmpDir, 'unknown-key.json')
     writeFileSync(filePath, JSON.stringify({ index: 'foo', bogus: 1 }))
+    let captured: unknown
     const cmd = defineCommand({
       name: 'search',
       description: 'Search',
       input: schema,
-      handler: () => ({}),
+      handler: (parsed) => { captured = parsed.input; return {} },
     })
-    const err = await captureErrAsync(cmd, ['--input-file', filePath])
-    assert.match(err, /input validation failed/i)
-    assert.match(err, /bogus/)
+    await invokeAsync(cmd, ['--input-file', filePath])
+    const input = captured as Record<string, unknown>
+    assert.equal(input.index, 'foo')
+    assert.equal(input.bogus, 1)
   })
 
-  it('JSON via stdin with an unknown key is rejected with a validation error', async () => {
+  it('JSON via stdin with an unknown key passes it through', async () => {
     const schema = z.object({ index: z.string().describe('Index') })
     const restore = _testSetStdinReader(() => JSON.stringify({ index: 'foo', bogus: 1 }))
     Object.defineProperty(process.stdin, 'isTTY', { value: undefined, configurable: true, writable: true })
     try {
+      let captured: unknown
       const cmd = defineCommand({
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: () => ({}),
+        handler: (parsed) => { captured = parsed.input; return {} },
       })
-      const err = await captureErrAsync(cmd, [])
-      assert.match(err, /input validation failed/i)
-      assert.match(err, /bogus/)
+      await invokeAsync(cmd, [])
+      const input = captured as Record<string, unknown>
+      assert.equal(input.index, 'foo')
+      assert.equal(input.bogus, 1)
     } finally {
       restore()
     }
@@ -3147,23 +3219,25 @@ describe('defineCommand schema input - JSON + CLI merge', () => {
     assert.deepEqual(captured, { index: 'my-index', num_shards: 4 })
   })
 
-  it('unknown key from JSON is still rejected after merging with CLI args', async () => {
+  it('unknown key from JSON is passed through after merging with CLI args', async () => {
     const schema = z.object({
       index: z.string().describe('Index'),
       num_shards: z.number().default(1).describe('Shards'),
     })
     const filePath = join(tmpDir, 't031.json')
-    writeFileSync(filePath, JSON.stringify({ index: 'logs', unknown_key: 'bad' }))
+    writeFileSync(filePath, JSON.stringify({ index: 'logs', unknown_key: 'extra' }))
+    let captured: unknown
     const cmd = defineCommand({
       name: 'create',
       description: 'Create index',
       input: schema,
-      handler: () => ({}),
+      handler: (parsed) => { captured = parsed.input; return {} },
     })
-    // CLI provides a valid key; JSON has an unknown one, so post-merge strict check fires
-    const err = await captureErrAsync(cmd, ['--input-file', filePath, '--num-shards', '3'])
-    assert.match(err, /input validation failed/i)
-    assert.match(err, /unknown_key/)
+    await invokeAsync(cmd, ['--input-file', filePath, '--num-shards', '3'])
+    const input = captured as Record<string, unknown>
+    assert.equal(input.index, 'logs')
+    assert.equal(input.num_shards, 3)
+    assert.equal(input.unknown_key, 'extra')
   })
 })
 describe('forward-compatibility and extensibility', () => {

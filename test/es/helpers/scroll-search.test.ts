@@ -182,7 +182,7 @@ describe('scroll-search command', () => {
     assert.equal(qs.size, 500)
   })
 
-  it('passes query body from --query flag', async () => {
+  it('wraps --query value under "query" in the request body', async () => {
     const output = captureOutput()
     const { transport, requests } = mockTransport([
       { _scroll_id: 'scroll-1', hits: { hits: [] } },
@@ -195,13 +195,13 @@ describe('scroll-search command', () => {
     )
 
     const body = requests[0]!.params.body as Record<string, unknown>
-    assert.deepStrictEqual(body, { match: { title: 'test' } })
+    assert.deepStrictEqual(body, { query: { match: { title: 'test' } } })
   })
 
-  it('reads query from --input-file', async () => {
+  it('treats --input-file contents as the full search body', async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'scroll-test-'))
-    const filePath = join(tmpDir, 'query.json')
-    writeFileSync(filePath, '{"match_all":{}}')
+    const filePath = join(tmpDir, 'body.json')
+    writeFileSync(filePath, '{"query":{"match_all":{}},"sort":[{"_doc":"asc"}]}')
 
     const output = captureOutput()
     const { transport, requests } = mockTransport([
@@ -215,7 +215,7 @@ describe('scroll-search command', () => {
     )
 
     const body = requests[0]!.params.body as Record<string, unknown>
-    assert.deepStrictEqual(body, { match_all: {} })
+    assert.deepStrictEqual(body, { query: { match_all: {} }, sort: [{ _doc: 'asc' }] })
   })
 
   it('clears scroll context on completion', async () => {

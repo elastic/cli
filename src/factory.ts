@@ -11,6 +11,7 @@ import type { ResolvedConfig, CommandPolicy } from './config/types.ts'
 import { getResolvedConfig } from './config/store.ts'
 import { extractSchemaArgs, validateSchemaArgs } from './lib/schema-args.ts'
 import type { SchemaArgDefinition } from './lib/schema-args.ts'
+import { simplifyZodIssues, formatIssuesText } from './lib/zod-error.ts'
 import { renderText, formatHandlerError } from './output.ts'
 
 /** pre-built schema for coercing string → number, reused per option invocation */
@@ -715,12 +716,13 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     }
     if (inputValue !== undefined) {
       assert(config.input instanceof z.ZodType, `command ${JSON.stringify(config.name)}: input must be a Zod schema`)
-      // apply strict mode to reject unknown keys, unless the author explicitly used .passthrough()
+      // Use passthrough so unknown fields (plugin-specific, newer ES versions) flow
+      // through to the server instead of being rejected client-side (#170).
       let validationSchema: z.ZodType = (
         config.input instanceof z.ZodObject &&
         (config.input.def as unknown as { catchall?: { type: string } }).catchall?.type !== 'unknown'
       )
-        ? config.input.strict()
+        ? config.input.passthrough()
         : config.input
 
       // Relax validation for object/array body fields. These contain user-provided
@@ -745,8 +747,8 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
           parsed.rawBodyValues = rawBodyValues
         }
       } else {
+        const issues = simplifyZodIssues(result.error.issues)
         if (jsonFormat === true) {
-          const issues = result.error.issues
           process.stderr.write(JSON.stringify({
             error: {
               code: 'input_validation_failed',
@@ -757,7 +759,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
           // throw to prevent handler execution - mirrors cmd.error() behaviour
           throw Object.assign(new Error('input_validation_failed'), { exitCode: 1 })
         }
-        return cmd.error(`input validation failed:\n${z.prettifyError(result.error)}`)
+        return cmd.error(`input validation failed:\n${formatIssuesText(issues)}`)
       }
     }
     if (allRaw['dryRun'] === true) {
