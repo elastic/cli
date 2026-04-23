@@ -236,12 +236,21 @@ Run `elastic stack es <command> --help` for all available options on any command
 Run Kibana API calls. Commands are organised by namespace (e.g. `data-views`,
 `cases`, `alerting`). Requires a `kibana` service block in the active context.
 
+All `stack kb` subcommands support:
+
+| Option | Description |
+|---|---|
+| `--dry-run` | Validate inputs and exit without making any API call |
+| `--input-file <path>` | Load command input from a JSON file instead of CLI flags |
+
 ```bash
 elastic stack kb data-views list
+elastic stack kb data-views get --data-view-id <id>
 elastic stack kb cases list
+elastic stack kb alerting list-rule-types
 ```
 
-Run `elastic stack kb --help` to see all available namespaces.
+Run `elastic stack kb <namespace> --help` for all available commands in a namespace.
 
 ### `cloud` - Elastic Cloud
 
