@@ -2959,6 +2959,34 @@ describe('repeated flags', () => {
     await invokeAsync(cmd, ['--filters', 'a,b'])
     assert.deepEqual(captured, { filters: 'a,b' })
   })
+
+  it('--help mentions --input-file fallback for body-routed union(string, array) args', () => {
+    const schema = z.object({
+      fields: z.union([z.string(), z.array(z.string())]).optional().describe('Fields list').meta({ found_in: 'body' }),
+    })
+    const cmd = defineCommand({
+      name: 'field-caps',
+      description: 'Field caps',
+      input: schema,
+      handler: () => ({}),
+    })
+    const help = cmd.helpInformation()
+    assert.match(help, /--input-file with a JSON array/)
+  })
+
+  it('--help does not mention the CSV fallback for query-routed union args', () => {
+    const schema = z.object({
+      filters: z.union([z.string(), z.array(z.string())]).optional().describe('Filters').meta({ found_in: 'query' }),
+    })
+    const cmd = defineCommand({
+      name: 'field-caps',
+      description: 'Field caps',
+      input: schema,
+      handler: () => ({}),
+    })
+    const help = cmd.helpInformation()
+    assert.doesNotMatch(help, /--input-file with a JSON array/)
+  })
 })
 
 describe('defineCommand schema input - strict validation', () => {

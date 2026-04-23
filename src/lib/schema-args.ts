@@ -167,7 +167,7 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
  * Elasticsearch commonly types fields as `union(T, array(T))` (e.g. `Fields`, `Indices`),
  * which `unwrapField` collapses to the scalar branch for CLI ergonomics. Body-routed
  * arguments still need the array form because ES does not split CSV strings inside JSON
- * bodies (only in querystrings and URL paths). See issue #167.
+ * bodies (only in querystrings and URL paths).
  */
 function schemaAcceptsArrayForm (field: z.ZodType): boolean {
   const def = field.def as ZodFieldDef
