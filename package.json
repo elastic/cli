@@ -7,10 +7,10 @@
     "elastic": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "npm run build --workspaces --if-present && tsc",
     "test": "npm run build && npm run test:unit && npm run test:license",
-    "test:unit": "node --import tsx/esm --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=90 --test-coverage-functions=90 --test-coverage-include='src/**/*.ts' --test-coverage-exclude='src/es/apis/schemas/**' --test-coverage-exclude='src/cloud/apis/**' --test-coverage-exclude='src/es/apis.ts' --test-coverage-exclude='src/cloud/apis.ts' --test-coverage-exclude='src/cloud/serverless-apis.ts' --test-coverage-exclude='node_modules/**'",
-    "test:lint": "eslint src",
+    "test:unit": "node --import tsx/esm --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=90 --test-coverage-functions=90 --test-coverage-include='src/**/*.ts' --test-coverage-include='packages/*/src/**/*.ts' --test-coverage-exclude='src/es/apis/schemas/**' --test-coverage-exclude='src/cloud/apis/**' --test-coverage-exclude='src/es/apis.ts' --test-coverage-exclude='src/cloud/apis.ts' --test-coverage-exclude='src/cloud/serverless-apis.ts' --test-coverage-exclude='node_modules/**'",
+    "test:lint": "eslint src packages",
     "codegen:functional": "npx tsx codegen/functional/index.ts --tests-dir ../elasticsearch-clients-tests/tests",
     "test:functional:es": "bash test/functional/es/run.sh",
     "test:functional:cloud": "bash test/functional/cloud/smoke.sh",
@@ -47,7 +47,11 @@
   "directories": {
     "test": "test"
   },
+  "workspaces": [
+    "packages/*"
+  ],
   "dependencies": {
+    "@elastic/config-resolver": "*",
     "@elastic/transport": "^9.3.5",
     "cli-table3": "^0.6.5",
     "commander": "^14.0.3",

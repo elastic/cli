@@ -31,7 +31,7 @@ import { extname, join } from 'node:path'
 import { z } from 'zod'
 import { parse as parseYaml } from 'yaml'
 import { ContextSchema, CommandPolicySchema, StructuralConfigSchema } from './schema.ts'
-import { resolveExpressions } from './resolvers.ts'
+import { resolveExpressions } from '@elastic/config-resolver'
 import type { ConfigFile, ResolvedConfig, ResolvedContext } from './types.ts'
 
 /** Extensions that are rejected to prevent arbitrary code execution. */
