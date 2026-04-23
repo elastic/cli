@@ -72,7 +72,16 @@ program.addCommand(versionCmd)
 // is registered so the group appears in help text without paying the cost of loading
 // and compiling all API schemas.
 const { operands } = program.parseOptions(process.argv.slice(2))
-const firstArg = operands[0]
+let firstArg = operands[0]
+
+// Deprecation redirect: `elastic kb ...` → `elastic stack kb ...`
+if (firstArg === 'kb') {
+  process.stderr.write('Warning: "elastic kb" is deprecated. Use "elastic stack kb" instead.\n')
+  const kbIdx = process.argv.indexOf('kb', 2)
+  if (kbIdx !== -1) process.argv.splice(kbIdx, 0, 'stack')
+  operands.splice(0, 0, 'stack')
+  firstArg = 'stack'
+}
 
 if (firstArg === 'stack') {
   const stackChildren: OpaqueCommandHandle[] = []
