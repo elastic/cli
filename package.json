@@ -16,6 +16,8 @@
     "test:functional:cloud": "bash test/functional/cloud/smoke.sh",
     "test:license": "license-checker --production",
     "test:spdx": "./scripts/check-spdx",
+    "generate:notice": "node scripts/generate-notice.mjs",
+    "test:notice": "node scripts/generate-notice.mjs --check",
     "test:megalinter": "mega-linter-runner --flavor javascript"
   },
   "keywords": [
