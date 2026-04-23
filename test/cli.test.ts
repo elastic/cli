@@ -266,4 +266,16 @@ describe('elastic CLI -- stack command tree', () => {
       await rm(dir, { recursive: true })
     }
   })
+
+  it('`elastic kb --help` redirects to stack kb with deprecation warning', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-kb-deprecation-'))
+    try {
+      const { code, stdout, stderr } = await runCli(['kb', '--help'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      assert.match(stderr, /deprecated.*elastic stack kb/i, 'expected deprecation warning on stderr')
+      assert.match(stdout, /kb\|kibana/m, 'expected kb commands in output')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
 })
