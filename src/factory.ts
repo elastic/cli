@@ -13,6 +13,7 @@ import { extractSchemaArgs, validateSchemaArgs } from './lib/schema-args.ts'
 import type { SchemaArgDefinition } from './lib/schema-args.ts'
 import { simplifyZodIssues, formatIssuesText } from './lib/zod-error.ts'
 import { renderText, formatHandlerError } from './output.ts'
+import { pickFields, parseFieldList, applyTemplate } from './lib/output-transform.ts'
 
 /** pre-built schema for coercing string → number, reused per option invocation */
 const numberSchema = z.coerce.number()
@@ -764,12 +765,22 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
         process.stderr.write(`Error: ${formatHandlerError(handlerResult)}\n`)
       }
       process.exitCode = 1
-    } else if (jsonFormat === true) {
-      process.stdout.write(JSON.stringify(handlerResult) + '\n')
-    } else if (config.formatOutput !== undefined) {
-      process.stdout.write(config.formatOutput(handlerResult, parsed))
     } else {
-      process.stdout.write(renderText(handlerResult))
+      const fieldsRaw = allRaw.outputFields as string | undefined
+      const templateRaw = allRaw.outputTemplate as string | undefined
+      let output = handlerResult
+      if (fieldsRaw != null) {
+        output = pickFields(output, parseFieldList(fieldsRaw))
+      }
+      if (templateRaw != null) {
+        process.stdout.write(applyTemplate(output, templateRaw))
+      } else if (jsonFormat === true) {
+        process.stdout.write(JSON.stringify(output) + '\n')
+      } else if (config.formatOutput !== undefined) {
+        process.stdout.write(config.formatOutput(output, parsed))
+      } else {
+        process.stdout.write(renderText(output))
+      }
     }
   })
 
