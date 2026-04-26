@@ -15,7 +15,6 @@ import {
   sanitizePipelineName,
   sanitizeRepositoryName,
   truncateUtf8,
-  type SanitizeResult,
 } from '../../src/lib/sanitize.ts'
 
 // ---------------------------------------------------------------------------
