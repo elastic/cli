@@ -3405,6 +3405,164 @@ describe('JSON schema in help output -- transport meta stripping', () => {
   })
 })
 
+describe('expression resolution on string flag values', () => {
+  let tmpDir: string
+  let origIsTTY: boolean | undefined
+
+  before(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-expr-'))
+  })
+  after(() => {
+    rmSync(tmpDir, { recursive: true })
+  })
+  beforeEach(() => {
+    origIsTTY = process.stdin.isTTY
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true, writable: true })
+  })
+  afterEach(() => {
+    Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+  })
+
+  it('resolves $(file:...) in a user-defined string option', async () => {
+    const filePath = join(tmpDir, 'value.txt')
+    writeFileSync(filePath, 'hello-from-file')
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'build',
+      description: 'Build',
+      options: [{ long: 'name', description: 'Name', type: 'string' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    await invokeAsync(cmd, ['--name', `$(file:${filePath})`])
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['name'], 'hello-from-file')
+  })
+
+  it('resolves $(env:...) in a user-defined string option', async () => {
+    process.env['ELASTIC_CLI_TEST_EXPR_VAR'] = 'env-value'
+    try {
+      const received: ParsedResult[] = []
+      const cmd = defineCommand({
+        name: 'build',
+        description: 'Build',
+        options: [{ long: 'name', description: 'Name', type: 'string' }],
+        handler: (parsed) => { received.push(parsed); return {} },
+      })
+      await invokeAsync(cmd, ['--name', '$(env:ELASTIC_CLI_TEST_EXPR_VAR)'])
+      assert.equal(received.length, 1)
+      assert.equal(received[0].options['name'], 'env-value')
+    } finally {
+      delete process.env['ELASTIC_CLI_TEST_EXPR_VAR']
+    }
+  })
+
+  it('resolves $(file:...) in a schema-derived string field before validation', async () => {
+    const filePath = join(tmpDir, 'workflow.yaml')
+    writeFileSync(filePath, 'name: my-workflow\nsteps: []\n')
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'create-workflow',
+      description: 'Create a workflow',
+      input: z.object({ yaml: z.string().min(5) }),
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    await invokeAsync(cmd, ['--yaml', `$(file:${filePath})`])
+    assert.equal(received.length, 1)
+    assert.equal((received[0].input as { yaml: string }).yaml, 'name: my-workflow\nsteps: []')
+  })
+
+  it('partial substitution preserves surrounding text', async () => {
+    process.env['ELASTIC_CLI_TEST_EXPR_USER'] = 'alice'
+    try {
+      const received: ParsedResult[] = []
+      const cmd = defineCommand({
+        name: 'build',
+        description: 'Build',
+        options: [{ long: 'name', description: 'Name', type: 'string' }],
+        handler: (parsed) => { received.push(parsed); return {} },
+      })
+      await invokeAsync(cmd, ['--name', 'prefix-$(env:ELASTIC_CLI_TEST_EXPR_USER)-suffix'])
+      assert.equal(received.length, 1)
+      assert.equal(received[0].options['name'], 'prefix-alice-suffix')
+    } finally {
+      delete process.env['ELASTIC_CLI_TEST_EXPR_USER']
+    }
+  })
+
+  it('values without expressions are passed through unchanged', async () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'build',
+      description: 'Build',
+      options: [{ long: 'name', description: 'Name', type: 'string' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    await invokeAsync(cmd, ['--name', 'plain-value'])
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['name'], 'plain-value')
+  })
+
+  it('errors with the flag name when $(file:...) target does not exist', async () => {
+    const cmd = defineCommand({
+      name: 'build',
+      description: 'Build',
+      options: [{ long: 'name', description: 'Name', type: 'string' }],
+      handler: () => ({}),
+    })
+    const err = await captureErrAsync(cmd, ['--name', '$(file:/nonexistent/path/9f3c1a)'])
+    assert.match(err, /--name/)
+    assert.match(err, /9f3c1a/)
+  })
+
+  it('errors when an unknown resolver is referenced', async () => {
+    const cmd = defineCommand({
+      name: 'build',
+      description: 'Build',
+      options: [{ long: 'name', description: 'Name', type: 'string' }],
+      handler: () => ({}),
+    })
+    const err = await captureErrAsync(cmd, ['--name', '$(no_such_resolver:foo)'])
+    assert.match(err, /Unknown resolver/i)
+  })
+
+  it('does not attempt resolution on number flags', async () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'build',
+      description: 'Build',
+      options: [{ long: 'count', description: 'Count', type: 'number' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    await invokeAsync(cmd, ['--count', '42'])
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['count'], 42)
+  })
+
+  it('does not attempt resolution on boolean flags', async () => {
+    const received: ParsedResult[] = []
+    const cmd = defineCommand({
+      name: 'build',
+      description: 'Build',
+      options: [{ long: 'verbose', description: 'Verbose', type: 'boolean' }],
+      handler: (parsed) => { received.push(parsed); return {} },
+    })
+    await invokeAsync(cmd, ['--verbose'])
+    assert.equal(received.length, 1)
+    assert.equal(received[0].options['verbose'], true)
+  })
+
+  it('resolves expressions even on --dry-run so missing files surface', async () => {
+    const cmd = defineCommand({
+      name: 'build',
+      description: 'Build',
+      input: z.object({ name: z.string().optional() }),
+      handler: () => ({}),
+    })
+    const err = await captureErrAsync(cmd, ['--dry-run', '--name', '$(file:/nonexistent/path/abc)'])
+    assert.match(err, /--name/)
+  })
+})
+
 /** invokes a command handle via parseAsync; surfaces CommanderError via exitOverride */
 async function invokeAsync(handle: OpaqueCommandHandle, argv: string[]): Promise<void> {
   handle.exitOverride()

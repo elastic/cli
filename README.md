@@ -150,6 +150,15 @@ elasticsearch:
     api_key: $(keychain:elastic-cli/api-key)
 ```
 
+The same expressions also work in **CLI string flag values**, so you can load a
+file, env var, or command output directly into any flag. Quote the value to
+prevent your shell from interpreting `$(...)`:
+
+```bash
+elastic stack kb workflows post-workflows-workflow --yaml '$(file:./workflow.yaml)'
+elastic stack es indices create --index '$(env:TARGET_INDEX)'
+```
+
 ## Global options
 
 | Option | Description |

@@ -14,6 +14,7 @@ import type { SchemaArgDefinition } from './lib/schema-args.ts'
 import { simplifyZodIssues, formatIssuesText } from './lib/zod-error.ts'
 import { renderText, formatHandlerError } from './output.ts'
 import { pickFields, parseFieldList, applyTemplate } from './lib/output-transform.ts'
+import { containsExpression, resolveString } from './config/resolvers.ts'
 
 /** pre-built schema for coercing string → number, reused per option invocation */
 const numberSchema = z.coerce.number()
@@ -445,6 +446,30 @@ function parseJsonContent (raw: string, source: string, cmd: OpaqueCommandHandle
   }
 }
 
+/**
+ * Resolves any `$(resolver:params)` expressions in a CLI string flag value, using
+ * the same resolver registry the config loader uses (`file`, `env`, `cmd`, etc.).
+ *
+ * Returns the input synchronously when no expression is present, so the common
+ * (no-expression) fast path does not introduce a microtask hop. Only when at
+ * least one expression is detected does this return a Promise.
+ *
+ * Only top-level string flag values are processed; the resolved result is NOT
+ * deep-walked, so any `$(...)` literals inside the resolved content (e.g. inside
+ * a YAML file) are left intact for the user / downstream service.
+ *
+ * Errors are routed through Commander's `cmd.error()` so the failing flag name
+ * appears in the user-facing message and the handler is never invoked.
+ */
+function resolveFlagExpression (
+  value: string, flagDisplay: string, cmd: OpaqueCommandHandle,
+): string | Promise<string> {
+  if (!containsExpression(value)) return value
+  return resolveString(value, flagDisplay).catch((e: unknown) => {
+    return cmd.error(`option ${flagDisplay}: ${(e as Error).message}`) as never
+  })
+}
+
 function isErrorResult (value: JsonValue): boolean {
   return (
     typeof value === 'object' &&
@@ -599,8 +624,17 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       if (opt.type === 'boolean') {
         options[opt.long] = rawVal === true
       } else if (rawVal !== undefined) {
-        // number coercion already done by parseArg; string values passed through as-is
-        options[opt.long] = rawVal as string | number
+        // number coercion already done by parseArg; string values may contain
+        // $(file:...)/$(env:...) expressions, resolved here before reaching the handler.
+        // Fast path: when no expression is present, resolveFlagExpression returns
+        // the original string synchronously and we avoid a microtask hop, keeping
+        // legacy synchronous test invocations (cmd.parse) working unchanged.
+        if ((opt.type === undefined || opt.type === 'string') && typeof rawVal === 'string') {
+          const resolved = resolveFlagExpression(rawVal, `--${opt.long}`, cmd)
+          options[opt.long] = typeof resolved === 'string' ? resolved : await resolved
+        } else {
+          options[opt.long] = rawVal as string | number
+        }
       }
     }
 
@@ -656,7 +690,14 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
           }
         } else {
           // string, number (already coerced by parseArg), enum
-          cliInput[arg.schemaKey] = raw
+          // resolve $(...) expressions in string-shaped fields before validation;
+          // see resolveFlagExpression docs for fast-path semantics.
+          if ((arg.type === 'string' || arg.type === 'enum') && typeof raw === 'string') {
+            const resolved = resolveFlagExpression(raw, `--${arg.cliFlag}`, cmd)
+            cliInput[arg.schemaKey] = typeof resolved === 'string' ? resolved : await resolved
+          } else {
+            cliInput[arg.schemaKey] = raw
+          }
         }
       }
       if (Object.keys(cliInput).length > 0) {
