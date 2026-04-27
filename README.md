@@ -46,6 +46,10 @@ contexts:
       url: http://localhost:9200
       auth:
         api_key: your-api-key-here
+    kibana:
+      url: http://localhost:5601
+      auth:
+        api_key: your-api-key-here
   staging:
     elasticsearch:
       url: https://my-cluster.es.us-east-1.aws.elastic.cloud
