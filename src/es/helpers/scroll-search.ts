@@ -92,6 +92,10 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
     let totalDocs = 0
     const maxDocs = opts['max-docs']
 
+    if (jsonMode && maxDocs === Infinity) {
+      deps.stderr.write('Warning: --json buffers all documents in memory. Set --max-docs <n> to limit.\n')
+    }
+
     try {
       // Initial search with scroll
       const index = encodeURIComponent(opts.index)
