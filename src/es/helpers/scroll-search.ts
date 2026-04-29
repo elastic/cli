@@ -3,21 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { z } from 'zod'
 import type { Transport } from '@elastic/transport'
 import { defineCommand } from '../../factory.ts'
-import type { OpaqueCommandHandle, JsonValue, ParsedResult } from '../../factory.ts'
+import type { OpaqueCommandHandle, JsonValue } from '../../factory.ts'
 import { getTransport } from '../../lib/transport.ts'
 import { missingConfigError, transportError } from '../errors.ts'
 import { readRawInput } from './shared.ts'
-
-interface ScrollSearchOptions {
-  index: string
-  query?: string | undefined
-  'input-file'?: string | undefined
-  scroll: string
-  size: number
-  'max-docs': number
-}
 
 interface SearchHit {
   _source?: unknown
@@ -45,9 +37,19 @@ const defaultDeps: ScrollSearchDeps = {
   stderr: process.stderr
 }
 
+const inputSchema = z.object({
+  index: z.string().describe('Target index'),
+  query: z.string().optional().describe('Query DSL clause as JSON (wrapped under "query"), e.g. \'{"match_all":{}}\''),
+  query_file: z.string().optional().describe('Path to a file containing the full search body JSON (may include query, sort, aggs, ...)'),
+  scroll: z.string().default('1m').describe('Scroll keep-alive duration'),
+  size: z.number().default(1000).describe('Documents per scroll batch'),
+  max_docs: z.number().optional().describe('Maximum total documents to fetch (default: unlimited)'),
+})
+
 function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
-  return async (parsed: ParsedResult): Promise<JsonValue> => {
-    const opts = parsed.options as unknown as ScrollSearchOptions
+  return async (parsed: { input?: z.infer<typeof inputSchema>; options: Record<string, string | number | boolean> }): Promise<JsonValue> => {
+    const { index, query, query_file, scroll, size, max_docs } = parsed.input!
+    const maxDocs = max_docs ?? Infinity
 
     let transport: Transport
     try {
@@ -57,21 +59,15 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
     }
 
     // Build the search request body:
-    //   --query     → a Query DSL clause, wrapped as { query: <parsed> }
-    //   --input-file → a full search body (may contain query, sort, aggs, ...)
-    //   stdin        → a full search body (same as --input-file)
+    //   --query      → a Query DSL clause, wrapped as { query: <parsed> }
+    //   --query-file → a full search body (may contain query, sort, aggs, ...)
     let queryBody: Record<string, unknown> = {}
     try {
-      if (opts.query != null) {
-        const parsed = JSON.parse(opts.query) as Record<string, unknown>
+      if (query != null) {
+        const parsed = JSON.parse(query) as Record<string, unknown>
         queryBody = { query: parsed }
-      } else if (opts['input-file'] != null) {
-        const raw = readRawInput(opts['input-file'])
-        if (raw != null && raw.trim().length > 0) {
-          queryBody = JSON.parse(raw) as Record<string, unknown>
-        }
-      } else if (!process.stdin.isTTY) {
-        const raw = readRawInput()
+      } else if (query_file != null) {
+        const raw = readRawInput(query_file)
         if (raw != null && raw.trim().length > 0) {
           queryBody = JSON.parse(raw) as Record<string, unknown>
         }
@@ -90,16 +86,15 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
     const startTime = Date.now()
     let scrollId: string | undefined
     let totalDocs = 0
-    const maxDocs = opts['max-docs']
 
     try {
       // Initial search with scroll
-      const index = encodeURIComponent(opts.index)
+      const encodedIndex = encodeURIComponent(index)
       const initialResult = await transport.request<SearchResponse>(
         {
           method: 'POST',
-          path: `/${index}/_search`,
-          querystring: { scroll: opts.scroll, size: opts.size },
+          path: `/${encodedIndex}/_search`,
+          querystring: { scroll, size },
           body: queryBody
         }
       )
@@ -126,7 +121,7 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
         const scrollResult = await transport.request<SearchResponse>({
           method: 'POST',
           path: '/_search/scroll',
-          body: { scroll: opts.scroll, scroll_id: scrollId }
+          body: { scroll, scroll_id: scrollId }
         })
 
         scrollId = scrollResult._scroll_id
@@ -163,14 +158,7 @@ export function createScrollSearchCommand (deps?: ScrollSearchDeps): OpaqueComma
   return defineCommand({
     name: 'scroll-search',
     description: 'Scroll through all search results, streaming documents as NDJSON to stdout, or returning a single JSON object when --json is set.',
-    options: [
-      { long: 'index', short: 'i', description: 'Target index', type: 'string', required: true },
-      { long: 'query', short: 'q', description: 'Query DSL clause as JSON (wrapped under "query"), e.g. \'{"match_all":{}}\'', type: 'string' },
-      { long: 'input-file', description: 'Path to a file containing the full search body JSON (may include query, sort, aggs, ...)', type: 'string' },
-      { long: 'scroll', description: 'Scroll keep-alive duration', type: 'string', defaultValue: '1m' },
-      { long: 'size', description: 'Documents per scroll batch', type: 'number', defaultValue: 1000 },
-      { long: 'max-docs', description: 'Maximum total documents to fetch (default: unlimited)', type: 'number', defaultValue: Infinity },
-    ],
+    input: inputSchema,
     handler: createScrollSearchHandler(deps),
     formatOutput: () => ''
   })

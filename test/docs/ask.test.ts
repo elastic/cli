@@ -6,6 +6,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { createAskCommand } from '../../src/docs/ask.ts'
+import { _testSetStdinReader } from '../../src/factory.ts'
 import type { AskStreamEvent } from '../../src/docs/client.ts'
 
 function streamFrom (chunks: string[]): () => AsyncGenerator<AskStreamEvent> {
@@ -20,10 +21,11 @@ describe('createAskCommand', () => {
     assert.equal(cmd.name(), 'ask')
   })
 
-  it('has a required "question" positional argument', () => {
+  it('has a required --question option', () => {
     const cmd = createAskCommand()
-    assert.equal(cmd.registeredArguments.length, 1)
-    assert.equal(cmd.registeredArguments[0].name(), 'question')
+    assert.equal(cmd.registeredArguments.length, 0)
+    const optNames = cmd.options.map((o) => o.long)
+    assert.ok(optNames.includes('--question'))
   })
 
   it('streams the answer to stdout via the rendered markdown', async () => {
@@ -37,7 +39,10 @@ describe('createAskCommand', () => {
 
     cmd.exitOverride()
     cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
-    await cmd.parseAsync(['what is elasticsearch'], { from: 'user' })
+    const restoreStdin = _testSetStdinReader(() => '')
+    try {
+      await cmd.parseAsync(['--question', 'what is elasticsearch'], { from: 'user' })
+    } finally { restoreStdin() }
 
     assert.ok(written.join('').includes('Hello answer'))
   })
@@ -51,7 +56,10 @@ describe('createAskCommand', () => {
     cmd.exitOverride()
     cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
 
-    await cmd.parseAsync(['   '], { from: 'user' })
+    const restoreStdin = _testSetStdinReader(() => '')
+    try {
+      await cmd.parseAsync(['--question', '   '], { from: 'user' })
+    } finally { restoreStdin() }
     assert.equal(process.exitCode, 1)
     process.exitCode = 0
   })
@@ -68,7 +76,10 @@ describe('createAskCommand', () => {
     cmd.exitOverride()
     cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
 
-    await cmd.parseAsync(['q'], { from: 'user' })
+    const restoreStdin = _testSetStdinReader(() => '')
+    try {
+      await cmd.parseAsync(['--question', 'q'], { from: 'user' })
+    } finally { restoreStdin() }
     assert.equal(process.exitCode, 1)
     process.exitCode = 0
   })
@@ -86,7 +97,10 @@ describe('createAskCommand', () => {
       })
       cmd.exitOverride()
       cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
-      await cmd.parseAsync(['q'], { from: 'user' })
+      const restoreStdin = _testSetStdinReader(() => '')
+      try {
+        await cmd.parseAsync(['--question', 'q'], { from: 'user' })
+      } finally { restoreStdin() }
       assert.ok(written.join('').includes('answer text'))
     } finally {
       Object.defineProperty(process.stderr, 'isTTY', { value: prevIsTTY, configurable: true })
@@ -106,7 +120,10 @@ describe('createAskCommand', () => {
       cmd.option('--json', 'output as JSON')
       cmd.exitOverride()
       cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
-      await cmd.parseAsync(['what is elasticsearch', '--json'], { from: 'user' })
+      const restoreStdin = _testSetStdinReader(() => '')
+      try {
+        await cmd.parseAsync(['--question', 'what is elasticsearch', '--json'], { from: 'user' })
+      } finally { restoreStdin() }
 
       const output = captured.join('')
       const parsed = JSON.parse(output)
@@ -129,7 +146,10 @@ describe('createAskCommand', () => {
     cmd.exitOverride()
     cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
 
-    await cmd.parseAsync(['q'], { from: 'user' })
+    const restoreStdin = _testSetStdinReader(() => '')
+    try {
+      await cmd.parseAsync(['--question', 'q'], { from: 'user' })
+    } finally { restoreStdin() }
     assert.equal(process.exitCode, 1)
     process.exitCode = 0
   })

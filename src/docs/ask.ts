@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { z } from 'zod'
 import { defineCommand } from '../factory.ts'
-import type { OpaqueCommandHandle, JsonValue, ParsedResult } from '../factory.ts'
+import type { OpaqueCommandHandle, JsonValue } from '../factory.ts'
 import { docsAskStream, newUuid, type AskStreamEvent } from './client.ts'
 import { startSpinner, streamAnswer } from './stream.ts'
 import { renderMarkdown } from './renderer.ts'
@@ -21,13 +22,17 @@ const defaultDeps: AskDeps = {
   stderr: process.stderr,
 }
 
+const inputSchema = z.object({
+  question: z.string().describe('Question to ask'),
+})
+
 export function createAskCommand (deps: AskDeps = defaultDeps): OpaqueCommandHandle {
   return defineCommand({
     name: 'ask',
     description: 'Ask a question about Elastic documentation using AI (single answer)',
-    positionalArg: { name: 'question', description: 'Question to ask', required: true },
-    handler: async (parsed: ParsedResult): Promise<JsonValue> => {
-      const question = (parsed.arg ?? '').trim()
+    input: inputSchema,
+    handler: async (parsed): Promise<JsonValue> => {
+      const question = parsed.input!.question.trim()
       if (question === '') return { error: { code: 'missing_input', message: 'question is required' } }
 
       const conversationId = newUuid()

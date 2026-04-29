@@ -6,6 +6,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { createReadCommand } from '../../src/docs/read.ts'
+import { _testSetStdinReader } from '../../src/factory.ts'
 
 describe('createReadCommand', () => {
   it('creates a command named "read"', () => {
@@ -13,11 +14,11 @@ describe('createReadCommand', () => {
     assert.equal(cmd.name(), 'read')
   })
 
-  it('has a positional argument named "path"', () => {
+  it('has a required --path option', () => {
     const cmd = createReadCommand()
-    const args = cmd.registeredArguments
-    assert.equal(args.length, 1)
-    assert.equal(args[0].name(), 'path')
+    assert.equal(cmd.registeredArguments.length, 0)
+    const optNames = cmd.options.map((o) => o.long)
+    assert.ok(optNames.includes('--path'))
   })
 
   it('has a --raw flag', () => {
@@ -35,7 +36,10 @@ describe('createReadCommand', () => {
     })
 
     cmd.exitOverride()
-    await cmd.parseAsync(['/reference/test'], { from: 'user' })
+    const restoreStdin = _testSetStdinReader(() => '')
+    try {
+      await cmd.parseAsync(['--path', '/reference/test'], { from: 'user' })
+    } finally { restoreStdin() }
 
     assert.ok(written.join('').length > 0)
   })
@@ -49,7 +53,10 @@ describe('createReadCommand', () => {
     })
 
     cmd.exitOverride()
-    await cmd.parseAsync(['/reference/test', '--raw'], { from: 'user' })
+    const restoreStdin = _testSetStdinReader(() => '')
+    try {
+      await cmd.parseAsync(['--path', '/reference/test', '--raw'], { from: 'user' })
+    } finally { restoreStdin() }
 
     assert.equal(written.join(''), '# Raw markdown\n\nContent here')
   })
@@ -64,7 +71,10 @@ describe('createReadCommand', () => {
     cmd.exitOverride()
     cmd.configureOutput({ writeErr: () => {} })
 
-    await cmd.parseAsync(['/bad-path'], { from: 'user' })
+    const restoreStdin = _testSetStdinReader(() => '')
+    try {
+      await cmd.parseAsync(['--path', '/bad-path'], { from: 'user' })
+    } finally { restoreStdin() }
 
     assert.equal(process.exitCode, 1)
     process.exitCode = 0 // reset

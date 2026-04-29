@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { z } from 'zod'
 import { readFileSync } from 'node:fs'
 import type { Transport } from '@elastic/transport'
 import { defineCommand } from '../../factory.ts'
-import type { OpaqueCommandHandle, JsonValue, ParsedResult } from '../../factory.ts'
+import type { OpaqueCommandHandle, JsonValue } from '../../factory.ts'
 import { getTransport } from '../../lib/transport.ts'
 import { missingConfigError, transportError } from '../errors.ts'
 import {
@@ -19,26 +20,28 @@ import {
   ProgressReporter
 } from './shared.ts'
 
-interface BulkIngestOptions {
-  index: string
-  'input-file'?: string
-  'input-dir'?: string
-  glob: string
-  'no-recursive'?: boolean
-  'flush-bytes': number
-  concurrency: number
-  retries: number
-  'retry-delay': number
-  pipeline?: string
-  routing?: string
-}
-
 /** Dependencies injectable for testing. */
 export interface BulkIngestDeps {
   getTransport: () => Transport
 }
 
 const defaultDeps: BulkIngestDeps = { getTransport }
+
+const inputSchema = z.object({
+  index: z.string().describe('Target index'),
+  data_file: z.string().optional().describe('Path to data file (NDJSON or JSON array)'),
+  data_dir: z.string().optional().describe('Path to directory of data files to ingest'),
+  glob: z.string().default('**/*.json').describe('Glob pattern for --data-dir file matching'),
+  no_recursive: z.boolean().optional().describe('Do not recurse into subdirectories when using --data-dir'),
+  flush_bytes: z.number().default(5242880).describe('Batch size threshold in bytes'),
+  concurrency: z.number().default(5).describe('Number of parallel bulk requests'),
+  retries: z.number().default(3).describe('Max retries per failed batch'),
+  retry_delay: z.number().default(1000).describe('Initial retry delay in ms (doubles each attempt)'),
+  pipeline: z.string().optional().describe('Ingest pipeline name'),
+  routing: z.string().optional().describe('Custom routing value'),
+})
+
+type BulkIngestInput = z.infer<typeof inputSchema>
 
 /**
  * Splits an array of documents into batches where each batch's serialized
@@ -66,20 +69,19 @@ function splitIntoBatches (docs: unknown[], flushBytes: number): unknown[][] {
 }
 
 /** Collects documents from the resolved input source. */
-function collectDocuments (opts: BulkIngestOptions): { docs: unknown[], filesProcessed: number } {
-  const inputFile = opts['input-file']
-  const inputDir = opts['input-dir']
+function collectDocuments (opts: BulkIngestInput): { docs: unknown[], filesProcessed: number } {
+  const { data_file, data_dir } = opts
 
-  if (inputFile != null && inputDir != null) {
-    throw new Error('Provide only one input source: --input-file or --input-dir (not both)')
+  if (data_file != null && data_dir != null) {
+    throw new Error('Provide only one input source: --data-file or --data-dir (not both)')
   }
 
-  if (inputDir != null) {
-    const recursive = opts['no-recursive'] !== true
+  if (data_dir != null) {
+    const recursive = opts.no_recursive !== true
     const pattern = recursive ? opts.glob : opts.glob.replace(/^\*\*\//, '')
-    const files = globFiles(inputDir, pattern)
+    const files = globFiles(data_dir, pattern)
     if (files.length === 0) {
-      throw new Error(`No files matched pattern "${opts.glob}" in ${inputDir}`)
+      throw new Error(`No files matched pattern "${opts.glob}" in ${data_dir}`)
     }
     const allDocs: unknown[] = []
     for (const file of files) {
@@ -89,8 +91,8 @@ function collectDocuments (opts: BulkIngestOptions): { docs: unknown[], filesPro
     return { docs: allDocs, filesProcessed: files.length }
   }
 
-  if (inputFile != null) {
-    const raw = readRawInput(inputFile)
+  if (data_file != null) {
+    const raw = readRawInput(data_file)
     if (raw == null || raw.trim().length === 0) {
       throw new Error('No input data received from file')
     }
@@ -100,7 +102,7 @@ function collectDocuments (opts: BulkIngestOptions): { docs: unknown[], filesPro
   // Fall back to stdin
   const raw = readRawInput()
   if (raw == null || raw.trim().length === 0) {
-    throw new Error('No input provided. Use --input-file, --input-dir, or pipe data to stdin')
+    throw new Error('No input provided. Use --data-file, --data-dir, or pipe data to stdin')
   }
   return { docs: parseInput(raw), filesProcessed: 0 }
 }
@@ -131,8 +133,8 @@ async function sendBatch (
 }
 
 function createBulkIngestHandler (deps: BulkIngestDeps = defaultDeps) {
-  return async (parsed: ParsedResult): Promise<JsonValue> => {
-    const opts = parsed.options as unknown as BulkIngestOptions
+  return async (parsed: { input?: BulkIngestInput; options: Record<string, string | number | boolean> }): Promise<JsonValue> => {
+    const opts = parsed.input!
 
     let transport: Transport
     try {
@@ -160,17 +162,12 @@ function createBulkIngestHandler (deps: BulkIngestDeps = defaultDeps) {
       return { total: 0, succeeded: 0, failed: 0, retries: 0, elapsed_ms: 0 }
     }
 
-    const flushBytes = opts['flush-bytes']
-    const batches = splitIntoBatches(docs, flushBytes)
+    const batches = splitIntoBatches(docs, opts.flush_bytes)
 
     const reporter = new ProgressReporter()
     reporter.filesProcessed = filesProcessed
 
-    const retries = opts.retries
-    const retryDelay = opts['retry-delay']
-    const index = opts.index
-    const pipeline = opts.pipeline
-    const routing = opts.routing
+    const { retries, retry_delay, index, pipeline, routing } = opts
 
     try {
       await runWithConcurrency(batches, opts.concurrency, async (batch) => {
@@ -188,7 +185,7 @@ function createBulkIngestHandler (deps: BulkIngestDeps = defaultDeps) {
             }
             return res
           },
-          { retries, delay: retryDelay }
+          { retries, delay: retry_delay }
         )
 
         reporter.report(result.total, result.errors)
@@ -207,19 +204,7 @@ export function createBulkIngestCommand (deps?: BulkIngestDeps): OpaqueCommandHa
   return defineCommand({
     name: 'bulk-ingest',
     description: 'Bulk-ingest documents from file, directory, or stdin with automatic batching, concurrency, and retries.',
-    options: [
-      { long: 'index', short: 'i', description: 'Target index', type: 'string', required: true },
-      { long: 'input-file', description: 'Path to data file (NDJSON or JSON array)', type: 'string' },
-      { long: 'input-dir', description: 'Path to directory of data files to ingest', type: 'string' },
-      { long: 'glob', description: 'Glob pattern for --input-dir file matching', type: 'string', defaultValue: '**/*.json' },
-      { long: 'no-recursive', description: 'Do not recurse into subdirectories when using --input-dir', type: 'boolean' },
-      { long: 'flush-bytes', description: 'Batch size threshold in bytes', type: 'number', defaultValue: 5242880 },
-      { long: 'concurrency', description: 'Number of parallel bulk requests', type: 'number', defaultValue: 5 },
-      { long: 'retries', description: 'Max retries per failed batch', type: 'number', defaultValue: 3 },
-      { long: 'retry-delay', description: 'Initial retry delay in ms (doubles each attempt)', type: 'number', defaultValue: 1000 },
-      { long: 'pipeline', description: 'Ingest pipeline name', type: 'string' },
-      { long: 'routing', description: 'Custom routing value', type: 'string' },
-    ],
+    input: inputSchema,
     handler: createBulkIngestHandler(deps),
     formatOutput: (result) => {
       const r = result as Record<string, unknown>

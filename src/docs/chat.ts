@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { z } from 'zod'
 import { createInterface } from 'node:readline'
 import { defineCommand } from '../factory.ts'
-import type { OpaqueCommandHandle, JsonValue, ParsedResult } from '../factory.ts'
+import type { OpaqueCommandHandle, JsonValue } from '../factory.ts'
 import { docsAskStream, newUuid, type AskStreamEvent } from './client.ts'
 import { startSpinner, streamAnswer, type SpinnerHandle } from './stream.ts'
 import { renderMarkdown } from './renderer.ts'
@@ -40,13 +41,17 @@ async function askQuestion (
   }
 }
 
+const inputSchema = z.object({
+  question: z.string().describe('Opening question'),
+})
+
 export function createChatCommand (deps: ChatDeps = defaultDeps): OpaqueCommandHandle {
   return defineCommand({
     name: 'chat',
     description: 'Ask a question about Elastic documentation using AI, with follow-up conversation',
-    positionalArg: { name: 'question', description: 'Opening question', required: true },
-    handler: async (parsed: ParsedResult): Promise<JsonValue> => {
-      const question = (parsed.arg ?? '').trim()
+    input: inputSchema,
+    handler: async (parsed): Promise<JsonValue> => {
+      const question = parsed.input!.question.trim()
       if (question === '') return { error: { code: 'missing_input', message: 'question is required' } }
 
       // Spinner and interactive loop are disabled when stderr is not a TTY (piped/redirected)

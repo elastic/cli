@@ -350,19 +350,6 @@ function validateInput (name: string, input: unknown): void {
 }
 
 /**
- * Configures help output for a command to conditionally emit JSON Schema.
- *
- * When `--json` is present in the parsed global options and the command has an
- * input schema, help is replaced with the raw JSON Schema object so agents can
- * parse it directly. When there is no input schema but the command defines
- * `options` or a `positionalArg`, a synthetic JSON Schema is built from those
- * declarations so the parameters are still discoverable by agent consumers.
- * Commands with neither an input schema nor any parameters (e.g. `version`)
- * print nothing in that mode. Without `--json`, standard human-readable help
- * is printed with no schema appended.
- */
-
-/**
  * Recursively removes `found_in` keys from a JSON Schema object.
  *
  * `found_in` is internal routing metadata used by the request builder to classify
@@ -383,56 +370,9 @@ function stripTransportMeta (value: JsonValue): JsonValue {
   return value
 }
 
-/**
- * Builds a JSON Schema object from a command's `options` and `positionalArg`
- * declarations. Used when `--help --json` is invoked on a command that does
- * not declare an `input` schema, so agent consumers still receive a machine-
- * readable description of accepted parameters.
- *
- * Returns `undefined` when the command has neither options nor a positional
- * argument (e.g. `version`), so the help output remains empty for those.
- */
-function buildSchemaFromOptions (
-  options: OptionDefinition[],
-  positionalArg?: { name: string; description: string; required?: boolean },
-): JsonValue | undefined {
-  if (options.length === 0 && positionalArg == null) return undefined
-
-  const properties: Record<string, JsonValue> = {}
-  const required: string[] = []
-
-  if (positionalArg != null) {
-    properties[positionalArg.name] = {
-      type: 'string',
-      description: positionalArg.description,
-    }
-    if (positionalArg.required !== false) required.push(positionalArg.name)
-  }
-
-  for (const opt of options) {
-    const type = opt.type ?? 'string'
-    const prop: Record<string, JsonValue> = { type, description: opt.description }
-    const dv = opt.defaultValue
-    if (typeof dv === 'string' || typeof dv === 'boolean' || (typeof dv === 'number' && Number.isFinite(dv))) {
-      prop['default'] = dv
-    }
-    properties[opt.long] = prop
-    if (opt.required === true) required.push(opt.long)
-  }
-
-  const schema: Record<string, JsonValue> = {
-    type: 'object',
-    properties,
-  }
-  if (required.length > 0) schema['required'] = required
-  return schema
-}
-
 function configureHelpWithSchema (
   cmd: OpaqueCommandHandle,
   inputSchema: z.ZodType | undefined,
-  options: OptionDefinition[],
-  positionalArg?: { name: string; description: string; required?: boolean },
 ): void {
   const origHelp = cmd.createHelp()
   cmd.configureHelp({
@@ -441,7 +381,7 @@ function configureHelpWithSchema (
       if (globalOpts?.json === true) {
         const jsonSchema = inputSchema != null
           ? stripTransportMeta(z.toJSONSchema(inputSchema, { reused: 'ref' }) as JsonValue)
-          : buildSchemaFromOptions(options, positionalArg)
+          : undefined
         return jsonSchema != null ? JSON.stringify(jsonSchema) + '\n' : ''
       }
       return origHelp.formatHelp(thisCmd, helper)
@@ -645,8 +585,6 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
   configureHelpWithSchema(
     cmd,
     config.input instanceof z.ZodType ? config.input : undefined,
-    optDefs,
-    config.positionalArg,
   )
 
   cmd.action(async () => {
