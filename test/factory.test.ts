@@ -3301,14 +3301,14 @@ describe('JSON schema in help output', () => {
       assert.ok(!('input_schema' in schema), 'expected no input_schema wrapper key')
     })
 
-    it('prints nothing for commands without an input schema', async () => {
+    it('prints nothing for commands with no input schema, no options, and no positional arg', async () => {
       const cmd = defineCommand({
         name: 'ping',
         description: 'Ping the cluster',
         handler: () => ({}),
       })
       const { out } = await captureJsonHelp(cmd)
-      assert.equal(out, '', 'expected empty output for command with no input schema')
+      assert.equal(out, '', 'expected empty output for parameter-less command')
     })
 
     it('required fields appear in the JSON schema required array', async () => {

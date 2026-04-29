@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, afterEach } from 'node:test'
+import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os'
 import type { Transport, TransportRequestParams, TransportRequestOptions } from '@elastic/transport'
 import { createBulkIngestCommand } from '../../../src/es/helpers/bulk-ingest.ts'
 import type { BulkIngestDeps } from '../../../src/es/helpers/bulk-ingest.ts'
+import { _testSetStdinReader } from '../../../src/factory.ts'
 import { Command } from 'commander'
 
 /** Creates a mock transport that records requests and returns configurable responses. */
@@ -64,9 +65,11 @@ async function runCommand (args: string[], deps: BulkIngestDeps): Promise<unknow
     return true
   }) as typeof process.stderr.write
 
+  const restoreStdin = _testSetStdinReader(() => '')
   try {
     await program.parseAsync(['node', 'test', 'bulk-ingest', ...args])
   } finally {
+    restoreStdin()
     process.stdout.write = origStdoutWrite
     process.stderr.write = origStderrWrite
     process.exitCode = 0
@@ -87,29 +90,20 @@ async function runCommand (args: string[], deps: BulkIngestDeps): Promise<unknow
 }
 
 describe('bulk-ingest command', () => {
-  let restoreStdin: (() => void) | undefined
-
-  afterEach(() => {
-    if (restoreStdin != null) {
-      restoreStdin()
-      restoreStdin = undefined
-    }
-  })
-
   it('creates a command named bulk-ingest', () => {
     const { transport } = mockTransport([successResponse(1)])
     const cmd = createBulkIngestCommand(makeDeps(transport))
     assert.equal(cmd.name(), 'bulk-ingest')
   })
 
-  it('ingests documents from --input-file with JSON array', async () => {
+  it('ingests documents from --data-file with JSON array', async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
     const filePath = join(tmpDir, 'data.json')
     writeFileSync(filePath, JSON.stringify([{ title: 'doc1' }, { title: 'doc2' }]))
 
     const { transport, requests } = mockTransport([successResponse(2)])
 
-    await runCommand(['--index', 'test-idx', '--input-file', filePath, '--json'], makeDeps(transport))
+    await runCommand(['--index', 'test-idx', '--data-file', filePath, '--json'], makeDeps(transport))
 
     assert.equal(requests.length, 1)
     const body = requests[0]!.params.body as string
@@ -118,19 +112,19 @@ describe('bulk-ingest command', () => {
     assert.ok(body.includes('"doc2"'))
   })
 
-  it('ingests documents from --input-file with NDJSON', async () => {
+  it('ingests documents from --data-file with NDJSON', async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
     const filePath = join(tmpDir, 'data.ndjson')
     writeFileSync(filePath, '{"title":"doc1"}\n{"title":"doc2"}\n')
 
     const { transport, requests } = mockTransport([successResponse(2)])
 
-    await runCommand(['--index', 'test-idx', '--input-file', filePath, '--json'], makeDeps(transport))
+    await runCommand(['--index', 'test-idx', '--data-file', filePath, '--json'], makeDeps(transport))
 
     assert.equal(requests.length, 1)
   })
 
-  it('ingests documents from --input-dir', async () => {
+  it('ingests documents from --data-dir', async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
     writeFileSync(join(tmpDir, 'a.json'), '[{"a":1}]')
     writeFileSync(join(tmpDir, 'b.json'), '[{"b":2}]')
@@ -139,7 +133,7 @@ describe('bulk-ingest command', () => {
 
     await runCommand([
       '--index', 'test-idx',
-      '--input-dir', tmpDir,
+      '--data-dir', tmpDir,
       '--glob', '*.json',
       '--json'
     ], makeDeps(transport))
@@ -160,7 +154,7 @@ describe('bulk-ingest command', () => {
 
     await runCommand([
       '--index', 'test-idx',
-      '--input-dir', tmpDir,
+      '--data-dir', tmpDir,
       '--json'
     ], makeDeps(transport))
 
@@ -182,7 +176,7 @@ describe('bulk-ingest command', () => {
 
     await runCommand([
       '--index', 'test-idx',
-      '--input-file', join(tmpDir, 'data.json'),
+      '--data-file', join(tmpDir, 'data.json'),
       '--flush-bytes', '500',
       '--json'
     ], makeDeps(transport))
@@ -198,7 +192,7 @@ describe('bulk-ingest command', () => {
 
     await runCommand([
       '--index', 'test-idx',
-      '--input-file', join(tmpDir, 'data.json'),
+      '--data-file', join(tmpDir, 'data.json'),
       '--pipeline', 'my-pipe',
       '--routing', 'shard-1',
       '--json'
@@ -219,7 +213,7 @@ describe('bulk-ingest command', () => {
 
     const result = await runCommand([
       '--index', 'test-idx',
-      '--input-file', join(tmpDir, 'data.json'),
+      '--data-file', join(tmpDir, 'data.json'),
       '--json'
     ], deps) as Record<string, unknown>
 
@@ -235,7 +229,7 @@ describe('bulk-ingest command', () => {
 
     await runCommand([
       '--index', 'test-idx',
-      '--input-file', join(tmpDir, 'data.json'),
+      '--data-file', join(tmpDir, 'data.json'),
       '--json'
     ], makeDeps(transport))
 
@@ -252,7 +246,7 @@ describe('bulk-ingest command', () => {
 
     const result = await runCommand([
       '--index', 'test-idx',
-      '--input-file', join(tmpDir, 'data.json'),
+      '--data-file', join(tmpDir, 'data.json'),
       '--json'
     ], makeDeps(transport)) as Record<string, unknown>
 
