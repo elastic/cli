@@ -549,7 +549,10 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       const suffix = arg.required
         ? '(required)'
         : arg.defaultValue !== undefined ? `(default: ${JSON.stringify(arg.defaultValue)})` : undefined
-      const desc = [arg.description, suffix].filter(Boolean).join(' ')
+      const csvNote = arg.acceptsArrayForm === true && arg.foundIn === 'body'
+        ? 'Accepts a comma-separated list; use --input-file with a JSON array for values that contain commas.'
+        : undefined
+      const desc = [arg.description, csvNote, suffix].filter(Boolean).join(' ')
       if (arg.type === 'boolean') {
         // booleans omit the suffix; flag-style convention makes it clear
         cmd.option(`--${arg.cliFlag} [value]`, arg.description)
@@ -652,6 +655,18 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
             // that accept plain strings (e.g. connector update-error --error)
             cliInput[arg.schemaKey] = raw
           }
+        } else if (
+          arg.type === 'string' &&
+          arg.acceptsArrayForm === true &&
+          arg.foundIn === 'body' &&
+          typeof raw === 'string' &&
+          raw.includes(',')
+        ) {
+          // JSON bodies need an array for union(T, array(T)) fields like `fields`; ES
+          // does not split CSV strings inside bodies (it only does so in path and query).
+          // Users whose individual field values contain literal commas can pass a
+          // pre-built JSON array via `--input-file` instead.
+          cliInput[arg.schemaKey] = raw.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
         } else {
           // string, number (already coerced by parseArg), enum
           cliInput[arg.schemaKey] = raw
