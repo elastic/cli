@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { LogstashDeletePipelineRequest, LogstashGetPipelineRequest, LogstashPutPipelineRequest } from './schemas/logstash.ts'
+import { LogstashDeletePipelineRequest, LogstashGetPipelineRequest, LogstashPutPipelineRequest } from '@elastic/es-schemas/logstash.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const logstashApis: EsApiDefinition[] = [

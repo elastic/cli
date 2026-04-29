@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { LicenseGetRequest } from './schemas/license.ts'
+import { LicenseGetRequest } from '@elastic/es-schemas/license.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const licenseApis: EsApiDefinition[] = [

@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { ClusterDeleteComponentTemplateRequest, ClusterExistsComponentTemplateRequest, ClusterGetComponentTemplateRequest, ClusterInfoRequest, ClusterPutComponentTemplateRequest } from './schemas/cluster.ts'
+import { ClusterDeleteComponentTemplateRequest, ClusterExistsComponentTemplateRequest, ClusterGetComponentTemplateRequest, ClusterInfoRequest, ClusterPutComponentTemplateRequest } from '@elastic/es-schemas/cluster.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const clusterApis: EsApiDefinition[] = [

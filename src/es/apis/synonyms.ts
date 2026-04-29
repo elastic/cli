@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { SynonymsDeleteSynonymRequest, SynonymsDeleteSynonymRuleRequest, SynonymsGetSynonymRequest, SynonymsGetSynonymRuleRequest, SynonymsGetSynonymsSetsRequest, SynonymsPutSynonymRequest, SynonymsPutSynonymRuleRequest } from './schemas/synonyms.ts'
+import { SynonymsDeleteSynonymRequest, SynonymsDeleteSynonymRuleRequest, SynonymsGetSynonymRequest, SynonymsGetSynonymRuleRequest, SynonymsGetSynonymsSetsRequest, SynonymsPutSynonymRequest, SynonymsPutSynonymRuleRequest } from '@elastic/es-schemas/synonyms.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const synonymsApis: EsApiDefinition[] = [

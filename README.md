@@ -46,6 +46,10 @@ contexts:
       url: http://localhost:9200
       auth:
         api_key: your-api-key-here
+    kibana:
+      url: http://localhost:5601
+      auth:
+        api_key: your-api-key-here
   staging:
     elasticsearch:
       url: https://my-cluster.es.us-east-1.aws.elastic.cloud
@@ -62,6 +66,62 @@ Override `current_context` for a single command with `--use-context <name>`.
 
 Each context can have any combination of service blocks (`elasticsearch`, `kibana`, `cloud`).
 Authentication can also use `username` + `password` instead of `api_key`.
+
+### Authoring the config from the CLI
+
+Instead of hand-editing YAML, the `elastic config` command group creates and
+maintains contexts and stores secrets in the OS keychain when available
+(macOS Keychain, Linux libsecret, `pass`, Windows Credential Manager). The YAML
+then holds a `$(keychain:...)` / `$(secret_service:...)` / etc. resolver
+expression rather than the raw secret.
+
+```bash
+# Add a new context (API key goes to the keychain; YAML gets $(keychain:...))
+elastic config context add local \
+  --es-url http://localhost:9200 \
+  --es-api-key your-api-key
+
+# List contexts (the current one is marked)
+elastic config context list
+
+# Switch the active context
+elastic config current-context set staging
+
+# Flag-patch an existing context
+elastic config context edit local --es-url http://localhost:9201
+
+# Open the context as YAML in $EDITOR for free-form edits
+elastic config context edit local
+
+# Remove a context (keychain entries are cleaned up)
+elastic config context remove old-lab
+```
+
+If no OS keychain is available (or you pass `--inline-secrets`), the secret is
+written inline and the file is `chmod 0600`. A warning is emitted whenever a
+loaded config has inline secrets at looser-than-0600 permissions.
+
+### Credential-safe project creation
+
+For agent/LLM workflows, `serverless projects create` and `reset-credentials`
+accept `--save-as <context>` to avoid leaking admin credentials through stdout:
+
+```bash
+elastic cloud serverless es projects create --wait --save-as scratch \
+  --name scratch-es --region-id aws-us-east-1
+
+# stdout has endpoints + a `savedAs: scratch` marker, password is redacted.
+# The keychain now holds scratch:elasticsearch.auth.password etc.
+elastic --use-context scratch stack es indices list
+
+# Rotate creds; URL stays, only the password moves.
+elastic cloud serverless es projects reset-credentials --id <id> \
+  --save-as scratch --force
+```
+
+`--credentials-file <path>` is an alternative that writes a standalone YAML
+config fragment (0600) at `<path>` instead of mutating the main config. Either
+flag makes stdout safe to capture into an LLM transcript.
 
 ### External credentials
 
@@ -171,12 +231,13 @@ elastic --json version
 
 ### `stack` - Elastic Stack
 
-Interact with Elastic Stack components. Today only `stack es` (Elasticsearch) is
-wired up; `stack kibana` and `stack fleet` are reserved for future work.
+Interact with Elastic Stack components. Both `stack es` (Elasticsearch) and
+`stack kb` (Kibana) are available. Full-name aliases also work:
 
 ```bash
 elastic stack --help
-elastic stack es --help
+elastic stack es --help          # or: elastic stack elasticsearch --help
+elastic stack kb --help          # or: elastic stack kibana --help
 ```
 
 #### `stack es` - Elasticsearch API
@@ -229,6 +290,27 @@ elastic stack es update --index my-index --id abc123
 ```
 
 Run `elastic stack es <command> --help` for all available options on any command.
+
+#### `stack kb` - Kibana API
+
+Run Kibana API calls. Commands are organised by namespace (e.g. `data-views`,
+`cases`, `alerting`). Requires a `kibana` service block in the active context.
+
+All `stack kb` subcommands support:
+
+| Option | Description |
+|---|---|
+| `--dry-run` | Validate inputs and exit without making any API call |
+| `--input-file <path>` | Load command input from a JSON file instead of CLI flags |
+
+```bash
+elastic stack kb data-views list
+elastic stack kb data-views get --data-view-id <id>
+elastic stack kb cases list
+elastic stack kb alerting list-rule-types
+```
+
+Run `elastic stack kb <namespace> --help` for all available commands in a namespace.
 
 ### `cloud` - Elastic Cloud
 

@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { CatAliasesRequest, CatComponentTemplatesRequest, CatCountRequest, CatHelpRequest, CatIndicesRequest, CatMlDataFrameAnalyticsRequest, CatMlDatafeedsRequest, CatMlJobsRequest, CatMlTrainedModelsRequest, CatTransformsRequest } from './schemas/cat.ts'
+import { CatAliasesRequest, CatComponentTemplatesRequest, CatCountRequest, CatHelpRequest, CatIndicesRequest, CatMlDataFrameAnalyticsRequest, CatMlDatafeedsRequest, CatMlJobsRequest, CatMlTrainedModelsRequest, CatTransformsRequest } from '@elastic/es-schemas/cat.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const catApis: EsApiDefinition[] = [

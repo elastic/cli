@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { AsyncSearchDeleteRequest, AsyncSearchGetRequest, AsyncSearchStatusRequest, AsyncSearchSubmitRequest } from './schemas/async_search.ts'
+import { AsyncSearchDeleteRequest, AsyncSearchGetRequest, AsyncSearchStatusRequest, AsyncSearchSubmitRequest } from '@elastic/es-schemas/async_search.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const asyncSearchApis: EsApiDefinition[] = [

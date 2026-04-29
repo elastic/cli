@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { TasksGetRequest } from './schemas/tasks.ts'
+import { TasksGetRequest } from '@elastic/es-schemas/tasks.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const tasksApis: EsApiDefinition[] = [

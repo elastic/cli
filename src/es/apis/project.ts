@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { ProjectCreateManyRoutingRequest, ProjectCreateRoutingRequest, ProjectDeleteRoutingRequest, ProjectGetManyRoutingRequest, ProjectGetRoutingRequest, ProjectTagsRequest } from './schemas/project.ts'
+import { ProjectCreateManyRoutingRequest, ProjectCreateRoutingRequest, ProjectDeleteRoutingRequest, ProjectGetManyRoutingRequest, ProjectGetRoutingRequest, ProjectTagsRequest } from '@elastic/es-schemas/project.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const projectApis: EsApiDefinition[] = [

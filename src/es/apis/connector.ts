@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { ConnectorCheckInRequest, ConnectorDeleteRequest, ConnectorGetRequest, ConnectorListRequest, ConnectorPostRequest, ConnectorPutRequest, ConnectorSyncJobCancelRequest, ConnectorSyncJobDeleteRequest, ConnectorSyncJobGetRequest, ConnectorSyncJobListRequest, ConnectorSyncJobPostRequest, ConnectorUpdateActiveFilteringRequest, ConnectorUpdateApiKeyIdRequest, ConnectorUpdateConfigurationRequest, ConnectorUpdateErrorRequest, ConnectorUpdateFilteringRequest, ConnectorUpdateFilteringValidationRequest, ConnectorUpdateIndexNameRequest, ConnectorUpdateNameRequest, ConnectorUpdateNativeRequest, ConnectorUpdatePipelineRequest, ConnectorUpdateSchedulingRequest, ConnectorUpdateServiceTypeRequest, ConnectorUpdateStatusRequest } from './schemas/connector.ts'
+import { ConnectorCheckInRequest, ConnectorDeleteRequest, ConnectorGetRequest, ConnectorListRequest, ConnectorPostRequest, ConnectorPutRequest, ConnectorSyncJobCancelRequest, ConnectorSyncJobDeleteRequest, ConnectorSyncJobGetRequest, ConnectorSyncJobListRequest, ConnectorSyncJobPostRequest, ConnectorUpdateActiveFilteringRequest, ConnectorUpdateApiKeyIdRequest, ConnectorUpdateConfigurationRequest, ConnectorUpdateErrorRequest, ConnectorUpdateFilteringRequest, ConnectorUpdateFilteringValidationRequest, ConnectorUpdateIndexNameRequest, ConnectorUpdateNameRequest, ConnectorUpdateNativeRequest, ConnectorUpdatePipelineRequest, ConnectorUpdateSchedulingRequest, ConnectorUpdateServiceTypeRequest, ConnectorUpdateStatusRequest } from '@elastic/es-schemas/connector.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const connectorApis: EsApiDefinition[] = [

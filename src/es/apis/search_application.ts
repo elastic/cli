@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { SearchApplicationDeleteBehavioralAnalyticsRequest, SearchApplicationDeleteRequest, SearchApplicationGetBehavioralAnalyticsRequest, SearchApplicationGetRequest, SearchApplicationListRequest, SearchApplicationPutBehavioralAnalyticsRequest, SearchApplicationPutRequest, SearchApplicationSearchRequest } from './schemas/search_application.ts'
+import { SearchApplicationDeleteBehavioralAnalyticsRequest, SearchApplicationDeleteRequest, SearchApplicationGetBehavioralAnalyticsRequest, SearchApplicationGetRequest, SearchApplicationListRequest, SearchApplicationPutBehavioralAnalyticsRequest, SearchApplicationPutRequest, SearchApplicationSearchRequest } from '@elastic/es-schemas/search_application.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const searchApplicationApis: EsApiDefinition[] = [

@@ -10,6 +10,10 @@
         "extra-files": [
             "src/cli.ts"
         ]
+    },
+    "packages/es-schemas": {
+        "component": "es-schemas",
+        "release-type": "node"
     }
   },
   "plugins": [

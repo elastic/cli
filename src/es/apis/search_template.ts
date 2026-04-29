@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { SearchTemplateRequest } from './schemas/_global.ts'
+import { SearchTemplateRequest } from '@elastic/es-schemas/_global.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const searchTemplateApis: EsApiDefinition[] = [

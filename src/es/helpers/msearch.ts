@@ -3,19 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { z } from 'zod'
 import type { Transport } from '@elastic/transport'
 import { defineCommand } from '../../factory.ts'
-import type { OpaqueCommandHandle, JsonValue, ParsedResult } from '../../factory.ts'
+import type { OpaqueCommandHandle, JsonValue } from '../../factory.ts'
 import { getTransport } from '../../lib/transport.ts'
 import { missingConfigError, transportError } from '../errors.ts'
 import { readRawInput, runWithConcurrency } from './shared.ts'
-
-interface MsearchOptions {
-  index?: string | undefined
-  'input-file'?: string | undefined
-  'batch-size': number
-  concurrency: number
-}
 
 interface SearchItem {
   header?: Record<string, unknown>
@@ -32,6 +26,13 @@ export interface MsearchDeps {
 }
 
 const defaultDeps: MsearchDeps = { getTransport }
+
+const inputSchema = z.object({
+  index: z.string().optional().describe('Default index for searches'),
+  query_file: z.string().optional().describe('Path to JSON file with search array'),
+  batch_size: z.number().default(5).describe('Searches per _msearch request'),
+  concurrency: z.number().default(5).describe('Parallel _msearch requests'),
+})
 
 /** Builds the NDJSON body for _msearch: alternating header/body lines. */
 function buildMsearchNdjsonBody (items: SearchItem[], defaultIndex?: string | undefined): string {
@@ -69,8 +70,8 @@ function parseSearchItems (raw: string): SearchItem[] {
 }
 
 function createMsearchHandler (deps: MsearchDeps = defaultDeps) {
-  return async (parsed: ParsedResult): Promise<JsonValue> => {
-    const opts = parsed.options as unknown as MsearchOptions
+  return async (parsed: { input?: z.infer<typeof inputSchema>; options: Record<string, string | number | boolean> }): Promise<JsonValue> => {
+    const { index, query_file, batch_size, concurrency } = parsed.input!
 
     let transport: Transport
     try {
@@ -83,8 +84,8 @@ function createMsearchHandler (deps: MsearchDeps = defaultDeps) {
     let items: SearchItem[]
     try {
       let raw: string | undefined
-      if (opts['input-file'] != null) {
-        raw = readRawInput(opts['input-file'])
+      if (query_file != null) {
+        raw = readRawInput(query_file)
       } else if (!process.stdin.isTTY) {
         raw = readRawInput()
       }
@@ -92,7 +93,7 @@ function createMsearchHandler (deps: MsearchDeps = defaultDeps) {
         return {
           error: {
             code: 'input_error',
-            message: 'No input provided. Use --input-file or pipe data to stdin'
+            message: 'No input provided. Use --query-file or pipe data to stdin'
           }
         }
       }
@@ -111,22 +112,21 @@ function createMsearchHandler (deps: MsearchDeps = defaultDeps) {
     }
 
     // Split into batches
-    const batchSize = opts['batch-size']
     const batches: SearchItem[][] = []
-    for (let i = 0; i < items.length; i += batchSize) {
-      batches.push(items.slice(i, i + batchSize))
+    for (let i = 0; i < items.length; i += batch_size) {
+      batches.push(items.slice(i, i + batch_size))
     }
 
     // Build path
-    const path = opts.index != null
-      ? `/${encodeURIComponent(opts.index)}/_msearch`
+    const path = index != null
+      ? `/${encodeURIComponent(index)}/_msearch`
       : '/_msearch'
 
     try {
       const allResponses: JsonValue[] = []
 
-      await runWithConcurrency(batches, opts.concurrency, async (batch) => {
-        const ndjsonBody = buildMsearchNdjsonBody(batch, opts.index)
+      await runWithConcurrency(batches, concurrency, async (batch) => {
+        const ndjsonBody = buildMsearchNdjsonBody(batch, index)
         const result = await transport.request<MsearchResponse>(
           { method: 'POST', path, body: ndjsonBody },
           { headers: { 'content-type': 'application/x-ndjson' } }
@@ -148,12 +148,7 @@ export function createMsearchCommand (deps?: MsearchDeps): OpaqueCommandHandle {
   return defineCommand({
     name: 'msearch',
     description: 'Batch multiple search requests via _msearch with configurable batch size and concurrency.',
-    options: [
-      { long: 'index', short: 'i', description: 'Default index for searches', type: 'string' },
-      { long: 'input-file', description: 'Path to JSON file with search array', type: 'string' },
-      { long: 'batch-size', description: 'Searches per _msearch request', type: 'number', defaultValue: 5 },
-      { long: 'concurrency', description: 'Parallel _msearch requests', type: 'number', defaultValue: 5 },
-    ],
+    input: inputSchema,
     handler: createMsearchHandler(deps)
   })
 }

@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { TransformDeleteTransformRequest, TransformGetNodeStatsRequest, TransformGetTransformRequest, TransformGetTransformStatsRequest, TransformPreviewTransformRequest, TransformPutTransformRequest, TransformResetTransformRequest, TransformScheduleNowTransformRequest, TransformStartTransformRequest, TransformStopTransformRequest, TransformUpdateTransformRequest } from './schemas/transform.ts'
+import { TransformDeleteTransformRequest, TransformGetNodeStatsRequest, TransformGetTransformRequest, TransformGetTransformStatsRequest, TransformPreviewTransformRequest, TransformPutTransformRequest, TransformResetTransformRequest, TransformScheduleNowTransformRequest, TransformStartTransformRequest, TransformStopTransformRequest, TransformUpdateTransformRequest } from '@elastic/es-schemas/transform.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const transformApis: EsApiDefinition[] = [

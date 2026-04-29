@@ -1,0 +1,24 @@
+{
+  "name": "@elastic/config-resolver",
+  "version": "0.1.0",
+  "description": "Expression resolver for the Elastic CLI config pipeline. Resolves $(name:params) references from sources like env vars, files, and OS keychains.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

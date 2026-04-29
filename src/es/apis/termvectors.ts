@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { TermvectorsRequest } from './schemas/_global.ts'
+import { TermvectorsRequest } from '@elastic/es-schemas/_global.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const termvectorsApis: EsApiDefinition[] = [

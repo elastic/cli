@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { QueryRulesDeleteRuleRequest, QueryRulesDeleteRulesetRequest, QueryRulesGetRuleRequest, QueryRulesGetRulesetRequest, QueryRulesListRulesetsRequest, QueryRulesPutRuleRequest, QueryRulesPutRulesetRequest, QueryRulesTestRequest } from './schemas/query_rules.ts'
+import { QueryRulesDeleteRuleRequest, QueryRulesDeleteRulesetRequest, QueryRulesGetRuleRequest, QueryRulesGetRulesetRequest, QueryRulesListRulesetsRequest, QueryRulesPutRuleRequest, QueryRulesPutRulesetRequest, QueryRulesTestRequest } from '@elastic/es-schemas/query_rules.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const queryRulesApis: EsApiDefinition[] = [

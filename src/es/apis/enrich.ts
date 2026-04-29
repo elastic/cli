@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { EnrichDeletePolicyRequest, EnrichExecutePolicyRequest, EnrichGetPolicyRequest, EnrichPutPolicyRequest } from './schemas/enrich.ts'
+import { EnrichDeletePolicyRequest, EnrichExecutePolicyRequest, EnrichGetPolicyRequest, EnrichPutPolicyRequest } from '@elastic/es-schemas/enrich.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const enrichApis: EsApiDefinition[] = [

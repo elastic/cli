@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { EqlDeleteRequest, EqlGetRequest, EqlGetStatusRequest, EqlSearchRequest } from './schemas/eql.ts'
+import { EqlDeleteRequest, EqlGetRequest, EqlGetStatusRequest, EqlSearchRequest } from '@elastic/es-schemas/eql.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const eqlApis: EsApiDefinition[] = [

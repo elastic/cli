@@ -10,7 +10,7 @@
  */
 
 import { z } from 'zod'
-import { BulkRequest } from './schemas/_global.ts'
+import { BulkRequest } from '@elastic/es-schemas/_global.js'
 import type { EsApiDefinition } from '../types.ts'
 
 const BulkRequestPassthrough = BulkRequest.extend({

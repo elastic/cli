@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { ExistsSourceRequest } from './schemas/_global.ts'
+import { ExistsSourceRequest } from '@elastic/es-schemas/_global.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const existsSourceApis: EsApiDefinition[] = [

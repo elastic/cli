@@ -13,6 +13,7 @@ import { extractSchemaArgs, validateSchemaArgs } from './lib/schema-args.ts'
 import type { SchemaArgDefinition } from './lib/schema-args.ts'
 import { simplifyZodIssues, formatIssuesText } from './lib/zod-error.ts'
 import { renderText, formatHandlerError } from './output.ts'
+import { pickFields, parseFieldList, applyTemplate } from './lib/output-transform.ts'
 
 /** pre-built schema for coercing string → number, reused per option invocation */
 const numberSchema = z.coerce.number()
@@ -349,15 +350,6 @@ function validateInput (name: string, input: unknown): void {
 }
 
 /**
- * Configures help output for a command to conditionally emit JSON Schema.
- *
- * When `--json` is present in the parsed global options and the command has an
- * input schema, help is replaced with the raw JSON Schema object so agents can
- * parse it directly. Commands without an input schema print nothing in that mode.
- * Without `--json`, standard human-readable help is printed with no schema appended.
- */
-
-/**
  * Recursively removes `found_in` keys from a JSON Schema object.
  *
  * `found_in` is internal routing metadata used by the request builder to classify
@@ -377,7 +369,11 @@ function stripTransportMeta (value: JsonValue): JsonValue {
   }
   return value
 }
-function configureHelpWithSchema (cmd: OpaqueCommandHandle, inputSchema?: z.ZodType): void {
+
+function configureHelpWithSchema (
+  cmd: OpaqueCommandHandle,
+  inputSchema: z.ZodType | undefined,
+): void {
   const origHelp = cmd.createHelp()
   cmd.configureHelp({
     formatHelp: (thisCmd, helper) => {
@@ -589,7 +585,10 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     cmd.option('--dry-run', 'validate all inputs and exit without performing any action')
   }
 
-  configureHelpWithSchema(cmd, config.input instanceof z.ZodType ? config.input : undefined)
+  configureHelpWithSchema(
+    cmd,
+    config.input instanceof z.ZodType ? config.input : undefined,
+  )
 
   cmd.action(async () => {
     const allRaw = cmd.optsWithGlobals()
@@ -779,12 +778,22 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
         process.stderr.write(`Error: ${formatHandlerError(handlerResult)}\n`)
       }
       process.exitCode = 1
-    } else if (jsonFormat === true) {
-      process.stdout.write(JSON.stringify(handlerResult) + '\n')
-    } else if (config.formatOutput !== undefined) {
-      process.stdout.write(config.formatOutput(handlerResult, parsed))
     } else {
-      process.stdout.write(renderText(handlerResult))
+      const fieldsRaw = allRaw.outputFields as string | undefined
+      const templateRaw = allRaw.outputTemplate as string | undefined
+      let output = handlerResult
+      if (fieldsRaw != null) {
+        output = pickFields(output, parseFieldList(fieldsRaw))
+      }
+      if (templateRaw != null) {
+        process.stdout.write(applyTemplate(output, templateRaw))
+      } else if (jsonFormat === true) {
+        process.stdout.write(JSON.stringify(output) + '\n')
+      } else if (config.formatOutput !== undefined) {
+        process.stdout.write(config.formatOutput(output, parsed))
+      } else {
+        process.stdout.write(renderText(output))
+      }
     }
   })
 

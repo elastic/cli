@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { RankEvalRequest } from './schemas/_global.ts'
+import { RankEvalRequest } from '@elastic/es-schemas/_global.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const rankEvalApis: EsApiDefinition[] = [

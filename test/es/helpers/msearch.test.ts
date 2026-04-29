@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os'
 import type { Transport, TransportRequestParams, TransportRequestOptions } from '@elastic/transport'
 import { createMsearchCommand } from '../../../src/es/helpers/msearch.ts'
 import type { MsearchDeps } from '../../../src/es/helpers/msearch.ts'
+import { _testSetStdinReader } from '../../../src/factory.ts'
 import { Command } from 'commander'
 
 function mockTransport (responses: Array<{ responses: unknown[] }>): {
@@ -55,9 +56,11 @@ async function runCommand (args: string[], deps: MsearchDeps): Promise<unknown> 
     return true
   }) as typeof process.stderr.write
 
+  const restoreStdin = _testSetStdinReader(() => '')
   try {
     await program.parseAsync(['node', 'test', 'msearch', ...args])
   } finally {
+    restoreStdin()
     process.stdout.write = origStdoutWrite
     process.stderr.write = origStderrWrite
     process.exitCode = 0
@@ -84,7 +87,7 @@ describe('msearch command', () => {
     assert.equal(cmd.name(), 'msearch')
   })
 
-  it('batches and sends searches from --input-file', async () => {
+  it('batches and sends searches from --query-file', async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'msearch-test-'))
     const filePath = join(tmpDir, 'searches.json')
     writeFileSync(filePath, makeSearchInput([
@@ -97,7 +100,7 @@ describe('msearch command', () => {
     ])
 
     const result = await runCommand(
-      ['--input-file', filePath, '--index', 'test-idx', '--json'],
+      ['--query-file', filePath, '--index', 'test-idx', '--json'],
       makeDeps(transport)
     ) as Record<string, unknown>
 
@@ -121,7 +124,7 @@ describe('msearch command', () => {
     ])
 
     const result = await runCommand(
-      ['--input-file', filePath, '--batch-size', '2', '--index', 'test-idx', '--json'],
+      ['--query-file', filePath, '--batch-size', '2', '--index', 'test-idx', '--json'],
       makeDeps(transport)
     ) as Record<string, unknown>
 
@@ -142,7 +145,7 @@ describe('msearch command', () => {
     ])
 
     await runCommand(
-      ['--input-file', filePath, '--index', 'default-idx', '--json'],
+      ['--query-file', filePath, '--index', 'default-idx', '--json'],
       makeDeps(transport)
     )
 
@@ -162,7 +165,7 @@ describe('msearch command', () => {
     const { transport, requests } = mockTransport([{ responses: [{}] }])
 
     await runCommand(
-      ['--input-file', filePath, '--index', 'test-idx', '--json'],
+      ['--query-file', filePath, '--index', 'test-idx', '--json'],
       makeDeps(transport)
     )
 
@@ -181,7 +184,7 @@ describe('msearch command', () => {
     const { transport, requests } = mockTransport([{ responses: [{}] }])
 
     await runCommand(
-      ['--input-file', filePath, '--index', 'test-idx', '--json'],
+      ['--query-file', filePath, '--index', 'test-idx', '--json'],
       makeDeps(transport)
     )
 
@@ -202,7 +205,7 @@ describe('msearch command', () => {
     const { transport, requests } = mockTransport([{ responses: [{}] }])
 
     await runCommand(
-      ['--input-file', filePath, '--index', 'my-idx', '--json'],
+      ['--query-file', filePath, '--index', 'my-idx', '--json'],
       makeDeps(transport)
     )
 
@@ -220,7 +223,7 @@ describe('msearch command', () => {
     }
 
     const result = await runCommand(
-      ['--input-file', filePath, '--json'],
+      ['--query-file', filePath, '--json'],
       deps
     ) as Record<string, unknown>
 
@@ -236,7 +239,7 @@ describe('msearch command', () => {
     const { transport } = mockTransport([])
 
     const result = await runCommand(
-      ['--input-file', filePath, '--json'],
+      ['--query-file', filePath, '--json'],
       makeDeps(transport)
     ) as Record<string, unknown>
 

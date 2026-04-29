@@ -207,24 +207,26 @@ describe('elastic CLI -- config-free commands', () => {
 })
 
 describe('elastic CLI -- stack command tree', () => {
-  it('top-level help lists `stack` and not `es`', async () => {
+  it('top-level help lists `stack` and not `es` or `kb`', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-help-'))
     try {
       const { code, stdout } = await runCli(['--help'], { cwd: dir, env: { HOME: dir } })
       assert.equal(code, 0, `expected exit code 0, got ${code}`)
       assert.match(stdout, /^\s*stack\s/m, 'expected `stack` in top-level help')
       assert.doesNotMatch(stdout, /^\s*es\s/m, '`es` must not appear as a top-level command')
+      assert.doesNotMatch(stdout, /^\s*kb\s/m, '`kb` must not appear as a top-level command')
     } finally {
       await rm(dir, { recursive: true })
     }
   })
 
-  it('`elastic stack --help` lists the `es` sub-group', async () => {
+  it('`elastic stack --help` lists `es` and `kb` sub-groups with aliases', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-stack-help-'))
     try {
       const { code, stdout } = await runCli(['stack', '--help'], { cwd: dir, env: { HOME: dir } })
       assert.equal(code, 0, `expected exit code 0, got ${code}`)
-      assert.match(stdout, /^\s*es\s/m, 'expected `es` under stack')
+      assert.match(stdout, /es\|elasticsearch/m, 'expected `es|elasticsearch` under stack')
+      assert.match(stdout, /kb\|kibana/m, 'expected `kb|kibana` under stack')
     } finally {
       await rm(dir, { recursive: true })
     }
@@ -238,6 +240,40 @@ describe('elastic CLI -- stack command tree', () => {
       assert.match(stdout, /^\s*indices\s/m, 'expected `indices` group')
       assert.match(stdout, /^\s*cluster\s/m, 'expected `cluster` group')
       assert.match(stdout, /^\s*ml\s/m, 'expected `ml` group')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('`elastic stack elasticsearch --help` works as alias for `elastic stack es`', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-es-alias-'))
+    try {
+      const { code, stdout } = await runCli(['stack', 'elasticsearch', '--help'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      assert.match(stdout, /^\s*indices\s/m, 'expected `indices` group via elasticsearch alias')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('`elastic stack kibana --help` works as alias for `elastic stack kb`', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-kb-alias-'))
+    try {
+      const { code, stdout } = await runCli(['stack', 'kibana', '--help'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      assert.match(stdout, /kb\b/m, 'expected kb-related content via kibana alias')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('`elastic kb --help` redirects to stack kb with deprecation warning', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-kb-deprecation-'))
+    try {
+      const { code, stdout, stderr } = await runCli(['kb', '--help'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      assert.match(stderr, /deprecated.*elastic stack kb/i, 'expected deprecation warning on stderr')
+      assert.match(stdout, /kb\|kibana/m, 'expected kb commands in output')
     } finally {
       await rm(dir, { recursive: true })
     }

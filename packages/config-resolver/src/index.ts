@@ -6,6 +6,11 @@
 import { readFileSync, statSync } from 'node:fs'
 import { execSync, type ExecSyncOptionsWithStringEncoding } from 'node:child_process'
 
+/**
+ * Callback for a resolver registered under a given name. Receives the raw
+ * parameter string from inside `$(name:params)` and returns the resolved
+ * value (either synchronously or as a promise).
+ */
 export type ResolverFn = (params: string) => string | Promise<string>
 
 // ---------------------------------------------------------------------------
@@ -14,10 +19,19 @@ export type ResolverFn = (params: string) => string | Promise<string>
 
 const registry = new Map<string, ResolverFn>()
 
+/**
+ * Registers a resolver under {@link name} so that expressions of the form
+ * `$(name:params)` are routed to {@link fn}. Overwrites any previously
+ * registered resolver with the same name.
+ */
 export function registerResolver (name: string, fn: ResolverFn): void {
   registry.set(name, fn)
 }
 
+/**
+ * Looks up a resolver by name. Returns `undefined` if no resolver has been
+ * registered under that name.
+ */
 export function getResolver (name: string): ResolverFn | undefined {
   return registry.get(name)
 }
@@ -28,10 +42,22 @@ export function getResolver (name: string): ResolverFn | undefined {
 
 const EXPRESSION_RE = /\$\(([a-z_][a-z0-9_]*):([^)]+)\)/
 
+/**
+ * Cheap check for whether {@link value} might contain a resolver expression.
+ * Used as a fast path to skip regex matching on plain strings.
+ */
 export function containsExpression (value: string): boolean {
   return value.includes('$(')
 }
 
+/**
+ * Resolves every `$(name:params)` expression in {@link value} and returns the
+ * combined result. {@link fieldPath} is included in error messages to help
+ * locate the offending config key.
+ *
+ * @throws if any expression references an unknown resolver or if a resolver
+ *         callback itself throws.
+ */
 export async function resolveString (
   value: string,
   fieldPath: string
@@ -64,6 +90,14 @@ export async function resolveString (
 // Deep object walk
 // ---------------------------------------------------------------------------
 
+/**
+ * Recursively walks {@link obj} (objects, arrays, primitives) and replaces
+ * every string containing resolver expressions with its resolved value.
+ * Non-string values are returned unchanged. {@link path} is used internally
+ * to build dotted field paths for error messages; callers normally omit it.
+ *
+ * Prototype-polluting keys (`__proto__`, `constructor`) are skipped.
+ */
 export async function resolveExpressions (
   obj: unknown,
   path: string = ''

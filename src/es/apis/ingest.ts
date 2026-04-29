@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { IngestDeletePipelineRequest, IngestGetPipelineRequest, IngestProcessorGrokRequest, IngestPutPipelineRequest, IngestSimulateRequest } from './schemas/ingest.ts'
+import { IngestDeletePipelineRequest, IngestGetPipelineRequest, IngestProcessorGrokRequest, IngestPutPipelineRequest, IngestSimulateRequest } from '@elastic/es-schemas/ingest.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const ingestApis: EsApiDefinition[] = [

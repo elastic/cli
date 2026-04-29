@@ -6,6 +6,7 @@
 
 import { Command } from 'commander'
 import { defineCommand, defineGroup, hideBlockedCommands } from './factory.js'
+import type { OpaqueCommandHandle } from './factory.js'
 import { loadConfig, type LoadConfigResult } from './config/loader.ts'
 import { setResolvedConfig } from './config/store.ts'
 
@@ -21,6 +22,8 @@ program
   .option('--config-file <path>', 'path to a config file (default: ~/.elasticrc.yml)')
   .option('--use-context <name>', 'override the active context from the config file')
   .option('--json', 'output as JSON')
+  .option('--output-fields <list>', 'comma-separated list of fields to include in output (dot-notation supported)')
+  .option('--output-template <string>', 'Mustache-like template for custom text output (e.g. "{{id}}: {{name}}")')
 
 // Before every sub-command action, load and resolve the config file.
 // On error, print a structured message and exit -- never let a config failure
@@ -34,6 +37,11 @@ program.hook('preAction', async (thisCommand, actionCommand) => {
   if (actionCommand.name() === 'version') return
   // docs commands use public elastic.co APIs — no config required
   if (actionCommand.parent?.name() === 'docs') return
+  // `config` commands author the config file itself — loading it would be
+  // circular (and must tolerate the absence of a file)
+  for (let c = actionCommand.parent; c != null; c = c.parent) {
+    if (c.name() === 'config') return
+  }
   const { configFile: configPath, useContext: contextName } = thisCommand.opts()
 
   if (configPath == null && contextName == null && earlyConfig?.ok === true) {
@@ -69,13 +77,49 @@ program.addCommand(versionCmd)
 // is registered so the group appears in help text without paying the cost of loading
 // and compiling all API schemas.
 const { operands } = program.parseOptions(process.argv.slice(2))
-const firstArg = operands[0]
+let firstArg = operands[0]
+
+// Deprecation redirect: `elastic kb ...` → `elastic stack kb ...`
+if (firstArg === 'kb') {
+  process.stderr.write('Warning: "elastic kb" is deprecated. Use "elastic stack kb" instead.\n')
+  const kbIdx = process.argv.indexOf('kb', 2)
+  if (kbIdx !== -1) process.argv.splice(kbIdx, 0, 'stack')
+  operands.splice(0, 0, 'stack')
+  firstArg = 'stack'
+}
 
 if (firstArg === 'stack') {
-  const { registerEsCommands } = await import('./es/register.ts')
+  const stackChildren: OpaqueCommandHandle[] = []
+
+  const secondArg = operands[1]
+  const esArgs = new Set(['es', 'elasticsearch'])
+  const kbArgs = new Set(['kb', 'kibana'])
+
+  if (secondArg == null || esArgs.has(secondArg)) {
+    const { registerEsCommands } = await import('./es/register.ts')
+    const esGroup = registerEsCommands()
+    esGroup.alias('elasticsearch')
+    stackChildren.push(esGroup)
+  } else {
+    const esStub = defineGroup({ name: 'es', description: 'Interact with the Elasticsearch API' })
+    esStub.alias('elasticsearch')
+    stackChildren.push(esStub)
+  }
+
+  if (secondArg == null || kbArgs.has(secondArg)) {
+    const { registerKbCommands } = await import('./kb/register.ts')
+    const kbGroup = registerKbCommands()
+    kbGroup.alias('kibana')
+    stackChildren.push(kbGroup)
+  } else {
+    const kbStub = defineGroup({ name: 'kb', description: 'Interact with the Kibana API' })
+    kbStub.alias('kibana')
+    stackChildren.push(kbStub)
+  }
+
   program.addCommand(defineGroup(
     { name: 'stack', description: 'Interact with Elastic Stack components (Elasticsearch, Kibana, Fleet)' },
-    registerEsCommands()
+    ...stackChildren
   ))
 } else {
   program.addCommand(defineGroup({ name: 'stack', description: 'Interact with Elastic Stack components (Elasticsearch, Kibana, Fleet)' }))
@@ -95,17 +139,17 @@ if (firstArg === 'docs') {
   program.addCommand(defineGroup({ name: 'docs', description: 'Search, read, and ask questions about Elastic documentation' }))
 }
 
-if (firstArg === 'kb') {
-  const { registerKbCommands } = await import('./kb/register.ts')
-  program.addCommand(registerKbCommands())
+if (firstArg === 'config') {
+  const { registerConfigCommands } = await import('./config/commands.ts')
+  program.addCommand(registerConfigCommands())
 } else {
-  program.addCommand(defineGroup({ name: 'kb', description: 'Interact with the Kibana API' }))
+  program.addCommand(defineGroup({ name: 'config', description: 'Author and maintain the elastic config file' }))
 }
-
 // Load config early so --help can hide blocked commands. Skip for commands
-// that don't need config (e.g. `version`) to avoid unnecessary file I/O.
+// that don't need config (e.g. `version`, or `config` which authors the file)
+// to avoid unnecessary file I/O and a confusing "no config found" path.
 // The result is cached in earlyConfig so the preAction hook can reuse it.
-if (firstArg !== 'version') {
+if (firstArg !== 'version' && firstArg !== 'config') {
   earlyConfig = await loadConfig({})
   if (earlyConfig.ok) {
     setResolvedConfig(earlyConfig.value)

@@ -25,5 +25,9 @@
   },
   "include": [
     "src/**/*"
+  ],
+  "references": [
+    { "path": "./packages/config-resolver" },
+    { "path": "./packages/es-schemas" }
   ]
 }

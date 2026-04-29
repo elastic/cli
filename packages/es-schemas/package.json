@@ -1,0 +1,38 @@
+{
+  "name": "@elastic/es-schemas",
+  "version": "0.1.0",
+  "description": "Zod schemas for Elasticsearch API request validation.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./dist/index.js"
+    },
+    "./*.js": {
+      "types": "./src/*.ts",
+      "import": "./dist/*.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc"
+  },
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Elastic Client Library Maintainers",
+    "company": "Elastic BV"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elastic/cli.git",
+    "directory": "packages/es-schemas"
+  },
+  "peerDependencies": {
+    "zod": "^4.0.0"
+  }
+}

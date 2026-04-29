@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { TermsEnumRequest } from './schemas/_global.ts'
+import { TermsEnumRequest } from '@elastic/es-schemas/_global.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const termsEnumApis: EsApiDefinition[] = [

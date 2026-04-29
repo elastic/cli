@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { GetScriptRequest } from './schemas/_global.ts'
+import { GetScriptRequest } from '@elastic/es-schemas/_global.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const getScriptApis: EsApiDefinition[] = [

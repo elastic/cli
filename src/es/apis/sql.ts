@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { SqlClearCursorRequest, SqlDeleteAsyncRequest, SqlGetAsyncRequest, SqlGetAsyncStatusRequest, SqlQueryRequest, SqlTranslateRequest } from './schemas/sql.ts'
+import { SqlClearCursorRequest, SqlDeleteAsyncRequest, SqlGetAsyncRequest, SqlGetAsyncStatusRequest, SqlQueryRequest, SqlTranslateRequest } from '@elastic/es-schemas/sql.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const sqlApis: EsApiDefinition[] = [

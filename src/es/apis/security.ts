@@ -9,7 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { SecurityAuthenticateRequest, SecurityCreateApiKeyRequest, SecurityDeleteRoleRequest, SecurityGetApiKeyRequest, SecurityGetBuiltinPrivilegesRequest, SecurityGetRoleRequest, SecurityHasPrivilegesRequest, SecurityInvalidateApiKeyRequest, SecurityPutRoleRequest, SecurityQueryApiKeysRequest, SecurityQueryRoleRequest, SecurityUpdateApiKeyRequest } from './schemas/security.ts'
+import { SecurityAuthenticateRequest, SecurityCreateApiKeyRequest, SecurityDeleteRoleRequest, SecurityGetApiKeyRequest, SecurityGetBuiltinPrivilegesRequest, SecurityGetRoleRequest, SecurityHasPrivilegesRequest, SecurityInvalidateApiKeyRequest, SecurityPutRoleRequest, SecurityQueryApiKeysRequest, SecurityQueryRoleRequest, SecurityUpdateApiKeyRequest } from '@elastic/es-schemas/security.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const securityApis: EsApiDefinition[] = [
