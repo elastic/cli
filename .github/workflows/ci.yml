@@ -6,10 +6,7 @@ on:
     branches:
       - main
 
-permissions:
-  contents: read
-  issues: write
-  pull-requests: write
+permissions: {}
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -18,6 +15,8 @@ concurrency:
 jobs:
   test-node:
     name: Test Node.js
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
@@ -40,6 +39,8 @@ jobs:
 
   license-header:
     name: Check SPDX license header
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -51,6 +52,8 @@ jobs:
 
   notice-file:
     name: Check NOTICE.txt is up to date
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -62,6 +65,8 @@ jobs:
 
   test-bun:
     name: Test Bun
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
@@ -83,6 +88,8 @@ jobs:
   validate-pr-title:
     if: github.event_name == 'pull_request'
     name: Validate PR title
+    permissions:
+      pull-requests: read
     runs-on: ubuntu-latest
     steps:
       - name: PR Conventional Commit Validation
@@ -93,6 +100,9 @@ jobs:
 
   megalinter:
     name: MegaLinter
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
