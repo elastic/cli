@@ -129,6 +129,12 @@ Instead of storing secrets in plaintext, any string value in the config file can
 use `$(resolver:params)` expressions to fetch values from external sources at
 runtime.
 
+> **Security note.** Review config files before using them if you didn't write
+> them yourself — the `$(cmd:...)` and `$(file:...)` resolvers execute programs
+> and read files on your behalf. This applies especially to CI/CD environments
+> where a repo-checked-in config (e.g. via `ELASTIC_CLI_CONFIG_FILE`) can run
+> arbitrary commands on the runner.
+
 #### `file` - read from a file
 
 Reads the contents of a file (trimmed). Useful for Docker/Kubernetes secrets
