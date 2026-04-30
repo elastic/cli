@@ -1,8 +1,8 @@
-// @ts-nocheck
 /*
  * Copyright Elasticsearch B.V. and contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+// @ts-nocheck
 
 /* eslint-disable @typescript-eslint/no-use-before-define */
 /* eslint-disable @typescript-eslint/no-redeclare */
