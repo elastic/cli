@@ -1,7 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "release-type": "node",
-  "include-component-in-tag": false,
   "draft-pull-request": true,
   "always-update": true,
   "bootstrap-sha": "b056a344e6b9b27e09bb2b6270be2e6b8c5bf2fc",
@@ -9,7 +8,8 @@
     ".": {
         "extra-files": [
             "src/cli.ts"
-        ]
+        ],
+        "include-component-in-tag": false
     },
     "packages/es-schemas": {
         "component": "es-schemas",
