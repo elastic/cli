@@ -10,6 +10,7 @@ import type { OpaqueCommandHandle } from './factory.js'
 import { loadConfig, type LoadConfigResult } from './config/loader.ts'
 import { setResolvedConfig } from './config/store.ts'
 import { renderLogo } from './lib/logo.ts'
+import { NAMESPACES } from './namespaces.ts'
 
 // x-release-please-start-version
 const VERSION = '0.1.0-alpha.1';
@@ -36,6 +37,7 @@ let earlyConfig: LoadConfigResult | undefined
 
 program.hook('preAction', async (thisCommand, actionCommand) => {
   if (actionCommand.name() === 'version') return
+  if (actionCommand.name() === 'cli-schema') return
   // docs commands use public elastic.co APIs — no config required
   if (actionCommand.parent?.name() === 'docs') return
   // `config` commands author the config file itself — loading it would be
@@ -89,68 +91,27 @@ if (firstArg === 'kb') {
   firstArg = 'stack'
 }
 
-if (firstArg === 'stack') {
-  const stackChildren: OpaqueCommandHandle[] = []
-
-  const secondArg = operands[1]
-  const esArgs = new Set(['es', 'elasticsearch'])
-  const kbArgs = new Set(['kb', 'kibana'])
-
-  if (secondArg == null || esArgs.has(secondArg)) {
-    const { registerEsCommandsLazy } = await import('./es/register.ts')
-    const esGroup = await registerEsCommandsLazy()
-    esGroup.alias('elasticsearch')
-    stackChildren.push(esGroup)
+// Register namespaces: load eagerly when first arg matches, otherwise register a lightweight stub.
+// To add a new top-level namespace, add an entry to src/namespaces.ts — no changes needed here.
+for (const ns of NAMESPACES) {
+  if (firstArg === ns.name) {
+    program.addCommand(await ns.load())
   } else {
-    const esStub = defineGroup({ name: 'es', description: 'Interact with the Elasticsearch API' })
-    esStub.alias('elasticsearch')
-    stackChildren.push(esStub)
+    program.addCommand(defineGroup({ name: ns.name, description: ns.description }))
   }
-
-  if (secondArg == null || kbArgs.has(secondArg)) {
-    const { registerKbCommands } = await import('./kb/register.ts')
-    const kbGroup = registerKbCommands()
-    kbGroup.alias('kibana')
-    stackChildren.push(kbGroup)
-  } else {
-    const kbStub = defineGroup({ name: 'kb', description: 'Interact with the Kibana API' })
-    kbStub.alias('kibana')
-    stackChildren.push(kbStub)
-  }
-
-  program.addCommand(defineGroup(
-    { name: 'stack', description: 'Interact with Elastic Stack components (Elasticsearch, Kibana, Fleet)' },
-    ...stackChildren
-  ))
-} else {
-  program.addCommand(defineGroup({ name: 'stack', description: 'Interact with Elastic Stack components (Elasticsearch, Kibana, Fleet)' }))
 }
 
-if (firstArg === 'cloud') {
-  const { registerCloudCommands } = await import('./cloud/register.ts')
-  program.addCommand(registerCloudCommands())
+if (firstArg === 'cli-schema') {
+  const { registerCliSchemaCommand } = await import('./cli-schema.ts')
+  program.addCommand(await registerCliSchemaCommand(VERSION, program))
 } else {
-  program.addCommand(defineGroup({ name: 'cloud', description: 'Manage Elastic Cloud (hosted deployments and serverless projects)' }))
-}
-
-if (firstArg === 'docs') {
-  const { registerDocsCommands } = await import('./docs/register.ts')
-  program.addCommand(registerDocsCommands())
-} else {
-  program.addCommand(defineGroup({ name: 'docs', description: 'Search, read, and ask questions about Elastic documentation' }))
-}
-
-if (firstArg === 'config') {
-  const { registerConfigCommands } = await import('./config/commands.ts')
-  program.addCommand(registerConfigCommands())
-} else {
-  program.addCommand(defineGroup({ name: 'config', description: 'Author and maintain the elastic config file' }))
+  program.addCommand(defineGroup({ name: 'cli-schema', description: 'Emit the CLI structure as argh-schema JSON' }))
 }
 // Load config early so --help can hide blocked commands. Skip for commands
 // that don't need config (e.g. `version`, or `config` which authors the file)
 // to avoid unnecessary file I/O and a confusing "no config found" path.
 // The result is cached in earlyConfig so the preAction hook can reuse it.
-if (firstArg !== 'version' && firstArg !== 'config') {
+if (firstArg !== 'version' && firstArg !== 'config' && firstArg !== 'cli-schema') {
   earlyConfig = await loadConfig({})
   if (earlyConfig.ok) {
     setResolvedConfig(earlyConfig.value)

@@ -19,6 +19,7 @@
     "test:functional:cloud": "bash test/functional/cloud/smoke.sh",
     "test:license": "license-checker --production",
     "test:spdx": "./scripts/check-spdx",
+    "build:schema": "node --import tsx/esm src/cli.ts cli-schema > docs/cli/schema.json",
     "generate:notice": "node scripts/generate-notice.mjs",
     "test:notice": "node scripts/generate-notice.mjs --check",
     "test:megalinter": "mega-linter-runner --flavor javascript"

@@ -131,6 +131,17 @@ export async function registerEsCommandsLazy (
   return await buildLazyTree(apiManifest, opts.argv ?? process.argv)
 }
 
+/**
+ * Eager path: loads ALL Elasticsearch API definitions upfront and registers
+ * them as full `defineCommand` commands with all options and `_commandConfig`.
+ * Use this when you need the complete command tree (e.g. schema generation).
+ * Callers that only need CLI startup should prefer {@link registerEsCommandsLazy}.
+ */
+export async function registerEsCommandsEager (): Promise<OpaqueCommandHandle> {
+  const defs = await Promise.all(apiManifest.map((m) => loadEsApi(m)))
+  return buildEagerTree(defs)
+}
+
 /** Eager-tree builder: behaviourally identical to the original pre-lazy implementation. */
 function buildEagerTree (definitions: EsApiDefinition[]): OpaqueCommandHandle {
   const defSchemaArgs = new Map<EsApiDefinition, SchemaArgDefinition[]>()

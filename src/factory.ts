@@ -351,13 +351,14 @@ function validateInput (name: string, input: unknown): void {
 
 /**
  * Recursively removes `found_in` keys from a JSON Schema object.
+ * Exported for reuse in cli-schema.ts validation extraction.
  *
  * `found_in` is internal routing metadata used by the request builder to classify
  * parameters as path, query, or body. It is an HTTP transport implementation detail
  * and MUST NOT be exposed in user-facing help text or agent-facing JSON Schema output
  * (Constitution Principle VIII: Transport-Layer Abstraction).
  */
-function stripTransportMeta (value: JsonValue): JsonValue {
+export function stripTransportMeta (value: JsonValue): JsonValue {
   if (Array.isArray(value)) return value.map(stripTransportMeta)
   if (value !== null && typeof value === 'object') {
     const out: Record<string, JsonValue> = {}
@@ -589,6 +590,14 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     cmd,
     config.input instanceof z.ZodType ? config.input : undefined,
   )
+
+  // Attach typed metadata for tooling (e.g. cli-schema). Non-enumerable so it
+  // doesn't appear in JSON.stringify or Commander's own command inspection.
+  Object.defineProperty(cmd, '_commandConfig', {
+    value: { config, schemaArgs },
+    writable: false,
+    enumerable: false,
+  })
 
   cmd.action(async () => {
     const allRaw = cmd.optsWithGlobals()
