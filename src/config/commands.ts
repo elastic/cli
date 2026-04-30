@@ -138,7 +138,7 @@ async function applyFieldUpdates (
   baseContext: RawContext,
   updates: FieldUpdate,
   contextName: string,
-  store: SecretStore,
+  store: SecretStore | null,
   inlineSecrets: boolean
 ): Promise<ApplyFieldUpdatesResult> {
   let ctx = baseContext as Record<string, unknown>
@@ -149,7 +149,8 @@ async function applyFieldUpdates (
     ctx = setPath(ctx, field.path, value)
   }
 
-  const storeAvailable = await store.isAvailable()
+  // When inlineSecrets is true we never use the store, so skip the probe entirely.
+  const storeAvailable = store != null && !inlineSecrets && await store.isAvailable()
   if (updates.secrets.length > 0 && !storeAvailable && !inlineSecrets) {
     warnings.push(
       'No OS secret store is available; secrets will be written inline to the config file. ' +
@@ -157,10 +158,10 @@ async function applyFieldUpdates (
     )
   }
 
-  const useStore = storeAvailable && !inlineSecrets
+  const useStore = storeAvailable && store != null
   for (const { field, value } of updates.secrets) {
     const account = `${contextName}:${field.path.join('.')}`
-    if (useStore) {
+    if (useStore && store != null) {
       await store.put(KEYCHAIN_SERVICE, account, value)
       const expr = store.resolverExpr(KEYCHAIN_SERVICE, account)
       ctx = setPath(ctx, field.path, expr)
@@ -253,7 +254,7 @@ async function handleContextAdd (parsed: {
     )
   }
 
-  const store = await getSecretStore()
+  const store = inlineSecrets ? null : await getSecretStore()
   const { context: ctx, secretsLog, warnings } = await applyFieldUpdates({}, updates, name, store, inlineSecrets)
 
   const contextValidation = ContextSchema.safeParse(resolveForValidation(ctx))
@@ -340,7 +341,7 @@ async function handleContextEdit (parsed: {
 
   if (hasFlagEdits) {
     // Flag-patch mode
-    const store = await getSecretStore()
+    const store = inlineSecrets ? null : await getSecretStore()
     const { context: ctx, secretsLog, warnings } = await applyFieldUpdates(
       extractContext(config, name),
       updates,
