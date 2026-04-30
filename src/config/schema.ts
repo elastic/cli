@@ -77,6 +77,7 @@ export const ConfigFileSchema = z
       { error: 'contexts must contain at least one entry' },
     ),
     commands: CommandPolicySchema.optional(),
+    banner: z.boolean().optional(),
   })
   .refine(
     (cfg) => cfg.current_context in cfg.contexts,
@@ -96,4 +97,5 @@ export const StructuralConfigSchema = z
       { error: 'contexts must contain at least one entry' },
     ),
     commands: z.unknown().optional(),
+    banner: z.boolean().optional(),
   })

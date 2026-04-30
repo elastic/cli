@@ -9,6 +9,7 @@ import { defineCommand, defineGroup, hideBlockedCommands } from './factory.js'
 import type { OpaqueCommandHandle } from './factory.js'
 import { loadConfig, type LoadConfigResult } from './config/loader.ts'
 import { setResolvedConfig } from './config/store.ts'
+import { renderLogo } from './lib/logo.ts'
 
 // x-release-please-start-version
 const VERSION = '0.1.0-alpha.1';
@@ -158,6 +159,9 @@ if (firstArg !== 'version' && firstArg !== 'config') {
 }
 
 if (process.argv.slice(2).length === 0) {
+  if (!earlyConfig?.ok || earlyConfig.value.banner !== false) {
+    process.stdout.write(renderLogo(VERSION))
+  }
   program.outputHelp()
   process.exit(0)
 }

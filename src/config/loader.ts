@@ -112,6 +112,7 @@ export function resolveContext (config: ConfigFile, contextName: string): Resolv
   if (ctx.cloud != null) resolved.cloud = ctx.cloud
   const result: ResolvedConfig = { context: resolved }
   if (config.commands != null) result.commands = config.commands
+  if (config.banner != null) result.banner = config.banner
   return result
 }
 
@@ -270,6 +271,7 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     current_context: resolvedContextName,
     contexts: { [resolvedContextName]: contextParsed.data },
     ...(commands != null && { commands }),
+    ...(structural.data.banner != null && { banner: structural.data.banner }),
   }
   return { ok: true, value: resolveContext(config, resolvedContextName) }
 }
