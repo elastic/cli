@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
- 
- 
+/* eslint-disable @typescript-eslint/no-use-before-define */
+/* eslint-disable @typescript-eslint/no-redeclare */
 import { z } from 'zod'
 
-import { AcknowledgedResponseBase, Duration, DurationValue, ErrorCause, FieldValue, Id, IndexName, NodeId, QueryDslQueryContainer, TaskId, double, integer, long } from './_types.ts'
+import { AcknowledgedResponseBase, Duration, DurationValue, ErrorCause, FieldValue, Id, IndexName, NodeId, RequestBase, TaskId, double, integer, long } from './_types.ts'
+import { QueryDslQueryContainer } from './_types.query_dsl.ts'
 
 export const EsqlEsqlColumnInfo = z.object({
   name: z.string(),
@@ -19,17 +20,17 @@ export const EsqlEsqlClusterStatus = z.enum(['running', 'successful', 'partial',
 export type EsqlEsqlClusterStatus = z.infer<typeof EsqlEsqlClusterStatus>
 
 export const EsqlEsqlShardInfo = z.object({
-  total: z.lazy(() => integer),
-  successful: z.lazy(() => integer).optional(),
-  skipped: z.lazy(() => integer).optional(),
-  failed: z.lazy(() => integer).optional()
+  total: integer,
+  successful: integer.optional(),
+  skipped: integer.optional(),
+  failed: integer.optional()
 }).meta({ id: 'EsqlEsqlShardInfo' })
 export type EsqlEsqlShardInfo = z.infer<typeof EsqlEsqlShardInfo>
 
 export const EsqlEsqlShardFailure = z.object({
-  shard: z.lazy(() => integer),
-  index: z.union([z.lazy(() => IndexName), z.null()]),
-  node: z.lazy(() => NodeId).optional(),
+  shard: integer,
+  index: z.union([IndexName, z.null()]),
+  node: NodeId.optional(),
   reason: z.lazy(() => ErrorCause)
 }).meta({ id: 'EsqlEsqlShardFailure' })
 export type EsqlEsqlShardFailure = z.infer<typeof EsqlEsqlShardFailure>
@@ -37,29 +38,29 @@ export type EsqlEsqlShardFailure = z.infer<typeof EsqlEsqlShardFailure>
 export const EsqlEsqlClusterDetails = z.object({
   status: EsqlEsqlClusterStatus,
   indices: z.string(),
-  took: z.lazy(() => DurationValue).optional(),
+  took: DurationValue.optional(),
   _shards: EsqlEsqlShardInfo.optional(),
   failures: z.array(EsqlEsqlShardFailure).optional()
 }).meta({ id: 'EsqlEsqlClusterDetails' })
 export type EsqlEsqlClusterDetails = z.infer<typeof EsqlEsqlClusterDetails>
 
 export const EsqlEsqlClusterInfo = z.object({
-  total: z.lazy(() => integer),
-  successful: z.lazy(() => integer),
-  running: z.lazy(() => integer),
-  skipped: z.lazy(() => integer),
-  partial: z.lazy(() => integer),
-  failed: z.lazy(() => integer),
+  total: integer,
+  successful: integer,
+  running: integer,
+  skipped: integer,
+  partial: integer,
+  failed: integer,
   details: z.record(z.string(), EsqlEsqlClusterDetails)
 }).meta({ id: 'EsqlEsqlClusterInfo' })
 export type EsqlEsqlClusterInfo = z.infer<typeof EsqlEsqlClusterInfo>
 
 export const EsqlEsqlResult = z.object({
-  took: z.lazy(() => DurationValue).optional(),
+  took: DurationValue.optional(),
   is_partial: z.boolean().optional(),
   all_columns: z.array(EsqlEsqlColumnInfo).optional(),
   columns: z.array(EsqlEsqlColumnInfo),
-  values: z.array(z.array(z.lazy(() => FieldValue))),
+  values: z.array(z.array(FieldValue)),
   _clusters: EsqlEsqlClusterInfo.describe('Cross-cluster search information. Present if `include_ccs_metadata` was `true` in the request and a cross-cluster search was performed.').optional(),
   profile: z.any().describe('Profiling information. Present if `profile` was `true` in the request. The contents of this field are currently unstable.').optional()
 }).meta({ id: 'EsqlEsqlResult' })
@@ -72,7 +73,7 @@ export const EsqlAsyncEsqlResult = z.object({
 }).meta({ id: 'EsqlAsyncEsqlResult' })
 export type EsqlAsyncEsqlResult = z.infer<typeof EsqlAsyncEsqlResult>
 
-export const EsqlSingleOrMultiValue = z.union([z.lazy(() => FieldValue), z.array(z.lazy(() => FieldValue))]).meta({ id: 'EsqlSingleOrMultiValue' })
+export const EsqlSingleOrMultiValue = z.union([FieldValue, z.array(FieldValue)]).meta({ id: 'EsqlSingleOrMultiValue' })
 export type EsqlSingleOrMultiValue = z.infer<typeof EsqlSingleOrMultiValue>
 
 export const EsqlNamedValue = z.record(z.string(), EsqlSingleOrMultiValue).meta({ id: 'EsqlNamedValue' })
@@ -91,16 +92,16 @@ export type EsqlESQLView = z.infer<typeof EsqlESQLView>
 export const EsqlEsqlFormat = z.enum(['csv', 'json', 'tsv', 'txt', 'yaml', 'cbor', 'smile', 'arrow']).meta({ id: 'EsqlEsqlFormat' })
 export type EsqlEsqlFormat = z.infer<typeof EsqlEsqlFormat>
 
-export const EsqlTableValuesIntegerValue = z.union([z.lazy(() => integer), z.array(z.lazy(() => integer))]).meta({ id: 'EsqlTableValuesIntegerValue' })
+export const EsqlTableValuesIntegerValue = z.union([integer, z.array(integer)]).meta({ id: 'EsqlTableValuesIntegerValue' })
 export type EsqlTableValuesIntegerValue = z.infer<typeof EsqlTableValuesIntegerValue>
 
 export const EsqlTableValuesKeywordValue = z.union([z.string(), z.array(z.string())]).meta({ id: 'EsqlTableValuesKeywordValue' })
 export type EsqlTableValuesKeywordValue = z.infer<typeof EsqlTableValuesKeywordValue>
 
-export const EsqlTableValuesLongValue = z.union([z.lazy(() => long), z.array(z.lazy(() => long))]).meta({ id: 'EsqlTableValuesLongValue' })
+export const EsqlTableValuesLongValue = z.union([long, z.array(long)]).meta({ id: 'EsqlTableValuesLongValue' })
 export type EsqlTableValuesLongValue = z.infer<typeof EsqlTableValuesLongValue>
 
-export const EsqlTableValuesLongDouble = z.union([z.lazy(() => double), z.array(z.lazy(() => double))]).meta({ id: 'EsqlTableValuesLongDouble' })
+export const EsqlTableValuesLongDouble = z.union([double, z.array(double)]).meta({ id: 'EsqlTableValuesLongDouble' })
 export type EsqlTableValuesLongDouble = z.infer<typeof EsqlTableValuesLongDouble>
 
 const EsqlTableValuesContainerExclusiveProps = z.union([z.object({ integer: z.array(EsqlTableValuesIntegerValue) }), z.object({ keyword: z.array(EsqlTableValuesKeywordValue) }), z.object({ long: z.array(EsqlTableValuesLongValue) }), z.object({ double: z.array(EsqlTableValuesLongDouble) })])
@@ -116,6 +117,7 @@ export type EsqlTableValuesContainer = z.infer<typeof EsqlTableValuesContainer>
  * The API accepts the same parameters and request body as the synchronous query API, along with additional async related properties.
  */
 export const EsqlAsyncQueryRequest = z.object({
+  ...RequestBase.shape,
   allow_partial_results: z.boolean().describe('If `true`, partial results will be returned if there are shard failures, but the query can continue to execute on other clusters and shards. If `false`, the query will fail if there are any failures. To override the default behavior, you can set the `esql.query.allow_partial_results` cluster setting to `false`.').optional().meta({ found_in: 'query' }),
   delimiter: z.string().describe('The character to use between values within a CSV row. It is valid only for the CSV format.').optional().meta({ found_in: 'query' }),
   drop_null_columns: z.boolean().describe('Indicates whether columns that are entirely `null` will be removed from the `columns` and `values` portion of the results. If `true`, the response will include an extra section under the name `all_columns` which has the name of all the columns.').optional().meta({ found_in: 'query' }),
@@ -130,8 +132,8 @@ export const EsqlAsyncQueryRequest = z.object({
   tables: z.record(z.string(), z.record(z.string(), EsqlTableValuesContainer)).describe('Tables to use with the LOOKUP operation. The top level key is the table name and the next level key is the column name.').optional().meta({ found_in: 'body' }),
   include_ccs_metadata: z.boolean().describe('When set to `true` and performing a cross-cluster/cross-project query, the response will include an extra `_clusters` object with information about the clusters that participated in the search along with info such as shards count.').optional().meta({ found_in: 'body' }),
   include_execution_metadata: z.boolean().describe('When set to `true`, the response will include an extra `_clusters` object with information about the clusters that participated in the search along with info such as shards count. This is similar to `include_ccs_metadata`, but it also returns metadata when the query is not CCS/CPS').optional().meta({ found_in: 'body' }),
-  wait_for_completion_timeout: z.lazy(() => Duration).describe('The period to wait for the request to finish. By default, the request waits for 1 second for the query results. If the query completes during this period, results are returned Otherwise, a query ID is returned that can later be used to retrieve the results.').optional().meta({ found_in: 'body' }),
-  keep_alive: z.lazy(() => Duration).describe('The period for which the query and its results are stored in the cluster. The default period is five days. When this period expires, the query and its results are deleted, even if the query is still ongoing. If the `keep_on_completion` parameter is false, Elasticsearch only stores async queries that do not complete within the period set by the `wait_for_completion_timeout` parameter, regardless of this value.').optional().meta({ found_in: 'body' }),
+  wait_for_completion_timeout: Duration.describe('The period to wait for the request to finish. By default, the request waits for 1 second for the query results. If the query completes during this period, results are returned Otherwise, a query ID is returned that can later be used to retrieve the results.').optional().meta({ found_in: 'body' }),
+  keep_alive: Duration.describe('The period for which the query and its results are stored in the cluster. The default period is five days. When this period expires, the query and its results are deleted, even if the query is still ongoing. If the `keep_on_completion` parameter is false, Elasticsearch only stores async queries that do not complete within the period set by the `wait_for_completion_timeout` parameter, regardless of this value.').optional().meta({ found_in: 'body' }),
   keep_on_completion: z.boolean().describe('Indicates whether the query and its results are stored in the cluster. If false, the query and its results are stored in the cluster only if the request does not complete during the period set by the `wait_for_completion_timeout` parameter.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'EsqlAsyncQueryRequest' })
 export type EsqlAsyncQueryRequest = z.infer<typeof EsqlAsyncQueryRequest>
@@ -151,11 +153,12 @@ export type EsqlAsyncQueryResponse = z.infer<typeof EsqlAsyncQueryResponse>
  * * Users with the `cancel_task` cluster privilege
  */
 export const EsqlAsyncQueryDeleteRequest = z.object({
-  id: z.lazy(() => Id).describe('The unique identifier of the query. A query ID is provided in the ES|QL async query API response for a query that does not complete in the designated time. A query ID is also provided when the request was submitted with the `keep_on_completion` parameter set to `true`.').meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  id: Id.describe('The unique identifier of the query. A query ID is provided in the ES|QL async query API response for a query that does not complete in the designated time. A query ID is also provided when the request was submitted with the `keep_on_completion` parameter set to `true`.').meta({ found_in: 'path' })
 }).meta({ id: 'EsqlAsyncQueryDeleteRequest' })
 export type EsqlAsyncQueryDeleteRequest = z.infer<typeof EsqlAsyncQueryDeleteRequest>
 
-export const EsqlAsyncQueryDeleteResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'EsqlAsyncQueryDeleteResponse' })
+export const EsqlAsyncQueryDeleteResponse = AcknowledgedResponseBase.meta({ id: 'EsqlAsyncQueryDeleteResponse' })
 export type EsqlAsyncQueryDeleteResponse = z.infer<typeof EsqlAsyncQueryDeleteResponse>
 
 /**
@@ -165,11 +168,12 @@ export type EsqlAsyncQueryDeleteResponse = z.infer<typeof EsqlAsyncQueryDeleteRe
  * If the Elasticsearch security features are enabled, only the user who first submitted the ES|QL query can retrieve the results using this API.
  */
 export const EsqlAsyncQueryGetRequest = z.object({
-  id: z.lazy(() => Id).describe('The unique identifier of the query. A query ID is provided in the ES|QL async query API response for a query that does not complete in the designated time. A query ID is also provided when the request was submitted with the `keep_on_completion` parameter set to `true`.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  id: Id.describe('The unique identifier of the query. A query ID is provided in the ES|QL async query API response for a query that does not complete in the designated time. A query ID is also provided when the request was submitted with the `keep_on_completion` parameter set to `true`.').meta({ found_in: 'path' }),
   drop_null_columns: z.boolean().describe('Indicates whether columns that are entirely `null` will be removed from the `columns` and `values` portion of the results. If `true`, the response will include an extra section under the name `all_columns` which has the name of all the columns.').optional().meta({ found_in: 'query' }),
   format: EsqlEsqlFormat.describe('A short version of the Accept header, for example `json` or `yaml`.').optional().meta({ found_in: 'query' }),
-  keep_alive: z.lazy(() => Duration).describe('The period for which the query and its results are stored in the cluster. When this period expires, the query and its results are deleted, even if the query is still ongoing.').optional().meta({ found_in: 'query' }),
-  wait_for_completion_timeout: z.lazy(() => Duration).describe('The period to wait for the request to finish. By default, the request waits for complete query results. If the request completes during the period specified in this parameter, complete query results are returned. Otherwise, the response returns an `is_running` value of `true` and no results.').optional().meta({ found_in: 'query' })
+  keep_alive: Duration.describe('The period for which the query and its results are stored in the cluster. When this period expires, the query and its results are deleted, even if the query is still ongoing.').optional().meta({ found_in: 'query' }),
+  wait_for_completion_timeout: Duration.describe('The period to wait for the request to finish. By default, the request waits for complete query results. If the request completes during the period specified in this parameter, complete query results are returned. Otherwise, the response returns an `is_running` value of `true` and no results.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'EsqlAsyncQueryGetRequest' })
 export type EsqlAsyncQueryGetRequest = z.infer<typeof EsqlAsyncQueryGetRequest>
 
@@ -183,7 +187,8 @@ export type EsqlAsyncQueryGetResponse = z.infer<typeof EsqlAsyncQueryGetResponse
  * If the Elasticsearch security features are enabled, only the user who first submitted the ES|QL query can stop it.
  */
 export const EsqlAsyncQueryStopRequest = z.object({
-  id: z.lazy(() => Id).describe('The unique identifier of the query. A query ID is provided in the ES|QL async query API response for a query that does not complete in the designated time. A query ID is also provided when the request was submitted with the `keep_on_completion` parameter set to `true`.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  id: Id.describe('The unique identifier of the query. A query ID is provided in the ES|QL async query API response for a query that does not complete in the designated time. A query ID is also provided when the request was submitted with the `keep_on_completion` parameter set to `true`.').meta({ found_in: 'path' }),
   drop_null_columns: z.boolean().describe('Indicates whether columns that are entirely `null` will be removed from the `columns` and `values` portion of the results. If `true`, the response will include an extra section under the name `all_columns` which has the name of all the columns.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'EsqlAsyncQueryStopRequest' })
 export type EsqlAsyncQueryStopRequest = z.infer<typeof EsqlAsyncQueryStopRequest>
@@ -197,11 +202,12 @@ export type EsqlAsyncQueryStopResponse = z.infer<typeof EsqlAsyncQueryStopRespon
  * Deletes a stored ES|QL view.
  */
 export const EsqlDeleteViewRequest = z.object({
-  name: z.lazy(() => Id).describe('The view name to remove.').meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  name: Id.describe('The view name to remove.').meta({ found_in: 'path' })
 }).meta({ id: 'EsqlDeleteViewRequest' })
 export type EsqlDeleteViewRequest = z.infer<typeof EsqlDeleteViewRequest>
 
-export const EsqlDeleteViewResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'EsqlDeleteViewResponse' })
+export const EsqlDeleteViewResponse = AcknowledgedResponseBase.meta({ id: 'EsqlDeleteViewResponse' })
 export type EsqlDeleteViewResponse = z.infer<typeof EsqlDeleteViewResponse>
 
 /**
@@ -210,18 +216,19 @@ export type EsqlDeleteViewResponse = z.infer<typeof EsqlDeleteViewResponse>
  * Returns an object extended information about a running ES|QL query.
  */
 export const EsqlGetQueryRequest = z.object({
-  id: z.lazy(() => Id).describe('The query ID').meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  id: Id.describe('The query ID').meta({ found_in: 'path' })
 }).meta({ id: 'EsqlGetQueryRequest' })
 export type EsqlGetQueryRequest = z.infer<typeof EsqlGetQueryRequest>
 
 export const EsqlGetQueryResponse = z.object({
-  id: z.lazy(() => long),
-  node: z.lazy(() => NodeId),
-  start_time_millis: z.lazy(() => long),
-  running_time_nanos: z.lazy(() => long),
+  id: long,
+  node: NodeId,
+  start_time_millis: long,
+  running_time_nanos: long,
   query: z.string(),
-  coordinating_node: z.lazy(() => NodeId),
-  data_nodes: z.array(z.lazy(() => NodeId))
+  coordinating_node: NodeId,
+  data_nodes: z.array(NodeId)
 }).meta({ id: 'EsqlGetQueryResponse' })
 export type EsqlGetQueryResponse = z.infer<typeof EsqlGetQueryResponse>
 
@@ -231,7 +238,8 @@ export type EsqlGetQueryResponse = z.infer<typeof EsqlGetQueryResponse>
  * Returns a stored ES|QL view.
  */
 export const EsqlGetViewRequest = z.object({
-  name: z.lazy(() => Id).describe('The comma-separated view names to retrieve.').optional().meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  name: Id.describe('The comma-separated view names to retrieve.').optional().meta({ found_in: 'path' })
 }).meta({ id: 'EsqlGetViewRequest' })
 export type EsqlGetViewRequest = z.infer<typeof EsqlGetViewRequest>
 
@@ -241,10 +249,10 @@ export const EsqlGetViewResponse = z.object({
 export type EsqlGetViewResponse = z.infer<typeof EsqlGetViewResponse>
 
 export const EsqlListQueriesBody = z.object({
-  id: z.lazy(() => long),
-  node: z.lazy(() => NodeId),
-  start_time_millis: z.lazy(() => long),
-  running_time_nanos: z.lazy(() => long),
+  id: long,
+  node: NodeId,
+  start_time_millis: long,
+  running_time_nanos: long,
   query: z.string()
 }).meta({ id: 'EsqlListQueriesBody' })
 export type EsqlListQueriesBody = z.infer<typeof EsqlListQueriesBody>
@@ -255,22 +263,24 @@ export type EsqlListQueriesBody = z.infer<typeof EsqlListQueriesBody>
  * Returns an object containing IDs and other information about the running ES|QL queries.
  */
 export const EsqlListQueriesRequest = z.object({
+  ...RequestBase.shape
 }).meta({ id: 'EsqlListQueriesRequest' })
 export type EsqlListQueriesRequest = z.infer<typeof EsqlListQueriesRequest>
 
 export const EsqlListQueriesResponse = z.object({
-  queries: z.record(z.lazy(() => TaskId), EsqlListQueriesBody)
+  queries: z.record(TaskId, EsqlListQueriesBody)
 }).meta({ id: 'EsqlListQueriesResponse' })
 export type EsqlListQueriesResponse = z.infer<typeof EsqlListQueriesResponse>
 
 /** Create or update an ES|QL view. */
 export const EsqlPutViewRequest = z.object({
-  name: z.lazy(() => Id).describe('The view name to create or update.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  name: Id.describe('The view name to create or update.').meta({ found_in: 'path' }),
   query: z.string().describe('The ES|QL query string from which to create a view.').meta({ found_in: 'body' })
 }).meta({ id: 'EsqlPutViewRequest' })
 export type EsqlPutViewRequest = z.infer<typeof EsqlPutViewRequest>
 
-export const EsqlPutViewResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'EsqlPutViewResponse' })
+export const EsqlPutViewResponse = AcknowledgedResponseBase.meta({ id: 'EsqlPutViewResponse' })
 export type EsqlPutViewResponse = z.infer<typeof EsqlPutViewResponse>
 
 /**
@@ -279,6 +289,7 @@ export type EsqlPutViewResponse = z.infer<typeof EsqlPutViewResponse>
  * Get search results for an ES|QL (Elasticsearch query language) query.
  */
 export const EsqlQueryRequest = z.object({
+  ...RequestBase.shape,
   format: EsqlEsqlFormat.describe('A short version of the Accept header, e.g. json, yaml. `csv`, `tsv`, and `txt` formats will return results in a tabular format, excluding other metadata fields from the response.').optional().meta({ found_in: 'query' }),
   delimiter: z.string().describe('The character to use between values within a CSV row. Only valid for the CSV format.').optional().meta({ found_in: 'query' }),
   drop_null_columns: z.boolean().describe('Should columns that are entirely `null` be removed from the `columns` and `values` portion of the results? Defaults to `false`. If `true` then the response will include an extra section under the name `all_columns` which has the name of all columns.').optional().meta({ found_in: 'query' }),

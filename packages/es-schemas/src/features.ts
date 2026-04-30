@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
- 
- 
+/* eslint-disable @typescript-eslint/no-use-before-define */
+/* eslint-disable @typescript-eslint/no-redeclare */
 import { z } from 'zod'
 
-import { Duration } from './_types.ts'
+import { Duration, RequestBase } from './_types.ts'
 
 export const FeaturesFeature = z.object({
   name: z.string(),
@@ -29,7 +29,8 @@ export type FeaturesFeature = z.infer<typeof FeaturesFeature>
  * In order for a feature state to be listed in this API and recognized as a valid feature state by the create snapshot API, the plugin that defines that feature must be installed on the master node.
  */
 export const FeaturesGetFeaturesRequest = z.object({
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'FeaturesGetFeaturesRequest' })
 export type FeaturesGetFeaturesRequest = z.infer<typeof FeaturesGetFeaturesRequest>
 
@@ -59,7 +60,8 @@ export type FeaturesGetFeaturesResponse = z.infer<typeof FeaturesGetFeaturesResp
  * IMPORTANT: The features installed on the node you submit this request to are the features that will be reset. Run on the master node if you have any doubts about which plugins are installed on individual nodes.
  */
 export const FeaturesResetFeaturesRequest = z.object({
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'FeaturesResetFeaturesRequest' })
 export type FeaturesResetFeaturesRequest = z.infer<typeof FeaturesResetFeaturesRequest>
 

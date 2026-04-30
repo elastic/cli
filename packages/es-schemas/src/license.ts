@@ -3,23 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
- 
- 
+/* eslint-disable @typescript-eslint/no-use-before-define */
+/* eslint-disable @typescript-eslint/no-redeclare */
 import { z } from 'zod'
 
-import { AcknowledgedResponseBase, DateTime, Duration, EpochTime, Uuid, integer, long } from './_types.ts'
+import { AcknowledgedResponseBase, DateTime, Duration, EpochTime, RequestBase, Uuid, integer, long } from './_types.ts'
 
 export const LicenseLicenseType = z.enum(['missing', 'trial', 'basic', 'standard', 'dev', 'silver', 'gold', 'platinum', 'enterprise']).meta({ id: 'LicenseLicenseType' })
 export type LicenseLicenseType = z.infer<typeof LicenseLicenseType>
 
 export const LicenseLicense = z.object({
-  expiry_date_in_millis: z.lazy(() => EpochTime),
-  issue_date_in_millis: z.lazy(() => EpochTime),
-  start_date_in_millis: z.lazy(() => EpochTime).optional(),
+  expiry_date_in_millis: EpochTime,
+  issue_date_in_millis: EpochTime,
+  start_date_in_millis: EpochTime.optional(),
   issued_to: z.string(),
   issuer: z.string(),
-  max_nodes: z.union([z.lazy(() => long), z.null()]).optional(),
-  max_resource_units: z.lazy(() => long).optional(),
+  max_nodes: z.union([long, z.null()]).optional(),
+  max_resource_units: long.optional(),
   signature: z.string(),
   type: LicenseLicenseType,
   uid: z.string()
@@ -37,27 +37,28 @@ export type LicenseLicenseStatus = z.infer<typeof LicenseLicenseStatus>
  * If the operator privileges feature is enabled, only operator users can use this API.
  */
 export const LicenseDeleteRequest = z.object({
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('The period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  master_timeout: Duration.describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('The period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'LicenseDeleteRequest' })
 export type LicenseDeleteRequest = z.infer<typeof LicenseDeleteRequest>
 
-export const LicenseDeleteResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'LicenseDeleteResponse' })
+export const LicenseDeleteResponse = AcknowledgedResponseBase.meta({ id: 'LicenseDeleteResponse' })
 export type LicenseDeleteResponse = z.infer<typeof LicenseDeleteResponse>
 
 export const LicenseGetLicenseInformation = z.object({
-  expiry_date: z.lazy(() => DateTime).describe('The date and time the license expires in ISO 8601 format.').optional(),
-  expiry_date_in_millis: z.lazy(() => EpochTime).describe('The date and time the license expires in milliseconds since the Unix epoch.').optional(),
-  issue_date: z.lazy(() => DateTime).describe('The date and time the license was issued in ISO 8601 format.'),
-  issue_date_in_millis: z.lazy(() => EpochTime).describe('The date and time the license was issued in milliseconds since the Unix epoch.'),
+  expiry_date: DateTime.describe('The date and time the license expires in ISO 8601 format.').optional(),
+  expiry_date_in_millis: EpochTime.describe('The date and time the license expires in milliseconds since the Unix epoch.').optional(),
+  issue_date: DateTime.describe('The date and time the license was issued in ISO 8601 format.'),
+  issue_date_in_millis: EpochTime.describe('The date and time the license was issued in milliseconds since the Unix epoch.'),
   issued_to: z.string().describe('The name of the customer or organization that received the license.'),
   issuer: z.string().describe('The name of the organization that issued the license.'),
-  max_nodes: z.union([z.lazy(() => long), z.null()]).describe('The maximum number of nodes the license allows.'),
-  max_resource_units: z.union([z.lazy(() => integer), z.null()]).describe('The maximum number of resource units the license allows (for enterprise licenses only).').optional(),
+  max_nodes: z.union([long, z.null()]).describe('The maximum number of nodes the license allows.'),
+  max_resource_units: z.union([integer, z.null()]).describe('The maximum number of resource units the license allows (for enterprise licenses only).').optional(),
   status: LicenseLicenseStatus.describe('The status of the license. For example,active, valid, invalid, or expired.'),
   type: LicenseLicenseType.describe('The type of the license. For example, trial, basic, gold, platinum, or enterprise.'),
-  uid: z.lazy(() => Uuid).describe('The unique identifier of the license.'),
-  start_date_in_millis: z.lazy(() => EpochTime).describe('The date and time the license was started in milliseconds since the Unix epoch.')
+  uid: Uuid.describe('The unique identifier of the license.'),
+  start_date_in_millis: EpochTime.describe('The date and time the license was started in milliseconds since the Unix epoch.')
 }).meta({ id: 'LicenseGetLicenseInformation' })
 export type LicenseGetLicenseInformation = z.infer<typeof LicenseGetLicenseInformation>
 
@@ -71,6 +72,7 @@ export type LicenseGetLicenseInformation = z.infer<typeof LicenseGetLicenseInfor
  * > If you receive an unexpected 404 response after cluster startup, wait a short period and retry the request.
  */
 export const LicenseGetRequest = z.object({
+  ...RequestBase.shape,
   accept_enterprise: z.boolean().describe('If `true`, this parameter returns enterprise for Enterprise license types. If `false`, this parameter returns platinum for both platinum and enterprise license types. This behavior is maintained for backwards compatibility. This parameter is deprecated and will always be set to true in 8.x.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('Specifies whether to retrieve local information. From 9.2 onwards the default value is `true`, which means the information is retrieved from the responding node. In earlier versions the default is `false`, which means the information is retrieved from the elected master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'LicenseGetRequest' })
@@ -83,6 +85,7 @@ export type LicenseGetResponse = z.infer<typeof LicenseGetResponse>
 
 /** Get the basic license status. */
 export const LicenseGetBasicStatusRequest = z.object({
+  ...RequestBase.shape
 }).meta({ id: 'LicenseGetBasicStatusRequest' })
 export type LicenseGetBasicStatusRequest = z.infer<typeof LicenseGetBasicStatusRequest>
 
@@ -93,6 +96,7 @@ export type LicenseGetBasicStatusResponse = z.infer<typeof LicenseGetBasicStatus
 
 /** Get the trial status. */
 export const LicenseGetTrialStatusRequest = z.object({
+  ...RequestBase.shape
 }).meta({ id: 'LicenseGetTrialStatusRequest' })
 export type LicenseGetTrialStatusRequest = z.infer<typeof LicenseGetTrialStatusRequest>
 
@@ -119,9 +123,10 @@ export type LicensePostAcknowledgement = z.infer<typeof LicensePostAcknowledgeme
  * If the operator privileges feature is enabled, only operator users can use this API.
  */
 export const LicensePostRequest = z.object({
+  ...RequestBase.shape,
   acknowledge: z.boolean().describe('To update a license, you must accept the acknowledge messages and set this parameter to `true`. In particular, if you are upgrading or downgrading a license, you must acknowlege the feature changes.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('The period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('The period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   license: LicenseLicense.optional().meta({ found_in: 'body' }),
   licenses: z.array(LicenseLicense).describe('A sequence of one or more JSON documents containing the license information.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'LicensePostRequest' })
@@ -147,9 +152,10 @@ export type LicensePostResponse = z.infer<typeof LicensePostResponse>
  * To check the status of your basic license, use the get basic license API.
  */
 export const LicensePostStartBasicRequest = z.object({
+  ...RequestBase.shape,
   acknowledge: z.boolean().describe('To start a basic license, you must accept the acknowledge messages and set this parameter to `true`.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'LicensePostStartBasicRequest' })
 export type LicensePostStartBasicRequest = z.infer<typeof LicensePostStartBasicRequest>
 
@@ -173,9 +179,10 @@ export type LicensePostStartBasicResponse = z.infer<typeof LicensePostStartBasic
  * To check the status of your trial, use the get trial status API.
  */
 export const LicensePostStartTrialRequest = z.object({
+  ...RequestBase.shape,
   acknowledge: z.boolean().describe('To start a trial, you must accept the acknowledge messages and set this parameter to `true`.').optional().meta({ found_in: 'query' }),
   type: z.string().describe('The type of trial license to generate').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'LicensePostStartTrialRequest' })
 export type LicensePostStartTrialRequest = z.infer<typeof LicensePostStartTrialRequest>
 

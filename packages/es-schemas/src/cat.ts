@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
- 
- 
+/* eslint-disable @typescript-eslint/no-use-before-define */
+/* eslint-disable @typescript-eslint/no-redeclare */
 import { z } from 'zod'
 
 import { SpecUtilsStringified } from './_spec_utils.ts'
-import { ByteSize, DateTime, Duration, EpochTime, ExpandWildcards, Fields, HealthStatus, Host, Id, IndexName, Indices, Ip, Name, Names, NodeId, NodeIds, Percentage, TimeOfDay, VersionString, integer } from './_types.ts'
+import { ByteSize, DateTime, Duration, EpochTime, ExpandWildcards, Fields, HealthStatus, Host, Id, IndexName, Indices, Ip, Name, Names, NodeId, NodeIds, Percentage, RequestBase, TimeOfDay, VersionString, integer } from './_types.ts'
 import { MlCategorizationStatus, MlDatafeedState, MlJobState, MlMemoryStatus } from './ml.ts'
 import { WatcherScheduleTimeOfDay } from './watcher.ts'
 
@@ -115,6 +115,7 @@ export const CatCatRecoveryColumns = z.union([CatCatRecoveryColumn, z.array(CatC
 export type CatCatRecoveryColumns = z.infer<typeof CatCatRecoveryColumns>
 
 export const CatCatRequestBase = z.object({
+  ...RequestBase.shape
 }).meta({ id: 'CatCatRequestBase' })
 export type CatCatRequestBase = z.infer<typeof CatCatRequestBase>
 
@@ -169,9 +170,9 @@ export type CatCatTransformColumns = z.infer<typeof CatCatTransformColumns>
 export const CatAliasesAliasesRecord = z.object({
   alias: z.string().describe('alias name').optional(),
   a: z.string().describe('alias name').optional(),
-  index: z.lazy(() => IndexName).describe('index alias points to').optional(),
-  i: z.lazy(() => IndexName).describe('index alias points to').optional(),
-  idx: z.lazy(() => IndexName).describe('index alias points to').optional(),
+  index: IndexName.describe('index alias points to').optional(),
+  i: IndexName.describe('index alias points to').optional(),
+  idx: IndexName.describe('index alias points to').optional(),
   filter: z.string().describe('filter').optional(),
   f: z.string().describe('filter').optional(),
   fi: z.string().describe('filter').optional(),
@@ -197,11 +198,11 @@ export type CatAliasesAliasesRecord = z.infer<typeof CatAliasesAliasesRecord>
  */
 export const CatAliasesRequest = z.object({
   ...CatCatRequestBase.shape,
-  name: z.lazy(() => Names).describe('A comma-separated list of aliases to retrieve. Supports wildcards (`*`).  To retrieve all aliases, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  name: Names.describe('A comma-separated list of aliases to retrieve. Supports wildcards (`*`).  To retrieve all aliases, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
   h: CatCatAliasesColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('The type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. It supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If the master node is not available before the timeout expires, the request fails and returns an error. To indicated that the request should never timeout, you can set it to `-1`.').optional().meta({ found_in: 'query' })
+  s: Names.describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('The type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. It supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('The period to wait for a connection to the master node. If the master node is not available before the timeout expires, the request fails and returns an error. To indicated that the request should never timeout, you can set it to `-1`.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatAliasesRequest' })
 export type CatAliasesRequest = z.infer<typeof CatAliasesRequest>
 
@@ -212,30 +213,30 @@ export const CatAllocationAllocationRecord = z.object({
   shards: z.string().describe('Number of primary and replica shards assigned to the node.').optional(),
   s: z.string().describe('Number of primary and replica shards assigned to the node.').optional(),
   'shards.undesired': z.union([z.string(), z.null()]).describe('Amount of shards that are scheduled to be moved elsewhere in the cluster or -1 other than desired balance allocator is used').optional(),
-  'write_load.forecast': z.union([z.lazy(() => SpecUtilsStringified), z.null()]).describe('Sum of index write load forecasts').optional(),
-  wlf: z.union([z.lazy(() => SpecUtilsStringified), z.null()]).describe('Sum of index write load forecasts').optional(),
-  writeLoadForecast: z.union([z.lazy(() => SpecUtilsStringified), z.null()]).describe('Sum of index write load forecasts').optional(),
-  'disk.indices.forecast': z.union([z.lazy(() => ByteSize), z.null()]).describe('Sum of shard size forecasts').optional(),
-  dif: z.union([z.lazy(() => ByteSize), z.null()]).describe('Sum of shard size forecasts').optional(),
-  diskIndicesForecast: z.union([z.lazy(() => ByteSize), z.null()]).describe('Sum of shard size forecasts').optional(),
-  'disk.indices': z.union([z.lazy(() => ByteSize), z.null()]).describe('Disk space used by the node’s shards. Does not include disk space for the translog or unassigned shards. IMPORTANT: This metric double-counts disk space for hard-linked files, such as those created when shrinking, splitting, or cloning an index.').optional(),
-  di: z.union([z.lazy(() => ByteSize), z.null()]).describe('Disk space used by the node’s shards. Does not include disk space for the translog or unassigned shards. IMPORTANT: This metric double-counts disk space for hard-linked files, such as those created when shrinking, splitting, or cloning an index.').optional(),
-  diskIndices: z.union([z.lazy(() => ByteSize), z.null()]).describe('Disk space used by the node’s shards. Does not include disk space for the translog or unassigned shards. IMPORTANT: This metric double-counts disk space for hard-linked files, such as those created when shrinking, splitting, or cloning an index.').optional(),
-  'disk.used': z.union([z.lazy(() => ByteSize), z.null()]).describe('Total disk space in use. Elasticsearch retrieves this metric from the node’s operating system (OS). The metric includes disk space for: Elasticsearch, including the translog and unassigned shards; the node’s operating system; any other applications or files on the node. Unlike `disk.indices`, this metric does not double-count disk space for hard-linked files.').optional(),
-  du: z.union([z.lazy(() => ByteSize), z.null()]).describe('Total disk space in use. Elasticsearch retrieves this metric from the node’s operating system (OS). The metric includes disk space for: Elasticsearch, including the translog and unassigned shards; the node’s operating system; any other applications or files on the node. Unlike `disk.indices`, this metric does not double-count disk space for hard-linked files.').optional(),
-  diskUsed: z.union([z.lazy(() => ByteSize), z.null()]).describe('Total disk space in use. Elasticsearch retrieves this metric from the node’s operating system (OS). The metric includes disk space for: Elasticsearch, including the translog and unassigned shards; the node’s operating system; any other applications or files on the node. Unlike `disk.indices`, this metric does not double-count disk space for hard-linked files.').optional(),
-  'disk.avail': z.union([z.lazy(() => ByteSize), z.null()]).describe('Free disk space available to Elasticsearch. Elasticsearch retrieves this metric from the node’s operating system. Disk-based shard allocation uses this metric to assign shards to nodes based on available disk space.').optional(),
-  da: z.union([z.lazy(() => ByteSize), z.null()]).describe('Free disk space available to Elasticsearch. Elasticsearch retrieves this metric from the node’s operating system. Disk-based shard allocation uses this metric to assign shards to nodes based on available disk space.').optional(),
-  diskAvail: z.union([z.lazy(() => ByteSize), z.null()]).describe('Free disk space available to Elasticsearch. Elasticsearch retrieves this metric from the node’s operating system. Disk-based shard allocation uses this metric to assign shards to nodes based on available disk space.').optional(),
-  'disk.total': z.union([z.lazy(() => ByteSize), z.null()]).describe('Total disk space for the node, including in-use and available space.').optional(),
-  dt: z.union([z.lazy(() => ByteSize), z.null()]).describe('Total disk space for the node, including in-use and available space.').optional(),
-  diskTotal: z.union([z.lazy(() => ByteSize), z.null()]).describe('Total disk space for the node, including in-use and available space.').optional(),
-  'disk.percent': z.union([z.lazy(() => Percentage), z.null()]).describe('Total percentage of disk space in use. Calculated as `disk.used / disk.total`.').optional(),
-  dp: z.union([z.lazy(() => Percentage), z.null()]).describe('Total percentage of disk space in use. Calculated as `disk.used / disk.total`.').optional(),
-  diskPercent: z.union([z.lazy(() => Percentage), z.null()]).describe('Total percentage of disk space in use. Calculated as `disk.used / disk.total`.').optional(),
-  host: z.union([z.lazy(() => Host), z.null()]).describe('Network host for the node. Set using the `network.host` setting.').optional(),
-  h: z.union([z.lazy(() => Host), z.null()]).describe('Network host for the node. Set using the `network.host` setting.').optional(),
-  ip: z.union([z.lazy(() => Ip), z.null()]).describe('IP address and port for the node.').optional(),
+  'write_load.forecast': z.union([SpecUtilsStringified, z.null()]).describe('Sum of index write load forecasts').optional(),
+  wlf: z.union([SpecUtilsStringified, z.null()]).describe('Sum of index write load forecasts').optional(),
+  writeLoadForecast: z.union([SpecUtilsStringified, z.null()]).describe('Sum of index write load forecasts').optional(),
+  'disk.indices.forecast': z.union([ByteSize, z.null()]).describe('Sum of shard size forecasts').optional(),
+  dif: z.union([ByteSize, z.null()]).describe('Sum of shard size forecasts').optional(),
+  diskIndicesForecast: z.union([ByteSize, z.null()]).describe('Sum of shard size forecasts').optional(),
+  'disk.indices': z.union([ByteSize, z.null()]).describe('Disk space used by the node’s shards. Does not include disk space for the translog or unassigned shards. IMPORTANT: This metric double-counts disk space for hard-linked files, such as those created when shrinking, splitting, or cloning an index.').optional(),
+  di: z.union([ByteSize, z.null()]).describe('Disk space used by the node’s shards. Does not include disk space for the translog or unassigned shards. IMPORTANT: This metric double-counts disk space for hard-linked files, such as those created when shrinking, splitting, or cloning an index.').optional(),
+  diskIndices: z.union([ByteSize, z.null()]).describe('Disk space used by the node’s shards. Does not include disk space for the translog or unassigned shards. IMPORTANT: This metric double-counts disk space for hard-linked files, such as those created when shrinking, splitting, or cloning an index.').optional(),
+  'disk.used': z.union([ByteSize, z.null()]).describe('Total disk space in use. Elasticsearch retrieves this metric from the node’s operating system (OS). The metric includes disk space for: Elasticsearch, including the translog and unassigned shards; the node’s operating system; any other applications or files on the node. Unlike `disk.indices`, this metric does not double-count disk space for hard-linked files.').optional(),
+  du: z.union([ByteSize, z.null()]).describe('Total disk space in use. Elasticsearch retrieves this metric from the node’s operating system (OS). The metric includes disk space for: Elasticsearch, including the translog and unassigned shards; the node’s operating system; any other applications or files on the node. Unlike `disk.indices`, this metric does not double-count disk space for hard-linked files.').optional(),
+  diskUsed: z.union([ByteSize, z.null()]).describe('Total disk space in use. Elasticsearch retrieves this metric from the node’s operating system (OS). The metric includes disk space for: Elasticsearch, including the translog and unassigned shards; the node’s operating system; any other applications or files on the node. Unlike `disk.indices`, this metric does not double-count disk space for hard-linked files.').optional(),
+  'disk.avail': z.union([ByteSize, z.null()]).describe('Free disk space available to Elasticsearch. Elasticsearch retrieves this metric from the node’s operating system. Disk-based shard allocation uses this metric to assign shards to nodes based on available disk space.').optional(),
+  da: z.union([ByteSize, z.null()]).describe('Free disk space available to Elasticsearch. Elasticsearch retrieves this metric from the node’s operating system. Disk-based shard allocation uses this metric to assign shards to nodes based on available disk space.').optional(),
+  diskAvail: z.union([ByteSize, z.null()]).describe('Free disk space available to Elasticsearch. Elasticsearch retrieves this metric from the node’s operating system. Disk-based shard allocation uses this metric to assign shards to nodes based on available disk space.').optional(),
+  'disk.total': z.union([ByteSize, z.null()]).describe('Total disk space for the node, including in-use and available space.').optional(),
+  dt: z.union([ByteSize, z.null()]).describe('Total disk space for the node, including in-use and available space.').optional(),
+  diskTotal: z.union([ByteSize, z.null()]).describe('Total disk space for the node, including in-use and available space.').optional(),
+  'disk.percent': z.union([Percentage, z.null()]).describe('Total percentage of disk space in use. Calculated as `disk.used / disk.total`.').optional(),
+  dp: z.union([Percentage, z.null()]).describe('Total percentage of disk space in use. Calculated as `disk.used / disk.total`.').optional(),
+  diskPercent: z.union([Percentage, z.null()]).describe('Total percentage of disk space in use. Calculated as `disk.used / disk.total`.').optional(),
+  host: z.union([Host, z.null()]).describe('Network host for the node. Set using the `network.host` setting.').optional(),
+  h: z.union([Host, z.null()]).describe('Network host for the node. Set using the `network.host` setting.').optional(),
+  ip: z.union([Ip, z.null()]).describe('IP address and port for the node.').optional(),
   node: z.string().describe('Name for the node. Set using the `node.name` setting.').optional(),
   n: z.string().describe('Name for the node. Set using the `node.name` setting.').optional(),
   'node.role': z.union([z.string(), z.null()]).describe('Node roles').optional(),
@@ -254,11 +255,11 @@ export type CatAllocationAllocationRecord = z.infer<typeof CatAllocationAllocati
  */
 export const CatAllocationRequest = z.object({
   ...CatCatRequestBase.shape,
-  node_id: z.lazy(() => NodeIds).describe('A comma-separated list of node identifiers or names used to limit the returned information.').optional().meta({ found_in: 'path' }),
+  node_id: NodeIds.describe('A comma-separated list of node identifiers or names used to limit the returned information.').optional().meta({ found_in: 'path' }),
   h: CatCatAllocationColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
+  s: Names.describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatAllocationRequest' })
 export type CatAllocationRequest = z.infer<typeof CatAllocationRequest>
 
@@ -266,20 +267,20 @@ export const CatAllocationResponse = z.array(CatAllocationAllocationRecord).meta
 export type CatAllocationResponse = z.infer<typeof CatAllocationResponse>
 
 export const CatCircuitBreakerCircuitBreakerRecord = z.object({
-  node_id: z.lazy(() => NodeId).describe('Persistent node ID').optional(),
-  id: z.lazy(() => NodeId).describe('Persistent node ID').optional(),
+  node_id: NodeId.describe('Persistent node ID').optional(),
+  id: NodeId.describe('Persistent node ID').optional(),
   node_name: z.string().describe('Node name').optional(),
   nn: z.string().describe('Node name').optional(),
   breaker: z.string().describe('Breaker name').optional(),
   br: z.string().describe('Breaker name').optional(),
   limit: z.string().describe('Limit size').optional(),
   l: z.string().describe('Limit size').optional(),
-  limit_bytes: z.lazy(() => ByteSize).describe('Limit size in bytes').optional(),
-  lb: z.lazy(() => ByteSize).describe('Limit size in bytes').optional(),
+  limit_bytes: ByteSize.describe('Limit size in bytes').optional(),
+  lb: ByteSize.describe('Limit size in bytes').optional(),
   estimated: z.string().describe('Estimated size').optional(),
   e: z.string().describe('Estimated size').optional(),
-  estimated_bytes: z.lazy(() => ByteSize).describe('Estimated size in bytes').optional(),
-  eb: z.lazy(() => ByteSize).describe('Estimated size in bytes').optional(),
+  estimated_bytes: ByteSize.describe('Estimated size in bytes').optional(),
+  eb: ByteSize.describe('Estimated size in bytes').optional(),
   tripped: z.string().describe('Tripped count').optional(),
   t: z.string().describe('Tripped count').optional(),
   overhead: z.string().describe('Overhead').optional(),
@@ -297,9 +298,9 @@ export const CatCircuitBreakerRequest = z.object({
   ...CatCatRequestBase.shape,
   circuit_breaker_patterns: z.union([z.string(), z.array(z.string())]).describe('A comma-separated list of regular-expressions to filter the circuit breakers in the output').optional().meta({ found_in: 'path' }),
   h: CatCatCircuitBreakerColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
+  s: Names.describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatCircuitBreakerRequest' })
 export type CatCircuitBreakerRequest = z.infer<typeof CatCircuitBreakerRequest>
 
@@ -330,9 +331,9 @@ export const CatComponentTemplatesRequest = z.object({
   ...CatCatRequestBase.shape,
   name: z.string().describe('The name of the component template. It accepts wildcard expressions. If it is omitted, all component templates are returned.').optional().meta({ found_in: 'path' }),
   h: CatCatComponentColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
+  s: Names.describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatComponentTemplatesRequest' })
 export type CatComponentTemplatesRequest = z.infer<typeof CatComponentTemplatesRequest>
 
@@ -340,9 +341,9 @@ export const CatComponentTemplatesResponse = z.array(CatComponentTemplatesCompon
 export type CatComponentTemplatesResponse = z.infer<typeof CatComponentTemplatesResponse>
 
 export const CatCountCountRecord = z.object({
-  epoch: z.lazy(() => SpecUtilsStringified).describe('seconds since 1970-01-01 00:00:00').optional(),
-  t: z.lazy(() => SpecUtilsStringified).describe('seconds since 1970-01-01 00:00:00').optional(),
-  time: z.lazy(() => SpecUtilsStringified).describe('seconds since 1970-01-01 00:00:00').optional(),
+  epoch: SpecUtilsStringified.describe('seconds since 1970-01-01 00:00:00').optional(),
+  t: SpecUtilsStringified.describe('seconds since 1970-01-01 00:00:00').optional(),
+  time: SpecUtilsStringified.describe('seconds since 1970-01-01 00:00:00').optional(),
   timestamp: TimeOfDay.describe('time in HH:MM:SS').optional(),
   ts: TimeOfDay.describe('time in HH:MM:SS').optional(),
   hms: TimeOfDay.describe('time in HH:MM:SS').optional(),
@@ -367,9 +368,9 @@ export type CatCountCountRecord = z.infer<typeof CatCountCountRecord>
  */
 export const CatCountRequest = z.object({
   ...CatCatRequestBase.shape,
-  index: z.lazy(() => Indices).describe('A comma-separated list of data streams, indices, and aliases used to limit the request. It supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  index: Indices.describe('A comma-separated list of data streams, indices, and aliases used to limit the request. It supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
   h: CatCatCountColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' })
+  s: Names.describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatCountRequest' })
 export type CatCountRequest = z.infer<typeof CatCountRequest>
 
@@ -399,9 +400,9 @@ export type CatFielddataFielddataRecord = z.infer<typeof CatFielddataFielddataRe
  */
 export const CatFielddataRequest = z.object({
   ...CatCatRequestBase.shape,
-  fields: z.lazy(() => Fields).describe('Comma-separated list of fields used to limit returned information. To retrieve all fields, omit this parameter.').optional().meta({ found_in: 'path' }),
+  fields: Fields.describe('Comma-separated list of fields used to limit returned information. To retrieve all fields, omit this parameter.').optional().meta({ found_in: 'path' }),
   h: CatCatFieldDataColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' })
+  s: Names.describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatFielddataRequest' })
 export type CatFielddataRequest = z.infer<typeof CatFielddataRequest>
 
@@ -409,8 +410,8 @@ export const CatFielddataResponse = z.array(CatFielddataFielddataRecord).meta({ 
 export type CatFielddataResponse = z.infer<typeof CatFielddataResponse>
 
 export const CatHealthHealthRecord = z.object({
-  epoch: z.lazy(() => SpecUtilsStringified).describe('seconds since 1970-01-01 00:00:00').optional(),
-  time: z.lazy(() => SpecUtilsStringified).describe('seconds since 1970-01-01 00:00:00').optional(),
+  epoch: SpecUtilsStringified.describe('seconds since 1970-01-01 00:00:00').optional(),
+  time: SpecUtilsStringified.describe('seconds since 1970-01-01 00:00:00').optional(),
   timestamp: TimeOfDay.describe('time in HH:MM:SS').optional(),
   ts: TimeOfDay.describe('time in HH:MM:SS').optional(),
   hms: TimeOfDay.describe('time in HH:MM:SS').optional(),
@@ -479,7 +480,7 @@ export const CatHealthRequest = z.object({
   ...CatCatRequestBase.shape,
   ts: z.boolean().describe('If true, returns `HH:MM:SS` and Unix epoch timestamps.').optional().meta({ found_in: 'query' }),
   h: CatCatHealthColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' })
+  s: Names.describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatHealthRequest' })
 export type CatHealthRequest = z.infer<typeof CatHealthRequest>
 
@@ -815,14 +816,14 @@ export type CatIndicesIndicesRecord = z.infer<typeof CatIndicesIndicesRecord>
  */
 export const CatIndicesRequest = z.object({
   ...CatCatRequestBase.shape,
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('The type of index that wildcard patterns can match.').optional().meta({ found_in: 'query' }),
-  health: z.lazy(() => HealthStatus).describe('The health status used to limit returned indices. By default, the response includes indices of any health status.').optional().meta({ found_in: 'query' }),
+  index: Indices.describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  expand_wildcards: ExpandWildcards.describe('The type of index that wildcard patterns can match.').optional().meta({ found_in: 'query' }),
+  health: HealthStatus.describe('The health status used to limit returned indices. By default, the response includes indices of any health status.').optional().meta({ found_in: 'query' }),
   include_unloaded_segments: z.boolean().describe('If true, the response includes information from segments that are not loaded into memory.').optional().meta({ found_in: 'query' }),
   pri: z.boolean().describe('If true, the response only includes information from primary shards.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
   h: CatCatIndicesColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' })
+  s: Names.describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatIndicesRequest' })
 export type CatIndicesRequest = z.infer<typeof CatIndicesRequest>
 
@@ -849,9 +850,9 @@ export type CatMasterMasterRecord = z.infer<typeof CatMasterMasterRecord>
 export const CatMasterRequest = z.object({
   ...CatCatRequestBase.shape,
   h: CatCatMasterColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
+  s: Names.describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatMasterRequest' })
 export type CatMasterRequest = z.infer<typeof CatMasterRequest>
 
@@ -859,20 +860,20 @@ export const CatMasterResponse = z.array(CatMasterMasterRecord).meta({ id: 'CatM
 export type CatMasterResponse = z.infer<typeof CatMasterResponse>
 
 export const CatMlDataFrameAnalyticsDataFrameAnalyticsRecord = z.object({
-  id: z.lazy(() => Id).describe('The identifier for the job.').optional(),
+  id: Id.describe('The identifier for the job.').optional(),
   type: z.string().describe('The type of analysis that the job performs.').optional(),
   t: z.string().describe('The type of analysis that the job performs.').optional(),
   create_time: z.string().describe('The time when the job was created.').optional(),
   ct: z.string().describe('The time when the job was created.').optional(),
   createTime: z.string().describe('The time when the job was created.').optional(),
-  version: z.lazy(() => VersionString).describe('The version of Elasticsearch when the job was created.').optional(),
-  v: z.lazy(() => VersionString).describe('The version of Elasticsearch when the job was created.').optional(),
-  source_index: z.lazy(() => IndexName).describe('The name of the source index.').optional(),
-  si: z.lazy(() => IndexName).describe('The name of the source index.').optional(),
-  sourceIndex: z.lazy(() => IndexName).describe('The name of the source index.').optional(),
-  dest_index: z.lazy(() => IndexName).describe('The name of the destination index.').optional(),
-  di: z.lazy(() => IndexName).describe('The name of the destination index.').optional(),
-  destIndex: z.lazy(() => IndexName).describe('The name of the destination index.').optional(),
+  version: VersionString.describe('The version of Elasticsearch when the job was created.').optional(),
+  v: VersionString.describe('The version of Elasticsearch when the job was created.').optional(),
+  source_index: IndexName.describe('The name of the source index.').optional(),
+  si: IndexName.describe('The name of the source index.').optional(),
+  sourceIndex: IndexName.describe('The name of the source index.').optional(),
+  dest_index: IndexName.describe('The name of the destination index.').optional(),
+  di: IndexName.describe('The name of the destination index.').optional(),
+  destIndex: IndexName.describe('The name of the destination index.').optional(),
   description: z.string().describe('A description of the job.').optional(),
   d: z.string().describe('A description of the job.').optional(),
   model_memory_limit: z.string().describe('The approximate maximum amount of memory resources that are permitted for the job.').optional(),
@@ -888,15 +889,15 @@ export const CatMlDataFrameAnalyticsDataFrameAnalyticsRecord = z.object({
   assignment_explanation: z.string().describe('Messages related to the selection of a node.').optional(),
   ae: z.string().describe('Messages related to the selection of a node.').optional(),
   assignmentExplanation: z.string().describe('Messages related to the selection of a node.').optional(),
-  'node.id': z.lazy(() => Id).describe('The unique identifier of the assigned node.').optional(),
-  ni: z.lazy(() => Id).describe('The unique identifier of the assigned node.').optional(),
-  nodeId: z.lazy(() => Id).describe('The unique identifier of the assigned node.').optional(),
-  'node.name': z.lazy(() => Name).describe('The name of the assigned node.').optional(),
-  nn: z.lazy(() => Name).describe('The name of the assigned node.').optional(),
-  nodeName: z.lazy(() => Name).describe('The name of the assigned node.').optional(),
-  'node.ephemeral_id': z.lazy(() => Id).describe('The ephemeral identifier of the assigned node.').optional(),
-  ne: z.lazy(() => Id).describe('The ephemeral identifier of the assigned node.').optional(),
-  nodeEphemeralId: z.lazy(() => Id).describe('The ephemeral identifier of the assigned node.').optional(),
+  'node.id': Id.describe('The unique identifier of the assigned node.').optional(),
+  ni: Id.describe('The unique identifier of the assigned node.').optional(),
+  nodeId: Id.describe('The unique identifier of the assigned node.').optional(),
+  'node.name': Name.describe('The name of the assigned node.').optional(),
+  nn: Name.describe('The name of the assigned node.').optional(),
+  nodeName: Name.describe('The name of the assigned node.').optional(),
+  'node.ephemeral_id': Id.describe('The ephemeral identifier of the assigned node.').optional(),
+  ne: Id.describe('The ephemeral identifier of the assigned node.').optional(),
+  nodeEphemeralId: Id.describe('The ephemeral identifier of the assigned node.').optional(),
   'node.address': z.string().describe('The network address of the assigned node.').optional(),
   na: z.string().describe('The network address of the assigned node.').optional(),
   nodeAddress: z.string().describe('The network address of the assigned node.').optional()
@@ -914,7 +915,7 @@ export type CatMlDataFrameAnalyticsDataFrameAnalyticsRecord = z.infer<typeof Cat
  */
 export const CatMlDataFrameAnalyticsRequest = z.object({
   ...CatCatRequestBase.shape,
-  id: z.lazy(() => Id).describe('The ID of the data frame analytics to fetch').optional().meta({ found_in: 'path' }),
+  id: Id.describe('The ID of the data frame analytics to fetch').optional().meta({ found_in: 'path' }),
   allow_no_match: z.boolean().describe('Whether to ignore if a wildcard expression matches no configs. (This includes `_all` string or when no configs have been specified.)').optional().meta({ found_in: 'query' }),
   h: CatCatDfaColumns.describe('Comma-separated list of column names to display.').optional().meta({ found_in: 'query' }),
   s: CatCatDfaColumns.describe('Comma-separated list of column names or column aliases used to sort the response.').optional().meta({ found_in: 'query' })
@@ -974,7 +975,7 @@ export type CatMlDatafeedsDatafeedsRecord = z.infer<typeof CatMlDatafeedsDatafee
  */
 export const CatMlDatafeedsRequest = z.object({
   ...CatCatRequestBase.shape,
-  datafeed_id: z.lazy(() => Id).describe('A numerical character string that uniquely identifies the datafeed.').optional().meta({ found_in: 'path' }),
+  datafeed_id: Id.describe('A numerical character string that uniquely identifies the datafeed.').optional().meta({ found_in: 'path' }),
   allow_no_match: z.boolean().describe('Specifies what to do when the request: * Contains wildcard expressions and there are no datafeeds that match. * Contains the `_all` string or no identifiers and there are no matches. * Contains wildcard expressions and there are only partial matches. If `true`, the API returns an empty datafeeds array when there are no matches and the subset of results when there are partial matches. If `false`, the API returns a 404 status code when there are no matches or only partial matches.').optional().meta({ found_in: 'query' }),
   h: CatCatDatafeedColumns.describe('Comma-separated list of column names to display.').optional().meta({ found_in: 'query' }),
   s: CatCatDatafeedColumns.describe('Comma-separated list of column names or column aliases used to sort the response.').optional().meta({ found_in: 'query' })
@@ -985,7 +986,7 @@ export const CatMlDatafeedsResponse = z.array(CatMlDatafeedsDatafeedsRecord).met
 export type CatMlDatafeedsResponse = z.infer<typeof CatMlDatafeedsResponse>
 
 export const CatMlJobsJobsRecord = z.object({
-  id: z.lazy(() => Id).describe('The anomaly detection job identifier.').optional(),
+  id: Id.describe('The anomaly detection job identifier.').optional(),
   state: MlJobState.describe('The status of the anomaly detection job.').optional(),
   s: MlJobState.describe('The status of the anomaly detection job.').optional(),
   opened_time: z.string().describe('For open jobs only, the amount of time the job has been opened.').optional(),
@@ -998,9 +999,9 @@ export const CatMlJobsJobsRecord = z.object({
   'data.processed_fields': z.string().describe('The total number of fields in all the documents that have been processed by the anomaly detection job. Only fields that are specified in the detector configuration object contribute to this count. The timestamp is not included in this count.').optional(),
   dpf: z.string().describe('The total number of fields in all the documents that have been processed by the anomaly detection job. Only fields that are specified in the detector configuration object contribute to this count. The timestamp is not included in this count.').optional(),
   dataProcessedFields: z.string().describe('The total number of fields in all the documents that have been processed by the anomaly detection job. Only fields that are specified in the detector configuration object contribute to this count. The timestamp is not included in this count.').optional(),
-  'data.input_bytes': z.lazy(() => ByteSize).describe('The number of bytes of input data posted to the anomaly detection job.').optional(),
-  dib: z.lazy(() => ByteSize).describe('The number of bytes of input data posted to the anomaly detection job.').optional(),
-  dataInputBytes: z.lazy(() => ByteSize).describe('The number of bytes of input data posted to the anomaly detection job.').optional(),
+  'data.input_bytes': ByteSize.describe('The number of bytes of input data posted to the anomaly detection job.').optional(),
+  dib: ByteSize.describe('The number of bytes of input data posted to the anomaly detection job.').optional(),
+  dataInputBytes: ByteSize.describe('The number of bytes of input data posted to the anomaly detection job.').optional(),
   'data.input_records': z.string().describe('The number of input documents posted to the anomaly detection job.').optional(),
   dir: z.string().describe('The number of input documents posted to the anomaly detection job.').optional(),
   dataInputRecords: z.string().describe('The number of input documents posted to the anomaly detection job.').optional(),
@@ -1040,15 +1041,15 @@ export const CatMlJobsJobsRecord = z.object({
   'data.last_sparse_bucket': z.string().describe('The timestamp of the last bucket that was considered sparse.').optional(),
   dlsb: z.string().describe('The timestamp of the last bucket that was considered sparse.').optional(),
   dataLastSparseBucket: z.string().describe('The timestamp of the last bucket that was considered sparse.').optional(),
-  'model.bytes': z.lazy(() => ByteSize).describe('The number of bytes of memory used by the models. This is the maximum value since the last time the model was persisted. If the job is closed, this value indicates the latest size.').optional(),
-  mb: z.lazy(() => ByteSize).describe('The number of bytes of memory used by the models. This is the maximum value since the last time the model was persisted. If the job is closed, this value indicates the latest size.').optional(),
-  modelBytes: z.lazy(() => ByteSize).describe('The number of bytes of memory used by the models. This is the maximum value since the last time the model was persisted. If the job is closed, this value indicates the latest size.').optional(),
+  'model.bytes': ByteSize.describe('The number of bytes of memory used by the models. This is the maximum value since the last time the model was persisted. If the job is closed, this value indicates the latest size.').optional(),
+  mb: ByteSize.describe('The number of bytes of memory used by the models. This is the maximum value since the last time the model was persisted. If the job is closed, this value indicates the latest size.').optional(),
+  modelBytes: ByteSize.describe('The number of bytes of memory used by the models. This is the maximum value since the last time the model was persisted. If the job is closed, this value indicates the latest size.').optional(),
   'model.memory_status': MlMemoryStatus.describe('The status of the mathematical models.').optional(),
   mms: MlMemoryStatus.describe('The status of the mathematical models.').optional(),
   modelMemoryStatus: MlMemoryStatus.describe('The status of the mathematical models.').optional(),
-  'model.bytes_exceeded': z.lazy(() => ByteSize).describe('The number of bytes over the high limit for memory usage at the last allocation failure.').optional(),
-  mbe: z.lazy(() => ByteSize).describe('The number of bytes over the high limit for memory usage at the last allocation failure.').optional(),
-  modelBytesExceeded: z.lazy(() => ByteSize).describe('The number of bytes over the high limit for memory usage at the last allocation failure.').optional(),
+  'model.bytes_exceeded': ByteSize.describe('The number of bytes over the high limit for memory usage at the last allocation failure.').optional(),
+  mbe: ByteSize.describe('The number of bytes over the high limit for memory usage at the last allocation failure.').optional(),
+  modelBytesExceeded: ByteSize.describe('The number of bytes over the high limit for memory usage at the last allocation failure.').optional(),
   'model.memory_limit': z.string().describe('The upper limit for model memory usage, checked on increasing values.').optional(),
   mml: z.string().describe('The upper limit for model memory usage, checked on increasing values.').optional(),
   modelMemoryLimit: z.string().describe('The upper limit for model memory usage, checked on increasing values.').optional(),
@@ -1129,15 +1130,15 @@ export const CatMlJobsJobsRecord = z.object({
   'forecasts.time.total': z.string().describe('The total runtime in milliseconds for forecasts related to the anomaly detection job.').optional(),
   ftt: z.string().describe('The total runtime in milliseconds for forecasts related to the anomaly detection job.').optional(),
   forecastsTimeTotal: z.string().describe('The total runtime in milliseconds for forecasts related to the anomaly detection job.').optional(),
-  'node.id': z.lazy(() => NodeId).describe('The uniqe identifier of the assigned node.').optional(),
-  ni: z.lazy(() => NodeId).describe('The uniqe identifier of the assigned node.').optional(),
-  nodeId: z.lazy(() => NodeId).describe('The uniqe identifier of the assigned node.').optional(),
+  'node.id': NodeId.describe('The uniqe identifier of the assigned node.').optional(),
+  ni: NodeId.describe('The uniqe identifier of the assigned node.').optional(),
+  nodeId: NodeId.describe('The uniqe identifier of the assigned node.').optional(),
   'node.name': z.string().describe('The name of the assigned node.').optional(),
   nn: z.string().describe('The name of the assigned node.').optional(),
   nodeName: z.string().describe('The name of the assigned node.').optional(),
-  'node.ephemeral_id': z.lazy(() => NodeId).describe('The ephemeral identifier of the assigned node.').optional(),
-  ne: z.lazy(() => NodeId).describe('The ephemeral identifier of the assigned node.').optional(),
-  nodeEphemeralId: z.lazy(() => NodeId).describe('The ephemeral identifier of the assigned node.').optional(),
+  'node.ephemeral_id': NodeId.describe('The ephemeral identifier of the assigned node.').optional(),
+  ne: NodeId.describe('The ephemeral identifier of the assigned node.').optional(),
+  nodeEphemeralId: NodeId.describe('The ephemeral identifier of the assigned node.').optional(),
   'node.address': z.string().describe('The network address of the assigned node.').optional(),
   na: z.string().describe('The network address of the assigned node.').optional(),
   nodeAddress: z.string().describe('The network address of the assigned node.').optional(),
@@ -1176,7 +1177,7 @@ export type CatMlJobsJobsRecord = z.infer<typeof CatMlJobsJobsRecord>
  */
 export const CatMlJobsRequest = z.object({
   ...CatCatRequestBase.shape,
-  job_id: z.lazy(() => Id).describe('Identifier for the anomaly detection job.').optional().meta({ found_in: 'path' }),
+  job_id: Id.describe('Identifier for the anomaly detection job.').optional().meta({ found_in: 'path' }),
   allow_no_match: z.boolean().describe('Specifies what to do when the request: * Contains wildcard expressions and there are no jobs that match. * Contains the `_all` string or no identifiers and there are no matches. * Contains wildcard expressions and there are only partial matches. If `true`, the API returns an empty jobs array when there are no matches and the subset of results when there are partial matches. If `false`, the API returns a 404 status code when there are no matches or only partial matches.').optional().meta({ found_in: 'query' }),
   h: CatCatAnomalyDetectorColumns.describe('Comma-separated list of column names to display.').optional().meta({ found_in: 'query' }),
   s: CatCatAnomalyDetectorColumns.describe('Comma-separated list of column names or column aliases used to sort the response.').optional().meta({ found_in: 'query' })
@@ -1197,32 +1198,32 @@ export type CatMlJobsResponse = z.infer<typeof CatMlJobsResponse>
  */
 export const CatMlTrainedModelsRequest = z.object({
   ...CatCatRequestBase.shape,
-  model_id: z.lazy(() => Id).describe('A unique identifier for the trained model.').optional().meta({ found_in: 'path' }),
+  model_id: Id.describe('A unique identifier for the trained model.').optional().meta({ found_in: 'path' }),
   allow_no_match: z.boolean().describe('Specifies what to do when the request: contains wildcard expressions and there are no models that match; contains the `_all` string or no identifiers and there are no matches; contains wildcard expressions and there are only partial matches. If `true`, the API returns an empty array when there are no matches and the subset of results when there are partial matches. If `false`, the API returns a 404 status code when there are no matches or only partial matches.').optional().meta({ found_in: 'query' }),
   h: CatCatTrainedModelsColumns.describe('A comma-separated list of column names to display.').optional().meta({ found_in: 'query' }),
   s: CatCatTrainedModelsColumns.describe('A comma-separated list of column names or aliases used to sort the response.').optional().meta({ found_in: 'query' }),
-  from: z.lazy(() => integer).describe('Skips the specified number of transforms.').optional().meta({ found_in: 'query' }),
-  size: z.lazy(() => integer).describe('The maximum number of transforms to display.').optional().meta({ found_in: 'query' })
+  from: integer.describe('Skips the specified number of transforms.').optional().meta({ found_in: 'query' }),
+  size: integer.describe('The maximum number of transforms to display.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatMlTrainedModelsRequest' })
 export type CatMlTrainedModelsRequest = z.infer<typeof CatMlTrainedModelsRequest>
 
 export const CatMlTrainedModelsTrainedModelsRecord = z.object({
-  id: z.lazy(() => Id).describe('The model identifier.').optional(),
+  id: Id.describe('The model identifier.').optional(),
   created_by: z.string().describe('Information about the creator of the model.').optional(),
   c: z.string().describe('Information about the creator of the model.').optional(),
   createdBy: z.string().describe('Information about the creator of the model.').optional(),
-  heap_size: z.lazy(() => ByteSize).describe('The estimated heap size to keep the model in memory.').optional(),
-  hs: z.lazy(() => ByteSize).describe('The estimated heap size to keep the model in memory.').optional(),
-  modelHeapSize: z.lazy(() => ByteSize).describe('The estimated heap size to keep the model in memory.').optional(),
+  heap_size: ByteSize.describe('The estimated heap size to keep the model in memory.').optional(),
+  hs: ByteSize.describe('The estimated heap size to keep the model in memory.').optional(),
+  modelHeapSize: ByteSize.describe('The estimated heap size to keep the model in memory.').optional(),
   operations: z.string().describe('The estimated number of operations to use the model. This number helps to measure the computational complexity of the model.').optional(),
   o: z.string().describe('The estimated number of operations to use the model. This number helps to measure the computational complexity of the model.').optional(),
   modelOperations: z.string().describe('The estimated number of operations to use the model. This number helps to measure the computational complexity of the model.').optional(),
   license: z.string().describe('The license level of the model.').optional(),
   l: z.string().describe('The license level of the model.').optional(),
-  create_time: z.lazy(() => DateTime).describe('The time the model was created.').optional(),
-  ct: z.lazy(() => DateTime).describe('The time the model was created.').optional(),
-  version: z.lazy(() => VersionString).describe('The version of Elasticsearch when the model was created.').optional(),
-  v: z.lazy(() => VersionString).describe('The version of Elasticsearch when the model was created.').optional(),
+  create_time: DateTime.describe('The time the model was created.').optional(),
+  ct: DateTime.describe('The time the model was created.').optional(),
+  version: VersionString.describe('The version of Elasticsearch when the model was created.').optional(),
+  v: VersionString.describe('The version of Elasticsearch when the model was created.').optional(),
   description: z.string().describe('A description of the model.').optional(),
   d: z.string().describe('A description of the model.').optional(),
   'ingest.pipelines': z.string().describe('The number of pipelines that are referencing the model.').optional(),
@@ -1282,9 +1283,9 @@ export type CatNodeattrsNodeAttributesRecord = z.infer<typeof CatNodeattrsNodeAt
 export const CatNodeattrsRequest = z.object({
   ...CatCatRequestBase.shape,
   h: CatCatNodeattrsColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
+  s: Names.describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatNodeattrsRequest' })
 export type CatNodeattrsRequest = z.infer<typeof CatNodeattrsRequest>
 
@@ -1292,8 +1293,8 @@ export const CatNodeattrsResponse = z.array(CatNodeattrsNodeAttributesRecord).me
 export type CatNodeattrsResponse = z.infer<typeof CatNodeattrsResponse>
 
 export const CatNodesNodesRecord = z.object({
-  id: z.lazy(() => Id).describe('The unique node identifier.').optional(),
-  nodeId: z.lazy(() => Id).describe('The unique node identifier.').optional(),
+  id: Id.describe('The unique node identifier.').optional(),
+  nodeId: Id.describe('The unique node identifier.').optional(),
   pid: z.string().describe('The process identifier.').optional(),
   p: z.string().describe('The process identifier.').optional(),
   ip: z.string().describe('The IP address.').optional(),
@@ -1302,8 +1303,8 @@ export const CatNodesNodesRecord = z.object({
   po: z.string().describe('The bound transport port.').optional(),
   http_address: z.string().describe('The bound HTTP address.').optional(),
   http: z.string().describe('The bound HTTP address.').optional(),
-  version: z.lazy(() => VersionString).describe('The Elasticsearch version.').optional(),
-  v: z.lazy(() => VersionString).describe('The Elasticsearch version.').optional(),
+  version: VersionString.describe('The Elasticsearch version.').optional(),
+  v: VersionString.describe('The Elasticsearch version.').optional(),
   flavor: z.string().describe('The Elasticsearch distribution flavor.').optional(),
   f: z.string().describe('The Elasticsearch distribution flavor.').optional(),
   type: z.string().describe('The Elasticsearch distribution type.').optional(),
@@ -1312,44 +1313,44 @@ export const CatNodesNodesRecord = z.object({
   b: z.string().describe('The Elasticsearch build hash.').optional(),
   jdk: z.string().describe('The Java version.').optional(),
   j: z.string().describe('The Java version.').optional(),
-  'disk.total': z.lazy(() => ByteSize).describe('The total disk space.').optional(),
-  dt: z.lazy(() => ByteSize).describe('The total disk space.').optional(),
-  diskTotal: z.lazy(() => ByteSize).describe('The total disk space.').optional(),
-  'disk.used': z.lazy(() => ByteSize).describe('The used disk space.').optional(),
-  du: z.lazy(() => ByteSize).describe('The used disk space.').optional(),
-  diskUsed: z.lazy(() => ByteSize).describe('The used disk space.').optional(),
-  'disk.avail': z.lazy(() => ByteSize).describe('The available disk space.').optional(),
-  d: z.lazy(() => ByteSize).describe('The available disk space.').optional(),
-  da: z.lazy(() => ByteSize).describe('The available disk space.').optional(),
-  disk: z.lazy(() => ByteSize).describe('The available disk space.').optional(),
-  diskAvail: z.lazy(() => ByteSize).describe('The available disk space.').optional(),
-  'disk.used_percent': z.lazy(() => Percentage).describe('The used disk space percentage.').optional(),
-  dup: z.lazy(() => Percentage).describe('The used disk space percentage.').optional(),
-  diskUsedPercent: z.lazy(() => Percentage).describe('The used disk space percentage.').optional(),
+  'disk.total': ByteSize.describe('The total disk space.').optional(),
+  dt: ByteSize.describe('The total disk space.').optional(),
+  diskTotal: ByteSize.describe('The total disk space.').optional(),
+  'disk.used': ByteSize.describe('The used disk space.').optional(),
+  du: ByteSize.describe('The used disk space.').optional(),
+  diskUsed: ByteSize.describe('The used disk space.').optional(),
+  'disk.avail': ByteSize.describe('The available disk space.').optional(),
+  d: ByteSize.describe('The available disk space.').optional(),
+  da: ByteSize.describe('The available disk space.').optional(),
+  disk: ByteSize.describe('The available disk space.').optional(),
+  diskAvail: ByteSize.describe('The available disk space.').optional(),
+  'disk.used_percent': Percentage.describe('The used disk space percentage.').optional(),
+  dup: Percentage.describe('The used disk space percentage.').optional(),
+  diskUsedPercent: Percentage.describe('The used disk space percentage.').optional(),
   'heap.current': z.string().describe('The used heap.').optional(),
   hc: z.string().describe('The used heap.').optional(),
   heapCurrent: z.string().describe('The used heap.').optional(),
-  'heap.percent': z.lazy(() => Percentage).describe('The used heap ratio.').optional(),
-  hp: z.lazy(() => Percentage).describe('The used heap ratio.').optional(),
-  heapPercent: z.lazy(() => Percentage).describe('The used heap ratio.').optional(),
+  'heap.percent': Percentage.describe('The used heap ratio.').optional(),
+  hp: Percentage.describe('The used heap ratio.').optional(),
+  heapPercent: Percentage.describe('The used heap ratio.').optional(),
   'heap.max': z.string().describe('The maximum configured heap.').optional(),
   hm: z.string().describe('The maximum configured heap.').optional(),
   heapMax: z.string().describe('The maximum configured heap.').optional(),
   'ram.current': z.string().describe('The used machine memory.').optional(),
   rc: z.string().describe('The used machine memory.').optional(),
   ramCurrent: z.string().describe('The used machine memory.').optional(),
-  'ram.percent': z.lazy(() => Percentage).describe('The used machine memory ratio.').optional(),
-  rp: z.lazy(() => Percentage).describe('The used machine memory ratio.').optional(),
-  ramPercent: z.lazy(() => Percentage).describe('The used machine memory ratio.').optional(),
+  'ram.percent': Percentage.describe('The used machine memory ratio.').optional(),
+  rp: Percentage.describe('The used machine memory ratio.').optional(),
+  ramPercent: Percentage.describe('The used machine memory ratio.').optional(),
   'ram.max': z.string().describe('The total machine memory.').optional(),
   rn: z.string().describe('The total machine memory.').optional(),
   ramMax: z.string().describe('The total machine memory.').optional(),
   'file_desc.current': z.string().describe('The used file descriptors.').optional(),
   fdc: z.string().describe('The used file descriptors.').optional(),
   fileDescriptorCurrent: z.string().describe('The used file descriptors.').optional(),
-  'file_desc.percent': z.lazy(() => Percentage).describe('The used file descriptor ratio.').optional(),
-  fdp: z.lazy(() => Percentage).describe('The used file descriptor ratio.').optional(),
-  fileDescriptorPercent: z.lazy(() => Percentage).describe('The used file descriptor ratio.').optional(),
+  'file_desc.percent': Percentage.describe('The used file descriptor ratio.').optional(),
+  fdp: Percentage.describe('The used file descriptor ratio.').optional(),
+  fileDescriptorPercent: Percentage.describe('The used file descriptor ratio.').optional(),
   'file_desc.max': z.string().describe('The maximum number of file descriptors.').optional(),
   fdm: z.string().describe('The maximum number of file descriptors.').optional(),
   fileDescriptorMax: z.string().describe('The maximum number of file descriptors.').optional(),
@@ -1368,8 +1369,8 @@ export const CatNodesNodesRecord = z.object({
   nodeRole: z.string().describe('The roles of the node. Returned values include `c`(cold node), `d`(data node), `f`(frozen node), `h`(hot node), `i`(ingest node), `l`(machine learning node), `m` (master eligible node), `r`(remote cluster client node), `s`(content node), `t`(transform node), `v`(voting-only node), `w`(warm node),and `-`(coordinating node only).').optional(),
   master: z.string().describe('Indicates whether the node is the elected master node. Returned values include `*`(elected master) and `-`(not elected master).').optional(),
   m: z.string().describe('Indicates whether the node is the elected master node. Returned values include `*`(elected master) and `-`(not elected master).').optional(),
-  name: z.lazy(() => Name).describe('The node name.').optional(),
-  n: z.lazy(() => Name).describe('The node name.').optional(),
+  name: Name.describe('The node name.').optional(),
+  n: Name.describe('The node name.').optional(),
   'completion.size': z.string().describe('The size of completion.').optional(),
   cs: z.string().describe('The size of completion.').optional(),
   completionSize: z.string().describe('The size of completion.').optional(),
@@ -1575,8 +1576,8 @@ export const CatNodesRequest = z.object({
   full_id: z.boolean().describe('If `true`, return the full node ID. If `false`, return the shortened node ID.').optional().meta({ found_in: 'query' }),
   include_unloaded_segments: z.boolean().describe('If true, the response includes information from segments that are not loaded into memory.').optional().meta({ found_in: 'query' }),
   h: CatCatNodeColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('A comma-separated list of column names or aliases that determines the sort order. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  s: Names.describe('A comma-separated list of column names or aliases that determines the sort order. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatNodesRequest' })
 export type CatNodesRequest = z.infer<typeof CatNodesRequest>
 
@@ -1604,9 +1605,9 @@ export type CatPendingTasksPendingTasksRecord = z.infer<typeof CatPendingTasksPe
 export const CatPendingTasksRequest = z.object({
   ...CatCatRequestBase.shape,
   h: CatCatPendingTasksColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
+  s: Names.describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatPendingTasksRequest' })
 export type CatPendingTasksRequest = z.infer<typeof CatPendingTasksRequest>
 
@@ -1614,13 +1615,13 @@ export const CatPendingTasksResponse = z.array(CatPendingTasksPendingTasksRecord
 export type CatPendingTasksResponse = z.infer<typeof CatPendingTasksResponse>
 
 export const CatPluginsPluginsRecord = z.object({
-  id: z.lazy(() => NodeId).describe('The unique node identifier.').optional(),
-  name: z.lazy(() => Name).describe('The node name.').optional(),
-  n: z.lazy(() => Name).describe('The node name.').optional(),
+  id: NodeId.describe('The unique node identifier.').optional(),
+  name: Name.describe('The node name.').optional(),
+  n: Name.describe('The node name.').optional(),
   component: z.string().describe('The component name.').optional(),
   c: z.string().describe('The component name.').optional(),
-  version: z.lazy(() => VersionString).describe('The component version.').optional(),
-  v: z.lazy(() => VersionString).describe('The component version.').optional(),
+  version: VersionString.describe('The component version.').optional(),
+  v: VersionString.describe('The component version.').optional(),
   description: z.string().describe('The plugin details.').optional(),
   d: z.string().describe('The plugin details.').optional(),
   type: z.string().describe('The plugin type.').optional(),
@@ -1637,10 +1638,10 @@ export type CatPluginsPluginsRecord = z.infer<typeof CatPluginsPluginsRecord>
 export const CatPluginsRequest = z.object({
   ...CatCatRequestBase.shape,
   h: CatCatPluginsColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
+  s: Names.describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   include_bootstrap: z.boolean().describe('Include bootstrap plugins in the response').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatPluginsRequest' })
 export type CatPluginsRequest = z.infer<typeof CatPluginsRequest>
 
@@ -1648,23 +1649,23 @@ export const CatPluginsResponse = z.array(CatPluginsPluginsRecord).meta({ id: 'C
 export type CatPluginsResponse = z.infer<typeof CatPluginsResponse>
 
 export const CatRecoveryRecoveryRecord = z.object({
-  index: z.lazy(() => IndexName).describe('The index name.').optional(),
-  i: z.lazy(() => IndexName).describe('The index name.').optional(),
-  idx: z.lazy(() => IndexName).describe('The index name.').optional(),
+  index: IndexName.describe('The index name.').optional(),
+  i: IndexName.describe('The index name.').optional(),
+  idx: IndexName.describe('The index name.').optional(),
   shard: z.string().describe('The shard name.').optional(),
   s: z.string().describe('The shard name.').optional(),
   sh: z.string().describe('The shard name.').optional(),
-  start_time: z.lazy(() => DateTime).describe('The recovery start time.').optional(),
-  start: z.lazy(() => DateTime).describe('The recovery start time.').optional(),
-  start_time_millis: z.lazy(() => EpochTime).describe('The recovery start time in epoch milliseconds.').optional(),
-  start_millis: z.lazy(() => EpochTime).describe('The recovery start time in epoch milliseconds.').optional(),
-  stop_time: z.lazy(() => DateTime).describe('The recovery stop time.').optional(),
-  stop: z.lazy(() => DateTime).describe('The recovery stop time.').optional(),
-  stop_time_millis: z.lazy(() => EpochTime).describe('The recovery stop time in epoch milliseconds.').optional(),
-  stop_millis: z.lazy(() => EpochTime).describe('The recovery stop time in epoch milliseconds.').optional(),
-  time: z.lazy(() => Duration).describe('The recovery time.').optional(),
-  t: z.lazy(() => Duration).describe('The recovery time.').optional(),
-  ti: z.lazy(() => Duration).describe('The recovery time.').optional(),
+  start_time: DateTime.describe('The recovery start time.').optional(),
+  start: DateTime.describe('The recovery start time.').optional(),
+  start_time_millis: EpochTime.describe('The recovery start time in epoch milliseconds.').optional(),
+  start_millis: EpochTime.describe('The recovery start time in epoch milliseconds.').optional(),
+  stop_time: DateTime.describe('The recovery stop time.').optional(),
+  stop: DateTime.describe('The recovery stop time.').optional(),
+  stop_time_millis: EpochTime.describe('The recovery stop time in epoch milliseconds.').optional(),
+  stop_millis: EpochTime.describe('The recovery stop time in epoch milliseconds.').optional(),
+  time: Duration.describe('The recovery time.').optional(),
+  t: Duration.describe('The recovery time.').optional(),
+  ti: Duration.describe('The recovery time.').optional(),
   type: z.string().describe('The recovery type.').optional(),
   ty: z.string().describe('The recovery type.').optional(),
   stage: z.string().describe('The recovery stage.').optional(),
@@ -1685,24 +1686,24 @@ export const CatRecoveryRecoveryRecord = z.object({
   f: z.string().describe('The number of files to recover.').optional(),
   files_recovered: z.string().describe('The files recovered.').optional(),
   fr: z.string().describe('The files recovered.').optional(),
-  files_percent: z.lazy(() => Percentage).describe('The ratio of files recovered.').optional(),
-  fp: z.lazy(() => Percentage).describe('The ratio of files recovered.').optional(),
+  files_percent: Percentage.describe('The ratio of files recovered.').optional(),
+  fp: Percentage.describe('The ratio of files recovered.').optional(),
   files_total: z.string().describe('The total number of files.').optional(),
   tf: z.string().describe('The total number of files.').optional(),
   bytes: z.string().describe('The number of bytes to recover.').optional(),
   b: z.string().describe('The number of bytes to recover.').optional(),
   bytes_recovered: z.string().describe('The bytes recovered.').optional(),
   br: z.string().describe('The bytes recovered.').optional(),
-  bytes_percent: z.lazy(() => Percentage).describe('The ratio of bytes recovered.').optional(),
-  bp: z.lazy(() => Percentage).describe('The ratio of bytes recovered.').optional(),
+  bytes_percent: Percentage.describe('The ratio of bytes recovered.').optional(),
+  bp: Percentage.describe('The ratio of bytes recovered.').optional(),
   bytes_total: z.string().describe('The total number of bytes.').optional(),
   tb: z.string().describe('The total number of bytes.').optional(),
   translog_ops: z.string().describe('The number of translog operations to recover.').optional(),
   to: z.string().describe('The number of translog operations to recover.').optional(),
   translog_ops_recovered: z.string().describe('The translog operations recovered.').optional(),
   tor: z.string().describe('The translog operations recovered.').optional(),
-  translog_ops_percent: z.lazy(() => Percentage).describe('The ratio of translog operations recovered.').optional(),
-  top: z.lazy(() => Percentage).describe('The ratio of translog operations recovered.').optional()
+  translog_ops_percent: Percentage.describe('The ratio of translog operations recovered.').optional(),
+  top: Percentage.describe('The ratio of translog operations recovered.').optional()
 }).meta({ id: 'CatRecoveryRecoveryRecord' })
 export type CatRecoveryRecoveryRecord = z.infer<typeof CatRecoveryRecoveryRecord>
 
@@ -1716,11 +1717,11 @@ export type CatRecoveryRecoveryRecord = z.infer<typeof CatRecoveryRecoveryRecord
  */
 export const CatRecoveryRequest = z.object({
   ...CatCatRequestBase.shape,
-  index: z.lazy(() => Indices).describe('A comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  index: Indices.describe('A comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
   active_only: z.boolean().describe('If `true`, the response only includes ongoing shard recoveries.').optional().meta({ found_in: 'query' }),
   detailed: z.boolean().describe('If `true`, the response includes detailed information about shard recoveries.').optional().meta({ found_in: 'query' }),
   h: CatCatRecoveryColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('A comma-separated list of column names or aliases that determines the sort order. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' })
+  s: Names.describe('A comma-separated list of column names or aliases that determines the sort order. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatRecoveryRequest' })
 export type CatRecoveryRequest = z.infer<typeof CatRecoveryRequest>
 
@@ -1743,10 +1744,10 @@ export type CatRepositoriesRepositoriesRecord = z.infer<typeof CatRepositoriesRe
  */
 export const CatRepositoriesRequest = z.object({
   ...CatCatRequestBase.shape,
-  h: z.lazy(() => Names).describe('List of columns to appear in the response. Supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
+  h: Names.describe('List of columns to appear in the response. Supports simple wildcards.').optional().meta({ found_in: 'query' }),
+  s: Names.describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatRepositoriesRequest' })
 export type CatRepositoriesRequest = z.infer<typeof CatRepositoriesRequest>
 
@@ -1762,12 +1763,12 @@ export type CatRepositoriesResponse = z.infer<typeof CatRepositoriesResponse>
  */
 export const CatSegmentsRequest = z.object({
   ...CatCatRequestBase.shape,
-  index: z.lazy(() => Indices).describe('A comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  index: Indices.describe('A comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
   h: CatCatSegmentsColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('A comma-separated list of column names or aliases that determines the sort order. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
+  s: Names.describe('A comma-separated list of column names or aliases that determines the sort order. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard expressions can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as open,hidden.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard expressions can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as open,hidden.').optional().meta({ found_in: 'query' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
   ignore_throttled: z.boolean().describe('If true, concrete, expanded or aliased indices are ignored when frozen.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
@@ -1776,9 +1777,9 @@ export const CatSegmentsRequest = z.object({
 export type CatSegmentsRequest = z.infer<typeof CatSegmentsRequest>
 
 export const CatSegmentsSegmentsRecord = z.object({
-  index: z.lazy(() => IndexName).describe('The index name.').optional(),
-  i: z.lazy(() => IndexName).describe('The index name.').optional(),
-  idx: z.lazy(() => IndexName).describe('The index name.').optional(),
+  index: IndexName.describe('The index name.').optional(),
+  i: IndexName.describe('The index name.').optional(),
+  idx: IndexName.describe('The index name.').optional(),
   shard: z.string().describe('The shard name.').optional(),
   s: z.string().describe('The shard name.').optional(),
   sh: z.string().describe('The shard name.').optional(),
@@ -1787,7 +1788,7 @@ export const CatSegmentsSegmentsRecord = z.object({
   pr: z.string().describe('The shard type: `primary` or `replica`.').optional(),
   primaryOrReplica: z.string().describe('The shard type: `primary` or `replica`.').optional(),
   ip: z.string().describe('The IP address of the node where it lives.').optional(),
-  id: z.lazy(() => NodeId).describe('The unique identifier of the node where it lives.').optional(),
+  id: NodeId.describe('The unique identifier of the node where it lives.').optional(),
   segment: z.string().describe('The segment name, which is derived from the segment generation and used internally to create file names in the directory of the shard.').optional(),
   seg: z.string().describe('The segment name, which is derived from the segment generation and used internally to create file names in the directory of the shard.').optional(),
   generation: z.string().describe('The segment generation number. Elasticsearch increments this generation number for each segment written then uses this number to derive the segment name.').optional(),
@@ -1799,19 +1800,19 @@ export const CatSegmentsSegmentsRecord = z.object({
   'docs.deleted': z.string().describe('The number of deleted documents in the segment, which might be higher or lower than the number of delete operations you have performed. This number excludes deletes that were performed recently and do not yet belong to a segment. Deleted documents are cleaned up by the automatic merge process if it makes sense to do so. Also, Elasticsearch creates extra deleted documents to internally track the recent history of operations on a shard.').optional(),
   dd: z.string().describe('The number of deleted documents in the segment, which might be higher or lower than the number of delete operations you have performed. This number excludes deletes that were performed recently and do not yet belong to a segment. Deleted documents are cleaned up by the automatic merge process if it makes sense to do so. Also, Elasticsearch creates extra deleted documents to internally track the recent history of operations on a shard.').optional(),
   docsDeleted: z.string().describe('The number of deleted documents in the segment, which might be higher or lower than the number of delete operations you have performed. This number excludes deletes that were performed recently and do not yet belong to a segment. Deleted documents are cleaned up by the automatic merge process if it makes sense to do so. Also, Elasticsearch creates extra deleted documents to internally track the recent history of operations on a shard.').optional(),
-  size: z.lazy(() => ByteSize).describe('The segment size in bytes.').optional(),
-  si: z.lazy(() => ByteSize).describe('The segment size in bytes.').optional(),
-  'size.memory': z.lazy(() => ByteSize).describe('The segment memory in bytes. A value of `-1` indicates Elasticsearch was unable to compute this number.').optional(),
-  sm: z.lazy(() => ByteSize).describe('The segment memory in bytes. A value of `-1` indicates Elasticsearch was unable to compute this number.').optional(),
-  sizeMemory: z.lazy(() => ByteSize).describe('The segment memory in bytes. A value of `-1` indicates Elasticsearch was unable to compute this number.').optional(),
+  size: ByteSize.describe('The segment size in bytes.').optional(),
+  si: ByteSize.describe('The segment size in bytes.').optional(),
+  'size.memory': ByteSize.describe('The segment memory in bytes. A value of `-1` indicates Elasticsearch was unable to compute this number.').optional(),
+  sm: ByteSize.describe('The segment memory in bytes. A value of `-1` indicates Elasticsearch was unable to compute this number.').optional(),
+  sizeMemory: ByteSize.describe('The segment memory in bytes. A value of `-1` indicates Elasticsearch was unable to compute this number.').optional(),
   committed: z.string().describe('If `true`, the segment is synced to disk. Segments that are synced can survive a hard reboot. If `false`, the data from uncommitted segments is also stored in the transaction log so that Elasticsearch is able to replay changes on the next start.').optional(),
   ic: z.string().describe('If `true`, the segment is synced to disk. Segments that are synced can survive a hard reboot. If `false`, the data from uncommitted segments is also stored in the transaction log so that Elasticsearch is able to replay changes on the next start.').optional(),
   isCommitted: z.string().describe('If `true`, the segment is synced to disk. Segments that are synced can survive a hard reboot. If `false`, the data from uncommitted segments is also stored in the transaction log so that Elasticsearch is able to replay changes on the next start.').optional(),
   searchable: z.string().describe('If `true`, the segment is searchable. If `false`, the segment has most likely been written to disk but needs a refresh to be searchable.').optional(),
   is: z.string().describe('If `true`, the segment is searchable. If `false`, the segment has most likely been written to disk but needs a refresh to be searchable.').optional(),
   isSearchable: z.string().describe('If `true`, the segment is searchable. If `false`, the segment has most likely been written to disk but needs a refresh to be searchable.').optional(),
-  version: z.lazy(() => VersionString).describe('The version of Lucene used to write the segment.').optional(),
-  v: z.lazy(() => VersionString).describe('The version of Lucene used to write the segment.').optional(),
+  version: VersionString.describe('The version of Lucene used to write the segment.').optional(),
+  v: VersionString.describe('The version of Lucene used to write the segment.').optional(),
   compound: z.string().describe('If `true`, the segment is stored in a compound file. This means Lucene merged all files from the segment in a single file to save file descriptors.').optional(),
   ico: z.string().describe('If `true`, the segment is stored in a compound file. This means Lucene merged all files from the segment in a single file to save file descriptors.').optional(),
   isCompound: z.string().describe('If `true`, the segment is stored in a compound file. This means Lucene merged all files from the segment in a single file to save file descriptors.').optional()
@@ -1830,10 +1831,10 @@ export type CatSegmentsResponse = z.infer<typeof CatSegmentsResponse>
  */
 export const CatShardsRequest = z.object({
   ...CatCatRequestBase.shape,
-  index: z.lazy(() => Indices).describe('A comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  index: Indices.describe('A comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
   h: CatCatShardColumns.describe('List of columns to appear in the response. Supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('A comma-separated list of column names or aliases that determines the sort order. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  s: Names.describe('A comma-separated list of column names or aliases that determines the sort order. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatShardsRequest' })
 export type CatShardsRequest = z.infer<typeof CatShardsRequest>
 
@@ -2065,11 +2066,11 @@ export type CatShardsResponse = z.infer<typeof CatShardsResponse>
  */
 export const CatSnapshotsRequest = z.object({
   ...CatCatRequestBase.shape,
-  repository: z.lazy(() => Names).describe('A comma-separated list of snapshot repositories used to limit the request. Accepts wildcard expressions. `_all` returns all repositories. If any repository fails during the request, Elasticsearch returns an error.').optional().meta({ found_in: 'path' }),
+  repository: Names.describe('A comma-separated list of snapshot repositories used to limit the request. Accepts wildcard expressions. `_all` returns all repositories. If any repository fails during the request, Elasticsearch returns an error.').optional().meta({ found_in: 'path' }),
   ignore_unavailable: z.boolean().describe('If `true`, the response does not include information from unavailable snapshots.').optional().meta({ found_in: 'query' }),
   h: CatCatSnapshotsColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  s: Names.describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatSnapshotsRequest' })
 export type CatSnapshotsRequest = z.infer<typeof CatSnapshotsRequest>
 
@@ -2081,20 +2082,20 @@ export const CatSnapshotsSnapshotsRecord = z.object({
   repo: z.string().describe('The repository name.').optional(),
   status: z.string().describe('The state of the snapshot process. Returned values include: `FAILED`: The snapshot process failed. `INCOMPATIBLE`: The snapshot process is incompatible with the current cluster version. `IN_PROGRESS`: The snapshot process started but has not completed. `PARTIAL`: The snapshot process completed with a partial success. `SUCCESS`: The snapshot process completed with a full success.').optional(),
   s: z.string().describe('The state of the snapshot process. Returned values include: `FAILED`: The snapshot process failed. `INCOMPATIBLE`: The snapshot process is incompatible with the current cluster version. `IN_PROGRESS`: The snapshot process started but has not completed. `PARTIAL`: The snapshot process completed with a partial success. `SUCCESS`: The snapshot process completed with a full success.').optional(),
-  start_epoch: z.lazy(() => SpecUtilsStringified).describe('The Unix epoch time (seconds since 1970-01-01 00:00:00) at which the snapshot process started.').optional(),
-  ste: z.lazy(() => SpecUtilsStringified).describe('The Unix epoch time (seconds since 1970-01-01 00:00:00) at which the snapshot process started.').optional(),
-  startEpoch: z.lazy(() => SpecUtilsStringified).describe('The Unix epoch time (seconds since 1970-01-01 00:00:00) at which the snapshot process started.').optional(),
+  start_epoch: SpecUtilsStringified.describe('The Unix epoch time (seconds since 1970-01-01 00:00:00) at which the snapshot process started.').optional(),
+  ste: SpecUtilsStringified.describe('The Unix epoch time (seconds since 1970-01-01 00:00:00) at which the snapshot process started.').optional(),
+  startEpoch: SpecUtilsStringified.describe('The Unix epoch time (seconds since 1970-01-01 00:00:00) at which the snapshot process started.').optional(),
   start_time: WatcherScheduleTimeOfDay.describe('The time (HH:MM:SS) at which the snapshot process started.').optional(),
   sti: WatcherScheduleTimeOfDay.describe('The time (HH:MM:SS) at which the snapshot process started.').optional(),
   startTime: WatcherScheduleTimeOfDay.describe('The time (HH:MM:SS) at which the snapshot process started.').optional(),
-  end_epoch: z.lazy(() => SpecUtilsStringified).describe('The Unix epoch time (seconds since 1970-01-01 00:00:00) at which the snapshot process ended.').optional(),
-  ete: z.lazy(() => SpecUtilsStringified).describe('The Unix epoch time (seconds since 1970-01-01 00:00:00) at which the snapshot process ended.').optional(),
-  endEpoch: z.lazy(() => SpecUtilsStringified).describe('The Unix epoch time (seconds since 1970-01-01 00:00:00) at which the snapshot process ended.').optional(),
+  end_epoch: SpecUtilsStringified.describe('The Unix epoch time (seconds since 1970-01-01 00:00:00) at which the snapshot process ended.').optional(),
+  ete: SpecUtilsStringified.describe('The Unix epoch time (seconds since 1970-01-01 00:00:00) at which the snapshot process ended.').optional(),
+  endEpoch: SpecUtilsStringified.describe('The Unix epoch time (seconds since 1970-01-01 00:00:00) at which the snapshot process ended.').optional(),
   end_time: TimeOfDay.describe('The time (HH:MM:SS) at which the snapshot process ended.').optional(),
   eti: TimeOfDay.describe('The time (HH:MM:SS) at which the snapshot process ended.').optional(),
   endTime: TimeOfDay.describe('The time (HH:MM:SS) at which the snapshot process ended.').optional(),
-  duration: z.lazy(() => Duration).describe('The time it took the snapshot process to complete, in time units.').optional(),
-  dur: z.lazy(() => Duration).describe('The time it took the snapshot process to complete, in time units.').optional(),
+  duration: Duration.describe('The time it took the snapshot process to complete, in time units.').optional(),
+  dur: Duration.describe('The time it took the snapshot process to complete, in time units.').optional(),
   indices: z.string().describe('The number of indices in the snapshot.').optional(),
   i: z.string().describe('The number of indices in the snapshot.').optional(),
   successful_shards: z.string().describe('The number of successful shards in the snapshot.').optional(),
@@ -2124,18 +2125,18 @@ export const CatTasksRequest = z.object({
   nodes: z.array(z.string()).describe('Unique node identifiers, which are used to limit the response.').optional().meta({ found_in: 'query' }),
   parent_task_id: z.string().describe('The parent task identifier, which is used to limit the response.').optional().meta({ found_in: 'query' }),
   h: CatCatTasksColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  s: Names.describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   wait_for_completion: z.boolean().describe('If `true`, the request blocks until the task has completed.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatTasksRequest' })
 export type CatTasksRequest = z.infer<typeof CatTasksRequest>
 
 export const CatTasksTasksRecord = z.object({
-  id: z.lazy(() => Id).describe('The identifier of the task with the node.').optional(),
+  id: Id.describe('The identifier of the task with the node.').optional(),
   action: z.string().describe('The task action.').optional(),
   ac: z.string().describe('The task action.').optional(),
-  task_id: z.lazy(() => Id).describe('The unique task identifier.').optional(),
-  ti: z.lazy(() => Id).describe('The unique task identifier.').optional(),
+  task_id: Id.describe('The unique task identifier.').optional(),
+  ti: Id.describe('The unique task identifier.').optional(),
   parent_task_id: z.string().describe('The parent task identifier.').optional(),
   pti: z.string().describe('The parent task identifier.').optional(),
   type: z.string().describe('The task type.').optional(),
@@ -2149,16 +2150,16 @@ export const CatTasksTasksRecord = z.object({
   running_time_ns: z.string().describe('The running time in nanoseconds.').optional(),
   running_time: z.string().describe('The running time.').optional(),
   time: z.string().describe('The running time.').optional(),
-  node_id: z.lazy(() => NodeId).describe('The unique node identifier.').optional(),
-  ni: z.lazy(() => NodeId).describe('The unique node identifier.').optional(),
+  node_id: NodeId.describe('The unique node identifier.').optional(),
+  ni: NodeId.describe('The unique node identifier.').optional(),
   ip: z.string().describe('The IP address for the node.').optional(),
   i: z.string().describe('The IP address for the node.').optional(),
   port: z.string().describe('The bound transport port for the node.').optional(),
   po: z.string().describe('The bound transport port for the node.').optional(),
   node: z.string().describe('The node name.').optional(),
   n: z.string().describe('The node name.').optional(),
-  version: z.lazy(() => VersionString).describe('The Elasticsearch version.').optional(),
-  v: z.lazy(() => VersionString).describe('The Elasticsearch version.').optional(),
+  version: VersionString.describe('The Elasticsearch version.').optional(),
+  v: VersionString.describe('The Elasticsearch version.').optional(),
   x_opaque_id: z.string().describe('The X-Opaque-ID header.').optional(),
   x: z.string().describe('The X-Opaque-ID header.').optional(),
   description: z.string().describe('The task action description.').optional(),
@@ -2178,24 +2179,24 @@ export type CatTasksResponse = z.infer<typeof CatTasksResponse>
  */
 export const CatTemplatesRequest = z.object({
   ...CatCatRequestBase.shape,
-  name: z.lazy(() => Name).describe('The name of the template to return. Accepts wildcard expressions. If omitted, all templates are returned.').optional().meta({ found_in: 'path' }),
+  name: Name.describe('The name of the template to return. Accepts wildcard expressions. If omitted, all templates are returned.').optional().meta({ found_in: 'path' }),
   h: CatCatTemplatesColumns.describe('A comma-separated list of columns names to display. It supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
+  s: Names.describe('List of columns that determine how the table should be sorted. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatTemplatesRequest' })
 export type CatTemplatesRequest = z.infer<typeof CatTemplatesRequest>
 
 export const CatTemplatesTemplatesRecord = z.object({
-  name: z.lazy(() => Name).describe('The template name.').optional(),
-  n: z.lazy(() => Name).describe('The template name.').optional(),
+  name: Name.describe('The template name.').optional(),
+  n: Name.describe('The template name.').optional(),
   index_patterns: z.string().describe('The template index patterns.').optional(),
   t: z.string().describe('The template index patterns.').optional(),
   order: z.string().describe('The template application order or priority number.').optional(),
   o: z.string().describe('The template application order or priority number.').optional(),
   p: z.string().describe('The template application order or priority number.').optional(),
-  version: z.union([z.lazy(() => VersionString), z.null()]).describe('The template version.').optional(),
-  v: z.union([z.lazy(() => VersionString), z.null()]).describe('The template version.').optional(),
+  version: z.union([VersionString, z.null()]).describe('The template version.').optional(),
+  v: z.union([VersionString, z.null()]).describe('The template version.').optional(),
   composed_of: z.string().describe('The component templates that comprise the index template.').optional(),
   c: z.string().describe('The component templates that comprise the index template.').optional()
 }).meta({ id: 'CatTemplatesTemplatesRecord' })
@@ -2213,19 +2214,19 @@ export type CatTemplatesResponse = z.infer<typeof CatTemplatesResponse>
  */
 export const CatThreadPoolRequest = z.object({
   ...CatCatRequestBase.shape,
-  thread_pool_patterns: z.lazy(() => Names).describe('A comma-separated list of thread pool names used to limit the request. Accepts wildcard expressions.').optional().meta({ found_in: 'path' }),
+  thread_pool_patterns: Names.describe('A comma-separated list of thread pool names used to limit the request. Accepts wildcard expressions.').optional().meta({ found_in: 'path' }),
   h: CatCatThreadPoolColumns.describe('List of columns to appear in the response. Supports simple wildcards.').optional().meta({ found_in: 'query' }),
-  s: z.lazy(() => Names).describe('A comma-separated list of column names or aliases that determines the sort order. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
+  s: Names.describe('A comma-separated list of column names or aliases that determines the sort order. Sorting defaults to ascending and can be changed by setting `:asc` or `:desc` as a suffix to the column name.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request computes the list of selected nodes from the local cluster state. If `false` the list of selected nodes are computed from the cluster state of the master node. In both cases the coordinating node will send requests for further information to each selected node.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatThreadPoolRequest' })
 export type CatThreadPoolRequest = z.infer<typeof CatThreadPoolRequest>
 
 export const CatThreadPoolThreadPoolRecord = z.object({
   node_name: z.string().describe('The node name.').optional(),
   nn: z.string().describe('The node name.').optional(),
-  node_id: z.lazy(() => NodeId).describe('The persistent node identifier.').optional(),
-  id: z.lazy(() => NodeId).describe('The persistent node identifier.').optional(),
+  node_id: NodeId.describe('The persistent node identifier.').optional(),
+  id: NodeId.describe('The persistent node identifier.').optional(),
   ephemeral_node_id: z.string().describe('The ephemeral node identifier.').optional(),
   eid: z.string().describe('The ephemeral node identifier.').optional(),
   pid: z.string().describe('The process identifier.').optional(),
@@ -2279,17 +2280,17 @@ export type CatThreadPoolResponse = z.infer<typeof CatThreadPoolResponse>
  */
 export const CatTransformsRequest = z.object({
   ...CatCatRequestBase.shape,
-  transform_id: z.lazy(() => Id).describe('A transform identifier or a wildcard expression. If you do not specify one of these options, the API returns information for all transforms.').optional().meta({ found_in: 'path' }),
+  transform_id: Id.describe('A transform identifier or a wildcard expression. If you do not specify one of these options, the API returns information for all transforms.').optional().meta({ found_in: 'path' }),
   allow_no_match: z.boolean().describe('Specifies what to do when the request: contains wildcard expressions and there are no transforms that match; contains the `_all` string or no identifiers and there are no matches; contains wildcard expressions and there are only partial matches. If `true`, it returns an empty transforms array when there are no matches and the subset of results when there are partial matches. If `false`, the request returns a 404 status code when there are no matches or only partial matches.').optional().meta({ found_in: 'query' }),
-  from: z.lazy(() => integer).describe('Skips the specified number of transforms.').optional().meta({ found_in: 'query' }),
+  from: integer.describe('Skips the specified number of transforms.').optional().meta({ found_in: 'query' }),
   h: CatCatTransformColumns.describe('Comma-separated list of column names to display.').optional().meta({ found_in: 'query' }),
   s: CatCatTransformColumns.describe('Comma-separated list of column names or column aliases used to sort the response.').optional().meta({ found_in: 'query' }),
-  size: z.lazy(() => integer).describe('The maximum number of transforms to obtain.').optional().meta({ found_in: 'query' })
+  size: integer.describe('The maximum number of transforms to obtain.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'CatTransformsRequest' })
 export type CatTransformsRequest = z.infer<typeof CatTransformsRequest>
 
 export const CatTransformsTransformsRecord = z.object({
-  id: z.lazy(() => Id).describe('The transform identifier.').optional(),
+  id: Id.describe('The transform identifier.').optional(),
   state: z.string().describe('The status of the transform. Returned values include: `aborting`: The transform is aborting. `failed: The transform failed. For more information about the failure, check the `reason` field. `indexing`: The transform is actively processing data and creating new documents. `started`: The transform is running but not actively indexing data. `stopped`: The transform is stopped. `stopping`: The transform is stopping.').optional(),
   s: z.string().describe('The status of the transform. Returned values include: `aborting`: The transform is aborting. `failed: The transform failed. For more information about the failure, check the `reason` field. `indexing`: The transform is actively processing data and creating new documents. `started`: The transform is running but not actively indexing data. `stopped`: The transform is stopped. `stopping`: The transform is stopping.').optional(),
   checkpoint: z.string().describe('The sequence number for the checkpoint.').optional(),
@@ -2308,8 +2309,8 @@ export const CatTransformsTransformsRecord = z.object({
   create_time: z.string().describe('The time the transform was created.').optional(),
   ct: z.string().describe('The time the transform was created.').optional(),
   createTime: z.string().describe('The time the transform was created.').optional(),
-  version: z.lazy(() => VersionString).describe('The version of Elasticsearch that existed on the node when the transform was created.').optional(),
-  v: z.lazy(() => VersionString).describe('The version of Elasticsearch that existed on the node when the transform was created.').optional(),
+  version: VersionString.describe('The version of Elasticsearch that existed on the node when the transform was created.').optional(),
+  v: VersionString.describe('The version of Elasticsearch that existed on the node when the transform was created.').optional(),
   source_index: z.string().describe('The source indices for the transform.').optional(),
   si: z.string().describe('The source indices for the transform.').optional(),
   sourceIndex: z.string().describe('The source indices for the transform.').optional(),

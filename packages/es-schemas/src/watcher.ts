@@ -3,11 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
- 
- 
+/* eslint-disable @typescript-eslint/no-use-before-define */
+/* eslint-disable @typescript-eslint/no-redeclare */
 import { z } from 'zod'
 
-import { AcknowledgedResponseBase, DateTime, Duration, DurationValue, EpochTime, ErrorCause, Field, FieldValue, Host, HttpHeaders, Id, IndexName, IndicesOptions, Metadata, Name, Names, NodeStatistics, OpType, Password, QueryDslQueryContainer, Refresh, Result, ScriptLanguage, ScriptSource, SearchType, SequenceNumber, Sort, SortResults, TransformContainer, Username, VersionNumber, integer, long, uint } from './_types.ts'
+import { ScriptSource, TransformContainer } from './_global.search.ts'
+import { AcknowledgedResponseBase, DateTime, Duration, DurationValue, EpochTime, ErrorCause, Field, FieldValue, Host, HttpHeaders, Id, IndexName, IndicesOptions, Metadata, Name, Names, NodeStatistics, OpType, Password, Refresh, RequestBase, Result, ScriptLanguage, SearchType, SequenceNumber, SortResults, Username, VersionNumber, integer, long, uint } from './_types.ts'
+import { QueryDslQueryContainer, Sort } from './_types.query_dsl.ts'
 import { IndicesIndexSettings } from './indices.ts'
 
 export const WatcherSearchInputRequestBody = z.object({
@@ -17,7 +19,7 @@ export type WatcherSearchInputRequestBody = z.infer<typeof WatcherSearchInputReq
 
 export const WatcherSearchTemplateRequestBody = z.object({
   explain: z.boolean().optional(),
-  id: z.lazy(() => Id).describe('ID of the search template to use. If no source is specified, this parameter is required.').optional(),
+  id: Id.describe('ID of the search template to use. If no source is specified, this parameter is required.').optional(),
   params: z.record(z.string(), z.any()).optional(),
   profile: z.boolean().optional(),
   source: z.string().describe('An inline search template. Supports the same parameters as the search API\'s request body. Also supports Mustache variables. If no id is specified, this parameter is required.').optional()
@@ -26,17 +28,23 @@ export type WatcherSearchTemplateRequestBody = z.infer<typeof WatcherSearchTempl
 
 export const WatcherSearchInputRequestDefinition = z.object({
   body: WatcherSearchInputRequestBody.optional(),
-  indices: z.array(z.lazy(() => IndexName)).optional(),
-  indices_options: z.lazy(() => IndicesOptions).optional(),
-  search_type: z.lazy(() => SearchType).optional(),
+  indices: z.array(IndexName).optional(),
+  indices_options: IndicesOptions.optional(),
+  search_type: SearchType.optional(),
   template: WatcherSearchTemplateRequestBody.optional(),
   rest_total_hits_as_int: z.boolean().optional()
 }).meta({ id: 'WatcherSearchInputRequestDefinition' })
 export type WatcherSearchInputRequestDefinition = z.infer<typeof WatcherSearchInputRequestDefinition>
 
+export const SearchTransform = z.object({
+  request: WatcherSearchInputRequestDefinition,
+  timeout: Duration
+}).meta({ id: 'SearchTransform' })
+export type SearchTransform = z.infer<typeof SearchTransform>
+
 export const WatcherHourAndMinute = z.object({
-  hour: z.array(z.lazy(() => integer)),
-  minute: z.array(z.lazy(() => integer))
+  hour: z.array(integer),
+  minute: z.array(integer)
 }).meta({ id: 'WatcherHourAndMinute' })
 export type WatcherHourAndMinute = z.infer<typeof WatcherHourAndMinute>
 
@@ -52,7 +60,7 @@ export type WatcherAcknowledgementOptions = z.infer<typeof WatcherAcknowledgemen
 
 export const WatcherAcknowledgeState = z.object({
   state: WatcherAcknowledgementOptions,
-  timestamp: z.lazy(() => DateTime)
+  timestamp: DateTime
 }).meta({ id: 'WatcherAcknowledgeState' })
 export type WatcherAcknowledgeState = z.infer<typeof WatcherAcknowledgeState>
 
@@ -76,25 +84,25 @@ export const WatcherNeverCondition = z.object({
 export type WatcherNeverCondition = z.infer<typeof WatcherNeverCondition>
 
 export const WatcherScriptCondition = z.object({
-  lang: z.lazy(() => ScriptLanguage).optional(),
+  lang: ScriptLanguage.optional(),
   params: z.record(z.string(), z.any()).optional(),
   source: z.lazy(() => ScriptSource).optional(),
   id: z.string().optional()
 }).meta({ id: 'WatcherScriptCondition' })
 export type WatcherScriptCondition = z.infer<typeof WatcherScriptCondition>
 
-const WatcherConditionContainerExclusiveProps = z.union([z.object({ always: WatcherAlwaysCondition }), z.object({ array_compare: z.record(z.string(), WatcherArrayCompareCondition) }), z.object({ compare: z.record(z.string(), z.record(WatcherConditionOp, z.lazy(() => FieldValue))) }), z.object({ never: WatcherNeverCondition }), z.object({ script: WatcherScriptCondition })])
+const WatcherConditionContainerExclusiveProps = z.union([z.object({ always: WatcherAlwaysCondition }), z.object({ array_compare: z.record(z.string(), WatcherArrayCompareCondition) }), z.object({ compare: z.record(z.string(), z.record(WatcherConditionOp, FieldValue)) }), z.object({ never: WatcherNeverCondition }), z.object({ script: WatcherScriptCondition })])
 
 export const WatcherConditionContainer = WatcherConditionContainerExclusiveProps.meta({ id: 'WatcherConditionContainer' })
 export type WatcherConditionContainer = z.infer<typeof WatcherConditionContainer>
 
 export const WatcherIndexAction = z.object({
-  index: z.lazy(() => IndexName),
-  doc_id: z.lazy(() => Id).optional(),
-  refresh: z.lazy(() => Refresh).optional(),
-  op_type: z.lazy(() => OpType).optional(),
-  timeout: z.lazy(() => Duration).optional(),
-  execution_time_field: z.lazy(() => Field).optional()
+  index: IndexName,
+  doc_id: Id.optional(),
+  refresh: Refresh.optional(),
+  op_type: OpType.optional(),
+  timeout: Duration.optional(),
+  execution_time_field: Field.optional()
 }).meta({ id: 'WatcherIndexAction' })
 export type WatcherIndexAction = z.infer<typeof WatcherIndexAction>
 
@@ -115,8 +123,8 @@ export const WatcherEmailPriority = z.enum(['lowest', 'low', 'normal', 'high', '
 export type WatcherEmailPriority = z.infer<typeof WatcherEmailPriority>
 
 export const WatcherHttpInputBasicAuthentication = z.object({
-  password: z.lazy(() => Password),
-  username: z.lazy(() => Username)
+  password: Password,
+  username: Username
 }).meta({ id: 'WatcherHttpInputBasicAuthentication' })
 export type WatcherHttpInputBasicAuthentication = z.infer<typeof WatcherHttpInputBasicAuthentication>
 
@@ -129,8 +137,8 @@ export const WatcherHttpInputMethod = z.enum(['head', 'get', 'post', 'put', 'del
 export type WatcherHttpInputMethod = z.infer<typeof WatcherHttpInputMethod>
 
 export const WatcherHttpInputProxy = z.object({
-  host: z.lazy(() => Host),
-  port: z.lazy(() => uint)
+  host: Host,
+  port: uint
 }).meta({ id: 'WatcherHttpInputProxy' })
 export type WatcherHttpInputProxy = z.infer<typeof WatcherHttpInputProxy>
 
@@ -140,15 +148,15 @@ export type WatcherConnectionScheme = z.infer<typeof WatcherConnectionScheme>
 export const WatcherHttpInputRequestDefinition = z.object({
   auth: WatcherHttpInputAuthentication.optional(),
   body: z.string().optional(),
-  connection_timeout: z.lazy(() => Duration).optional(),
+  connection_timeout: Duration.optional(),
   headers: z.record(z.string(), z.string()).optional(),
-  host: z.lazy(() => Host).optional(),
+  host: Host.optional(),
   method: WatcherHttpInputMethod.optional(),
   params: z.record(z.string(), z.string()).optional(),
   path: z.string().optional(),
-  port: z.lazy(() => uint).optional(),
+  port: uint.optional(),
   proxy: WatcherHttpInputProxy.optional(),
-  read_timeout: z.lazy(() => Duration).optional(),
+  read_timeout: Duration.optional(),
   scheme: WatcherConnectionScheme.optional(),
   url: z.string().optional()
 }).meta({ id: 'WatcherHttpInputRequestDefinition' })
@@ -164,8 +172,8 @@ export type WatcherHttpEmailAttachment = z.infer<typeof WatcherHttpEmailAttachme
 export const WatcherReportingEmailAttachment = z.object({
   url: z.string(),
   inline: z.boolean().optional(),
-  retries: z.lazy(() => integer).optional(),
-  interval: z.lazy(() => Duration).optional(),
+  retries: integer.optional(),
+  interval: Duration.optional(),
   request: WatcherHttpInputRequestDefinition.optional()
 }).meta({ id: 'WatcherReportingEmailAttachment' })
 export type WatcherReportingEmailAttachment = z.infer<typeof WatcherReportingEmailAttachment>
@@ -184,14 +192,14 @@ export const WatcherEmailAttachmentContainer = WatcherEmailAttachmentContainerEx
 export type WatcherEmailAttachmentContainer = z.infer<typeof WatcherEmailAttachmentContainer>
 
 export const WatcherEmail = z.object({
-  id: z.lazy(() => Id).optional(),
+  id: Id.optional(),
   bcc: z.union([z.string(), z.array(z.string())]).optional(),
   body: WatcherEmailBody.optional(),
   cc: z.union([z.string(), z.array(z.string())]).optional(),
   from: z.string().optional(),
   priority: WatcherEmailPriority.optional(),
   reply_to: z.union([z.string(), z.array(z.string())]).optional(),
-  sent_date: z.lazy(() => DateTime).optional(),
+  sent_date: DateTime.optional(),
   subject: z.string(),
   to: z.union([z.string(), z.array(z.string())]),
   attachments: z.record(z.string(), WatcherEmailAttachmentContainer).optional()
@@ -217,8 +225,8 @@ export const WatcherPagerDutyEventType = z.enum(['trigger', 'resolve', 'acknowle
 export type WatcherPagerDutyEventType = z.infer<typeof WatcherPagerDutyEventType>
 
 export const WatcherPagerDutyEventProxy = z.object({
-  host: z.lazy(() => Host).optional(),
-  port: z.lazy(() => integer).optional()
+  host: Host.optional(),
+  port: integer.optional()
 }).meta({ id: 'WatcherPagerDutyEventProxy' })
 export type WatcherPagerDutyEventProxy = z.infer<typeof WatcherPagerDutyEventProxy>
 
@@ -263,7 +271,7 @@ export const WatcherSlackAttachment = z.object({
   thumb_url: z.string().optional(),
   title: z.string(),
   title_link: z.string().optional(),
-  ts: z.lazy(() => EpochTime).optional()
+  ts: EpochTime.optional()
 }).meta({ id: 'WatcherSlackAttachment' })
 export type WatcherSlackAttachment = z.infer<typeof WatcherSlackAttachment>
 
@@ -298,10 +306,10 @@ export const WatcherAction = z.object({
   action_type: WatcherActionType.optional(),
   condition: WatcherConditionContainer.optional(),
   foreach: z.string().optional(),
-  max_iterations: z.lazy(() => integer).optional(),
-  name: z.lazy(() => Name).optional(),
-  throttle_period: z.lazy(() => Duration).optional(),
-  throttle_period_in_millis: z.lazy(() => DurationValue).optional(),
+  max_iterations: integer.optional(),
+  name: Name.optional(),
+  throttle_period: Duration.optional(),
+  throttle_period_in_millis: DurationValue.optional(),
   transform: z.lazy(() => TransformContainer).optional(),
   index: WatcherIndexAction.optional(),
   logging: WatcherLoggingAction.optional(),
@@ -317,14 +325,14 @@ export type WatcherActionExecutionMode = z.infer<typeof WatcherActionExecutionMo
 
 export const WatcherExecutionState = z.object({
   successful: z.boolean(),
-  timestamp: z.lazy(() => DateTime),
+  timestamp: DateTime,
   reason: z.string().optional()
 }).meta({ id: 'WatcherExecutionState' })
 export type WatcherExecutionState = z.infer<typeof WatcherExecutionState>
 
 export const WatcherThrottleState = z.object({
   reason: z.string(),
-  timestamp: z.lazy(() => DateTime)
+  timestamp: DateTime
 }).meta({ id: 'WatcherThrottleState' })
 export type WatcherThrottleState = z.infer<typeof WatcherThrottleState>
 
@@ -339,19 +347,19 @@ export type WatcherActionStatus = z.infer<typeof WatcherActionStatus>
 export const WatcherActionStatusOptions = z.enum(['success', 'failure', 'simulated', 'throttled']).meta({ id: 'WatcherActionStatusOptions' })
 export type WatcherActionStatusOptions = z.infer<typeof WatcherActionStatusOptions>
 
-export const WatcherActions = z.record(z.lazy(() => IndexName), WatcherActionStatus).meta({ id: 'WatcherActions' })
+export const WatcherActions = z.record(IndexName, WatcherActionStatus).meta({ id: 'WatcherActions' })
 export type WatcherActions = z.infer<typeof WatcherActions>
 
 export const WatcherActivationState = z.object({
   active: z.boolean(),
-  timestamp: z.lazy(() => DateTime)
+  timestamp: DateTime
 }).meta({ id: 'WatcherActivationState' })
 export type WatcherActivationState = z.infer<typeof WatcherActivationState>
 
 export const WatcherActivationStatus = z.object({
   actions: WatcherActions,
   state: WatcherActivationState,
-  version: z.lazy(() => VersionNumber)
+  version: VersionNumber
 }).meta({ id: 'WatcherActivationStatus' })
 export type WatcherActivationStatus = z.infer<typeof WatcherActivationStatus>
 
@@ -360,7 +368,7 @@ export type WatcherQuantifier = z.infer<typeof WatcherQuantifier>
 
 export const WatcherArrayCompareOpParams = z.object({
   quantifier: WatcherQuantifier,
-  value: z.lazy(() => FieldValue)
+  value: FieldValue
 }).meta({ id: 'WatcherArrayCompareOpParams' })
 export type WatcherArrayCompareOpParams = z.infer<typeof WatcherArrayCompareOpParams>
 
@@ -376,8 +384,8 @@ export type WatcherHttpInput = z.infer<typeof WatcherHttpInput>
 
 export const WatcherSearchInput = z.object({
   extract: z.array(z.string()).optional(),
-  request: z.lazy(() => WatcherSearchInputRequestDefinition),
-  timeout: z.lazy(() => Duration).optional()
+  request: WatcherSearchInputRequestDefinition,
+  timeout: Duration.optional()
 }).meta({ id: 'WatcherSearchInput' })
 export type WatcherSearchInput = z.infer<typeof WatcherSearchInput>
 
@@ -423,10 +431,10 @@ export type WatcherExecutionPhase = z.infer<typeof WatcherExecutionPhase>
 
 export const WatcherIndexResultSummary = z.object({
   created: z.boolean(),
-  id: z.lazy(() => Id),
-  index: z.lazy(() => IndexName),
-  result: z.lazy(() => Result),
-  version: z.lazy(() => VersionNumber)
+  id: Id,
+  index: IndexName,
+  result: Result,
+  version: VersionNumber
 }).meta({ id: 'WatcherIndexResultSummary' })
 export type WatcherIndexResultSummary = z.infer<typeof WatcherIndexResultSummary>
 
@@ -447,8 +455,8 @@ export type WatcherHttpInputRequestResult = z.infer<typeof WatcherHttpInputReque
 
 export const WatcherHttpInputResponseResult = z.object({
   body: z.string(),
-  headers: z.lazy(() => HttpHeaders),
-  status: z.lazy(() => integer)
+  headers: HttpHeaders,
+  status: integer
 }).meta({ id: 'WatcherHttpInputResponseResult' })
 export type WatcherHttpInputResponseResult = z.infer<typeof WatcherHttpInputResponseResult>
 
@@ -474,7 +482,7 @@ export type WatcherWebhookResult = z.infer<typeof WatcherWebhookResult>
 
 export const WatcherExecutionResultAction = z.object({
   email: WatcherEmailResult.optional(),
-  id: z.lazy(() => Id),
+  id: Id,
   index: WatcherIndexResult.optional(),
   logging: WatcherLoggingResult.optional(),
   pagerduty: WatcherPagerDutyResult.optional(),
@@ -507,8 +515,8 @@ export type WatcherExecutionResultInput = z.infer<typeof WatcherExecutionResultI
 export const WatcherExecutionResult = z.object({
   actions: z.array(WatcherExecutionResultAction),
   condition: WatcherExecutionResultCondition,
-  execution_duration: z.lazy(() => DurationValue),
-  execution_time: z.lazy(() => DateTime),
+  execution_duration: DurationValue,
+  execution_time: DateTime,
   input: WatcherExecutionResultInput
 }).meta({ id: 'WatcherExecutionResult' })
 export type WatcherExecutionResult = z.infer<typeof WatcherExecutionResult>
@@ -517,13 +525,13 @@ export const WatcherExecutionStatus = z.enum(['awaits_execution', 'checking', 'e
 export type WatcherExecutionStatus = z.infer<typeof WatcherExecutionStatus>
 
 export const WatcherExecutionThreadPool = z.object({
-  max_size: z.lazy(() => long).describe('The largest size of the execution thread pool, which indicates the largest number of concurrent running watches.'),
-  queue_size: z.lazy(() => long).describe('The number of watches that were triggered and are currently queued.')
+  max_size: long.describe('The largest size of the execution thread pool, which indicates the largest number of concurrent running watches.'),
+  queue_size: long.describe('The number of watches that were triggered and are currently queued.')
 }).meta({ id: 'WatcherExecutionThreadPool' })
 export type WatcherExecutionThreadPool = z.infer<typeof WatcherExecutionThreadPool>
 
 export const WatcherHourlySchedule = z.object({
-  minute: z.array(z.lazy(() => integer))
+  minute: z.array(integer)
 }).meta({ id: 'WatcherHourlySchedule' })
 export type WatcherHourlySchedule = z.infer<typeof WatcherHourlySchedule>
 
@@ -532,17 +540,17 @@ export type WatcherMonth = z.infer<typeof WatcherMonth>
 
 export const WatcherWatchStatus = z.object({
   actions: WatcherActions,
-  last_checked: z.lazy(() => DateTime).optional(),
-  last_met_condition: z.lazy(() => DateTime).optional(),
+  last_checked: DateTime.optional(),
+  last_met_condition: DateTime.optional(),
   state: WatcherActivationState,
-  version: z.lazy(() => VersionNumber),
+  version: VersionNumber,
   execution_state: z.string().optional()
 }).meta({ id: 'WatcherWatchStatus' })
 export type WatcherWatchStatus = z.infer<typeof WatcherWatchStatus>
 
 export const WatcherTimeOfMonth = z.object({
   at: z.array(z.string()),
-  on: z.array(z.lazy(() => integer))
+  on: z.array(integer)
 }).meta({ id: 'WatcherTimeOfMonth' })
 export type WatcherTimeOfMonth = z.infer<typeof WatcherTimeOfMonth>
 
@@ -555,11 +563,11 @@ export type WatcherTimeOfWeek = z.infer<typeof WatcherTimeOfWeek>
 export const WatcherTimeOfYear = z.object({
   at: z.array(z.string()),
   int: z.array(WatcherMonth),
-  on: z.array(z.lazy(() => integer))
+  on: z.array(integer)
 }).meta({ id: 'WatcherTimeOfYear' })
 export type WatcherTimeOfYear = z.infer<typeof WatcherTimeOfYear>
 
-const WatcherScheduleContainerExclusiveProps = z.union([z.object({ timezone: z.string() }), z.object({ cron: WatcherCronExpression }), z.object({ daily: WatcherDailySchedule }), z.object({ hourly: WatcherHourlySchedule }), z.object({ interval: z.lazy(() => Duration) }), z.object({ monthly: z.union([WatcherTimeOfMonth, z.array(WatcherTimeOfMonth)]) }), z.object({ weekly: z.union([WatcherTimeOfWeek, z.array(WatcherTimeOfWeek)]) }), z.object({ yearly: z.union([WatcherTimeOfYear, z.array(WatcherTimeOfYear)]) })])
+const WatcherScheduleContainerExclusiveProps = z.union([z.object({ timezone: z.string() }), z.object({ cron: WatcherCronExpression }), z.object({ daily: WatcherDailySchedule }), z.object({ hourly: WatcherHourlySchedule }), z.object({ interval: Duration }), z.object({ monthly: z.union([WatcherTimeOfMonth, z.array(WatcherTimeOfMonth)]) }), z.object({ weekly: z.union([WatcherTimeOfWeek, z.array(WatcherTimeOfWeek)]) }), z.object({ yearly: z.union([WatcherTimeOfYear, z.array(WatcherTimeOfYear)]) })])
 
 export const WatcherScheduleContainer = WatcherScheduleContainerExclusiveProps.meta({ id: 'WatcherScheduleContainer' })
 export type WatcherScheduleContainer = z.infer<typeof WatcherScheduleContainer>
@@ -570,30 +578,30 @@ export const WatcherTriggerContainer = WatcherTriggerContainerExclusiveProps.met
 export type WatcherTriggerContainer = z.infer<typeof WatcherTriggerContainer>
 
 export const WatcherWatch = z.object({
-  actions: z.record(z.lazy(() => IndexName), WatcherAction),
+  actions: z.record(IndexName, WatcherAction),
   condition: WatcherConditionContainer,
   input: z.lazy(() => WatcherInputContainer),
-  metadata: z.lazy(() => Metadata).optional(),
+  metadata: Metadata.optional(),
   status: WatcherWatchStatus.optional(),
-  throttle_period: z.lazy(() => Duration).optional(),
-  throttle_period_in_millis: z.lazy(() => DurationValue).optional(),
+  throttle_period: Duration.optional(),
+  throttle_period_in_millis: DurationValue.optional(),
   transform: z.lazy(() => TransformContainer).optional(),
   trigger: WatcherTriggerContainer
 }).meta({ id: 'WatcherWatch' })
 export type WatcherWatch = z.infer<typeof WatcherWatch>
 
 export const WatcherQueryWatch = z.object({
-  _id: z.lazy(() => Id),
+  _id: Id,
   status: WatcherWatchStatus.optional(),
   watch: WatcherWatch.optional(),
-  _primary_term: z.lazy(() => integer).optional(),
-  _seq_no: z.lazy(() => SequenceNumber).optional()
+  _primary_term: integer.optional(),
+  _seq_no: SequenceNumber.optional()
 }).meta({ id: 'WatcherQueryWatch' })
 export type WatcherQueryWatch = z.infer<typeof WatcherQueryWatch>
 
 export const WatcherScheduleTriggerEvent = z.object({
-  scheduled_time: z.lazy(() => DateTime),
-  triggered_time: z.lazy(() => DateTime).optional()
+  scheduled_time: DateTime,
+  triggered_time: DateTime.optional()
 }).meta({ id: 'WatcherScheduleTriggerEvent' })
 export type WatcherScheduleTriggerEvent = z.infer<typeof WatcherScheduleTriggerEvent>
 
@@ -616,7 +624,7 @@ export type WatcherTriggerEventContainer = z.infer<typeof WatcherTriggerEventCon
 
 export const WatcherTriggerEventResult = z.object({
   manual: WatcherTriggerEventContainer,
-  triggered_time: z.lazy(() => DateTime),
+  triggered_time: DateTime,
   type: z.string()
 }).meta({ id: 'WatcherTriggerEventResult' })
 export type WatcherTriggerEventResult = z.infer<typeof WatcherTriggerEventResult>
@@ -636,8 +644,9 @@ export type WatcherTriggerEventResult = z.infer<typeof WatcherTriggerEventResult
  * To demonstrate how throttling works in practice and how it can be configured for individual actions within a watch, refer to External documentation.
  */
 export const WatcherAckWatchRequest = z.object({
-  watch_id: z.lazy(() => Name).describe('The watch identifier.').meta({ found_in: 'path' }),
-  action_id: z.lazy(() => Names).describe('A comma-separated list of the action identifiers to acknowledge. If you omit this parameter, all of the actions of the watch are acknowledged.').optional().meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  watch_id: Name.describe('The watch identifier.').meta({ found_in: 'path' }),
+  action_id: Names.describe('A comma-separated list of the action identifiers to acknowledge. If you omit this parameter, all of the actions of the watch are acknowledged.').optional().meta({ found_in: 'path' })
 }).meta({ id: 'WatcherAckWatchRequest' })
 export type WatcherAckWatchRequest = z.infer<typeof WatcherAckWatchRequest>
 
@@ -652,7 +661,8 @@ export type WatcherAckWatchResponse = z.infer<typeof WatcherAckWatchResponse>
  * A watch can be either active or inactive.
  */
 export const WatcherActivateWatchRequest = z.object({
-  watch_id: z.lazy(() => Name).describe('The watch identifier.').meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  watch_id: Name.describe('The watch identifier.').meta({ found_in: 'path' })
 }).meta({ id: 'WatcherActivateWatchRequest' })
 export type WatcherActivateWatchRequest = z.infer<typeof WatcherActivateWatchRequest>
 
@@ -667,7 +677,8 @@ export type WatcherActivateWatchResponse = z.infer<typeof WatcherActivateWatchRe
  * A watch can be either active or inactive.
  */
 export const WatcherDeactivateWatchRequest = z.object({
-  watch_id: z.lazy(() => Name).describe('The watch identifier.').meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  watch_id: Name.describe('The watch identifier.').meta({ found_in: 'path' })
 }).meta({ id: 'WatcherDeactivateWatchRequest' })
 export type WatcherDeactivateWatchRequest = z.infer<typeof WatcherDeactivateWatchRequest>
 
@@ -688,14 +699,15 @@ export type WatcherDeactivateWatchResponse = z.infer<typeof WatcherDeactivateWat
  * When Elasticsearch security features are enabled, make sure no write privileges are granted to anyone for the `.watches` index.
  */
 export const WatcherDeleteWatchRequest = z.object({
-  id: z.lazy(() => Name).describe('The watch identifier.').meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  id: Name.describe('The watch identifier.').meta({ found_in: 'path' })
 }).meta({ id: 'WatcherDeleteWatchRequest' })
 export type WatcherDeleteWatchRequest = z.infer<typeof WatcherDeleteWatchRequest>
 
 export const WatcherDeleteWatchResponse = z.object({
   found: z.boolean(),
-  _id: z.lazy(() => Id),
-  _version: z.lazy(() => VersionNumber)
+  _id: Id,
+  _version: VersionNumber
 }).meta({ id: 'WatcherDeleteWatchResponse' })
 export type WatcherDeleteWatchResponse = z.infer<typeof WatcherDeleteWatchResponse>
 
@@ -718,7 +730,8 @@ export type WatcherDeleteWatchResponse = z.infer<typeof WatcherDeleteWatchRespon
  * Refer to the external documentation for examples of watch execution requests, including existing, customized, and inline watches.
  */
 export const WatcherExecuteWatchRequest = z.object({
-  id: z.lazy(() => Id).describe('The watch identifier.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  id: Id.describe('The watch identifier.').optional().meta({ found_in: 'path' }),
   debug: z.boolean().describe('Defines whether the watch runs in debug mode.').optional().meta({ found_in: 'query' }),
   action_modes: z.record(z.string(), WatcherActionExecutionMode).describe('Determines how to handle the watch actions as part of the watch execution.').optional().meta({ found_in: 'body' }),
   alternative_input: z.record(z.string(), z.any()).describe('When present, the watch uses this object as a payload instead of executing its own input.').optional().meta({ found_in: 'body' }),
@@ -734,19 +747,19 @@ export const WatcherExecuteWatchWatchRecord = z.object({
   condition: WatcherConditionContainer,
   input: z.lazy(() => WatcherInputContainer),
   messages: z.array(z.string()),
-  metadata: z.lazy(() => Metadata).optional(),
+  metadata: Metadata.optional(),
   node: z.string(),
   result: WatcherExecutionResult,
   state: WatcherExecutionStatus,
   trigger_event: WatcherTriggerEventResult,
-  user: z.lazy(() => Username),
-  watch_id: z.lazy(() => Id),
+  user: Username,
+  watch_id: Id,
   status: WatcherWatchStatus.optional()
 }).meta({ id: 'WatcherExecuteWatchWatchRecord' })
 export type WatcherExecuteWatchWatchRecord = z.infer<typeof WatcherExecuteWatchWatchRecord>
 
 export const WatcherExecuteWatchResponse = z.object({
-  _id: z.lazy(() => Id).describe('The watch record identifier as it would be stored in the `.watcher-history` index.'),
+  _id: Id.describe('The watch record identifier as it would be stored in the `.watcher-history` index.'),
   watch_record: WatcherExecuteWatchWatchRecord.describe('The watch record document as it would be stored in the `.watcher-history` index.')
 }).meta({ id: 'WatcherExecuteWatchResponse' })
 export type WatcherExecuteWatchResponse = z.infer<typeof WatcherExecuteWatchResponse>
@@ -758,7 +771,8 @@ export type WatcherExecuteWatchResponse = z.infer<typeof WatcherExecuteWatchResp
  * Only a subset of settings are shown, for example `index.auto_expand_replicas` and `index.number_of_replicas`.
  */
 export const WatcherGetSettingsRequest = z.object({
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  master_timeout: Duration.describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'WatcherGetSettingsRequest' })
 export type WatcherGetSettingsRequest = z.infer<typeof WatcherGetSettingsRequest>
 
@@ -769,18 +783,19 @@ export type WatcherGetSettingsResponse = z.infer<typeof WatcherGetSettingsRespon
 
 /** Get a watch. */
 export const WatcherGetWatchRequest = z.object({
-  id: z.lazy(() => Name).describe('The watch identifier.').meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  id: Name.describe('The watch identifier.').meta({ found_in: 'path' })
 }).meta({ id: 'WatcherGetWatchRequest' })
 export type WatcherGetWatchRequest = z.infer<typeof WatcherGetWatchRequest>
 
 export const WatcherGetWatchResponse = z.object({
   found: z.boolean(),
-  _id: z.lazy(() => Id),
+  _id: Id,
   status: WatcherWatchStatus.optional(),
   watch: WatcherWatch.optional(),
-  _primary_term: z.lazy(() => integer).optional(),
-  _seq_no: z.lazy(() => SequenceNumber).optional(),
-  _version: z.lazy(() => VersionNumber).optional()
+  _primary_term: integer.optional(),
+  _seq_no: SequenceNumber.optional(),
+  _version: VersionNumber.optional()
 }).meta({ id: 'WatcherGetWatchResponse' })
 export type WatcherGetWatchResponse = z.infer<typeof WatcherGetWatchResponse>
 
@@ -800,17 +815,18 @@ export type WatcherGetWatchResponse = z.infer<typeof WatcherGetWatchResponse>
  * If the user is able to read index `a`, but not index `b`, the same will apply when the watch runs.
  */
 export const WatcherPutWatchRequest = z.object({
-  id: z.lazy(() => Id).describe('The identifier for the watch.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  id: Id.describe('The identifier for the watch.').meta({ found_in: 'path' }),
   active: z.boolean().describe('The initial state of the watch. The default value is `true`, which means the watch is active by default.').optional().meta({ found_in: 'query' }),
-  if_primary_term: z.lazy(() => long).describe('Only update the watch if the last operation that has changed the watch has the specified primary term').optional().meta({ found_in: 'query' }),
-  if_seq_no: z.lazy(() => SequenceNumber).describe('Only update the watch if the last operation that has changed the watch has the specified sequence number').optional().meta({ found_in: 'query' }),
-  version: z.lazy(() => VersionNumber).describe('Explicit version number for concurrency control').optional().meta({ found_in: 'query' }),
+  if_primary_term: long.describe('Only update the watch if the last operation that has changed the watch has the specified primary term').optional().meta({ found_in: 'query' }),
+  if_seq_no: SequenceNumber.describe('Only update the watch if the last operation that has changed the watch has the specified sequence number').optional().meta({ found_in: 'query' }),
+  version: VersionNumber.describe('Explicit version number for concurrency control').optional().meta({ found_in: 'query' }),
   actions: z.record(z.string(), WatcherAction).describe('The list of actions that will be run if the condition matches.').optional().meta({ found_in: 'body' }),
   condition: WatcherConditionContainer.describe('The condition that defines if the actions should be run.').optional().meta({ found_in: 'body' }),
   input: z.lazy(() => WatcherInputContainer).describe('The input that defines the input that loads the data for the watch.').optional().meta({ found_in: 'body' }),
-  metadata: z.lazy(() => Metadata).describe('Metadata JSON that will be copied into the history entries.').optional().meta({ found_in: 'body' }),
-  throttle_period: z.lazy(() => Duration).describe('The minimum time between actions being run. The default is 5 seconds. This default can be changed in the config file with the setting `xpack.watcher.throttle.period.default_period`. If both this value and the `throttle_period_in_millis` parameter are specified, Watcher uses the last parameter included in the request.').optional().meta({ found_in: 'body' }),
-  throttle_period_in_millis: z.lazy(() => DurationValue).describe('Minimum time in milliseconds between actions being run. Defaults to 5000. If both this value and the throttle_period parameter are specified, Watcher uses the last parameter included in the request.').optional().meta({ found_in: 'body' }),
+  metadata: Metadata.describe('Metadata JSON that will be copied into the history entries.').optional().meta({ found_in: 'body' }),
+  throttle_period: Duration.describe('The minimum time between actions being run. The default is 5 seconds. This default can be changed in the config file with the setting `xpack.watcher.throttle.period.default_period`. If both this value and the `throttle_period_in_millis` parameter are specified, Watcher uses the last parameter included in the request.').optional().meta({ found_in: 'body' }),
+  throttle_period_in_millis: DurationValue.describe('Minimum time in milliseconds between actions being run. Defaults to 5000. If both this value and the throttle_period parameter are specified, Watcher uses the last parameter included in the request.').optional().meta({ found_in: 'body' }),
   transform: z.lazy(() => TransformContainer).describe('The transform that processes the watch payload to prepare it for the watch actions.').optional().meta({ found_in: 'body' }),
   trigger: WatcherTriggerContainer.describe('The trigger that defines when the watch should run.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'WatcherPutWatchRequest' })
@@ -818,10 +834,10 @@ export type WatcherPutWatchRequest = z.infer<typeof WatcherPutWatchRequest>
 
 export const WatcherPutWatchResponse = z.object({
   created: z.boolean(),
-  _id: z.lazy(() => Id),
-  _primary_term: z.lazy(() => long),
-  _seq_no: z.lazy(() => SequenceNumber),
-  _version: z.lazy(() => VersionNumber)
+  _id: Id,
+  _primary_term: long,
+  _seq_no: SequenceNumber,
+  _version: VersionNumber
 }).meta({ id: 'WatcherPutWatchResponse' })
 export type WatcherPutWatchResponse = z.infer<typeof WatcherPutWatchResponse>
 
@@ -833,16 +849,17 @@ export type WatcherPutWatchResponse = z.infer<typeof WatcherPutWatchResponse>
  * Note that only the `_id` and `metadata.*` fields are queryable or sortable.
  */
 export const WatcherQueryWatchesRequest = z.object({
-  from: z.lazy(() => integer).describe('The offset from the first result to fetch. It must be non-negative.').optional().meta({ found_in: 'body' }),
-  size: z.lazy(() => integer).describe('The number of hits to return. It must be non-negative.').optional().meta({ found_in: 'body' }),
+  ...RequestBase.shape,
+  from: integer.describe('The offset from the first result to fetch. It must be non-negative.').optional().meta({ found_in: 'body' }),
+  size: integer.describe('The number of hits to return. It must be non-negative.').optional().meta({ found_in: 'body' }),
   query: z.lazy(() => QueryDslQueryContainer).describe('A query that filters the watches to be returned.').optional().meta({ found_in: 'body' }),
   sort: z.lazy(() => Sort).describe('One or more fields used to sort the search results.').optional().meta({ found_in: 'body' }),
-  search_after: z.lazy(() => SortResults).describe('Retrieve the next page of hits using a set of sort values from the previous page.').optional().meta({ found_in: 'body' })
+  search_after: SortResults.describe('Retrieve the next page of hits using a set of sort values from the previous page.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'WatcherQueryWatchesRequest' })
 export type WatcherQueryWatchesRequest = z.infer<typeof WatcherQueryWatchesRequest>
 
 export const WatcherQueryWatchesResponse = z.object({
-  count: z.lazy(() => integer).describe('The total number of watches found.'),
+  count: integer.describe('The total number of watches found.'),
   watches: z.array(WatcherQueryWatch).describe('A list of watches based on the `from`, `size`, or `search_after` request body parameters.')
 }).meta({ id: 'WatcherQueryWatchesResponse' })
 export type WatcherQueryWatchesResponse = z.infer<typeof WatcherQueryWatchesResponse>
@@ -853,11 +870,12 @@ export type WatcherQueryWatchesResponse = z.infer<typeof WatcherQueryWatchesResp
  * Start the Watcher service if it is not already running.
  */
 export const WatcherStartRequest = z.object({
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'WatcherStartRequest' })
 export type WatcherStartRequest = z.infer<typeof WatcherStartRequest>
 
-export const WatcherStartResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'WatcherStartResponse' })
+export const WatcherStartResponse = AcknowledgedResponseBase.meta({ id: 'WatcherStartResponse' })
 export type WatcherStartResponse = z.infer<typeof WatcherStartResponse>
 
 export const WatcherStatsWatcherMetric = z.enum(['_all', 'all', 'queued_watches', 'current_watches', 'pending_watches']).meta({ id: 'WatcherStatsWatcherMetric' })
@@ -870,23 +888,24 @@ export type WatcherStatsWatcherMetric = z.infer<typeof WatcherStatsWatcherMetric
  * You retrieve more metrics by using the metric parameter.
  */
 export const WatcherStatsRequest = z.object({
+  ...RequestBase.shape,
   metric: z.union([WatcherStatsWatcherMetric, z.array(WatcherStatsWatcherMetric)]).describe('Defines which additional metrics are included in the response.').optional().meta({ found_in: 'path' }),
   emit_stacktraces: z.boolean().describe('Defines whether stack traces are generated for each watch that is running.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'WatcherStatsRequest' })
 export type WatcherStatsRequest = z.infer<typeof WatcherStatsRequest>
 
 export const WatcherStatsWatchRecordQueuedStats = z.object({
-  execution_time: z.lazy(() => DateTime).describe('The time the watch was run. This is just before the input is being run.')
+  execution_time: DateTime.describe('The time the watch was run. This is just before the input is being run.')
 }).meta({ id: 'WatcherStatsWatchRecordQueuedStats' })
 export type WatcherStatsWatchRecordQueuedStats = z.infer<typeof WatcherStatsWatchRecordQueuedStats>
 
 export const WatcherStatsWatchRecordStats = z.object({
   ...WatcherStatsWatchRecordQueuedStats.shape,
   execution_phase: WatcherExecutionPhase.describe('The current watch execution phase.'),
-  triggered_time: z.lazy(() => DateTime).describe('The time the watch was triggered by the trigger engine.'),
+  triggered_time: DateTime.describe('The time the watch was triggered by the trigger engine.'),
   executed_actions: z.array(z.string()).optional(),
-  watch_id: z.lazy(() => Id),
-  watch_record_id: z.lazy(() => Id).describe('The watch record identifier.')
+  watch_id: Id,
+  watch_record_id: Id.describe('The watch record identifier.')
 }).meta({ id: 'WatcherStatsWatchRecordStats' })
 export type WatcherStatsWatchRecordStats = z.infer<typeof WatcherStatsWatchRecordStats>
 
@@ -897,15 +916,15 @@ export const WatcherStatsWatcherNodeStats = z.object({
   current_watches: z.array(WatcherStatsWatchRecordStats).describe('The current executing watches metric gives insight into the watches that are currently being executed by Watcher. Additional information is shared per watch that is currently executing. This information includes the `watch_id`, the time its execution started and its current execution phase. To include this metric, the `metric` option should be set to `current_watches` or `_all`. In addition you can also specify the `emit_stacktraces=true` parameter, which adds stack traces for each watch that is being run. These stack traces can give you more insight into an execution of a watch.').optional(),
   execution_thread_pool: WatcherExecutionThreadPool,
   queued_watches: z.array(WatcherStatsWatchRecordQueuedStats).describe('Watcher moderates the execution of watches such that their execution won\'t put too much pressure on the node and its resources. If too many watches trigger concurrently and there isn\'t enough capacity to run them all, some of the watches are queued, waiting for the current running watches to finish.s The queued watches metric gives insight on these queued watches. To include this metric, the `metric` option should include `queued_watches` or `_all`.').optional(),
-  watch_count: z.lazy(() => long).describe('The number of watches currently registered.'),
+  watch_count: long.describe('The number of watches currently registered.'),
   watcher_state: WatcherStatsWatcherState.describe('The current state of Watcher.'),
-  node_id: z.lazy(() => Id)
+  node_id: Id
 }).meta({ id: 'WatcherStatsWatcherNodeStats' })
 export type WatcherStatsWatcherNodeStats = z.infer<typeof WatcherStatsWatcherNodeStats>
 
 export const WatcherStatsResponse = z.object({
-  node_stats: z.lazy(() => NodeStatistics),
-  cluster_name: z.lazy(() => Name),
+  node_stats: NodeStatistics,
+  cluster_name: Name,
   manually_stopped: z.boolean(),
   stats: z.array(WatcherStatsWatcherNodeStats)
 }).meta({ id: 'WatcherStatsResponse' })
@@ -917,11 +936,12 @@ export type WatcherStatsResponse = z.infer<typeof WatcherStatsResponse>
  * Stop the Watcher service if it is running.
  */
 export const WatcherStopRequest = z.object({
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for the master node. If the master node is not available before the timeout expires, the request fails and returns an error. To indicate that the request should never timeout, set it to `-1`.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  master_timeout: Duration.describe('The period to wait for the master node. If the master node is not available before the timeout expires, the request fails and returns an error. To indicate that the request should never timeout, set it to `-1`.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'WatcherStopRequest' })
 export type WatcherStopRequest = z.infer<typeof WatcherStopRequest>
 
-export const WatcherStopResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'WatcherStopResponse' })
+export const WatcherStopResponse = AcknowledgedResponseBase.meta({ id: 'WatcherStopResponse' })
 export type WatcherStopResponse = z.infer<typeof WatcherStopResponse>
 
 /**
@@ -935,10 +955,11 @@ export type WatcherStopResponse = z.infer<typeof WatcherStopResponse>
  * Watcher shards must always be in the `data_content` tier.
  */
 export const WatcherUpdateSettingsRequest = z.object({
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('The period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  master_timeout: Duration.describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('The period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   'index.auto_expand_replicas': z.string().optional(),
-  'index.number_of_replicas': z.lazy(() => integer).optional()
+  'index.number_of_replicas': integer.optional()
 }).meta({ id: 'WatcherUpdateSettingsRequest' })
 export type WatcherUpdateSettingsRequest = z.infer<typeof WatcherUpdateSettingsRequest>
 

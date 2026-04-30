@@ -3,23 +3,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
- 
- 
+/* eslint-disable @typescript-eslint/no-use-before-define */
+/* eslint-disable @typescript-eslint/no-redeclare */
 import { z } from 'zod'
 
-import { AcknowledgedResponseBase, AggregateName, AggregationsBucketAggregationBase, AggregationsBuckets, AggregationsCardinalityAggregate, AggregationsCardinalityAggregation, AggregationsCompositeAggregate, AggregationsCompositeAggregation, AggregationsDateRangeAggregate, AggregationsDateRangeAggregation, AggregationsDoubleTermsAggregate, AggregationsFilterAggregate, AggregationsFiltersAggregate, AggregationsLongTermsAggregate, AggregationsMissingAggregate, AggregationsMissingAggregation, AggregationsMultiTermsAggregate, AggregationsRangeAggregate, AggregationsRangeAggregation, AggregationsStringTermsAggregate, AggregationsTermsAggregation, AggregationsUnmappedTermsAggregate, AggregationsValueCountAggregate, AggregationsValueCountAggregation, Duration, DurationLarge, DurationValue, EpochTime, ErrorCause, Field, FieldValue, Fields, Id, Ids, IndexName, Indices, Metadata, Name, Names, Namespace, NodeStatistics, Password, QueryDslBoolQuery, QueryDslExistsQuery, QueryDslIdsQuery, QueryDslMatchAllQuery, QueryDslMatchQuery, QueryDslPrefixQuery, QueryDslQueryContainer, QueryDslRangeQuery, QueryDslSimpleQueryStringQuery, QueryDslTermQuery, QueryDslTermsQuery, QueryDslWildcardQuery, Refresh, RelationName, Script, ScriptLanguage, SequenceNumber, Service, Sort, SortResults, Username, integer, long } from './_types.ts'
+import { Script } from './_global.search.ts'
+import { AcknowledgedResponseBase, AggregateName, Duration, DurationLarge, DurationValue, EpochTime, ErrorCause, Field, FieldValue, Fields, Id, Ids, IndexName, Indices, Metadata, Name, Names, Namespace, NodeStatistics, Password, Refresh, RelationName, RequestBase, ScriptLanguage, SequenceNumber, Service, SortResults, Username, integer, long } from './_types.ts'
+import { AggregationsBucketAggregationBase, AggregationsBuckets, AggregationsCardinalityAggregate, AggregationsCardinalityAggregation, AggregationsCompositeAggregate, AggregationsCompositeAggregation, AggregationsDateRangeAggregate, AggregationsDateRangeAggregation, AggregationsDoubleTermsAggregate, AggregationsFilterAggregate, AggregationsFiltersAggregate, AggregationsLongTermsAggregate, AggregationsMissingAggregate, AggregationsMissingAggregation, AggregationsMultiTermsAggregate, AggregationsRangeAggregate, AggregationsRangeAggregation, AggregationsStringTermsAggregate, AggregationsTermsAggregation, AggregationsUnmappedTermsAggregate, AggregationsValueCountAggregate, AggregationsValueCountAggregation } from './_types.aggregations.ts'
+import { QueryDslBoolQuery, QueryDslExistsQuery, QueryDslIdsQuery, QueryDslMatchAllQuery, QueryDslMatchQuery, QueryDslPrefixQuery, QueryDslQueryContainer, QueryDslRangeQuery, QueryDslSimpleQueryStringQuery, QueryDslTermQuery, QueryDslTermsQuery, QueryDslWildcardQuery, Sort } from './_types.query_dsl.ts'
 import { IndicesIndexSettings } from './indices.ts'
 import { XpackUsageSecurityRolesDls } from './xpack.ts'
 
 export const SecurityReplicationAccess = z.object({
-  names: z.union([z.lazy(() => IndexName), z.array(z.lazy(() => IndexName))]).describe('A list of indices (or index name patterns) to which the permissions in this entry apply.'),
+  names: z.union([IndexName, z.array(IndexName)]).describe('A list of indices (or index name patterns) to which the permissions in this entry apply.'),
   allow_restricted_indices: z.boolean().describe('This needs to be set to true if the patterns in the names field should cover system indices.').optional()
 }).meta({ id: 'SecurityReplicationAccess' })
 export type SecurityReplicationAccess = z.infer<typeof SecurityReplicationAccess>
 
 export const SecurityFieldSecurity = z.object({
-  except: z.lazy(() => Fields).optional(),
-  grant: z.lazy(() => Fields).optional()
+  except: Fields.optional(),
+  grant: Fields.optional()
 }).meta({ id: 'SecurityFieldSecurity' })
 export type SecurityFieldSecurity = z.infer<typeof SecurityFieldSecurity>
 
@@ -28,9 +31,9 @@ export type SecurityRoleTemplateInlineQuery = z.infer<typeof SecurityRoleTemplat
 
 export const SecurityRoleTemplateScript = z.object({
   source: SecurityRoleTemplateInlineQuery.optional(),
-  id: z.lazy(() => Id).describe('The `id` for a stored script.').optional(),
+  id: Id.describe('The `id` for a stored script.').optional(),
   params: z.record(z.string(), z.any()).describe('Specifies any named parameters that are passed into the script as variables. Use parameters instead of hard-coded values to decrease compile time.').optional(),
-  lang: z.lazy(() => ScriptLanguage).describe('Specifies the language the script is written in.').optional(),
+  lang: ScriptLanguage.describe('Specifies the language the script is written in.').optional(),
   options: z.record(z.string(), z.string()).optional()
 }).meta({ id: 'SecurityRoleTemplateScript' })
 export type SecurityRoleTemplateScript = z.infer<typeof SecurityRoleTemplateScript>
@@ -51,7 +54,7 @@ export type SecurityIndicesPrivilegesQuery = z.infer<typeof SecurityIndicesPrivi
 
 export const SecuritySearchAccess = z.object({
   field_security: SecurityFieldSecurity.describe('The document fields that the owners of the role have read access to.').optional(),
-  names: z.union([z.lazy(() => IndexName), z.array(z.lazy(() => IndexName))]).describe('A list of indices (or index name patterns) to which the permissions in this entry apply.'),
+  names: z.union([IndexName, z.array(IndexName)]).describe('A list of indices (or index name patterns) to which the permissions in this entry apply.'),
   query: SecurityIndicesPrivilegesQuery.describe('A search query that defines the documents the owners of the role have access to. A document within the specified indices must match this query for it to be accessible by the owners of the role.').optional()
 }).meta({ id: 'SecuritySearchAccess' })
 export type SecuritySearchAccess = z.infer<typeof SecuritySearchAccess>
@@ -73,7 +76,7 @@ export type SecurityIndexPrivilege = z.infer<typeof SecurityIndexPrivilege>
 
 export const SecurityIndicesPrivileges = z.object({
   field_security: SecurityFieldSecurity.describe('The document fields that the owners of the role have read access to.').optional(),
-  names: z.union([z.lazy(() => IndexName), z.array(z.lazy(() => IndexName))]).describe('A list of indices (or index name patterns) to which the permissions in this entry apply.'),
+  names: z.union([IndexName, z.array(IndexName)]).describe('A list of indices (or index name patterns) to which the permissions in this entry apply.'),
   privileges: z.array(SecurityIndexPrivilege).describe('The index level privileges that owners of the role have on the specified indices.'),
   query: SecurityIndicesPrivilegesQuery.describe('A search query that defines the documents the owners of the role have access to. A document within the specified indices must match this query for it to be accessible by the owners of the role.').optional()
 }).meta({ id: 'SecurityIndicesPrivileges' })
@@ -81,9 +84,9 @@ export type SecurityIndicesPrivileges = z.infer<typeof SecurityIndicesPrivileges
 
 /** The subset of index level privileges that can be defined for remote clusters. */
 export const SecurityRemoteIndicesPrivileges = z.object({
-  clusters: z.lazy(() => Names).describe('A list of cluster aliases to which the permissions in this entry apply.'),
+  clusters: Names.describe('A list of cluster aliases to which the permissions in this entry apply.'),
   field_security: SecurityFieldSecurity.describe('The document fields that the owners of the role have read access to.').optional(),
-  names: z.union([z.lazy(() => IndexName), z.array(z.lazy(() => IndexName))]).describe('A list of indices (or index name patterns) to which the permissions in this entry apply.'),
+  names: z.union([IndexName, z.array(IndexName)]).describe('A list of indices (or index name patterns) to which the permissions in this entry apply.'),
   privileges: z.array(SecurityIndexPrivilege).describe('The index level privileges that owners of the role have on the specified indices.'),
   query: SecurityIndicesPrivilegesQuery.describe('A search query that defines the documents the owners of the role have access to. A document within the specified indices must match this query for it to be accessible by the owners of the role.').optional()
 }).meta({ id: 'SecurityRemoteIndicesPrivileges' })
@@ -94,7 +97,7 @@ export type SecurityRemoteClusterPrivilege = z.infer<typeof SecurityRemoteCluste
 
 /** The subset of cluster level privileges that can be defined for remote clusters. */
 export const SecurityRemoteClusterPrivileges = z.object({
-  clusters: z.lazy(() => Names).describe('A list of cluster aliases to which the permissions in this entry apply.'),
+  clusters: Names.describe('A list of cluster aliases to which the permissions in this entry apply.'),
   privileges: z.array(SecurityRemoteClusterPrivilege).describe('The cluster level privileges that owners of the role have on the remote cluster.')
 }).meta({ id: 'SecurityRemoteClusterPrivileges' })
 export type SecurityRemoteClusterPrivileges = z.infer<typeof SecurityRemoteClusterPrivileges>
@@ -134,7 +137,7 @@ export const SecurityRoleDescriptor = z.object({
   indices: z.array(SecurityIndicesPrivileges).describe('A list of indices permissions entries.').optional(),
   index: z.array(SecurityIndicesPrivileges).describe('A list of indices permissions entries.').optional(),
   applications: z.array(SecurityApplicationPrivileges).describe('A list of application privilege entries').optional(),
-  metadata: z.lazy(() => Metadata).describe('Optional meta-data. Within the metadata object, keys that begin with `_` are reserved for system usage.').optional(),
+  metadata: Metadata.describe('Optional meta-data. Within the metadata object, keys that begin with `_` are reserved for system usage.').optional(),
   run_as: z.array(z.string()).describe('A list of users that the API keys can impersonate. NOTE: In Elastic Cloud Serverless, the run-as feature is disabled. For API compatibility, you can still specify an empty `run_as` field, but a non-empty list will be rejected.').optional(),
   description: z.string().describe('Optional description of the role descriptor').optional(),
   restriction: SecurityRestriction.describe('Restriction for when the role descriptor is allowed to be effective.').optional(),
@@ -143,36 +146,33 @@ export const SecurityRoleDescriptor = z.object({
 export type SecurityRoleDescriptor = z.infer<typeof SecurityRoleDescriptor>
 
 export const SecurityApiKey = z.object({
-  id: z.lazy(() => Id).describe('Id for the API key'),
-  name: z.lazy(() => Name).describe('Name of the API key.'),
+  id: Id.describe('Id for the API key'),
+  name: Name.describe('Name of the API key.'),
   type: SecurityApiKeyType.describe('The type of the API key (e.g. `rest` or `cross_cluster`).'),
-  creation: z.lazy(() => EpochTime).describe('Creation time for the API key in milliseconds.'),
-  expiration: z.lazy(() => EpochTime).describe('Expiration time for the API key in milliseconds.').optional(),
+  creation: EpochTime.describe('Creation time for the API key in milliseconds.'),
+  expiration: EpochTime.describe('Expiration time for the API key in milliseconds.').optional(),
   invalidated: z.boolean().describe('Invalidation status for the API key. If the key has been invalidated, it has a value of `true`. Otherwise, it is `false`.'),
-  invalidation: z.lazy(() => EpochTime).describe('If the key has been invalidated, invalidation time in milliseconds.').optional(),
-  username: z.lazy(() => Username).describe('Principal for which this API key was created'),
+  invalidation: EpochTime.describe('If the key has been invalidated, invalidation time in milliseconds.').optional(),
+  username: Username.describe('Principal for which this API key was created'),
   realm: z.string().describe('Realm name of the principal for which this API key was created.'),
   realm_type: z.string().describe('Realm type of the principal for which this API key was created').optional(),
-  metadata: z.lazy(() => Metadata).describe('Metadata of the API key'),
+  metadata: Metadata.describe('Metadata of the API key'),
   role_descriptors: z.record(z.string(), SecurityRoleDescriptor).describe('The role descriptors assigned to this API key when it was created or last updated. An empty role descriptor means the API key inherits the owner user’s permissions.').optional(),
   limited_by: z.array(z.record(z.string(), SecurityRoleDescriptor)).describe('The owner user’s permissions associated with the API key. It is a point-in-time snapshot captured at creation and subsequent updates. An API key’s effective permissions are an intersection of its assigned privileges and the owner user’s permissions.').optional(),
   access: SecurityAccess.describe('The access granted to cross-cluster API keys. The access is composed of permissions for cross cluster search and cross cluster replication. At least one of them must be specified. When specified, the new access assignment fully replaces the previously assigned access.').optional(),
   profile_uid: z.string().describe('The profile uid for the API key owner principal, if requested and if it exists').optional(),
-  _sort: z.lazy(() => SortResults).describe('Sorting values when using the `sort` parameter with the `security.query_api_keys` API.').optional()
+  _sort: SortResults.describe('Sorting values when using the `sort` parameter with the `security.query_api_keys` API.').optional()
 }).meta({ id: 'SecurityApiKey' })
 export type SecurityApiKey = z.infer<typeof SecurityApiKey>
 
-export const SecurityApiKeyManagedBy = z.enum(['cloud', 'elasticsearch']).meta({ id: 'SecurityApiKeyManagedBy' })
-export type SecurityApiKeyManagedBy = z.infer<typeof SecurityApiKeyManagedBy>
-
 export const SecurityBulkError = z.object({
-  count: z.lazy(() => integer).describe('The number of errors'),
+  count: integer.describe('The number of errors'),
   details: z.record(z.string(), z.lazy(() => ErrorCause)).describe('Details about the errors, keyed by role name')
 }).meta({ id: 'SecurityBulkError' })
 export type SecurityBulkError = z.infer<typeof SecurityBulkError>
 
 export const SecurityClusterNode = z.object({
-  name: z.lazy(() => Name)
+  name: Name
 }).meta({ id: 'SecurityClusterNode' })
 export type SecurityClusterNode = z.infer<typeof SecurityClusterNode>
 
@@ -181,12 +181,15 @@ export const SecurityCreatedStatus = z.object({
 }).meta({ id: 'SecurityCreatedStatus' })
 export type SecurityCreatedStatus = z.infer<typeof SecurityCreatedStatus>
 
+export const SecurityCredentialManagedBy = z.enum(['cloud', 'elasticsearch']).meta({ id: 'SecurityCredentialManagedBy' })
+export type SecurityCredentialManagedBy = z.infer<typeof SecurityCredentialManagedBy>
+
 export const SecurityGrantType = z.enum(['password', 'access_token']).meta({ id: 'SecurityGrantType' })
 export type SecurityGrantType = z.infer<typeof SecurityGrantType>
 
 export const SecurityIndicesPrivilegesBase = z.object({
   field_security: SecurityFieldSecurity.describe('The document fields that the owners of the role have read access to.').optional(),
-  names: z.union([z.lazy(() => IndexName), z.array(z.lazy(() => IndexName))]).describe('A list of indices (or index name patterns) to which the permissions in this entry apply.'),
+  names: z.union([IndexName, z.array(IndexName)]).describe('A list of indices (or index name patterns) to which the permissions in this entry apply.'),
   privileges: z.array(SecurityIndexPrivilege).describe('The index level privileges that owners of the role have on the specified indices.'),
   query: SecurityIndicesPrivilegesQuery.describe('A search query that defines the documents the owners of the role have access to. A document within the specified indices must match this query for it to be accessible by the owners of the role.').optional()
 }).meta({ id: 'SecurityIndicesPrivilegesBase' })
@@ -203,7 +206,7 @@ export const SecurityNodeSecurityStats = z.object({
 export type SecurityNodeSecurityStats = z.infer<typeof SecurityNodeSecurityStats>
 
 export const SecurityRealmInfo = z.object({
-  name: z.lazy(() => Name),
+  name: Name,
   type: z.string()
 }).meta({ id: 'SecurityRealmInfo' })
 export type SecurityRealmInfo = z.infer<typeof SecurityRealmInfo>
@@ -211,7 +214,7 @@ export type SecurityRealmInfo = z.infer<typeof SecurityRealmInfo>
 export const SecurityRemoteUserIndicesPrivileges = z.object({
   clusters: z.array(z.string()),
   field_security: z.array(SecurityFieldSecurity).describe('The document fields that the owners of the role have read access to.').optional(),
-  names: z.union([z.lazy(() => IndexName), z.array(z.lazy(() => IndexName))]).describe('A list of indices (or index name patterns) to which the permissions in this entry apply.'),
+  names: z.union([IndexName, z.array(IndexName)]).describe('A list of indices (or index name patterns) to which the permissions in this entry apply.'),
   privileges: z.array(SecurityIndexPrivilege).describe('The index level privileges that owners of the role have on the specified indices.'),
   query: z.array(SecurityIndicesPrivilegesQuery).describe('Search queries that define the documents the user has access to. A document within the specified indices must match these queries for it to be accessible by the owners of the role.').optional(),
   allow_restricted_indices: z.boolean().describe('Set to `true` if using wildcard or regular expressions for patterns that cover restricted indices. Implicitly, restricted indices have limited privileges that can cause pattern tests to fail. If restricted indices are explicitly included in the `names` list, Elasticsearch checks privileges against these indices regardless of the value set for `allow_restricted_indices`.')
@@ -223,7 +226,7 @@ export const SecurityRoleDescriptorRead = z.object({
   indices: z.array(SecurityIndicesPrivileges).describe('A list of indices permissions entries.'),
   index: z.array(SecurityIndicesPrivileges).describe('A list of indices permissions entries.'),
   applications: z.array(SecurityApplicationPrivileges).describe('A list of application privilege entries').optional(),
-  metadata: z.lazy(() => Metadata).describe('Optional meta-data. Within the metadata object, keys that begin with `_` are reserved for system usage.').optional(),
+  metadata: Metadata.describe('Optional meta-data. Within the metadata object, keys that begin with `_` are reserved for system usage.').optional(),
   run_as: z.array(z.string()).describe('A list of users that the API keys can impersonate. NOTE: In Elastic Cloud Serverless, the run-as feature is disabled. For API compatibility, you can still specify an empty `run_as` field, but a non-empty list will be rejected.').optional(),
   description: z.string().describe('Optional description of the role descriptor').optional(),
   restriction: SecurityRestriction.describe('Restriction for when the role descriptor is allowed to be effective.').optional(),
@@ -240,7 +243,7 @@ export const SecurityRoleTemplate = z.object({
 }).meta({ id: 'SecurityRoleTemplate' })
 export type SecurityRoleTemplate = z.infer<typeof SecurityRoleTemplate>
 
-const SecurityRoleMappingRuleExclusiveProps = z.union([z.object({ any: z.array(z.lazy(() => SecurityRoleMappingRule)) }), z.object({ all: z.array(z.lazy(() => SecurityRoleMappingRule)) }), z.object({ field: z.record(z.lazy(() => Field), z.union([z.lazy(() => FieldValue), z.array(z.lazy(() => FieldValue))])) }), z.object({ except: z.lazy(() => SecurityRoleMappingRule) })])
+const SecurityRoleMappingRuleExclusiveProps = z.union([z.object({ any: z.array(z.lazy(() => SecurityRoleMappingRule)) }), z.object({ all: z.array(z.lazy(() => SecurityRoleMappingRule)) }), z.object({ field: z.record(Field, z.union([FieldValue, z.array(FieldValue)])) }), z.object({ except: z.lazy(() => SecurityRoleMappingRule) })])
 
 export interface SecurityRoleMappingRuleShape {
   any?: SecurityRoleMappingRule[] | undefined
@@ -253,7 +256,7 @@ export type SecurityRoleMappingRule = z.infer<typeof SecurityRoleMappingRule>
 
 export const SecurityRoleMapping = z.object({
   enabled: z.boolean(),
-  metadata: z.lazy(() => Metadata),
+  metadata: Metadata,
   roles: z.array(z.string()).optional(),
   role_templates: z.array(SecurityRoleTemplate).optional(),
   rules: z.lazy(() => SecurityRoleMappingRule)
@@ -270,10 +273,10 @@ export type SecurityUserProfileId = z.infer<typeof SecurityUserProfileId>
 
 export const SecurityUser = z.object({
   email: z.union([z.string(), z.null()]).optional(),
-  full_name: z.union([z.lazy(() => Name), z.null()]).optional(),
-  metadata: z.lazy(() => Metadata),
+  full_name: z.union([Name, z.null()]).optional(),
+  metadata: Metadata,
   roles: z.array(z.string()),
-  username: z.lazy(() => Username),
+  username: Username,
   enabled: z.boolean(),
   profile_uid: SecurityUserProfileId.optional()
 }).meta({ id: 'SecurityUser' })
@@ -281,7 +284,7 @@ export type SecurityUser = z.infer<typeof SecurityUser>
 
 export const SecurityUserIndicesPrivileges = z.object({
   field_security: z.array(SecurityFieldSecurity).describe('The document fields that the owners of the role have read access to.').optional(),
-  names: z.union([z.lazy(() => IndexName), z.array(z.lazy(() => IndexName))]).describe('A list of indices (or index name patterns) to which the permissions in this entry apply.'),
+  names: z.union([IndexName, z.array(IndexName)]).describe('A list of indices (or index name patterns) to which the permissions in this entry apply.'),
   privileges: z.array(SecurityIndexPrivilege).describe('The index level privileges that owners of the role have on the specified indices.'),
   query: z.array(SecurityIndicesPrivilegesQuery).describe('Search queries that define the documents the user has access to. A document within the specified indices must match these queries for it to be accessible by the owners of the role.').optional(),
   allow_restricted_indices: z.boolean().describe('Set to `true` if using wildcard or regular expressions for patterns that cover restricted indices. Implicitly, restricted indices have limited privileges that can cause pattern tests to fail. If restricted indices are explicitly included in the `names` list, Elasticsearch checks privileges against these indices regardless of the value set for `allow_restricted_indices`.')
@@ -290,7 +293,7 @@ export type SecurityUserIndicesPrivileges = z.infer<typeof SecurityUserIndicesPr
 
 export const SecurityUserIndicesPrivilegesBase = z.object({
   field_security: z.array(SecurityFieldSecurity).describe('The document fields that the owners of the role have read access to.').optional(),
-  names: z.union([z.lazy(() => IndexName), z.array(z.lazy(() => IndexName))]).describe('A list of indices (or index name patterns) to which the permissions in this entry apply.'),
+  names: z.union([IndexName, z.array(IndexName)]).describe('A list of indices (or index name patterns) to which the permissions in this entry apply.'),
   privileges: z.array(SecurityIndexPrivilege).describe('The index level privileges that owners of the role have on the specified indices.'),
   query: z.array(SecurityIndicesPrivilegesQuery).describe('Search queries that define the documents the user has access to. A document within the specified indices must match these queries for it to be accessible by the owners of the role.').optional(),
   allow_restricted_indices: z.boolean().describe('Set to `true` if using wildcard or regular expressions for patterns that cover restricted indices. Implicitly, restricted indices have limited privileges that can cause pattern tests to fail. If restricted indices are explicitly included in the `names` list, Elasticsearch checks privileges against these indices regardless of the value set for `allow_restricted_indices`.')
@@ -299,11 +302,11 @@ export type SecurityUserIndicesPrivilegesBase = z.infer<typeof SecurityUserIndic
 
 export const SecurityUserProfileUser = z.object({
   email: z.union([z.string(), z.null()]).optional(),
-  full_name: z.union([z.lazy(() => Name), z.null()]).optional(),
-  realm_name: z.lazy(() => Name),
-  realm_domain: z.lazy(() => Name).optional(),
+  full_name: z.union([Name, z.null()]).optional(),
+  realm_name: Name,
+  realm_domain: Name.optional(),
   roles: z.array(z.string()),
-  username: z.lazy(() => Username)
+  username: Username
 }).meta({ id: 'SecurityUserProfileUser' })
 export type SecurityUserProfileUser = z.infer<typeof SecurityUserProfileUser>
 
@@ -317,14 +320,14 @@ export const SecurityUserProfile = z.object({
 export type SecurityUserProfile = z.infer<typeof SecurityUserProfile>
 
 export const SecurityUserProfileHitMetadata = z.object({
-  _primary_term: z.lazy(() => long),
-  _seq_no: z.lazy(() => SequenceNumber)
+  _primary_term: long,
+  _seq_no: SequenceNumber
 }).meta({ id: 'SecurityUserProfileHitMetadata' })
 export type SecurityUserProfileHitMetadata = z.infer<typeof SecurityUserProfileHitMetadata>
 
 export const SecurityUserProfileWithMetadata = z.object({
   ...SecurityUserProfile.shape,
-  last_synchronized: z.lazy(() => long),
+  last_synchronized: long,
   _doc: SecurityUserProfileHitMetadata
 }).meta({ id: 'SecurityUserProfileWithMetadata' })
 export type SecurityUserProfileWithMetadata = z.infer<typeof SecurityUserProfileWithMetadata>
@@ -346,6 +349,7 @@ export type SecurityUserProfileWithMetadata = z.infer<typeof SecurityUserProfile
  * Any updates do not change existing content for either the `labels` or `data` fields.
  */
 export const SecurityActivateUserProfileRequest = z.object({
+  ...RequestBase.shape,
   access_token: z.string().describe('The user\'s Elasticsearch access token or JWT. Both `access` and `id` JWT token types are supported and they depend on the underlying JWT realm configuration. If you specify the `access_token` grant type, this parameter is required. It is not valid with other grant types.').optional().meta({ found_in: 'body' }),
   grant_type: SecurityGrantType.describe('The type of grant.').meta({ found_in: 'body' }),
   password: z.string().describe('The user\'s password. If you specify the `password` grant type, this parameter is required. It is not valid with other grant types.').optional().meta({ found_in: 'body' }),
@@ -357,9 +361,9 @@ export const SecurityActivateUserProfileResponse = SecurityUserProfileWithMetada
 export type SecurityActivateUserProfileResponse = z.infer<typeof SecurityActivateUserProfileResponse>
 
 export const SecurityAuthenticateAuthenticateApiKey = z.object({
-  id: z.lazy(() => Id),
-  name: z.lazy(() => Name).optional(),
-  managed_by: SecurityApiKeyManagedBy,
+  id: Id,
+  name: Name.optional(),
+  managed_by: SecurityCredentialManagedBy,
   internal: z.boolean().optional()
 }).meta({ id: 'SecurityAuthenticateAuthenticateApiKey' })
 export type SecurityAuthenticateAuthenticateApiKey = z.infer<typeof SecurityAuthenticateAuthenticateApiKey>
@@ -373,12 +377,14 @@ export type SecurityAuthenticateAuthenticateApiKey = z.infer<typeof SecurityAuth
  * If the user cannot be authenticated, this API returns a 401 status code.
  */
 export const SecurityAuthenticateRequest = z.object({
+  ...RequestBase.shape
 }).meta({ id: 'SecurityAuthenticateRequest' })
 export type SecurityAuthenticateRequest = z.infer<typeof SecurityAuthenticateRequest>
 
 export const SecurityAuthenticateToken = z.object({
-  name: z.lazy(() => Name),
-  type: z.string().optional()
+  name: Name.optional(),
+  type: z.string().optional(),
+  managed_by: SecurityCredentialManagedBy.optional()
 }).meta({ id: 'SecurityAuthenticateToken' })
 export type SecurityAuthenticateToken = z.infer<typeof SecurityAuthenticateToken>
 
@@ -386,11 +392,11 @@ export const SecurityAuthenticateResponse = z.object({
   api_key: SecurityAuthenticateAuthenticateApiKey.optional(),
   authentication_realm: SecurityRealmInfo,
   email: z.union([z.string(), z.null()]).optional(),
-  full_name: z.union([z.lazy(() => Name), z.null()]).optional(),
+  full_name: z.union([Name, z.null()]).optional(),
   lookup_realm: SecurityRealmInfo,
-  metadata: z.lazy(() => Metadata),
+  metadata: Metadata,
   roles: z.array(z.string()),
-  username: z.lazy(() => Username),
+  username: Username,
   enabled: z.boolean(),
   authentication_type: z.string(),
   token: SecurityAuthenticateToken.optional()
@@ -404,7 +410,8 @@ export type SecurityAuthenticateResponse = z.infer<typeof SecurityAuthenticateRe
  * The bulk delete roles API cannot delete roles that are defined in roles files.
  */
 export const SecurityBulkDeleteRoleRequest = z.object({
-  refresh: z.lazy(() => Refresh).describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  refresh: Refresh.describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' }),
   names: z.array(z.string()).describe('An array of role names to delete').meta({ found_in: 'body' })
 }).meta({ id: 'SecurityBulkDeleteRoleRequest' })
 export type SecurityBulkDeleteRoleRequest = z.infer<typeof SecurityBulkDeleteRoleRequest>
@@ -423,7 +430,8 @@ export type SecurityBulkDeleteRoleResponse = z.infer<typeof SecurityBulkDeleteRo
  * The bulk create or update roles API cannot update roles that are defined in roles files.
  */
 export const SecurityBulkPutRoleRequest = z.object({
-  refresh: z.lazy(() => Refresh).describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  refresh: Refresh.describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' }),
   roles: z.record(z.string(), SecurityRoleDescriptor).describe('A dictionary of role name to RoleDescriptor objects to add or update').meta({ found_in: 'body' })
 }).meta({ id: 'SecurityBulkPutRoleRequest' })
 export type SecurityBulkPutRoleRequest = z.infer<typeof SecurityBulkPutRoleRequest>
@@ -456,9 +464,10 @@ export type SecurityBulkPutRoleResponse = z.infer<typeof SecurityBulkPutRoleResp
  * A successful request returns a JSON structure that contains the IDs of all updated API keys, the IDs of API keys that already had the requested changes and did not require an update, and error details for any failed update.
  */
 export const SecurityBulkUpdateApiKeysRequest = z.object({
-  expiration: z.lazy(() => Duration).describe('Expiration time for the API keys. By default, API keys never expire. This property can be omitted to leave the value unchanged.').optional().meta({ found_in: 'body' }),
+  ...RequestBase.shape,
+  expiration: Duration.describe('Expiration time for the API keys. By default, API keys never expire. This property can be omitted to leave the value unchanged.').optional().meta({ found_in: 'body' }),
   ids: z.union([z.string(), z.array(z.string())]).describe('The API key identifiers.').meta({ found_in: 'body' }),
-  metadata: z.lazy(() => Metadata).describe('Arbitrary nested metadata to associate with the API keys. Within the `metadata` object, top-level keys beginning with an underscore (`_`) are reserved for system usage. Any information specified with this parameter fully replaces metadata previously associated with the API key.').optional().meta({ found_in: 'body' }),
+  metadata: Metadata.describe('Arbitrary nested metadata to associate with the API keys. Within the `metadata` object, top-level keys beginning with an underscore (`_`) are reserved for system usage. Any information specified with this parameter fully replaces metadata previously associated with the API key.').optional().meta({ found_in: 'body' }),
   role_descriptors: z.record(z.string(), SecurityRoleDescriptor).describe('The role descriptors to assign to the API keys. An API key\'s effective permissions are an intersection of its assigned privileges and the point-in-time snapshot of permissions of the owner user. You can assign new privileges by specifying them in this parameter. To remove assigned privileges, supply the `role_descriptors` parameter as an empty object `{}`. If an API key has no assigned privileges, it inherits the owner user\'s full permissions. The snapshot of the owner\'s permissions is always updated, whether you supply the `role_descriptors` parameter. The structure of a role descriptor is the same as the request for the create API keys API.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecurityBulkUpdateApiKeysRequest' })
 export type SecurityBulkUpdateApiKeysRequest = z.infer<typeof SecurityBulkUpdateApiKeysRequest>
@@ -476,9 +485,10 @@ export type SecurityBulkUpdateApiKeysResponse = z.infer<typeof SecurityBulkUpdat
  * Change the passwords of users in the native realm and built-in users.
  */
 export const SecurityChangePasswordRequest = z.object({
-  username: z.lazy(() => Username).describe('The user whose password you want to change. If you do not specify this parameter, the password is changed for the current user.').optional().meta({ found_in: 'path' }),
-  refresh: z.lazy(() => Refresh).describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' }),
-  password: z.lazy(() => Password).describe('The new password value. Passwords must be at least 6 characters long.').optional().meta({ found_in: 'body' }),
+  ...RequestBase.shape,
+  username: Username.describe('The user whose password you want to change. If you do not specify this parameter, the password is changed for the current user.').optional().meta({ found_in: 'path' }),
+  refresh: Refresh.describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' }),
+  password: Password.describe('The new password value. Passwords must be at least 6 characters long.').optional().meta({ found_in: 'body' }),
   password_hash: z.string().describe('A hash of the new password value. This must be produced using the same hashing algorithm as has been configured for password storage. For more details, see the explanation of the `xpack.security.authc.password_hashing.algorithm` setting.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecurityChangePasswordRequest' })
 export type SecurityChangePasswordRequest = z.infer<typeof SecurityChangePasswordRequest>
@@ -494,13 +504,14 @@ export type SecurityChangePasswordResponse = z.infer<typeof SecurityChangePasswo
  * The cache is also automatically cleared on state changes of the security index.
  */
 export const SecurityClearApiKeyCacheRequest = z.object({
-  ids: z.lazy(() => Ids).describe('Comma-separated list of API key IDs to evict from the API key cache. To evict all API keys, use `*`. Does not support other wildcard patterns.').meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  ids: Ids.describe('Comma-separated list of API key IDs to evict from the API key cache. To evict all API keys, use `*`. Does not support other wildcard patterns.').meta({ found_in: 'path' })
 }).meta({ id: 'SecurityClearApiKeyCacheRequest' })
 export type SecurityClearApiKeyCacheRequest = z.infer<typeof SecurityClearApiKeyCacheRequest>
 
 export const SecurityClearApiKeyCacheResponse = z.object({
-  node_stats: z.lazy(() => NodeStatistics),
-  cluster_name: z.lazy(() => Name),
+  node_stats: NodeStatistics,
+  cluster_name: Name,
   nodes: z.record(z.string(), SecurityClusterNode)
 }).meta({ id: 'SecurityClearApiKeyCacheResponse' })
 export type SecurityClearApiKeyCacheResponse = z.infer<typeof SecurityClearApiKeyCacheResponse>
@@ -512,13 +523,14 @@ export type SecurityClearApiKeyCacheResponse = z.infer<typeof SecurityClearApiKe
  * The cache is also automatically cleared for applications that have their privileges updated.
  */
 export const SecurityClearCachedPrivilegesRequest = z.object({
-  application: z.lazy(() => Names).describe('A comma-separated list of applications. To clear all applications, use an asterism (`*`). It does not support other wildcard patterns.').meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  application: Names.describe('A comma-separated list of applications. To clear all applications, use an asterism (`*`). It does not support other wildcard patterns.').meta({ found_in: 'path' })
 }).meta({ id: 'SecurityClearCachedPrivilegesRequest' })
 export type SecurityClearCachedPrivilegesRequest = z.infer<typeof SecurityClearCachedPrivilegesRequest>
 
 export const SecurityClearCachedPrivilegesResponse = z.object({
-  node_stats: z.lazy(() => NodeStatistics),
-  cluster_name: z.lazy(() => Name),
+  node_stats: NodeStatistics,
+  cluster_name: Name,
   nodes: z.record(z.string(), SecurityClusterNode)
 }).meta({ id: 'SecurityClearCachedPrivilegesResponse' })
 export type SecurityClearCachedPrivilegesResponse = z.infer<typeof SecurityClearCachedPrivilegesResponse>
@@ -534,14 +546,15 @@ export type SecurityClearCachedPrivilegesResponse = z.infer<typeof SecurityClear
  * For more information, refer to the documentation about controlling the user cache.
  */
 export const SecurityClearCachedRealmsRequest = z.object({
-  realms: z.lazy(() => Names).describe('A comma-separated list of realms. To clear all realms, use an asterisk (`*`). It does not support other wildcard patterns.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  realms: Names.describe('A comma-separated list of realms. To clear all realms, use an asterisk (`*`). It does not support other wildcard patterns.').meta({ found_in: 'path' }),
   usernames: z.array(z.string()).describe('A comma-separated list of the users to clear from the cache. If you do not specify this parameter, the API evicts all users from the user cache.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'SecurityClearCachedRealmsRequest' })
 export type SecurityClearCachedRealmsRequest = z.infer<typeof SecurityClearCachedRealmsRequest>
 
 export const SecurityClearCachedRealmsResponse = z.object({
-  node_stats: z.lazy(() => NodeStatistics),
-  cluster_name: z.lazy(() => Name),
+  node_stats: NodeStatistics,
+  cluster_name: Name,
   nodes: z.record(z.string(), SecurityClusterNode)
 }).meta({ id: 'SecurityClearCachedRealmsResponse' })
 export type SecurityClearCachedRealmsResponse = z.infer<typeof SecurityClearCachedRealmsResponse>
@@ -552,13 +565,14 @@ export type SecurityClearCachedRealmsResponse = z.infer<typeof SecurityClearCach
  * Evict roles from the native role cache.
  */
 export const SecurityClearCachedRolesRequest = z.object({
-  name: z.lazy(() => Names).describe('A comma-separated list of roles to evict from the role cache. To evict all roles, use an asterisk (`*`). It does not support other wildcard patterns.').meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  name: Names.describe('A comma-separated list of roles to evict from the role cache. To evict all roles, use an asterisk (`*`). It does not support other wildcard patterns.').meta({ found_in: 'path' })
 }).meta({ id: 'SecurityClearCachedRolesRequest' })
 export type SecurityClearCachedRolesRequest = z.infer<typeof SecurityClearCachedRolesRequest>
 
 export const SecurityClearCachedRolesResponse = z.object({
-  node_stats: z.lazy(() => NodeStatistics),
-  cluster_name: z.lazy(() => Name),
+  node_stats: NodeStatistics,
+  cluster_name: Name,
   nodes: z.record(z.string(), SecurityClusterNode)
 }).meta({ id: 'SecurityClearCachedRolesResponse' })
 export type SecurityClearCachedRolesResponse = z.infer<typeof SecurityClearCachedRolesResponse>
@@ -574,18 +588,47 @@ export type SecurityClearCachedRolesResponse = z.infer<typeof SecurityClearCache
  * The cache for tokens backed by the `service_tokens` file is cleared automatically on file changes.
  */
 export const SecurityClearCachedServiceTokensRequest = z.object({
+  ...RequestBase.shape,
   namespace: Namespace.describe('The namespace, which is a top-level grouping of service accounts.').meta({ found_in: 'path' }),
   service: Service.describe('The name of the service, which must be unique within its namespace.').meta({ found_in: 'path' }),
-  name: z.lazy(() => Names).describe('A comma-separated list of token names to evict from the service account token caches. Use a wildcard (`*`) to evict all tokens that belong to a service account. It does not support other wildcard patterns.').meta({ found_in: 'path' })
+  name: Names.describe('A comma-separated list of token names to evict from the service account token caches. Use a wildcard (`*`) to evict all tokens that belong to a service account. It does not support other wildcard patterns.').meta({ found_in: 'path' })
 }).meta({ id: 'SecurityClearCachedServiceTokensRequest' })
 export type SecurityClearCachedServiceTokensRequest = z.infer<typeof SecurityClearCachedServiceTokensRequest>
 
 export const SecurityClearCachedServiceTokensResponse = z.object({
-  node_stats: z.lazy(() => NodeStatistics),
-  cluster_name: z.lazy(() => Name),
+  node_stats: NodeStatistics,
+  cluster_name: Name,
   nodes: z.record(z.string(), SecurityClusterNode)
 }).meta({ id: 'SecurityClearCachedServiceTokensResponse' })
 export type SecurityClearCachedServiceTokensResponse = z.infer<typeof SecurityClearCachedServiceTokensResponse>
+
+/**
+ * Clone an API key.
+ *
+ * Create a copy of an existing API key with a new ID.
+ * The cloned key inherits the role descriptors of the source key.
+ * This is intended for applications (such as Kibana) that need to
+ * create API keys on behalf of a user using an existing API key credential,
+ * since derived API keys (API keys created by API keys) are not otherwise supported.
+ */
+export const SecurityCloneApiKeyRequest = z.object({
+  ...RequestBase.shape,
+  refresh: Refresh.describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' }),
+  api_key: z.string().describe('The credentials of the API key to clone. This is the secret value returned when the key was originally created.').meta({ found_in: 'body' }),
+  name: Name.describe('A name for the cloned API key. If not provided, the name of the source key is used.').optional().meta({ found_in: 'body' }),
+  expiration: Duration.describe('The expiration time for the cloned API key. By default, API keys never expire. Set to `null` to explicitly create a key with no expiration.').optional().meta({ found_in: 'body' }),
+  metadata: Metadata.describe('Arbitrary metadata to associate with the cloned API key. It supports nested data structure. Within the metadata object, keys beginning with `_` are reserved for system usage.').optional().meta({ found_in: 'body' })
+}).meta({ id: 'SecurityCloneApiKeyRequest' })
+export type SecurityCloneApiKeyRequest = z.infer<typeof SecurityCloneApiKeyRequest>
+
+export const SecurityCloneApiKeyResponse = z.object({
+  api_key: z.string().describe('The generated API key value for the cloned key.'),
+  expiration: long.describe('Expiration in milliseconds for the API key.').optional(),
+  id: Id.describe('The unique ID of the cloned API key.'),
+  name: Name.describe('The name of the cloned API key.'),
+  encoded: z.string().describe('API key credentials which is the base64-encoding of the UTF-8 representation of `id` and `api_key` joined by a colon (`:`).')
+}).meta({ id: 'SecurityCloneApiKeyResponse' })
+export type SecurityCloneApiKeyResponse = z.infer<typeof SecurityCloneApiKeyResponse>
 
 /**
  * Create an API key.
@@ -604,19 +647,20 @@ export type SecurityClearCachedServiceTokensResponse = z.infer<typeof SecurityCl
  * To configure or turn off the API key service, refer to API key service setting documentation.
  */
 export const SecurityCreateApiKeyRequest = z.object({
-  refresh: z.lazy(() => Refresh).describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' }),
-  expiration: z.lazy(() => Duration).describe('The expiration time for the API key. By default, API keys never expire.').optional().meta({ found_in: 'body' }),
-  name: z.lazy(() => Name).describe('A name for the API key.').optional().meta({ found_in: 'body' }),
+  ...RequestBase.shape,
+  refresh: Refresh.describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' }),
+  expiration: Duration.describe('The expiration time for the API key. By default, API keys never expire.').optional().meta({ found_in: 'body' }),
+  name: Name.describe('A name for the API key.').optional().meta({ found_in: 'body' }),
   role_descriptors: z.record(z.string(), SecurityRoleDescriptor).describe('An array of role descriptors for this API key. When it is not specified or it is an empty array, the API key will have a point in time snapshot of permissions of the authenticated user. If you supply role descriptors, the resultant permissions are an intersection of API keys permissions and the authenticated user\'s permissions thereby limiting the access scope for API keys. The structure of role descriptor is the same as the request for the create role API. For more details, refer to the create or update roles API. NOTE: Due to the way in which this permission intersection is calculated, it is not possible to create an API key that is a child of another API key, unless the derived key is created without any privileges. In this case, you must explicitly specify a role descriptor with no privileges. The derived API key can be used for authentication; it will not have authority to call Elasticsearch APIs.').optional().meta({ found_in: 'body' }),
-  metadata: z.lazy(() => Metadata).describe('Arbitrary metadata that you want to associate with the API key. It supports nested data structure. Within the metadata object, keys beginning with `_` are reserved for system usage.').optional().meta({ found_in: 'body' })
+  metadata: Metadata.describe('Arbitrary metadata that you want to associate with the API key. It supports nested data structure. Within the metadata object, keys beginning with `_` are reserved for system usage.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecurityCreateApiKeyRequest' })
 export type SecurityCreateApiKeyRequest = z.infer<typeof SecurityCreateApiKeyRequest>
 
 export const SecurityCreateApiKeyResponse = z.object({
   api_key: z.string().describe('Generated API key.'),
-  expiration: z.lazy(() => long).describe('Expiration in milliseconds for the API key.').optional(),
-  id: z.lazy(() => Id).describe('Unique ID for this API key.'),
-  name: z.lazy(() => Name).describe('Specifies the name for this API key.'),
+  expiration: long.describe('Expiration in milliseconds for the API key.').optional(),
+  id: Id.describe('Unique ID for this API key.'),
+  name: Name.describe('Specifies the name for this API key.'),
   encoded: z.string().describe('API key credentials which is the base64-encoding of the UTF-8 representation of `id` and `api_key` joined by a colon (`:`).')
 }).meta({ id: 'SecurityCreateApiKeyResponse' })
 export type SecurityCreateApiKeyResponse = z.infer<typeof SecurityCreateApiKeyResponse>
@@ -641,19 +685,20 @@ export type SecurityCreateApiKeyResponse = z.infer<typeof SecurityCreateApiKeyRe
  * Attempting to update them with the update REST API key API or the bulk update REST API keys API will result in an error.
  */
 export const SecurityCreateCrossClusterApiKeyRequest = z.object({
+  ...RequestBase.shape,
   access: SecurityAccess.describe('The access to be granted to this API key. The access is composed of permissions for cross-cluster search and cross-cluster replication. At least one of them must be specified. NOTE: No explicit privileges should be specified for either search or replication access. The creation process automatically converts the access specification to a role descriptor which has relevant privileges assigned accordingly.').meta({ found_in: 'body' }),
-  expiration: z.lazy(() => Duration).describe('Expiration time for the API key. By default, API keys never expire.').optional().meta({ found_in: 'body' }),
-  metadata: z.lazy(() => Metadata).describe('Arbitrary metadata that you want to associate with the API key. It supports nested data structure. Within the metadata object, keys beginning with `_` are reserved for system usage.').optional().meta({ found_in: 'body' }),
-  name: z.lazy(() => Name).describe('Specifies the name for this API key.').meta({ found_in: 'body' }),
+  expiration: Duration.describe('Expiration time for the API key. By default, API keys never expire.').optional().meta({ found_in: 'body' }),
+  metadata: Metadata.describe('Arbitrary metadata that you want to associate with the API key. It supports nested data structure. Within the metadata object, keys beginning with `_` are reserved for system usage.').optional().meta({ found_in: 'body' }),
+  name: Name.describe('Specifies the name for this API key.').meta({ found_in: 'body' }),
   certificate_identity: z.string().describe('The certificate identity to associate with this API key. This field is used to restrict the API key to connections authenticated by a specific TLS certificate. The value should match the certificate\'s distinguished name (DN) pattern.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecurityCreateCrossClusterApiKeyRequest' })
 export type SecurityCreateCrossClusterApiKeyRequest = z.infer<typeof SecurityCreateCrossClusterApiKeyRequest>
 
 export const SecurityCreateCrossClusterApiKeyResponse = z.object({
   api_key: z.string().describe('Generated API key.'),
-  expiration: z.lazy(() => DurationValue).describe('Expiration in milliseconds for the API key.').optional(),
-  id: z.lazy(() => Id).describe('Unique ID for this API key.'),
-  name: z.lazy(() => Name).describe('Specifies the name for this API key.'),
+  expiration: DurationValue.describe('Expiration in milliseconds for the API key.').optional(),
+  id: Id.describe('Unique ID for this API key.'),
+  name: Name.describe('Specifies the name for this API key.'),
   encoded: z.string().describe('API key credentials which is the base64-encoding of the UTF-8 representation of `id` and `api_key` joined by a colon (`:`).')
 }).meta({ id: 'SecurityCreateCrossClusterApiKeyResponse' })
 export type SecurityCreateCrossClusterApiKeyResponse = z.infer<typeof SecurityCreateCrossClusterApiKeyResponse>
@@ -667,15 +712,16 @@ export type SecurityCreateCrossClusterApiKeyResponse = z.infer<typeof SecurityCr
  * You must actively delete them if they are no longer needed.
  */
 export const SecurityCreateServiceTokenRequest = z.object({
+  ...RequestBase.shape,
   namespace: Namespace.describe('The name of the namespace, which is a top-level grouping of service accounts.').meta({ found_in: 'path' }),
   service: Service.describe('The name of the service.').meta({ found_in: 'path' }),
-  name: z.lazy(() => Name).describe('The name for the service account token. If omitted, a random name will be generated. Token names must be at least one and no more than 256 characters. They can contain alphanumeric characters (a-z, A-Z, 0-9), dashes (`-`), and underscores (`_`), but cannot begin with an underscore. NOTE: Token names must be unique in the context of the associated service account. They must also be globally unique with their fully qualified names, which are comprised of the service account principal and token name, such as `<namespace>/<service>/<token-name>`.').optional().meta({ found_in: 'path' }),
-  refresh: z.lazy(() => Refresh).describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' })
+  name: Name.describe('The name for the service account token. If omitted, a random name will be generated. Token names must be at least one and no more than 256 characters. They can contain alphanumeric characters (a-z, A-Z, 0-9), dashes (`-`), and underscores (`_`), but cannot begin with an underscore. NOTE: Token names must be unique in the context of the associated service account. They must also be globally unique with their fully qualified names, which are comprised of the service account principal and token name, such as `<namespace>/<service>/<token-name>`.').optional().meta({ found_in: 'path' }),
+  refresh: Refresh.describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'SecurityCreateServiceTokenRequest' })
 export type SecurityCreateServiceTokenRequest = z.infer<typeof SecurityCreateServiceTokenRequest>
 
 export const SecurityCreateServiceTokenToken = z.object({
-  name: z.lazy(() => Name),
+  name: Name,
   value: z.string()
 }).meta({ id: 'SecurityCreateServiceTokenToken' })
 export type SecurityCreateServiceTokenToken = z.infer<typeof SecurityCreateServiceTokenToken>
@@ -699,7 +745,7 @@ export const SecurityDelegatePkiAuthentication = z.object({
   full_name: z.union([z.string(), z.null()]),
   email: z.union([z.string(), z.null()]),
   token: z.record(z.string(), z.string()).optional(),
-  metadata: z.lazy(() => Metadata),
+  metadata: Metadata,
   enabled: z.boolean(),
   authentication_realm: SecurityDelegatePkiAuthenticationRealm,
   lookup_realm: SecurityDelegatePkiAuthenticationRealm,
@@ -722,13 +768,14 @@ export type SecurityDelegatePkiAuthentication = z.infer<typeof SecurityDelegateP
  * The proxy is trusted to have performed the TLS authentication and this API translates that authentication into an Elasticsearch access token.
  */
 export const SecurityDelegatePkiRequest = z.object({
+  ...RequestBase.shape,
   x509_certificate_chain: z.array(z.string()).describe('The X509Certificate chain, which is represented as an ordered string array. Each string in the array is a base64-encoded (Section 4 of RFC4648 - not base64url-encoded) of the certificate\'s DER encoding. The first element is the target certificate that contains the subject distinguished name that is requesting access. This may be followed by additional certificates; each subsequent certificate is used to certify the previous one.').meta({ found_in: 'body' })
 }).meta({ id: 'SecurityDelegatePkiRequest' })
 export type SecurityDelegatePkiRequest = z.infer<typeof SecurityDelegatePkiRequest>
 
 export const SecurityDelegatePkiResponse = z.object({
   access_token: z.string().describe('An access token associated with the subject distinguished name of the client\'s certificate.'),
-  expires_in: z.lazy(() => long).describe('The amount of time (in seconds) before the token expires.'),
+  expires_in: long.describe('The amount of time (in seconds) before the token expires.'),
   type: z.string().describe('The type of token.'),
   authentication: SecurityDelegatePkiAuthentication.optional()
 }).meta({ id: 'SecurityDelegatePkiResponse' })
@@ -748,9 +795,10 @@ export type SecurityDeletePrivilegesFoundStatus = z.infer<typeof SecurityDeleteP
  * * The "Manage Application Privileges" global privilege for the application being referenced in the request.
  */
 export const SecurityDeletePrivilegesRequest = z.object({
-  application: z.lazy(() => Name).describe('The name of the application. Application privileges are always associated with exactly one application.').meta({ found_in: 'path' }),
-  name: z.lazy(() => Names).describe('The name of the privilege.').meta({ found_in: 'path' }),
-  refresh: z.lazy(() => Refresh).describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  application: Name.describe('The name of the application. Application privileges are always associated with exactly one application.').meta({ found_in: 'path' }),
+  name: Names.describe('The name of the privilege.').meta({ found_in: 'path' }),
+  refresh: Refresh.describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'SecurityDeletePrivilegesRequest' })
 export type SecurityDeletePrivilegesRequest = z.infer<typeof SecurityDeletePrivilegesRequest>
 
@@ -765,8 +813,9 @@ export type SecurityDeletePrivilegesResponse = z.infer<typeof SecurityDeletePriv
  * The delete roles API cannot remove roles that are defined in roles files.
  */
 export const SecurityDeleteRoleRequest = z.object({
-  name: z.lazy(() => Name).describe('The name of the role.').meta({ found_in: 'path' }),
-  refresh: z.lazy(() => Refresh).describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: Name.describe('The name of the role.').meta({ found_in: 'path' }),
+  refresh: Refresh.describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'SecurityDeleteRoleRequest' })
 export type SecurityDeleteRoleRequest = z.infer<typeof SecurityDeleteRoleRequest>
 
@@ -783,8 +832,9 @@ export type SecurityDeleteRoleResponse = z.infer<typeof SecurityDeleteRoleRespon
  * The delete role mappings API cannot remove role mappings that are defined in role mapping files.
  */
 export const SecurityDeleteRoleMappingRequest = z.object({
-  name: z.lazy(() => Name).describe('The distinct name that identifies the role mapping. The name is used solely as an identifier to facilitate interaction via the API; it does not affect the behavior of the mapping in any way.').meta({ found_in: 'path' }),
-  refresh: z.lazy(() => Refresh).describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: Name.describe('The distinct name that identifies the role mapping. The name is used solely as an identifier to facilitate interaction via the API; it does not affect the behavior of the mapping in any way.').meta({ found_in: 'path' }),
+  refresh: Refresh.describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'SecurityDeleteRoleMappingRequest' })
 export type SecurityDeleteRoleMappingRequest = z.infer<typeof SecurityDeleteRoleMappingRequest>
 
@@ -799,10 +849,11 @@ export type SecurityDeleteRoleMappingResponse = z.infer<typeof SecurityDeleteRol
  * Delete service account tokens for a service in a specified namespace.
  */
 export const SecurityDeleteServiceTokenRequest = z.object({
+  ...RequestBase.shape,
   namespace: Namespace.describe('The namespace, which is a top-level grouping of service accounts.').meta({ found_in: 'path' }),
   service: Service.describe('The service name.').meta({ found_in: 'path' }),
-  name: z.lazy(() => Name).describe('The name of the service account token.').meta({ found_in: 'path' }),
-  refresh: z.lazy(() => Refresh).describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' })
+  name: Name.describe('The name of the service account token.').meta({ found_in: 'path' }),
+  refresh: Refresh.describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'SecurityDeleteServiceTokenRequest' })
 export type SecurityDeleteServiceTokenRequest = z.infer<typeof SecurityDeleteServiceTokenRequest>
 
@@ -817,8 +868,9 @@ export type SecurityDeleteServiceTokenResponse = z.infer<typeof SecurityDeleteSe
  * Delete users from the native realm.
  */
 export const SecurityDeleteUserRequest = z.object({
-  username: z.lazy(() => Username).describe('An identifier for the user.').meta({ found_in: 'path' }),
-  refresh: z.lazy(() => Refresh).describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  username: Username.describe('An identifier for the user.').meta({ found_in: 'path' }),
+  refresh: Refresh.describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'SecurityDeleteUserRequest' })
 export type SecurityDeleteUserRequest = z.infer<typeof SecurityDeleteUserRequest>
 
@@ -835,8 +887,9 @@ export type SecurityDeleteUserResponse = z.infer<typeof SecurityDeleteUserRespon
  * You can use this API to revoke a user's access to Elasticsearch.
  */
 export const SecurityDisableUserRequest = z.object({
-  username: z.lazy(() => Username).describe('An identifier for the user.').meta({ found_in: 'path' }),
-  refresh: z.lazy(() => Refresh).describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  username: Username.describe('An identifier for the user.').meta({ found_in: 'path' }),
+  refresh: Refresh.describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'SecurityDisableUserRequest' })
 export type SecurityDisableUserRequest = z.infer<typeof SecurityDisableUserRequest>
 
@@ -857,12 +910,13 @@ export type SecurityDisableUserResponse = z.infer<typeof SecurityDisableUserResp
  * To re-enable a disabled user profile, use the enable user profile API .
  */
 export const SecurityDisableUserProfileRequest = z.object({
+  ...RequestBase.shape,
   uid: SecurityUserProfileId.describe('Unique identifier for the user profile.').meta({ found_in: 'path' }),
-  refresh: z.lazy(() => Refresh).describe('If \'true\', Elasticsearch refreshes the affected shards to make this operation visible to search. If \'wait_for\', it waits for a refresh to make this operation visible to search. If \'false\', it does nothing with refreshes.').optional().meta({ found_in: 'query' })
+  refresh: Refresh.describe('If \'true\', Elasticsearch refreshes the affected shards to make this operation visible to search. If \'wait_for\', it waits for a refresh to make this operation visible to search. If \'false\', it does nothing with refreshes.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'SecurityDisableUserProfileRequest' })
 export type SecurityDisableUserProfileRequest = z.infer<typeof SecurityDisableUserProfileRequest>
 
-export const SecurityDisableUserProfileResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'SecurityDisableUserProfileResponse' })
+export const SecurityDisableUserProfileResponse = AcknowledgedResponseBase.meta({ id: 'SecurityDisableUserProfileResponse' })
 export type SecurityDisableUserProfileResponse = z.infer<typeof SecurityDisableUserProfileResponse>
 
 /**
@@ -872,8 +926,9 @@ export type SecurityDisableUserProfileResponse = z.infer<typeof SecurityDisableU
  * By default, when you create users, they are enabled.
  */
 export const SecurityEnableUserRequest = z.object({
-  username: z.lazy(() => Username).describe('An identifier for the user.').meta({ found_in: 'path' }),
-  refresh: z.lazy(() => Refresh).describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  username: Username.describe('An identifier for the user.').meta({ found_in: 'path' }),
+  refresh: Refresh.describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'SecurityEnableUserRequest' })
 export type SecurityEnableUserRequest = z.infer<typeof SecurityEnableUserRequest>
 
@@ -894,12 +949,13 @@ export type SecurityEnableUserResponse = z.infer<typeof SecurityEnableUserRespon
  * If you later disable the user profile, you can use the enable user profile API to make the profile visible in these searches again.
  */
 export const SecurityEnableUserProfileRequest = z.object({
+  ...RequestBase.shape,
   uid: SecurityUserProfileId.describe('A unique identifier for the user profile.').meta({ found_in: 'path' }),
-  refresh: z.lazy(() => Refresh).describe('If \'true\', Elasticsearch refreshes the affected shards to make this operation visible to search. If \'wait_for\', it waits for a refresh to make this operation visible to search. If \'false\', nothing is done with refreshes.').optional().meta({ found_in: 'query' })
+  refresh: Refresh.describe('If \'true\', Elasticsearch refreshes the affected shards to make this operation visible to search. If \'wait_for\', it waits for a refresh to make this operation visible to search. If \'false\', nothing is done with refreshes.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'SecurityEnableUserProfileRequest' })
 export type SecurityEnableUserProfileRequest = z.infer<typeof SecurityEnableUserProfileRequest>
 
-export const SecurityEnableUserProfileResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'SecurityEnableUserProfileResponse' })
+export const SecurityEnableUserProfileResponse = AcknowledgedResponseBase.meta({ id: 'SecurityEnableUserProfileResponse' })
 export type SecurityEnableUserProfileResponse = z.infer<typeof SecurityEnableUserProfileResponse>
 
 /**
@@ -911,6 +967,7 @@ export type SecurityEnableUserProfileResponse = z.infer<typeof SecurityEnableUse
  * Kibana uses this API internally to configure itself for communications with an Elasticsearch cluster that already has security features enabled.
  */
 export const SecurityEnrollKibanaRequest = z.object({
+  ...RequestBase.shape
 }).meta({ id: 'SecurityEnrollKibanaRequest' })
 export type SecurityEnrollKibanaRequest = z.infer<typeof SecurityEnrollKibanaRequest>
 
@@ -935,6 +992,7 @@ export type SecurityEnrollKibanaResponse = z.infer<typeof SecurityEnrollKibanaRe
  * The response contains key and certificate material that allows the caller to generate valid signed certificates for the HTTP layer of all nodes in the cluster.
  */
 export const SecurityEnrollNodeRequest = z.object({
+  ...RequestBase.shape
 }).meta({ id: 'SecurityEnrollNodeRequest' })
 export type SecurityEnrollNodeRequest = z.infer<typeof SecurityEnrollNodeRequest>
 
@@ -956,11 +1014,12 @@ export type SecurityEnrollNodeResponse = z.infer<typeof SecurityEnrollNodeRespon
  * If you have `read_security`, `manage_api_key` or greater privileges (including `manage_security`), this API returns all API keys regardless of ownership.
  */
 export const SecurityGetApiKeyRequest = z.object({
-  id: z.lazy(() => Id).describe('An API key id. This parameter cannot be used with any of `name`, `realm_name` or `username`.').optional().meta({ found_in: 'query' }),
-  name: z.lazy(() => Name).describe('An API key name. This parameter cannot be used with any of `id`, `realm_name` or `username`. It supports prefix search with wildcard.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  id: Id.describe('An API key id. This parameter cannot be used with any of `name`, `realm_name` or `username`.').optional().meta({ found_in: 'query' }),
+  name: Name.describe('An API key name. This parameter cannot be used with any of `id`, `realm_name` or `username`. It supports prefix search with wildcard.').optional().meta({ found_in: 'query' }),
   owner: z.boolean().describe('A boolean flag that can be used to query API keys owned by the currently authenticated user. The `realm_name` or `username` parameters cannot be specified when this parameter is set to `true` as they are assumed to be the currently authenticated ones.').optional().meta({ found_in: 'query' }),
-  realm_name: z.lazy(() => Name).describe('The name of an authentication realm. This parameter cannot be used with either `id` or `name` or when `owner` flag is set to `true`.').optional().meta({ found_in: 'query' }),
-  username: z.lazy(() => Username).describe('The username of a user. This parameter cannot be used with either `id` or `name` or when `owner` flag is set to `true`.').optional().meta({ found_in: 'query' }),
+  realm_name: Name.describe('The name of an authentication realm. This parameter cannot be used with either `id` or `name` or when `owner` flag is set to `true`.').optional().meta({ found_in: 'query' }),
+  username: Username.describe('The username of a user. This parameter cannot be used with either `id` or `name` or when `owner` flag is set to `true`.').optional().meta({ found_in: 'query' }),
   with_limited_by: z.boolean().describe('Return the snapshot of the owner user\'s role descriptors associated with the API key. An API key\'s actual permission is the intersection of its assigned role descriptors and the owner user\'s role descriptors.').optional().meta({ found_in: 'query' }),
   active_only: z.boolean().describe('A boolean flag that can be used to query API keys that are currently active. An API key is considered active if it is neither invalidated, nor expired at query time. You can specify this together with other parameters such as `owner` or `name`. If `active_only` is false, the response will include both active and inactive (expired or invalidated) keys.').optional().meta({ found_in: 'query' }),
   with_profile_uid: z.boolean().describe('Determines whether to also retrieve the profile uid, for the API key owner principal, if it exists.').optional().meta({ found_in: 'query' })
@@ -978,12 +1037,13 @@ export type SecurityGetApiKeyResponse = z.infer<typeof SecurityGetApiKeyResponse
  * Get the list of cluster privileges and index privileges that are available in this version of Elasticsearch.
  */
 export const SecurityGetBuiltinPrivilegesRequest = z.object({
+  ...RequestBase.shape
 }).meta({ id: 'SecurityGetBuiltinPrivilegesRequest' })
 export type SecurityGetBuiltinPrivilegesRequest = z.infer<typeof SecurityGetBuiltinPrivilegesRequest>
 
 export const SecurityGetBuiltinPrivilegesResponse = z.object({
   cluster: z.array(SecurityClusterPrivilege).describe('The list of cluster privileges that are understood by this version of Elasticsearch.'),
-  index: z.array(z.lazy(() => IndexName)).describe('The list of index privileges that are understood by this version of Elasticsearch.')
+  index: z.array(IndexName).describe('The list of index privileges that are understood by this version of Elasticsearch.')
 }).meta({ id: 'SecurityGetBuiltinPrivilegesResponse' })
 export type SecurityGetBuiltinPrivilegesResponse = z.infer<typeof SecurityGetBuiltinPrivilegesResponse>
 
@@ -996,16 +1056,17 @@ export type SecurityGetBuiltinPrivilegesResponse = z.infer<typeof SecurityGetBui
  * * The "Manage Application Privileges" global privilege for the application being referenced in the request.
  */
 export const SecurityGetPrivilegesRequest = z.object({
-  application: z.lazy(() => Name).describe('The name of the application. Application privileges are always associated with exactly one application. If you do not specify this parameter, the API returns information about all privileges for all applications.').optional().meta({ found_in: 'path' }),
-  name: z.lazy(() => Names).describe('The name of the privilege. If you do not specify this parameter, the API returns information about all privileges for the requested application.').optional().meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  application: Name.describe('The name of the application. Application privileges are always associated with exactly one application. If you do not specify this parameter, the API returns information about all privileges for all applications.').optional().meta({ found_in: 'path' }),
+  name: Names.describe('The name of the privilege. If you do not specify this parameter, the API returns information about all privileges for the requested application.').optional().meta({ found_in: 'path' })
 }).meta({ id: 'SecurityGetPrivilegesRequest' })
 export type SecurityGetPrivilegesRequest = z.infer<typeof SecurityGetPrivilegesRequest>
 
 export const SecurityPutPrivilegesActions = z.object({
   actions: z.array(z.string()),
   application: z.string().optional(),
-  name: z.lazy(() => Name).optional(),
-  metadata: z.lazy(() => Metadata).optional()
+  name: Name.optional(),
+  metadata: Metadata.optional()
 }).meta({ id: 'SecurityPutPrivilegesActions' })
 export type SecurityPutPrivilegesActions = z.infer<typeof SecurityPutPrivilegesActions>
 
@@ -1020,14 +1081,15 @@ export type SecurityGetPrivilegesResponse = z.infer<typeof SecurityGetPrivileges
  * The get roles API cannot retrieve roles that are defined in roles files.
  */
 export const SecurityGetRoleRequest = z.object({
-  name: z.lazy(() => Names).describe('The name of the role. You can specify multiple roles as a comma-separated list. If you do not specify this parameter, the API returns information about all roles.').optional().meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  name: Names.describe('The name of the role. You can specify multiple roles as a comma-separated list. If you do not specify this parameter, the API returns information about all roles.').optional().meta({ found_in: 'path' })
 }).meta({ id: 'SecurityGetRoleRequest' })
 export type SecurityGetRoleRequest = z.infer<typeof SecurityGetRoleRequest>
 
 export const SecurityGetRoleRole = z.object({
   cluster: z.array(SecurityClusterPrivilege),
   indices: z.array(SecurityIndicesPrivileges),
-  metadata: z.lazy(() => Metadata),
+  metadata: Metadata,
   description: z.string().optional(),
   run_as: z.array(z.string()).optional(),
   transient_metadata: z.record(z.string(), z.any()).optional(),
@@ -1048,7 +1110,8 @@ export type SecurityGetRoleResponse = z.infer<typeof SecurityGetRoleResponse>
  * The get role mappings API cannot retrieve role mappings that are defined in role mapping files.
  */
 export const SecurityGetRoleMappingRequest = z.object({
-  name: z.lazy(() => Names).describe('The distinct name that identifies the role mapping. The name is used solely as an identifier to facilitate interaction via the API; it does not affect the behavior of the mapping in any way. You can specify multiple mapping names as a comma-separated list. If you do not specify this parameter, the API returns information about all role mappings.').optional().meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  name: Names.describe('The distinct name that identifies the role mapping. The name is used solely as an identifier to facilitate interaction via the API; it does not affect the behavior of the mapping in any way. You can specify multiple mapping names as a comma-separated list. If you do not specify this parameter, the API returns information about all role mappings.').optional().meta({ found_in: 'path' })
 }).meta({ id: 'SecurityGetRoleMappingRequest' })
 export type SecurityGetRoleMappingRequest = z.infer<typeof SecurityGetRoleMappingRequest>
 
@@ -1063,6 +1126,7 @@ export type SecurityGetRoleMappingResponse = z.infer<typeof SecurityGetRoleMappi
  * NOTE: Currently, only the `elastic/fleet-server` service account is available.
  */
 export const SecurityGetServiceAccountsRequest = z.object({
+  ...RequestBase.shape,
   namespace: Namespace.describe('The name of the namespace. Omit this parameter to retrieve information about all service accounts. If you omit this parameter, you must also omit the `service` parameter.').optional().meta({ found_in: 'path' }),
   service: Service.describe('The service name. Omit this parameter to retrieve information about all service accounts that belong to the specified `namespace`.').optional().meta({ found_in: 'path' })
 }).meta({ id: 'SecurityGetServiceAccountsRequest' })
@@ -1082,7 +1146,7 @@ export const SecurityGetServiceCredentialsNodesCredentialsFileToken = z.object({
 export type SecurityGetServiceCredentialsNodesCredentialsFileToken = z.infer<typeof SecurityGetServiceCredentialsNodesCredentialsFileToken>
 
 export const SecurityGetServiceCredentialsNodesCredentials = z.object({
-  _nodes: z.lazy(() => NodeStatistics).describe('General status showing how nodes respond to the above collection request'),
+  _nodes: NodeStatistics.describe('General status showing how nodes respond to the above collection request'),
   file_tokens: z.record(z.string(), SecurityGetServiceCredentialsNodesCredentialsFileToken).describe('File-backed tokens collected from all nodes')
 }).meta({ id: 'SecurityGetServiceCredentialsNodesCredentials' })
 export type SecurityGetServiceCredentialsNodesCredentials = z.infer<typeof SecurityGetServiceCredentialsNodesCredentials>
@@ -1098,15 +1162,16 @@ export type SecurityGetServiceCredentialsNodesCredentials = z.infer<typeof Secur
  * Tokens with the same name from different nodes are assumed to be the same token and are only counted once towards the total number of service tokens.
  */
 export const SecurityGetServiceCredentialsRequest = z.object({
+  ...RequestBase.shape,
   namespace: Namespace.describe('The name of the namespace.').meta({ found_in: 'path' }),
-  service: z.lazy(() => Name).describe('The service name.').meta({ found_in: 'path' })
+  service: Name.describe('The service name.').meta({ found_in: 'path' })
 }).meta({ id: 'SecurityGetServiceCredentialsRequest' })
 export type SecurityGetServiceCredentialsRequest = z.infer<typeof SecurityGetServiceCredentialsRequest>
 
 export const SecurityGetServiceCredentialsResponse = z.object({
   service_account: z.string(),
-  count: z.lazy(() => integer),
-  tokens: z.record(z.string(), z.lazy(() => Metadata)),
+  count: integer,
+  tokens: z.record(z.string(), Metadata),
   nodes_credentials: SecurityGetServiceCredentialsNodesCredentials.describe('Service account credentials collected from all nodes of the cluster.')
 }).meta({ id: 'SecurityGetServiceCredentialsResponse' })
 export type SecurityGetServiceCredentialsResponse = z.infer<typeof SecurityGetServiceCredentialsResponse>
@@ -1122,7 +1187,8 @@ export type SecurityGetServiceCredentialsResponse = z.infer<typeof SecurityGetSe
  * * `index.number_of_replicas`
  */
 export const SecurityGetSettingsRequest = z.object({
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'SecurityGetSettingsRequest' })
 export type SecurityGetSettingsRequest = z.infer<typeof SecurityGetSettingsRequest>
 
@@ -1139,6 +1205,7 @@ export type SecurityGetSettingsResponse = z.infer<typeof SecurityGetSettingsResp
  * Gather security usage statistics from all node(s) within the cluster.
  */
 export const SecurityGetStatsRequest = z.object({
+  ...RequestBase.shape
 }).meta({ id: 'SecurityGetStatsRequest' })
 export type SecurityGetStatsRequest = z.infer<typeof SecurityGetStatsRequest>
 
@@ -1151,14 +1218,14 @@ export const SecurityGetTokenAccessTokenGrantType = z.enum(['password', 'client_
 export type SecurityGetTokenAccessTokenGrantType = z.infer<typeof SecurityGetTokenAccessTokenGrantType>
 
 export const SecurityGetTokenUserRealm = z.object({
-  name: z.lazy(() => Name),
+  name: Name,
   type: z.string()
 }).meta({ id: 'SecurityGetTokenUserRealm' })
 export type SecurityGetTokenUserRealm = z.infer<typeof SecurityGetTokenUserRealm>
 
 export const SecurityGetTokenAuthenticationProvider = z.object({
   type: z.string(),
-  name: z.lazy(() => Name)
+  name: Name
 }).meta({ id: 'SecurityGetTokenAuthenticationProvider' })
 export type SecurityGetTokenAuthenticationProvider = z.infer<typeof SecurityGetTokenAuthenticationProvider>
 
@@ -1188,18 +1255,19 @@ export type SecurityGetTokenAuthenticatedUser = z.infer<typeof SecurityGetTokenA
  * If you want to invalidate a token immediately, you can do so by using the invalidate token API.
  */
 export const SecurityGetTokenRequest = z.object({
+  ...RequestBase.shape,
   grant_type: SecurityGetTokenAccessTokenGrantType.describe('The type of grant. Supported grant types are: `password`, `_kerberos`, `client_credentials`, and `refresh_token`.').optional().meta({ found_in: 'body' }),
   scope: z.string().describe('The scope of the token. Currently tokens are only issued for a scope of FULL regardless of the value sent with the request.').optional().meta({ found_in: 'body' }),
-  password: z.lazy(() => Password).describe('The user\'s password. If you specify the `password` grant type, this parameter is required. This parameter is not valid with any other supported grant type.').optional().meta({ found_in: 'body' }),
+  password: Password.describe('The user\'s password. If you specify the `password` grant type, this parameter is required. This parameter is not valid with any other supported grant type.').optional().meta({ found_in: 'body' }),
   kerberos_ticket: z.string().describe('The base64 encoded kerberos ticket. If you specify the `_kerberos` grant type, this parameter is required. This parameter is not valid with any other supported grant type.').optional().meta({ found_in: 'body' }),
   refresh_token: z.string().describe('The string that was returned when you created the token, which enables you to extend its life. If you specify the `refresh_token` grant type, this parameter is required. This parameter is not valid with any other supported grant type.').optional().meta({ found_in: 'body' }),
-  username: z.lazy(() => Username).describe('The username that identifies the user. If you specify the `password` grant type, this parameter is required. This parameter is not valid with any other supported grant type.').optional().meta({ found_in: 'body' })
+  username: Username.describe('The username that identifies the user. If you specify the `password` grant type, this parameter is required. This parameter is not valid with any other supported grant type.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecurityGetTokenRequest' })
 export type SecurityGetTokenRequest = z.infer<typeof SecurityGetTokenRequest>
 
 export const SecurityGetTokenResponse = z.object({
   access_token: z.string(),
-  expires_in: z.lazy(() => long),
+  expires_in: long,
   scope: z.string().optional(),
   type: z.string(),
   refresh_token: z.string().optional(),
@@ -1214,7 +1282,8 @@ export type SecurityGetTokenResponse = z.infer<typeof SecurityGetTokenResponse>
  * Get information about users in the native realm and built-in users.
  */
 export const SecurityGetUserRequest = z.object({
-  username: z.union([z.lazy(() => Username), z.array(z.lazy(() => Username))]).describe('An identifier for the user. You can specify multiple usernames as a comma-separated list. If you omit this parameter, the API retrieves information about all users.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  username: z.union([Username, z.array(Username)]).describe('An identifier for the user. You can specify multiple usernames as a comma-separated list. If you omit this parameter, the API retrieves information about all users.').optional().meta({ found_in: 'path' }),
   with_profile_uid: z.boolean().describe('Determines whether to retrieve the user profile UID, if it exists, for the users.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'SecurityGetUserRequest' })
 export type SecurityGetUserRequest = z.infer<typeof SecurityGetUserRequest>
@@ -1231,6 +1300,7 @@ export type SecurityGetUserResponse = z.infer<typeof SecurityGetUserResponse>
  * To check whether a user has a specific list of privileges, use the has privileges API.
  */
 export const SecurityGetUserPrivilegesRequest = z.object({
+  ...RequestBase.shape
 }).meta({ id: 'SecurityGetUserPrivilegesRequest' })
 export type SecurityGetUserPrivilegesRequest = z.infer<typeof SecurityGetUserPrivilegesRequest>
 
@@ -1246,7 +1316,7 @@ export const SecurityGetUserPrivilegesResponse = z.object({
 export type SecurityGetUserPrivilegesResponse = z.infer<typeof SecurityGetUserPrivilegesResponse>
 
 export const SecurityGetUserProfileGetUserProfileErrors = z.object({
-  count: z.lazy(() => long),
+  count: long,
   details: z.record(SecurityUserProfileId, z.lazy(() => ErrorCause))
 }).meta({ id: 'SecurityGetUserProfileGetUserProfileErrors' })
 export type SecurityGetUserProfileGetUserProfileErrors = z.infer<typeof SecurityGetUserProfileGetUserProfileErrors>
@@ -1261,6 +1331,7 @@ export type SecurityGetUserProfileGetUserProfileErrors = z.infer<typeof Security
  * Elastic reserves the right to change or remove this feature in future releases without prior notice.
  */
 export const SecurityGetUserProfileRequest = z.object({
+  ...RequestBase.shape,
   uid: z.union([SecurityUserProfileId, z.array(SecurityUserProfileId)]).describe('A unique identifier for the user profile.').meta({ found_in: 'path' }),
   data: z.union([z.string(), z.array(z.string())]).describe('A comma-separated list of filters for the `data` field of the profile document. To return all content use `data=*`. To return a subset of content use `data=<key>` to retrieve content nested under the specified `<key>`. By default returns no `data` content.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'SecurityGetUserProfileRequest' })
@@ -1276,10 +1347,10 @@ export const SecurityGrantApiKeyApiKeyGrantType = z.enum(['access_token', 'passw
 export type SecurityGrantApiKeyApiKeyGrantType = z.infer<typeof SecurityGrantApiKeyApiKeyGrantType>
 
 export const SecurityGrantApiKeyGrantApiKey = z.object({
-  name: z.lazy(() => Name),
-  expiration: z.lazy(() => DurationLarge).describe('Expiration time for the API key. By default, API keys never expire.').optional(),
+  name: Name,
+  expiration: DurationLarge.describe('Expiration time for the API key. By default, API keys never expire.').optional(),
   role_descriptors: z.union([z.record(z.string(), SecurityRoleDescriptor), z.array(z.record(z.string(), SecurityRoleDescriptor))]).describe('The role descriptors for this API key. When it is not specified or is an empty array, the API key has a point in time snapshot of permissions of the specified user or access token. If you supply role descriptors, the resultant permissions are an intersection of API keys permissions and the permissions of the user or access token.').optional(),
-  metadata: z.lazy(() => Metadata).describe('Arbitrary metadata that you want to associate with the API key. It supports nested data structure. Within the `metadata` object, keys beginning with `_` are reserved for system usage.').optional()
+  metadata: Metadata.describe('Arbitrary metadata that you want to associate with the API key. It supports nested data structure. Within the `metadata` object, keys beginning with `_` are reserved for system usage.').optional()
 }).meta({ id: 'SecurityGrantApiKeyGrantApiKey' })
 export type SecurityGrantApiKeyGrantApiKey = z.infer<typeof SecurityGrantApiKeyGrantApiKey>
 
@@ -1308,21 +1379,22 @@ export type SecurityGrantApiKeyGrantApiKey = z.infer<typeof SecurityGrantApiKeyG
  * By default, API keys never expire. You can specify expiration information when you create the API keys.
  */
 export const SecurityGrantApiKeyRequest = z.object({
-  refresh: z.lazy(() => Refresh).describe('If \'true\', Elasticsearch refreshes the affected shards to make this operation visible to search. If \'wait_for\', it waits for a refresh to make this operation visible to search. If \'false\', nothing is done with refreshes.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  refresh: Refresh.describe('If \'true\', Elasticsearch refreshes the affected shards to make this operation visible to search. If \'wait_for\', it waits for a refresh to make this operation visible to search. If \'false\', nothing is done with refreshes.').optional().meta({ found_in: 'query' }),
   api_key: SecurityGrantApiKeyGrantApiKey.describe('The API key.').meta({ found_in: 'body' }),
   grant_type: SecurityGrantApiKeyApiKeyGrantType.describe('The type of grant. Supported grant types are: `access_token`, `password`.').meta({ found_in: 'body' }),
   access_token: z.string().describe('The user\'s access token. If you specify the `access_token` grant type, this parameter is required. It is not valid with other grant types.').optional().meta({ found_in: 'body' }),
-  username: z.lazy(() => Username).describe('The user name that identifies the user. If you specify the `password` grant type, this parameter is required. It is not valid with other grant types.').optional().meta({ found_in: 'body' }),
-  password: z.lazy(() => Password).describe('The user\'s password. If you specify the `password` grant type, this parameter is required. It is not valid with other grant types.').optional().meta({ found_in: 'body' }),
-  run_as: z.lazy(() => Username).describe('The name of the user to be impersonated.').optional().meta({ found_in: 'body' })
+  username: Username.describe('The user name that identifies the user. If you specify the `password` grant type, this parameter is required. It is not valid with other grant types.').optional().meta({ found_in: 'body' }),
+  password: Password.describe('The user\'s password. If you specify the `password` grant type, this parameter is required. It is not valid with other grant types.').optional().meta({ found_in: 'body' }),
+  run_as: Username.describe('The name of the user to be impersonated.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecurityGrantApiKeyRequest' })
 export type SecurityGrantApiKeyRequest = z.infer<typeof SecurityGrantApiKeyRequest>
 
 export const SecurityGrantApiKeyResponse = z.object({
   api_key: z.string(),
-  id: z.lazy(() => Id),
-  name: z.lazy(() => Name),
-  expiration: z.lazy(() => EpochTime).optional(),
+  id: Id,
+  name: Name,
+  expiration: EpochTime.optional(),
   encoded: z.string()
 }).meta({ id: 'SecurityGrantApiKeyResponse' })
 export type SecurityGrantApiKeyResponse = z.infer<typeof SecurityGrantApiKeyResponse>
@@ -1337,14 +1409,14 @@ export type SecurityHasPrivilegesApplicationPrivilegesCheck = z.infer<typeof Sec
 export const SecurityHasPrivilegesPrivileges = z.record(z.string(), z.boolean()).meta({ id: 'SecurityHasPrivilegesPrivileges' })
 export type SecurityHasPrivilegesPrivileges = z.infer<typeof SecurityHasPrivilegesPrivileges>
 
-export const SecurityHasPrivilegesResourcePrivileges = z.record(z.lazy(() => Name), SecurityHasPrivilegesPrivileges).meta({ id: 'SecurityHasPrivilegesResourcePrivileges' })
+export const SecurityHasPrivilegesResourcePrivileges = z.record(Name, SecurityHasPrivilegesPrivileges).meta({ id: 'SecurityHasPrivilegesResourcePrivileges' })
 export type SecurityHasPrivilegesResourcePrivileges = z.infer<typeof SecurityHasPrivilegesResourcePrivileges>
 
-export const SecurityHasPrivilegesApplicationsPrivileges = z.record(z.lazy(() => Name), SecurityHasPrivilegesResourcePrivileges).meta({ id: 'SecurityHasPrivilegesApplicationsPrivileges' })
+export const SecurityHasPrivilegesApplicationsPrivileges = z.record(Name, SecurityHasPrivilegesResourcePrivileges).meta({ id: 'SecurityHasPrivilegesApplicationsPrivileges' })
 export type SecurityHasPrivilegesApplicationsPrivileges = z.infer<typeof SecurityHasPrivilegesApplicationsPrivileges>
 
 export const SecurityHasPrivilegesIndexPrivilegesCheck = z.object({
-  names: z.lazy(() => Indices).describe('A list of indices.'),
+  names: Indices.describe('A list of indices.'),
   privileges: z.array(SecurityIndexPrivilege).describe('A list of the privileges that you want to check for the specified indices.'),
   allow_restricted_indices: z.boolean().describe('This needs to be set to `true` (default is `false`) if using wildcards or regexps for patterns that cover restricted indices. Implicitly, restricted indices do not match index patterns because restricted indices usually have limited privileges and including them in pattern tests would render most such tests false. If restricted indices are explicitly included in the names list, privileges will be checked against them regardless of the value of `allow_restricted_indices`.').optional()
 }).meta({ id: 'SecurityHasPrivilegesIndexPrivilegesCheck' })
@@ -1358,7 +1430,8 @@ export type SecurityHasPrivilegesIndexPrivilegesCheck = z.infer<typeof SecurityH
  * To check the privileges of other users, you must use the run as feature.
  */
 export const SecurityHasPrivilegesRequest = z.object({
-  user: z.lazy(() => Name).describe('Username').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  user: Name.describe('Username').optional().meta({ found_in: 'path' }),
   application: z.array(SecurityHasPrivilegesApplicationPrivilegesCheck).optional().meta({ found_in: 'body' }),
   cluster: z.array(SecurityClusterPrivilege).describe('A list of the cluster privileges that you want to check.').optional().meta({ found_in: 'body' }),
   index: z.array(SecurityHasPrivilegesIndexPrivilegesCheck).optional().meta({ found_in: 'body' })
@@ -1369,13 +1442,13 @@ export const SecurityHasPrivilegesResponse = z.object({
   application: SecurityHasPrivilegesApplicationsPrivileges,
   cluster: z.record(z.string(), z.boolean()),
   has_all_requested: z.boolean(),
-  index: z.record(z.lazy(() => IndexName), SecurityHasPrivilegesPrivileges),
-  username: z.lazy(() => Username)
+  index: z.record(IndexName, SecurityHasPrivilegesPrivileges),
+  username: Username
 }).meta({ id: 'SecurityHasPrivilegesResponse' })
 export type SecurityHasPrivilegesResponse = z.infer<typeof SecurityHasPrivilegesResponse>
 
 export const SecurityHasPrivilegesUserProfileHasPrivilegesUserProfileErrors = z.object({
-  count: z.lazy(() => long),
+  count: long,
   details: z.record(SecurityUserProfileId, z.lazy(() => ErrorCause))
 }).meta({ id: 'SecurityHasPrivilegesUserProfileHasPrivilegesUserProfileErrors' })
 export type SecurityHasPrivilegesUserProfileHasPrivilegesUserProfileErrors = z.infer<typeof SecurityHasPrivilegesUserProfileHasPrivilegesUserProfileErrors>
@@ -1396,6 +1469,7 @@ export type SecurityHasPrivilegesUserProfilePrivilegesCheck = z.infer<typeof Sec
  * Elastic reserves the right to change or remove this feature in future releases without prior notice.
  */
 export const SecurityHasPrivilegesUserProfileRequest = z.object({
+  ...RequestBase.shape,
   uids: z.array(SecurityUserProfileId).describe('A list of profile IDs. The privileges are checked for associated users of the profiles.').meta({ found_in: 'body' }),
   privileges: SecurityHasPrivilegesUserProfilePrivilegesCheck.describe('An object containing all the privileges to be checked.').meta({ found_in: 'body' })
 }).meta({ id: 'SecurityHasPrivilegesUserProfileRequest' })
@@ -1424,17 +1498,18 @@ export type SecurityHasPrivilegesUserProfileResponse = z.infer<typeof SecurityHa
  * - Or, if the request is issued by an API key, that is to say an API key invalidates itself, specify its ID in the `ids` field.
  */
 export const SecurityInvalidateApiKeyRequest = z.object({
-  id: z.lazy(() => Id).optional().meta({ found_in: 'body' }),
-  ids: z.array(z.lazy(() => Id)).describe('A list of API key ids. This parameter cannot be used with any of `name`, `realm_name`, or `username`.').optional().meta({ found_in: 'body' }),
-  name: z.lazy(() => Name).describe('An API key name. This parameter cannot be used with any of `ids`, `realm_name` or `username`.').optional().meta({ found_in: 'body' }),
+  ...RequestBase.shape,
+  id: Id.optional().meta({ found_in: 'body' }),
+  ids: z.array(Id).describe('A list of API key ids. This parameter cannot be used with any of `name`, `realm_name`, or `username`.').optional().meta({ found_in: 'body' }),
+  name: Name.describe('An API key name. This parameter cannot be used with any of `ids`, `realm_name` or `username`.').optional().meta({ found_in: 'body' }),
   owner: z.boolean().describe('Query API keys owned by the currently authenticated user. The `realm_name` or `username` parameters cannot be specified when this parameter is set to `true` as they are assumed to be the currently authenticated ones. NOTE: At least one of `ids`, `name`, `username`, and `realm_name` must be specified if `owner` is `false`.').optional().meta({ found_in: 'body' }),
   realm_name: z.string().describe('The name of an authentication realm. This parameter cannot be used with either `ids` or `name`, or when `owner` flag is set to `true`.').optional().meta({ found_in: 'body' }),
-  username: z.lazy(() => Username).describe('The username of a user. This parameter cannot be used with either `ids` or `name` or when `owner` flag is set to `true`.').optional().meta({ found_in: 'body' })
+  username: Username.describe('The username of a user. This parameter cannot be used with either `ids` or `name` or when `owner` flag is set to `true`.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecurityInvalidateApiKeyRequest' })
 export type SecurityInvalidateApiKeyRequest = z.infer<typeof SecurityInvalidateApiKeyRequest>
 
 export const SecurityInvalidateApiKeyResponse = z.object({
-  error_count: z.lazy(() => integer).describe('The number of errors that were encountered when invalidating the API keys.'),
+  error_count: integer.describe('The number of errors that were encountered when invalidating the API keys.'),
   error_details: z.array(z.lazy(() => ErrorCause)).describe('Details about the errors. This field is not present in the response when `error_count` is `0`.').optional(),
   invalidated_api_keys: z.array(z.string()).describe('The IDs of the API keys that were invalidated as part of this request.'),
   previously_invalidated_api_keys: z.array(z.string()).describe('The IDs of the API keys that were already invalidated.')
@@ -1457,18 +1532,19 @@ export type SecurityInvalidateApiKeyResponse = z.infer<typeof SecurityInvalidate
  * If none of these two are specified, then `realm_name` and/or `username` need to be specified.
  */
 export const SecurityInvalidateTokenRequest = z.object({
+  ...RequestBase.shape,
   token: z.string().describe('An access token. This parameter cannot be used if any of `refresh_token`, `realm_name`, or `username` are used.').optional().meta({ found_in: 'body' }),
   refresh_token: z.string().describe('A refresh token. This parameter cannot be used if any of `refresh_token`, `realm_name`, or `username` are used.').optional().meta({ found_in: 'body' }),
-  realm_name: z.lazy(() => Name).describe('The name of an authentication realm. This parameter cannot be used with either `refresh_token` or `token`.').optional().meta({ found_in: 'body' }),
-  username: z.lazy(() => Username).describe('The username of a user. This parameter cannot be used with either `refresh_token` or `token`.').optional().meta({ found_in: 'body' })
+  realm_name: Name.describe('The name of an authentication realm. This parameter cannot be used with either `refresh_token` or `token`.').optional().meta({ found_in: 'body' }),
+  username: Username.describe('The username of a user. This parameter cannot be used with either `refresh_token` or `token`.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecurityInvalidateTokenRequest' })
 export type SecurityInvalidateTokenRequest = z.infer<typeof SecurityInvalidateTokenRequest>
 
 export const SecurityInvalidateTokenResponse = z.object({
-  error_count: z.lazy(() => long).describe('The number of errors that were encountered when invalidating the tokens.'),
+  error_count: long.describe('The number of errors that were encountered when invalidating the tokens.'),
   error_details: z.array(z.lazy(() => ErrorCause)).describe('Details about the errors. This field is not present in the response when `error_count` is `0`.').optional(),
-  invalidated_tokens: z.lazy(() => long).describe('The number of the tokens that were invalidated as part of this request.'),
-  previously_invalidated_tokens: z.lazy(() => long).describe('The number of tokens that were already invalidated.')
+  invalidated_tokens: long.describe('The number of the tokens that were invalidated as part of this request.'),
+  previously_invalidated_tokens: long.describe('The number of tokens that were already invalidated.')
 }).meta({ id: 'SecurityInvalidateTokenResponse' })
 export type SecurityInvalidateTokenResponse = z.infer<typeof SecurityInvalidateTokenResponse>
 
@@ -1481,6 +1557,7 @@ export type SecurityInvalidateTokenResponse = z.infer<typeof SecurityInvalidateT
  * These APIs are used internally by Kibana in order to provide OpenID Connect based authentication, but can also be used by other, custom web applications or other clients.
  */
 export const SecurityOidcAuthenticateRequest = z.object({
+  ...RequestBase.shape,
   nonce: z.string().describe('Associate a client session with an ID token and mitigate replay attacks. This value needs to be the same as the one that was provided to the `/_security/oidc/prepare` API or the one that was generated by Elasticsearch and included in the response to that call.').meta({ found_in: 'body' }),
   realm: z.string().describe('The name of the OpenID Connect realm. This property is useful in cases where multiple realms are defined.').optional().meta({ found_in: 'body' }),
   redirect_uri: z.string().describe('The URL to which the OpenID Connect Provider redirected the User Agent in response to an authentication request after a successful authentication. This URL must be provided as-is (URL encoded), taken from the body of the response or as the value of a location header in the response from the OpenID Connect Provider.').meta({ found_in: 'body' }),
@@ -1490,7 +1567,7 @@ export type SecurityOidcAuthenticateRequest = z.infer<typeof SecurityOidcAuthent
 
 export const SecurityOidcAuthenticateResponse = z.object({
   access_token: z.string().describe('The Elasticsearch access token.'),
-  expires_in: z.lazy(() => integer).describe('The duration (in seconds) of the tokens.'),
+  expires_in: integer.describe('The duration (in seconds) of the tokens.'),
   refresh_token: z.string().describe('The Elasticsearch refresh token.'),
   type: z.string().describe('The type of token.')
 }).meta({ id: 'SecurityOidcAuthenticateResponse' })
@@ -1507,6 +1584,7 @@ export type SecurityOidcAuthenticateResponse = z.infer<typeof SecurityOidcAuthen
  * These APIs are used internally by Kibana in order to provide OpenID Connect based authentication, but can also be used by other, custom web applications or other clients.
  */
 export const SecurityOidcLogoutRequest = z.object({
+  ...RequestBase.shape,
   token: z.string().describe('The access token to be invalidated.').meta({ found_in: 'body' }),
   refresh_token: z.string().describe('The refresh token to be invalidated.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecurityOidcLogoutRequest' })
@@ -1528,6 +1606,7 @@ export type SecurityOidcLogoutResponse = z.infer<typeof SecurityOidcLogoutRespon
  * These APIs are used internally by Kibana in order to provide OpenID Connect based authentication, but can also be used by other, custom web applications or other clients.
  */
 export const SecurityOidcPrepareAuthenticationRequest = z.object({
+  ...RequestBase.shape,
   iss: z.string().describe('In the case of a third party initiated single sign on, this is the issuer identifier for the OP that the RP is to send the authentication request to. It cannot be specified when *realm* is specified. One of *realm* or *iss* is required.').optional().meta({ found_in: 'body' }),
   login_hint: z.string().describe('In the case of a third party initiated single sign on, it is a string value that is included in the authentication request as the *login_hint* parameter. This parameter is not valid when *realm* is specified.').optional().meta({ found_in: 'body' }),
   nonce: z.string().describe('The value used to associate a client session with an ID token and to mitigate replay attacks. If the caller of the API does not provide a value, Elasticsearch will generate one with sufficient entropy and return it in the response.').optional().meta({ found_in: 'body' }),
@@ -1566,7 +1645,8 @@ export type SecurityOidcPrepareAuthenticationResponse = z.infer<typeof SecurityO
  * Action names can contain any number of printable ASCII characters and must contain at least one of the following characters: `/`, `*`, `:`.
  */
 export const SecurityPutPrivilegesRequest = z.object({
-  refresh: z.lazy(() => Refresh).describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  refresh: Refresh.describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' }),
   privileges: z.record(z.string(), z.record(z.string(), SecurityPutPrivilegesActions)).optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecurityPutPrivilegesRequest' })
 export type SecurityPutPrivilegesRequest = z.infer<typeof SecurityPutPrivilegesRequest>
@@ -1582,12 +1662,13 @@ export type SecurityPutPrivilegesResponse = z.infer<typeof SecurityPutPrivileges
  * File-based role management is not available in Elastic Serverless.
  */
 export const SecurityPutRoleRequest = z.object({
-  name: z.lazy(() => Name).describe('The name of the role that is being created or updated. On Elasticsearch Serverless, the role name must begin with a letter or digit and can only contain letters, digits and the characters \'_\', \'-\', and \'.\'. Each role must have a unique name, as this will serve as the identifier for that role.').meta({ found_in: 'path' }),
-  refresh: z.lazy(() => Refresh).describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  name: Name.describe('The name of the role that is being created or updated. On Elasticsearch Serverless, the role name must begin with a letter or digit and can only contain letters, digits and the characters \'_\', \'-\', and \'.\'. Each role must have a unique name, as this will serve as the identifier for that role.').meta({ found_in: 'path' }),
+  refresh: Refresh.describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' }),
   applications: z.array(SecurityApplicationPrivileges).describe('A list of application privilege entries.').optional().meta({ found_in: 'body' }),
   cluster: z.array(SecurityClusterPrivilege).describe('A list of cluster privileges. These privileges define the cluster-level actions for users with this role.').optional().meta({ found_in: 'body' }),
   indices: z.array(SecurityIndicesPrivileges).describe('A list of indices permissions entries.').optional().meta({ found_in: 'body' }),
-  metadata: z.lazy(() => Metadata).describe('Optional metadata. Within the metadata object, keys that begin with an underscore (`_`) are reserved for system use.').optional().meta({ found_in: 'body' }),
+  metadata: Metadata.describe('Optional metadata. Within the metadata object, keys that begin with an underscore (`_`) are reserved for system use.').optional().meta({ found_in: 'body' }),
   run_as: z.array(z.string()).describe('A list of users that the owners of this role can impersonate. *Note*: in Serverless, the run-as feature is disabled. For API compatibility, you can still specify an empty `run_as` field, but a non-empty list will be rejected.').optional().meta({ found_in: 'body' }),
   description: z.string().describe('Optional description of the role descriptor').optional().meta({ found_in: 'body' }),
   transient_metadata: z.record(z.string(), z.any()).describe('Indicates roles that might be incompatible with the current cluster license, specifically roles with document and field level security. When the cluster license doesn’t allow certain features for a given role, this parameter is updated dynamically to list the incompatible features. If `enabled` is `false`, the role is ignored, but is still listed in the response from the authenticate API.').optional().meta({ found_in: 'body' })
@@ -1628,10 +1709,11 @@ export type SecurityPutRoleResponse = z.infer<typeof SecurityPutRoleResponse>
  * If the format of the template is set to "json" then the template is expected to produce a JSON string or an array of JSON strings for the role names.
  */
 export const SecurityPutRoleMappingRequest = z.object({
-  name: z.lazy(() => Name).describe('The distinct name that identifies the role mapping. The name is used solely as an identifier to facilitate interaction via the API; it does not affect the behavior of the mapping in any way.').meta({ found_in: 'path' }),
-  refresh: z.lazy(() => Refresh).describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  name: Name.describe('The distinct name that identifies the role mapping. The name is used solely as an identifier to facilitate interaction via the API; it does not affect the behavior of the mapping in any way.').meta({ found_in: 'path' }),
+  refresh: Refresh.describe('If `true` (the default) then refresh the affected shards to make this operation visible to search, if `wait_for` then wait for a refresh to make this operation visible to search, if `false` then do nothing with refreshes.').optional().meta({ found_in: 'query' }),
   enabled: z.boolean().describe('Mappings that have `enabled` set to `false` are ignored when role mapping is performed.').optional().meta({ found_in: 'body' }),
-  metadata: z.lazy(() => Metadata).describe('Additional metadata that helps define which roles are assigned to each user. Within the metadata object, keys beginning with `_` are reserved for system usage.').optional().meta({ found_in: 'body' }),
+  metadata: Metadata.describe('Additional metadata that helps define which roles are assigned to each user. Within the metadata object, keys beginning with `_` are reserved for system usage.').optional().meta({ found_in: 'body' }),
   roles: z.array(z.string()).describe('A list of role names that are granted to the users that match the role mapping rules. Exactly one of `roles` or `role_templates` must be specified.').optional().meta({ found_in: 'body' }),
   role_templates: z.array(SecurityRoleTemplate).describe('A list of Mustache templates that will be evaluated to determine the roles names that should granted to the users that match the role mapping rules. Exactly one of `roles` or `role_templates` must be specified.').optional().meta({ found_in: 'body' }),
   rules: z.lazy(() => SecurityRoleMappingRule).describe('The rules that determine which users should be matched by the mapping. A rule is a logical condition that is expressed by using a JSON DSL.').optional().meta({ found_in: 'body' }),
@@ -1653,12 +1735,13 @@ export type SecurityPutRoleMappingResponse = z.infer<typeof SecurityPutRoleMappi
  * To change a user's password without updating any other fields, use the change password API.
  */
 export const SecurityPutUserRequest = z.object({
-  username: z.lazy(() => Username).describe('An identifier for the user. NOTE: Usernames must be at least 1 and no more than 507 characters. They can contain alphanumeric characters (a-z, A-Z, 0-9), spaces, punctuation, and printable symbols in the Basic Latin (ASCII) block. Leading or trailing whitespace is not allowed.').meta({ found_in: 'path' }),
-  refresh: z.lazy(() => Refresh).describe('Valid values are `true`, `false`, and `wait_for`. These values have the same meaning as in the index API, but the default value for this API is true.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  username: Username.describe('An identifier for the user. NOTE: Usernames must be at least 1 and no more than 507 characters. They can contain alphanumeric characters (a-z, A-Z, 0-9), spaces, punctuation, and printable symbols in the Basic Latin (ASCII) block. Leading or trailing whitespace is not allowed.').meta({ found_in: 'path' }),
+  refresh: Refresh.describe('Valid values are `true`, `false`, and `wait_for`. These values have the same meaning as in the index API, but the default value for this API is true.').optional().meta({ found_in: 'query' }),
   email: z.union([z.string(), z.null()]).describe('The email of the user.').optional().meta({ found_in: 'body' }),
   full_name: z.union([z.string(), z.null()]).describe('The full name of the user.').optional().meta({ found_in: 'body' }),
-  metadata: z.lazy(() => Metadata).describe('Arbitrary metadata that you want to associate with the user.').optional().meta({ found_in: 'body' }),
-  password: z.lazy(() => Password).describe('The user\'s password. Passwords must be at least 6 characters long. When adding a user, one of `password` or `password_hash` is required. When updating an existing user, the password is optional, so that other fields on the user (such as their roles) may be updated without modifying the user\'s password').optional().meta({ found_in: 'body' }),
+  metadata: Metadata.describe('Arbitrary metadata that you want to associate with the user.').optional().meta({ found_in: 'body' }),
+  password: Password.describe('The user\'s password. Passwords must be at least 6 characters long. When adding a user, one of `password` or `password_hash` is required. When updating an existing user, the password is optional, so that other fields on the user (such as their roles) may be updated without modifying the user\'s password').optional().meta({ found_in: 'body' }),
   password_hash: z.string().describe('A hash of the user\'s password. This must be produced using the same hashing algorithm as has been configured for password storage. For more details, see the explanation of the `xpack.security.authc.password_hashing.algorithm` setting in the user cache and password hash algorithm documentation. Using this parameter allows the client to pre-hash the password for performance and/or confidentiality reasons. The `password` parameter and the `password_hash` parameter cannot be used in the same request.').optional().meta({ found_in: 'body' }),
   roles: z.array(z.string()).describe('A set of roles the user has. The roles determine the user\'s access permissions. To create a user without any roles, specify an empty list (`[]`).').optional().meta({ found_in: 'body' }),
   enabled: z.boolean().describe('Specifies whether the user is enabled.').optional().meta({ found_in: 'body' })
@@ -1673,7 +1756,7 @@ export type SecurityPutUserResponse = z.infer<typeof SecurityPutUserResponse>
 export const SecurityQueryApiKeysApiKeyAggregate = z.union([AggregationsCardinalityAggregate, AggregationsValueCountAggregate, AggregationsStringTermsAggregate, AggregationsLongTermsAggregate, AggregationsDoubleTermsAggregate, AggregationsUnmappedTermsAggregate, AggregationsMultiTermsAggregate, AggregationsMissingAggregate, AggregationsFilterAggregate, AggregationsFiltersAggregate, AggregationsRangeAggregate, AggregationsDateRangeAggregate, AggregationsCompositeAggregate]).meta({ id: 'SecurityQueryApiKeysApiKeyAggregate' })
 export type SecurityQueryApiKeysApiKeyAggregate = z.infer<typeof SecurityQueryApiKeysApiKeyAggregate>
 
-const SecurityQueryApiKeysApiKeyQueryContainerExclusiveProps = z.union([z.object({ bool: z.lazy(() => QueryDslBoolQuery) }), z.object({ exists: QueryDslExistsQuery }), z.object({ ids: QueryDslIdsQuery }), z.object({ match: z.record(z.lazy(() => Field), QueryDslMatchQuery) }), z.object({ match_all: QueryDslMatchAllQuery }), z.object({ prefix: z.record(z.lazy(() => Field), QueryDslPrefixQuery) }), z.object({ range: z.record(z.lazy(() => Field), QueryDslRangeQuery) }), z.object({ simple_query_string: QueryDslSimpleQueryStringQuery }), z.object({ term: z.record(z.lazy(() => Field), QueryDslTermQuery) }), z.object({ terms: QueryDslTermsQuery }), z.object({ wildcard: z.record(z.lazy(() => Field), QueryDslWildcardQuery) })])
+const SecurityQueryApiKeysApiKeyQueryContainerExclusiveProps = z.union([z.object({ bool: z.lazy(() => QueryDslBoolQuery) }), z.object({ exists: QueryDslExistsQuery }), z.object({ ids: QueryDslIdsQuery }), z.object({ match: z.record(Field, QueryDslMatchQuery) }), z.object({ match_all: QueryDslMatchAllQuery }), z.object({ prefix: z.record(Field, QueryDslPrefixQuery) }), z.object({ range: z.record(Field, QueryDslRangeQuery) }), z.object({ simple_query_string: QueryDslSimpleQueryStringQuery }), z.object({ term: z.record(Field, QueryDslTermQuery) }), z.object({ terms: QueryDslTermsQuery }), z.object({ wildcard: z.record(Field, QueryDslWildcardQuery) })])
 
 export const SecurityQueryApiKeysApiKeyQueryContainer = SecurityQueryApiKeysApiKeyQueryContainerExclusiveProps.meta({ id: 'SecurityQueryApiKeysApiKeyQueryContainer' })
 export type SecurityQueryApiKeysApiKeyQueryContainer = z.infer<typeof SecurityQueryApiKeysApiKeyQueryContainer>
@@ -1690,7 +1773,7 @@ export type SecurityQueryApiKeysApiKeyFiltersAggregation = z.infer<typeof Securi
 const SecurityQueryApiKeysApiKeyAggregationContainerCommonProps = z.object({
   aggregations: z.record(z.string(), z.lazy(() => SecurityQueryApiKeysApiKeyAggregationContainer)).describe('Sub-aggregations for this aggregation. Only applies to bucket aggregations.').optional(),
   aggs: z.record(z.string(), z.lazy(() => SecurityQueryApiKeysApiKeyAggregationContainer)).describe('Sub-aggregations for this aggregation. Only applies to bucket aggregations.').optional(),
-  meta: z.lazy(() => Metadata).optional()
+  meta: Metadata.optional()
 })
 
 const SecurityQueryApiKeysApiKeyAggregationContainerExclusiveProps = z.union([z.object({ cardinality: z.lazy(() => AggregationsCardinalityAggregation) }), z.object({ composite: z.lazy(() => AggregationsCompositeAggregation) }), z.object({ date_range: AggregationsDateRangeAggregation }), z.object({ filter: SecurityQueryApiKeysApiKeyQueryContainer }), z.object({ filters: SecurityQueryApiKeysApiKeyFiltersAggregation }), z.object({ missing: AggregationsMissingAggregation }), z.object({ range: z.lazy(() => AggregationsRangeAggregation) }), z.object({ terms: z.lazy(() => AggregationsTermsAggregation) }), z.object({ value_count: z.lazy(() => AggregationsValueCountAggregation) })])
@@ -1723,35 +1806,36 @@ export type SecurityQueryApiKeysApiKeyAggregationContainer = z.infer<typeof Secu
  * Refer to the linked documentation for examples of how to find API keys:
  */
 export const SecurityQueryApiKeysRequest = z.object({
+  ...RequestBase.shape,
   with_limited_by: z.boolean().describe('Return the snapshot of the owner user\'s role descriptors associated with the API key. An API key\'s actual permission is the intersection of its assigned role descriptors and the owner user\'s role descriptors (effectively limited by it). An API key cannot retrieve any API key’s limited-by role descriptors (including itself) unless it has `manage_api_key` or higher privileges.').optional().meta({ found_in: 'query' }),
   with_profile_uid: z.boolean().describe('Determines whether to also retrieve the profile UID for the API key owner principal. If it exists, the profile UID is returned under the `profile_uid` response field for each API key.').optional().meta({ found_in: 'query' }),
   typed_keys: z.boolean().describe('Determines whether aggregation names are prefixed by their respective types in the response.').optional().meta({ found_in: 'query' }),
   aggregations: z.record(z.string(), z.lazy(() => SecurityQueryApiKeysApiKeyAggregationContainer)).describe('Any aggregations to run over the corpus of returned API keys. Aggregations and queries work together. Aggregations are computed only on the API keys that match the query. This supports only a subset of aggregation types, namely: `terms`, `range`, `date_range`, `missing`, `cardinality`, `value_count`, `composite`, `filter`, and `filters`. Additionally, aggregations only run over the same subset of fields that query works with.').optional().meta({ found_in: 'body' }),
   aggs: z.record(z.string(), z.lazy(() => SecurityQueryApiKeysApiKeyAggregationContainer)).describe('Any aggregations to run over the corpus of returned API keys. Aggregations and queries work together. Aggregations are computed only on the API keys that match the query. This supports only a subset of aggregation types, namely: `terms`, `range`, `date_range`, `missing`, `cardinality`, `value_count`, `composite`, `filter`, and `filters`. Additionally, aggregations only run over the same subset of fields that query works with.').optional(),
   query: SecurityQueryApiKeysApiKeyQueryContainer.describe('A query to filter which API keys to return. If the query parameter is missing, it is equivalent to a `match_all` query. The query supports a subset of query types, including `match_all`, `bool`, `term`, `terms`, `match`, `ids`, `prefix`, `wildcard`, `exists`, `range`, and `simple_query_string`. You can query the following public information associated with an API key: `id`, `type`, `name`, `creation`, `expiration`, `invalidated`, `invalidation`, `username`, `realm`, and `metadata`. NOTE: The queryable string values associated with API keys are internally mapped as keywords. Consequently, if no `analyzer` parameter is specified for a `match` query, then the provided match query string is interpreted as a single keyword value. Such a match query is hence equivalent to a `term` query.').optional().meta({ found_in: 'body' }),
-  from: z.lazy(() => integer).describe('The starting document offset. It must not be negative. By default, you cannot page through more than 10,000 hits using the `from` and `size` parameters. To page through more hits, use the `search_after` parameter.').optional().meta({ found_in: 'body' }),
+  from: integer.describe('The starting document offset. It must not be negative. By default, you cannot page through more than 10,000 hits using the `from` and `size` parameters. To page through more hits, use the `search_after` parameter.').optional().meta({ found_in: 'body' }),
   sort: z.lazy(() => Sort).describe('The sort definition. Other than `id`, all public fields of an API key are eligible for sorting. In addition, sort can also be applied to the `_doc` field to sort by index order.').optional().meta({ found_in: 'body' }),
-  size: z.lazy(() => integer).describe('The number of hits to return. It must not be negative. The `size` parameter can be set to `0`, in which case no API key matches are returned, only the aggregation results. By default, you cannot page through more than 10,000 hits using the `from` and `size` parameters. To page through more hits, use the `search_after` parameter.').optional().meta({ found_in: 'body' }),
-  search_after: z.lazy(() => SortResults).describe('The search after definition.').optional().meta({ found_in: 'body' })
+  size: integer.describe('The number of hits to return. It must not be negative. The `size` parameter can be set to `0`, in which case no API key matches are returned, only the aggregation results. By default, you cannot page through more than 10,000 hits using the `from` and `size` parameters. To page through more hits, use the `search_after` parameter.').optional().meta({ found_in: 'body' }),
+  search_after: SortResults.describe('The search after definition.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecurityQueryApiKeysRequest' })
 export type SecurityQueryApiKeysRequest = z.infer<typeof SecurityQueryApiKeysRequest>
 
 export const SecurityQueryApiKeysResponse = z.object({
-  total: z.lazy(() => integer).describe('The total number of API keys found.'),
-  count: z.lazy(() => integer).describe('The number of API keys returned in the response.'),
+  total: integer.describe('The total number of API keys found.'),
+  count: integer.describe('The number of API keys returned in the response.'),
   api_keys: z.array(SecurityApiKey).describe('A list of API key information.'),
-  aggregations: z.record(z.lazy(() => AggregateName), SecurityQueryApiKeysApiKeyAggregate).describe('The aggregations result, if requested.').optional()
+  aggregations: z.record(AggregateName, SecurityQueryApiKeysApiKeyAggregate).describe('The aggregations result, if requested.').optional()
 }).meta({ id: 'SecurityQueryApiKeysResponse' })
 export type SecurityQueryApiKeysResponse = z.infer<typeof SecurityQueryApiKeysResponse>
 
 export const SecurityQueryRoleQueryRole = z.object({
   ...SecurityRoleDescriptor.shape,
-  _sort: z.lazy(() => SortResults).optional(),
+  _sort: SortResults.optional(),
   name: z.string().describe('Name of the role.')
 }).meta({ id: 'SecurityQueryRoleQueryRole' })
 export type SecurityQueryRoleQueryRole = z.infer<typeof SecurityQueryRoleQueryRole>
 
-const SecurityQueryRoleRoleQueryContainerExclusiveProps = z.union([z.object({ bool: z.lazy(() => QueryDslBoolQuery) }), z.object({ exists: QueryDslExistsQuery }), z.object({ ids: QueryDslIdsQuery }), z.object({ match: z.record(z.lazy(() => Field), QueryDslMatchQuery) }), z.object({ match_all: QueryDslMatchAllQuery }), z.object({ prefix: z.record(z.lazy(() => Field), QueryDslPrefixQuery) }), z.object({ range: z.record(z.lazy(() => Field), QueryDslRangeQuery) }), z.object({ simple_query_string: QueryDslSimpleQueryStringQuery }), z.object({ term: z.record(z.lazy(() => Field), QueryDslTermQuery) }), z.object({ terms: QueryDslTermsQuery }), z.object({ wildcard: z.record(z.lazy(() => Field), QueryDslWildcardQuery) })])
+const SecurityQueryRoleRoleQueryContainerExclusiveProps = z.union([z.object({ bool: z.lazy(() => QueryDslBoolQuery) }), z.object({ exists: QueryDslExistsQuery }), z.object({ ids: QueryDslIdsQuery }), z.object({ match: z.record(Field, QueryDslMatchQuery) }), z.object({ match_all: QueryDslMatchAllQuery }), z.object({ prefix: z.record(Field, QueryDslPrefixQuery) }), z.object({ range: z.record(Field, QueryDslRangeQuery) }), z.object({ simple_query_string: QueryDslSimpleQueryStringQuery }), z.object({ term: z.record(Field, QueryDslTermQuery) }), z.object({ terms: QueryDslTermsQuery }), z.object({ wildcard: z.record(Field, QueryDslWildcardQuery) })])
 
 export const SecurityQueryRoleRoleQueryContainer = SecurityQueryRoleRoleQueryContainerExclusiveProps.meta({ id: 'SecurityQueryRoleRoleQueryContainer' })
 export type SecurityQueryRoleRoleQueryContainer = z.infer<typeof SecurityQueryRoleRoleQueryContainer>
@@ -1766,28 +1850,29 @@ export type SecurityQueryRoleRoleQueryContainer = z.infer<typeof SecurityQueryRo
  * Also, the results can be paginated and sorted.
  */
 export const SecurityQueryRoleRequest = z.object({
+  ...RequestBase.shape,
   query: SecurityQueryRoleRoleQueryContainer.describe('A query to filter which roles to return. If the query parameter is missing, it is equivalent to a `match_all` query. The query supports a subset of query types, including `match_all`, `bool`, `term`, `terms`, `match`, `ids`, `prefix`, `wildcard`, `exists`, `range`, and `simple_query_string`. You can query the following information associated with roles: `name`, `description`, `metadata`, `applications.application`, `applications.privileges`, and `applications.resources`.').optional().meta({ found_in: 'body' }),
-  from: z.lazy(() => integer).describe('The starting document offset. It must not be negative. By default, you cannot page through more than 10,000 hits using the `from` and `size` parameters. To page through more hits, use the `search_after` parameter.').optional().meta({ found_in: 'body' }),
+  from: integer.describe('The starting document offset. It must not be negative. By default, you cannot page through more than 10,000 hits using the `from` and `size` parameters. To page through more hits, use the `search_after` parameter.').optional().meta({ found_in: 'body' }),
   sort: z.lazy(() => Sort).describe('The sort definition. You can sort on `name`, `description`, `metadata`, `applications.application`, `applications.privileges`, and `applications.resources`. In addition, sort can also be applied to the `_doc` field to sort by index order.').optional().meta({ found_in: 'body' }),
-  size: z.lazy(() => integer).describe('The number of hits to return. It must not be negative. By default, you cannot page through more than 10,000 hits using the `from` and `size` parameters. To page through more hits, use the `search_after` parameter.').optional().meta({ found_in: 'body' }),
-  search_after: z.lazy(() => SortResults).describe('The search after definition.').optional().meta({ found_in: 'body' })
+  size: integer.describe('The number of hits to return. It must not be negative. By default, you cannot page through more than 10,000 hits using the `from` and `size` parameters. To page through more hits, use the `search_after` parameter.').optional().meta({ found_in: 'body' }),
+  search_after: SortResults.describe('The search after definition.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecurityQueryRoleRequest' })
 export type SecurityQueryRoleRequest = z.infer<typeof SecurityQueryRoleRequest>
 
 export const SecurityQueryRoleResponse = z.object({
-  total: z.lazy(() => integer).describe('The total number of roles found.'),
-  count: z.lazy(() => integer).describe('The number of roles returned in the response.'),
+  total: integer.describe('The total number of roles found.'),
+  count: integer.describe('The number of roles returned in the response.'),
   roles: z.array(SecurityQueryRoleQueryRole).describe('A list of roles that match the query. The returned role format is an extension of the role definition format. It adds the `transient_metadata.enabled` and the `_sort` fields. `transient_metadata.enabled` is set to `false` in case the role is automatically disabled, for example when the role grants privileges that are not allowed by the installed license. `_sort` is present when the search query sorts on some field. It contains the array of values that have been used for sorting.')
 }).meta({ id: 'SecurityQueryRoleResponse' })
 export type SecurityQueryRoleResponse = z.infer<typeof SecurityQueryRoleResponse>
 
 export const SecurityQueryUserQueryUser = z.object({
   ...SecurityUser.shape,
-  _sort: z.lazy(() => SortResults).optional()
+  _sort: SortResults.optional()
 }).meta({ id: 'SecurityQueryUserQueryUser' })
 export type SecurityQueryUserQueryUser = z.infer<typeof SecurityQueryUserQueryUser>
 
-const SecurityQueryUserUserQueryContainerExclusiveProps = z.union([z.object({ ids: QueryDslIdsQuery }), z.object({ bool: z.lazy(() => QueryDslBoolQuery) }), z.object({ exists: QueryDslExistsQuery }), z.object({ match: z.record(z.lazy(() => Field), QueryDslMatchQuery) }), z.object({ match_all: QueryDslMatchAllQuery }), z.object({ prefix: z.record(z.lazy(() => Field), QueryDslPrefixQuery) }), z.object({ range: z.record(z.lazy(() => Field), QueryDslRangeQuery) }), z.object({ simple_query_string: QueryDslSimpleQueryStringQuery }), z.object({ term: z.record(z.lazy(() => Field), QueryDslTermQuery) }), z.object({ terms: QueryDslTermsQuery }), z.object({ wildcard: z.record(z.lazy(() => Field), QueryDslWildcardQuery) })])
+const SecurityQueryUserUserQueryContainerExclusiveProps = z.union([z.object({ ids: QueryDslIdsQuery }), z.object({ bool: z.lazy(() => QueryDslBoolQuery) }), z.object({ exists: QueryDslExistsQuery }), z.object({ match: z.record(Field, QueryDslMatchQuery) }), z.object({ match_all: QueryDslMatchAllQuery }), z.object({ prefix: z.record(Field, QueryDslPrefixQuery) }), z.object({ range: z.record(Field, QueryDslRangeQuery) }), z.object({ simple_query_string: QueryDslSimpleQueryStringQuery }), z.object({ term: z.record(Field, QueryDslTermQuery) }), z.object({ terms: QueryDslTermsQuery }), z.object({ wildcard: z.record(Field, QueryDslWildcardQuery) })])
 
 export const SecurityQueryUserUserQueryContainer = SecurityQueryUserUserQueryContainerExclusiveProps.meta({ id: 'SecurityQueryUserUserQueryContainer' })
 export type SecurityQueryUserUserQueryContainer = z.infer<typeof SecurityQueryUserUserQueryContainer>
@@ -1802,18 +1887,19 @@ export type SecurityQueryUserUserQueryContainer = z.infer<typeof SecurityQueryUs
  * This API is only for native users.
  */
 export const SecurityQueryUserRequest = z.object({
+  ...RequestBase.shape,
   with_profile_uid: z.boolean().describe('Determines whether to retrieve the user profile UID, if it exists, for the users.').optional().meta({ found_in: 'query' }),
   query: SecurityQueryUserUserQueryContainer.describe('A query to filter which users to return. If the query parameter is missing, it is equivalent to a `match_all` query. The query supports a subset of query types, including `match_all`, `bool`, `term`, `terms`, `match`, `ids`, `prefix`, `wildcard`, `exists`, `range`, and `simple_query_string`. You can query the following information associated with user: `username`, `roles`, `enabled`, `full_name`, and `email`.').optional().meta({ found_in: 'body' }),
-  from: z.lazy(() => integer).describe('The starting document offset. It must not be negative. By default, you cannot page through more than 10,000 hits using the `from` and `size` parameters. To page through more hits, use the `search_after` parameter.').optional().meta({ found_in: 'body' }),
+  from: integer.describe('The starting document offset. It must not be negative. By default, you cannot page through more than 10,000 hits using the `from` and `size` parameters. To page through more hits, use the `search_after` parameter.').optional().meta({ found_in: 'body' }),
   sort: z.lazy(() => Sort).describe('The sort definition. Fields eligible for sorting are: `username`, `roles`, `enabled`. In addition, sort can also be applied to the `_doc` field to sort by index order.').optional().meta({ found_in: 'body' }),
-  size: z.lazy(() => integer).describe('The number of hits to return. It must not be negative. By default, you cannot page through more than 10,000 hits using the `from` and `size` parameters. To page through more hits, use the `search_after` parameter.').optional().meta({ found_in: 'body' }),
-  search_after: z.lazy(() => SortResults).describe('The search after definition').optional().meta({ found_in: 'body' })
+  size: integer.describe('The number of hits to return. It must not be negative. By default, you cannot page through more than 10,000 hits using the `from` and `size` parameters. To page through more hits, use the `search_after` parameter.').optional().meta({ found_in: 'body' }),
+  search_after: SortResults.describe('The search after definition').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecurityQueryUserRequest' })
 export type SecurityQueryUserRequest = z.infer<typeof SecurityQueryUserRequest>
 
 export const SecurityQueryUserResponse = z.object({
-  total: z.lazy(() => integer).describe('The total number of users found.'),
-  count: z.lazy(() => integer).describe('The number of users returned in the response.'),
+  total: integer.describe('The total number of users found.'),
+  count: integer.describe('The number of users returned in the response.'),
   users: z.array(SecurityQueryUserQueryUser).describe('A list of users that match the query.')
 }).meta({ id: 'SecurityQueryUserResponse' })
 export type SecurityQueryUserResponse = z.infer<typeof SecurityQueryUserResponse>
@@ -1837,8 +1923,9 @@ export type SecurityQueryUserResponse = z.infer<typeof SecurityQueryUserResponse
  * This API endpoint essentially exchanges SAML responses that indicate successful authentication in the IdP for Elasticsearch access and refresh tokens, which can be used for authentication against Elasticsearch.
  */
 export const SecuritySamlAuthenticateRequest = z.object({
+  ...RequestBase.shape,
   content: z.string().describe('The SAML response as it was sent by the user\'s browser, usually a Base64 encoded XML document.').meta({ found_in: 'body' }),
-  ids: z.lazy(() => Ids).describe('A JSON array with all the valid SAML Request Ids that the caller of the API has for the current user.').meta({ found_in: 'body' }),
+  ids: Ids.describe('A JSON array with all the valid SAML Request Ids that the caller of the API has for the current user.').meta({ found_in: 'body' }),
   realm: z.string().describe('The name of the realm that should authenticate the SAML response. Useful in cases where many SAML realms are defined.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecuritySamlAuthenticateRequest' })
 export type SecuritySamlAuthenticateRequest = z.infer<typeof SecuritySamlAuthenticateRequest>
@@ -1846,7 +1933,7 @@ export type SecuritySamlAuthenticateRequest = z.infer<typeof SecuritySamlAuthent
 export const SecuritySamlAuthenticateResponse = z.object({
   access_token: z.string().describe('The access token that was generated by Elasticsearch.'),
   username: z.string().describe('The authenticated user\'s name.'),
-  expires_in: z.lazy(() => integer).describe('The amount of time (in seconds) left until the token expires.'),
+  expires_in: integer.describe('The amount of time (in seconds) left until the token expires.'),
   refresh_token: z.string().describe('The refresh token that was generated by Elasticsearch.'),
   realm: z.string().describe('The name of the realm where the user was authenticated.'),
   in_response_to: z.string().describe('The id of the request that initiated the authentication process.').optional()
@@ -1868,8 +1955,9 @@ export type SecuritySamlAuthenticateResponse = z.infer<typeof SecuritySamlAuthen
  * The caller of this API must prepare the request accordingly so that this API can handle either of them.
  */
 export const SecuritySamlCompleteLogoutRequest = z.object({
+  ...RequestBase.shape,
   realm: z.string().describe('The name of the SAML realm in Elasticsearch for which the configuration is used to verify the logout response.').meta({ found_in: 'body' }),
-  ids: z.lazy(() => Ids).describe('A JSON array with all the valid SAML Request Ids that the caller of the API has for the current user.').meta({ found_in: 'body' }),
+  ids: Ids.describe('A JSON array with all the valid SAML Request Ids that the caller of the API has for the current user.').meta({ found_in: 'body' }),
   query_string: z.string().describe('If the SAML IdP sends the logout response with the HTTP-Redirect binding, this field must be set to the query string of the redirect URI.').optional().meta({ found_in: 'body' }),
   content: z.string().describe('If the SAML IdP sends the logout response with the HTTP-Post binding, this field must be set to the value of the SAMLResponse form parameter from the logout response.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecuritySamlCompleteLogoutRequest' })
@@ -1892,6 +1980,7 @@ export type SecuritySamlCompleteLogoutResponse = z.infer<typeof SecuritySamlComp
  * Thus the user can be redirected back to their IdP.
  */
 export const SecuritySamlInvalidateRequest = z.object({
+  ...RequestBase.shape,
   acs: z.string().describe('The Assertion Consumer Service URL that matches the one of the SAML realm in Elasticsearch that should be used. You must specify either this parameter or the `realm` parameter.').optional().meta({ found_in: 'body' }),
   query_string: z.string().describe('The query part of the URL that the user was redirected to by the SAML IdP to initiate the Single Logout. This query should include a single parameter named `SAMLRequest` that contains a SAML logout request that is deflated and Base64 encoded. If the SAML IdP has signed the logout request, the URL should include two extra parameters named `SigAlg` and `Signature` that contain the algorithm used for the signature and the signature value itself. In order for Elasticsearch to be able to verify the IdP\'s signature, the value of the `query_string` field must be an exact match to the string provided by the browser. The client application must not attempt to parse or process the string in any way.').meta({ found_in: 'body' }),
   realm: z.string().describe('The name of the SAML realm in Elasticsearch the configuration. You must specify either this parameter or the `acs` parameter.').optional().meta({ found_in: 'body' })
@@ -1899,7 +1988,7 @@ export const SecuritySamlInvalidateRequest = z.object({
 export type SecuritySamlInvalidateRequest = z.infer<typeof SecuritySamlInvalidateRequest>
 
 export const SecuritySamlInvalidateResponse = z.object({
-  invalidated: z.lazy(() => integer).describe('The number of tokens that were invalidated as part of this logout.'),
+  invalidated: integer.describe('The number of tokens that were invalidated as part of this logout.'),
   realm: z.string().describe('The realm name of the SAML realm in Elasticsearch that authenticated the user.'),
   redirect: z.string().describe('A SAML logout response as a parameter so that the user can be redirected back to the SAML IdP.')
 }).meta({ id: 'SecuritySamlInvalidateResponse' })
@@ -1917,6 +2006,7 @@ export type SecuritySamlInvalidateResponse = z.infer<typeof SecuritySamlInvalida
  * If the SAML realm in Elasticsearch is configured accordingly and the SAML IdP supports this, the Elasticsearch response contains a URL to redirect the user to the IdP that contains a SAML logout request (starting an SP-initiated SAML Single Logout).
  */
 export const SecuritySamlLogoutRequest = z.object({
+  ...RequestBase.shape,
   token: z.string().describe('The access token that was returned as a response to calling the SAML authenticate API. Alternatively, the most recent token that was received after refreshing the original one by using a `refresh_token`.').meta({ found_in: 'body' }),
   refresh_token: z.string().describe('The refresh token that was returned as a response to calling the SAML authenticate API. Alternatively, the most recent refresh token that was received after refreshing the original access token.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecuritySamlLogoutRequest' })
@@ -1944,6 +2034,7 @@ export type SecuritySamlLogoutResponse = z.infer<typeof SecuritySamlLogoutRespon
  * The caller of this API needs to store this identifier as it needs to be used in a following step of the authentication process.
  */
 export const SecuritySamlPrepareAuthenticationRequest = z.object({
+  ...RequestBase.shape,
   acs: z.string().describe('The Assertion Consumer Service URL that matches the one of the SAML realms in Elasticsearch. The realm is used to generate the authentication request. You must specify either this parameter or the `realm` parameter.').optional().meta({ found_in: 'body' }),
   realm: z.string().describe('The name of the SAML realm in Elasticsearch for which the configuration is used to generate the authentication request. You must specify either this parameter or the `acs` parameter.').optional().meta({ found_in: 'body' }),
   relay_state: z.string().describe('A string that will be included in the redirect URL that this API returns as the `RelayState` query parameter. If the Authentication Request is signed, this value is used as part of the signature computation.').optional().meta({ found_in: 'body' })
@@ -1951,7 +2042,7 @@ export const SecuritySamlPrepareAuthenticationRequest = z.object({
 export type SecuritySamlPrepareAuthenticationRequest = z.infer<typeof SecuritySamlPrepareAuthenticationRequest>
 
 export const SecuritySamlPrepareAuthenticationResponse = z.object({
-  id: z.lazy(() => Id).describe('A unique identifier for the SAML Request to be stored by the caller of the API.'),
+  id: Id.describe('A unique identifier for the SAML Request to be stored by the caller of the API.'),
   realm: z.string().describe('The name of the Elasticsearch realm that was used to construct the authentication request.'),
   redirect: z.string().describe('The URL to redirect the user to.')
 }).meta({ id: 'SecuritySamlPrepareAuthenticationResponse' })
@@ -1966,7 +2057,8 @@ export type SecuritySamlPrepareAuthenticationResponse = z.infer<typeof SecurityS
  * This API generates Service Provider metadata based on the configuration of a SAML realm in Elasticsearch.
  */
 export const SecuritySamlServiceProviderMetadataRequest = z.object({
-  realm_name: z.lazy(() => Name).describe('The name of the SAML realm in Elasticsearch.').meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  realm_name: Name.describe('The name of the SAML realm in Elasticsearch.').meta({ found_in: 'path' })
 }).meta({ id: 'SecuritySamlServiceProviderMetadataRequest' })
 export type SecuritySamlServiceProviderMetadataRequest = z.infer<typeof SecuritySamlServiceProviderMetadataRequest>
 
@@ -1991,22 +2083,23 @@ export type SecuritySuggestUserProfilesHint = z.infer<typeof SecuritySuggestUser
  * Elastic reserves the right to change or remove this feature in future releases without prior notice.
  */
 export const SecuritySuggestUserProfilesRequest = z.object({
+  ...RequestBase.shape,
   name: z.string().describe('A query string used to match name-related fields in user profile documents. Name-related fields are the user\'s `username`, `full_name`, and `email`.').optional().meta({ found_in: 'body' }),
-  size: z.lazy(() => long).describe('The number of profiles to return.').optional().meta({ found_in: 'body' }),
+  size: long.describe('The number of profiles to return.').optional().meta({ found_in: 'body' }),
   data: z.union([z.string(), z.array(z.string())]).describe('A comma-separated list of filters for the `data` field of the profile document. To return all content use `data=*`. To return a subset of content, use `data=<key>` to retrieve content nested under the specified `<key>`. By default, the API returns no `data` content. It is an error to specify `data` as both the query parameter and the request body field.').optional().meta({ found_in: 'body' }),
   hint: SecuritySuggestUserProfilesHint.describe('Extra search criteria to improve relevance of the suggestion result. Profiles matching the spcified hint are ranked higher in the response. Profiles not matching the hint aren\'t excluded from the response as long as the profile matches the `name` field query.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecuritySuggestUserProfilesRequest' })
 export type SecuritySuggestUserProfilesRequest = z.infer<typeof SecuritySuggestUserProfilesRequest>
 
 export const SecuritySuggestUserProfilesTotalUserProfiles = z.object({
-  value: z.lazy(() => long),
+  value: long,
   relation: RelationName
 }).meta({ id: 'SecuritySuggestUserProfilesTotalUserProfiles' })
 export type SecuritySuggestUserProfilesTotalUserProfiles = z.infer<typeof SecuritySuggestUserProfilesTotalUserProfiles>
 
 export const SecuritySuggestUserProfilesResponse = z.object({
   total: SecuritySuggestUserProfilesTotalUserProfiles.describe('Metadata about the number of matching profiles.'),
-  took: z.lazy(() => long).describe('The number of milliseconds it took Elasticsearch to run the request.'),
+  took: long.describe('The number of milliseconds it took Elasticsearch to run the request.'),
   profiles: z.array(SecurityUserProfile).describe('A list of profile documents, ordered by relevance, that match the search criteria.')
 }).meta({ id: 'SecuritySuggestUserProfilesResponse' })
 export type SecuritySuggestUserProfilesResponse = z.infer<typeof SecuritySuggestUserProfilesResponse>
@@ -2034,10 +2127,11 @@ export type SecuritySuggestUserProfilesResponse = z.infer<typeof SecuritySuggest
  * This change can occur if the owner user's permissions have changed since the API key was created or last modified.
  */
 export const SecurityUpdateApiKeyRequest = z.object({
-  id: z.lazy(() => Id).describe('The ID of the API key to update.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  id: Id.describe('The ID of the API key to update.').meta({ found_in: 'path' }),
   role_descriptors: z.record(z.string(), SecurityRoleDescriptor).describe('The role descriptors to assign to this API key. The API key\'s effective permissions are an intersection of its assigned privileges and the point in time snapshot of permissions of the owner user. You can assign new privileges by specifying them in this parameter. To remove assigned privileges, you can supply an empty `role_descriptors` parameter, that is to say, an empty object `{}`. If an API key has no assigned privileges, it inherits the owner user\'s full permissions. The snapshot of the owner\'s permissions is always updated, whether you supply the `role_descriptors` parameter or not. The structure of a role descriptor is the same as the request for the create API keys API.').optional().meta({ found_in: 'body' }),
-  metadata: z.lazy(() => Metadata).describe('Arbitrary metadata that you want to associate with the API key. It supports a nested data structure. Within the metadata object, keys beginning with `_` are reserved for system usage. When specified, this value fully replaces the metadata previously associated with the API key.').optional().meta({ found_in: 'body' }),
-  expiration: z.lazy(() => Duration).describe('The expiration time for the API key. By default, API keys never expire. This property can be omitted to leave the expiration unchanged.').optional().meta({ found_in: 'body' })
+  metadata: Metadata.describe('Arbitrary metadata that you want to associate with the API key. It supports a nested data structure. Within the metadata object, keys beginning with `_` are reserved for system usage. When specified, this value fully replaces the metadata previously associated with the API key.').optional().meta({ found_in: 'body' }),
+  expiration: Duration.describe('The expiration time for the API key. By default, API keys never expire. This property can be omitted to leave the expiration unchanged.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecurityUpdateApiKeyRequest' })
 export type SecurityUpdateApiKeyRequest = z.infer<typeof SecurityUpdateApiKeyRequest>
 
@@ -2068,10 +2162,11 @@ export type SecurityUpdateApiKeyResponse = z.infer<typeof SecurityUpdateApiKeyRe
  * To learn more about how to use this API, refer to the [Update cross cluter API key API examples page](https://www.elastic.co/docs/reference/elasticsearch/rest-apis/update-cc-api-key-examples).
  */
 export const SecurityUpdateCrossClusterApiKeyRequest = z.object({
-  id: z.lazy(() => Id).describe('The ID of the cross-cluster API key to update.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  id: Id.describe('The ID of the cross-cluster API key to update.').meta({ found_in: 'path' }),
   access: SecurityAccess.describe('The access to be granted to this API key. The access is composed of permissions for cross cluster search and cross cluster replication. At least one of them must be specified. When specified, the new access assignment fully replaces the previously assigned access.').meta({ found_in: 'body' }),
-  expiration: z.lazy(() => Duration).describe('The expiration time for the API key. By default, API keys never expire. This property can be omitted to leave the value unchanged.').optional().meta({ found_in: 'body' }),
-  metadata: z.lazy(() => Metadata).describe('Arbitrary metadata that you want to associate with the API key. It supports nested data structure. Within the metadata object, keys beginning with `_` are reserved for system usage. When specified, this information fully replaces metadata previously associated with the API key.').optional().meta({ found_in: 'body' }),
+  expiration: Duration.describe('The expiration time for the API key. By default, API keys never expire. This property can be omitted to leave the value unchanged.').optional().meta({ found_in: 'body' }),
+  metadata: Metadata.describe('Arbitrary metadata that you want to associate with the API key. It supports nested data structure. Within the metadata object, keys beginning with `_` are reserved for system usage. When specified, this information fully replaces metadata previously associated with the API key.').optional().meta({ found_in: 'body' }),
   certificate_identity: z.string().describe('The certificate identity to associate with this API key. This field is used to restrict the API key to connections authenticated by a specific TLS certificate. The value should match the certificate\'s distinguished name (DN) pattern. When specified, this fully replaces any previously assigned certificate identity. To clear an existing certificate identity, explicitly set this field to `null`. When omitted, the existing certificate identity remains unchanged.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecurityUpdateCrossClusterApiKeyRequest' })
 export type SecurityUpdateCrossClusterApiKeyRequest = z.infer<typeof SecurityUpdateCrossClusterApiKeyRequest>
@@ -2092,8 +2187,9 @@ export type SecurityUpdateCrossClusterApiKeyResponse = z.infer<typeof SecurityUp
  * This API does not yet support configuring the settings for indices before they are in use.
  */
 export const SecurityUpdateSettingsRequest = z.object({
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('The period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  master_timeout: Duration.describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('The period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   security: SecuritySecuritySettings.describe('Settings for the index used for most security configuration, including native realm users and roles configured with the API.').optional().meta({ found_in: 'body' }),
   'security-profile': SecuritySecuritySettings.describe('Settings for the index used to store profile information.').optional(),
   'security-tokens': SecuritySecuritySettings.describe('Settings for the index used to store tokens.').optional()
@@ -2126,14 +2222,15 @@ export type SecurityUpdateSettingsResponse = z.infer<typeof SecurityUpdateSettin
  * The `update_profile_data` global privilege grants privileges for updating only the allowed namespaces.
  */
 export const SecurityUpdateUserProfileDataRequest = z.object({
+  ...RequestBase.shape,
   uid: SecurityUserProfileId.describe('A unique identifier for the user profile.').meta({ found_in: 'path' }),
-  if_seq_no: z.lazy(() => SequenceNumber).describe('Only perform the operation if the document has this sequence number.').optional().meta({ found_in: 'query' }),
-  if_primary_term: z.lazy(() => long).describe('Only perform the operation if the document has this primary term.').optional().meta({ found_in: 'query' }),
-  refresh: z.lazy(() => Refresh).describe('If \'true\', Elasticsearch refreshes the affected shards to make this operation visible to search. If \'wait_for\', it waits for a refresh to make this operation visible to search. If \'false\', nothing is done with refreshes.').optional().meta({ found_in: 'query' }),
+  if_seq_no: SequenceNumber.describe('Only perform the operation if the document has this sequence number.').optional().meta({ found_in: 'query' }),
+  if_primary_term: long.describe('Only perform the operation if the document has this primary term.').optional().meta({ found_in: 'query' }),
+  refresh: Refresh.describe('If \'true\', Elasticsearch refreshes the affected shards to make this operation visible to search. If \'wait_for\', it waits for a refresh to make this operation visible to search. If \'false\', nothing is done with refreshes.').optional().meta({ found_in: 'query' }),
   labels: z.record(z.string(), z.any()).describe('Searchable data that you want to associate with the user profile. This field supports a nested data structure. Within the labels object, top-level keys cannot begin with an underscore (`_`) or contain a period (`.`).').optional().meta({ found_in: 'body' }),
   data: z.record(z.string(), z.any()).describe('Non-searchable data that you want to associate with the user profile. This field supports a nested data structure. Within the `data` object, top-level keys cannot begin with an underscore (`_`) or contain a period (`.`). The data object is not searchable, but can be retrieved with the get user profile API.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'SecurityUpdateUserProfileDataRequest' })
 export type SecurityUpdateUserProfileDataRequest = z.infer<typeof SecurityUpdateUserProfileDataRequest>
 
-export const SecurityUpdateUserProfileDataResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'SecurityUpdateUserProfileDataResponse' })
+export const SecurityUpdateUserProfileDataResponse = AcknowledgedResponseBase.meta({ id: 'SecurityUpdateUserProfileDataResponse' })
 export type SecurityUpdateUserProfileDataResponse = z.infer<typeof SecurityUpdateUserProfileDataResponse>

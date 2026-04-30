@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
- 
- 
+/* eslint-disable @typescript-eslint/no-use-before-define */
+/* eslint-disable @typescript-eslint/no-redeclare */
 import { z } from 'zod'
 
-import { AcknowledgedResponseBase } from './_types.ts'
+import { AcknowledgedResponseBase, RequestBase } from './_types.ts'
 
 export const ProjectRoutingExpression = z.string().meta({ id: 'ProjectRoutingExpression' })
 export type ProjectRoutingExpression = z.infer<typeof ProjectRoutingExpression>
@@ -22,34 +22,38 @@ export type ProjectNamedProjectRoutingExpressions = z.infer<typeof ProjectNamedP
 
 /** Create or update project routing expressions. */
 export const ProjectCreateManyRoutingRequest = z.object({
+  ...RequestBase.shape,
   expressions: ProjectNamedProjectRoutingExpressions.optional().meta({ found_in: 'body' })
 }).meta({ id: 'ProjectCreateManyRoutingRequest' })
 export type ProjectCreateManyRoutingRequest = z.infer<typeof ProjectCreateManyRoutingRequest>
 
-export const ProjectCreateManyRoutingResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'ProjectCreateManyRoutingResponse' })
+export const ProjectCreateManyRoutingResponse = AcknowledgedResponseBase.meta({ id: 'ProjectCreateManyRoutingResponse' })
 export type ProjectCreateManyRoutingResponse = z.infer<typeof ProjectCreateManyRoutingResponse>
 
 /** Create or update a project routing expression. */
 export const ProjectCreateRoutingRequest = z.object({
+  ...RequestBase.shape,
   name: z.string().describe('The name of project routing expression').meta({ found_in: 'path' }),
   expressions: ProjectProjectRoutingExpression.optional().meta({ found_in: 'body' })
 }).meta({ id: 'ProjectCreateRoutingRequest' })
 export type ProjectCreateRoutingRequest = z.infer<typeof ProjectCreateRoutingRequest>
 
-export const ProjectCreateRoutingResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'ProjectCreateRoutingResponse' })
+export const ProjectCreateRoutingResponse = AcknowledgedResponseBase.meta({ id: 'ProjectCreateRoutingResponse' })
 export type ProjectCreateRoutingResponse = z.infer<typeof ProjectCreateRoutingResponse>
 
 /** Delete a project routing expression. */
 export const ProjectDeleteRoutingRequest = z.object({
+  ...RequestBase.shape,
   name: z.string().describe('The name of project routing expression').meta({ found_in: 'path' })
 }).meta({ id: 'ProjectDeleteRoutingRequest' })
 export type ProjectDeleteRoutingRequest = z.infer<typeof ProjectDeleteRoutingRequest>
 
-export const ProjectDeleteRoutingResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'ProjectDeleteRoutingResponse' })
+export const ProjectDeleteRoutingResponse = AcknowledgedResponseBase.meta({ id: 'ProjectDeleteRoutingResponse' })
 export type ProjectDeleteRoutingResponse = z.infer<typeof ProjectDeleteRoutingResponse>
 
 /** Get project routing expressions. */
 export const ProjectGetManyRoutingRequest = z.object({
+  ...RequestBase.shape
 }).meta({ id: 'ProjectGetManyRoutingRequest' })
 export type ProjectGetManyRoutingRequest = z.infer<typeof ProjectGetManyRoutingRequest>
 
@@ -58,6 +62,7 @@ export type ProjectGetManyRoutingResponse = z.infer<typeof ProjectGetManyRouting
 
 /** Get a project routing expression. */
 export const ProjectGetRoutingRequest = z.object({
+  ...RequestBase.shape,
   name: z.string().describe('The name of project routing expression').meta({ found_in: 'path' })
 }).meta({ id: 'ProjectGetRoutingRequest' })
 export type ProjectGetRoutingRequest = z.infer<typeof ProjectGetRoutingRequest>
@@ -85,6 +90,7 @@ export type ProjectTagsProjectTags = z.infer<typeof ProjectTagsProjectTags>
  * Get the tags that are defined for the project.
  */
 export const ProjectTagsRequest = z.object({
+  ...RequestBase.shape
 }).meta({ id: 'ProjectTagsRequest' })
 export type ProjectTagsRequest = z.infer<typeof ProjectTagsRequest>
 

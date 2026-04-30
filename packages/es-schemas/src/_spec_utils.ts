@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
- 
- 
+/* eslint-disable @typescript-eslint/no-use-before-define */
+/* eslint-disable @typescript-eslint/no-redeclare */
 import { z } from 'zod'
 
 import { Bytes, Host, Ip, Name, NodeRoles, TimeUnit, TransportAddress } from './_types.ts'
@@ -21,11 +21,11 @@ export type SpecUtilsPipeSeparatedFlags = z.infer<typeof SpecUtilsPipeSeparatedF
 
 export const SpecUtilsBaseNode = z.object({
   attributes: z.record(z.string(), z.string()),
-  host: z.lazy(() => Host),
-  ip: z.lazy(() => Ip),
-  name: z.lazy(() => Name),
-  roles: z.lazy(() => NodeRoles).optional(),
-  transport_address: z.lazy(() => TransportAddress)
+  host: Host,
+  ip: Ip,
+  name: Name,
+  roles: NodeRoles.optional(),
+  transport_address: TransportAddress
 }).meta({ id: 'SpecUtilsBaseNode' })
 export type SpecUtilsBaseNode = z.infer<typeof SpecUtilsBaseNode>
 
@@ -109,7 +109,7 @@ export const SpecUtilsCommonCatQueryParameters = z.object({
   format: z.string().describe('Specifies the format to return the columnar data in, can be set to `text`, `json`, `cbor`, `yaml`, or `smile`.').optional(),
   help: z.boolean().describe('When set to `true` will output available columns. This option can\'t be combined with any other query string option.').optional(),
   v: z.boolean().describe('When set to `true` will enable verbose output.').optional(),
-  bytes: z.lazy(() => Bytes).describe('Sets the units for columns that contain a byte-size value. Note that byte-size value units work in terms of powers of 1024. For instance `1kb` means 1024 bytes, not 1000 bytes. If omitted, byte-size values are rendered with a suffix such as `kb`, `mb`, or `gb`, chosen such that the numeric value of the column is as small as possible whilst still being at least `1.0`. If given, byte-size values are rendered as an integer with no suffix, representing the value of the column in the chosen unit. Values that are not an exact multiple of the chosen unit are rounded down.').optional(),
-  time: z.lazy(() => TimeUnit).describe('Sets the units for columns that contain a time duration. If omitted, time duration values are rendered with a suffix such as `ms`, `s`, `m` or `h`, chosen such that the numeric value of the column is as small as possible whilst still being at least `1.0`. If given, time duration values are rendered as an integer with no suffix. Values that are not an exact multiple of the chosen unit are rounded down.').optional()
+  bytes: Bytes.describe('Sets the units for columns that contain a byte-size value. Note that byte-size value units work in terms of powers of 1024. For instance `1kb` means 1024 bytes, not 1000 bytes. If omitted, byte-size values are rendered with a suffix such as `kb`, `mb`, or `gb`, chosen such that the numeric value of the column is as small as possible whilst still being at least `1.0`. If given, byte-size values are rendered as an integer with no suffix, representing the value of the column in the chosen unit. Values that are not an exact multiple of the chosen unit are rounded down.').optional(),
+  time: TimeUnit.describe('Sets the units for columns that contain a time duration. If omitted, time duration values are rendered with a suffix such as `ms`, `s`, `m` or `h`, chosen such that the numeric value of the column is as small as possible whilst still being at least `1.0`. If given, time duration values are rendered as an integer with no suffix. Values that are not an exact multiple of the chosen unit are rounded down.').optional()
 }).meta({ id: 'SpecUtilsCommonCatQueryParameters' })
 export type SpecUtilsCommonCatQueryParameters = z.infer<typeof SpecUtilsCommonCatQueryParameters>

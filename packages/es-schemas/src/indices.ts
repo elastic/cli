@@ -3,26 +3,57 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
- 
- 
+/* eslint-disable @typescript-eslint/no-use-before-define */
+/* eslint-disable @typescript-eslint/no-redeclare */
 import { z } from 'zod'
 
+import { Script } from './_global.search.ts'
 import { SpecUtilsStringified, SpecUtilsWithNullValue } from './_spec_utils.ts'
-import { AcknowledgedResponseBase, AnalysisAnalyzer, AnalysisCharFilter, AnalysisNormalizer, AnalysisTokenFilter, AnalysisTokenizer, BulkStats, ByteSize, ClusterAlias, CommonStatsFlags, CompletionStats, DFIIndependenceMeasure, DFRAfterEffect, DFRBasicModel, DataStreamName, DataStreamNames, DateTime, DocStats, Duration, DurationLarge, DurationValue, ElasticsearchVersionMinInfo, EpochTime, ErrorCause, ExpandWildcards, Field, FielddataStats, Fields, FlushStats, GetStats, HealthStatus, Host, IBDistribution, IBLambda, Id, IndexAlias, IndexName, IndexingStats, Indices, IndicesResponseBase, Ip, Level, MappingDynamicMapping, MappingDynamicTemplate, MappingFieldMapping, MappingFieldNamesField, MappingProperty, MappingRoutingField, MappingRuntimeFields, MappingSourceField, MappingTypeMapping, MergesStats, Metadata, Name, Names, Normalization, Percentage, PipelineName, PropertyName, QueryCacheStats, QueryDslOperator, QueryDslQueryContainer, RecoveryStats, RefreshStats, RequestCacheStats, Script, SearchStats, SegmentsStats, SequenceNumber, ShardFailure, ShardStatistics, ShardsOperationResponseBase, StoreStats, TranslogStats, TransportAddress, Uuid, VersionNumber, VersionString, WaitForActiveShards, WarmerStats, double, integer, long, uint } from './_types.ts'
+import { AcknowledgedResponseBase, BulkStats, ByteSize, ClusterAlias, CommonStatsFlags, CompletionStats, DFIIndependenceMeasure, DFRAfterEffect, DFRBasicModel, DataStreamName, DataStreamNames, DateTime, DocStats, Duration, DurationLarge, DurationValue, ElasticsearchVersionMinInfo, EpochTime, ErrorCause, ExpandWildcards, Field, FielddataStats, Fields, FlushStats, GetStats, HealthStatus, Host, IBDistribution, IBLambda, Id, IndexAlias, IndexName, IndexingStats, Indices, IndicesResponseBase, Ip, Level, MergesStats, Metadata, Name, Names, Normalization, Percentage, PipelineName, PropertyName, QueryCacheStats, RecoveryStats, RefreshStats, RequestBase, RequestCacheStats, SearchStats, SequenceNumber, ShardFailure, ShardStatistics, ShardsOperationResponseBase, StoreStats, TranslogStats, TransportAddress, Uuid, VersionNumber, VersionString, WaitForActiveShards, WarmerStats, double, integer, long, uint } from './_types.ts'
 import type { IndexingStatsShape, SearchStatsShape } from './_types.ts'
+import { AnalysisAnalyzer, AnalysisCharFilter, AnalysisNormalizer, AnalysisTokenFilter, AnalysisTokenizer } from './_types.analysis.ts'
+import { MappingDynamicMapping, MappingDynamicTemplate, MappingFieldMapping, MappingFieldNamesField, MappingProperty, MappingRoutingField, MappingRuntimeFields, MappingSourceField, MappingTypeMapping } from './_types.mapping.ts'
+import { QueryDslOperator, QueryDslQueryContainer } from './_types.query_dsl.ts'
 
 export const IndicesStatsShardRoutingState = z.enum(['UNASSIGNED', 'INITIALIZING', 'STARTED', 'RELOCATING']).meta({ id: 'IndicesStatsShardRoutingState' })
 export type IndicesStatsShardRoutingState = z.infer<typeof IndicesStatsShardRoutingState>
 
 export const IndicesStatsShardFileSizeInfo = z.object({
   description: z.string(),
-  size_in_bytes: z.lazy(() => long),
-  min_size_in_bytes: z.lazy(() => long).optional(),
-  max_size_in_bytes: z.lazy(() => long).optional(),
-  average_size_in_bytes: z.lazy(() => long).optional(),
-  count: z.lazy(() => long).optional()
+  size_in_bytes: long,
+  min_size_in_bytes: long.optional(),
+  max_size_in_bytes: long.optional(),
+  average_size_in_bytes: long.optional(),
+  count: long.optional()
 }).meta({ id: 'IndicesStatsShardFileSizeInfo' })
 export type IndicesStatsShardFileSizeInfo = z.infer<typeof IndicesStatsShardFileSizeInfo>
+
+export const SegmentsStats = z.object({
+  count: integer.describe('Total number of segments across all shards assigned to selected nodes.'),
+  doc_values_memory: ByteSize.describe('Total amount of memory used for doc values across all shards assigned to selected nodes.').optional(),
+  doc_values_memory_in_bytes: long.describe('Total amount, in bytes, of memory used for doc values across all shards assigned to selected nodes.'),
+  file_sizes: z.record(z.string(), IndicesStatsShardFileSizeInfo).describe('This object is not populated by the cluster stats API. To get information on segment files, use the node stats API.'),
+  fixed_bit_set: ByteSize.describe('Total amount of memory used by fixed bit sets across all shards assigned to selected nodes. Fixed bit sets are used for nested object field types and type filters for join fields.').optional(),
+  fixed_bit_set_memory_in_bytes: long.describe('Total amount of memory, in bytes, used by fixed bit sets across all shards assigned to selected nodes.'),
+  index_writer_memory: ByteSize.describe('Total amount of memory used by all index writers across all shards assigned to selected nodes.').optional(),
+  index_writer_memory_in_bytes: long.describe('Total amount, in bytes, of memory used by all index writers across all shards assigned to selected nodes.'),
+  max_unsafe_auto_id_timestamp: long.describe('Unix timestamp, in milliseconds, of the most recently retried indexing request.'),
+  memory: ByteSize.describe('Total amount of memory used for segments across all shards assigned to selected nodes.').optional(),
+  memory_in_bytes: long.describe('Total amount, in bytes, of memory used for segments across all shards assigned to selected nodes.'),
+  norms_memory: ByteSize.describe('Total amount of memory used for normalization factors across all shards assigned to selected nodes.').optional(),
+  norms_memory_in_bytes: long.describe('Total amount, in bytes, of memory used for normalization factors across all shards assigned to selected nodes.'),
+  points_memory: ByteSize.describe('Total amount of memory used for points across all shards assigned to selected nodes.').optional(),
+  points_memory_in_bytes: long.describe('Total amount, in bytes, of memory used for points across all shards assigned to selected nodes.'),
+  stored_fields_memory_in_bytes: long.describe('Total amount, in bytes, of memory used for stored fields across all shards assigned to selected nodes.'),
+  stored_fields_memory: ByteSize.describe('Total amount of memory used for stored fields across all shards assigned to selected nodes.').optional(),
+  terms_memory_in_bytes: long.describe('Total amount, in bytes, of memory used for terms across all shards assigned to selected nodes.'),
+  terms_memory: ByteSize.describe('Total amount of memory used for terms across all shards assigned to selected nodes.').optional(),
+  term_vectors_memory: ByteSize.describe('Total amount of memory used for term vectors across all shards assigned to selected nodes.').optional(),
+  term_vectors_memory_in_bytes: long.describe('Total amount, in bytes, of memory used for term vectors across all shards assigned to selected nodes.'),
+  version_map_memory: ByteSize.describe('Total amount of memory used by all version maps across all shards assigned to selected nodes.').optional(),
+  version_map_memory_in_bytes: long.describe('Total amount, in bytes, of memory used by all version maps across all shards assigned to selected nodes.')
+}).meta({ id: 'SegmentsStats' })
+export type SegmentsStats = z.infer<typeof SegmentsStats>
 
 export const IndicesNumericFielddataFormat = z.enum(['array', 'disabled']).meta({ id: 'IndicesNumericFielddataFormat' })
 export type IndicesNumericFielddataFormat = z.infer<typeof IndicesNumericFielddataFormat>
@@ -33,14 +64,14 @@ export const IndicesNumericFielddata = z.object({
 export type IndicesNumericFielddata = z.infer<typeof IndicesNumericFielddata>
 
 export const IndicesFielddataFrequencyFilter = z.object({
-  max: z.lazy(() => double),
-  min: z.lazy(() => double),
-  min_segment_size: z.lazy(() => integer)
+  max: double,
+  min: double,
+  min_segment_size: integer
 }).meta({ id: 'IndicesFielddataFrequencyFilter' })
 export type IndicesFielddataFrequencyFilter = z.infer<typeof IndicesFielddataFrequencyFilter>
 
 export const IndicesRetentionLease = z.object({
-  period: z.lazy(() => Duration)
+  period: Duration
 }).meta({ id: 'IndicesRetentionLease' })
 export type IndicesRetentionLease = z.infer<typeof IndicesRetentionLease>
 
@@ -60,7 +91,7 @@ export const IndicesSegmentSortMissing = z.enum(['_last', '_first']).meta({ id: 
 export type IndicesSegmentSortMissing = z.infer<typeof IndicesSegmentSortMissing>
 
 export const IndicesIndexSegmentSort = z.object({
-  field: z.lazy(() => Fields).optional(),
+  field: Fields.optional(),
   order: z.union([IndicesSegmentSortOrder, z.array(IndicesSegmentSortOrder)]).optional(),
   mode: z.union([IndicesSegmentSortMode, z.array(IndicesSegmentSortMode)]).optional(),
   missing: z.union([IndicesSegmentSortMissing, z.array(IndicesSegmentSortMissing)]).optional()
@@ -71,8 +102,8 @@ export const IndicesIndexCheckOnStartup = z.union([z.boolean(), z.enum(['true', 
 export type IndicesIndexCheckOnStartup = z.infer<typeof IndicesIndexCheckOnStartup>
 
 export const IndicesMergeScheduler = z.object({
-  max_thread_count: z.lazy(() => SpecUtilsStringified).optional(),
-  max_merge_count: z.lazy(() => SpecUtilsStringified).optional()
+  max_thread_count: SpecUtilsStringified.optional(),
+  max_merge_count: SpecUtilsStringified.optional()
 }).meta({ id: 'IndicesMergeScheduler' })
 export type IndicesMergeScheduler = z.infer<typeof IndicesMergeScheduler>
 
@@ -82,15 +113,15 @@ export const IndicesMerge = z.object({
 export type IndicesMerge = z.infer<typeof IndicesMerge>
 
 export const IndicesSearchIdle = z.object({
-  after: z.lazy(() => Duration).optional()
+  after: Duration.optional()
 }).meta({ id: 'IndicesSearchIdle' })
 export type IndicesSearchIdle = z.infer<typeof IndicesSearchIdle>
 
 export const IndicesSlowlogTresholdLevels = z.object({
-  warn: z.lazy(() => Duration).optional(),
-  info: z.lazy(() => Duration).optional(),
-  debug: z.lazy(() => Duration).optional(),
-  trace: z.lazy(() => Duration).optional()
+  warn: Duration.optional(),
+  info: Duration.optional(),
+  debug: Duration.optional(),
+  trace: Duration.optional()
 }).meta({ id: 'IndicesSlowlogTresholdLevels' })
 export type IndicesSlowlogTresholdLevels = z.infer<typeof IndicesSlowlogTresholdLevels>
 
@@ -102,7 +133,7 @@ export type IndicesSlowlogTresholds = z.infer<typeof IndicesSlowlogTresholds>
 
 export const IndicesSlowlogSettings = z.object({
   level: z.string().optional(),
-  source: z.lazy(() => integer).optional(),
+  source: integer.optional(),
   reformat: z.boolean().optional(),
   threshold: IndicesSlowlogTresholds.optional()
 }).meta({ id: 'IndicesSlowlogSettings' })
@@ -115,21 +146,21 @@ export const IndicesSettingsSearch = z.object({
 export type IndicesSettingsSearch = z.infer<typeof IndicesSettingsSearch>
 
 export const IndicesIndexSettingBlocks = z.object({
-  read_only: z.lazy(() => SpecUtilsStringified).optional(),
-  read_only_allow_delete: z.lazy(() => SpecUtilsStringified).optional(),
-  read: z.lazy(() => SpecUtilsStringified).optional(),
-  write: z.lazy(() => SpecUtilsStringified).optional(),
-  metadata: z.lazy(() => SpecUtilsStringified).optional()
+  read_only: SpecUtilsStringified.optional(),
+  read_only_allow_delete: SpecUtilsStringified.optional(),
+  read: SpecUtilsStringified.optional(),
+  write: SpecUtilsStringified.optional(),
+  metadata: SpecUtilsStringified.optional()
 }).meta({ id: 'IndicesIndexSettingBlocks' })
 export type IndicesIndexSettingBlocks = z.infer<typeof IndicesIndexSettingBlocks>
 
 export const IndicesSettingsAnalyze = z.object({
-  max_token_count: z.lazy(() => SpecUtilsStringified).optional()
+  max_token_count: SpecUtilsStringified.optional()
 }).meta({ id: 'IndicesSettingsAnalyze' })
 export type IndicesSettingsAnalyze = z.infer<typeof IndicesSettingsAnalyze>
 
 export const IndicesSettingsHighlight = z.object({
-  max_analyzed_offset: z.lazy(() => integer).optional()
+  max_analyzed_offset: integer.optional()
 }).meta({ id: 'IndicesSettingsHighlight' })
 export type IndicesSettingsHighlight = z.infer<typeof IndicesSettingsHighlight>
 
@@ -138,12 +169,12 @@ export type IndicesIndexRoutingAllocationOptions = z.infer<typeof IndicesIndexRo
 
 export const IndicesIndexRoutingAllocationInclude = z.object({
   _tier_preference: z.string().optional(),
-  _id: z.lazy(() => Id).optional()
+  _id: Id.optional()
 }).meta({ id: 'IndicesIndexRoutingAllocationInclude' })
 export type IndicesIndexRoutingAllocationInclude = z.infer<typeof IndicesIndexRoutingAllocationInclude>
 
 export const IndicesIndexRoutingAllocationInitialRecovery = z.object({
-  _id: z.lazy(() => Id).optional()
+  _id: Id.optional()
 }).meta({ id: 'IndicesIndexRoutingAllocationInitialRecovery' })
 export type IndicesIndexRoutingAllocationInitialRecovery = z.infer<typeof IndicesIndexRoutingAllocationInitialRecovery>
 
@@ -175,14 +206,14 @@ export const IndicesIndexRouting = z.object({
 export type IndicesIndexRouting = z.infer<typeof IndicesIndexRouting>
 
 export const IndicesIndexSettingsLifecycleStep = z.object({
-  wait_time_threshold: z.lazy(() => Duration).describe('Time to wait for the cluster to resolve allocation issues during an ILM shrink action. Must be greater than 1h (1 hour). See Shard allocation for shrink.').optional()
+  wait_time_threshold: Duration.describe('Time to wait for the cluster to resolve allocation issues during an ILM shrink action. Must be greater than 1h (1 hour). See Shard allocation for shrink.').optional()
 }).meta({ id: 'IndicesIndexSettingsLifecycleStep' })
 export type IndicesIndexSettingsLifecycleStep = z.infer<typeof IndicesIndexSettingsLifecycleStep>
 
 export const IndicesIndexSettingsLifecycle = z.object({
-  name: z.lazy(() => Name).describe('The name of the policy to use to manage the index. For information about how Elasticsearch applies policy changes, see Policy updates.').optional(),
-  indexing_complete: z.lazy(() => SpecUtilsStringified).describe('Indicates whether or not the index has been rolled over. Automatically set to true when ILM completes the rollover action. You can explicitly set it to skip rollover.').optional(),
-  origination_date: z.lazy(() => long).describe('If specified, this is the timestamp used to calculate the index age for its phase transitions. Use this setting if you create a new index that contains old data and want to use the original creation date to calculate the index age. Specified as a Unix epoch value in milliseconds.').optional(),
+  name: Name.describe('The name of the policy to use to manage the index. For information about how Elasticsearch applies policy changes, see Policy updates.').optional(),
+  indexing_complete: SpecUtilsStringified.describe('Indicates whether or not the index has been rolled over. Automatically set to true when ILM completes the rollover action. You can explicitly set it to skip rollover.').optional(),
+  origination_date: long.describe('If specified, this is the timestamp used to calculate the index age for its phase transitions. Use this setting if you create a new index that contains old data and want to use the original creation date to calculate the index age. Specified as a Unix epoch value in milliseconds.').optional(),
   parse_origination_date: z.boolean().describe('Set to true to parse the origination date from the index name. This origination date is used to calculate the index age for its phase transitions. The index name must match the pattern ^.*-{date_format}-d+, where the date_format is yyyy.MM.dd and the trailing digits are optional. An index that was rolled over would normally match the full format, for example logs-2016.10.31-000002). If the index name doesn’t match the pattern, index creation fails.').optional(),
   step: IndicesIndexSettingsLifecycleStep.optional(),
   rollover_alias: z.string().describe('The index alias to update when the index rolls over. Specify when using a policy that contains a rollover action. When the index rolls over, the alias is updated to reflect that the index is no longer the write index. For more information about rolling indices, see Rollover.').optional(),
@@ -191,7 +222,7 @@ export const IndicesIndexSettingsLifecycle = z.object({
 export type IndicesIndexSettingsLifecycle = z.infer<typeof IndicesIndexSettingsLifecycle>
 
 export const IndicesIndexVersioning = z.object({
-  created: z.lazy(() => VersionString).optional(),
+  created: VersionString.optional(),
   created_string: z.string().optional()
 }).meta({ id: 'IndicesIndexVersioning' })
 export type IndicesIndexVersioning = z.infer<typeof IndicesIndexVersioning>
@@ -200,21 +231,21 @@ export const IndicesTranslogDurability = z.enum(['request', 'REQUEST', 'async', 
 export type IndicesTranslogDurability = z.infer<typeof IndicesTranslogDurability>
 
 export const IndicesTranslogRetention = z.object({
-  size: z.lazy(() => ByteSize).describe('This controls the total size of translog files to keep for each shard. Keeping more translog files increases the chance of performing an operation based sync when recovering a replica. If the translog files are not sufficient, replica recovery will fall back to a file based sync. This setting is ignored, and should not be set, if soft deletes are enabled. Soft deletes are enabled by default in indices created in Elasticsearch versions 7.0.0 and later.').optional(),
-  age: z.lazy(() => Duration).describe('This controls the maximum duration for which translog files are kept by each shard. Keeping more translog files increases the chance of performing an operation based sync when recovering replicas. If the translog files are not sufficient, replica recovery will fall back to a file based sync. This setting is ignored, and should not be set, if soft deletes are enabled. Soft deletes are enabled by default in indices created in Elasticsearch versions 7.0.0 and later.').optional()
+  size: ByteSize.describe('This controls the total size of translog files to keep for each shard. Keeping more translog files increases the chance of performing an operation based sync when recovering a replica. If the translog files are not sufficient, replica recovery will fall back to a file based sync. This setting is ignored, and should not be set, if soft deletes are enabled. Soft deletes are enabled by default in indices created in Elasticsearch versions 7.0.0 and later.').optional(),
+  age: Duration.describe('This controls the maximum duration for which translog files are kept by each shard. Keeping more translog files increases the chance of performing an operation based sync when recovering replicas. If the translog files are not sufficient, replica recovery will fall back to a file based sync. This setting is ignored, and should not be set, if soft deletes are enabled. Soft deletes are enabled by default in indices created in Elasticsearch versions 7.0.0 and later.').optional()
 }).meta({ id: 'IndicesTranslogRetention' })
 export type IndicesTranslogRetention = z.infer<typeof IndicesTranslogRetention>
 
 export const IndicesTranslog = z.object({
-  sync_interval: z.lazy(() => Duration).describe('How often the translog is fsynced to disk and committed, regardless of write operations. Values less than 100ms are not allowed.').optional(),
+  sync_interval: Duration.describe('How often the translog is fsynced to disk and committed, regardless of write operations. Values less than 100ms are not allowed.').optional(),
   durability: IndicesTranslogDurability.describe('Whether or not to `fsync` and commit the translog after every index, delete, update, or bulk request.').optional(),
-  flush_threshold_size: z.lazy(() => ByteSize).describe('The translog stores all operations that are not yet safely persisted in Lucene (i.e., are not part of a Lucene commit point). Although these operations are available for reads, they will need to be replayed if the shard was stopped and had to be recovered. This setting controls the maximum total size of these operations, to prevent recoveries from taking too long. Once the maximum size has been reached a flush will happen, generating a new Lucene commit point.').optional(),
+  flush_threshold_size: ByteSize.describe('The translog stores all operations that are not yet safely persisted in Lucene (i.e., are not part of a Lucene commit point). Although these operations are available for reads, they will need to be replayed if the shard was stopped and had to be recovered. This setting controls the maximum total size of these operations, to prevent recoveries from taking too long. Once the maximum size has been reached a flush will happen, generating a new Lucene commit point.').optional(),
   retention: IndicesTranslogRetention.optional()
 }).meta({ id: 'IndicesTranslog' })
 export type IndicesTranslog = z.infer<typeof IndicesTranslog>
 
 export const IndicesSettingsQueryString = z.object({
-  lenient: z.lazy(() => SpecUtilsStringified)
+  lenient: SpecUtilsStringified
 }).meta({ id: 'IndicesSettingsQueryString' })
 export type IndicesSettingsQueryString = z.infer<typeof IndicesSettingsQueryString>
 
@@ -228,8 +259,8 @@ export const IndicesIndexSettingsAnalysis = z.object({
 export type IndicesIndexSettingsAnalysis = z.infer<typeof IndicesIndexSettingsAnalysis>
 
 export const IndicesIndexSettingsTimeSeries = z.object({
-  end_time: z.lazy(() => DateTime).optional(),
-  start_time: z.lazy(() => DateTime).optional()
+  end_time: DateTime.optional(),
+  start_time: DateTime.optional()
 }).meta({ id: 'IndicesIndexSettingsTimeSeries' })
 export type IndicesIndexSettingsTimeSeries = z.infer<typeof IndicesIndexSettingsTimeSeries>
 
@@ -245,9 +276,9 @@ export type IndicesQueries = z.infer<typeof IndicesQueries>
 
 export const IndicesSettingsSimilarityBm25 = z.object({
   type: z.literal('BM25'),
-  b: z.lazy(() => double).optional(),
+  b: double.optional(),
   discount_overlaps: z.boolean().optional(),
-  k1: z.lazy(() => double).optional()
+  k1: double.optional()
 }).meta({ id: 'IndicesSettingsSimilarityBm25' })
 export type IndicesSettingsSimilarityBm25 = z.infer<typeof IndicesSettingsSimilarityBm25>
 
@@ -258,35 +289,35 @@ export type IndicesSettingsSimilarityBoolean = z.infer<typeof IndicesSettingsSim
 
 export const IndicesSettingsSimilarityDfi = z.object({
   type: z.literal('DFI'),
-  independence_measure: z.lazy(() => DFIIndependenceMeasure)
+  independence_measure: DFIIndependenceMeasure
 }).meta({ id: 'IndicesSettingsSimilarityDfi' })
 export type IndicesSettingsSimilarityDfi = z.infer<typeof IndicesSettingsSimilarityDfi>
 
 export const IndicesSettingsSimilarityDfr = z.object({
   type: z.literal('DFR'),
-  after_effect: z.lazy(() => DFRAfterEffect),
-  basic_model: z.lazy(() => DFRBasicModel),
-  normalization: z.lazy(() => Normalization)
+  after_effect: DFRAfterEffect,
+  basic_model: DFRBasicModel,
+  normalization: Normalization
 }).meta({ id: 'IndicesSettingsSimilarityDfr' })
 export type IndicesSettingsSimilarityDfr = z.infer<typeof IndicesSettingsSimilarityDfr>
 
 export const IndicesSettingsSimilarityIb = z.object({
   type: z.literal('IB'),
-  distribution: z.lazy(() => IBDistribution),
-  lambda: z.lazy(() => IBLambda),
-  normalization: z.lazy(() => Normalization)
+  distribution: IBDistribution,
+  lambda: IBLambda,
+  normalization: Normalization
 }).meta({ id: 'IndicesSettingsSimilarityIb' })
 export type IndicesSettingsSimilarityIb = z.infer<typeof IndicesSettingsSimilarityIb>
 
 export const IndicesSettingsSimilarityLmd = z.object({
   type: z.literal('LMDirichlet'),
-  mu: z.lazy(() => double).optional()
+  mu: double.optional()
 }).meta({ id: 'IndicesSettingsSimilarityLmd' })
 export type IndicesSettingsSimilarityLmd = z.infer<typeof IndicesSettingsSimilarityLmd>
 
 export const IndicesSettingsSimilarityLmj = z.object({
   type: z.literal('LMJelinekMercer'),
-  lambda: z.lazy(() => double).optional()
+  lambda: double.optional()
 }).meta({ id: 'IndicesSettingsSimilarityLmj' })
 export type IndicesSettingsSimilarityLmj = z.infer<typeof IndicesSettingsSimilarityLmj>
 
@@ -301,33 +332,33 @@ export const IndicesSettingsSimilarity = z.union([IndicesSettingsSimilarityBm25,
 export type IndicesSettingsSimilarity = z.infer<typeof IndicesSettingsSimilarity>
 
 export const IndicesMappingLimitSettingsTotalFields = z.object({
-  limit: z.union([z.lazy(() => long), z.string()]).describe('The maximum number of fields in an index. Field and object mappings, as well as field aliases count towards this limit. The limit is in place to prevent mappings and searches from becoming too large. Higher values can lead to performance degradations and memory issues, especially in clusters with a high load or few resources.').optional(),
+  limit: z.union([long, z.string()]).describe('The maximum number of fields in an index. Field and object mappings, as well as field aliases count towards this limit. The limit is in place to prevent mappings and searches from becoming too large. Higher values can lead to performance degradations and memory issues, especially in clusters with a high load or few resources.').optional(),
   ignore_dynamic_beyond_limit: z.union([z.boolean(), z.string()]).describe('This setting determines what happens when a dynamically mapped field would exceed the total fields limit. When set to false (the default), the index request of the document that tries to add a dynamic field to the mapping will fail with the message Limit of total fields [X] has been exceeded. When set to true, the index request will not fail. Instead, fields that would exceed the limit are not added to the mapping, similar to dynamic: false. The fields that were not added to the mapping will be added to the _ignored field.').optional()
 }).meta({ id: 'IndicesMappingLimitSettingsTotalFields' })
 export type IndicesMappingLimitSettingsTotalFields = z.infer<typeof IndicesMappingLimitSettingsTotalFields>
 
 export const IndicesMappingLimitSettingsDepth = z.object({
-  limit: z.lazy(() => long).describe('The maximum depth for a field, which is measured as the number of inner objects. For instance, if all fields are defined at the root object level, then the depth is 1. If there is one object mapping, then the depth is 2, etc.').optional()
+  limit: long.describe('The maximum depth for a field, which is measured as the number of inner objects. For instance, if all fields are defined at the root object level, then the depth is 1. If there is one object mapping, then the depth is 2, etc.').optional()
 }).meta({ id: 'IndicesMappingLimitSettingsDepth' })
 export type IndicesMappingLimitSettingsDepth = z.infer<typeof IndicesMappingLimitSettingsDepth>
 
 export const IndicesMappingLimitSettingsNestedFields = z.object({
-  limit: z.lazy(() => long).describe('The maximum number of distinct nested mappings in an index. The nested type should only be used in special cases, when arrays of objects need to be queried independently of each other. To safeguard against poorly designed mappings, this setting limits the number of unique nested types per index.').optional()
+  limit: long.describe('The maximum number of distinct nested mappings in an index. The nested type should only be used in special cases, when arrays of objects need to be queried independently of each other. To safeguard against poorly designed mappings, this setting limits the number of unique nested types per index.').optional()
 }).meta({ id: 'IndicesMappingLimitSettingsNestedFields' })
 export type IndicesMappingLimitSettingsNestedFields = z.infer<typeof IndicesMappingLimitSettingsNestedFields>
 
 export const IndicesMappingLimitSettingsNestedObjects = z.object({
-  limit: z.lazy(() => long).describe('The maximum number of nested JSON objects that a single document can contain across all nested types. This limit helps to prevent out of memory errors when a document contains too many nested objects.').optional()
+  limit: long.describe('The maximum number of nested JSON objects that a single document can contain across all nested types. This limit helps to prevent out of memory errors when a document contains too many nested objects.').optional()
 }).meta({ id: 'IndicesMappingLimitSettingsNestedObjects' })
 export type IndicesMappingLimitSettingsNestedObjects = z.infer<typeof IndicesMappingLimitSettingsNestedObjects>
 
 export const IndicesMappingLimitSettingsFieldNameLength = z.object({
-  limit: z.lazy(() => long).describe('Setting for the maximum length of a field name. This setting isn’t really something that addresses mappings explosion but might still be useful if you want to limit the field length. It usually shouldn’t be necessary to set this setting. The default is okay unless a user starts to add a huge number of fields with really long names. Default is `Long.MAX_VALUE` (no limit).').optional()
+  limit: long.describe('Setting for the maximum length of a field name. This setting isn’t really something that addresses mappings explosion but might still be useful if you want to limit the field length. It usually shouldn’t be necessary to set this setting. The default is okay unless a user starts to add a huge number of fields with really long names. Default is `Long.MAX_VALUE` (no limit).').optional()
 }).meta({ id: 'IndicesMappingLimitSettingsFieldNameLength' })
 export type IndicesMappingLimitSettingsFieldNameLength = z.infer<typeof IndicesMappingLimitSettingsFieldNameLength>
 
 export const IndicesMappingLimitSettingsDimensionFields = z.object({
-  limit: z.lazy(() => long).describe('[preview] This functionality is in technical preview and may be changed or removed in a future release. Elastic will work to fix any issues, but features in technical preview are not subject to the support SLA of official GA features.').optional()
+  limit: long.describe('[preview] This functionality is in technical preview and may be changed or removed in a future release. Elastic will work to fix any issues, but features in technical preview are not subject to the support SLA of official GA features.').optional()
 }).meta({ id: 'IndicesMappingLimitSettingsDimensionFields' })
 export type IndicesMappingLimitSettingsDimensionFields = z.infer<typeof IndicesMappingLimitSettingsDimensionFields>
 
@@ -360,14 +391,14 @@ export type IndicesIndexingSlowlogTresholds = z.infer<typeof IndicesIndexingSlow
 
 export const IndicesIndexingSlowlogSettings = z.object({
   level: z.string().optional(),
-  source: z.lazy(() => integer).optional(),
+  source: integer.optional(),
   reformat: z.boolean().optional(),
   threshold: IndicesIndexingSlowlogTresholds.optional()
 }).meta({ id: 'IndicesIndexingSlowlogSettings' })
 export type IndicesIndexingSlowlogSettings = z.infer<typeof IndicesIndexingSlowlogSettings>
 
 export const IndicesIndexingPressureMemory = z.object({
-  limit: z.lazy(() => integer).describe('Number of outstanding bytes that may be consumed by indexing requests. When this limit is reached or exceeded, the node will reject new coordinating and primary operations. When replica operations consume 1.5x this limit, the node will reject new replica operations. Defaults to 10% of the heap.').optional()
+  limit: integer.describe('Number of outstanding bytes that may be consumed by indexing requests. When this limit is reached or exceeded, the node will reject new coordinating and primary operations. When replica operations consume 1.5x this limit, the node will reject new replica operations. Defaults to 10% of the heap.').optional()
 }).meta({ id: 'IndicesIndexingPressureMemory' })
 export type IndicesIndexingPressureMemory = z.infer<typeof IndicesIndexingPressureMemory>
 
@@ -382,7 +413,7 @@ export type IndicesStorageType = z.infer<typeof IndicesStorageType>
 export const IndicesStorage = z.object({
   type: IndicesStorageType,
   allow_mmap: z.boolean().describe('You can restrict the use of the mmapfs and the related hybridfs store type via the setting node.store.allow_mmap. This is a boolean setting indicating whether or not memory-mapping is allowed. The default is to allow it. This setting is useful, for example, if you are in an environment where you can not control the ability to create a lot of memory maps so you need disable the ability to use memory-mapping.').optional(),
-  stats_refresh_interval: z.lazy(() => Duration).describe('How often store statistics are refreshed').optional()
+  stats_refresh_interval: Duration.describe('How often store statistics are refreshed').optional()
 }).meta({ id: 'IndicesStorage' })
 export type IndicesStorage = z.infer<typeof IndicesStorage>
 
@@ -448,46 +479,46 @@ export const IndicesIndexSettings = z.looseObject({
   routing_path: z.union([z.string(), z.array(z.string())]).optional(),
   soft_deletes: IndicesSoftDeletes.optional(),
   sort: IndicesIndexSegmentSort.optional(),
-  number_of_routing_shards: z.lazy(() => integer).optional(),
+  number_of_routing_shards: integer.optional(),
   check_on_startup: IndicesIndexCheckOnStartup.optional(),
   codec: z.string().optional(),
-  routing_partition_size: z.lazy(() => SpecUtilsStringified).optional(),
+  routing_partition_size: SpecUtilsStringified.optional(),
   load_fixed_bitset_filters_eagerly: z.boolean().optional(),
   hidden: z.union([z.boolean(), z.string()]).optional(),
-  auto_expand_replicas: z.lazy(() => SpecUtilsWithNullValue).optional(),
+  auto_expand_replicas: SpecUtilsWithNullValue.optional(),
   merge: IndicesMerge.optional(),
   search: IndicesSettingsSearch.optional(),
-  refresh_interval: z.lazy(() => Duration).optional(),
-  max_result_window: z.lazy(() => integer).optional(),
-  max_inner_result_window: z.lazy(() => integer).optional(),
-  max_rescore_window: z.lazy(() => integer).optional(),
-  max_docvalue_fields_search: z.lazy(() => integer).optional(),
-  max_script_fields: z.lazy(() => integer).optional(),
-  max_ngram_diff: z.lazy(() => integer).optional(),
-  max_shingle_diff: z.lazy(() => integer).optional(),
+  refresh_interval: Duration.optional(),
+  max_result_window: integer.optional(),
+  max_inner_result_window: integer.optional(),
+  max_rescore_window: integer.optional(),
+  max_docvalue_fields_search: integer.optional(),
+  max_script_fields: integer.optional(),
+  max_ngram_diff: integer.optional(),
+  max_shingle_diff: integer.optional(),
   blocks: IndicesIndexSettingBlocks.optional(),
-  max_refresh_listeners: z.lazy(() => integer).optional(),
+  max_refresh_listeners: integer.optional(),
   analyze: IndicesSettingsAnalyze.describe('Settings to define analyzers, tokenizers, token filters and character filters. Refer to the linked documentation for step-by-step examples of updating analyzers on existing indices.').optional(),
   highlight: IndicesSettingsHighlight.optional(),
-  max_terms_count: z.lazy(() => integer).optional(),
-  max_regex_length: z.lazy(() => integer).optional(),
-  routing: z.lazy(() => IndicesIndexRouting).optional(),
-  gc_deletes: z.lazy(() => Duration).optional(),
-  default_pipeline: z.lazy(() => PipelineName).optional(),
-  final_pipeline: z.lazy(() => PipelineName).optional(),
+  max_terms_count: integer.optional(),
+  max_regex_length: integer.optional(),
+  routing: IndicesIndexRouting.optional(),
+  gc_deletes: Duration.optional(),
+  default_pipeline: PipelineName.optional(),
+  final_pipeline: PipelineName.optional(),
   lifecycle: IndicesIndexSettingsLifecycle.optional(),
-  provided_name: z.lazy(() => Name).optional(),
-  creation_date: z.lazy(() => SpecUtilsStringified).optional(),
-  creation_date_string: z.lazy(() => DateTime).optional(),
-  uuid: z.lazy(() => Uuid).optional(),
+  provided_name: Name.optional(),
+  creation_date: SpecUtilsStringified.optional(),
+  creation_date_string: DateTime.optional(),
+  uuid: Uuid.optional(),
   version: IndicesIndexVersioning.optional(),
   verified_before_close: z.union([z.boolean(), z.string()]).optional(),
-  format: z.union([z.string(), z.lazy(() => integer)]).optional(),
-  max_slices_per_scroll: z.lazy(() => integer).optional(),
+  format: z.union([z.string(), integer]).optional(),
+  max_slices_per_scroll: integer.optional(),
   translog: IndicesTranslog.optional(),
   query_string: IndicesSettingsQueryString.optional(),
-  priority: z.union([z.lazy(() => integer), z.string()]).optional(),
-  top_metrics_max_size: z.lazy(() => integer).optional(),
+  priority: z.union([integer, z.string()]).optional(),
+  top_metrics_max_size: integer.optional(),
   analysis: IndicesIndexSettingsAnalysis.optional(),
   get settings () { return IndicesIndexSettings.optional() },
   time_series: IndicesIndexSettingsTimeSeries.optional(),
@@ -501,8 +532,8 @@ export const IndicesIndexSettings = z.looseObject({
 export type IndicesIndexSettings = z.infer<typeof IndicesIndexSettings>
 
 export const IndicesDownsamplingRound = z.object({
-  after: z.lazy(() => Duration).describe('The duration since rollover when this downsampling round should execute'),
-  fixed_interval: z.lazy(() => DurationLarge).describe('The downsample interval.')
+  after: Duration.describe('The duration since rollover when this downsampling round should execute'),
+  fixed_interval: DurationLarge.describe('The downsample interval.')
 }).meta({ id: 'IndicesDownsamplingRound' })
 export type IndicesDownsamplingRound = z.infer<typeof IndicesDownsamplingRound>
 
@@ -511,25 +542,25 @@ export type IndicesSamplingMethod = z.infer<typeof IndicesSamplingMethod>
 
 /** Data stream lifecycle denotes that a data stream is managed by the data stream lifecycle and contains the configuration. */
 export const IndicesDataStreamLifecycle = z.object({
-  data_retention: z.lazy(() => Duration).describe('If defined, every document added to this data stream will be stored at least for this time frame. Any time after this duration the document could be deleted. When empty, every document in this data stream will be stored indefinitely.').optional(),
+  data_retention: Duration.describe('If defined, every document added to this data stream will be stored at least for this time frame. Any time after this duration the document could be deleted. When empty, every document in this data stream will be stored indefinitely.').optional(),
   downsampling: z.array(IndicesDownsamplingRound).describe('The list of downsampling rounds to execute as part of this downsampling configuration').optional(),
   downsampling_method: IndicesSamplingMethod.describe('The method used to downsample the data. There are two options `aggregate` and `last_value`. It requires `downsampling` to be defined. Defaults to `aggregate`.').optional(),
   enabled: z.boolean().describe('If defined, it turns data stream lifecycle on/off (`true`/`false`) for this data stream. A data stream lifecycle that\'s disabled (enabled: `false`) will have no effect on the data stream.').optional(),
-  frozen_after: z.lazy(() => Duration).describe('Only available with feature flag dlm_searchable_snapshots.').optional()
+  frozen_after: Duration.describe('Only available with feature flag dlm_searchable_snapshots.').optional()
 }).meta({ id: 'IndicesDataStreamLifecycle' })
 export type IndicesDataStreamLifecycle = z.infer<typeof IndicesDataStreamLifecycle>
 
 export const IndicesDataStreamLifecycleRolloverConditions = z.object({
-  min_age: z.lazy(() => Duration).optional(),
+  min_age: Duration.optional(),
   max_age: z.string().optional(),
-  min_docs: z.lazy(() => long).optional(),
-  max_docs: z.lazy(() => long).optional(),
-  min_size: z.lazy(() => ByteSize).optional(),
-  max_size: z.lazy(() => ByteSize).optional(),
-  min_primary_shard_size: z.lazy(() => ByteSize).optional(),
-  max_primary_shard_size: z.lazy(() => ByteSize).optional(),
-  min_primary_shard_docs: z.lazy(() => long).optional(),
-  max_primary_shard_docs: z.lazy(() => long).optional()
+  min_docs: long.optional(),
+  max_docs: long.optional(),
+  min_size: ByteSize.optional(),
+  max_size: ByteSize.optional(),
+  min_primary_shard_size: ByteSize.optional(),
+  max_primary_shard_size: ByteSize.optional(),
+  min_primary_shard_docs: long.optional(),
+  max_primary_shard_docs: long.optional()
 }).meta({ id: 'IndicesDataStreamLifecycleRolloverConditions' })
 export type IndicesDataStreamLifecycleRolloverConditions = z.infer<typeof IndicesDataStreamLifecycleRolloverConditions>
 
@@ -538,11 +569,7 @@ export type IndicesDataStreamLifecycleRolloverConditions = z.infer<typeof Indice
  * if asked.
  */
 export const IndicesDataStreamLifecycleWithRollover = z.object({
-  data_retention: z.lazy(() => Duration).describe('If defined, every document added to this data stream will be stored at least for this time frame. Any time after this duration the document could be deleted. When empty, every document in this data stream will be stored indefinitely.').optional(),
-  downsampling: z.array(IndicesDownsamplingRound).describe('The list of downsampling rounds to execute as part of this downsampling configuration').optional(),
-  downsampling_method: IndicesSamplingMethod.describe('The method used to downsample the data. There are two options `aggregate` and `last_value`. It requires `downsampling` to be defined. Defaults to `aggregate`.').optional(),
-  enabled: z.boolean().describe('If defined, it turns data stream lifecycle on/off (`true`/`false`) for this data stream. A data stream lifecycle that\'s disabled (enabled: `false`) will have no effect on the data stream.').optional(),
-  frozen_after: z.lazy(() => Duration).describe('Only available with feature flag dlm_searchable_snapshots.').optional(),
+  ...IndicesDataStreamLifecycle.shape,
   rollover: IndicesDataStreamLifecycleRolloverConditions.describe('The conditions which will trigger the rollover of a backing index as configured by the cluster setting `cluster.lifecycle.default.rollover`. This property is an implementation detail and it will only be retrieved when the query param `include_defaults` is set to true. The contents of this field are subject to change.').optional()
 }).meta({ id: 'IndicesDataStreamLifecycleWithRollover' })
 export type IndicesDataStreamLifecycleWithRollover = z.infer<typeof IndicesDataStreamLifecycleWithRollover>
@@ -559,7 +586,7 @@ export type IndicesAliasDefinition = z.infer<typeof IndicesAliasDefinition>
 
 /** The failure store lifecycle configures the data stream lifecycle configuration for failure indices. */
 export const IndicesFailureStoreLifecycle = z.object({
-  data_retention: z.lazy(() => Duration).describe('If defined, every document added to this data stream will be stored at least for this time frame. Any time after this duration the document could be deleted. When empty, every document in this data stream will be stored indefinitely.').optional(),
+  data_retention: Duration.describe('If defined, every document added to this data stream will be stored at least for this time frame. Any time after this duration the document could be deleted. When empty, every document in this data stream will be stored indefinitely.').optional(),
   enabled: z.boolean().describe('If defined, it turns data stream lifecycle on/off (`true`/`false`) for this data stream. A data stream lifecycle that\'s disabled (enabled: `false`) will have no effect on the data stream.').optional()
 }).meta({ id: 'IndicesFailureStoreLifecycle' })
 export type IndicesFailureStoreLifecycle = z.infer<typeof IndicesFailureStoreLifecycle>
@@ -592,7 +619,7 @@ export type IndicesAlias = z.infer<typeof IndicesAlias>
 
 /** Template equivalent of FailureStoreLifecycle that allows nullable values. */
 export const IndicesFailureStoreLifecycleTemplate = z.object({
-  data_retention: z.union([z.lazy(() => Duration), z.null()]).describe('If defined, every document added to this data stream will be stored at least for this time frame. Any time after this duration the document could be deleted. When empty, every document in this data stream will be stored indefinitely.').optional(),
+  data_retention: z.union([Duration, z.null()]).describe('If defined, every document added to this data stream will be stored at least for this time frame. Any time after this duration the document could be deleted. When empty, every document in this data stream will be stored indefinitely.').optional(),
   enabled: z.boolean().describe('If defined, it turns data stream lifecycle on/off (`true`/`false`) for this data stream. A data stream lifecycle that\'s disabled (enabled: `false`) will have no effect on the data stream.').optional()
 }).meta({ id: 'IndicesFailureStoreLifecycleTemplate' })
 export type IndicesFailureStoreLifecycleTemplate = z.infer<typeof IndicesFailureStoreLifecycleTemplate>
@@ -611,10 +638,10 @@ export const IndicesDataStreamOptionsTemplate = z.object({
 export type IndicesDataStreamOptionsTemplate = z.infer<typeof IndicesDataStreamOptionsTemplate>
 
 export const IndicesPutIndexTemplateIndexTemplateMapping = z.object({
-  aliases: z.record(z.lazy(() => IndexName), IndicesAlias).describe('Aliases to add. If the index template includes a `data_stream` object, these are data stream aliases. Otherwise, these are index aliases. Data stream aliases ignore the `index_routing`, `routing`, and `search_routing` options.').optional(),
+  aliases: z.record(IndexName, IndicesAlias).describe('Aliases to add. If the index template includes a `data_stream` object, these are data stream aliases. Otherwise, these are index aliases. Data stream aliases ignore the `index_routing`, `routing`, and `search_routing` options.').optional(),
   mappings: z.lazy(() => MappingTypeMapping).describe('Mapping for fields in the index. If specified, this mapping can include field names, field data types, and mapping parameters.').optional(),
   settings: z.lazy(() => IndicesIndexSettings).describe('Configuration options for the index.').optional(),
-  lifecycle: z.lazy(() => IndicesDataStreamLifecycle).optional(),
+  lifecycle: IndicesDataStreamLifecycle.optional(),
   data_stream_options: z.union([IndicesDataStreamOptionsTemplate, z.null()]).optional()
 }).meta({ id: 'IndicesPutIndexTemplateIndexTemplateMapping' })
 export type IndicesPutIndexTemplateIndexTemplateMapping = z.infer<typeof IndicesPutIndexTemplateIndexTemplateMapping>
@@ -626,9 +653,9 @@ export const IndicesIndexMode = z.enum(['standard', 'time_series', 'logsdb', 'lo
 export type IndicesIndexMode = z.infer<typeof IndicesIndexMode>
 
 export const IndicesDataStreamIndex = z.object({
-  index_name: z.lazy(() => IndexName).describe('Name of the backing index.'),
-  index_uuid: z.lazy(() => Uuid).describe('Universally unique identifier (UUID) for the index.'),
-  ilm_policy: z.lazy(() => Name).describe('Name of the current ILM lifecycle policy configured for this backing index.').optional(),
+  index_name: IndexName.describe('Name of the backing index.'),
+  index_uuid: Uuid.describe('Universally unique identifier (UUID) for the index.'),
+  ilm_policy: Name.describe('Name of the current ILM lifecycle policy configured for this backing index.').optional(),
   managed_by: IndicesManagedBy.describe('Name of the lifecycle system that\'s currently managing this backing index.').optional(),
   prefer_ilm: z.boolean().describe('Indicates if ILM should take precedence over DSL in case both are configured to manage this index.').optional(),
   index_mode: IndicesIndexMode.describe('The index mode of this backing index of the data stream.').optional()
@@ -643,29 +670,29 @@ export const IndicesFailureStore = z.object({
 export type IndicesFailureStore = z.infer<typeof IndicesFailureStore>
 
 export const IndicesDataStreamTimestampField = z.object({
-  name: z.lazy(() => Field).describe('Name of the timestamp field for the data stream, which must be `@timestamp`. The `@timestamp` field must be included in every document indexed to the data stream.')
+  name: Field.describe('Name of the timestamp field for the data stream, which must be `@timestamp`. The `@timestamp` field must be included in every document indexed to the data stream.')
 }).meta({ id: 'IndicesDataStreamTimestampField' })
 export type IndicesDataStreamTimestampField = z.infer<typeof IndicesDataStreamTimestampField>
 
 export const IndicesDataStream = z.object({
-  _meta: z.lazy(() => Metadata).describe('Custom metadata for the stream, copied from the `_meta` object of the stream’s matching index template. If empty, the response omits this property.').optional(),
+  _meta: Metadata.describe('Custom metadata for the stream, copied from the `_meta` object of the stream’s matching index template. If empty, the response omits this property.').optional(),
   allow_custom_routing: z.boolean().describe('If `true`, the data stream allows custom routing on write request.').optional(),
   failure_store: IndicesFailureStore.describe('Information about failure store backing indices').optional(),
-  generation: z.lazy(() => integer).describe('Current generation for the data stream. This number acts as a cumulative count of the stream’s rollovers, starting at 1.'),
+  generation: integer.describe('Current generation for the data stream. This number acts as a cumulative count of the stream’s rollovers, starting at 1.'),
   hidden: z.boolean().describe('If `true`, the data stream is hidden.'),
-  ilm_policy: z.lazy(() => Name).describe('Name of the current ILM lifecycle policy in the stream’s matching index template. This lifecycle policy is set in the `index.lifecycle.name` setting. If the template does not include a lifecycle policy, this property is not included in the response. NOTE: A data stream’s backing indices may be assigned different lifecycle policies. To retrieve the lifecycle policy for individual backing indices, use the get index settings API.').optional(),
+  ilm_policy: Name.describe('Name of the current ILM lifecycle policy in the stream’s matching index template. This lifecycle policy is set in the `index.lifecycle.name` setting. If the template does not include a lifecycle policy, this property is not included in the response. NOTE: A data stream’s backing indices may be assigned different lifecycle policies. To retrieve the lifecycle policy for individual backing indices, use the get index settings API.').optional(),
   next_generation_managed_by: IndicesManagedBy.describe('Name of the lifecycle system that\'ll manage the next generation of the data stream.'),
   prefer_ilm: z.boolean().describe('Indicates if ILM should take precedence over DSL in case both are configured to managed this data stream.'),
   indices: z.array(IndicesDataStreamIndex).describe('Array of objects containing information about the data stream’s backing indices. The last item in this array contains information about the stream’s current write index.'),
-  lifecycle: z.lazy(() => IndicesDataStreamLifecycleWithRollover).describe('Contains the configuration for the data stream lifecycle of this data stream.').optional(),
-  name: z.lazy(() => DataStreamName).describe('Name of the data stream.'),
+  lifecycle: IndicesDataStreamLifecycleWithRollover.describe('Contains the configuration for the data stream lifecycle of this data stream.').optional(),
+  name: DataStreamName.describe('Name of the data stream.'),
   replicated: z.boolean().describe('If `true`, the data stream is created and managed by cross-cluster replication and the local cluster can not write into this data stream or change its mappings.').optional(),
   rollover_on_write: z.boolean().describe('If `true`, the next write to this data stream will trigger a rollover first and the document will be indexed in the new backing index. If the rollover fails the indexing request will fail too.'),
   settings: z.lazy(() => IndicesIndexSettings).describe('The settings specific to this data stream that will take precedence over the settings in the matching index template.'),
   mappings: z.lazy(() => MappingTypeMapping).describe('The mappings specific to this data stream that will take precedence over the mappings in the matching index template.').optional(),
-  status: z.lazy(() => HealthStatus).describe('Health status of the data stream. This health status is based on the state of the primary and replica shards of the stream’s backing indices.'),
+  status: HealthStatus.describe('Health status of the data stream. This health status is based on the state of the primary and replica shards of the stream’s backing indices.'),
   system: z.boolean().describe('If `true`, the data stream is created and managed by an Elastic stack component and cannot be modified through normal user interaction.').optional(),
-  template: z.lazy(() => Name).describe('Name of the index template used to create the data stream’s backing indices. The template’s index pattern must match the name of this data stream.'),
+  template: Name.describe('Name of the index template used to create the data stream’s backing indices. The template’s index pattern must match the name of this data stream.'),
   timestamp_field: IndicesDataStreamTimestampField.describe('Information about the `@timestamp` field in the data stream.'),
   index_mode: IndicesIndexMode.describe('The index mode for the data stream that will be used for newly created backing indices.').optional()
 }).meta({ id: 'IndicesDataStream' })
@@ -679,27 +706,27 @@ export const IndicesDataStreamVisibility = z.object({
 export type IndicesDataStreamVisibility = z.infer<typeof IndicesDataStreamVisibility>
 
 export const IndicesDownsampleConfig = z.object({
-  fixed_interval: z.lazy(() => DurationLarge).describe('The interval at which to aggregate the original time series index.'),
+  fixed_interval: DurationLarge.describe('The interval at which to aggregate the original time series index.'),
   sampling_method: IndicesSamplingMethod.describe('The sampling method used to reduce the documents; it can be either `aggregate` or `last_value`. Defaults to `aggregate`.').optional()
 }).meta({ id: 'IndicesDownsampleConfig' })
 export type IndicesDownsampleConfig = z.infer<typeof IndicesDownsampleConfig>
 
 export const IndicesIndexState = z.object({
-  aliases: z.record(z.lazy(() => IndexName), IndicesAlias).optional(),
+  aliases: z.record(IndexName, IndicesAlias).optional(),
   mappings: z.lazy(() => MappingTypeMapping).optional(),
   settings: z.lazy(() => IndicesIndexSettings).optional(),
   defaults: z.lazy(() => IndicesIndexSettings).describe('Default settings, included when the request\'s `include_default` is `true`.').optional(),
-  data_stream: z.lazy(() => DataStreamName).optional(),
-  lifecycle: z.lazy(() => IndicesDataStreamLifecycle).describe('Data stream lifecycle applicable if this is a data stream.').optional()
+  data_stream: DataStreamName.optional(),
+  lifecycle: IndicesDataStreamLifecycle.describe('Data stream lifecycle applicable if this is a data stream.').optional()
 }).meta({ id: 'IndicesIndexState' })
 export type IndicesIndexState = z.infer<typeof IndicesIndexState>
 
 export const IndicesIndexTemplateSummary = z.object({
-  aliases: z.record(z.lazy(() => IndexName), IndicesAlias).describe('Aliases to add. If the index template includes a `data_stream` object, these are data stream aliases. Otherwise, these are index aliases. Data stream aliases ignore the `index_routing`, `routing`, and `search_routing` options.').optional(),
+  aliases: z.record(IndexName, IndicesAlias).describe('Aliases to add. If the index template includes a `data_stream` object, these are data stream aliases. Otherwise, these are index aliases. Data stream aliases ignore the `index_routing`, `routing`, and `search_routing` options.').optional(),
   mappings: z.lazy(() => MappingTypeMapping).describe('Mapping for fields in the index. If specified, this mapping can include field names, field data types, and mapping parameters.').optional(),
   settings: z.lazy(() => IndicesIndexSettings).describe('Configuration options for the index.').optional(),
-  lifecycle: z.lazy(() => IndicesDataStreamLifecycle).optional(),
-  data_stream_options: z.lazy(() => IndicesDataStreamOptions).optional()
+  lifecycle: IndicesDataStreamLifecycle.optional(),
+  data_stream_options: IndicesDataStreamOptions.optional()
 }).meta({ id: 'IndicesIndexTemplateSummary' })
 export type IndicesIndexTemplateSummary = z.infer<typeof IndicesIndexTemplateSummary>
 
@@ -710,47 +737,47 @@ export const IndicesIndexTemplateDataStreamConfiguration = z.object({
 export type IndicesIndexTemplateDataStreamConfiguration = z.infer<typeof IndicesIndexTemplateDataStreamConfiguration>
 
 export const IndicesIndexTemplate = z.object({
-  index_patterns: z.lazy(() => Names).describe('Array of wildcard (`*`) expressions used to match the names of data streams and indices during creation.'),
-  composed_of: z.array(z.lazy(() => Name)).describe('An ordered list of component template names. Component templates are merged in the order specified, meaning that the last component template specified has the highest precedence.'),
+  index_patterns: Names.describe('Array of wildcard (`*`) expressions used to match the names of data streams and indices during creation.'),
+  composed_of: z.array(Name).describe('An ordered list of component template names. Component templates are merged in the order specified, meaning that the last component template specified has the highest precedence.'),
   template: IndicesIndexTemplateSummary.describe('Template to be applied. It may optionally include an `aliases`, `mappings`, or `settings` configuration.').optional(),
-  version: z.lazy(() => VersionNumber).describe('Version number used to manage index templates externally. This number is not automatically generated by Elasticsearch.').optional(),
-  priority: z.lazy(() => long).describe('Priority to determine index template precedence when a new data stream or index is created. The index template with the highest priority is chosen. If no priority is specified the template is treated as though it is of priority 0 (lowest priority). This number is not automatically generated by Elasticsearch.').optional(),
-  _meta: z.lazy(() => Metadata).describe('Optional user metadata about the index template. May have any contents. This map is not automatically generated by Elasticsearch.').optional(),
+  version: VersionNumber.describe('Version number used to manage index templates externally. This number is not automatically generated by Elasticsearch.').optional(),
+  priority: long.describe('Priority to determine index template precedence when a new data stream or index is created. The index template with the highest priority is chosen. If no priority is specified the template is treated as though it is of priority 0 (lowest priority). This number is not automatically generated by Elasticsearch.').optional(),
+  _meta: Metadata.describe('Optional user metadata about the index template. May have any contents. This map is not automatically generated by Elasticsearch.').optional(),
   allow_auto_create: z.boolean().optional(),
   data_stream: IndicesIndexTemplateDataStreamConfiguration.describe('If this object is included, the template is used to create data streams and their backing indices. Supports an empty object. Data streams require a matching index template with a `data_stream` object.').optional(),
   deprecated: z.boolean().describe('Marks this index template as deprecated. When creating or updating a non-deprecated index template that uses deprecated components, Elasticsearch will emit a deprecation warning.').optional(),
-  ignore_missing_component_templates: z.lazy(() => Names).describe('A list of component template names that are allowed to be absent.').optional(),
-  created_date: z.lazy(() => DateTime).describe('Date and time when the index template was created. Only returned if the `human` query parameter is `true`.').optional(),
-  created_date_millis: z.lazy(() => EpochTime).describe('Date and time when the index template was created, in milliseconds since the epoch.').optional(),
-  modified_date: z.lazy(() => DateTime).describe('Date and time when the index template was last modified. Only returned if the `human` query parameter is `true`.').optional(),
-  modified_date_millis: z.lazy(() => EpochTime).describe('Date and time when the index template was last modified, in milliseconds since the epoch.').optional()
+  ignore_missing_component_templates: Names.describe('A list of component template names that are allowed to be absent.').optional(),
+  created_date: DateTime.describe('Date and time when the index template was created. Only returned if the `human` query parameter is `true`.').optional(),
+  created_date_millis: EpochTime.describe('Date and time when the index template was created, in milliseconds since the epoch.').optional(),
+  modified_date: DateTime.describe('Date and time when the index template was last modified. Only returned if the `human` query parameter is `true`.').optional(),
+  modified_date_millis: EpochTime.describe('Date and time when the index template was last modified, in milliseconds since the epoch.').optional()
 }).meta({ id: 'IndicesIndexTemplate' })
 export type IndicesIndexTemplate = z.infer<typeof IndicesIndexTemplate>
 
 export const IndicesIndexTemplateSummaryWithRollover = z.object({
-  lifecycle: z.lazy(() => IndicesDataStreamLifecycleWithRollover).optional(),
-  aliases: z.record(z.lazy(() => IndexName), IndicesAlias).describe('Aliases to add. If the index template includes a `data_stream` object, these are data stream aliases. Otherwise, these are index aliases. Data stream aliases ignore the `index_routing`, `routing`, and `search_routing` options.').optional(),
+  lifecycle: IndicesDataStreamLifecycleWithRollover.optional(),
+  aliases: z.record(IndexName, IndicesAlias).describe('Aliases to add. If the index template includes a `data_stream` object, these are data stream aliases. Otherwise, these are index aliases. Data stream aliases ignore the `index_routing`, `routing`, and `search_routing` options.').optional(),
   mappings: z.lazy(() => MappingTypeMapping).describe('Mapping for fields in the index. If specified, this mapping can include field names, field data types, and mapping parameters.').optional(),
   settings: z.lazy(() => IndicesIndexSettings).describe('Configuration options for the index.').optional(),
-  data_stream_options: z.lazy(() => IndicesDataStreamOptions).optional()
+  data_stream_options: IndicesDataStreamOptions.optional()
 }).meta({ id: 'IndicesIndexTemplateSummaryWithRollover' })
 export type IndicesIndexTemplateSummaryWithRollover = z.infer<typeof IndicesIndexTemplateSummaryWithRollover>
 
 export const IndicesIndexTemplateWithRollover = z.object({
   template: IndicesIndexTemplateSummaryWithRollover.describe('Template to be applied. It may optionally include an `aliases`, `mappings`, or `settings` configuration.').optional(),
-  index_patterns: z.lazy(() => Names).describe('Array of wildcard (`*`) expressions used to match the names of data streams and indices during creation.'),
-  composed_of: z.array(z.lazy(() => Name)).describe('An ordered list of component template names. Component templates are merged in the order specified, meaning that the last component template specified has the highest precedence.'),
-  version: z.lazy(() => VersionNumber).describe('Version number used to manage index templates externally. This number is not automatically generated by Elasticsearch.').optional(),
-  priority: z.lazy(() => long).describe('Priority to determine index template precedence when a new data stream or index is created. The index template with the highest priority is chosen. If no priority is specified the template is treated as though it is of priority 0 (lowest priority). This number is not automatically generated by Elasticsearch.').optional(),
-  _meta: z.lazy(() => Metadata).describe('Optional user metadata about the index template. May have any contents. This map is not automatically generated by Elasticsearch.').optional(),
+  index_patterns: Names.describe('Array of wildcard (`*`) expressions used to match the names of data streams and indices during creation.'),
+  composed_of: z.array(Name).describe('An ordered list of component template names. Component templates are merged in the order specified, meaning that the last component template specified has the highest precedence.'),
+  version: VersionNumber.describe('Version number used to manage index templates externally. This number is not automatically generated by Elasticsearch.').optional(),
+  priority: long.describe('Priority to determine index template precedence when a new data stream or index is created. The index template with the highest priority is chosen. If no priority is specified the template is treated as though it is of priority 0 (lowest priority). This number is not automatically generated by Elasticsearch.').optional(),
+  _meta: Metadata.describe('Optional user metadata about the index template. May have any contents. This map is not automatically generated by Elasticsearch.').optional(),
   allow_auto_create: z.boolean().optional(),
   data_stream: IndicesIndexTemplateDataStreamConfiguration.describe('If this object is included, the template is used to create data streams and their backing indices. Supports an empty object. Data streams require a matching index template with a `data_stream` object.').optional(),
   deprecated: z.boolean().describe('Marks this index template as deprecated. When creating or updating a non-deprecated index template that uses deprecated components, Elasticsearch will emit a deprecation warning.').optional(),
-  ignore_missing_component_templates: z.lazy(() => Names).describe('A list of component template names that are allowed to be absent.').optional(),
-  created_date: z.lazy(() => DateTime).describe('Date and time when the index template was created. Only returned if the `human` query parameter is `true`.').optional(),
-  created_date_millis: z.lazy(() => EpochTime).describe('Date and time when the index template was created, in milliseconds since the epoch.').optional(),
-  modified_date: z.lazy(() => DateTime).describe('Date and time when the index template was last modified. Only returned if the `human` query parameter is `true`.').optional(),
-  modified_date_millis: z.lazy(() => EpochTime).describe('Date and time when the index template was last modified, in milliseconds since the epoch.').optional()
+  ignore_missing_component_templates: Names.describe('A list of component template names that are allowed to be absent.').optional(),
+  created_date: DateTime.describe('Date and time when the index template was created. Only returned if the `human` query parameter is `true`.').optional(),
+  created_date_millis: EpochTime.describe('Date and time when the index template was created, in milliseconds since the epoch.').optional(),
+  modified_date: DateTime.describe('Date and time when the index template was last modified. Only returned if the `human` query parameter is `true`.').optional(),
+  modified_date_millis: EpochTime.describe('Date and time when the index template was last modified, in milliseconds since the epoch.').optional()
 }).meta({ id: 'IndicesIndexTemplateWithRollover' })
 export type IndicesIndexTemplateWithRollover = z.infer<typeof IndicesIndexTemplateWithRollover>
 
@@ -758,17 +785,17 @@ export const IndicesIndicesBlockOptions = z.enum(['metadata', 'read', 'read_only
 export type IndicesIndicesBlockOptions = z.infer<typeof IndicesIndicesBlockOptions>
 
 export const IndicesTemplateMapping = z.object({
-  aliases: z.record(z.lazy(() => IndexName), IndicesAlias),
-  index_patterns: z.array(z.lazy(() => Name)),
+  aliases: z.record(IndexName, IndicesAlias),
+  index_patterns: z.array(Name),
   mappings: z.lazy(() => MappingTypeMapping),
-  order: z.lazy(() => integer),
+  order: integer,
   settings: z.record(z.string(), z.any()),
-  version: z.lazy(() => VersionNumber).optional()
+  version: VersionNumber.optional()
 }).meta({ id: 'IndicesTemplateMapping' })
 export type IndicesTemplateMapping = z.infer<typeof IndicesTemplateMapping>
 
 export const IndicesAddBlockAddIndicesBlockStatus = z.object({
-  name: z.lazy(() => IndexName),
+  name: IndexName,
   blocked: z.boolean()
 }).meta({ id: 'IndicesAddBlockAddIndicesBlockStatus' })
 export type IndicesAddBlockAddIndicesBlockStatus = z.infer<typeof IndicesAddBlockAddIndicesBlockStatus>
@@ -780,13 +807,14 @@ export type IndicesAddBlockAddIndicesBlockStatus = z.infer<typeof IndicesAddBloc
  * Index blocks limit the operations allowed on an index by blocking specific operation types.
  */
 export const IndicesAddBlockRequest = z.object({
-  index: z.lazy(() => Indices).describe('A comma-separated list or wildcard expression of index names used to limit the request. By default, you must explicitly name the indices you are adding blocks to. To allow the adding of blocks to indices with `_all`, `*`, or other wildcard expressions, change the `action.destructive_requires_name` setting to `false`. You can update this setting in the `elasticsearch.yml` file or by using the cluster update settings API.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('A comma-separated list or wildcard expression of index names used to limit the request. By default, you must explicitly name the indices you are adding blocks to. To allow the adding of blocks to indices with `_all`, `*`, or other wildcard expressions, change the `action.destructive_requires_name` setting to `false`. You can update this setting in the `elasticsearch.yml` file or by using the cluster update settings API.').meta({ found_in: 'path' }),
   block: IndicesIndicesBlockOptions.describe('The block type to add to the index.').meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('The type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. It supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('The type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. It supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for the master node. If the master node is not available before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('The period to wait for a response from all relevant nodes in the cluster after updating the cluster metadata. If no response is received before the timeout expires, the cluster metadata update still applies but the response will indicate that it was not completely acknowledged. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('The period to wait for the master node. If the master node is not available before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('The period to wait for a response from all relevant nodes in the cluster after updating the cluster metadata. If no response is received before the timeout expires, the cluster metadata update still applies but the response will indicate that it was not completely acknowledged. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesAddBlockRequest' })
 export type IndicesAddBlockRequest = z.infer<typeof IndicesAddBlockRequest>
 
@@ -799,12 +827,12 @@ export type IndicesAddBlockResponse = z.infer<typeof IndicesAddBlockResponse>
 
 export const IndicesAnalyzeExplainAnalyzeToken = z.object({
   bytes: z.string(),
-  end_offset: z.lazy(() => long),
+  end_offset: long,
   keyword: z.boolean().optional(),
-  position: z.lazy(() => long),
-  positionLength: z.lazy(() => long),
-  start_offset: z.lazy(() => long),
-  termFrequency: z.lazy(() => long),
+  position: long,
+  positionLength: long,
+  start_offset: long,
+  termFrequency: long,
   token: z.string(),
   type: z.string()
 }).catchall(z.any()).meta({ id: 'IndicesAnalyzeExplainAnalyzeToken' })
@@ -838,10 +866,10 @@ export const IndicesAnalyzeAnalyzeDetail = z.object({
 export type IndicesAnalyzeAnalyzeDetail = z.infer<typeof IndicesAnalyzeAnalyzeDetail>
 
 export const IndicesAnalyzeAnalyzeToken = z.object({
-  end_offset: z.lazy(() => long),
-  position: z.lazy(() => long),
-  positionLength: z.lazy(() => long).optional(),
-  start_offset: z.lazy(() => long),
+  end_offset: long,
+  position: long,
+  positionLength: long.optional(),
+  start_offset: long,
   token: z.string(),
   type: z.string()
 }).meta({ id: 'IndicesAnalyzeAnalyzeToken' })
@@ -861,12 +889,13 @@ export type IndicesAnalyzeTextToAnalyze = z.infer<typeof IndicesAnalyzeTextToAna
  * The `_analyze` endpoint without a specified index will always use `10000` as its limit.
  */
 export const IndicesAnalyzeRequest = z.object({
-  index: z.lazy(() => IndexName).describe('Index used to derive the analyzer. If specified, the `analyzer` or field parameter overrides this value. If no index is specified or the index does not have a default analyzer, the analyze API uses the standard analyzer.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: IndexName.describe('Index used to derive the analyzer. If specified, the `analyzer` or field parameter overrides this value. If no index is specified or the index does not have a default analyzer, the analyze API uses the standard analyzer.').optional().meta({ found_in: 'path' }),
   analyzer: z.string().describe('The name of the analyzer that should be applied to the provided `text`. This could be a built-in analyzer, or an analyzer that’s been configured in the index.').optional().meta({ found_in: 'body' }),
   attributes: z.array(z.string()).describe('Array of token attributes used to filter the output of the `explain` parameter.').optional().meta({ found_in: 'body' }),
   char_filter: z.array(z.lazy(() => AnalysisCharFilter)).describe('Array of character filters used to preprocess characters before the tokenizer.').optional().meta({ found_in: 'body' }),
   explain: z.boolean().describe('If `true`, the response includes token attributes and additional details.').optional().meta({ found_in: 'body' }),
-  field: z.lazy(() => Field).describe('Field used to derive the analyzer. To use this parameter, you must specify an index. If specified, the `analyzer` parameter overrides this value.').optional().meta({ found_in: 'body' }),
+  field: Field.describe('Field used to derive the analyzer. To use this parameter, you must specify an index. If specified, the `analyzer` parameter overrides this value.').optional().meta({ found_in: 'body' }),
   filter: z.array(z.lazy(() => AnalysisTokenFilter)).describe('Array of token filters used to apply after the tokenizer.').optional().meta({ found_in: 'body' }),
   normalizer: z.string().describe('Normalizer to use to convert text into a single token.').optional().meta({ found_in: 'body' }),
   text: IndicesAnalyzeTextToAnalyze.describe('Text to analyze. If an array of strings is provided, it is analyzed as a multi-value field.').optional().meta({ found_in: 'body' }),
@@ -886,11 +915,12 @@ export type IndicesAnalyzeResponse = z.infer<typeof IndicesAnalyzeResponse>
  * Cancel a migration reindex attempt for a data stream or index.
  */
 export const IndicesCancelMigrateReindexRequest = z.object({
-  index: z.lazy(() => Indices).describe('The index or data stream name').meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  index: Indices.describe('The index or data stream name').meta({ found_in: 'path' })
 }).meta({ id: 'IndicesCancelMigrateReindexRequest' })
 export type IndicesCancelMigrateReindexRequest = z.infer<typeof IndicesCancelMigrateReindexRequest>
 
-export const IndicesCancelMigrateReindexResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IndicesCancelMigrateReindexResponse' })
+export const IndicesCancelMigrateReindexResponse = AcknowledgedResponseBase.meta({ id: 'IndicesCancelMigrateReindexResponse' })
 export type IndicesCancelMigrateReindexResponse = z.infer<typeof IndicesCancelMigrateReindexResponse>
 
 /**
@@ -904,18 +934,19 @@ export type IndicesCancelMigrateReindexResponse = z.infer<typeof IndicesCancelMi
  * To clear the cache only of specific fields, use the `fields` parameter.
  */
 export const IndicesClearCacheRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   fielddata: z.boolean().describe('If `true`, clears the fields cache. Use the `fields` parameter to clear the cache of specific fields only.').optional().meta({ found_in: 'query' }),
-  fields: z.lazy(() => Fields).describe('Comma-separated list of field names used to limit the `fielddata` parameter.').optional().meta({ found_in: 'query' }),
+  fields: Fields.describe('Comma-separated list of field names used to limit the `fielddata` parameter.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
   query: z.boolean().describe('If `true`, clears the query cache.').optional().meta({ found_in: 'query' }),
   request: z.boolean().describe('If `true`, clears the request cache.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesClearCacheRequest' })
 export type IndicesClearCacheRequest = z.infer<typeof IndicesClearCacheRequest>
 
-export const IndicesClearCacheResponse = z.lazy(() => ShardsOperationResponseBase).meta({ id: 'IndicesClearCacheResponse' })
+export const IndicesClearCacheResponse = ShardsOperationResponseBase.meta({ id: 'IndicesClearCacheResponse' })
 export type IndicesClearCacheResponse = z.infer<typeof IndicesClearCacheResponse>
 
 /**
@@ -967,25 +998,26 @@ export type IndicesClearCacheResponse = z.infer<typeof IndicesClearCacheResponse
  * Because the clone operation creates a new index to clone the shards to, the wait for active shards setting on index creation applies to the clone index action as well.
  */
 export const IndicesCloneRequest = z.object({
-  index: z.lazy(() => IndexName).describe('Name of the source index to clone.').meta({ found_in: 'path' }),
-  target: z.lazy(() => Name).describe('Name of the target index to create.').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  wait_for_active_shards: z.lazy(() => WaitForActiveShards).describe('The number of shard copies that must be active before proceeding with the operation. Set to `all` or any positive integer up to the total number of shards in the index (`number_of_replicas+1`).').optional().meta({ found_in: 'query' }),
-  aliases: z.record(z.lazy(() => IndexName), IndicesAlias).describe('Aliases for the resulting index.').optional().meta({ found_in: 'body' }),
+  ...RequestBase.shape,
+  index: IndexName.describe('Name of the source index to clone.').meta({ found_in: 'path' }),
+  target: Name.describe('Name of the target index to create.').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  wait_for_active_shards: WaitForActiveShards.describe('The number of shard copies that must be active before proceeding with the operation. Set to `all` or any positive integer up to the total number of shards in the index (`number_of_replicas+1`).').optional().meta({ found_in: 'query' }),
+  aliases: z.record(IndexName, IndicesAlias).describe('Aliases for the resulting index.').optional().meta({ found_in: 'body' }),
   settings: z.record(z.string(), z.any()).describe('Configuration options for the target index.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesCloneRequest' })
 export type IndicesCloneRequest = z.infer<typeof IndicesCloneRequest>
 
 export const IndicesCloneResponse = z.object({
   acknowledged: z.boolean(),
-  index: z.lazy(() => IndexName),
+  index: IndexName,
   shards_acknowledged: z.boolean()
 }).meta({ id: 'IndicesCloneResponse' })
 export type IndicesCloneResponse = z.infer<typeof IndicesCloneResponse>
 
 export const IndicesCloseCloseShardResult = z.object({
-  failures: z.array(z.lazy(() => ShardFailure))
+  failures: z.array(ShardFailure)
 }).meta({ id: 'IndicesCloseCloseShardResult' })
 export type IndicesCloseCloseShardResult = z.infer<typeof IndicesCloseCloseShardResult>
 
@@ -1017,19 +1049,20 @@ export type IndicesCloseCloseIndexResult = z.infer<typeof IndicesCloseCloseIndex
  * Closing indices can be turned off with the cluster settings API by setting `cluster.indices.close.enable` to `false`.
  */
 export const IndicesCloseRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list or wildcard expression of index names used to limit the request.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list or wildcard expression of index names used to limit the request.').meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  wait_for_active_shards: z.lazy(() => WaitForActiveShards).describe('The number of shard copies that must be active before proceeding with the operation. Set to `all` or any positive integer up to the total number of shards in the index (`number_of_replicas+1`).').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  wait_for_active_shards: WaitForActiveShards.describe('The number of shard copies that must be active before proceeding with the operation. Set to `all` or any positive integer up to the total number of shards in the index (`number_of_replicas+1`).').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesCloseRequest' })
 export type IndicesCloseRequest = z.infer<typeof IndicesCloseRequest>
 
 export const IndicesCloseResponse = z.object({
   acknowledged: z.boolean(),
-  indices: z.record(z.lazy(() => IndexName), IndicesCloseCloseIndexResult),
+  indices: z.record(IndexName, IndicesCloseCloseIndexResult),
   shards_acknowledged: z.boolean()
 }).meta({ id: 'IndicesCloseResponse' })
 export type IndicesCloseResponse = z.infer<typeof IndicesCloseResponse>
@@ -1058,18 +1091,19 @@ export type IndicesCloseResponse = z.infer<typeof IndicesCloseResponse>
  * Note that changing this setting will also affect the `wait_for_active_shards` value on all subsequent write operations.
  */
 export const IndicesCreateRequest = z.object({
-  index: z.lazy(() => IndexName).describe('Name of the index you wish to create. Index names must meet the following criteria: * Lowercase only * Cannot include ``, `/`, `*`, `?`, `"`, `<`, `>`, `|`, ` ` (space character), `,`, or `#` * Indices prior to 7.0 could contain a colon (`:`), but that has been deprecated and will not be supported in later versions * Cannot start with `-`, `_`, or `+` * Cannot be `.` or `..` * Cannot be longer than 255 bytes (note thtat it is bytes, so multi-byte characters will reach the limit faster) * Names starting with `.` are deprecated, except for hidden indices and internal indices managed by plugins').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  wait_for_active_shards: z.lazy(() => WaitForActiveShards).describe('The number of shard copies that must be active before proceeding with the operation. Set to `all` or any positive integer up to the total number of shards in the index (`number_of_replicas+1`).').optional().meta({ found_in: 'query' }),
-  aliases: z.record(z.lazy(() => Name), IndicesAlias).describe('Aliases for the index.').optional().meta({ found_in: 'body' }),
+  ...RequestBase.shape,
+  index: IndexName.describe('Name of the index you wish to create. Index names must meet the following criteria: * Lowercase only * Cannot include ``, `/`, `*`, `?`, `"`, `<`, `>`, `|`, ` ` (space character), `,`, or `#` * Indices prior to 7.0 could contain a colon (`:`), but that has been deprecated and will not be supported in later versions * Cannot start with `-`, `_`, or `+` * Cannot be `.` or `..` * Cannot be longer than 255 bytes (note thtat it is bytes, so multi-byte characters will reach the limit faster) * Names starting with `.` are deprecated, except for hidden indices and internal indices managed by plugins').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  wait_for_active_shards: WaitForActiveShards.describe('The number of shard copies that must be active before proceeding with the operation. Set to `all` or any positive integer up to the total number of shards in the index (`number_of_replicas+1`).').optional().meta({ found_in: 'query' }),
+  aliases: z.record(Name, IndicesAlias).describe('Aliases for the index.').optional().meta({ found_in: 'body' }),
   mappings: z.lazy(() => MappingTypeMapping).describe('Mapping for fields in the index. If specified, this mapping can include: - Field names - Field data types - Mapping parameters').optional().meta({ found_in: 'body' }),
   settings: z.lazy(() => IndicesIndexSettings).describe('Configuration options for the index.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesCreateRequest' })
 export type IndicesCreateRequest = z.infer<typeof IndicesCreateRequest>
 
 export const IndicesCreateResponse = z.object({
-  index: z.lazy(() => IndexName),
+  index: IndexName,
   shards_acknowledged: z.boolean(),
   acknowledged: z.boolean()
 }).meta({ id: 'IndicesCreateResponse' })
@@ -1081,13 +1115,14 @@ export type IndicesCreateResponse = z.infer<typeof IndicesCreateResponse>
  * You must have a matching index template with data stream enabled.
  */
 export const IndicesCreateDataStreamRequest = z.object({
-  name: z.lazy(() => DataStreamName).describe('Name of the data stream, which must meet the following criteria: Lowercase only; Cannot include ``, `/`, `*`, `?`, `"`, `<`, `>`, `|`, `,`, `#`, `:`, or a space character; Cannot start with `-`, `_`, `+`, or `.ds-`; Cannot be `.` or `..`; Cannot be longer than 255 bytes. Multi-byte characters count towards this limit faster.').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: DataStreamName.describe('Name of the data stream, which must meet the following criteria: Lowercase only; Cannot include ``, `/`, `*`, `?`, `"`, `<`, `>`, `|`, `,`, `#`, `:`, or a space character; Cannot start with `-`, `_`, `+`, or `.ds-`; Cannot be `.` or `..`; Cannot be longer than 255 bytes. Multi-byte characters count towards this limit faster.').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesCreateDataStreamRequest' })
 export type IndicesCreateDataStreamRequest = z.infer<typeof IndicesCreateDataStreamRequest>
 
-export const IndicesCreateDataStreamResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IndicesCreateDataStreamResponse' })
+export const IndicesCreateDataStreamResponse = AcknowledgedResponseBase.meta({ id: 'IndicesCreateDataStreamResponse' })
 export type IndicesCreateDataStreamResponse = z.infer<typeof IndicesCreateDataStreamResponse>
 
 export const IndicesCreateFromCreateFrom = z.object({
@@ -1103,25 +1138,26 @@ export type IndicesCreateFromCreateFrom = z.infer<typeof IndicesCreateFromCreate
  * Copy the mappings and settings from the source index to a destination index while allowing request settings and mappings to override the source values.
  */
 export const IndicesCreateFromRequest = z.object({
-  source: z.lazy(() => IndexName).describe('The source index or data stream name').meta({ found_in: 'path' }),
-  dest: z.lazy(() => IndexName).describe('The destination index or data stream name').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  source: IndexName.describe('The source index or data stream name').meta({ found_in: 'path' }),
+  dest: IndexName.describe('The destination index or data stream name').meta({ found_in: 'path' }),
   create_from: IndicesCreateFromCreateFrom.optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesCreateFromRequest' })
 export type IndicesCreateFromRequest = z.infer<typeof IndicesCreateFromRequest>
 
 export const IndicesCreateFromResponse = z.object({
   acknowledged: z.boolean(),
-  index: z.lazy(() => IndexName),
+  index: IndexName,
   shards_acknowledged: z.boolean()
 }).meta({ id: 'IndicesCreateFromResponse' })
 export type IndicesCreateFromResponse = z.infer<typeof IndicesCreateFromResponse>
 
 export const IndicesDataStreamsStatsDataStreamsStatsItem = z.object({
-  backing_indices: z.lazy(() => integer).describe('Current number of backing indices for the data stream.'),
-  data_stream: z.lazy(() => Name).describe('Name of the data stream.'),
-  maximum_timestamp: z.lazy(() => EpochTime).describe('The data stream’s highest `@timestamp` value, converted to milliseconds since the Unix epoch. NOTE: This timestamp is provided as a best effort. The data stream may contain `@timestamp` values higher than this if one or more of the following conditions are met: The stream contains closed backing indices; Backing indices with a lower generation contain higher `@timestamp` values.'),
-  store_size: z.lazy(() => ByteSize).describe('Total size of all shards for the data stream’s backing indices. This parameter is only returned if the `human` query parameter is `true`.').optional(),
-  store_size_bytes: z.lazy(() => long).describe('Total size, in bytes, of all shards for the data stream’s backing indices.')
+  backing_indices: integer.describe('Current number of backing indices for the data stream.'),
+  data_stream: Name.describe('Name of the data stream.'),
+  maximum_timestamp: EpochTime.describe('The data stream’s highest `@timestamp` value, converted to milliseconds since the Unix epoch. NOTE: This timestamp is provided as a best effort. The data stream may contain `@timestamp` values higher than this if one or more of the following conditions are met: The stream contains closed backing indices; Backing indices with a lower generation contain higher `@timestamp` values.'),
+  store_size: ByteSize.describe('Total size of all shards for the data stream’s backing indices. This parameter is only returned if the `human` query parameter is `true`.').optional(),
+  store_size_bytes: long.describe('Total size, in bytes, of all shards for the data stream’s backing indices.')
 }).meta({ id: 'IndicesDataStreamsStatsDataStreamsStatsItem' })
 export type IndicesDataStreamsStatsDataStreamsStatsItem = z.infer<typeof IndicesDataStreamsStatsDataStreamsStatsItem>
 
@@ -1131,18 +1167,19 @@ export type IndicesDataStreamsStatsDataStreamsStatsItem = z.infer<typeof Indices
  * Get statistics for one or more data streams.
  */
 export const IndicesDataStreamsStatsRequest = z.object({
-  name: z.lazy(() => Indices).describe('Comma-separated list of data streams used to limit the request. Wildcard expressions (`*`) are supported. To target all data streams in a cluster, omit this parameter or use `*`.').optional().meta({ found_in: 'path' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of data stream that wildcard patterns can match. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: Indices.describe('Comma-separated list of data streams used to limit the request. Wildcard expressions (`*`) are supported. To target all data streams in a cluster, omit this parameter or use `*`.').optional().meta({ found_in: 'path' }),
+  expand_wildcards: ExpandWildcards.describe('Type of data stream that wildcard patterns can match. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesDataStreamsStatsRequest' })
 export type IndicesDataStreamsStatsRequest = z.infer<typeof IndicesDataStreamsStatsRequest>
 
 export const IndicesDataStreamsStatsResponse = z.object({
-  _shards: z.lazy(() => ShardStatistics).describe('Contains information about shards that attempted to execute the request.'),
-  backing_indices: z.lazy(() => integer).describe('Total number of backing indices for the selected data streams.'),
-  data_stream_count: z.lazy(() => integer).describe('Total number of selected data streams.'),
+  _shards: ShardStatistics.describe('Contains information about shards that attempted to execute the request.'),
+  backing_indices: integer.describe('Total number of backing indices for the selected data streams.'),
+  data_stream_count: integer.describe('Total number of selected data streams.'),
   data_streams: z.array(IndicesDataStreamsStatsDataStreamsStatsItem).describe('Contains statistics for the selected data streams.'),
-  total_store_sizes: z.lazy(() => ByteSize).describe('Total size of all shards for the selected data streams. This property is included only if the `human` query parameter is `true`').optional(),
-  total_store_size_bytes: z.lazy(() => long).describe('Total size, in bytes, of all shards for the selected data streams.')
+  total_store_sizes: ByteSize.describe('Total size of all shards for the selected data streams. This property is included only if the `human` query parameter is `true`').optional(),
+  total_store_size_bytes: long.describe('Total size, in bytes, of all shards for the selected data streams.')
 }).meta({ id: 'IndicesDataStreamsStatsResponse' })
 export type IndicesDataStreamsStatsResponse = z.infer<typeof IndicesDataStreamsStatsResponse>
 
@@ -1157,20 +1194,21 @@ export type IndicesDataStreamsStatsResponse = z.infer<typeof IndicesDataStreamsS
  * You can then use the delete index API to delete the previous write index.
  */
 export const IndicesDeleteRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list of indices to delete. You cannot specify index aliases. By default, this parameter does not support wildcards (`*`) or `_all`. To use wildcards or `_all`, set the `action.destructive_requires_name` cluster setting to `false`.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list of indices to delete. You cannot specify index aliases. By default, this parameter does not support wildcards (`*`) or `_all`. To use wildcards or `_all`, set the `action.destructive_requires_name` cluster setting to `false`.').meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesDeleteRequest' })
 export type IndicesDeleteRequest = z.infer<typeof IndicesDeleteRequest>
 
-export const IndicesDeleteResponse = z.lazy(() => IndicesResponseBase).meta({ id: 'IndicesDeleteResponse' })
+export const IndicesDeleteResponse = IndicesResponseBase.meta({ id: 'IndicesDeleteResponse' })
 export type IndicesDeleteResponse = z.infer<typeof IndicesDeleteResponse>
 
 export const IndicesDeleteAliasIndicesAliasesResponseBody = z.object({
-  acknowledged: z.boolean().describe('For a successful response, this value is always true. On failure, an exception is returned instead.'),
+  ...AcknowledgedResponseBase.shape,
   errors: z.boolean().optional()
 }).meta({ id: 'IndicesDeleteAliasIndicesAliasesResponseBody' })
 export type IndicesDeleteAliasIndicesAliasesResponseBody = z.infer<typeof IndicesDeleteAliasIndicesAliasesResponseBody>
@@ -1181,10 +1219,11 @@ export type IndicesDeleteAliasIndicesAliasesResponseBody = z.infer<typeof Indice
  * Removes a data stream or index from an alias.
  */
 export const IndicesDeleteAliasRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams or indices used to limit the request. Supports wildcards (`*`).').meta({ found_in: 'path' }),
-  name: z.lazy(() => Names).describe('Comma-separated list of aliases to remove. Supports wildcards (`*`). To remove all aliases, use `*` or `_all`.').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list of data streams or indices used to limit the request. Supports wildcards (`*`).').meta({ found_in: 'path' }),
+  name: Names.describe('Comma-separated list of aliases to remove. Supports wildcards (`*`). To remove all aliases, use `*` or `_all`.').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesDeleteAliasRequest' })
 export type IndicesDeleteAliasRequest = z.infer<typeof IndicesDeleteAliasRequest>
 
@@ -1197,14 +1236,15 @@ export type IndicesDeleteAliasResponse = z.infer<typeof IndicesDeleteAliasRespon
  * Removes the data stream lifecycle from a data stream, rendering it not managed by the data stream lifecycle.
  */
 export const IndicesDeleteDataLifecycleRequest = z.object({
-  name: z.lazy(() => DataStreamNames).describe('A comma-separated list of data streams of which the data stream lifecycle will be deleted. Use `*` to get all data streams').meta({ found_in: 'path' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Whether wildcard expressions should get expanded to open or closed indices (default: open)').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('The period to wait for a response.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: DataStreamNames.describe('A comma-separated list of data streams of which the data stream lifecycle will be deleted. Use `*` to get all data streams').meta({ found_in: 'path' }),
+  expand_wildcards: ExpandWildcards.describe('Whether wildcard expressions should get expanded to open or closed indices (default: open)').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('The period to wait for a response.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesDeleteDataLifecycleRequest' })
 export type IndicesDeleteDataLifecycleRequest = z.infer<typeof IndicesDeleteDataLifecycleRequest>
 
-export const IndicesDeleteDataLifecycleResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IndicesDeleteDataLifecycleResponse' })
+export const IndicesDeleteDataLifecycleResponse = AcknowledgedResponseBase.meta({ id: 'IndicesDeleteDataLifecycleResponse' })
 export type IndicesDeleteDataLifecycleResponse = z.infer<typeof IndicesDeleteDataLifecycleResponse>
 
 /**
@@ -1213,13 +1253,14 @@ export type IndicesDeleteDataLifecycleResponse = z.infer<typeof IndicesDeleteDat
  * Deletes one or more data streams and their backing indices.
  */
 export const IndicesDeleteDataStreamRequest = z.object({
-  name: z.lazy(() => DataStreamNames).describe('Comma-separated list of data streams to delete. Wildcard (`*`) expressions are supported.').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of data stream that wildcard patterns can match. Supports comma-separated values,such as `open,hidden`.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: DataStreamNames.describe('Comma-separated list of data streams to delete. Wildcard (`*`) expressions are supported.').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of data stream that wildcard patterns can match. Supports comma-separated values,such as `open,hidden`.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesDeleteDataStreamRequest' })
 export type IndicesDeleteDataStreamRequest = z.infer<typeof IndicesDeleteDataStreamRequest>
 
-export const IndicesDeleteDataStreamResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IndicesDeleteDataStreamResponse' })
+export const IndicesDeleteDataStreamResponse = AcknowledgedResponseBase.meta({ id: 'IndicesDeleteDataStreamResponse' })
 export type IndicesDeleteDataStreamResponse = z.infer<typeof IndicesDeleteDataStreamResponse>
 
 /**
@@ -1228,14 +1269,15 @@ export type IndicesDeleteDataStreamResponse = z.infer<typeof IndicesDeleteDataSt
  * Removes the data stream options from a data stream.
  */
 export const IndicesDeleteDataStreamOptionsRequest = z.object({
-  name: z.lazy(() => DataStreamNames).describe('A comma-separated list of data streams of which the data stream options will be deleted. Use `*` to get all data streams').meta({ found_in: 'path' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Whether wildcard expressions should get expanded to open or closed indices').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('The period to wait for a response.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: DataStreamNames.describe('A comma-separated list of data streams of which the data stream options will be deleted. Use `*` to get all data streams').meta({ found_in: 'path' }),
+  expand_wildcards: ExpandWildcards.describe('Whether wildcard expressions should get expanded to open or closed indices').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('The period to wait for a response.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesDeleteDataStreamOptionsRequest' })
 export type IndicesDeleteDataStreamOptionsRequest = z.infer<typeof IndicesDeleteDataStreamOptionsRequest>
 
-export const IndicesDeleteDataStreamOptionsResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IndicesDeleteDataStreamOptionsResponse' })
+export const IndicesDeleteDataStreamOptionsResponse = AcknowledgedResponseBase.meta({ id: 'IndicesDeleteDataStreamOptionsResponse' })
 export type IndicesDeleteDataStreamOptionsResponse = z.infer<typeof IndicesDeleteDataStreamOptionsResponse>
 
 /**
@@ -1246,13 +1288,14 @@ export type IndicesDeleteDataStreamOptionsResponse = z.infer<typeof IndicesDelet
  * existing templates.
  */
 export const IndicesDeleteIndexTemplateRequest = z.object({
-  name: z.lazy(() => Names).describe('Comma-separated list of index template names used to limit the request. Wildcard (*) expressions are supported.').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: Names.describe('Comma-separated list of index template names used to limit the request. Wildcard (*) expressions are supported.').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesDeleteIndexTemplateRequest' })
 export type IndicesDeleteIndexTemplateRequest = z.infer<typeof IndicesDeleteIndexTemplateRequest>
 
-export const IndicesDeleteIndexTemplateResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IndicesDeleteIndexTemplateResponse' })
+export const IndicesDeleteIndexTemplateResponse = AcknowledgedResponseBase.meta({ id: 'IndicesDeleteIndexTemplateResponse' })
 export type IndicesDeleteIndexTemplateResponse = z.infer<typeof IndicesDeleteIndexTemplateResponse>
 
 /**
@@ -1262,13 +1305,14 @@ export type IndicesDeleteIndexTemplateResponse = z.infer<typeof IndicesDeleteInd
  * @deprecated
  */
 export const IndicesDeleteTemplateRequest = z.object({
-  name: z.lazy(() => Name).describe('The name of the legacy index template to delete. Wildcard (`*`) expressions are supported.').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: Name.describe('The name of the legacy index template to delete. Wildcard (`*`) expressions are supported.').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesDeleteTemplateRequest' })
 export type IndicesDeleteTemplateRequest = z.infer<typeof IndicesDeleteTemplateRequest>
 
-export const IndicesDeleteTemplateResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IndicesDeleteTemplateResponse' })
+export const IndicesDeleteTemplateResponse = AcknowledgedResponseBase.meta({ id: 'IndicesDeleteTemplateResponse' })
 export type IndicesDeleteTemplateResponse = z.infer<typeof IndicesDeleteTemplateResponse>
 
 /**
@@ -1285,9 +1329,10 @@ export type IndicesDeleteTemplateResponse = z.infer<typeof IndicesDeleteTemplate
  * For usage examples see the External documentation or refer to [Analyze the index disk usage example](https://www.elastic.co/docs/reference/elasticsearch/rest-apis/index-disk-usage) for an example.
  */
 export const IndicesDiskUsageRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams, indices, and aliases used to limit the request. It’s recommended to execute this API with a single index (or the latest backing index of a data stream) as the API consumes resources significantly.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list of data streams, indices, and aliases used to limit the request. It’s recommended to execute this API with a single index (or the latest backing index of a data stream) as the API consumes resources significantly.').meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   flush: z.boolean().describe('If `true`, the API performs a flush before analysis. If `false`, the response may not include uncommitted data.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
   run_expensive_tasks: z.boolean().describe('Analyzing field disk usage is resource-intensive. To use the API, this parameter must be set to `true`.').optional().meta({ found_in: 'query' })
@@ -1314,8 +1359,9 @@ export type IndicesDiskUsageResponse = z.infer<typeof IndicesDiskUsageResponse>
  * The source index must be read-only (`index.blocks.write: true`).
  */
 export const IndicesDownsampleRequest = z.object({
-  index: z.lazy(() => IndexName).describe('Name of the time series index to downsample.').meta({ found_in: 'path' }),
-  target_index: z.lazy(() => IndexName).describe('Name of the index to create.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: IndexName.describe('Name of the time series index to downsample.').meta({ found_in: 'path' }),
+  target_index: IndexName.describe('Name of the index to create.').meta({ found_in: 'path' }),
   config: IndicesDownsampleConfig.optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesDownsampleRequest' })
 export type IndicesDownsampleRequest = z.infer<typeof IndicesDownsampleRequest>
@@ -1329,9 +1375,10 @@ export type IndicesDownsampleResponse = z.infer<typeof IndicesDownsampleResponse
  * Check if one or more indices, index aliases, or data streams exist.
  */
 export const IndicesExistsRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams, indices, and aliases. Supports wildcards (`*`).').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list of data streams, indices, and aliases. Supports wildcards (`*`).').meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   flat_settings: z.boolean().describe('If `true`, returns settings in flat format.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
   include_defaults: z.boolean().describe('If `true`, return all default settings in the response.').optional().meta({ found_in: 'query' }),
@@ -1348,12 +1395,13 @@ export type IndicesExistsResponse = z.infer<typeof IndicesExistsResponse>
  * Check if one or more data stream or index aliases exist.
  */
 export const IndicesExistsAliasRequest = z.object({
-  name: z.lazy(() => Names).describe('Comma-separated list of aliases to check. Supports wildcards (`*`).').meta({ found_in: 'path' }),
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams or indices used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  name: Names.describe('Comma-separated list of aliases to check. Supports wildcards (`*`).').meta({ found_in: 'path' }),
+  index: Indices.describe('Comma-separated list of data streams or indices used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesExistsAliasRequest' })
 export type IndicesExistsAliasRequest = z.infer<typeof IndicesExistsAliasRequest>
 
@@ -1366,10 +1414,11 @@ export type IndicesExistsAliasResponse = z.infer<typeof IndicesExistsAliasRespon
  * Check whether index templates exist.
  */
 export const IndicesExistsIndexTemplateRequest = z.object({
-  name: z.lazy(() => Name).describe('Comma-separated list of index template names used to limit the request. Wildcard (*) expressions are supported.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  name: Name.describe('Comma-separated list of index template names used to limit the request. Wildcard (*) expressions are supported.').meta({ found_in: 'path' }),
   local: z.boolean().describe('If true, the request retrieves information from the local node only. Defaults to false, which means information is retrieved from the master node.').optional().meta({ found_in: 'query' }),
   flat_settings: z.boolean().describe('If true, returns settings in flat format.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesExistsIndexTemplateRequest' })
 export type IndicesExistsIndexTemplateRequest = z.infer<typeof IndicesExistsIndexTemplateRequest>
 
@@ -1385,10 +1434,11 @@ export type IndicesExistsIndexTemplateResponse = z.infer<typeof IndicesExistsInd
  * IMPORTANT: This documentation is about legacy index templates, which are deprecated and will be replaced by the composable templates introduced in Elasticsearch 7.8.
  */
 export const IndicesExistsTemplateRequest = z.object({
-  name: z.lazy(() => Names).describe('A comma-separated list of index template names used to limit the request. Wildcard (`*`) expressions are supported.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  name: Names.describe('A comma-separated list of index template names used to limit the request. Wildcard (`*`) expressions are supported.').meta({ found_in: 'path' }),
   flat_settings: z.boolean().describe('Indicates whether to use a flat format for the response.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('Indicates whether to get information from the local node only.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for the master node. If the master node is not available before the timeout expires, the request fails and returns an error. To indicate that the request should never timeout, set it to `-1`.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('The period to wait for the master node. If the master node is not available before the timeout expires, the request fails and returns an error. To indicate that the request should never timeout, set it to `-1`.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesExistsTemplateRequest' })
 export type IndicesExistsTemplateRequest = z.infer<typeof IndicesExistsTemplateRequest>
 
@@ -1396,14 +1446,14 @@ export const IndicesExistsTemplateResponse = z.boolean().meta({ id: 'IndicesExis
 export type IndicesExistsTemplateResponse = z.infer<typeof IndicesExistsTemplateResponse>
 
 export const IndicesExplainDataLifecycleDataStreamLifecycleExplain = z.object({
-  index: z.lazy(() => IndexName),
+  index: IndexName,
   managed_by_lifecycle: z.boolean(),
-  index_creation_date_millis: z.lazy(() => EpochTime).optional(),
-  time_since_index_creation: z.lazy(() => Duration).optional(),
-  rollover_date_millis: z.lazy(() => EpochTime).optional(),
-  time_since_rollover: z.lazy(() => Duration).optional(),
-  lifecycle: z.lazy(() => IndicesDataStreamLifecycleWithRollover).optional(),
-  generation_time: z.lazy(() => Duration).optional(),
+  index_creation_date_millis: EpochTime.optional(),
+  time_since_index_creation: Duration.optional(),
+  rollover_date_millis: EpochTime.optional(),
+  time_since_rollover: Duration.optional(),
+  lifecycle: IndicesDataStreamLifecycleWithRollover.optional(),
+  generation_time: Duration.optional(),
   error: z.string().optional()
 }).meta({ id: 'IndicesExplainDataLifecycleDataStreamLifecycleExplain' })
 export type IndicesExplainDataLifecycleDataStreamLifecycleExplain = z.infer<typeof IndicesExplainDataLifecycleDataStreamLifecycleExplain>
@@ -1414,42 +1464,43 @@ export type IndicesExplainDataLifecycleDataStreamLifecycleExplain = z.infer<type
  * Get information about an index or data stream's current data stream lifecycle status, such as time since index creation, time since rollover, the lifecycle configuration managing the index, or any errors encountered during lifecycle execution.
  */
 export const IndicesExplainDataLifecycleRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list of index names to explain').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list of index names to explain').meta({ found_in: 'path' }),
   include_defaults: z.boolean().describe('Indicates if the API should return the default values the system uses for the index\'s lifecycle').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('The period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesExplainDataLifecycleRequest' })
 export type IndicesExplainDataLifecycleRequest = z.infer<typeof IndicesExplainDataLifecycleRequest>
 
 export const IndicesExplainDataLifecycleResponse = z.object({
-  indices: z.record(z.lazy(() => IndexName), IndicesExplainDataLifecycleDataStreamLifecycleExplain)
+  indices: z.record(IndexName, IndicesExplainDataLifecycleDataStreamLifecycleExplain)
 }).meta({ id: 'IndicesExplainDataLifecycleResponse' })
 export type IndicesExplainDataLifecycleResponse = z.infer<typeof IndicesExplainDataLifecycleResponse>
 
 export const IndicesFieldUsageStatsInvertedIndex = z.object({
-  terms: z.lazy(() => uint),
-  postings: z.lazy(() => uint),
-  proximity: z.lazy(() => uint),
-  positions: z.lazy(() => uint),
-  term_frequencies: z.lazy(() => uint),
-  offsets: z.lazy(() => uint),
-  payloads: z.lazy(() => uint)
+  terms: uint,
+  postings: uint,
+  proximity: uint,
+  positions: uint,
+  term_frequencies: uint,
+  offsets: uint,
+  payloads: uint
 }).meta({ id: 'IndicesFieldUsageStatsInvertedIndex' })
 export type IndicesFieldUsageStatsInvertedIndex = z.infer<typeof IndicesFieldUsageStatsInvertedIndex>
 
 export const IndicesFieldUsageStatsFieldSummary = z.object({
-  any: z.lazy(() => uint),
-  stored_fields: z.lazy(() => uint),
-  doc_values: z.lazy(() => uint),
-  points: z.lazy(() => uint),
-  norms: z.lazy(() => uint),
-  term_vectors: z.lazy(() => uint),
-  knn_vectors: z.lazy(() => uint),
+  any: uint,
+  stored_fields: uint,
+  doc_values: uint,
+  points: uint,
+  norms: uint,
+  term_vectors: uint,
+  knn_vectors: uint,
   inverted_index: IndicesFieldUsageStatsInvertedIndex
 }).meta({ id: 'IndicesFieldUsageStatsFieldSummary' })
 export type IndicesFieldUsageStatsFieldSummary = z.infer<typeof IndicesFieldUsageStatsFieldSummary>
 
 export const IndicesFieldUsageStatsFieldsUsageBody = z.object({
-  _shards: z.lazy(() => ShardStatistics)
+  _shards: ShardStatistics
 }).catchall(z.any()).meta({ id: 'IndicesFieldUsageStatsFieldsUsageBody' })
 export type IndicesFieldUsageStatsFieldsUsageBody = z.infer<typeof IndicesFieldUsageStatsFieldsUsageBody>
 
@@ -1464,11 +1515,12 @@ export type IndicesFieldUsageStatsFieldsUsageBody = z.infer<typeof IndicesFieldU
  * A given request will increment each count by a maximum value of 1, even if the request accesses the same field multiple times.
  */
 export const IndicesFieldUsageStatsRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list or wildcard expression of index names used to limit the request.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list or wildcard expression of index names used to limit the request.').meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
-  fields: z.lazy(() => Fields).describe('Comma-separated list or wildcard expressions of fields to include in the statistics.').optional().meta({ found_in: 'query' })
+  fields: Fields.describe('Comma-separated list or wildcard expressions of fields to include in the statistics.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesFieldUsageStatsRequest' })
 export type IndicesFieldUsageStatsRequest = z.infer<typeof IndicesFieldUsageStatsRequest>
 
@@ -1477,7 +1529,7 @@ export type IndicesFieldUsageStatsResponse = z.infer<typeof IndicesFieldUsageSta
 
 export const IndicesFieldUsageStatsShardsStats = z.object({
   all_fields: IndicesFieldUsageStatsFieldSummary,
-  fields: z.record(z.lazy(() => Field), IndicesFieldUsageStatsFieldSummary)
+  fields: z.record(Field, IndicesFieldUsageStatsFieldSummary)
 }).meta({ id: 'IndicesFieldUsageStatsShardsStats' })
 export type IndicesFieldUsageStatsShardsStats = z.infer<typeof IndicesFieldUsageStatsShardsStats>
 
@@ -1485,7 +1537,7 @@ export const IndicesStatsShardRouting = z.object({
   node: z.string(),
   primary: z.boolean(),
   relocating_node: z.union([z.string(), z.null()]).optional(),
-  state: z.lazy(() => IndicesStatsShardRoutingState)
+  state: IndicesStatsShardRoutingState
 }).meta({ id: 'IndicesStatsShardRouting' })
 export type IndicesStatsShardRouting = z.infer<typeof IndicesStatsShardRouting>
 
@@ -1493,7 +1545,7 @@ export const IndicesFieldUsageStatsUsageStatsShards = z.object({
   routing: IndicesStatsShardRouting,
   stats: IndicesFieldUsageStatsShardsStats,
   tracking_id: z.string(),
-  tracking_started_at_millis: z.lazy(() => EpochTime)
+  tracking_started_at_millis: EpochTime
 }).meta({ id: 'IndicesFieldUsageStatsUsageStatsShards' })
 export type IndicesFieldUsageStatsUsageStatsShards = z.infer<typeof IndicesFieldUsageStatsUsageStatsShards>
 
@@ -1517,16 +1569,17 @@ export type IndicesFieldUsageStatsUsageStatsIndex = z.infer<typeof IndicesFieldU
  * If you call the flush API after indexing some documents then a successful response indicates that Elasticsearch has flushed all the documents that were indexed before the flush API was called.
  */
 export const IndicesFlushRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams, indices, and aliases to flush. Supports wildcards (`*`). To flush all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list of data streams, indices, and aliases to flush. Supports wildcards (`*`). To flush all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   force: z.boolean().describe('If `true`, the request forces a flush even if there are no changes to commit to the index.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
   wait_if_ongoing: z.boolean().describe('If `true`, the flush operation blocks until execution when another flush operation is running. If `false`, Elasticsearch returns an error if you request a flush when another flush operation is running.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesFlushRequest' })
 export type IndicesFlushRequest = z.infer<typeof IndicesFlushRequest>
 
-export const IndicesFlushResponse = z.lazy(() => ShardsOperationResponseBase).meta({ id: 'IndicesFlushResponse' })
+export const IndicesFlushResponse = ShardsOperationResponseBase.meta({ id: 'IndicesFlushResponse' })
 export type IndicesFlushResponse = z.infer<typeof IndicesFlushResponse>
 
 /**
@@ -1586,19 +1639,20 @@ export type IndicesFlushResponse = z.infer<typeof IndicesFlushResponse>
  * ```
  */
 export const IndicesForcemergeRequest = z.object({
-  index: z.lazy(() => Indices).describe('A comma-separated list of index names; use `_all` or empty string to perform the operation on all indices').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('A comma-separated list of index names; use `_all` or empty string to perform the operation on all indices').optional().meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Whether to expand wildcard expression to concrete indices that are open, closed or both.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Whether to expand wildcard expression to concrete indices that are open, closed or both.').optional().meta({ found_in: 'query' }),
   flush: z.boolean().describe('Specify whether the index should be flushed after performing the operation').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
-  max_num_segments: z.lazy(() => long).describe('The number of segments the index should be merged into (default: dynamic)').optional().meta({ found_in: 'query' }),
+  max_num_segments: long.describe('The number of segments the index should be merged into (default: dynamic)').optional().meta({ found_in: 'query' }),
   only_expunge_deletes: z.boolean().describe('Specify whether the operation should only expunge deleted documents').optional().meta({ found_in: 'query' }),
   wait_for_completion: z.boolean().describe('Should the request wait until the force merge is completed').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesForcemergeRequest' })
 export type IndicesForcemergeRequest = z.infer<typeof IndicesForcemergeRequest>
 
 export const IndicesForcemergeForceMergeResponseBody = z.object({
-  _shards: z.lazy(() => ShardStatistics).optional(),
+  ...ShardsOperationResponseBase.shape,
   task: z.string().describe('task contains a task id returned when wait_for_completion=false, you can use the task_id to get the status of the task at _tasks/<task_id>').optional()
 }).meta({ id: 'IndicesForcemergeForceMergeResponseBody' })
 export type IndicesForcemergeForceMergeResponseBody = z.infer<typeof IndicesForcemergeForceMergeResponseBody>
@@ -1619,19 +1673,20 @@ export type IndicesGetFeatures = z.infer<typeof IndicesGetFeatures>
  * stream’s backing indices.
  */
 export const IndicesGetRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams, indices, and index aliases used to limit the request. Wildcard expressions (*) are supported.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list of data streams, indices, and index aliases used to limit the request. Wildcard expressions (*) are supported.').meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard expressions can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as open,hidden.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard expressions can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as open,hidden.').optional().meta({ found_in: 'query' }),
   flat_settings: z.boolean().describe('If true, returns settings in flat format.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
   include_defaults: z.boolean().describe('If true, return all default settings in the response.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If true, the request retrieves information from the local node only. Defaults to false, which means information is retrieved from the master node.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   features: IndicesGetFeatures.describe('Return only information on specified index features').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesGetRequest' })
 export type IndicesGetRequest = z.infer<typeof IndicesGetRequest>
 
-export const IndicesGetResponse = z.record(z.lazy(() => IndexName), IndicesIndexState).meta({ id: 'IndicesGetResponse' })
+export const IndicesGetResponse = z.record(IndexName, IndicesIndexState).meta({ id: 'IndicesGetResponse' })
 export type IndicesGetResponse = z.infer<typeof IndicesGetResponse>
 
 /**
@@ -1640,32 +1695,33 @@ export type IndicesGetResponse = z.infer<typeof IndicesGetResponse>
  * Retrieves information for one or more data stream or index aliases.
  */
 export const IndicesGetAliasRequest = z.object({
-  name: z.lazy(() => Names).describe('Comma-separated list of aliases to retrieve. Supports wildcards (`*`). To retrieve all aliases, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams or indices used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  name: Names.describe('Comma-separated list of aliases to retrieve. Supports wildcards (`*`). To retrieve all aliases, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  index: Indices.describe('Comma-separated list of data streams or indices used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesGetAliasRequest' })
 export type IndicesGetAliasRequest = z.infer<typeof IndicesGetAliasRequest>
 
 export const IndicesGetAliasIndexAliases = z.object({
-  aliases: z.record(z.string(), z.lazy(() => IndicesAliasDefinition))
+  aliases: z.record(z.string(), IndicesAliasDefinition)
 }).meta({ id: 'IndicesGetAliasIndexAliases' })
 export type IndicesGetAliasIndexAliases = z.infer<typeof IndicesGetAliasIndexAliases>
 
-export const IndicesGetAliasResponse = z.record(z.lazy(() => IndexName), IndicesGetAliasIndexAliases).meta({ id: 'IndicesGetAliasResponse' })
+export const IndicesGetAliasResponse = z.record(IndexName, IndicesGetAliasIndexAliases).meta({ id: 'IndicesGetAliasResponse' })
 export type IndicesGetAliasResponse = z.infer<typeof IndicesGetAliasResponse>
 
 export const IndicesGetAliasNotFoundAliases = z.object({
   error: z.string(),
-  status: z.lazy(() => integer)
+  status: integer
 }).catchall(z.any()).meta({ id: 'IndicesGetAliasNotFoundAliases' })
 export type IndicesGetAliasNotFoundAliases = z.infer<typeof IndicesGetAliasNotFoundAliases>
 
 export const IndicesGetDataLifecycleDataStreamWithLifecycle = z.object({
-  name: z.lazy(() => DataStreamName),
-  lifecycle: z.lazy(() => IndicesDataStreamLifecycleWithRollover).optional()
+  name: DataStreamName,
+  lifecycle: IndicesDataStreamLifecycleWithRollover.optional()
 }).meta({ id: 'IndicesGetDataLifecycleDataStreamWithLifecycle' })
 export type IndicesGetDataLifecycleDataStreamWithLifecycle = z.infer<typeof IndicesGetDataLifecycleDataStreamWithLifecycle>
 
@@ -1675,10 +1731,11 @@ export type IndicesGetDataLifecycleDataStreamWithLifecycle = z.infer<typeof Indi
  * Get the data stream lifecycle configuration of one or more data streams.
  */
 export const IndicesGetDataLifecycleRequest = z.object({
-  name: z.lazy(() => DataStreamNames).describe('Comma-separated list of data streams to limit the request. Supports wildcards (`*`). To target all data streams, omit this parameter or use `*` or `_all`.').meta({ found_in: 'path' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of data stream that wildcard patterns can match. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  name: DataStreamNames.describe('Comma-separated list of data streams to limit the request. Supports wildcards (`*`). To target all data streams, omit this parameter or use `*` or `_all`.').meta({ found_in: 'path' }),
+  expand_wildcards: ExpandWildcards.describe('Type of data stream that wildcard patterns can match. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   include_defaults: z.boolean().describe('If `true`, return all default settings in the response.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesGetDataLifecycleRequest' })
 export type IndicesGetDataLifecycleRequest = z.infer<typeof IndicesGetDataLifecycleRequest>
 
@@ -1688,9 +1745,9 @@ export const IndicesGetDataLifecycleResponse = z.object({
 export type IndicesGetDataLifecycleResponse = z.infer<typeof IndicesGetDataLifecycleResponse>
 
 export const IndicesGetDataLifecycleStatsDataStreamStats = z.object({
-  backing_indices_in_error: z.lazy(() => integer).describe('The count of the backing indices for the data stream.'),
-  backing_indices_in_total: z.lazy(() => integer).describe('The count of the backing indices for the data stream that have encountered an error.'),
-  name: z.lazy(() => DataStreamName).describe('The name of the data stream.')
+  backing_indices_in_error: integer.describe('The count of the backing indices for the data stream.'),
+  backing_indices_in_total: integer.describe('The count of the backing indices for the data stream that have encountered an error.'),
+  name: DataStreamName.describe('The name of the data stream.')
 }).meta({ id: 'IndicesGetDataLifecycleStatsDataStreamStats' })
 export type IndicesGetDataLifecycleStatsDataStreamStats = z.infer<typeof IndicesGetDataLifecycleStatsDataStreamStats>
 
@@ -1700,14 +1757,15 @@ export type IndicesGetDataLifecycleStatsDataStreamStats = z.infer<typeof Indices
  * Get statistics about the data streams that are managed by a data stream lifecycle.
  */
 export const IndicesGetDataLifecycleStatsRequest = z.object({
+  ...RequestBase.shape
 }).meta({ id: 'IndicesGetDataLifecycleStatsRequest' })
 export type IndicesGetDataLifecycleStatsRequest = z.infer<typeof IndicesGetDataLifecycleStatsRequest>
 
 export const IndicesGetDataLifecycleStatsResponse = z.object({
-  data_stream_count: z.lazy(() => integer).describe('The count of data streams currently being managed by the data stream lifecycle.'),
+  data_stream_count: integer.describe('The count of data streams currently being managed by the data stream lifecycle.'),
   data_streams: z.array(IndicesGetDataLifecycleStatsDataStreamStats).describe('Information about the data streams that are managed by the data stream lifecycle.'),
-  last_run_duration_in_millis: z.lazy(() => DurationValue).describe('The duration of the last data stream lifecycle execution.').optional(),
-  time_between_starts_in_millis: z.lazy(() => DurationValue).describe('The time that passed between the start of the last two data stream lifecycle executions. This value should amount approximately to `data_streams.lifecycle.poll_interval`.').optional()
+  last_run_duration_in_millis: DurationValue.describe('The duration of the last data stream lifecycle execution.').optional(),
+  time_between_starts_in_millis: DurationValue.describe('The time that passed between the start of the last two data stream lifecycle executions. This value should amount approximately to `data_streams.lifecycle.poll_interval`.').optional()
 }).meta({ id: 'IndicesGetDataLifecycleStatsResponse' })
 export type IndicesGetDataLifecycleStatsResponse = z.infer<typeof IndicesGetDataLifecycleStatsResponse>
 
@@ -1717,10 +1775,11 @@ export type IndicesGetDataLifecycleStatsResponse = z.infer<typeof IndicesGetData
  * Get information about one or more data streams.
  */
 export const IndicesGetDataStreamRequest = z.object({
-  name: z.lazy(() => DataStreamNames).describe('Comma-separated list of data stream names used to limit the request. Wildcard (`*`) expressions are supported. If omitted, all data streams are returned.').optional().meta({ found_in: 'path' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of data stream that wildcard patterns can match. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  name: DataStreamNames.describe('Comma-separated list of data stream names used to limit the request. Wildcard (`*`) expressions are supported. If omitted, all data streams are returned.').optional().meta({ found_in: 'path' }),
+  expand_wildcards: ExpandWildcards.describe('Type of data stream that wildcard patterns can match. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   include_defaults: z.boolean().describe('If true, returns all relevant default configurations for the index template.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   verbose: z.boolean().describe('Whether the maximum timestamp for each data stream should be calculated and returned.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesGetDataStreamRequest' })
 export type IndicesGetDataStreamRequest = z.infer<typeof IndicesGetDataStreamRequest>
@@ -1743,8 +1802,9 @@ export type IndicesGetDataStreamMappingsDataStreamMappings = z.infer<typeof Indi
  * Get mapping information for one or more data streams.
  */
 export const IndicesGetDataStreamMappingsRequest = z.object({
-  name: z.lazy(() => Indices).describe('A comma-separated list of data streams or data stream patterns. Supports wildcards (`*`).').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: Indices.describe('A comma-separated list of data streams or data stream patterns. Supports wildcards (`*`).').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesGetDataStreamMappingsRequest' })
 export type IndicesGetDataStreamMappingsRequest = z.infer<typeof IndicesGetDataStreamMappingsRequest>
 
@@ -1754,8 +1814,8 @@ export const IndicesGetDataStreamMappingsResponse = z.object({
 export type IndicesGetDataStreamMappingsResponse = z.infer<typeof IndicesGetDataStreamMappingsResponse>
 
 export const IndicesGetDataStreamOptionsDataStreamWithOptions = z.object({
-  name: z.lazy(() => DataStreamName),
-  options: z.lazy(() => IndicesDataStreamOptions).optional()
+  name: DataStreamName,
+  options: IndicesDataStreamOptions.optional()
 }).meta({ id: 'IndicesGetDataStreamOptionsDataStreamWithOptions' })
 export type IndicesGetDataStreamOptionsDataStreamWithOptions = z.infer<typeof IndicesGetDataStreamOptionsDataStreamWithOptions>
 
@@ -1765,9 +1825,10 @@ export type IndicesGetDataStreamOptionsDataStreamWithOptions = z.infer<typeof In
  * Get the data stream options configuration of one or more data streams.
  */
 export const IndicesGetDataStreamOptionsRequest = z.object({
-  name: z.lazy(() => DataStreamNames).describe('Comma-separated list of data streams to limit the request. Supports wildcards (`*`). To target all data streams, omit this parameter or use `*` or `_all`.').meta({ found_in: 'path' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of data stream that wildcard patterns can match. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: DataStreamNames.describe('Comma-separated list of data streams to limit the request. Supports wildcards (`*`). To target all data streams, omit this parameter or use `*` or `_all`.').meta({ found_in: 'path' }),
+  expand_wildcards: ExpandWildcards.describe('Type of data stream that wildcard patterns can match. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesGetDataStreamOptionsRequest' })
 export type IndicesGetDataStreamOptionsRequest = z.infer<typeof IndicesGetDataStreamOptionsRequest>
 
@@ -1789,8 +1850,9 @@ export type IndicesGetDataStreamSettingsDataStreamSettings = z.infer<typeof Indi
  * Get setting information for one or more data streams.
  */
 export const IndicesGetDataStreamSettingsRequest = z.object({
-  name: z.lazy(() => Indices).describe('A comma-separated list of data streams or data stream patterns. Supports wildcards (`*`).').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: Indices.describe('A comma-separated list of data streams or data stream patterns. Supports wildcards (`*`).').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesGetDataStreamSettingsRequest' })
 export type IndicesGetDataStreamSettingsRequest = z.infer<typeof IndicesGetDataStreamSettingsRequest>
 
@@ -1808,25 +1870,26 @@ export type IndicesGetDataStreamSettingsResponse = z.infer<typeof IndicesGetData
  * This API is useful if you don't need a complete mapping or if an index mapping contains a large number of fields.
  */
 export const IndicesGetFieldMappingRequest = z.object({
-  fields: z.lazy(() => Fields).describe('Comma-separated list or wildcard expression of fields used to limit returned information. Supports wildcards (`*`).').meta({ found_in: 'path' }),
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  fields: Fields.describe('Comma-separated list or wildcard expression of fields used to limit returned information. Supports wildcards (`*`).').meta({ found_in: 'path' }),
+  index: Indices.describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
   include_defaults: z.boolean().describe('If `true`, return all default settings in the response.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesGetFieldMappingRequest' })
 export type IndicesGetFieldMappingRequest = z.infer<typeof IndicesGetFieldMappingRequest>
 
 export const IndicesGetFieldMappingTypeFieldMappings = z.object({
-  mappings: z.record(z.lazy(() => Field), z.lazy(() => MappingFieldMapping))
+  mappings: z.record(Field, z.lazy(() => MappingFieldMapping))
 }).meta({ id: 'IndicesGetFieldMappingTypeFieldMappings' })
 export type IndicesGetFieldMappingTypeFieldMappings = z.infer<typeof IndicesGetFieldMappingTypeFieldMappings>
 
-export const IndicesGetFieldMappingResponse = z.record(z.lazy(() => IndexName), IndicesGetFieldMappingTypeFieldMappings).meta({ id: 'IndicesGetFieldMappingResponse' })
+export const IndicesGetFieldMappingResponse = z.record(IndexName, IndicesGetFieldMappingTypeFieldMappings).meta({ id: 'IndicesGetFieldMappingResponse' })
 export type IndicesGetFieldMappingResponse = z.infer<typeof IndicesGetFieldMappingResponse>
 
 export const IndicesGetIndexTemplateIndexTemplateItem = z.object({
-  name: z.lazy(() => Name),
+  name: Name,
   index_template: IndicesIndexTemplateWithRollover
 }).meta({ id: 'IndicesGetIndexTemplateIndexTemplateItem' })
 export type IndicesGetIndexTemplateIndexTemplateItem = z.infer<typeof IndicesGetIndexTemplateIndexTemplateItem>
@@ -1837,10 +1900,11 @@ export type IndicesGetIndexTemplateIndexTemplateItem = z.infer<typeof IndicesGet
  * Get information about one or more index templates.
  */
 export const IndicesGetIndexTemplateRequest = z.object({
-  name: z.lazy(() => Name).describe('Name of index template to retrieve. Wildcard (*) expressions are supported.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  name: Name.describe('Name of index template to retrieve. Wildcard (*) expressions are supported.').optional().meta({ found_in: 'path' }),
   local: z.boolean().describe('If true, the request retrieves information from the local node only. Defaults to false, which means information is retrieved from the master node.').optional().meta({ found_in: 'query' }),
   flat_settings: z.boolean().describe('If true, returns settings in flat format.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   include_defaults: z.boolean().describe('If true, returns all relevant default configurations for the index template.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesGetIndexTemplateRequest' })
 export type IndicesGetIndexTemplateRequest = z.infer<typeof IndicesGetIndexTemplateRequest>
@@ -1862,16 +1926,17 @@ export type IndicesGetMappingIndexMappingRecord = z.infer<typeof IndicesGetMappi
  * For data streams, the API retrieves mappings for the stream’s backing indices.
  */
 export const IndicesGetMappingRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request retrieves information from the local node only.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesGetMappingRequest' })
 export type IndicesGetMappingRequest = z.infer<typeof IndicesGetMappingRequest>
 
-export const IndicesGetMappingResponse = z.record(z.lazy(() => IndexName), IndicesGetMappingIndexMappingRecord).meta({ id: 'IndicesGetMappingResponse' })
+export const IndicesGetMappingResponse = z.record(IndexName, IndicesGetMappingIndexMappingRecord).meta({ id: 'IndicesGetMappingResponse' })
 export type IndicesGetMappingResponse = z.infer<typeof IndicesGetMappingResponse>
 
 /**
@@ -1880,14 +1945,15 @@ export type IndicesGetMappingResponse = z.infer<typeof IndicesGetMappingResponse
  * Get the status of a migration reindex attempt for a data stream or index.
  */
 export const IndicesGetMigrateReindexStatusRequest = z.object({
-  index: z.lazy(() => Indices).describe('The index or data stream name.').meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  index: Indices.describe('The index or data stream name.').meta({ found_in: 'path' })
 }).meta({ id: 'IndicesGetMigrateReindexStatusRequest' })
 export type IndicesGetMigrateReindexStatusRequest = z.infer<typeof IndicesGetMigrateReindexStatusRequest>
 
 export const IndicesGetMigrateReindexStatusStatusInProgress = z.object({
   index: z.string(),
-  total_doc_count: z.lazy(() => long),
-  reindexed_doc_count: z.lazy(() => long)
+  total_doc_count: long,
+  reindexed_doc_count: long
 }).meta({ id: 'IndicesGetMigrateReindexStatusStatusInProgress' })
 export type IndicesGetMigrateReindexStatusStatusInProgress = z.infer<typeof IndicesGetMigrateReindexStatusStatusInProgress>
 
@@ -1898,14 +1964,14 @@ export const IndicesGetMigrateReindexStatusStatusError = z.object({
 export type IndicesGetMigrateReindexStatusStatusError = z.infer<typeof IndicesGetMigrateReindexStatusStatusError>
 
 export const IndicesGetMigrateReindexStatusResponse = z.object({
-  start_time: z.lazy(() => DateTime).optional(),
-  start_time_millis: z.lazy(() => EpochTime),
+  start_time: DateTime.optional(),
+  start_time_millis: EpochTime,
   complete: z.boolean(),
-  total_indices_in_data_stream: z.lazy(() => integer),
-  total_indices_requiring_upgrade: z.lazy(() => integer),
-  successes: z.lazy(() => integer),
+  total_indices_in_data_stream: integer,
+  total_indices_requiring_upgrade: integer,
+  successes: integer,
   in_progress: z.array(IndicesGetMigrateReindexStatusStatusInProgress),
-  pending: z.lazy(() => integer),
+  pending: integer,
   errors: z.array(IndicesGetMigrateReindexStatusStatusError),
   exception: z.string().optional()
 }).meta({ id: 'IndicesGetMigrateReindexStatusResponse' })
@@ -1918,19 +1984,20 @@ export type IndicesGetMigrateReindexStatusResponse = z.infer<typeof IndicesGetMi
  * For data streams, it returns setting information for the stream's backing indices.
  */
 export const IndicesGetSettingsRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
-  name: z.lazy(() => Names).describe('Comma-separated list or wildcard expression of settings to retrieve.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  name: Names.describe('Comma-separated list or wildcard expression of settings to retrieve.').optional().meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   flat_settings: z.boolean().describe('If `true`, returns settings in flat format.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
   include_defaults: z.boolean().describe('If `true`, return all default settings in the response.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request retrieves information from the local node only. If `false`, information is retrieved from the master node.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesGetSettingsRequest' })
 export type IndicesGetSettingsRequest = z.infer<typeof IndicesGetSettingsRequest>
 
-export const IndicesGetSettingsResponse = z.record(z.lazy(() => IndexName), IndicesIndexState).meta({ id: 'IndicesGetSettingsResponse' })
+export const IndicesGetSettingsResponse = z.record(IndexName, IndicesIndexState).meta({ id: 'IndicesGetSettingsResponse' })
 export type IndicesGetSettingsResponse = z.infer<typeof IndicesGetSettingsResponse>
 
 /**
@@ -1942,10 +2009,11 @@ export type IndicesGetSettingsResponse = z.infer<typeof IndicesGetSettingsRespon
  * @deprecated
  */
 export const IndicesGetTemplateRequest = z.object({
-  name: z.lazy(() => Names).describe('Comma-separated list of index template names used to limit the request. Wildcard (`*`) expressions are supported. To return all index templates, omit this parameter or use a value of `_all` or `*`.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  name: Names.describe('Comma-separated list of index template names used to limit the request. Wildcard (`*`) expressions are supported. To return all index templates, omit this parameter or use a value of `_all` or `*`.').optional().meta({ found_in: 'path' }),
   flat_settings: z.boolean().describe('If `true`, returns settings in flat format.').optional().meta({ found_in: 'query' }),
   local: z.boolean().describe('If `true`, the request retrieves information from the local node only.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesGetTemplateRequest' })
 export type IndicesGetTemplateRequest = z.infer<typeof IndicesGetTemplateRequest>
 
@@ -1956,7 +2024,7 @@ export const IndicesMigrateReindexModeEnum = z.enum(['upgrade']).meta({ id: 'Ind
 export type IndicesMigrateReindexModeEnum = z.infer<typeof IndicesMigrateReindexModeEnum>
 
 export const IndicesMigrateReindexSourceIndex = z.object({
-  index: z.lazy(() => IndexName)
+  index: IndexName
 }).meta({ id: 'IndicesMigrateReindexSourceIndex' })
 export type IndicesMigrateReindexSourceIndex = z.infer<typeof IndicesMigrateReindexSourceIndex>
 
@@ -1974,11 +2042,12 @@ export type IndicesMigrateReindexMigrateReindex = z.infer<typeof IndicesMigrateR
  * The persistent task ID is returned immediately and the reindexing work is completed in that task.
  */
 export const IndicesMigrateReindexRequest = z.object({
+  ...RequestBase.shape,
   reindex: IndicesMigrateReindexMigrateReindex.optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesMigrateReindexRequest' })
 export type IndicesMigrateReindexRequest = z.infer<typeof IndicesMigrateReindexRequest>
 
-export const IndicesMigrateReindexResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IndicesMigrateReindexResponse' })
+export const IndicesMigrateReindexResponse = AcknowledgedResponseBase.meta({ id: 'IndicesMigrateReindexResponse' })
 export type IndicesMigrateReindexResponse = z.infer<typeof IndicesMigrateReindexResponse>
 
 /**
@@ -1996,18 +2065,19 @@ export type IndicesMigrateReindexResponse = z.infer<typeof IndicesMigrateReindex
  * The write index for the alias becomes the write index for the stream.
  */
 export const IndicesMigrateToDataStreamRequest = z.object({
-  name: z.lazy(() => IndexName).describe('Name of the index alias to convert to a data stream.').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: IndexName.describe('Name of the index alias to convert to a data stream.').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesMigrateToDataStreamRequest' })
 export type IndicesMigrateToDataStreamRequest = z.infer<typeof IndicesMigrateToDataStreamRequest>
 
-export const IndicesMigrateToDataStreamResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IndicesMigrateToDataStreamResponse' })
+export const IndicesMigrateToDataStreamResponse = AcknowledgedResponseBase.meta({ id: 'IndicesMigrateToDataStreamResponse' })
 export type IndicesMigrateToDataStreamResponse = z.infer<typeof IndicesMigrateToDataStreamResponse>
 
 export const IndicesModifyDataStreamIndexAndDataStreamAction = z.object({
-  data_stream: z.lazy(() => DataStreamName).describe('Data stream targeted by the action.'),
-  index: z.lazy(() => IndexName).describe('Index for the action.')
+  data_stream: DataStreamName.describe('Data stream targeted by the action.'),
+  index: IndexName.describe('Index for the action.')
 }).meta({ id: 'IndicesModifyDataStreamIndexAndDataStreamAction' })
 export type IndicesModifyDataStreamIndexAndDataStreamAction = z.infer<typeof IndicesModifyDataStreamIndexAndDataStreamAction>
 
@@ -2022,11 +2092,12 @@ export type IndicesModifyDataStreamAction = z.infer<typeof IndicesModifyDataStre
  * Performs one or more data stream modification actions in a single atomic operation.
  */
 export const IndicesModifyDataStreamRequest = z.object({
+  ...RequestBase.shape,
   actions: z.array(IndicesModifyDataStreamAction).describe('Actions to perform.').meta({ found_in: 'body' })
 }).meta({ id: 'IndicesModifyDataStreamRequest' })
 export type IndicesModifyDataStreamRequest = z.infer<typeof IndicesModifyDataStreamRequest>
 
-export const IndicesModifyDataStreamResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IndicesModifyDataStreamResponse' })
+export const IndicesModifyDataStreamResponse = AcknowledgedResponseBase.meta({ id: 'IndicesModifyDataStreamResponse' })
 export type IndicesModifyDataStreamResponse = z.infer<typeof IndicesModifyDataStreamResponse>
 
 /**
@@ -2056,13 +2127,14 @@ export type IndicesModifyDataStreamResponse = z.infer<typeof IndicesModifyDataSt
  * Because opening or closing an index allocates its shards, the `wait_for_active_shards` setting on index creation applies to the `_open` and `_close` index actions as well.
  */
 export const IndicesOpenRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). By default, you must explicitly name the indices you using to limit the request. To limit a request using `_all`, `*`, or other wildcard expressions, change the `action.destructive_requires_name` setting to false. You can update this setting in the `elasticsearch.yml` file or using the cluster update settings API.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). By default, you must explicitly name the indices you using to limit the request. To limit a request using `_all`, `*`, or other wildcard expressions, change the `action.destructive_requires_name` setting to false. You can update this setting in the `elasticsearch.yml` file or using the cluster update settings API.').meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  wait_for_active_shards: z.lazy(() => WaitForActiveShards).describe('The number of shard copies that must be active before proceeding with the operation. Set to `all` or any positive integer up to the total number of shards in the index (`number_of_replicas+1`).').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  wait_for_active_shards: WaitForActiveShards.describe('The number of shard copies that must be active before proceeding with the operation. Set to `all` or any positive integer up to the total number of shards in the index (`number_of_replicas+1`).').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesOpenRequest' })
 export type IndicesOpenRequest = z.infer<typeof IndicesOpenRequest>
 
@@ -2087,8 +2159,9 @@ export type IndicesOpenResponse = z.infer<typeof IndicesOpenResponse>
  * This will affect the lifecycle management of the data stream and interfere with the data stream size and retention.
  */
 export const IndicesPromoteDataStreamRequest = z.object({
-  name: z.lazy(() => IndexName).describe('The name of the data stream to promote').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: IndexName.describe('The name of the data stream to promote').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesPromoteDataStreamRequest' })
 export type IndicesPromoteDataStreamRequest = z.infer<typeof IndicesPromoteDataStreamRequest>
 
@@ -2101,10 +2174,11 @@ export type IndicesPromoteDataStreamResponse = z.infer<typeof IndicesPromoteData
  * Adds a data stream or index to an alias.
  */
 export const IndicesPutAliasRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams or indices to add. Supports wildcards (`*`). Wildcard patterns that match both data streams and indices return an error.').meta({ found_in: 'path' }),
-  name: z.lazy(() => Name).describe('Alias to update. If the alias doesn’t exist, the request creates it. Index alias names support date math.').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list of data streams or indices to add. Supports wildcards (`*`). Wildcard patterns that match both data streams and indices return an error.').meta({ found_in: 'path' }),
+  name: Name.describe('Alias to update. If the alias doesn’t exist, the request creates it. Index alias names support date math.').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   filter: z.lazy(() => QueryDslQueryContainer).describe('Query used to limit documents the alias can access.').optional().meta({ found_in: 'body' }),
   index_routing: z.string().describe('Value used to route indexing operations to a specific shard. If specified, this overwrites the `routing` value for indexing operations. Data stream aliases don’t support this parameter.').optional().meta({ found_in: 'body' }),
   is_write_index: z.boolean().describe('If `true`, sets the write index or data stream for the alias. If an alias points to multiple indices or data streams and `is_write_index` isn’t set, the alias rejects write requests. If an index alias points to one index and `is_write_index` isn’t set, the index automatically acts as the write index. Data stream aliases don’t automatically set a write data stream, even if the alias points to one data stream.').optional().meta({ found_in: 'body' }),
@@ -2113,7 +2187,7 @@ export const IndicesPutAliasRequest = z.object({
 }).meta({ id: 'IndicesPutAliasRequest' })
 export type IndicesPutAliasRequest = z.infer<typeof IndicesPutAliasRequest>
 
-export const IndicesPutAliasResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IndicesPutAliasResponse' })
+export const IndicesPutAliasResponse = AcknowledgedResponseBase.meta({ id: 'IndicesPutAliasResponse' })
 export type IndicesPutAliasResponse = z.infer<typeof IndicesPutAliasResponse>
 
 /**
@@ -2122,18 +2196,19 @@ export type IndicesPutAliasResponse = z.infer<typeof IndicesPutAliasResponse>
  * Update the data stream lifecycle of the specified data streams.
  */
 export const IndicesPutDataLifecycleRequest = z.object({
-  name: z.lazy(() => DataStreamNames).describe('Comma-separated list of data streams used to limit the request. Supports wildcards (`*`). To target all data streams use `*` or `_all`.').meta({ found_in: 'path' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of data stream that wildcard patterns can match. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  data_retention: z.lazy(() => Duration).describe('If defined, every document added to this data stream will be stored at least for this time frame. Any time after this duration the document could be deleted. When empty, every document in this data stream will be stored indefinitely.').optional().meta({ found_in: 'body' }),
+  ...RequestBase.shape,
+  name: DataStreamNames.describe('Comma-separated list of data streams used to limit the request. Supports wildcards (`*`). To target all data streams use `*` or `_all`.').meta({ found_in: 'path' }),
+  expand_wildcards: ExpandWildcards.describe('Type of data stream that wildcard patterns can match. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  data_retention: Duration.describe('If defined, every document added to this data stream will be stored at least for this time frame. Any time after this duration the document could be deleted. When empty, every document in this data stream will be stored indefinitely.').optional().meta({ found_in: 'body' }),
   downsampling: z.array(IndicesDownsamplingRound).describe('The downsampling configuration to execute for the managed backing index after rollover.').optional().meta({ found_in: 'body' }),
   downsampling_method: IndicesSamplingMethod.describe('The method used to downsample the data. There are two options `aggregate` and `last_value`. It requires `downsampling` to be defined. Defaults to `aggregate`.').optional().meta({ found_in: 'body' }),
   enabled: z.boolean().describe('If defined, it turns data stream lifecycle on/off (`true`/`false`) for this data stream. A data stream lifecycle that\'s disabled (enabled: `false`) will have no effect on the data stream.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesPutDataLifecycleRequest' })
 export type IndicesPutDataLifecycleRequest = z.infer<typeof IndicesPutDataLifecycleRequest>
 
-export const IndicesPutDataLifecycleResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IndicesPutDataLifecycleResponse' })
+export const IndicesPutDataLifecycleResponse = AcknowledgedResponseBase.meta({ id: 'IndicesPutDataLifecycleResponse' })
 export type IndicesPutDataLifecycleResponse = z.infer<typeof IndicesPutDataLifecycleResponse>
 
 /**
@@ -2144,16 +2219,17 @@ export type IndicesPutDataLifecycleResponse = z.infer<typeof IndicesPutDataLifec
  * that are created during rollover after this API is called. No indices are changed by this API.
  */
 export const IndicesPutDataStreamMappingsRequest = z.object({
-  name: z.lazy(() => Indices).describe('A comma-separated list of data streams or data stream patterns.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  name: Indices.describe('A comma-separated list of data streams or data stream patterns.').meta({ found_in: 'path' }),
   dry_run: z.boolean().describe('If `true`, the request does not actually change the mappings on any data streams. Instead, it simulates changing the settings and reports back to the user what would have happened had these settings actually been applied.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('The period to wait for a response. If no response is received before the  timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('The period to wait for a response. If no response is received before the  timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   mappings: z.lazy(() => MappingTypeMapping).optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesPutDataStreamMappingsRequest' })
 export type IndicesPutDataStreamMappingsRequest = z.infer<typeof IndicesPutDataStreamMappingsRequest>
 
 export const IndicesPutDataStreamMappingsUpdatedDataStreamMappings = z.object({
-  name: z.lazy(() => IndexName).describe('The data stream name.'),
+  name: IndexName.describe('The data stream name.'),
   applied_to_data_stream: z.boolean().describe('If the mappings were successfully applied to the data stream (or would have been, if running in `dry_run` mode), it is `true`. If an error occurred, it is `false`.'),
   error: z.string().describe('A message explaining why the mappings could not be applied to the data stream.').optional(),
   mappings: z.lazy(() => MappingTypeMapping).describe('The mappings that are specfic to this data stream that will override any mappings from the matching index template.').optional(),
@@ -2172,19 +2248,20 @@ export type IndicesPutDataStreamMappingsResponse = z.infer<typeof IndicesPutData
  * Update the data stream options of the specified data streams.
  */
 export const IndicesPutDataStreamOptionsRequest = z.object({
-  name: z.lazy(() => DataStreamNames).describe('Comma-separated list of data streams used to limit the request. Supports wildcards (`*`). To target all data streams use `*` or `_all`.').meta({ found_in: 'path' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of data stream that wildcard patterns can match. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  name: DataStreamNames.describe('Comma-separated list of data streams used to limit the request. Supports wildcards (`*`). To target all data streams use `*` or `_all`.').meta({ found_in: 'path' }),
+  expand_wildcards: ExpandWildcards.describe('Type of data stream that wildcard patterns can match. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   failure_store: IndicesDataStreamFailureStore.describe('If defined, it will update the failure store configuration of every data stream resolved by the name expression.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesPutDataStreamOptionsRequest' })
 export type IndicesPutDataStreamOptionsRequest = z.infer<typeof IndicesPutDataStreamOptionsRequest>
 
-export const IndicesPutDataStreamOptionsResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IndicesPutDataStreamOptionsResponse' })
+export const IndicesPutDataStreamOptionsResponse = AcknowledgedResponseBase.meta({ id: 'IndicesPutDataStreamOptionsResponse' })
 export type IndicesPutDataStreamOptionsResponse = z.infer<typeof IndicesPutDataStreamOptionsResponse>
 
 export const IndicesPutDataStreamSettingsDataStreamSettingsError = z.object({
-  index: z.lazy(() => IndexName),
+  index: IndexName,
   error: z.string().describe('A message explaining why the settings could not be applied to specific indices.')
 }).meta({ id: 'IndicesPutDataStreamSettingsDataStreamSettingsError' })
 export type IndicesPutDataStreamSettingsDataStreamSettingsError = z.infer<typeof IndicesPutDataStreamSettingsDataStreamSettingsError>
@@ -2207,16 +2284,17 @@ export type IndicesPutDataStreamSettingsIndexSettingResults = z.infer<typeof Ind
  * backing indices. Otherwise, it will be applied when the data stream is next rolled over.
  */
 export const IndicesPutDataStreamSettingsRequest = z.object({
-  name: z.lazy(() => Indices).describe('A comma-separated list of data streams or data stream patterns.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  name: Indices.describe('A comma-separated list of data streams or data stream patterns.').meta({ found_in: 'path' }),
   dry_run: z.boolean().describe('If `true`, the request does not actually change the settings on any data streams or indices. Instead, it simulates changing the settings and reports back to the user what would have happened had these settings actually been applied.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('The period to wait for a response. If no response is received before the  timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('The period to wait for a response. If no response is received before the  timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   settings: z.lazy(() => IndicesIndexSettings).optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesPutDataStreamSettingsRequest' })
 export type IndicesPutDataStreamSettingsRequest = z.infer<typeof IndicesPutDataStreamSettingsRequest>
 
 export const IndicesPutDataStreamSettingsUpdatedDataStreamSettings = z.object({
-  name: z.lazy(() => IndexName).describe('The data stream name.'),
+  name: IndexName.describe('The data stream name.'),
   applied_to_data_stream: z.boolean().describe('If the settings were successfully applied to the data stream (or would have been, if running in `dry_run` mode), it is `true`. If an error occurred, it is `false`.'),
   error: z.string().describe('A message explaining why the settings could not be applied to the data stream.').optional(),
   settings: z.lazy(() => IndicesIndexSettings).describe('The settings that are specfic to this data stream that will override any settings from the matching index template.'),
@@ -2262,24 +2340,25 @@ export type IndicesPutDataStreamSettingsResponse = z.infer<typeof IndicesPutData
  * If an entry already exists with the same key, then it is overwritten by the new definition.
  */
 export const IndicesPutIndexTemplateRequest = z.object({
-  name: z.lazy(() => Name).describe('Index or template name').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  name: Name.describe('Index or template name').meta({ found_in: 'path' }),
   create: z.boolean().describe('If `true`, this request cannot replace or update existing index templates.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   cause: z.string().describe('User defined reason for creating or updating the index template').optional().meta({ found_in: 'query' }),
-  index_patterns: z.lazy(() => Indices).describe('Array of wildcard (`*`) expressions used to match the names of data streams and indices during creation.').optional().meta({ found_in: 'body' }),
-  composed_of: z.array(z.lazy(() => Name)).describe('An ordered list of component template names. Component templates are merged in the order specified, meaning that the last component template specified has the highest precedence.').optional().meta({ found_in: 'body' }),
-  template: z.lazy(() => IndicesPutIndexTemplateIndexTemplateMapping).describe('Template to be applied. It may optionally include an `aliases`, `mappings`, or `settings` configuration.').optional().meta({ found_in: 'body' }),
+  index_patterns: Indices.describe('Array of wildcard (`*`) expressions used to match the names of data streams and indices during creation.').optional().meta({ found_in: 'body' }),
+  composed_of: z.array(Name).describe('An ordered list of component template names. Component templates are merged in the order specified, meaning that the last component template specified has the highest precedence.').optional().meta({ found_in: 'body' }),
+  template: IndicesPutIndexTemplateIndexTemplateMapping.describe('Template to be applied. It may optionally include an `aliases`, `mappings`, or `settings` configuration.').optional().meta({ found_in: 'body' }),
   data_stream: IndicesDataStreamVisibility.describe('If this object is included, the template is used to create data streams and their backing indices. Supports an empty object. Data streams require a matching index template with a `data_stream` object.').optional().meta({ found_in: 'body' }),
-  priority: z.lazy(() => long).describe('Priority to determine index template precedence when a new data stream or index is created. The index template with the highest priority is chosen. If no priority is specified the template is treated as though it is of priority 0 (lowest priority). This number is not automatically generated by Elasticsearch.').optional().meta({ found_in: 'body' }),
-  version: z.lazy(() => VersionNumber).describe('Version number used to manage index templates externally. This number is not automatically generated by Elasticsearch. External systems can use these version numbers to simplify template management. To unset a version, replace the template without specifying one.').optional().meta({ found_in: 'body' }),
-  _meta: z.lazy(() => Metadata).describe('Optional user metadata about the index template. It may have any contents. It is not automatically generated or used by Elasticsearch. This user-defined object is stored in the cluster state, so keeping it short is preferable To unset the metadata, replace the template without specifying it.').optional().meta({ found_in: 'body' }),
+  priority: long.describe('Priority to determine index template precedence when a new data stream or index is created. The index template with the highest priority is chosen. If no priority is specified the template is treated as though it is of priority 0 (lowest priority). This number is not automatically generated by Elasticsearch.').optional().meta({ found_in: 'body' }),
+  version: VersionNumber.describe('Version number used to manage index templates externally. This number is not automatically generated by Elasticsearch. External systems can use these version numbers to simplify template management. To unset a version, replace the template without specifying one.').optional().meta({ found_in: 'body' }),
+  _meta: Metadata.describe('Optional user metadata about the index template. It may have any contents. It is not automatically generated or used by Elasticsearch. This user-defined object is stored in the cluster state, so keeping it short is preferable To unset the metadata, replace the template without specifying it.').optional().meta({ found_in: 'body' }),
   allow_auto_create: z.boolean().describe('This setting overrides the value of the `action.auto_create_index` cluster setting. If set to `true` in a template, then indices can be automatically created using that template even if auto-creation of indices is disabled via `actions.auto_create_index`. If set to `false`, then indices or data streams matching the template must always be explicitly created, and may never be automatically created.').optional().meta({ found_in: 'body' }),
   ignore_missing_component_templates: z.array(z.string()).describe('The configuration option ignore_missing_component_templates can be used when an index template references a component template that might not exist').optional().meta({ found_in: 'body' }),
   deprecated: z.boolean().describe('Marks this index template as deprecated. When creating or updating a non-deprecated index template that uses deprecated components, Elasticsearch will emit a deprecation warning.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesPutIndexTemplateRequest' })
 export type IndicesPutIndexTemplateRequest = z.infer<typeof IndicesPutIndexTemplateRequest>
 
-export const IndicesPutIndexTemplateResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IndicesPutIndexTemplateResponse' })
+export const IndicesPutIndexTemplateResponse = AcknowledgedResponseBase.meta({ id: 'IndicesPutIndexTemplateResponse' })
 export type IndicesPutIndexTemplateResponse = z.infer<typeof IndicesPutIndexTemplateResponse>
 
 /**
@@ -2299,28 +2378,29 @@ export type IndicesPutIndexTemplateResponse = z.infer<typeof IndicesPutIndexTemp
  * Learn how to use the update mapping API with practical examples in the [Update mapping API examples](https://www.elastic.co/docs/manage-data/data-store/mapping/update-mappings-examples) guide.
  */
 export const IndicesPutMappingRequest = z.object({
-  index: z.lazy(() => Indices).describe('A comma-separated list of index names the mapping should be added to (supports wildcards). Use `_all` or omit to add the mapping on all indices.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('A comma-separated list of index names the mapping should be added to (supports wildcards). Use `_all` or omit to add the mapping on all indices.').meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   write_index_only: z.boolean().describe('If `true`, the mappings are applied only to the current write index for the target.').optional().meta({ found_in: 'query' }),
   date_detection: z.boolean().describe('Controls whether dynamic date detection is enabled.').optional().meta({ found_in: 'body' }),
   dynamic: z.lazy(() => MappingDynamicMapping).describe('Controls whether new fields are added dynamically.').optional().meta({ found_in: 'body' }),
   dynamic_date_formats: z.array(z.string()).describe('If date detection is enabled then new string fields are checked against \'dynamic_date_formats\' and if the value matches then a new date field is added instead of string.').optional().meta({ found_in: 'body' }),
   dynamic_templates: z.array(z.record(z.string(), z.lazy(() => MappingDynamicTemplate))).describe('Specify dynamic templates for the mapping.').optional().meta({ found_in: 'body' }),
   _field_names: z.lazy(() => MappingFieldNamesField).describe('Control whether field names are enabled for the index.').optional().meta({ found_in: 'body' }),
-  _meta: z.lazy(() => Metadata).describe('A mapping type can have custom meta data associated with it. These are not used at all by Elasticsearch, but can be used to store application-specific metadata.').optional().meta({ found_in: 'body' }),
+  _meta: Metadata.describe('A mapping type can have custom meta data associated with it. These are not used at all by Elasticsearch, but can be used to store application-specific metadata.').optional().meta({ found_in: 'body' }),
   numeric_detection: z.boolean().describe('Automatically map strings into numeric data types for all fields.').optional().meta({ found_in: 'body' }),
-  properties: z.record(z.lazy(() => PropertyName), z.lazy(() => MappingProperty)).describe('Mapping for a field. For new fields, this mapping can include: - Field name - Field data type - Mapping parameters').optional().meta({ found_in: 'body' }),
+  properties: z.record(PropertyName, z.lazy(() => MappingProperty)).describe('Mapping for a field. For new fields, this mapping can include: - Field name - Field data type - Mapping parameters').optional().meta({ found_in: 'body' }),
   _routing: z.lazy(() => MappingRoutingField).describe('Enable making a routing value required on indexed documents.').optional().meta({ found_in: 'body' }),
   _source: z.lazy(() => MappingSourceField).describe('Control whether the _source field is enabled on the index.').optional().meta({ found_in: 'body' }),
   runtime: z.lazy(() => MappingRuntimeFields).describe('Mapping of runtime fields for the index.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesPutMappingRequest' })
 export type IndicesPutMappingRequest = z.infer<typeof IndicesPutMappingRequest>
 
-export const IndicesPutMappingResponse = z.lazy(() => IndicesResponseBase).meta({ id: 'IndicesPutMappingResponse' })
+export const IndicesPutMappingResponse = IndicesResponseBase.meta({ id: 'IndicesPutMappingResponse' })
 export type IndicesPutMappingResponse = z.infer<typeof IndicesPutMappingResponse>
 
 /**
@@ -2382,20 +2462,21 @@ export type IndicesPutMappingResponse = z.infer<typeof IndicesPutMappingResponse
  * Refer to [updating analyzers on existing indices](https://www.elastic.co/docs/manage-data/data-store/text-analysis/specify-an-analyzer#update-analyzers-on-existing-indices) for step-by-step examples.
  */
 export const IndicesPutSettingsRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   flat_settings: z.boolean().describe('If `true`, returns settings in flat format.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   preserve_existing: z.boolean().describe('If `true`, existing index settings remain unchanged.').optional().meta({ found_in: 'query' }),
   reopen: z.boolean().describe('Whether to close and reopen the index to apply non-dynamic settings. If set to `true` the indices to which the settings are being applied will be closed temporarily and then reopened in order to apply the changes.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the  timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the  timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   settings: z.lazy(() => IndicesIndexSettings).optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesPutSettingsRequest' })
 export type IndicesPutSettingsRequest = z.infer<typeof IndicesPutSettingsRequest>
 
-export const IndicesPutSettingsResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IndicesPutSettingsResponse' })
+export const IndicesPutSettingsResponse = AcknowledgedResponseBase.meta({ id: 'IndicesPutSettingsResponse' })
 export type IndicesPutSettingsResponse = z.infer<typeof IndicesPutSettingsResponse>
 
 /**
@@ -2424,48 +2505,49 @@ export type IndicesPutSettingsResponse = z.infer<typeof IndicesPutSettingsRespon
  * @deprecated
  */
 export const IndicesPutTemplateRequest = z.object({
-  name: z.lazy(() => Name).describe('The name of the template').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  name: Name.describe('The name of the template').meta({ found_in: 'path' }),
   create: z.boolean().describe('If true, this request cannot replace or update existing index templates.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   cause: z.string().describe('User defined reason for creating or updating the index template').optional().meta({ found_in: 'query' }),
-  aliases: z.record(z.lazy(() => IndexName), IndicesAlias).describe('Aliases for the index.').optional().meta({ found_in: 'body' }),
+  aliases: z.record(IndexName, IndicesAlias).describe('Aliases for the index.').optional().meta({ found_in: 'body' }),
   index_patterns: z.union([z.string(), z.array(z.string())]).describe('Array of wildcard expressions used to match the names of indices during creation.').optional().meta({ found_in: 'body' }),
   mappings: z.lazy(() => MappingTypeMapping).describe('Mapping for fields in the index.').optional().meta({ found_in: 'body' }),
-  order: z.lazy(() => integer).describe('Order in which Elasticsearch applies this template if index matches multiple templates. Templates with lower \'order\' values are merged first. Templates with higher \'order\' values are merged later, overriding templates with lower values.').optional().meta({ found_in: 'body' }),
+  order: integer.describe('Order in which Elasticsearch applies this template if index matches multiple templates. Templates with lower \'order\' values are merged first. Templates with higher \'order\' values are merged later, overriding templates with lower values.').optional().meta({ found_in: 'body' }),
   settings: z.lazy(() => IndicesIndexSettings).describe('Configuration options for the index.').optional().meta({ found_in: 'body' }),
-  version: z.lazy(() => VersionNumber).describe('Version number used to manage index templates externally. This number is not automatically generated by Elasticsearch. To unset a version, replace the template without specifying one.').optional().meta({ found_in: 'body' })
+  version: VersionNumber.describe('Version number used to manage index templates externally. This number is not automatically generated by Elasticsearch. To unset a version, replace the template without specifying one.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesPutTemplateRequest' })
 export type IndicesPutTemplateRequest = z.infer<typeof IndicesPutTemplateRequest>
 
-export const IndicesPutTemplateResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IndicesPutTemplateResponse' })
+export const IndicesPutTemplateResponse = AcknowledgedResponseBase.meta({ id: 'IndicesPutTemplateResponse' })
 export type IndicesPutTemplateResponse = z.infer<typeof IndicesPutTemplateResponse>
 
 export const IndicesRecoveryFileDetails = z.object({
-  length: z.lazy(() => long),
+  length: long,
   name: z.string(),
-  recovered: z.lazy(() => long)
+  recovered: long
 }).meta({ id: 'IndicesRecoveryFileDetails' })
 export type IndicesRecoveryFileDetails = z.infer<typeof IndicesRecoveryFileDetails>
 
 export const IndicesRecoveryRecoveryBytes = z.object({
-  percent: z.lazy(() => Percentage),
-  recovered: z.lazy(() => ByteSize).optional(),
-  recovered_in_bytes: z.lazy(() => ByteSize),
-  recovered_from_snapshot: z.lazy(() => ByteSize).optional(),
-  recovered_from_snapshot_in_bytes: z.lazy(() => ByteSize).optional(),
-  reused: z.lazy(() => ByteSize).optional(),
-  reused_in_bytes: z.lazy(() => ByteSize),
-  total: z.lazy(() => ByteSize).optional(),
-  total_in_bytes: z.lazy(() => ByteSize)
+  percent: Percentage,
+  recovered: ByteSize.optional(),
+  recovered_in_bytes: ByteSize,
+  recovered_from_snapshot: ByteSize.optional(),
+  recovered_from_snapshot_in_bytes: ByteSize.optional(),
+  reused: ByteSize.optional(),
+  reused_in_bytes: ByteSize,
+  total: ByteSize.optional(),
+  total_in_bytes: ByteSize
 }).meta({ id: 'IndicesRecoveryRecoveryBytes' })
 export type IndicesRecoveryRecoveryBytes = z.infer<typeof IndicesRecoveryRecoveryBytes>
 
 export const IndicesRecoveryRecoveryFiles = z.object({
   details: z.array(IndicesRecoveryFileDetails).optional(),
-  percent: z.lazy(() => Percentage),
-  recovered: z.lazy(() => long),
-  reused: z.lazy(() => long),
-  total: z.lazy(() => long)
+  percent: Percentage,
+  recovered: long,
+  reused: long,
+  total: long
 }).meta({ id: 'IndicesRecoveryRecoveryFiles' })
 export type IndicesRecoveryRecoveryFiles = z.infer<typeof IndicesRecoveryRecoveryFiles>
 
@@ -2473,28 +2555,28 @@ export const IndicesRecoveryRecoveryIndexStatus = z.object({
   bytes: IndicesRecoveryRecoveryBytes.optional(),
   files: IndicesRecoveryRecoveryFiles,
   size: IndicesRecoveryRecoveryBytes,
-  source_throttle_time: z.lazy(() => Duration).optional(),
-  source_throttle_time_in_millis: z.lazy(() => DurationValue),
-  target_throttle_time: z.lazy(() => Duration).optional(),
-  target_throttle_time_in_millis: z.lazy(() => DurationValue),
-  total_time: z.lazy(() => Duration).optional(),
-  total_time_in_millis: z.lazy(() => DurationValue)
+  source_throttle_time: Duration.optional(),
+  source_throttle_time_in_millis: DurationValue,
+  target_throttle_time: Duration.optional(),
+  target_throttle_time_in_millis: DurationValue,
+  total_time: Duration.optional(),
+  total_time_in_millis: DurationValue
 }).meta({ id: 'IndicesRecoveryRecoveryIndexStatus' })
 export type IndicesRecoveryRecoveryIndexStatus = z.infer<typeof IndicesRecoveryRecoveryIndexStatus>
 
 export const IndicesRecoveryRecoveryOrigin = z.object({
   hostname: z.string().optional(),
-  host: z.lazy(() => Host).optional(),
-  transport_address: z.lazy(() => TransportAddress).optional(),
-  id: z.lazy(() => Id).optional(),
-  ip: z.lazy(() => Ip).optional(),
-  name: z.lazy(() => Name).optional(),
+  host: Host.optional(),
+  transport_address: TransportAddress.optional(),
+  id: Id.optional(),
+  ip: Ip.optional(),
+  name: Name.optional(),
   bootstrap_new_history_uuid: z.boolean().optional(),
-  repository: z.lazy(() => Name).optional(),
-  snapshot: z.lazy(() => Name).optional(),
-  version: z.lazy(() => VersionString).optional(),
-  restoreUUID: z.lazy(() => Uuid).optional(),
-  index: z.lazy(() => IndexName).optional()
+  repository: Name.optional(),
+  snapshot: Name.optional(),
+  version: VersionString.optional(),
+  restoreUUID: Uuid.optional(),
+  index: IndexName.optional()
 }).meta({ id: 'IndicesRecoveryRecoveryOrigin' })
 export type IndicesRecoveryRecoveryOrigin = z.infer<typeof IndicesRecoveryRecoveryOrigin>
 
@@ -2502,20 +2584,20 @@ export const IndicesRecoveryRecoveryStage = z.enum(['INIT', 'INDEX', 'VERIFY_IND
 export type IndicesRecoveryRecoveryStage = z.infer<typeof IndicesRecoveryRecoveryStage>
 
 export const IndicesRecoveryRecoveryStartStatus = z.object({
-  check_index_time: z.lazy(() => Duration).optional(),
-  check_index_time_in_millis: z.lazy(() => DurationValue),
-  total_time: z.lazy(() => Duration).optional(),
-  total_time_in_millis: z.lazy(() => DurationValue)
+  check_index_time: Duration.optional(),
+  check_index_time_in_millis: DurationValue,
+  total_time: Duration.optional(),
+  total_time_in_millis: DurationValue
 }).meta({ id: 'IndicesRecoveryRecoveryStartStatus' })
 export type IndicesRecoveryRecoveryStartStatus = z.infer<typeof IndicesRecoveryRecoveryStartStatus>
 
 export const IndicesRecoveryTranslogStatus = z.object({
-  percent: z.lazy(() => Percentage),
-  recovered: z.lazy(() => long),
-  total: z.lazy(() => long),
-  total_on_start: z.lazy(() => long),
-  total_time: z.lazy(() => Duration).optional(),
-  total_time_in_millis: z.lazy(() => DurationValue)
+  percent: Percentage,
+  recovered: long,
+  total: long,
+  total_on_start: long,
+  total_time: Duration.optional(),
+  total_time_in_millis: DurationValue
 }).meta({ id: 'IndicesRecoveryTranslogStatus' })
 export type IndicesRecoveryTranslogStatus = z.infer<typeof IndicesRecoveryTranslogStatus>
 
@@ -2523,27 +2605,27 @@ export const IndicesRecoveryRecoveryType = z.enum(['EMPTY_STORE', 'EXISTING_STOR
 export type IndicesRecoveryRecoveryType = z.infer<typeof IndicesRecoveryRecoveryType>
 
 export const IndicesRecoveryVerifyIndex = z.object({
-  check_index_time: z.lazy(() => Duration).optional(),
-  check_index_time_in_millis: z.lazy(() => DurationValue),
-  total_time: z.lazy(() => Duration).optional(),
-  total_time_in_millis: z.lazy(() => DurationValue)
+  check_index_time: Duration.optional(),
+  check_index_time_in_millis: DurationValue,
+  total_time: Duration.optional(),
+  total_time_in_millis: DurationValue
 }).meta({ id: 'IndicesRecoveryVerifyIndex' })
 export type IndicesRecoveryVerifyIndex = z.infer<typeof IndicesRecoveryVerifyIndex>
 
 export const IndicesRecoveryShardRecovery = z.object({
-  id: z.lazy(() => long),
+  id: long,
   index: IndicesRecoveryRecoveryIndexStatus,
   primary: z.boolean(),
   source: IndicesRecoveryRecoveryOrigin,
   stage: IndicesRecoveryRecoveryStage.describe('The recovery stage.'),
   start: IndicesRecoveryRecoveryStartStatus.optional(),
-  start_time: z.lazy(() => DateTime).optional(),
-  start_time_in_millis: z.lazy(() => EpochTime),
-  stop_time: z.lazy(() => DateTime).optional(),
-  stop_time_in_millis: z.lazy(() => EpochTime).optional(),
+  start_time: DateTime.optional(),
+  start_time_in_millis: EpochTime,
+  stop_time: DateTime.optional(),
+  stop_time_in_millis: EpochTime.optional(),
   target: IndicesRecoveryRecoveryOrigin,
-  total_time: z.lazy(() => Duration).optional(),
-  total_time_in_millis: z.lazy(() => DurationValue),
+  total_time: Duration.optional(),
+  total_time_in_millis: DurationValue,
   translog: IndicesRecoveryTranslogStatus,
   type: IndicesRecoveryRecoveryType.describe('The recovery source type.'),
   verify_index: IndicesRecoveryVerifyIndex
@@ -2582,16 +2664,17 @@ export type IndicesRecoveryRecoveryStatus = z.infer<typeof IndicesRecoveryRecove
  * This means that if a shard copy completes a recovery and then Elasticsearch relocates it onto a different node then the information about the original recovery will not be shown in the recovery API.
  */
 export const IndicesRecoveryRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
   active_only: z.boolean().describe('If `true`, the response only includes ongoing shard recoveries.').optional().meta({ found_in: 'query' }),
   detailed: z.boolean().describe('If `true`, the response includes detailed information about shard recoveries.').optional().meta({ found_in: 'query' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesRecoveryRequest' })
 export type IndicesRecoveryRequest = z.infer<typeof IndicesRecoveryRequest>
 
-export const IndicesRecoveryResponse = z.record(z.lazy(() => IndexName), IndicesRecoveryRecoveryStatus).meta({ id: 'IndicesRecoveryResponse' })
+export const IndicesRecoveryResponse = z.record(IndexName, IndicesRecoveryRecoveryStatus).meta({ id: 'IndicesRecoveryResponse' })
 export type IndicesRecoveryResponse = z.infer<typeof IndicesRecoveryResponse>
 
 /**
@@ -2614,14 +2697,15 @@ export type IndicesRecoveryResponse = z.infer<typeof IndicesRecoveryResponse>
  * This option ensures the indexing operation waits for a periodic refresh before running the search.
  */
 export const IndicesRefreshRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesRefreshRequest' })
 export type IndicesRefreshRequest = z.infer<typeof IndicesRefreshRequest>
 
-export const IndicesRefreshResponse = z.lazy(() => ShardsOperationResponseBase).meta({ id: 'IndicesRefreshResponse' })
+export const IndicesRefreshResponse = ShardsOperationResponseBase.meta({ id: 'IndicesRefreshResponse' })
 export type IndicesRefreshResponse = z.infer<typeof IndicesRefreshResponse>
 
 export const IndicesReloadSearchAnalyzersReloadDetails = z.object({
@@ -2633,7 +2717,7 @@ export type IndicesReloadSearchAnalyzersReloadDetails = z.infer<typeof IndicesRe
 
 export const IndicesReloadSearchAnalyzersReloadResult = z.object({
   reload_details: z.array(IndicesReloadSearchAnalyzersReloadDetails),
-  _shards: z.lazy(() => ShardStatistics)
+  _shards: ShardStatistics
 }).meta({ id: 'IndicesReloadSearchAnalyzersReloadResult' })
 export type IndicesReloadSearchAnalyzersReloadResult = z.infer<typeof IndicesReloadSearchAnalyzersReloadResult>
 
@@ -2655,9 +2739,10 @@ export type IndicesReloadSearchAnalyzersReloadResult = z.infer<typeof IndicesRel
  * This ensures the synonym file is updated everywhere in the cluster in case shards are relocated in the future.
  */
 export const IndicesReloadSearchAnalyzersRequest = z.object({
-  index: z.lazy(() => Indices).describe('A comma-separated list of index names to reload analyzers for').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('A comma-separated list of index names to reload analyzers for').meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Whether to expand wildcard expression to concrete indices that are open, closed or both.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Whether to expand wildcard expression to concrete indices that are open, closed or both.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
   resource: z.string().describe('Changed resource to reload analyzers from if applicable').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesReloadSearchAnalyzersRequest' })
@@ -2667,7 +2752,7 @@ export const IndicesReloadSearchAnalyzersResponse = IndicesReloadSearchAnalyzers
 export type IndicesReloadSearchAnalyzersResponse = z.infer<typeof IndicesReloadSearchAnalyzersResponse>
 
 export const IndicesRemoveBlockRemoveIndicesBlockStatus = z.object({
-  name: z.lazy(() => IndexName),
+  name: IndexName,
   unblocked: z.boolean().optional(),
   exception: z.lazy(() => ErrorCause).optional()
 }).meta({ id: 'IndicesRemoveBlockRemoveIndicesBlockStatus' })
@@ -2680,13 +2765,14 @@ export type IndicesRemoveBlockRemoveIndicesBlockStatus = z.infer<typeof IndicesR
  * Index blocks limit the operations allowed on an index by blocking specific operation types.
  */
 export const IndicesRemoveBlockRequest = z.object({
-  index: z.lazy(() => Indices).describe('A comma-separated list or wildcard expression of index names used to limit the request. By default, you must explicitly name the indices you are removing blocks from. To allow the removal of blocks from indices with `_all`, `*`, or other wildcard expressions, change the `action.destructive_requires_name` setting to `false`. You can update this setting in the `elasticsearch.yml` file or by using the cluster update settings API.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('A comma-separated list or wildcard expression of index names used to limit the request. By default, you must explicitly name the indices you are removing blocks from. To allow the removal of blocks from indices with `_all`, `*`, or other wildcard expressions, change the `action.destructive_requires_name` setting to `false`. You can update this setting in the `elasticsearch.yml` file or by using the cluster update settings API.').meta({ found_in: 'path' }),
   block: IndicesIndicesBlockOptions.describe('The block type to remove from the index.').meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('The type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. It supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('The type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. It supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for the master node. If the master node is not available before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('The period to wait for a response from all relevant nodes in the cluster after updating the cluster metadata. If no response is received before the timeout expires, the cluster metadata update still applies but the response will indicate that it was not completely acknowledged. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' })
+  master_timeout: Duration.describe('The period to wait for the master node. If the master node is not available before the timeout expires, the request fails and returns an error. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('The period to wait for a response from all relevant nodes in the cluster after updating the cluster metadata. If no response is received before the timeout expires, the cluster metadata update still applies but the response will indicate that it was not completely acknowledged. It can also be set to `-1` to indicate that the request should never timeout.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesRemoveBlockRequest' })
 export type IndicesRemoveBlockRequest = z.infer<typeof IndicesRemoveBlockRequest>
 
@@ -2745,12 +2831,13 @@ export type IndicesRemoveBlockResponse = z.infer<typeof IndicesRemoveBlockRespon
  * If a connection was (re-)established, this will also cause the `remote/info` endpoint to now indicate a connected status.
  */
 export const IndicesResolveClusterRequest = z.object({
-  name: z.lazy(() => Names).describe('A comma-separated list of names or index patterns for the indices, aliases, and data streams to resolve. Resources on remote clusters can be specified using the `<cluster>`:`<name>` syntax. Index and cluster exclusions (e.g., `-cluster1:*`) are also supported. If no index expression is specified, information about all remote clusters configured on the local cluster is returned without doing any index matching').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  name: Names.describe('A comma-separated list of names or index patterns for the indices, aliases, and data streams to resolve. Resources on remote clusters can be specified using the `<cluster>`:`<name>` syntax. Index and cluster exclusions (e.g., `-cluster1:*`) are also supported. If no index expression is specified, information about all remote clusters configured on the local cluster is returned without doing any index matching').optional().meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result. NOTE: This option is only supported when specifying an index expression. You will get an error if you specify index options to the `_resolve/cluster` API endpoint that takes no index expression.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`. NOTE: This option is only supported when specifying an index expression. You will get an error if you specify index options to the `_resolve/cluster` API endpoint that takes no index expression.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`. NOTE: This option is only supported when specifying an index expression. You will get an error if you specify index options to the `_resolve/cluster` API endpoint that takes no index expression.').optional().meta({ found_in: 'query' }),
   ignore_throttled: z.boolean().describe('If true, concrete, expanded, or aliased indices are ignored when frozen. NOTE: This option is only supported when specifying an index expression. You will get an error if you specify index options to the `_resolve/cluster` API endpoint that takes no index expression.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored. NOTE: This option is only supported when specifying an index expression. You will get an error if you specify index options to the `_resolve/cluster` API endpoint that takes no index expression.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('The maximum time to wait for remote clusters to respond. If a remote cluster does not respond within this timeout period, the API response will show the cluster as not connected and include an error message that the request timed out. The default timeout is unset and the query can take as long as the networking layer is configured to wait for remote clusters that are not responding (typically 30 seconds).').optional().meta({ found_in: 'query' })
+  timeout: Duration.describe('The maximum time to wait for remote clusters to respond. If a remote cluster does not respond within this timeout period, the API response will show the cluster as not connected and include an error message that the request timed out. The default timeout is unset and the query can take as long as the networking layer is configured to wait for remote clusters that are not responding (typically 30 seconds).').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesResolveClusterRequest' })
 export type IndicesResolveClusterRequest = z.infer<typeof IndicesResolveClusterRequest>
 
@@ -2760,11 +2847,11 @@ export const IndicesResolveClusterResolveClusterInfo = z.object({
   skip_unavailable: z.boolean().describe('The `skip_unavailable` setting for a remote cluster.'),
   matching_indices: z.boolean().describe('Whether the index expression provided in the request matches any indices, aliases or data streams on the cluster.').optional(),
   error: z.string().describe('Provides error messages that are likely to occur if you do a search with this index expression on the specified cluster (for example, lack of security privileges to query an index).').optional(),
-  version: z.lazy(() => ElasticsearchVersionMinInfo).describe('Provides version information about the cluster.').optional()
+  version: ElasticsearchVersionMinInfo.describe('Provides version information about the cluster.').optional()
 }).meta({ id: 'IndicesResolveClusterResolveClusterInfo' })
 export type IndicesResolveClusterResolveClusterInfo = z.infer<typeof IndicesResolveClusterResolveClusterInfo>
 
-export const IndicesResolveClusterResponse = z.record(z.lazy(() => ClusterAlias), IndicesResolveClusterResolveClusterInfo).meta({ id: 'IndicesResolveClusterResponse' })
+export const IndicesResolveClusterResponse = z.record(ClusterAlias, IndicesResolveClusterResolveClusterInfo).meta({ id: 'IndicesResolveClusterResponse' })
 export type IndicesResolveClusterResponse = z.infer<typeof IndicesResolveClusterResponse>
 
 /**
@@ -2774,8 +2861,9 @@ export type IndicesResolveClusterResponse = z.infer<typeof IndicesResolveCluster
  * Multiple patterns and remote clusters are supported.
  */
 export const IndicesResolveIndexRequest = z.object({
-  name: z.lazy(() => Names).describe('Comma-separated name(s) or index pattern(s) of the indices, aliases, and data streams to resolve. Resources on remote clusters can be specified using the `<cluster>`:`<name>` syntax.').meta({ found_in: 'path' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  name: Names.describe('Comma-separated name(s) or index pattern(s) of the indices, aliases, and data streams to resolve. Resources on remote clusters can be specified using the `<cluster>`:`<name>` syntax.').meta({ found_in: 'path' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
   mode: z.union([IndicesIndexMode, z.array(IndicesIndexMode)]).describe('Filter indices by index mode - standard, lookup, time_series, etc. Comma-separated list of IndexMode. Empty means no filter.').optional().meta({ found_in: 'query' })
@@ -2783,23 +2871,23 @@ export const IndicesResolveIndexRequest = z.object({
 export type IndicesResolveIndexRequest = z.infer<typeof IndicesResolveIndexRequest>
 
 export const IndicesResolveIndexResolveIndexAliasItem = z.object({
-  name: z.lazy(() => Name),
-  indices: z.lazy(() => Indices)
+  name: Name,
+  indices: Indices
 }).meta({ id: 'IndicesResolveIndexResolveIndexAliasItem' })
 export type IndicesResolveIndexResolveIndexAliasItem = z.infer<typeof IndicesResolveIndexResolveIndexAliasItem>
 
 export const IndicesResolveIndexResolveIndexDataStreamsItem = z.object({
-  name: z.lazy(() => DataStreamName),
-  timestamp_field: z.lazy(() => Field),
-  backing_indices: z.lazy(() => Indices)
+  name: DataStreamName,
+  timestamp_field: Field,
+  backing_indices: Indices
 }).meta({ id: 'IndicesResolveIndexResolveIndexDataStreamsItem' })
 export type IndicesResolveIndexResolveIndexDataStreamsItem = z.infer<typeof IndicesResolveIndexResolveIndexDataStreamsItem>
 
 export const IndicesResolveIndexResolveIndexItem = z.object({
-  name: z.lazy(() => Name),
+  name: Name,
   aliases: z.array(z.string()).optional(),
   attributes: z.array(z.string()),
-  data_stream: z.lazy(() => DataStreamName).optional(),
+  data_stream: DataStreamName.optional(),
   mode: IndicesIndexMode.optional()
 }).meta({ id: 'IndicesResolveIndexResolveIndexItem' })
 export type IndicesResolveIndexResolveIndexItem = z.infer<typeof IndicesResolveIndexResolveIndexItem>
@@ -2812,21 +2900,21 @@ export const IndicesResolveIndexResponse = z.object({
 export type IndicesResolveIndexResponse = z.infer<typeof IndicesResolveIndexResponse>
 
 export const IndicesRolloverRolloverConditions = z.object({
-  min_age: z.lazy(() => Duration).optional(),
-  max_age: z.lazy(() => Duration).optional(),
-  max_age_millis: z.lazy(() => DurationValue).optional(),
-  min_docs: z.lazy(() => long).optional(),
-  max_docs: z.lazy(() => long).optional(),
-  max_size: z.lazy(() => ByteSize).describe('The `max_size` condition has been deprecated in 9.3.0 and `max_primary_shard_size` should be used instead').optional(),
-  max_size_bytes: z.lazy(() => long).optional(),
-  min_size: z.lazy(() => ByteSize).optional(),
-  min_size_bytes: z.lazy(() => long).optional(),
-  max_primary_shard_size: z.lazy(() => ByteSize).optional(),
-  max_primary_shard_size_bytes: z.lazy(() => long).optional(),
-  min_primary_shard_size: z.lazy(() => ByteSize).optional(),
-  min_primary_shard_size_bytes: z.lazy(() => long).optional(),
-  max_primary_shard_docs: z.lazy(() => long).optional(),
-  min_primary_shard_docs: z.lazy(() => long).optional()
+  min_age: Duration.optional(),
+  max_age: Duration.optional(),
+  max_age_millis: DurationValue.optional(),
+  min_docs: long.optional(),
+  max_docs: long.optional(),
+  max_size: ByteSize.describe('The `max_size` condition has been deprecated in 9.3.0 and `max_primary_shard_size` should be used instead').optional(),
+  max_size_bytes: long.optional(),
+  min_size: ByteSize.optional(),
+  min_size_bytes: long.optional(),
+  max_primary_shard_size: ByteSize.optional(),
+  max_primary_shard_size_bytes: long.optional(),
+  min_primary_shard_size: ByteSize.optional(),
+  min_primary_shard_size_bytes: long.optional(),
+  max_primary_shard_docs: long.optional(),
+  min_primary_shard_docs: long.optional()
 }).meta({ id: 'IndicesRolloverRolloverConditions' })
 export type IndicesRolloverRolloverConditions = z.infer<typeof IndicesRolloverRolloverConditions>
 
@@ -2872,14 +2960,15 @@ export type IndicesRolloverRolloverConditions = z.infer<typeof IndicesRolloverRo
  * If you roll over the alias on May 7, 2099, the new index's name is `my-index-2099.05.07-000002`.
  */
 export const IndicesRolloverRequest = z.object({
-  alias: z.lazy(() => IndexAlias).describe('Name of the data stream or index alias to roll over.').meta({ found_in: 'path' }),
-  new_index: z.lazy(() => IndexName).describe('Name of the index to create. Supports date math. Data streams do not support this parameter.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  alias: IndexAlias.describe('Name of the data stream or index alias to roll over.').meta({ found_in: 'path' }),
+  new_index: IndexName.describe('Name of the index to create. Supports date math. Data streams do not support this parameter.').optional().meta({ found_in: 'path' }),
   dry_run: z.boolean().describe('If `true`, checks whether the current index satisfies the specified conditions but does not perform a rollover.').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  wait_for_active_shards: z.lazy(() => WaitForActiveShards).describe('The number of shard copies that must be active before proceeding with the operation. Set to all or any positive integer up to the total number of shards in the index (`number_of_replicas+1`).').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  wait_for_active_shards: WaitForActiveShards.describe('The number of shard copies that must be active before proceeding with the operation. Set to all or any positive integer up to the total number of shards in the index (`number_of_replicas+1`).').optional().meta({ found_in: 'query' }),
   lazy: z.boolean().describe('If set to true, the rollover action will only mark a data stream to signal that it needs to be rolled over at the next write. Only allowed on data streams.').optional().meta({ found_in: 'query' }),
-  aliases: z.record(z.lazy(() => IndexName), IndicesAlias).describe('Aliases for the target index. Data streams do not support this parameter.').optional().meta({ found_in: 'body' }),
+  aliases: z.record(IndexName, IndicesAlias).describe('Aliases for the target index. Data streams do not support this parameter.').optional().meta({ found_in: 'body' }),
   conditions: IndicesRolloverRolloverConditions.describe('Conditions for the rollover. If specified, Elasticsearch only performs the rollover if the current index satisfies these conditions. If this parameter is not specified, Elasticsearch performs the rollover unconditionally. If conditions are specified, at least one of them must be a `max_*` condition. The index will rollover if any `max_*` condition is satisfied and all `min_*` conditions are satisfied.').optional().meta({ found_in: 'body' }),
   mappings: z.lazy(() => MappingTypeMapping).describe('Mapping for fields in the index. If specified, this mapping can include field names, field data types, and mapping paramaters.').optional().meta({ found_in: 'body' }),
   settings: z.record(z.string(), z.any()).describe('Configuration options for the index. Data streams do not support this parameter.').optional().meta({ found_in: 'body' })
@@ -2908,19 +2997,19 @@ export const IndicesSegmentsSegment = z.object({
   attributes: z.record(z.string(), z.string()).describe('Contains information about whether high compression was enabled and per-field vector formats.'),
   committed: z.boolean().describe('If `true`, the segment is synced to disk. Segments that are synced can survive a hard reboot. If `false`, the data from uncommitted segments is also stored in the transaction log so that Elasticsearch is able to replay changes on the next start.'),
   compound: z.boolean().describe('If `true`, Lucene merged all files from the segment into a single file to save file descriptors.'),
-  deleted_docs: z.lazy(() => long).describe('The number of deleted documents as reported by Lucene, which may be higher or lower than the number of delete operations you have performed. This number excludes deletes that were performed recently and do not yet belong to a segment. Deleted documents are cleaned up by the automatic merge process if it makes sense to do so. Also, Elasticsearch creates extra deleted documents to internally track the recent history of operations on a shard.'),
-  generation: z.lazy(() => integer).describe('Generation number, such as `0`. Elasticsearch increments this generation number for each segment written then uses this number to derive the segment name.'),
+  deleted_docs: long.describe('The number of deleted documents as reported by Lucene, which may be higher or lower than the number of delete operations you have performed. This number excludes deletes that were performed recently and do not yet belong to a segment. Deleted documents are cleaned up by the automatic merge process if it makes sense to do so. Also, Elasticsearch creates extra deleted documents to internally track the recent history of operations on a shard.'),
+  generation: integer.describe('Generation number, such as `0`. Elasticsearch increments this generation number for each segment written then uses this number to derive the segment name.'),
   search: z.boolean().describe('If `true`, the segment is searchable. If `false`, the segment has most likely been written to disk but needs a refresh to be searchable.'),
-  size_in_bytes: z.lazy(() => double).describe('Disk space used by the segment, in bytes.'),
-  num_docs: z.lazy(() => long).describe('The number of documents as reported by Lucene. This excludes deleted documents and counts any nested documents separately from their parents. It also excludes documents which were indexed recently and do not yet belong to a segment.'),
-  version: z.lazy(() => VersionString).describe('Version of Lucene used to write the segment.')
+  size_in_bytes: double.describe('Disk space used by the segment, in bytes.'),
+  num_docs: long.describe('The number of documents as reported by Lucene. This excludes deleted documents and counts any nested documents separately from their parents. It also excludes documents which were indexed recently and do not yet belong to a segment.'),
+  version: VersionString.describe('Version of Lucene used to write the segment.')
 }).meta({ id: 'IndicesSegmentsSegment' })
 export type IndicesSegmentsSegment = z.infer<typeof IndicesSegmentsSegment>
 
 export const IndicesSegmentsShardsSegment = z.object({
-  num_committed_segments: z.lazy(() => integer),
+  num_committed_segments: integer,
   routing: IndicesSegmentsShardSegmentRouting,
-  num_search_segments: z.lazy(() => integer),
+  num_search_segments: integer,
   segments: z.record(z.string(), IndicesSegmentsSegment)
 }).meta({ id: 'IndicesSegmentsShardsSegment' })
 export type IndicesSegmentsShardsSegment = z.infer<typeof IndicesSegmentsShardsSegment>
@@ -2937,16 +3026,17 @@ export type IndicesSegmentsIndexSegment = z.infer<typeof IndicesSegmentsIndexSeg
  * For data streams, the API returns information about the stream's backing indices.
  */
 export const IndicesSegmentsRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list of data streams, indices, and aliases used to limit the request. Supports wildcards (`*`). To target all data streams and indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesSegmentsRequest' })
 export type IndicesSegmentsRequest = z.infer<typeof IndicesSegmentsRequest>
 
 export const IndicesSegmentsResponse = z.object({
   indices: z.record(z.string(), IndicesSegmentsIndexSegment),
-  _shards: z.lazy(() => ShardStatistics)
+  _shards: ShardStatistics
 }).meta({ id: 'IndicesSegmentsResponse' })
 export type IndicesSegmentsResponse = z.infer<typeof IndicesSegmentsResponse>
 
@@ -2961,7 +3051,7 @@ export type IndicesShardStoresShardStoreException = z.infer<typeof IndicesShardS
 
 export const IndicesShardStoresShardStore = z.object({
   allocation: IndicesShardStoresShardStoreAllocation.describe('The status of the store copy, whether it is used as a primary, replica, or not used at all.'),
-  allocation_id: z.lazy(() => Id).describe('The allocation ID of the store copy.').optional(),
+  allocation_id: Id.describe('The allocation ID of the store copy.').optional(),
   store_exception: IndicesShardStoresShardStoreException.describe('Any exception encountered while opening the shard index or from an earlier engine failure.').optional()
 }).catchall(z.any()).meta({ id: 'IndicesShardStoresShardStore' })
 export type IndicesShardStoresShardStore = z.infer<typeof IndicesShardStoresShardStore>
@@ -2995,16 +3085,17 @@ export type IndicesShardStoresShardStoreStatus = z.infer<typeof IndicesShardStor
  * By default, the API returns store information only for primary shards that are unassigned or have one or more unassigned replica shards.
  */
 export const IndicesShardStoresRequest = z.object({
-  index: z.lazy(() => Indices).describe('List of data streams, indices, and aliases used to limit the request.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('List of data streams, indices, and aliases used to limit the request.').optional().meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
   status: z.union([IndicesShardStoresShardStoreStatus, z.array(IndicesShardStoresShardStoreStatus)]).describe('List of shard health statuses used to limit the request.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesShardStoresRequest' })
 export type IndicesShardStoresRequest = z.infer<typeof IndicesShardStoresRequest>
 
 export const IndicesShardStoresResponse = z.object({
-  indices: z.record(z.lazy(() => IndexName), IndicesShardStoresIndicesShardStores)
+  indices: z.record(IndexName, IndicesShardStoresIndicesShardStores)
 }).meta({ id: 'IndicesShardStoresResponse' })
 export type IndicesShardStoresResponse = z.infer<typeof IndicesShardStoresResponse>
 
@@ -3012,9 +3103,9 @@ export const IndicesShardStoresShardStoreNode = z.object({
   attributes: z.record(z.string(), z.string()),
   ephemeral_id: z.string().optional(),
   external_id: z.string().optional(),
-  name: z.lazy(() => Name),
+  name: Name,
   roles: z.array(z.string()),
-  transport_address: z.lazy(() => TransportAddress)
+  transport_address: TransportAddress
 }).meta({ id: 'IndicesShardStoresShardStoreNode' })
 export type IndicesShardStoresShardStoreNode = z.infer<typeof IndicesShardStoresShardStoreNode>
 
@@ -3056,12 +3147,13 @@ export type IndicesShardStoresShardStoreNode = z.infer<typeof IndicesShardStores
  * * The node handling the shrink process must have sufficient free disk space to accommodate a second copy of the existing index.
  */
 export const IndicesShrinkRequest = z.object({
-  index: z.lazy(() => IndexName).describe('Name of the source index to shrink.').meta({ found_in: 'path' }),
-  target: z.lazy(() => IndexName).describe('Name of the target index to create.').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  wait_for_active_shards: z.lazy(() => WaitForActiveShards).describe('The number of shard copies that must be active before proceeding with the operation. Set to `all` or any positive integer up to the total number of shards in the index (`number_of_replicas+1`).').optional().meta({ found_in: 'query' }),
-  aliases: z.record(z.lazy(() => IndexName), IndicesAlias).describe('The key is the alias name. Index alias names support date math.').optional().meta({ found_in: 'body' }),
+  ...RequestBase.shape,
+  index: IndexName.describe('Name of the source index to shrink.').meta({ found_in: 'path' }),
+  target: IndexName.describe('Name of the target index to create.').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  wait_for_active_shards: WaitForActiveShards.describe('The number of shard copies that must be active before proceeding with the operation. Set to `all` or any positive integer up to the total number of shards in the index (`number_of_replicas+1`).').optional().meta({ found_in: 'query' }),
+  aliases: z.record(IndexName, IndicesAlias).describe('The key is the alias name. Index alias names support date math.').optional().meta({ found_in: 'body' }),
   settings: z.record(z.string(), z.any()).describe('Configuration options for the target index.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesShrinkRequest' })
 export type IndicesShrinkRequest = z.infer<typeof IndicesShrinkRequest>
@@ -3069,7 +3161,7 @@ export type IndicesShrinkRequest = z.infer<typeof IndicesShrinkRequest>
 export const IndicesShrinkResponse = z.object({
   acknowledged: z.boolean(),
   shards_acknowledged: z.boolean(),
-  index: z.lazy(() => IndexName)
+  index: IndexName
 }).meta({ id: 'IndicesShrinkResponse' })
 export type IndicesShrinkResponse = z.infer<typeof IndicesShrinkResponse>
 
@@ -3079,23 +3171,24 @@ export type IndicesShrinkResponse = z.infer<typeof IndicesShrinkResponse>
  * Get the index configuration that would be applied to the specified index from an existing index template.
  */
 export const IndicesSimulateIndexTemplateRequest = z.object({
-  name: z.lazy(() => Name).describe('Name of the index to simulate').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  name: Name.describe('Name of the index to simulate').meta({ found_in: 'path' }),
   create: z.boolean().describe('Whether the index template we optionally defined in the body should only be dry-run added if new or can also replace an existing one').optional().meta({ found_in: 'query' }),
   cause: z.string().describe('User defined reason for dry-run creating the new template for simulation purposes').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   include_defaults: z.boolean().describe('If true, returns all relevant default configurations for the index template.').optional().meta({ found_in: 'query' }),
   index_template: IndicesIndexTemplate.optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesSimulateIndexTemplateRequest' })
 export type IndicesSimulateIndexTemplateRequest = z.infer<typeof IndicesSimulateIndexTemplateRequest>
 
 export const IndicesSimulateTemplateOverlapping = z.object({
-  name: z.lazy(() => Name),
+  name: Name,
   index_patterns: z.array(z.string())
 }).meta({ id: 'IndicesSimulateTemplateOverlapping' })
 export type IndicesSimulateTemplateOverlapping = z.infer<typeof IndicesSimulateTemplateOverlapping>
 
 export const IndicesSimulateTemplateTemplate = z.object({
-  aliases: z.record(z.lazy(() => IndexName), IndicesAlias),
+  aliases: z.record(IndexName, IndicesAlias),
   mappings: z.lazy(() => MappingTypeMapping),
   settings: z.lazy(() => IndicesIndexSettings)
 }).meta({ id: 'IndicesSimulateTemplateTemplate' })
@@ -3113,19 +3206,20 @@ export type IndicesSimulateIndexTemplateResponse = z.infer<typeof IndicesSimulat
  * Get the index configuration that would be applied by a particular index template.
  */
 export const IndicesSimulateTemplateRequest = z.object({
-  name: z.lazy(() => Name).describe('Name of the index template to simulate. To test a template configuration before you add it to the cluster, omit this parameter and specify the template configuration in the request body.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  name: Name.describe('Name of the index template to simulate. To test a template configuration before you add it to the cluster, omit this parameter and specify the template configuration in the request body.').optional().meta({ found_in: 'path' }),
   create: z.boolean().describe('If true, the template passed in the body is only used if no existing templates match the same index patterns. If false, the simulation uses the template with the highest priority. Note that the template is not permanently added or updated in either case; it is only used for the simulation.').optional().meta({ found_in: 'query' }),
   cause: z.string().describe('User defined reason for dry-run creating the new template for simulation purposes').optional().meta({ found_in: 'query' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   include_defaults: z.boolean().describe('If true, returns all relevant default configurations for the index template.').optional().meta({ found_in: 'query' }),
   allow_auto_create: z.boolean().describe('This setting overrides the value of the `action.auto_create_index` cluster setting. If set to `true` in a template, then indices can be automatically created using that template even if auto-creation of indices is disabled via `actions.auto_create_index`. If set to `false`, then indices or data streams matching the template must always be explicitly created, and may never be automatically created.').optional().meta({ found_in: 'body' }),
-  index_patterns: z.lazy(() => Indices).describe('Array of wildcard (`*`) expressions used to match the names of data streams and indices during creation.').optional().meta({ found_in: 'body' }),
-  composed_of: z.array(z.lazy(() => Name)).describe('An ordered list of component template names. Component templates are merged in the order specified, meaning that the last component template specified has the highest precedence.').optional().meta({ found_in: 'body' }),
-  template: z.lazy(() => IndicesPutIndexTemplateIndexTemplateMapping).describe('Template to be applied. It may optionally include an `aliases`, `mappings`, or `settings` configuration.').optional().meta({ found_in: 'body' }),
+  index_patterns: Indices.describe('Array of wildcard (`*`) expressions used to match the names of data streams and indices during creation.').optional().meta({ found_in: 'body' }),
+  composed_of: z.array(Name).describe('An ordered list of component template names. Component templates are merged in the order specified, meaning that the last component template specified has the highest precedence.').optional().meta({ found_in: 'body' }),
+  template: IndicesPutIndexTemplateIndexTemplateMapping.describe('Template to be applied. It may optionally include an `aliases`, `mappings`, or `settings` configuration.').optional().meta({ found_in: 'body' }),
   data_stream: IndicesDataStreamVisibility.describe('If this object is included, the template is used to create data streams and their backing indices. Supports an empty object. Data streams require a matching index template with a `data_stream` object.').optional().meta({ found_in: 'body' }),
-  priority: z.lazy(() => long).describe('Priority to determine index template precedence when a new data stream or index is created. The index template with the highest priority is chosen. If no priority is specified the template is treated as though it is of priority 0 (lowest priority). This number is not automatically generated by Elasticsearch.').optional().meta({ found_in: 'body' }),
-  version: z.lazy(() => VersionNumber).describe('Version number used to manage index templates externally. This number is not automatically generated by Elasticsearch.').optional().meta({ found_in: 'body' }),
-  _meta: z.lazy(() => Metadata).describe('Optional user metadata about the index template. May have any contents. This map is not automatically generated by Elasticsearch.').optional().meta({ found_in: 'body' }),
+  priority: long.describe('Priority to determine index template precedence when a new data stream or index is created. The index template with the highest priority is chosen. If no priority is specified the template is treated as though it is of priority 0 (lowest priority). This number is not automatically generated by Elasticsearch.').optional().meta({ found_in: 'body' }),
+  version: VersionNumber.describe('Version number used to manage index templates externally. This number is not automatically generated by Elasticsearch.').optional().meta({ found_in: 'body' }),
+  _meta: Metadata.describe('Optional user metadata about the index template. May have any contents. This map is not automatically generated by Elasticsearch.').optional().meta({ found_in: 'body' }),
   ignore_missing_component_templates: z.array(z.string()).describe('The configuration option ignore_missing_component_templates can be used when an index template references a component template that might not exist').optional().meta({ found_in: 'body' }),
   deprecated: z.boolean().describe('Marks this index template as deprecated. When creating or updating a non-deprecated index template that uses deprecated components, Elasticsearch will emit a deprecation warning.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesSimulateTemplateRequest' })
@@ -3174,12 +3268,13 @@ export type IndicesSimulateTemplateResponse = z.infer<typeof IndicesSimulateTemp
  * * The node handling the split process must have sufficient free disk space to accommodate a second copy of the existing index.
  */
 export const IndicesSplitRequest = z.object({
-  index: z.lazy(() => IndexName).describe('Name of the source index to split.').meta({ found_in: 'path' }),
-  target: z.lazy(() => IndexName).describe('Name of the target index to create.').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  wait_for_active_shards: z.lazy(() => WaitForActiveShards).describe('The number of shard copies that must be active before proceeding with the operation. Set to `all` or any positive integer up to the total number of shards in the index (`number_of_replicas+1`).').optional().meta({ found_in: 'query' }),
-  aliases: z.record(z.lazy(() => IndexName), IndicesAlias).describe('Aliases for the resulting index.').optional().meta({ found_in: 'body' }),
+  ...RequestBase.shape,
+  index: IndexName.describe('Name of the source index to split.').meta({ found_in: 'path' }),
+  target: IndexName.describe('Name of the target index to create.').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  wait_for_active_shards: WaitForActiveShards.describe('The number of shard copies that must be active before proceeding with the operation. Set to `all` or any positive integer up to the total number of shards in the index (`number_of_replicas+1`).').optional().meta({ found_in: 'query' }),
+  aliases: z.record(IndexName, IndicesAlias).describe('Aliases for the resulting index.').optional().meta({ found_in: 'body' }),
   settings: z.record(z.string(), z.any()).describe('Configuration options for the target index.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesSplitRequest' })
 export type IndicesSplitRequest = z.infer<typeof IndicesSplitRequest>
@@ -3187,7 +3282,7 @@ export type IndicesSplitRequest = z.infer<typeof IndicesSplitRequest>
 export const IndicesSplitResponse = z.object({
   acknowledged: z.boolean(),
   shards_acknowledged: z.boolean(),
-  index: z.lazy(() => IndexName)
+  index: IndexName
 }).meta({ id: 'IndicesSplitResponse' })
 export type IndicesSplitResponse = z.infer<typeof IndicesSplitResponse>
 
@@ -3195,17 +3290,17 @@ export const IndicesStatsIndexMetadataState = z.enum(['open', 'close']).meta({ i
 export type IndicesStatsIndexMetadataState = z.infer<typeof IndicesStatsIndexMetadataState>
 
 export const IndicesStatsShardCommit = z.object({
-  generation: z.lazy(() => integer),
-  id: z.lazy(() => Id),
-  num_docs: z.lazy(() => long),
+  generation: integer,
+  id: Id,
+  num_docs: long,
   user_data: z.record(z.string(), z.string())
 }).meta({ id: 'IndicesStatsShardCommit' })
 export type IndicesStatsShardCommit = z.infer<typeof IndicesStatsShardCommit>
 
 export const IndicesStatsMappingStats = z.object({
-  total_count: z.lazy(() => long),
-  total_estimated_overhead: z.lazy(() => ByteSize).optional(),
-  total_estimated_overhead_in_bytes: z.lazy(() => long)
+  total_count: long,
+  total_estimated_overhead: ByteSize.optional(),
+  total_estimated_overhead_in_bytes: long
 }).meta({ id: 'IndicesStatsMappingStats' })
 export type IndicesStatsMappingStats = z.infer<typeof IndicesStatsMappingStats>
 
@@ -3217,40 +3312,40 @@ export const IndicesStatsShardPath = z.object({
 export type IndicesStatsShardPath = z.infer<typeof IndicesStatsShardPath>
 
 export const IndicesStatsShardQueryCache = z.object({
-  cache_count: z.lazy(() => long),
-  cache_size: z.lazy(() => long),
-  evictions: z.lazy(() => long),
-  hit_count: z.lazy(() => long),
-  memory_size_in_bytes: z.lazy(() => long),
-  miss_count: z.lazy(() => long),
-  total_count: z.lazy(() => long)
+  cache_count: long,
+  cache_size: long,
+  evictions: long,
+  hit_count: long,
+  memory_size_in_bytes: long,
+  miss_count: long,
+  total_count: long
 }).meta({ id: 'IndicesStatsShardQueryCache' })
 export type IndicesStatsShardQueryCache = z.infer<typeof IndicesStatsShardQueryCache>
 
 export const IndicesStatsShardLease = z.object({
-  id: z.lazy(() => Id),
-  retaining_seq_no: z.lazy(() => SequenceNumber),
-  timestamp: z.lazy(() => long),
+  id: Id,
+  retaining_seq_no: SequenceNumber,
+  timestamp: long,
   source: z.string()
 }).meta({ id: 'IndicesStatsShardLease' })
 export type IndicesStatsShardLease = z.infer<typeof IndicesStatsShardLease>
 
 export const IndicesStatsShardRetentionLeases = z.object({
-  primary_term: z.lazy(() => long),
-  version: z.lazy(() => VersionNumber),
+  primary_term: long,
+  version: VersionNumber,
   leases: z.array(IndicesStatsShardLease)
 }).meta({ id: 'IndicesStatsShardRetentionLeases' })
 export type IndicesStatsShardRetentionLeases = z.infer<typeof IndicesStatsShardRetentionLeases>
 
 export const IndicesStatsShardSequenceNumber = z.object({
-  global_checkpoint: z.lazy(() => long),
-  local_checkpoint: z.lazy(() => long),
-  max_seq_no: z.lazy(() => SequenceNumber)
+  global_checkpoint: long,
+  local_checkpoint: long,
+  max_seq_no: SequenceNumber
 }).meta({ id: 'IndicesStatsShardSequenceNumber' })
 export type IndicesStatsShardSequenceNumber = z.infer<typeof IndicesStatsShardSequenceNumber>
 
 export const IndicesStatsShardsTotalStats = z.object({
-  total_count: z.lazy(() => long)
+  total_count: long
 }).meta({ id: 'IndicesStatsShardsTotalStats' })
 export type IndicesStatsShardsTotalStats = z.infer<typeof IndicesStatsShardsTotalStats>
 
@@ -3284,29 +3379,29 @@ export interface IndicesStatsShardStatsShape {
 }
 export const IndicesStatsShardStats = z.object({
   commit: IndicesStatsShardCommit.optional(),
-  completion: z.lazy(() => CompletionStats).optional(),
-  docs: z.lazy(() => DocStats).optional(),
-  fielddata: z.lazy(() => FielddataStats).optional(),
-  flush: z.lazy(() => FlushStats).optional(),
-  get: z.lazy(() => GetStats).optional(),
+  completion: CompletionStats.optional(),
+  docs: DocStats.optional(),
+  fielddata: FielddataStats.optional(),
+  flush: FlushStats.optional(),
+  get: GetStats.optional(),
   get indexing () { return IndexingStats.optional() },
   mappings: IndicesStatsMappingStats.optional(),
-  merges: z.lazy(() => MergesStats).optional(),
+  merges: MergesStats.optional(),
   shard_path: IndicesStatsShardPath.optional(),
   query_cache: IndicesStatsShardQueryCache.optional(),
-  recovery: z.lazy(() => RecoveryStats).optional(),
-  refresh: z.lazy(() => RefreshStats).optional(),
-  request_cache: z.lazy(() => RequestCacheStats).optional(),
+  recovery: RecoveryStats.optional(),
+  refresh: RefreshStats.optional(),
+  request_cache: RequestCacheStats.optional(),
   retention_leases: IndicesStatsShardRetentionLeases.optional(),
   routing: IndicesStatsShardRouting.optional(),
   get search () { return SearchStats.optional() },
-  segments: z.lazy(() => SegmentsStats).optional(),
+  segments: SegmentsStats.optional(),
   seq_no: IndicesStatsShardSequenceNumber.optional(),
-  store: z.lazy(() => StoreStats).optional(),
-  translog: z.lazy(() => TranslogStats).optional(),
-  warmer: z.lazy(() => WarmerStats).optional(),
-  bulk: z.lazy(() => BulkStats).optional(),
-  shards: z.record(z.lazy(() => IndexName), z.any()).optional(),
+  store: StoreStats.optional(),
+  translog: TranslogStats.optional(),
+  warmer: WarmerStats.optional(),
+  bulk: BulkStats.optional(),
+  shards: z.record(IndexName, z.any()).optional(),
   shard_stats: IndicesStatsShardsTotalStats.optional(),
   get indices () { return IndicesStatsIndicesStats.optional() }
 }).meta({ id: 'IndicesStatsShardStats' })
@@ -3324,8 +3419,8 @@ export const IndicesStatsIndicesStats = z.object({
   get primaries () { return IndicesStatsIndexStats.optional() },
   get shards (): z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodArray<typeof IndicesStatsShardStats>>> { return z.record(z.string(), IndicesStatsShardStats.array()).optional() },
   get total () { return IndicesStatsIndexStats.optional() },
-  uuid: z.lazy(() => Uuid).optional(),
-  health: z.lazy(() => HealthStatus).optional(),
+  uuid: Uuid.optional(),
+  health: HealthStatus.optional(),
   status: IndicesStatsIndexMetadataState.optional()
 }).meta({ id: 'IndicesStatsIndicesStats' })
 export type IndicesStatsIndicesStats = z.infer<typeof IndicesStatsIndicesStats>
@@ -3352,24 +3447,24 @@ export interface IndicesStatsIndexStatsShape {
   shard_stats?: IndicesStatsShardsTotalStats | undefined
 }
 export const IndicesStatsIndexStats = z.object({
-  completion: z.lazy(() => CompletionStats).describe('Contains statistics about completions across all shards assigned to the node.').optional(),
-  docs: z.lazy(() => DocStats).describe('Contains statistics about documents across all primary shards assigned to the node.').optional(),
-  fielddata: z.lazy(() => FielddataStats).describe('Contains statistics about the field data cache across all shards assigned to the node.').optional(),
-  flush: z.lazy(() => FlushStats).describe('Contains statistics about flush operations for the node.').optional(),
-  get: z.lazy(() => GetStats).describe('Contains statistics about get operations for the node.').optional(),
+  completion: CompletionStats.describe('Contains statistics about completions across all shards assigned to the node.').optional(),
+  docs: DocStats.describe('Contains statistics about documents across all primary shards assigned to the node.').optional(),
+  fielddata: FielddataStats.describe('Contains statistics about the field data cache across all shards assigned to the node.').optional(),
+  flush: FlushStats.describe('Contains statistics about flush operations for the node.').optional(),
+  get: GetStats.describe('Contains statistics about get operations for the node.').optional(),
   get indexing () { return IndexingStats.describe('Contains statistics about indexing operations for the node.').optional() },
   get indices () { return IndicesStatsIndicesStats.describe('Contains statistics about indices operations for the node.').optional() },
-  merges: z.lazy(() => MergesStats).describe('Contains statistics about merge operations for the node.').optional(),
-  query_cache: z.lazy(() => QueryCacheStats).describe('Contains statistics about the query cache across all shards assigned to the node.').optional(),
-  recovery: z.lazy(() => RecoveryStats).describe('Contains statistics about recovery operations for the node.').optional(),
-  refresh: z.lazy(() => RefreshStats).describe('Contains statistics about refresh operations for the node.').optional(),
-  request_cache: z.lazy(() => RequestCacheStats).describe('Contains statistics about the request cache across all shards assigned to the node.').optional(),
+  merges: MergesStats.describe('Contains statistics about merge operations for the node.').optional(),
+  query_cache: QueryCacheStats.describe('Contains statistics about the query cache across all shards assigned to the node.').optional(),
+  recovery: RecoveryStats.describe('Contains statistics about recovery operations for the node.').optional(),
+  refresh: RefreshStats.describe('Contains statistics about refresh operations for the node.').optional(),
+  request_cache: RequestCacheStats.describe('Contains statistics about the request cache across all shards assigned to the node.').optional(),
   get search () { return SearchStats.describe('Contains statistics about search operations for the node.').optional() },
-  segments: z.lazy(() => SegmentsStats).describe('Contains statistics about segments across all shards assigned to the node.').optional(),
-  store: z.lazy(() => StoreStats).describe('Contains statistics about the size of shards assigned to the node.').optional(),
-  translog: z.lazy(() => TranslogStats).describe('Contains statistics about transaction log operations for the node.').optional(),
-  warmer: z.lazy(() => WarmerStats).describe('Contains statistics about index warming operations for the node.').optional(),
-  bulk: z.lazy(() => BulkStats).optional(),
+  segments: SegmentsStats.describe('Contains statistics about segments across all shards assigned to the node.').optional(),
+  store: StoreStats.describe('Contains statistics about the size of shards assigned to the node.').optional(),
+  translog: TranslogStats.describe('Contains statistics about transaction log operations for the node.').optional(),
+  warmer: WarmerStats.describe('Contains statistics about index warming operations for the node.').optional(),
+  bulk: BulkStats.optional(),
   shard_stats: IndicesStatsShardsTotalStats.optional()
 }).meta({ id: 'IndicesStatsIndexStats' })
 export type IndicesStatsIndexStats = z.infer<typeof IndicesStatsIndexStats>
@@ -3389,33 +3484,34 @@ export type IndicesStatsIndexStats = z.infer<typeof IndicesStatsIndexStats>
  * Although the shard is no longer part of the node, that node retains any node-level statistics to which the shard contributed.
  */
 export const IndicesStatsRequest = z.object({
-  metric: z.lazy(() => CommonStatsFlags).describe('Comma-separated list of metrics used to limit the request.').optional().meta({ found_in: 'path' }),
-  index: z.lazy(() => Indices).describe('A comma-separated list of index names; use `_all` or empty string to perform the operation on all indices').optional().meta({ found_in: 'path' }),
-  completion_fields: z.lazy(() => Fields).describe('Comma-separated list or wildcard expressions of fields to include in fielddata and suggest statistics.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
-  fielddata_fields: z.lazy(() => Fields).describe('Comma-separated list or wildcard expressions of fields to include in fielddata statistics.').optional().meta({ found_in: 'query' }),
-  fields: z.lazy(() => Fields).describe('Comma-separated list or wildcard expressions of fields to include in the statistics.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  metric: CommonStatsFlags.describe('Comma-separated list of metrics used to limit the request.').optional().meta({ found_in: 'path' }),
+  index: Indices.describe('A comma-separated list of index names; use `_all` or empty string to perform the operation on all indices').optional().meta({ found_in: 'path' }),
+  completion_fields: Fields.describe('Comma-separated list or wildcard expressions of fields to include in fielddata and suggest statistics.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  fielddata_fields: Fields.describe('Comma-separated list or wildcard expressions of fields to include in fielddata statistics.').optional().meta({ found_in: 'query' }),
+  fields: Fields.describe('Comma-separated list or wildcard expressions of fields to include in the statistics.').optional().meta({ found_in: 'query' }),
   forbid_closed_indices: z.boolean().describe('If true, statistics are not collected from closed indices.').optional().meta({ found_in: 'query' }),
   groups: z.union([z.string(), z.array(z.string())]).describe('Comma-separated list of search groups to include in the search statistics.').optional().meta({ found_in: 'query' }),
   include_segment_file_sizes: z.boolean().describe('If true, the call reports the aggregated disk usage of each one of the Lucene index files (only applies if segment stats are requested).').optional().meta({ found_in: 'query' }),
   include_unloaded_segments: z.boolean().describe('If true, the response includes information from segments that are not loaded into memory.').optional().meta({ found_in: 'query' }),
-  level: z.lazy(() => Level).describe('Indicates whether statistics are aggregated at the cluster, indices, or shards level.').optional().meta({ found_in: 'query' })
+  level: Level.describe('Indicates whether statistics are aggregated at the cluster, indices, or shards level.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'IndicesStatsRequest' })
 export type IndicesStatsRequest = z.infer<typeof IndicesStatsRequest>
 
 export const IndicesStatsResponse = z.object({
   indices: z.record(z.string(), z.lazy(() => IndicesStatsIndicesStats)).optional(),
-  _shards: z.lazy(() => ShardStatistics),
+  _shards: ShardStatistics,
   _all: z.lazy(() => IndicesStatsIndicesStats)
 }).meta({ id: 'IndicesStatsResponse' })
 export type IndicesStatsResponse = z.infer<typeof IndicesStatsResponse>
 
 export const IndicesUpdateAliasesAddAction = z.object({
-  alias: z.lazy(() => IndexAlias).describe('Alias for the action. Index alias names support date math.').optional(),
-  aliases: z.union([z.lazy(() => IndexAlias), z.array(z.lazy(() => IndexAlias))]).describe('Aliases for the action. Index alias names support date math.').optional(),
+  alias: IndexAlias.describe('Alias for the action. Index alias names support date math.').optional(),
+  aliases: z.union([IndexAlias, z.array(IndexAlias)]).describe('Aliases for the action. Index alias names support date math.').optional(),
   filter: z.lazy(() => QueryDslQueryContainer).describe('Query used to limit documents the alias can access.').optional(),
-  index: z.lazy(() => IndexName).describe('Data stream or index for the action. Supports wildcards (`*`).').optional(),
-  indices: z.lazy(() => Indices).describe('Data streams or indices for the action. Supports wildcards (`*`).').optional(),
+  index: IndexName.describe('Data stream or index for the action. Supports wildcards (`*`).').optional(),
+  indices: Indices.describe('Data streams or indices for the action. Supports wildcards (`*`).').optional(),
   index_routing: z.string().describe('Value used to route indexing operations to a specific shard. If specified, this overwrites the `routing` value for indexing operations. Data stream aliases don’t support this parameter.').optional(),
   is_hidden: z.boolean().describe('If `true`, the alias is hidden.').optional(),
   is_write_index: z.boolean().describe('If `true`, sets the write index or data stream for the alias.').optional(),
@@ -3426,17 +3522,17 @@ export const IndicesUpdateAliasesAddAction = z.object({
 export type IndicesUpdateAliasesAddAction = z.infer<typeof IndicesUpdateAliasesAddAction>
 
 export const IndicesUpdateAliasesRemoveAction = z.object({
-  alias: z.lazy(() => IndexAlias).describe('Alias for the action. Index alias names support date math.').optional(),
-  aliases: z.union([z.lazy(() => IndexAlias), z.array(z.lazy(() => IndexAlias))]).describe('Aliases for the action. Index alias names support date math.').optional(),
-  index: z.lazy(() => IndexName).describe('Data stream or index for the action. Supports wildcards (`*`).').optional(),
-  indices: z.lazy(() => Indices).describe('Data streams or indices for the action. Supports wildcards (`*`).').optional(),
+  alias: IndexAlias.describe('Alias for the action. Index alias names support date math.').optional(),
+  aliases: z.union([IndexAlias, z.array(IndexAlias)]).describe('Aliases for the action. Index alias names support date math.').optional(),
+  index: IndexName.describe('Data stream or index for the action. Supports wildcards (`*`).').optional(),
+  indices: Indices.describe('Data streams or indices for the action. Supports wildcards (`*`).').optional(),
   must_exist: z.boolean().describe('If `true`, the alias must exist to perform the action.').optional()
 }).meta({ id: 'IndicesUpdateAliasesRemoveAction' })
 export type IndicesUpdateAliasesRemoveAction = z.infer<typeof IndicesUpdateAliasesRemoveAction>
 
 export const IndicesUpdateAliasesRemoveIndexAction = z.object({
-  index: z.lazy(() => IndexName).describe('Data stream or index for the action. Supports wildcards (`*`).').optional(),
-  indices: z.lazy(() => Indices).describe('Data streams or indices for the action. Supports wildcards (`*`).').optional(),
+  index: IndexName.describe('Data stream or index for the action. Supports wildcards (`*`).').optional(),
+  indices: Indices.describe('Data streams or indices for the action. Supports wildcards (`*`).').optional(),
   must_exist: z.boolean().describe('If `true`, the alias must exist to perform the action.').optional()
 }).meta({ id: 'IndicesUpdateAliasesRemoveIndexAction' })
 export type IndicesUpdateAliasesRemoveIndexAction = z.infer<typeof IndicesUpdateAliasesRemoveIndexAction>
@@ -3452,20 +3548,21 @@ export type IndicesUpdateAliasesAction = z.infer<typeof IndicesUpdateAliasesActi
  * Adds a data stream or index to an alias.
  */
 export const IndicesUpdateAliasesRequest = z.object({
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   actions: z.array(IndicesUpdateAliasesAction).describe('Actions to perform.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'IndicesUpdateAliasesRequest' })
 export type IndicesUpdateAliasesRequest = z.infer<typeof IndicesUpdateAliasesRequest>
 
-export const IndicesUpdateAliasesResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'IndicesUpdateAliasesResponse' })
+export const IndicesUpdateAliasesResponse = AcknowledgedResponseBase.meta({ id: 'IndicesUpdateAliasesResponse' })
 export type IndicesUpdateAliasesResponse = z.infer<typeof IndicesUpdateAliasesResponse>
 
 export const IndicesValidateQueryIndicesValidationExplanation = z.object({
   error: z.string().optional(),
   explanation: z.string().optional(),
-  index: z.lazy(() => IndexName).optional(),
-  shard: z.lazy(() => integer).optional(),
+  index: IndexName.optional(),
+  shard: integer.optional(),
   valid: z.boolean()
 }).meta({ id: 'IndicesValidateQueryIndicesValidationExplanation' })
 export type IndicesValidateQueryIndicesValidationExplanation = z.infer<typeof IndicesValidateQueryIndicesValidationExplanation>
@@ -3476,14 +3573,15 @@ export type IndicesValidateQueryIndicesValidationExplanation = z.infer<typeof In
  * Validates a query without running it.
  */
 export const IndicesValidateQueryRequest = z.object({
-  index: z.lazy(() => Indices).describe('Comma-separated list of data streams, indices, and aliases to search. Supports wildcards (`*`). To search all data streams or indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  index: Indices.describe('Comma-separated list of data streams, indices, and aliases to search. Supports wildcards (`*`). To search all data streams or indices, omit this parameter or use `*` or `_all`.').optional().meta({ found_in: 'path' }),
   allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional().meta({ found_in: 'query' }),
   all_shards: z.boolean().describe('If `true`, the validation is executed on all shards instead of one random shard per index.').optional().meta({ found_in: 'query' }),
   analyzer: z.string().describe('Analyzer to use for the query string. This parameter can only be used when the `q` query string parameter is specified.').optional().meta({ found_in: 'query' }),
   analyze_wildcard: z.boolean().describe('If `true`, wildcard and prefix queries are analyzed.').optional().meta({ found_in: 'query' }),
   default_operator: z.lazy(() => QueryDslOperator).describe('The default operator for query string query: `and` or `or`.').optional().meta({ found_in: 'query' }),
   df: z.string().describe('Field to use as default where no field prefix is given in the query string. This parameter can only be used when the `q` query string parameter is specified.').optional().meta({ found_in: 'query' }),
-  expand_wildcards: z.lazy(() => ExpandWildcards).describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
+  expand_wildcards: ExpandWildcards.describe('Type of index that wildcard patterns can match. If the request can target data streams, this argument determines whether wildcard expressions match hidden data streams. Supports comma-separated values, such as `open,hidden`.').optional().meta({ found_in: 'query' }),
   explain: z.boolean().describe('If `true`, the response returns detailed information if an error has occurred.').optional().meta({ found_in: 'query' }),
   ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional().meta({ found_in: 'query' }),
   lenient: z.boolean().describe('If `true`, format-based query failures (such as providing text to a numeric field) in the query string will be ignored.').optional().meta({ found_in: 'query' }),
@@ -3495,7 +3593,7 @@ export type IndicesValidateQueryRequest = z.infer<typeof IndicesValidateQueryReq
 
 export const IndicesValidateQueryResponse = z.object({
   explanations: z.array(IndicesValidateQueryIndicesValidationExplanation).optional(),
-  _shards: z.lazy(() => ShardStatistics).optional(),
+  _shards: ShardStatistics.optional(),
   valid: z.boolean(),
   error: z.string().optional()
 }).meta({ id: 'IndicesValidateQueryResponse' })

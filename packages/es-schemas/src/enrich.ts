@@ -3,19 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
- 
- 
+/* eslint-disable @typescript-eslint/no-use-before-define */
+/* eslint-disable @typescript-eslint/no-redeclare */
 import { z } from 'zod'
 
-import { AcknowledgedResponseBase, Duration, DurationValue, Field, Fields, Id, Indices, Name, Names, QueryDslQueryContainer, TaskId, integer, long } from './_types.ts'
+import { AcknowledgedResponseBase, Duration, DurationValue, Field, Fields, Id, Indices, Name, Names, RequestBase, TaskId, integer, long } from './_types.ts'
+import { QueryDslQueryContainer } from './_types.query_dsl.ts'
 import { TasksTaskInfo } from './tasks.ts'
 
 export const EnrichPolicy = z.object({
-  enrich_fields: z.lazy(() => Fields),
-  indices: z.lazy(() => Indices),
-  match_field: z.lazy(() => Field),
+  enrich_fields: Fields,
+  indices: Indices,
+  match_field: Field,
   query: z.lazy(() => QueryDslQueryContainer).optional(),
-  name: z.lazy(() => Name).optional(),
+  name: Name.optional(),
   elasticsearch_version: z.string().optional()
 }).meta({ id: 'EnrichPolicy' })
 export type EnrichPolicy = z.infer<typeof EnrichPolicy>
@@ -34,12 +35,13 @@ export type EnrichSummary = z.infer<typeof EnrichSummary>
  * Deletes an existing enrich policy and its enrich index.
  */
 export const EnrichDeletePolicyRequest = z.object({
-  name: z.lazy(() => Name).describe('Enrich policy to delete.').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: Name.describe('Enrich policy to delete.').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'EnrichDeletePolicyRequest' })
 export type EnrichDeletePolicyRequest = z.infer<typeof EnrichDeletePolicyRequest>
 
-export const EnrichDeletePolicyResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'EnrichDeletePolicyResponse' })
+export const EnrichDeletePolicyResponse = AcknowledgedResponseBase.meta({ id: 'EnrichDeletePolicyResponse' })
 export type EnrichDeletePolicyResponse = z.infer<typeof EnrichDeletePolicyResponse>
 
 export const EnrichExecutePolicyEnrichPolicyPhase = z.enum(['SCHEDULED', 'RUNNING', 'COMPLETE', 'FAILED', 'CANCELLED']).meta({ id: 'EnrichExecutePolicyEnrichPolicyPhase' })
@@ -57,15 +59,16 @@ export type EnrichExecutePolicyExecuteEnrichPolicyStatus = z.infer<typeof Enrich
  * Create the enrich index for an existing enrich policy.
  */
 export const EnrichExecutePolicyRequest = z.object({
-  name: z.lazy(() => Name).describe('Enrich policy to execute.').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  name: Name.describe('Enrich policy to execute.').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
   wait_for_completion: z.boolean().describe('If `true`, the request blocks other enrich policy execution requests until complete.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'EnrichExecutePolicyRequest' })
 export type EnrichExecutePolicyRequest = z.infer<typeof EnrichExecutePolicyRequest>
 
 export const EnrichExecutePolicyResponse = z.object({
   status: EnrichExecutePolicyExecuteEnrichPolicyStatus.optional(),
-  task: z.lazy(() => TaskId).optional()
+  task: TaskId.optional()
 }).meta({ id: 'EnrichExecutePolicyResponse' })
 export type EnrichExecutePolicyResponse = z.infer<typeof EnrichExecutePolicyResponse>
 
@@ -75,8 +78,9 @@ export type EnrichExecutePolicyResponse = z.infer<typeof EnrichExecutePolicyResp
  * Returns information about an enrich policy.
  */
 export const EnrichGetPolicyRequest = z.object({
-  name: z.lazy(() => Names).describe('Comma-separated list of enrich policy names used to limit the request. To return information for all enrich policies, omit this parameter.').optional().meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: Names.describe('Comma-separated list of enrich policy names used to limit the request. To return information for all enrich policies, omit this parameter.').optional().meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'EnrichGetPolicyRequest' })
 export type EnrichGetPolicyRequest = z.infer<typeof EnrichGetPolicyRequest>
 
@@ -91,41 +95,42 @@ export type EnrichGetPolicyResponse = z.infer<typeof EnrichGetPolicyResponse>
  * Creates an enrich policy.
  */
 export const EnrichPutPolicyRequest = z.object({
-  name: z.lazy(() => Name).describe('Name of the enrich policy to create or update.').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  name: Name.describe('Name of the enrich policy to create or update.').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' }),
   geo_match: EnrichPolicy.describe('Matches enrich data to incoming documents based on a `geo_shape` query.').optional().meta({ found_in: 'body' }),
   match: EnrichPolicy.describe('Matches enrich data to incoming documents based on a `term` query.').optional().meta({ found_in: 'body' }),
   range: EnrichPolicy.describe('Matches a number, date, or IP address in incoming documents to a range in the enrich index based on a `term` query.').optional().meta({ found_in: 'body' })
 }).meta({ id: 'EnrichPutPolicyRequest' })
 export type EnrichPutPolicyRequest = z.infer<typeof EnrichPutPolicyRequest>
 
-export const EnrichPutPolicyResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'EnrichPutPolicyResponse' })
+export const EnrichPutPolicyResponse = AcknowledgedResponseBase.meta({ id: 'EnrichPutPolicyResponse' })
 export type EnrichPutPolicyResponse = z.infer<typeof EnrichPutPolicyResponse>
 
 export const EnrichStatsCacheStats = z.object({
-  node_id: z.lazy(() => Id),
-  count: z.lazy(() => integer),
-  hits: z.lazy(() => integer),
-  hits_time_in_millis: z.lazy(() => DurationValue),
-  misses: z.lazy(() => integer),
-  misses_time_in_millis: z.lazy(() => DurationValue),
-  evictions: z.lazy(() => integer),
-  size_in_bytes: z.lazy(() => long)
+  node_id: Id,
+  count: integer,
+  hits: integer,
+  hits_time_in_millis: DurationValue,
+  misses: integer,
+  misses_time_in_millis: DurationValue,
+  evictions: integer,
+  size_in_bytes: long
 }).meta({ id: 'EnrichStatsCacheStats' })
 export type EnrichStatsCacheStats = z.infer<typeof EnrichStatsCacheStats>
 
 export const EnrichStatsCoordinatorStats = z.object({
-  executed_searches_total: z.lazy(() => long),
-  node_id: z.lazy(() => Id),
-  queue_size: z.lazy(() => integer),
-  remote_requests_current: z.lazy(() => integer),
-  remote_requests_total: z.lazy(() => long)
+  executed_searches_total: long,
+  node_id: Id,
+  queue_size: integer,
+  remote_requests_current: integer,
+  remote_requests_total: long
 }).meta({ id: 'EnrichStatsCoordinatorStats' })
 export type EnrichStatsCoordinatorStats = z.infer<typeof EnrichStatsCoordinatorStats>
 
 export const EnrichStatsExecutingPolicy = z.object({
-  name: z.lazy(() => Name),
-  task: z.lazy(() => TasksTaskInfo)
+  name: Name,
+  task: TasksTaskInfo
 }).meta({ id: 'EnrichStatsExecutingPolicy' })
 export type EnrichStatsExecutingPolicy = z.infer<typeof EnrichStatsExecutingPolicy>
 
@@ -135,7 +140,8 @@ export type EnrichStatsExecutingPolicy = z.infer<typeof EnrichStatsExecutingPoli
  * Returns enrich coordinator statistics and information about enrich policies that are currently executing.
  */
 export const EnrichStatsRequest = z.object({
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  master_timeout: Duration.describe('Period to wait for a connection to the master node.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'EnrichStatsRequest' })
 export type EnrichStatsRequest = z.infer<typeof EnrichStatsRequest>
 

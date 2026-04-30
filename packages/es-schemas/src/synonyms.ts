@@ -3,30 +3,30 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
- 
- 
+/* eslint-disable @typescript-eslint/no-use-before-define */
+/* eslint-disable @typescript-eslint/no-redeclare */
 import { z } from 'zod'
 
-import { AcknowledgedResponseBase, Id, Result, integer } from './_types.ts'
+import { AcknowledgedResponseBase, Id, RequestBase, Result, integer } from './_types.ts'
 import { IndicesReloadSearchAnalyzersReloadResult } from './indices.ts'
 
 export const SynonymsSynonymString = z.string().meta({ id: 'SynonymsSynonymString' })
 export type SynonymsSynonymString = z.infer<typeof SynonymsSynonymString>
 
 export const SynonymsSynonymRule = z.object({
-  id: z.lazy(() => Id).describe('The identifier for the synonym rule. If you do not specify a synonym rule ID when you create a rule, an identifier is created automatically by Elasticsearch.').optional(),
+  id: Id.describe('The identifier for the synonym rule. If you do not specify a synonym rule ID when you create a rule, an identifier is created automatically by Elasticsearch.').optional(),
   synonyms: SynonymsSynonymString.describe('The synonyms that conform the synonym rule in Solr format.')
 }).meta({ id: 'SynonymsSynonymRule' })
 export type SynonymsSynonymRule = z.infer<typeof SynonymsSynonymRule>
 
 export const SynonymsSynonymRuleRead = z.object({
-  id: z.lazy(() => Id).describe('The identifier for the synonym rule. If you do not specify a synonym rule ID when you create a rule, an identifier is created automatically by Elasticsearch.'),
+  id: Id.describe('The identifier for the synonym rule. If you do not specify a synonym rule ID when you create a rule, an identifier is created automatically by Elasticsearch.'),
   synonyms: SynonymsSynonymString.describe('The synonyms that conform the synonym rule in Solr format.')
 }).meta({ id: 'SynonymsSynonymRuleRead' })
 export type SynonymsSynonymRuleRead = z.infer<typeof SynonymsSynonymRuleRead>
 
 export const SynonymsSynonymsUpdateResult = z.object({
-  result: z.lazy(() => Result).describe('The update operation result.'),
+  result: Result.describe('The update operation result.'),
   reload_analyzers_details: IndicesReloadSearchAnalyzersReloadResult.describe('Updating synonyms in a synonym set can reload the associated analyzers in case refresh is set to true. This information is the analyzers reloading result.').optional()
 }).meta({ id: 'SynonymsSynonymsUpdateResult' })
 export type SynonymsSynonymsUpdateResult = z.infer<typeof SynonymsSynonymsUpdateResult>
@@ -52,11 +52,12 @@ export type SynonymsSynonymsUpdateResult = z.infer<typeof SynonymsSynonymsUpdate
  * When the synonyms set is not used in analyzers, you will be able to delete it.
  */
 export const SynonymsDeleteSynonymRequest = z.object({
-  id: z.lazy(() => Id).describe('The synonyms set identifier to delete.').meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  id: Id.describe('The synonyms set identifier to delete.').meta({ found_in: 'path' })
 }).meta({ id: 'SynonymsDeleteSynonymRequest' })
 export type SynonymsDeleteSynonymRequest = z.infer<typeof SynonymsDeleteSynonymRequest>
 
-export const SynonymsDeleteSynonymResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'SynonymsDeleteSynonymResponse' })
+export const SynonymsDeleteSynonymResponse = AcknowledgedResponseBase.meta({ id: 'SynonymsDeleteSynonymResponse' })
 export type SynonymsDeleteSynonymResponse = z.infer<typeof SynonymsDeleteSynonymResponse>
 
 /**
@@ -65,8 +66,9 @@ export type SynonymsDeleteSynonymResponse = z.infer<typeof SynonymsDeleteSynonym
  * Delete a synonym rule from a synonym set.
  */
 export const SynonymsDeleteSynonymRuleRequest = z.object({
-  set_id: z.lazy(() => Id).describe('The ID of the synonym set to update.').meta({ found_in: 'path' }),
-  rule_id: z.lazy(() => Id).describe('The ID of the synonym rule to delete.').meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  set_id: Id.describe('The ID of the synonym set to update.').meta({ found_in: 'path' }),
+  rule_id: Id.describe('The ID of the synonym rule to delete.').meta({ found_in: 'path' })
 }).meta({ id: 'SynonymsDeleteSynonymRuleRequest' })
 export type SynonymsDeleteSynonymRuleRequest = z.infer<typeof SynonymsDeleteSynonymRuleRequest>
 
@@ -75,14 +77,15 @@ export type SynonymsDeleteSynonymRuleResponse = z.infer<typeof SynonymsDeleteSyn
 
 /** Get a synonym set. */
 export const SynonymsGetSynonymRequest = z.object({
-  id: z.lazy(() => Id).describe('The synonyms set identifier to retrieve.').meta({ found_in: 'path' }),
-  from: z.lazy(() => integer).describe('The starting offset for query rules to retrieve.').optional().meta({ found_in: 'query' }),
-  size: z.lazy(() => integer).describe('The max number of query rules to retrieve.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  id: Id.describe('The synonyms set identifier to retrieve.').meta({ found_in: 'path' }),
+  from: integer.describe('The starting offset for query rules to retrieve.').optional().meta({ found_in: 'query' }),
+  size: integer.describe('The max number of query rules to retrieve.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'SynonymsGetSynonymRequest' })
 export type SynonymsGetSynonymRequest = z.infer<typeof SynonymsGetSynonymRequest>
 
 export const SynonymsGetSynonymResponse = z.object({
-  count: z.lazy(() => integer).describe('The total number of synonyms rules that the synonyms set contains.'),
+  count: integer.describe('The total number of synonyms rules that the synonyms set contains.'),
   synonyms_set: z.array(SynonymsSynonymRuleRead).describe('Synonym rule details.')
 }).meta({ id: 'SynonymsGetSynonymResponse' })
 export type SynonymsGetSynonymResponse = z.infer<typeof SynonymsGetSynonymResponse>
@@ -93,8 +96,9 @@ export type SynonymsGetSynonymResponse = z.infer<typeof SynonymsGetSynonymRespon
  * Get a synonym rule from a synonym set.
  */
 export const SynonymsGetSynonymRuleRequest = z.object({
-  set_id: z.lazy(() => Id).describe('The ID of the synonym set to retrieve the synonym rule from.').meta({ found_in: 'path' }),
-  rule_id: z.lazy(() => Id).describe('The ID of the synonym rule to retrieve.').meta({ found_in: 'path' })
+  ...RequestBase.shape,
+  set_id: Id.describe('The ID of the synonym set to retrieve the synonym rule from.').meta({ found_in: 'path' }),
+  rule_id: Id.describe('The ID of the synonym rule to retrieve.').meta({ found_in: 'path' })
 }).meta({ id: 'SynonymsGetSynonymRuleRequest' })
 export type SynonymsGetSynonymRuleRequest = z.infer<typeof SynonymsGetSynonymRuleRequest>
 
@@ -107,19 +111,20 @@ export type SynonymsGetSynonymRuleResponse = z.infer<typeof SynonymsGetSynonymRu
  * Get a summary of all defined synonym sets.
  */
 export const SynonymsGetSynonymsSetsRequest = z.object({
-  from: z.lazy(() => integer).describe('The starting offset for synonyms sets to retrieve.').optional().meta({ found_in: 'query' }),
-  size: z.lazy(() => integer).describe('The maximum number of synonyms sets to retrieve.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  from: integer.describe('The starting offset for synonyms sets to retrieve.').optional().meta({ found_in: 'query' }),
+  size: integer.describe('The maximum number of synonyms sets to retrieve.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'SynonymsGetSynonymsSetsRequest' })
 export type SynonymsGetSynonymsSetsRequest = z.infer<typeof SynonymsGetSynonymsSetsRequest>
 
 export const SynonymsGetSynonymsSetsSynonymsSetItem = z.object({
-  synonyms_set: z.lazy(() => Id).describe('Synonyms set identifier'),
-  count: z.lazy(() => integer).describe('Number of synonym rules that the synonym set contains')
+  synonyms_set: Id.describe('Synonyms set identifier'),
+  count: integer.describe('Number of synonym rules that the synonym set contains')
 }).meta({ id: 'SynonymsGetSynonymsSetsSynonymsSetItem' })
 export type SynonymsGetSynonymsSetsSynonymsSetItem = z.infer<typeof SynonymsGetSynonymsSetsSynonymsSetItem>
 
 export const SynonymsGetSynonymsSetsResponse = z.object({
-  count: z.lazy(() => integer).describe('The total number of synonyms sets defined.'),
+  count: integer.describe('The total number of synonyms sets defined.'),
   results: z.array(SynonymsGetSynonymsSetsSynonymsSetItem).describe('The identifier and total number of defined synonym rules for each synonyms set.')
 }).meta({ id: 'SynonymsGetSynonymsSetsResponse' })
 export type SynonymsGetSynonymsSetsResponse = z.infer<typeof SynonymsGetSynonymsSetsResponse>
@@ -135,13 +140,14 @@ export type SynonymsGetSynonymsSetsResponse = z.infer<typeof SynonymsGetSynonyms
  * For practical examples of how to create or update a synonyms set, refer to the External documentation.
  */
 export const SynonymsPutSynonymRequest = z.object({
-  id: z.lazy(() => Id).describe('The ID of the synonyms set to be created or updated.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  id: Id.describe('The ID of the synonyms set to be created or updated.').meta({ found_in: 'path' }),
   synonyms_set: z.union([SynonymsSynonymRule, z.array(SynonymsSynonymRule)]).describe('The synonym rules definitions for the synonyms set.').meta({ found_in: 'body' })
 }).meta({ id: 'SynonymsPutSynonymRequest' })
 export type SynonymsPutSynonymRequest = z.infer<typeof SynonymsPutSynonymRequest>
 
 export const SynonymsPutSynonymResponse = z.object({
-  result: z.lazy(() => Result).describe('The update operation result.'),
+  result: Result.describe('The update operation result.'),
   reload_analyzers_details: IndicesReloadSearchAnalyzersReloadResult.describe('Updating a synonyms set can reload the associated analyzers in case refresh is set to true. This information is the analyzers reloading result.').optional()
 }).meta({ id: 'SynonymsPutSynonymResponse' })
 export type SynonymsPutSynonymResponse = z.infer<typeof SynonymsPutSynonymResponse>
@@ -156,8 +162,9 @@ export type SynonymsPutSynonymResponse = z.infer<typeof SynonymsPutSynonymRespon
  * When you update a synonym rule, all analyzers using the synonyms set will be reloaded automatically to reflect the new rule.
  */
 export const SynonymsPutSynonymRuleRequest = z.object({
-  set_id: z.lazy(() => Id).describe('The ID of the synonym set.').meta({ found_in: 'path' }),
-  rule_id: z.lazy(() => Id).describe('The ID of the synonym rule to be updated or created.').meta({ found_in: 'path' }),
+  ...RequestBase.shape,
+  set_id: Id.describe('The ID of the synonym set.').meta({ found_in: 'path' }),
+  rule_id: Id.describe('The ID of the synonym rule to be updated or created.').meta({ found_in: 'path' }),
   synonyms: SynonymsSynonymString.describe('The synonym rule information definition, which must be in Solr format.').meta({ found_in: 'body' })
 }).meta({ id: 'SynonymsPutSynonymRuleRequest' })
 export type SynonymsPutSynonymRuleRequest = z.infer<typeof SynonymsPutSynonymRuleRequest>

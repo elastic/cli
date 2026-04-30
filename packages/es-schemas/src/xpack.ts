@@ -3,24 +3,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
- 
- 
+/* eslint-disable @typescript-eslint/no-use-before-define */
+/* eslint-disable @typescript-eslint/no-redeclare */
 import { z } from 'zod'
 
-import { ByteSize, DateTime, Duration, DurationValue, EpochTime, Field, Name, VersionString, double, integer, long, uint, ulong } from './_types.ts'
+import { ByteSize, DateTime, Duration, DurationValue, EpochTime, Field, Name, RequestBase, VersionString, double, integer, long, uint, ulong } from './_types.ts'
 import { LicenseLicenseStatus, LicenseLicenseType } from './license.ts'
 import { MlJobStatistics } from './ml.ts'
 import { SlmStatistics } from './slm.ts'
 
 export const XpackUsageSecurityRolesDlsBitSetCache = z.object({
-  count: z.lazy(() => integer).describe('Number of entries in the cache.'),
-  memory: z.lazy(() => ByteSize).describe('Human-readable amount of memory taken up by the cache.').optional(),
-  memory_in_bytes: z.lazy(() => ulong).describe('Memory taken up by the cache in bytes.'),
-  hits: z.lazy(() => long).describe('Total number of cache hits.'),
-  misses: z.lazy(() => long).describe('Total number of cache misses.'),
-  evictions: z.lazy(() => long).describe('Total number of cache evictions.'),
-  hits_time_in_millis: z.lazy(() => DurationValue).describe('Total combined time spent in cache for hits in milliseconds.'),
-  misses_time_in_millis: z.lazy(() => DurationValue).describe('Total combined time spent in cache for misses in milliseconds.')
+  count: integer.describe('Number of entries in the cache.'),
+  memory: ByteSize.describe('Human-readable amount of memory taken up by the cache.').optional(),
+  memory_in_bytes: ulong.describe('Memory taken up by the cache in bytes.'),
+  hits: long.describe('Total number of cache hits.'),
+  misses: long.describe('Total number of cache misses.'),
+  evictions: long.describe('Total number of cache evictions.'),
+  hits_time_in_millis: DurationValue.describe('Total combined time spent in cache for hits in milliseconds.'),
+  misses_time_in_millis: DurationValue.describe('Total combined time spent in cache for misses in milliseconds.')
 }).meta({ id: 'XpackUsageSecurityRolesDlsBitSetCache' })
 export type XpackUsageSecurityRolesDlsBitSetCache = z.infer<typeof XpackUsageSecurityRolesDlsBitSetCache>
 
@@ -30,14 +30,14 @@ export const XpackUsageSecurityRolesDls = z.object({
 export type XpackUsageSecurityRolesDls = z.infer<typeof XpackUsageSecurityRolesDls>
 
 export const XpackInfoBuildInformation = z.object({
-  date: z.lazy(() => DateTime),
+  date: DateTime,
   hash: z.string()
 }).meta({ id: 'XpackInfoBuildInformation' })
 export type XpackInfoBuildInformation = z.infer<typeof XpackInfoBuildInformation>
 
 export const XpackInfoNativeCodeInformation = z.object({
   build_hash: z.string(),
-  version: z.lazy(() => VersionString)
+  version: VersionString
 }).meta({ id: 'XpackInfoNativeCodeInformation' })
 export type XpackInfoNativeCodeInformation = z.infer<typeof XpackInfoNativeCodeInformation>
 
@@ -77,7 +77,7 @@ export const XpackInfoFeatures = z.object({
 export type XpackInfoFeatures = z.infer<typeof XpackInfoFeatures>
 
 export const XpackInfoMinimalLicenseInformation = z.object({
-  expiry_date_in_millis: z.lazy(() => EpochTime),
+  expiry_date_in_millis: EpochTime,
   mode: LicenseLicenseType,
   status: LicenseLicenseStatus,
   type: LicenseLicenseType,
@@ -98,6 +98,7 @@ export type XpackInfoXPackCategory = z.infer<typeof XpackInfoXPackCategory>
  * * Feature information for the features that are currently enabled and available under the current license.
  */
 export const XpackInfoRequest = z.object({
+  ...RequestBase.shape,
   categories: z.array(XpackInfoXPackCategory).describe('A comma-separated list of the information categories to include in the response. For example, `build,license,features`.').optional().meta({ found_in: 'query' }),
   accept_enterprise: z.boolean().describe('If used, this otherwise ignored parameter must be set to true').optional().meta({ found_in: 'query' }),
   human: z.boolean().describe('Defines whether additional human-readable information is included in the response. In particular, it adds descriptions and a tag line.').optional().meta({ found_in: 'query' })
@@ -119,15 +120,15 @@ export const XpackUsageBase = z.object({
 export type XpackUsageBase = z.infer<typeof XpackUsageBase>
 
 export const XpackUsageAnalyticsStatistics = z.object({
-  boxplot_usage: z.lazy(() => long),
-  cumulative_cardinality_usage: z.lazy(() => long),
-  string_stats_usage: z.lazy(() => long),
-  top_metrics_usage: z.lazy(() => long),
-  t_test_usage: z.lazy(() => long),
-  moving_percentiles_usage: z.lazy(() => long),
-  normalize_usage: z.lazy(() => long),
-  rate_usage: z.lazy(() => long),
-  multi_terms_usage: z.lazy(() => long).optional()
+  boxplot_usage: long,
+  cumulative_cardinality_usage: long,
+  string_stats_usage: long,
+  top_metrics_usage: long,
+  t_test_usage: long,
+  moving_percentiles_usage: long,
+  normalize_usage: long,
+  rate_usage: long,
+  multi_terms_usage: long.optional()
 }).meta({ id: 'XpackUsageAnalyticsStatistics' })
 export type XpackUsageAnalyticsStatistics = z.infer<typeof XpackUsageAnalyticsStatistics>
 
@@ -139,7 +140,7 @@ export type XpackUsageAnalytics = z.infer<typeof XpackUsageAnalytics>
 
 export const XpackUsageArchive = z.object({
   ...XpackUsageBase.shape,
-  indices_count: z.lazy(() => long)
+  indices_count: long
 }).meta({ id: 'XpackUsageArchive' })
 export type XpackUsageArchive = z.infer<typeof XpackUsageArchive>
 
@@ -156,35 +157,35 @@ export type XpackUsageAudit = z.infer<typeof XpackUsageAudit>
 
 export const XpackUsageCcr = z.object({
   ...XpackUsageBase.shape,
-  auto_follow_patterns_count: z.lazy(() => integer),
-  follower_indices_count: z.lazy(() => integer)
+  auto_follow_patterns_count: integer,
+  follower_indices_count: integer
 }).meta({ id: 'XpackUsageCcr' })
 export type XpackUsageCcr = z.infer<typeof XpackUsageCcr>
 
 export const XpackUsageCounter = z.object({
-  active: z.lazy(() => long),
-  total: z.lazy(() => long)
+  active: long,
+  total: long
 }).meta({ id: 'XpackUsageCounter' })
 export type XpackUsageCounter = z.infer<typeof XpackUsageCounter>
 
 export const XpackUsageDataStreams = z.object({
   ...XpackUsageBase.shape,
-  data_streams: z.lazy(() => long),
-  indices_count: z.lazy(() => long)
+  data_streams: long,
+  indices_count: long
 }).meta({ id: 'XpackUsageDataStreams' })
 export type XpackUsageDataStreams = z.infer<typeof XpackUsageDataStreams>
 
 export const XpackUsageDataTierPhaseStatistics = z.object({
-  node_count: z.lazy(() => long),
-  index_count: z.lazy(() => long),
-  total_shard_count: z.lazy(() => long),
-  primary_shard_count: z.lazy(() => long),
-  doc_count: z.lazy(() => long),
-  total_size_bytes: z.lazy(() => long),
-  primary_size_bytes: z.lazy(() => long),
-  primary_shard_size_avg_bytes: z.lazy(() => long),
-  primary_shard_size_median_bytes: z.lazy(() => long),
-  primary_shard_size_mad_bytes: z.lazy(() => long)
+  node_count: long,
+  index_count: long,
+  total_shard_count: long,
+  primary_shard_count: long,
+  doc_count: long,
+  total_size_bytes: long,
+  primary_size_bytes: long,
+  primary_shard_size_avg_bytes: long,
+  primary_shard_size_median_bytes: long,
+  primary_shard_size_mad_bytes: long
 }).meta({ id: 'XpackUsageDataTierPhaseStatistics' })
 export type XpackUsageDataTierPhaseStatistics = z.infer<typeof XpackUsageDataTierPhaseStatistics>
 
@@ -199,60 +200,60 @@ export const XpackUsageDataTiers = z.object({
 export type XpackUsageDataTiers = z.infer<typeof XpackUsageDataTiers>
 
 export const XpackUsageDatafeed = z.object({
-  count: z.lazy(() => long)
+  count: long
 }).meta({ id: 'XpackUsageDatafeed' })
 export type XpackUsageDatafeed = z.infer<typeof XpackUsageDatafeed>
 
 export const XpackUsageEqlFeaturesJoin = z.object({
-  join_queries_two: z.lazy(() => uint),
-  join_queries_three: z.lazy(() => uint),
-  join_until: z.lazy(() => uint),
-  join_queries_five_or_more: z.lazy(() => uint),
-  join_queries_four: z.lazy(() => uint)
+  join_queries_two: uint,
+  join_queries_three: uint,
+  join_until: uint,
+  join_queries_five_or_more: uint,
+  join_queries_four: uint
 }).meta({ id: 'XpackUsageEqlFeaturesJoin' })
 export type XpackUsageEqlFeaturesJoin = z.infer<typeof XpackUsageEqlFeaturesJoin>
 
 export const XpackUsageEqlFeaturesKeys = z.object({
-  join_keys_two: z.lazy(() => uint),
-  join_keys_one: z.lazy(() => uint),
-  join_keys_three: z.lazy(() => uint),
-  join_keys_five_or_more: z.lazy(() => uint),
-  join_keys_four: z.lazy(() => uint)
+  join_keys_two: uint,
+  join_keys_one: uint,
+  join_keys_three: uint,
+  join_keys_five_or_more: uint,
+  join_keys_four: uint
 }).meta({ id: 'XpackUsageEqlFeaturesKeys' })
 export type XpackUsageEqlFeaturesKeys = z.infer<typeof XpackUsageEqlFeaturesKeys>
 
 export const XpackUsageEqlFeaturesPipes = z.object({
-  pipe_tail: z.lazy(() => uint),
-  pipe_head: z.lazy(() => uint)
+  pipe_tail: uint,
+  pipe_head: uint
 }).meta({ id: 'XpackUsageEqlFeaturesPipes' })
 export type XpackUsageEqlFeaturesPipes = z.infer<typeof XpackUsageEqlFeaturesPipes>
 
 export const XpackUsageEqlFeaturesSequences = z.object({
-  sequence_queries_three: z.lazy(() => uint),
-  sequence_queries_four: z.lazy(() => uint),
-  sequence_queries_two: z.lazy(() => uint),
-  sequence_until: z.lazy(() => uint),
-  sequence_queries_five_or_more: z.lazy(() => uint),
-  sequence_maxspan: z.lazy(() => uint)
+  sequence_queries_three: uint,
+  sequence_queries_four: uint,
+  sequence_queries_two: uint,
+  sequence_until: uint,
+  sequence_queries_five_or_more: uint,
+  sequence_maxspan: uint
 }).meta({ id: 'XpackUsageEqlFeaturesSequences' })
 export type XpackUsageEqlFeaturesSequences = z.infer<typeof XpackUsageEqlFeaturesSequences>
 
 export const XpackUsageEqlFeatures = z.object({
-  join: z.lazy(() => uint),
+  join: uint,
   joins: XpackUsageEqlFeaturesJoin,
   keys: XpackUsageEqlFeaturesKeys,
-  event: z.lazy(() => uint),
+  event: uint,
   pipes: XpackUsageEqlFeaturesPipes,
-  sequence: z.lazy(() => uint),
+  sequence: uint,
   sequences: XpackUsageEqlFeaturesSequences
 }).meta({ id: 'XpackUsageEqlFeatures' })
 export type XpackUsageEqlFeatures = z.infer<typeof XpackUsageEqlFeatures>
 
 export const XpackUsageQuery = z.object({
-  count: z.lazy(() => integer).optional(),
-  failed: z.lazy(() => integer).optional(),
-  paging: z.lazy(() => integer).optional(),
-  total: z.lazy(() => integer).optional()
+  count: integer.optional(),
+  failed: integer.optional(),
+  paging: integer.optional(),
+  total: integer.optional()
 }).meta({ id: 'XpackUsageQuery' })
 export type XpackUsageQuery = z.infer<typeof XpackUsageQuery>
 
@@ -265,30 +266,30 @@ export type XpackUsageEql = z.infer<typeof XpackUsageEql>
 
 export const XpackUsageFlattened = z.object({
   ...XpackUsageBase.shape,
-  field_count: z.lazy(() => integer)
+  field_count: integer
 }).meta({ id: 'XpackUsageFlattened' })
 export type XpackUsageFlattened = z.infer<typeof XpackUsageFlattened>
 
 /** Per-node GPU statistics for vector indexing. */
 export const XpackUsageGpuNodeStats = z.object({
   type: z.string().describe('GPU device type (e.g., "NVIDIA L4", "NVIDIA A100").'),
-  memory_in_bytes: z.lazy(() => long).describe('GPU memory in bytes.'),
+  memory_in_bytes: long.describe('GPU memory in bytes.'),
   enabled: z.boolean().describe('Whether GPU vector indexing is enabled on this node.'),
-  index_build_count: z.lazy(() => long).describe('Number of GPU index builds performed on this node.')
+  index_build_count: long.describe('Number of GPU index builds performed on this node.')
 }).meta({ id: 'XpackUsageGpuNodeStats' })
 export type XpackUsageGpuNodeStats = z.infer<typeof XpackUsageGpuNodeStats>
 
 /** GPU vector indexing usage statistics. */
 export const XpackUsageGpuVectorIndexing = z.object({
   ...XpackUsageBase.shape,
-  index_build_count: z.lazy(() => long).describe('Total GPU index builds across the cluster.'),
-  nodes_with_gpu: z.lazy(() => integer).describe('Count of data nodes with GPU support.'),
+  index_build_count: long.describe('Total GPU index builds across the cluster.'),
+  nodes_with_gpu: integer.describe('Count of data nodes with GPU support.'),
   nodes: z.array(XpackUsageGpuNodeStats).describe('Per-node GPU details including type, memory, enabled status, and build count.')
 }).meta({ id: 'XpackUsageGpuVectorIndexing' })
 export type XpackUsageGpuVectorIndexing = z.infer<typeof XpackUsageGpuVectorIndexing>
 
 export const XpackUsageInvocations = z.object({
-  total: z.lazy(() => long)
+  total: long
 }).meta({ id: 'XpackUsageInvocations' })
 export type XpackUsageInvocations = z.infer<typeof XpackUsageInvocations>
 
@@ -300,7 +301,7 @@ export type XpackUsageHealthStatistics = z.infer<typeof XpackUsageHealthStatisti
 
 export const XpackUsagePhase = z.object({
   actions: z.array(z.string()),
-  min_age: z.lazy(() => DurationValue)
+  min_age: DurationValue
 }).meta({ id: 'XpackUsagePhase' })
 export type XpackUsagePhase = z.infer<typeof XpackUsagePhase>
 
@@ -314,13 +315,13 @@ export const XpackUsagePhases = z.object({
 export type XpackUsagePhases = z.infer<typeof XpackUsagePhases>
 
 export const XpackUsageIlmPolicyStatistics = z.object({
-  indices_managed: z.lazy(() => integer),
+  indices_managed: integer,
   phases: XpackUsagePhases
 }).meta({ id: 'XpackUsageIlmPolicyStatistics' })
 export type XpackUsageIlmPolicyStatistics = z.infer<typeof XpackUsageIlmPolicyStatistics>
 
 export const XpackUsageIlm = z.object({
-  policy_count: z.lazy(() => integer),
+  policy_count: integer,
   policy_stats: z.array(XpackUsageIlmPolicyStatistics)
 }).meta({ id: 'XpackUsageIlm' })
 export type XpackUsageIlm = z.infer<typeof XpackUsageIlm>
@@ -332,14 +333,14 @@ export const XpackUsageIpFilter = z.object({
 export type XpackUsageIpFilter = z.infer<typeof XpackUsageIpFilter>
 
 export const XpackUsageMlJobForecasts = z.object({
-  total: z.lazy(() => long),
-  forecasted_jobs: z.lazy(() => long)
+  total: long,
+  forecasted_jobs: long
 }).meta({ id: 'XpackUsageMlJobForecasts' })
 export type XpackUsageMlJobForecasts = z.infer<typeof XpackUsageMlJobForecasts>
 
 export const XpackUsageJobUsage = z.object({
-  count: z.lazy(() => integer),
-  created_by: z.record(z.string(), z.lazy(() => long)),
+  count: integer,
+  created_by: z.record(z.string(), long),
   detectors: MlJobStatistics,
   forecasts: XpackUsageMlJobForecasts,
   model_size: MlJobStatistics
@@ -352,14 +353,14 @@ export const XpackUsageMlDataFrameAnalyticsJobsMemory = z.object({
 export type XpackUsageMlDataFrameAnalyticsJobsMemory = z.infer<typeof XpackUsageMlDataFrameAnalyticsJobsMemory>
 
 export const XpackUsageMlDataFrameAnalyticsJobsCount = z.object({
-  count: z.lazy(() => long)
+  count: long
 }).meta({ id: 'XpackUsageMlDataFrameAnalyticsJobsCount' })
 export type XpackUsageMlDataFrameAnalyticsJobsCount = z.infer<typeof XpackUsageMlDataFrameAnalyticsJobsCount>
 
 export const XpackUsageMlDataFrameAnalyticsJobsAnalysis = z.object({
-  classification: z.lazy(() => integer).optional(),
-  outlier_detection: z.lazy(() => integer).optional(),
-  regression: z.lazy(() => integer).optional()
+  classification: integer.optional(),
+  outlier_detection: integer.optional(),
+  regression: integer.optional()
 }).meta({ id: 'XpackUsageMlDataFrameAnalyticsJobsAnalysis' })
 export type XpackUsageMlDataFrameAnalyticsJobsAnalysis = z.infer<typeof XpackUsageMlDataFrameAnalyticsJobsAnalysis>
 
@@ -372,14 +373,14 @@ export const XpackUsageMlDataFrameAnalyticsJobs = z.object({
 export type XpackUsageMlDataFrameAnalyticsJobs = z.infer<typeof XpackUsageMlDataFrameAnalyticsJobs>
 
 export const XpackUsageMlInferenceIngestProcessorCount = z.object({
-  max: z.lazy(() => long),
-  sum: z.lazy(() => long),
-  min: z.lazy(() => long)
+  max: long,
+  sum: long,
+  min: long
 }).meta({ id: 'XpackUsageMlInferenceIngestProcessorCount' })
 export type XpackUsageMlInferenceIngestProcessorCount = z.infer<typeof XpackUsageMlInferenceIngestProcessorCount>
 
 export const XpackUsageMlCounter = z.object({
-  count: z.lazy(() => long)
+  count: long
 }).meta({ id: 'XpackUsageMlCounter' })
 export type XpackUsageMlCounter = z.infer<typeof XpackUsageMlCounter>
 
@@ -392,14 +393,14 @@ export const XpackUsageMlInferenceIngestProcessor = z.object({
 export type XpackUsageMlInferenceIngestProcessor = z.infer<typeof XpackUsageMlInferenceIngestProcessor>
 
 export const XpackUsageMlInferenceTrainedModelsCount = z.object({
-  total: z.lazy(() => long),
-  prepackaged: z.lazy(() => long),
-  other: z.lazy(() => long),
-  pass_through: z.lazy(() => long).optional(),
-  regression: z.lazy(() => long).optional(),
-  classification: z.lazy(() => long).optional(),
-  ner: z.lazy(() => long).optional(),
-  text_embedding: z.lazy(() => long).optional()
+  total: long,
+  prepackaged: long,
+  other: long,
+  pass_through: long.optional(),
+  regression: long.optional(),
+  classification: long.optional(),
+  ner: long.optional(),
+  text_embedding: long.optional()
 }).meta({ id: 'XpackUsageMlInferenceTrainedModelsCount' })
 export type XpackUsageMlInferenceTrainedModelsCount = z.infer<typeof XpackUsageMlInferenceTrainedModelsCount>
 
@@ -413,12 +414,12 @@ export const XpackUsageMlInferenceTrainedModels = z.object({
 export type XpackUsageMlInferenceTrainedModels = z.infer<typeof XpackUsageMlInferenceTrainedModels>
 
 export const XpackUsageMlInferenceDeploymentsTimeMs = z.object({
-  avg: z.lazy(() => double)
+  avg: double
 }).meta({ id: 'XpackUsageMlInferenceDeploymentsTimeMs' })
 export type XpackUsageMlInferenceDeploymentsTimeMs = z.infer<typeof XpackUsageMlInferenceDeploymentsTimeMs>
 
 export const XpackUsageMlInferenceDeployments = z.object({
-  count: z.lazy(() => integer),
+  count: integer,
   inference_counts: MlJobStatistics,
   model_sizes_bytes: MlJobStatistics,
   time_ms: XpackUsageMlInferenceDeploymentsTimeMs
@@ -436,7 +437,7 @@ export const XpackUsageMachineLearning = z.object({
   ...XpackUsageBase.shape,
   datafeeds: z.record(z.string(), XpackUsageDatafeed),
   jobs: z.record(z.string(), XpackUsageJobUsage).describe('Job usage statistics. The `_all` entry is always present and gathers statistics for all jobs.'),
-  node_count: z.lazy(() => integer),
+  node_count: integer,
   data_frame_analytics_jobs: XpackUsageMlDataFrameAnalyticsJobs,
   inference: XpackUsageMlInference
 }).meta({ id: 'XpackUsageMachineLearning' })
@@ -445,20 +446,20 @@ export type XpackUsageMachineLearning = z.infer<typeof XpackUsageMachineLearning
 export const XpackUsageMonitoring = z.object({
   ...XpackUsageBase.shape,
   collection_enabled: z.boolean(),
-  enabled_exporters: z.record(z.string(), z.lazy(() => long))
+  enabled_exporters: z.record(z.string(), long)
 }).meta({ id: 'XpackUsageMonitoring' })
 export type XpackUsageMonitoring = z.infer<typeof XpackUsageMonitoring>
 
 export const XpackUsageRealmCache = z.object({
-  size: z.lazy(() => long)
+  size: long
 }).meta({ id: 'XpackUsageRealmCache' })
 export type XpackUsageRealmCache = z.infer<typeof XpackUsageRealmCache>
 
 export const XpackUsageRealm = z.object({
   ...XpackUsageBase.shape,
   name: z.array(z.string()).optional(),
-  order: z.array(z.lazy(() => long)).optional(),
-  size: z.array(z.lazy(() => long)).optional(),
+  order: z.array(long).optional(),
+  size: z.array(long).optional(),
   cache: z.array(XpackUsageRealmCache).optional(),
   has_authorization_realms: z.array(z.boolean()).optional(),
   has_default_username_pattern: z.array(z.boolean()).optional(),
@@ -474,18 +475,19 @@ export type XpackUsageRealm = z.infer<typeof XpackUsageRealm>
  * The API also provides some usage statistics.
  */
 export const XpackUsageRequest = z.object({
-  master_timeout: z.lazy(() => Duration).describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error. To indicate that the request should never timeout, set it to `-1`.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  master_timeout: Duration.describe('The period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error. To indicate that the request should never timeout, set it to `-1`.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'XpackUsageRequest' })
 export type XpackUsageRequest = z.infer<typeof XpackUsageRequest>
 
 export const XpackUsageWatcherActionTotals = z.object({
-  total: z.lazy(() => Duration),
-  total_time_in_ms: z.lazy(() => DurationValue)
+  total: Duration,
+  total_time_in_ms: DurationValue
 }).meta({ id: 'XpackUsageWatcherActionTotals' })
 export type XpackUsageWatcherActionTotals = z.infer<typeof XpackUsageWatcherActionTotals>
 
 export const XpackUsageWatcherActions = z.object({
-  actions: z.record(z.lazy(() => Name), XpackUsageWatcherActionTotals)
+  actions: z.record(Name, XpackUsageWatcherActionTotals)
 }).meta({ id: 'XpackUsageWatcherActions' })
 export type XpackUsageWatcherActions = z.infer<typeof XpackUsageWatcherActions>
 
@@ -503,9 +505,9 @@ export const XpackUsageWatcherWatchTrigger = z.object({
 export type XpackUsageWatcherWatchTrigger = z.infer<typeof XpackUsageWatcherWatchTrigger>
 
 export const XpackUsageWatcherWatch = z.object({
-  input: z.record(z.lazy(() => Name), XpackUsageCounter),
-  condition: z.record(z.lazy(() => Name), XpackUsageCounter).optional(),
-  action: z.record(z.lazy(() => Name), XpackUsageCounter).optional(),
+  input: z.record(Name, XpackUsageCounter),
+  condition: z.record(Name, XpackUsageCounter).optional(),
+  action: z.record(Name, XpackUsageCounter).optional(),
   trigger: XpackUsageWatcherWatchTrigger
 }).meta({ id: 'XpackUsageWatcherWatch' })
 export type XpackUsageWatcherWatch = z.infer<typeof XpackUsageWatcherWatch>
@@ -519,20 +521,20 @@ export const XpackUsageWatcher = z.object({
 export type XpackUsageWatcher = z.infer<typeof XpackUsageWatcher>
 
 export const XpackUsageRuntimeFieldsType = z.object({
-  chars_max: z.lazy(() => long),
-  chars_total: z.lazy(() => long),
-  count: z.lazy(() => long),
-  doc_max: z.lazy(() => long),
-  doc_total: z.lazy(() => long),
-  index_count: z.lazy(() => long),
+  chars_max: long,
+  chars_total: long,
+  count: long,
+  doc_max: long,
+  doc_total: long,
+  index_count: long,
   lang: z.array(z.string()),
-  lines_max: z.lazy(() => long),
-  lines_total: z.lazy(() => long),
-  name: z.lazy(() => Field),
-  scriptless_count: z.lazy(() => long),
-  shadowed_count: z.lazy(() => long),
-  source_max: z.lazy(() => long),
-  source_total: z.lazy(() => long)
+  lines_max: long,
+  lines_total: long,
+  name: Field,
+  scriptless_count: long,
+  shadowed_count: long,
+  source_max: long,
+  source_total: long
 }).meta({ id: 'XpackUsageRuntimeFieldsType' })
 export type XpackUsageRuntimeFieldsType = z.infer<typeof XpackUsageRuntimeFieldsType>
 
@@ -544,29 +546,29 @@ export type XpackUsageRuntimeFieldTypes = z.infer<typeof XpackUsageRuntimeFieldT
 
 export const XpackUsageSearchableSnapshots = z.object({
   ...XpackUsageBase.shape,
-  indices_count: z.lazy(() => integer),
-  full_copy_indices_count: z.lazy(() => integer).optional(),
-  shared_cache_indices_count: z.lazy(() => integer).optional()
+  indices_count: integer,
+  full_copy_indices_count: integer.optional(),
+  shared_cache_indices_count: integer.optional()
 }).meta({ id: 'XpackUsageSearchableSnapshots' })
 export type XpackUsageSearchableSnapshots = z.infer<typeof XpackUsageSearchableSnapshots>
 
 export const XpackUsageRoleMapping = z.object({
-  enabled: z.lazy(() => integer),
-  size: z.lazy(() => integer)
+  enabled: integer,
+  size: integer
 }).meta({ id: 'XpackUsageRoleMapping' })
 export type XpackUsageRoleMapping = z.infer<typeof XpackUsageRoleMapping>
 
 export const XpackUsageSecurityRolesNative = z.object({
   dls: z.boolean(),
   fls: z.boolean(),
-  size: z.lazy(() => long)
+  size: long
 }).meta({ id: 'XpackUsageSecurityRolesNative' })
 export type XpackUsageSecurityRolesNative = z.infer<typeof XpackUsageSecurityRolesNative>
 
 export const XpackUsageSecurityRolesFile = z.object({
   dls: z.boolean(),
   fls: z.boolean(),
-  size: z.lazy(() => long)
+  size: long
 }).meta({ id: 'XpackUsageSecurityRolesFile' })
 export type XpackUsageSecurityRolesFile = z.infer<typeof XpackUsageSecurityRolesFile>
 
@@ -602,23 +604,23 @@ export type XpackUsageSecurity = z.infer<typeof XpackUsageSecurity>
 
 export const XpackUsageSlm = z.object({
   ...XpackUsageBase.shape,
-  policy_count: z.lazy(() => integer).optional(),
+  policy_count: integer.optional(),
   policy_stats: SlmStatistics.optional()
 }).meta({ id: 'XpackUsageSlm' })
 export type XpackUsageSlm = z.infer<typeof XpackUsageSlm>
 
 export const XpackUsageSql = z.object({
   ...XpackUsageBase.shape,
-  features: z.record(z.string(), z.lazy(() => integer)),
+  features: z.record(z.string(), integer),
   queries: z.record(z.string(), XpackUsageQuery)
 }).meta({ id: 'XpackUsageSql' })
 export type XpackUsageSql = z.infer<typeof XpackUsageSql>
 
 export const XpackUsageVector = z.object({
   ...XpackUsageBase.shape,
-  dense_vector_dims_avg_count: z.lazy(() => integer),
-  dense_vector_fields_count: z.lazy(() => integer),
-  sparse_vector_fields_count: z.lazy(() => integer).optional()
+  dense_vector_dims_avg_count: integer,
+  dense_vector_fields_count: integer,
+  sparse_vector_fields_count: integer.optional()
 }).meta({ id: 'XpackUsageVector' })
 export type XpackUsageVector = z.infer<typeof XpackUsageVector>
 

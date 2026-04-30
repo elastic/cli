@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
- 
- 
+/* eslint-disable @typescript-eslint/no-use-before-define */
+/* eslint-disable @typescript-eslint/no-redeclare */
 import { z } from 'zod'
 
-import { AcknowledgedResponseBase, Duration, Name, NodeName, integer } from './_types.ts'
+import { AcknowledgedResponseBase, Duration, Name, NodeName, RequestBase, integer } from './_types.ts'
 
 export const AutoscalingAutoscalingPolicy = z.object({
   roles: z.array(z.string()),
@@ -21,18 +21,19 @@ export type AutoscalingAutoscalingPolicy = z.infer<typeof AutoscalingAutoscaling
  * NOTE: This feature is designed for indirect use by Elasticsearch Service, Elastic Cloud Enterprise, and Elastic Cloud on Kubernetes. Direct use is not supported.
  */
 export const AutoscalingDeleteAutoscalingPolicyRequest = z.object({
-  name: z.lazy(() => Name).describe('Name of the autoscaling policy').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: Name.describe('Name of the autoscaling policy').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'AutoscalingDeleteAutoscalingPolicyRequest' })
 export type AutoscalingDeleteAutoscalingPolicyRequest = z.infer<typeof AutoscalingDeleteAutoscalingPolicyRequest>
 
-export const AutoscalingDeleteAutoscalingPolicyResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'AutoscalingDeleteAutoscalingPolicyResponse' })
+export const AutoscalingDeleteAutoscalingPolicyResponse = AcknowledgedResponseBase.meta({ id: 'AutoscalingDeleteAutoscalingPolicyResponse' })
 export type AutoscalingDeleteAutoscalingPolicyResponse = z.infer<typeof AutoscalingDeleteAutoscalingPolicyResponse>
 
 export const AutoscalingGetAutoscalingCapacityAutoscalingResources = z.object({
-  storage: z.lazy(() => integer),
-  memory: z.lazy(() => integer)
+  storage: integer,
+  memory: integer
 }).meta({ id: 'AutoscalingGetAutoscalingCapacityAutoscalingResources' })
 export type AutoscalingGetAutoscalingCapacityAutoscalingResources = z.infer<typeof AutoscalingGetAutoscalingCapacityAutoscalingResources>
 
@@ -50,7 +51,7 @@ export const AutoscalingGetAutoscalingCapacityAutoscalingDecider = z.object({
 export type AutoscalingGetAutoscalingCapacityAutoscalingDecider = z.infer<typeof AutoscalingGetAutoscalingCapacityAutoscalingDecider>
 
 export const AutoscalingGetAutoscalingCapacityAutoscalingNode = z.object({
-  name: z.lazy(() => NodeName)
+  name: NodeName
 }).meta({ id: 'AutoscalingGetAutoscalingCapacityAutoscalingNode' })
 export type AutoscalingGetAutoscalingCapacityAutoscalingNode = z.infer<typeof AutoscalingGetAutoscalingCapacityAutoscalingNode>
 
@@ -79,7 +80,8 @@ export type AutoscalingGetAutoscalingCapacityAutoscalingDeciders = z.infer<typeo
  * Do not use this information to make autoscaling decisions.
  */
 export const AutoscalingGetAutoscalingCapacityRequest = z.object({
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'AutoscalingGetAutoscalingCapacityRequest' })
 export type AutoscalingGetAutoscalingCapacityRequest = z.infer<typeof AutoscalingGetAutoscalingCapacityRequest>
 
@@ -94,8 +96,9 @@ export type AutoscalingGetAutoscalingCapacityResponse = z.infer<typeof Autoscali
  * NOTE: This feature is designed for indirect use by Elasticsearch Service, Elastic Cloud Enterprise, and Elastic Cloud on Kubernetes. Direct use is not supported.
  */
 export const AutoscalingGetAutoscalingPolicyRequest = z.object({
-  name: z.lazy(() => Name).describe('Name of the autoscaling policy').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
+  ...RequestBase.shape,
+  name: Name.describe('Name of the autoscaling policy').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' })
 }).meta({ id: 'AutoscalingGetAutoscalingPolicyRequest' })
 export type AutoscalingGetAutoscalingPolicyRequest = z.infer<typeof AutoscalingGetAutoscalingPolicyRequest>
 
@@ -108,12 +111,13 @@ export type AutoscalingGetAutoscalingPolicyResponse = z.infer<typeof Autoscaling
  * NOTE: This feature is designed for indirect use by Elasticsearch Service, Elastic Cloud Enterprise, and Elastic Cloud on Kubernetes. Direct use is not supported.
  */
 export const AutoscalingPutAutoscalingPolicyRequest = z.object({
-  name: z.lazy(() => Name).describe('Name of the autoscaling policy').meta({ found_in: 'path' }),
-  master_timeout: z.lazy(() => Duration).describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
-  timeout: z.lazy(() => Duration).describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  ...RequestBase.shape,
+  name: Name.describe('Name of the autoscaling policy').meta({ found_in: 'path' }),
+  master_timeout: Duration.describe('Period to wait for a connection to the master node. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
+  timeout: Duration.describe('Period to wait for a response. If no response is received before the timeout expires, the request fails and returns an error.').optional().meta({ found_in: 'query' }),
   policy: AutoscalingAutoscalingPolicy.optional().meta({ found_in: 'body' })
 }).meta({ id: 'AutoscalingPutAutoscalingPolicyRequest' })
 export type AutoscalingPutAutoscalingPolicyRequest = z.infer<typeof AutoscalingPutAutoscalingPolicyRequest>
 
-export const AutoscalingPutAutoscalingPolicyResponse = z.lazy(() => AcknowledgedResponseBase).meta({ id: 'AutoscalingPutAutoscalingPolicyResponse' })
+export const AutoscalingPutAutoscalingPolicyResponse = AcknowledgedResponseBase.meta({ id: 'AutoscalingPutAutoscalingPolicyResponse' })
 export type AutoscalingPutAutoscalingPolicyResponse = z.infer<typeof AutoscalingPutAutoscalingPolicyResponse>
