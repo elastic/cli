@@ -56,4 +56,50 @@ describe('registerSanitizeCommands', () => {
     const output = written.join('')
     assert.ok(output.includes('mybadindex'), `expected sanitized value in output, got: ${output}`)
   })
+
+  it('plain-text mode writes changes to stderr when input was modified', async () => {
+    const group = registerSanitizeCommands()
+    const indexCmd = (group.commands as Array<{ name: () => string }>).find(c => c.name() === 'index-name')!;
+
+    (indexCmd as import('commander').Command).exitOverride()
+    const stdoutChunks: string[] = []
+    const stderrChunks: string[] = []
+    const origStdout = process.stdout.write.bind(process.stdout)
+    const origStderr = process.stderr.write.bind(process.stderr)
+    process.stdout.write = ((chunk: string) => { stdoutChunks.push(chunk); return true }) as typeof process.stdout.write
+    process.stderr.write = ((chunk: string) => { stderrChunks.push(chunk); return true }) as typeof process.stderr.write
+    try {
+      await (indexCmd as import('commander').Command).parseAsync(['My*Index'], { from: 'user' })
+    } finally {
+      process.stdout.write = origStdout
+      process.stderr.write = origStderr
+    }
+
+    const stdout = stdoutChunks.join('')
+    const stderr = stderrChunks.join('')
+    assert.ok(stdout.includes('myindex'), `stdout should have sanitized value, got: ${stdout}`)
+    assert.ok(stderr.includes('lowercased'), `stderr should list changes, got: ${stderr}`)
+    assert.ok(stderr.includes('stripped forbidden characters'), `stderr should list changes, got: ${stderr}`)
+  })
+
+  it('plain-text mode does not write to stderr when input is unchanged', async () => {
+    const group = registerSanitizeCommands()
+    const indexCmd = (group.commands as Array<{ name: () => string }>).find(c => c.name() === 'index-name')!;
+
+    (indexCmd as import('commander').Command).exitOverride()
+    const stderrChunks: string[] = []
+    const origStdout = process.stdout.write.bind(process.stdout)
+    const origStderr = process.stderr.write.bind(process.stderr)
+    process.stdout.write = (() => true) as typeof process.stdout.write
+    process.stderr.write = ((chunk: string) => { stderrChunks.push(chunk); return true }) as typeof process.stderr.write
+    try {
+      await (indexCmd as import('commander').Command).parseAsync(['validname'], { from: 'user' })
+    } finally {
+      process.stdout.write = origStdout
+      process.stderr.write = origStderr
+    }
+
+    const stderr = stderrChunks.join('')
+    assert.equal(stderr, '', `stderr should be empty when no changes, got: ${stderr}`)
+  })
 })

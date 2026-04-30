@@ -60,6 +60,9 @@ export function registerSanitizeCommands (): OpaqueCommandHandle {
       },
       formatOutput: (result) => {
         const r = result as unknown as SanitizeResult
+        if (r.changes.length > 0) {
+          process.stderr.write(`# changes: ${r.changes.join(', ')}\n`)
+        }
         return r.sanitized + '\n'
       },
     }),
