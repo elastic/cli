@@ -102,6 +102,20 @@ describe('sanitizeIndexName', () => {
     assert.ok(r.changes.some(c => /dot/i.test(c) || /reserved/i.test(c)))
   })
 
+  it('dot replacement is idempotent (sanitizing twice gives the same result)', () => {
+    const first = sanitizeIndexName('.')
+    const second = sanitizeIndexName(first.sanitized)
+    assert.equal(second.sanitized, first.sanitized)
+    assert.equal(second.changes.length, 0)
+  })
+
+  it('double-dot replacement is idempotent', () => {
+    const first = sanitizeIndexName('..')
+    const second = sanitizeIndexName(first.sanitized)
+    assert.equal(second.sanitized, first.sanitized)
+    assert.equal(second.changes.length, 0)
+  })
+
   it('strips zero-width characters', () => {
     const r = sanitizeIndexName('my\u200Bindex\uFEFF')
     assert.equal(r.sanitized, 'myindex')
@@ -166,6 +180,13 @@ describe('sanitizeSnapshotName', () => {
     const long = 'a'.repeat(300)
     const r = sanitizeSnapshotName(long)
     assert.equal(Buffer.byteLength(r.sanitized, 'utf-8'), 255)
+  })
+
+  it('dot replacement is idempotent', () => {
+    const first = sanitizeSnapshotName('.')
+    const second = sanitizeSnapshotName(first.sanitized)
+    assert.equal(second.sanitized, first.sanitized)
+    assert.equal(second.changes.length, 0)
   })
 })
 

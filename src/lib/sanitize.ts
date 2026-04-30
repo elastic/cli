@@ -112,7 +112,7 @@ export function sanitizeIndexName (value: string): SanitizeResult {
 
   if (s === '.' || s === '..') {
     changes.push('replaced reserved dot name')
-    s = '_dot'
+    s = 'dot'
   }
 
   if (Buffer.byteLength(s, 'utf-8') > 255) {
@@ -167,7 +167,7 @@ export function sanitizeSnapshotName (value: string): SanitizeResult {
 
   if (s === '.' || s === '..') {
     changes.push('replaced reserved dot name')
-    s = '_dot'
+    s = 'dot'
   }
 
   if (Buffer.byteLength(s, 'utf-8') > 255) {
