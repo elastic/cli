@@ -42,7 +42,7 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
       - name: Install
-        run: npm install
+        run: npm ci
       - name: Run tests
         run: npm test
       - name: Publish
