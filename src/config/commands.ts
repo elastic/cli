@@ -189,14 +189,18 @@ function getPath (obj: Record<string, unknown>, path: string[]): unknown {
  * failures are swallowed so a `context remove` never fails because a specific
  * keychain entry was already deleted.
  */
-async function purgeContextSecrets (store: SecretStore, contextName: string, ctx: RawContext | undefined): Promise<void> {
+async function purgeContextSecrets (contextName: string, ctx: RawContext | undefined): Promise<void> {
   if (ctx == null) return
-  for (const field of SECRET_FIELDS) {
+  // Identify fields that have resolver expressions — these are the only ones
+  // stored in the OS keychain. Inline secrets have nothing to purge.
+  const keychainFields = SECRET_FIELDS.filter(field => {
     const val = getPath(ctx as Record<string, unknown>, field.path)
-    if (typeof val !== 'string') continue
-    // Only delete keychain entries we wrote (resolver expressions). Inline
-    // values would require parsing, and deleting them would do nothing useful.
-    if (!val.includes('$(')) continue
+    return typeof val === 'string' && val.includes('$(')
+  })
+  if (keychainFields.length === 0) return
+  // Only probe the secret store when there is actually something to delete.
+  const store = await getSecretStore()
+  for (const field of keychainFields) {
     const account = `${contextName}:${field.path.join('.')}`
     try {
       await store.delete(KEYCHAIN_SERVICE, account)
@@ -297,8 +301,7 @@ async function handleContextRemove (parsed: {
     )
   }
 
-  const store = await getSecretStore()
-  await purgeContextSecrets(store, name, config.contexts[name])
+  await purgeContextSecrets(name, config.contexts[name])
 
   const next = removeContext(config, name)
   if (Object.keys(next.contexts).length === 0) {
