@@ -95,6 +95,20 @@ function sniffInvokedLeaf (argv: readonly string[], manifest: readonly EsApiMeta
   return manifest.find((m) => m.namespace === next && m.name === leafName) ?? null
 }
 
+/**
+ * Returns the namespace token from argv if the user is targeting a specific
+ * namespace (e.g. `es indices` or `es indices create`). Used to limit which
+ * namespace's leaf stubs are built eagerly, keeping Commander object count low.
+ */
+function sniffInvokedNamespace (argv: readonly string[]): string | null {
+  const tokens = argv.slice(2).filter((t) => !t.startsWith('-'))
+  const esIdx = tokens.indexOf('es')
+  if (esIdx < 0) return null
+  const next = tokens[esIdx + 1]
+  if (next == null || next === 'helpers') return null
+  return next
+}
+
 interface RegisterLazyOptions {
   /** argv for sniffing the invoked leaf; defaults to `process.argv`. */
   argv?: readonly string[]
@@ -197,6 +211,10 @@ function buildEagerTree (definitions: EsApiDefinition[]): OpaqueCommandHandle {
  */
 async function buildLazyTree (manifest: readonly EsApiMeta[], argv: readonly string[]): Promise<OpaqueCommandHandle> {
   const invoked = sniffInvokedLeaf(argv, manifest)
+  // The namespace the user is targeting (may or may not have a specific leaf).
+  // We only fully expand leaf stubs for this namespace; all others get an empty
+  // group stub to keep Commander object count low at startup.
+  const invokedNamespace = sniffInvokedNamespace(argv)
 
   // Pre-load the invoked leaf's definition so Commander can register real flags
   // before parsing (so `--help` shows them and unknown flags error as usual).
@@ -243,6 +261,18 @@ async function buildLazyTree (manifest: readonly EsApiMeta[], argv: readonly str
     }
     topLevelNames.add(namespace)
 
+    // Only build leaf stubs for the namespace the user is actually targeting.
+    // All other namespaces get an empty group; stubs are added on-demand if the
+    // user navigates to them (e.g. via the stub's action handler fall-through).
+    // This keeps Commander object count proportional to the invoked namespace
+    // size (worst case ~70 stubs) rather than the total manifest size (~560).
+    if (namespace !== invokedNamespace) {
+      namespaceHandles.push(
+        defineGroup({ name: namespace, description: `Elasticsearch ${namespace} API commands` })
+      )
+      continue
+    }
+
     const seen = new Set<string>()
     for (const m of metas) {
       if (seen.has(m.name)) {
@@ -257,13 +287,17 @@ async function buildLazyTree (manifest: readonly EsApiMeta[], argv: readonly str
     )
   }
 
+  // Root-level commands: only build stubs when the user targets root-level.
+  // When a namespace is targeted, root stubs are skipped entirely.
   const rootHandles: OpaqueCommandHandle[] = []
-  for (const m of rootMetas) {
-    if (topLevelNames.has(m.name)) {
-      throw new Error(`duplicate command name "${m.name}" at the top level of es`)
+  if (invokedNamespace == null || !byNamespace.has(invokedNamespace)) {
+    for (const m of rootMetas) {
+      if (topLevelNames.has(m.name)) {
+        throw new Error(`duplicate command name "${m.name}" at the top level of es`)
+      }
+      topLevelNames.add(m.name)
+      rootHandles.push(leafHandleFor(m))
     }
-    topLevelNames.add(m.name)
-    rootHandles.push(leafHandleFor(m))
   }
 
   const helpersGroup = registerHelperCommands()
