@@ -73,6 +73,24 @@ export const apiManifest: readonly EsApiMeta[] = [
     "responseType": "text"
   },
   {
+    "name": "allocation",
+    "namespace": "cat",
+    "description": "Get shard allocation information.",
+    "method": "GET",
+    "path": "/_cat/allocation/{node_id}",
+    "namespaceFile": "cat_allocation",
+    "responseType": "text"
+  },
+  {
+    "name": "circuit-breaker",
+    "namespace": "cat",
+    "description": "Get circuit breakers statistics.",
+    "method": "GET",
+    "path": "/_cat/circuit_breaker/{circuit_breaker_patterns}",
+    "namespaceFile": "cat_circuit_breaker",
+    "responseType": "text"
+  },
+  {
     "name": "component-templates",
     "namespace": "cat",
     "description": "Get component templates.",
@@ -91,6 +109,24 @@ export const apiManifest: readonly EsApiMeta[] = [
     "responseType": "text"
   },
   {
+    "name": "fielddata",
+    "namespace": "cat",
+    "description": "Get field data cache information.",
+    "method": "GET",
+    "path": "/_cat/fielddata/{fields}",
+    "namespaceFile": "cat_fielddata",
+    "responseType": "text"
+  },
+  {
+    "name": "health",
+    "namespace": "cat",
+    "description": "Get the cluster health status.",
+    "method": "GET",
+    "path": "/_cat/health",
+    "namespaceFile": "cat_health",
+    "responseType": "text"
+  },
+  {
     "name": "help",
     "namespace": "cat",
     "description": "Get CAT help.",
@@ -106,6 +142,15 @@ export const apiManifest: readonly EsApiMeta[] = [
     "method": "GET",
     "path": "/_cat/indices/{index}",
     "namespaceFile": "cat_indices",
+    "responseType": "text"
+  },
+  {
+    "name": "master",
+    "namespace": "cat",
+    "description": "Get master node information.",
+    "method": "GET",
+    "path": "/_cat/master",
+    "namespaceFile": "cat_master",
     "responseType": "text"
   },
   {
@@ -145,6 +190,114 @@ export const apiManifest: readonly EsApiMeta[] = [
     "responseType": "text"
   },
   {
+    "name": "nodeattrs",
+    "namespace": "cat",
+    "description": "Get node attribute information.",
+    "method": "GET",
+    "path": "/_cat/nodeattrs",
+    "namespaceFile": "cat_nodeattrs",
+    "responseType": "text"
+  },
+  {
+    "name": "nodes",
+    "namespace": "cat",
+    "description": "Get node information.",
+    "method": "GET",
+    "path": "/_cat/nodes",
+    "namespaceFile": "cat_nodes",
+    "responseType": "text"
+  },
+  {
+    "name": "pending-tasks",
+    "namespace": "cat",
+    "description": "Get pending task information.",
+    "method": "GET",
+    "path": "/_cat/pending_tasks",
+    "namespaceFile": "cat_pending_tasks",
+    "responseType": "text"
+  },
+  {
+    "name": "plugins",
+    "namespace": "cat",
+    "description": "Get plugin information.",
+    "method": "GET",
+    "path": "/_cat/plugins",
+    "namespaceFile": "cat_plugins",
+    "responseType": "text"
+  },
+  {
+    "name": "recovery",
+    "namespace": "cat",
+    "description": "Get shard recovery information.",
+    "method": "GET",
+    "path": "/_cat/recovery/{index}",
+    "namespaceFile": "cat_recovery",
+    "responseType": "text"
+  },
+  {
+    "name": "repositories",
+    "namespace": "cat",
+    "description": "Get snapshot repository information.",
+    "method": "GET",
+    "path": "/_cat/repositories",
+    "namespaceFile": "cat_repositories",
+    "responseType": "text"
+  },
+  {
+    "name": "segments",
+    "namespace": "cat",
+    "description": "Get segment information.",
+    "method": "GET",
+    "path": "/_cat/segments/{index}",
+    "namespaceFile": "cat_segments",
+    "responseType": "text"
+  },
+  {
+    "name": "shards",
+    "namespace": "cat",
+    "description": "Get shard information.",
+    "method": "GET",
+    "path": "/_cat/shards/{index}",
+    "namespaceFile": "cat_shards",
+    "responseType": "text"
+  },
+  {
+    "name": "snapshots",
+    "namespace": "cat",
+    "description": "Get snapshot information.",
+    "method": "GET",
+    "path": "/_cat/snapshots/{repository}",
+    "namespaceFile": "cat_snapshots",
+    "responseType": "text"
+  },
+  {
+    "name": "tasks",
+    "namespace": "cat",
+    "description": "Get task information.",
+    "method": "GET",
+    "path": "/_cat/tasks",
+    "namespaceFile": "cat_tasks",
+    "responseType": "text"
+  },
+  {
+    "name": "templates",
+    "namespace": "cat",
+    "description": "Get index template information.",
+    "method": "GET",
+    "path": "/_cat/templates/{name}",
+    "namespaceFile": "cat_templates",
+    "responseType": "text"
+  },
+  {
+    "name": "thread-pool",
+    "namespace": "cat",
+    "description": "Get thread pool statistics.",
+    "method": "GET",
+    "path": "/_cat/thread_pool/{thread_pool_patterns}",
+    "namespaceFile": "cat_thread_pool",
+    "responseType": "text"
+  },
+  {
     "name": "transforms",
     "namespace": "cat",
     "description": "Get transform information.",
@@ -152,6 +305,110 @@ export const apiManifest: readonly EsApiMeta[] = [
     "path": "/_cat/transforms/{transform_id}",
     "namespaceFile": "cat_transforms",
     "responseType": "text"
+  },
+  {
+    "name": "delete-auto-follow-pattern",
+    "namespace": "ccr",
+    "description": "Delete auto-follow patterns.",
+    "method": "DELETE",
+    "path": "/_ccr/auto_follow/{name}",
+    "namespaceFile": "ccr_delete_auto_follow_pattern"
+  },
+  {
+    "name": "follow",
+    "namespace": "ccr",
+    "description": "Create a follower.",
+    "method": "PUT",
+    "path": "/{index}/_ccr/follow",
+    "namespaceFile": "ccr_follow"
+  },
+  {
+    "name": "follow-info",
+    "namespace": "ccr",
+    "description": "Get follower information.",
+    "method": "GET",
+    "path": "/{index}/_ccr/info",
+    "namespaceFile": "ccr_follow_info"
+  },
+  {
+    "name": "follow-stats",
+    "namespace": "ccr",
+    "description": "Get follower stats.",
+    "method": "GET",
+    "path": "/{index}/_ccr/stats",
+    "namespaceFile": "ccr_follow_stats"
+  },
+  {
+    "name": "forget-follower",
+    "namespace": "ccr",
+    "description": "Forget a follower.",
+    "method": "POST",
+    "path": "/{index}/_ccr/forget_follower",
+    "namespaceFile": "ccr_forget_follower"
+  },
+  {
+    "name": "get-auto-follow-pattern",
+    "namespace": "ccr",
+    "description": "Get auto-follow patterns.",
+    "method": "GET",
+    "path": "/_ccr/auto_follow/{name}",
+    "namespaceFile": "ccr_get_auto_follow_pattern"
+  },
+  {
+    "name": "pause-auto-follow-pattern",
+    "namespace": "ccr",
+    "description": "Pause an auto-follow pattern.",
+    "method": "POST",
+    "path": "/_ccr/auto_follow/{name}/pause",
+    "namespaceFile": "ccr_pause_auto_follow_pattern"
+  },
+  {
+    "name": "pause-follow",
+    "namespace": "ccr",
+    "description": "Pause a follower.",
+    "method": "POST",
+    "path": "/{index}/_ccr/pause_follow",
+    "namespaceFile": "ccr_pause_follow"
+  },
+  {
+    "name": "put-auto-follow-pattern",
+    "namespace": "ccr",
+    "description": "Create or update auto-follow patterns.",
+    "method": "PUT",
+    "path": "/_ccr/auto_follow/{name}",
+    "namespaceFile": "ccr_put_auto_follow_pattern"
+  },
+  {
+    "name": "resume-auto-follow-pattern",
+    "namespace": "ccr",
+    "description": "Resume an auto-follow pattern.",
+    "method": "POST",
+    "path": "/_ccr/auto_follow/{name}/resume",
+    "namespaceFile": "ccr_resume_auto_follow_pattern"
+  },
+  {
+    "name": "resume-follow",
+    "namespace": "ccr",
+    "description": "Resume a follower.",
+    "method": "POST",
+    "path": "/{index}/_ccr/resume_follow",
+    "namespaceFile": "ccr_resume_follow"
+  },
+  {
+    "name": "stats",
+    "namespace": "ccr",
+    "description": "Get cross-cluster replication stats.",
+    "method": "GET",
+    "path": "/_ccr/stats",
+    "namespaceFile": "ccr_stats"
+  },
+  {
+    "name": "unfollow",
+    "namespace": "ccr",
+    "description": "Unfollow an index.",
+    "method": "POST",
+    "path": "/{index}/_ccr/unfollow",
+    "namespaceFile": "ccr_unfollow"
   },
   {
     "name": "clear-scroll",
@@ -170,12 +427,28 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "close_point_in_time"
   },
   {
+    "name": "allocation-explain",
+    "namespace": "cluster",
+    "description": "Explain the shard allocations.",
+    "method": "GET",
+    "path": "/_cluster/allocation/explain",
+    "namespaceFile": "cluster_allocation_explain"
+  },
+  {
     "name": "delete-component-template",
     "namespace": "cluster",
     "description": "Delete component templates.",
     "method": "DELETE",
     "path": "/_component_template/{name}",
     "namespaceFile": "cluster_delete_component_template"
+  },
+  {
+    "name": "delete-voting-config-exclusions",
+    "namespace": "cluster",
+    "description": "Clear cluster voting config exclusions.",
+    "method": "DELETE",
+    "path": "/_cluster/voting_config_exclusions",
+    "namespaceFile": "cluster_delete_voting_config_exclusions"
   },
   {
     "name": "exists-component-template",
@@ -194,6 +467,22 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "cluster_get_component_template"
   },
   {
+    "name": "get-settings",
+    "namespace": "cluster",
+    "description": "Get cluster-wide settings.",
+    "method": "GET",
+    "path": "/_cluster/settings",
+    "namespaceFile": "cluster_get_settings"
+  },
+  {
+    "name": "health",
+    "namespace": "cluster",
+    "description": "Get the cluster health status.",
+    "method": "GET",
+    "path": "/_cluster/health/{index}",
+    "namespaceFile": "cluster_health"
+  },
+  {
     "name": "info",
     "namespace": "cluster",
     "description": "Get cluster info.",
@@ -202,12 +491,68 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "cluster_info"
   },
   {
+    "name": "pending-tasks",
+    "namespace": "cluster",
+    "description": "Get the pending cluster tasks.",
+    "method": "GET",
+    "path": "/_cluster/pending_tasks",
+    "namespaceFile": "cluster_pending_tasks"
+  },
+  {
+    "name": "post-voting-config-exclusions",
+    "namespace": "cluster",
+    "description": "Update voting configuration exclusions.",
+    "method": "POST",
+    "path": "/_cluster/voting_config_exclusions",
+    "namespaceFile": "cluster_post_voting_config_exclusions"
+  },
+  {
     "name": "put-component-template",
     "namespace": "cluster",
     "description": "Create or update a component template.",
     "method": "PUT",
     "path": "/_component_template/{name}",
     "namespaceFile": "cluster_put_component_template"
+  },
+  {
+    "name": "put-settings",
+    "namespace": "cluster",
+    "description": "Update the cluster settings.",
+    "method": "PUT",
+    "path": "/_cluster/settings",
+    "namespaceFile": "cluster_put_settings"
+  },
+  {
+    "name": "remote-info",
+    "namespace": "cluster",
+    "description": "Get remote cluster information.",
+    "method": "GET",
+    "path": "/_remote/info",
+    "namespaceFile": "cluster_remote_info"
+  },
+  {
+    "name": "reroute",
+    "namespace": "cluster",
+    "description": "Reroute the cluster.",
+    "method": "POST",
+    "path": "/_cluster/reroute",
+    "namespaceFile": "cluster_reroute"
+  },
+  {
+    "name": "state",
+    "namespace": "cluster",
+    "description": "Get the cluster state.",
+    "method": "GET",
+    "path": "/_cluster/state/{metric}/{index}",
+    "namespaceFile": "cluster_state"
+  },
+  {
+    "name": "stats",
+    "namespace": "cluster",
+    "description": "Get cluster statistics.",
+    "method": "GET",
+    "path": "/_cluster/stats/nodes/{node_id}",
+    "namespaceFile": "cluster_stats"
   },
   {
     "name": "check-in",
@@ -266,12 +611,36 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "connector_sync_job_cancel"
   },
   {
+    "name": "sync-job-check-in",
+    "namespace": "connector",
+    "description": "Check in a connector sync job.",
+    "method": "PUT",
+    "path": "/_connector/_sync_job/{connector_sync_job_id}/_check_in",
+    "namespaceFile": "connector_sync_job_check_in"
+  },
+  {
+    "name": "sync-job-claim",
+    "namespace": "connector",
+    "description": "Claim a connector sync job.",
+    "method": "PUT",
+    "path": "/_connector/_sync_job/{connector_sync_job_id}/_claim",
+    "namespaceFile": "connector_sync_job_claim"
+  },
+  {
     "name": "sync-job-delete",
     "namespace": "connector",
     "description": "Delete a connector sync job.",
     "method": "DELETE",
     "path": "/_connector/_sync_job/{connector_sync_job_id}",
     "namespaceFile": "connector_sync_job_delete"
+  },
+  {
+    "name": "sync-job-error",
+    "namespace": "connector",
+    "description": "Set a connector sync job error.",
+    "method": "PUT",
+    "path": "/_connector/_sync_job/{connector_sync_job_id}/_error",
+    "namespaceFile": "connector_sync_job_error"
   },
   {
     "name": "sync-job-get",
@@ -296,6 +665,14 @@ export const apiManifest: readonly EsApiMeta[] = [
     "method": "POST",
     "path": "/_connector/_sync_job",
     "namespaceFile": "connector_sync_job_post"
+  },
+  {
+    "name": "sync-job-update-stats",
+    "namespace": "connector",
+    "description": "Set the connector sync job stats.",
+    "method": "PUT",
+    "path": "/_connector/_sync_job/{connector_sync_job_id}/_stats",
+    "namespaceFile": "connector_sync_job_update_stats"
   },
   {
     "name": "update-active-filtering",
@@ -328,6 +705,14 @@ export const apiManifest: readonly EsApiMeta[] = [
     "method": "PUT",
     "path": "/_connector/{connector_id}/_error",
     "namespaceFile": "connector_update_error"
+  },
+  {
+    "name": "update-features",
+    "namespace": "connector",
+    "description": "Update the connector features.",
+    "method": "PUT",
+    "path": "/_connector/{connector_id}/_features",
+    "namespaceFile": "connector_update_features"
   },
   {
     "name": "update-filtering",
@@ -418,6 +803,30 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "create"
   },
   {
+    "name": "delete-dangling-index",
+    "namespace": "dangling-indices",
+    "description": "Delete a dangling index.",
+    "method": "DELETE",
+    "path": "/_dangling/{index_uuid}",
+    "namespaceFile": "dangling_indices_delete_dangling_index"
+  },
+  {
+    "name": "import-dangling-index",
+    "namespace": "dangling-indices",
+    "description": "Import a dangling index.",
+    "method": "POST",
+    "path": "/_dangling/{index_uuid}",
+    "namespaceFile": "dangling_indices_import_dangling_index"
+  },
+  {
+    "name": "list-dangling-indices",
+    "namespace": "dangling-indices",
+    "description": "Get the dangling indices.",
+    "method": "GET",
+    "path": "/_dangling",
+    "namespaceFile": "dangling_indices_list_dangling_indices"
+  },
+  {
     "name": "delete",
     "namespace": null,
     "description": "Delete a document.",
@@ -432,6 +841,14 @@ export const apiManifest: readonly EsApiMeta[] = [
     "method": "POST",
     "path": "/{index}/_delete_by_query",
     "namespaceFile": "delete_by_query"
+  },
+  {
+    "name": "delete-by-query-rethrottle",
+    "namespace": null,
+    "description": "Throttle a delete by query operation.",
+    "method": "POST",
+    "path": "/_delete_by_query/{task_id}/_rethrottle",
+    "namespaceFile": "delete_by_query_rethrottle"
   },
   {
     "name": "delete-script",
@@ -474,6 +891,14 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "enrich_put_policy"
   },
   {
+    "name": "stats",
+    "namespace": "enrich",
+    "description": "Get enrich stats.",
+    "method": "GET",
+    "path": "/_enrich/_stats",
+    "namespaceFile": "enrich_stats"
+  },
+  {
     "name": "delete",
     "namespace": "eql",
     "description": "Delete an async EQL search.",
@@ -504,6 +929,38 @@ export const apiManifest: readonly EsApiMeta[] = [
     "method": "GET",
     "path": "/{index}/_eql/search",
     "namespaceFile": "eql_search"
+  },
+  {
+    "name": "async-query",
+    "namespace": "esql",
+    "description": "Run an async ES|QL query.",
+    "method": "POST",
+    "path": "/_query/async",
+    "namespaceFile": "esql_async_query"
+  },
+  {
+    "name": "async-query-delete",
+    "namespace": "esql",
+    "description": "Delete an async ES|QL query.",
+    "method": "DELETE",
+    "path": "/_query/async/{id}",
+    "namespaceFile": "esql_async_query_delete"
+  },
+  {
+    "name": "async-query-get",
+    "namespace": "esql",
+    "description": "Get async ES|QL query results.",
+    "method": "GET",
+    "path": "/_query/async/{id}",
+    "namespaceFile": "esql_async_query_get"
+  },
+  {
+    "name": "async-query-stop",
+    "namespace": "esql",
+    "description": "Stop async ES|QL query.",
+    "method": "POST",
+    "path": "/_query/async/{id}/stop",
+    "namespaceFile": "esql_async_query_stop"
   },
   {
     "name": "delete-view",
@@ -578,12 +1035,53 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "explain"
   },
   {
+    "name": "get-features",
+    "namespace": "features",
+    "description": "Get the features.",
+    "method": "GET",
+    "path": "/_features",
+    "namespaceFile": "features_get_features"
+  },
+  {
+    "name": "reset-features",
+    "namespace": "features",
+    "description": "Reset the features.",
+    "method": "POST",
+    "path": "/_features/_reset",
+    "namespaceFile": "features_reset_features"
+  },
+  {
     "name": "field-caps",
     "namespace": null,
     "description": "Get the field capabilities.",
     "method": "GET",
     "path": "/{index}/_field_caps",
     "namespaceFile": "field_caps"
+  },
+  {
+    "name": "global-checkpoints",
+    "namespace": "fleet",
+    "description": "Get global checkpoints.",
+    "method": "GET",
+    "path": "/{index}/_fleet/global_checkpoints",
+    "namespaceFile": "fleet_global_checkpoints"
+  },
+  {
+    "name": "msearch",
+    "namespace": "fleet",
+    "description": "Run multiple Fleet searches.",
+    "method": "GET",
+    "path": "/{index}/_fleet/_fleet_msearch",
+    "namespaceFile": "fleet_msearch",
+    "bodyFormat": "ndjson"
+  },
+  {
+    "name": "search",
+    "namespace": "fleet",
+    "description": "Run a Fleet search.",
+    "method": "GET",
+    "path": "/{index}/_fleet/_fleet_search",
+    "namespaceFile": "fleet_search"
   },
   {
     "name": "get",
@@ -602,12 +1100,132 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "get_script"
   },
   {
+    "name": "get-script-context",
+    "namespace": null,
+    "description": "Get script contexts.",
+    "method": "GET",
+    "path": "/_script_context",
+    "namespaceFile": "get_script_context"
+  },
+  {
+    "name": "get-script-languages",
+    "namespace": null,
+    "description": "Get script languages.",
+    "method": "GET",
+    "path": "/_script_language",
+    "namespaceFile": "get_script_languages"
+  },
+  {
     "name": "get-source",
     "namespace": null,
     "description": "Get a document's source.",
     "method": "GET",
     "path": "/{index}/_source/{id}",
     "namespaceFile": "get_source"
+  },
+  {
+    "name": "explore",
+    "namespace": "graph",
+    "description": "Explore graph analytics.",
+    "method": "GET",
+    "path": "/{index}/_graph/explore",
+    "namespaceFile": "graph_explore"
+  },
+  {
+    "name": "health-report",
+    "namespace": null,
+    "description": "Get the cluster health.",
+    "method": "GET",
+    "path": "/_health_report/{feature}",
+    "namespaceFile": "health_report"
+  },
+  {
+    "name": "delete-lifecycle",
+    "namespace": "ilm",
+    "description": "Delete a lifecycle policy.",
+    "method": "DELETE",
+    "path": "/_ilm/policy/{policy}",
+    "namespaceFile": "ilm_delete_lifecycle"
+  },
+  {
+    "name": "explain-lifecycle",
+    "namespace": "ilm",
+    "description": "Explain the lifecycle state.",
+    "method": "GET",
+    "path": "/{index}/_ilm/explain",
+    "namespaceFile": "ilm_explain_lifecycle"
+  },
+  {
+    "name": "get-lifecycle",
+    "namespace": "ilm",
+    "description": "Get lifecycle policies.",
+    "method": "GET",
+    "path": "/_ilm/policy/{policy}",
+    "namespaceFile": "ilm_get_lifecycle"
+  },
+  {
+    "name": "get-status",
+    "namespace": "ilm",
+    "description": "Get the ILM status.",
+    "method": "GET",
+    "path": "/_ilm/status",
+    "namespaceFile": "ilm_get_status"
+  },
+  {
+    "name": "migrate-to-data-tiers",
+    "namespace": "ilm",
+    "description": "Migrate to data tiers routing.",
+    "method": "POST",
+    "path": "/_ilm/migrate_to_data_tiers",
+    "namespaceFile": "ilm_migrate_to_data_tiers"
+  },
+  {
+    "name": "move-to-step",
+    "namespace": "ilm",
+    "description": "Move to a lifecycle step.",
+    "method": "POST",
+    "path": "/_ilm/move/{index}",
+    "namespaceFile": "ilm_move_to_step"
+  },
+  {
+    "name": "put-lifecycle",
+    "namespace": "ilm",
+    "description": "Create or update a lifecycle policy.",
+    "method": "PUT",
+    "path": "/_ilm/policy/{policy}",
+    "namespaceFile": "ilm_put_lifecycle"
+  },
+  {
+    "name": "remove-policy",
+    "namespace": "ilm",
+    "description": "Remove policies from an index.",
+    "method": "POST",
+    "path": "/{index}/_ilm/remove",
+    "namespaceFile": "ilm_remove_policy"
+  },
+  {
+    "name": "retry",
+    "namespace": "ilm",
+    "description": "Retry a policy.",
+    "method": "POST",
+    "path": "/{index}/_ilm/retry",
+    "namespaceFile": "ilm_retry"
+  },
+  {
+    "name": "start",
+    "namespace": "ilm",
+    "description": "Start the ILM plugin.",
+    "method": "POST",
+    "path": "/_ilm/start",
+    "namespaceFile": "ilm_start"
+  },
+  {
+    "name": "stop",
+    "namespace": "ilm",
+    "description": "Stop the ILM plugin.",
+    "method": "POST",
+    "path": "/_ilm/stop",
+    "namespaceFile": "ilm_stop"
   },
   {
     "name": "index",
@@ -642,6 +1260,30 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "indices_cancel_migrate_reindex"
   },
   {
+    "name": "clear-cache",
+    "namespace": "indices",
+    "description": "Clear the cache.",
+    "method": "POST",
+    "path": "/{index}/_cache/clear",
+    "namespaceFile": "indices_clear_cache"
+  },
+  {
+    "name": "clone",
+    "namespace": "indices",
+    "description": "Clone an index.",
+    "method": "PUT",
+    "path": "/{index}/_clone/{target}",
+    "namespaceFile": "indices_clone"
+  },
+  {
+    "name": "close",
+    "namespace": "indices",
+    "description": "Close an index.",
+    "method": "POST",
+    "path": "/{index}/_close",
+    "namespaceFile": "indices_close"
+  },
+  {
     "name": "create",
     "namespace": "indices",
     "description": "Create an index.",
@@ -666,6 +1308,14 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "indices_create_from"
   },
   {
+    "name": "data-streams-stats",
+    "namespace": "indices",
+    "description": "Get data stream stats.",
+    "method": "GET",
+    "path": "/_data_stream/{name}/_stats",
+    "namespaceFile": "indices_data_streams_stats"
+  },
+  {
     "name": "delete",
     "namespace": "indices",
     "description": "Delete indices.",
@@ -682,6 +1332,14 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "indices_delete_alias"
   },
   {
+    "name": "delete-data-lifecycle",
+    "namespace": "indices",
+    "description": "Delete data stream lifecycles.",
+    "method": "DELETE",
+    "path": "/_data_stream/{name}/_lifecycle",
+    "namespaceFile": "indices_delete_data_lifecycle"
+  },
+  {
     "name": "delete-data-stream",
     "namespace": "indices",
     "description": "Delete data streams.",
@@ -690,12 +1348,44 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "indices_delete_data_stream"
   },
   {
+    "name": "delete-data-stream-options",
+    "namespace": "indices",
+    "description": "Delete data stream options.",
+    "method": "DELETE",
+    "path": "/_data_stream/{name}/_options",
+    "namespaceFile": "indices_delete_data_stream_options"
+  },
+  {
     "name": "delete-index-template",
     "namespace": "indices",
     "description": "Delete an index template.",
     "method": "DELETE",
     "path": "/_index_template/{name}",
     "namespaceFile": "indices_delete_index_template"
+  },
+  {
+    "name": "delete-template",
+    "namespace": "indices",
+    "description": "Delete a legacy index template.",
+    "method": "DELETE",
+    "path": "/_template/{name}",
+    "namespaceFile": "indices_delete_template"
+  },
+  {
+    "name": "disk-usage",
+    "namespace": "indices",
+    "description": "Analyze the index disk usage.",
+    "method": "POST",
+    "path": "/{index}/_disk_usage",
+    "namespaceFile": "indices_disk_usage"
+  },
+  {
+    "name": "downsample",
+    "namespace": "indices",
+    "description": "Downsample an index.",
+    "method": "POST",
+    "path": "/{index}/_downsample/{target_index}",
+    "namespaceFile": "indices_downsample"
   },
   {
     "name": "exists",
@@ -722,12 +1412,44 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "indices_exists_index_template"
   },
   {
+    "name": "exists-template",
+    "namespace": "indices",
+    "description": "Check existence of index templates.",
+    "method": "HEAD",
+    "path": "/_template/{name}",
+    "namespaceFile": "indices_exists_template"
+  },
+  {
     "name": "explain-data-lifecycle",
     "namespace": "indices",
     "description": "Get the status for a data stream lifecycle.",
     "method": "GET",
     "path": "/{index}/_lifecycle/explain",
     "namespaceFile": "indices_explain_data_lifecycle"
+  },
+  {
+    "name": "field-usage-stats",
+    "namespace": "indices",
+    "description": "Get field usage stats.",
+    "method": "GET",
+    "path": "/{index}/_field_usage_stats",
+    "namespaceFile": "indices_field_usage_stats"
+  },
+  {
+    "name": "flush",
+    "namespace": "indices",
+    "description": "Flush data streams or indices.",
+    "method": "POST",
+    "path": "/{index}/_flush",
+    "namespaceFile": "indices_flush"
+  },
+  {
+    "name": "forcemerge",
+    "namespace": "indices",
+    "description": "Force a merge.",
+    "method": "POST",
+    "path": "/{index}/_forcemerge",
+    "namespaceFile": "indices_forcemerge"
   },
   {
     "name": "get",
@@ -752,6 +1474,14 @@ export const apiManifest: readonly EsApiMeta[] = [
     "method": "GET",
     "path": "/_data_stream/{name}/_lifecycle",
     "namespaceFile": "indices_get_data_lifecycle"
+  },
+  {
+    "name": "get-data-lifecycle-stats",
+    "namespace": "indices",
+    "description": "Get data stream lifecycle stats.",
+    "method": "GET",
+    "path": "/_lifecycle/stats",
+    "namespaceFile": "indices_get_data_lifecycle_stats"
   },
   {
     "name": "get-data-stream",
@@ -786,6 +1516,14 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "indices_get_data_stream_settings"
   },
   {
+    "name": "get-field-mapping",
+    "namespace": "indices",
+    "description": "Get mapping definitions.",
+    "method": "GET",
+    "path": "/{index}/_mapping/field/{fields}",
+    "namespaceFile": "indices_get_field_mapping"
+  },
+  {
     "name": "get-index-template",
     "namespace": "indices",
     "description": "Get index templates.",
@@ -818,6 +1556,22 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "indices_get_settings"
   },
   {
+    "name": "get-template",
+    "namespace": "indices",
+    "description": "Get legacy index templates.",
+    "method": "GET",
+    "path": "/_template/{name}",
+    "namespaceFile": "indices_get_template"
+  },
+  {
+    "name": "migrate-reindex",
+    "namespace": "indices",
+    "description": "Reindex legacy backing indices.",
+    "method": "POST",
+    "path": "/_migration/reindex",
+    "namespaceFile": "indices_migrate_reindex"
+  },
+  {
     "name": "migrate-to-data-stream",
     "namespace": "indices",
     "description": "Convert an index alias to a data stream.",
@@ -832,6 +1586,22 @@ export const apiManifest: readonly EsApiMeta[] = [
     "method": "POST",
     "path": "/_data_stream/_modify",
     "namespaceFile": "indices_modify_data_stream"
+  },
+  {
+    "name": "open",
+    "namespace": "indices",
+    "description": "Open a closed index.",
+    "method": "POST",
+    "path": "/{index}/_open",
+    "namespaceFile": "indices_open"
+  },
+  {
+    "name": "promote-data-stream",
+    "namespace": "indices",
+    "description": "Promote a data stream.",
+    "method": "POST",
+    "path": "/_data_stream/_promote/{name}",
+    "namespaceFile": "indices_promote_data_stream"
   },
   {
     "name": "put-alias",
@@ -898,6 +1668,22 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "indices_put_settings"
   },
   {
+    "name": "put-template",
+    "namespace": "indices",
+    "description": "Create or update a legacy index template.",
+    "method": "PUT",
+    "path": "/_template/{name}",
+    "namespaceFile": "indices_put_template"
+  },
+  {
+    "name": "recovery",
+    "namespace": "indices",
+    "description": "Get index recovery information.",
+    "method": "GET",
+    "path": "/{index}/_recovery",
+    "namespaceFile": "indices_recovery"
+  },
+  {
     "name": "refresh",
     "namespace": "indices",
     "description": "Refresh an index.",
@@ -906,12 +1692,28 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "indices_refresh"
   },
   {
+    "name": "reload-search-analyzers",
+    "namespace": "indices",
+    "description": "Reload search analyzers.",
+    "method": "GET",
+    "path": "/{index}/_reload_search_analyzers",
+    "namespaceFile": "indices_reload_search_analyzers"
+  },
+  {
     "name": "remove-block",
     "namespace": "indices",
     "description": "Remove an index block.",
     "method": "DELETE",
     "path": "/{index}/_block/{block}",
     "namespaceFile": "indices_remove_block"
+  },
+  {
+    "name": "resolve-cluster",
+    "namespace": "indices",
+    "description": "Resolve the cluster.",
+    "method": "GET",
+    "path": "/_resolve/cluster/{name}",
+    "namespaceFile": "indices_resolve_cluster"
   },
   {
     "name": "resolve-index",
@@ -930,6 +1732,30 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "indices_rollover"
   },
   {
+    "name": "segments",
+    "namespace": "indices",
+    "description": "Get index segments.",
+    "method": "GET",
+    "path": "/{index}/_segments",
+    "namespaceFile": "indices_segments"
+  },
+  {
+    "name": "shard-stores",
+    "namespace": "indices",
+    "description": "Get index shard stores.",
+    "method": "GET",
+    "path": "/{index}/_shard_stores",
+    "namespaceFile": "indices_shard_stores"
+  },
+  {
+    "name": "shrink",
+    "namespace": "indices",
+    "description": "Shrink an index.",
+    "method": "PUT",
+    "path": "/{index}/_shrink/{target}",
+    "namespaceFile": "indices_shrink"
+  },
+  {
     "name": "simulate-index-template",
     "namespace": "indices",
     "description": "Simulate an index.",
@@ -944,6 +1770,22 @@ export const apiManifest: readonly EsApiMeta[] = [
     "method": "POST",
     "path": "/_index_template/_simulate/{name}",
     "namespaceFile": "indices_simulate_template"
+  },
+  {
+    "name": "split",
+    "namespace": "indices",
+    "description": "Split an index.",
+    "method": "PUT",
+    "path": "/{index}/_split/{target}",
+    "namespaceFile": "indices_split"
+  },
+  {
+    "name": "stats",
+    "namespace": "indices",
+    "description": "Get index statistics.",
+    "method": "GET",
+    "path": "/{index}/_stats/{metric}",
+    "namespaceFile": "indices_stats"
   },
   {
     "name": "update-aliases",
@@ -1274,12 +2116,52 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "info"
   },
   {
+    "name": "delete-geoip-database",
+    "namespace": "ingest",
+    "description": "Delete GeoIP database configurations.",
+    "method": "DELETE",
+    "path": "/_ingest/geoip/database/{id}",
+    "namespaceFile": "ingest_delete_geoip_database"
+  },
+  {
+    "name": "delete-ip-location-database",
+    "namespace": "ingest",
+    "description": "Delete IP geolocation database configurations.",
+    "method": "DELETE",
+    "path": "/_ingest/ip_location/database/{id}",
+    "namespaceFile": "ingest_delete_ip_location_database"
+  },
+  {
     "name": "delete-pipeline",
     "namespace": "ingest",
     "description": "Delete pipelines.",
     "method": "DELETE",
     "path": "/_ingest/pipeline/{id}",
     "namespaceFile": "ingest_delete_pipeline"
+  },
+  {
+    "name": "geo-ip-stats",
+    "namespace": "ingest",
+    "description": "Get GeoIP statistics.",
+    "method": "GET",
+    "path": "/_ingest/geoip/stats",
+    "namespaceFile": "ingest_geo_ip_stats"
+  },
+  {
+    "name": "get-geoip-database",
+    "namespace": "ingest",
+    "description": "Get GeoIP database configurations.",
+    "method": "GET",
+    "path": "/_ingest/geoip/database/{id}",
+    "namespaceFile": "ingest_get_geoip_database"
+  },
+  {
+    "name": "get-ip-location-database",
+    "namespace": "ingest",
+    "description": "Get IP geolocation database configurations.",
+    "method": "GET",
+    "path": "/_ingest/ip_location/database/{id}",
+    "namespaceFile": "ingest_get_ip_location_database"
   },
   {
     "name": "get-pipeline",
@@ -1298,6 +2180,22 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "ingest_processor_grok"
   },
   {
+    "name": "put-geoip-database",
+    "namespace": "ingest",
+    "description": "Create or update a GeoIP database configuration.",
+    "method": "PUT",
+    "path": "/_ingest/geoip/database/{id}",
+    "namespaceFile": "ingest_put_geoip_database"
+  },
+  {
+    "name": "put-ip-location-database",
+    "namespace": "ingest",
+    "description": "Create or update an IP geolocation database configuration.",
+    "method": "PUT",
+    "path": "/_ingest/ip_location/database/{id}",
+    "namespaceFile": "ingest_put_ip_location_database"
+  },
+  {
     "name": "put-pipeline",
     "namespace": "ingest",
     "description": "Create or update a pipeline.",
@@ -1314,12 +2212,60 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "ingest_simulate"
   },
   {
+    "name": "delete",
+    "namespace": "license",
+    "description": "Delete the license.",
+    "method": "DELETE",
+    "path": "/_license",
+    "namespaceFile": "license_delete"
+  },
+  {
     "name": "get",
     "namespace": "license",
     "description": "Get license information.",
     "method": "GET",
     "path": "/_license",
     "namespaceFile": "license_get"
+  },
+  {
+    "name": "get-basic-status",
+    "namespace": "license",
+    "description": "Get the basic license status.",
+    "method": "GET",
+    "path": "/_license/basic_status",
+    "namespaceFile": "license_get_basic_status"
+  },
+  {
+    "name": "get-trial-status",
+    "namespace": "license",
+    "description": "Get the trial status.",
+    "method": "GET",
+    "path": "/_license/trial_status",
+    "namespaceFile": "license_get_trial_status"
+  },
+  {
+    "name": "post",
+    "namespace": "license",
+    "description": "Update the license.",
+    "method": "PUT",
+    "path": "/_license",
+    "namespaceFile": "license_post"
+  },
+  {
+    "name": "post-start-basic",
+    "namespace": "license",
+    "description": "Start a basic license.",
+    "method": "POST",
+    "path": "/_license/start_basic",
+    "namespaceFile": "license_post_start_basic"
+  },
+  {
+    "name": "post-start-trial",
+    "namespace": "license",
+    "description": "Start a trial.",
+    "method": "POST",
+    "path": "/_license/start_trial",
+    "namespaceFile": "license_post_start_trial"
   },
   {
     "name": "delete-pipeline",
@@ -1352,6 +2298,38 @@ export const apiManifest: readonly EsApiMeta[] = [
     "method": "GET",
     "path": "/{index}/_mget",
     "namespaceFile": "mget"
+  },
+  {
+    "name": "deprecations",
+    "namespace": "migration",
+    "description": "Get deprecation information.",
+    "method": "GET",
+    "path": "/{index}/_migration/deprecations",
+    "namespaceFile": "migration_deprecations"
+  },
+  {
+    "name": "get-feature-upgrade-status",
+    "namespace": "migration",
+    "description": "Get feature migration information.",
+    "method": "GET",
+    "path": "/_migration/system_features",
+    "namespaceFile": "migration_get_feature_upgrade_status"
+  },
+  {
+    "name": "post-feature-upgrade",
+    "namespace": "migration",
+    "description": "Start the feature migration.",
+    "method": "POST",
+    "path": "/_migration/system_features",
+    "namespaceFile": "migration_post_feature_upgrade"
+  },
+  {
+    "name": "clear-trained-model-deployment-cache",
+    "namespace": "ml",
+    "description": "Clear trained model deployment cache.",
+    "method": "POST",
+    "path": "/_ml/trained_models/{model_id}/deployment/cache/_clear",
+    "namespaceFile": "ml_clear_trained_model_deployment_cache"
   },
   {
     "name": "close-job",
@@ -1402,6 +2380,14 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "ml_delete_datafeed"
   },
   {
+    "name": "delete-expired-data",
+    "namespace": "ml",
+    "description": "Delete expired ML data.",
+    "method": "DELETE",
+    "path": "/_ml/_delete_expired_data/{job_id}",
+    "namespaceFile": "ml_delete_expired_data"
+  },
+  {
     "name": "delete-filter",
     "namespace": "ml",
     "description": "Delete a filter.",
@@ -1410,12 +2396,28 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "ml_delete_filter"
   },
   {
+    "name": "delete-forecast",
+    "namespace": "ml",
+    "description": "Delete forecasts from a job.",
+    "method": "DELETE",
+    "path": "/_ml/anomaly_detectors/{job_id}/_forecast/{forecast_id}",
+    "namespaceFile": "ml_delete_forecast"
+  },
+  {
     "name": "delete-job",
     "namespace": "ml",
     "description": "Delete an anomaly detection job.",
     "method": "DELETE",
     "path": "/_ml/anomaly_detectors/{job_id}",
     "namespaceFile": "ml_delete_job"
+  },
+  {
+    "name": "delete-model-snapshot",
+    "namespace": "ml",
+    "description": "Delete a model snapshot.",
+    "method": "DELETE",
+    "path": "/_ml/anomaly_detectors/{job_id}/model_snapshots/{snapshot_id}",
+    "namespaceFile": "ml_delete_model_snapshot"
   },
   {
     "name": "delete-trained-model",
@@ -1450,12 +2452,36 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "ml_evaluate_data_frame"
   },
   {
+    "name": "explain-data-frame-analytics",
+    "namespace": "ml",
+    "description": "Explain data frame analytics config.",
+    "method": "GET",
+    "path": "/_ml/data_frame/analytics/{id}/_explain",
+    "namespaceFile": "ml_explain_data_frame_analytics"
+  },
+  {
     "name": "flush-job",
     "namespace": "ml",
     "description": "Force buffered data to be processed.",
     "method": "POST",
     "path": "/_ml/anomaly_detectors/{job_id}/_flush",
     "namespaceFile": "ml_flush_job"
+  },
+  {
+    "name": "forecast",
+    "namespace": "ml",
+    "description": "Predict future behavior of a time series.",
+    "method": "POST",
+    "path": "/_ml/anomaly_detectors/{job_id}/_forecast",
+    "namespaceFile": "ml_forecast"
+  },
+  {
+    "name": "get-buckets",
+    "namespace": "ml",
+    "description": "Get anomaly detection job results for buckets.",
+    "method": "GET",
+    "path": "/_ml/anomaly_detectors/{job_id}/results/buckets/{timestamp}",
+    "namespaceFile": "ml_get_buckets"
   },
   {
     "name": "get-calendar-events",
@@ -1472,6 +2498,14 @@ export const apiManifest: readonly EsApiMeta[] = [
     "method": "GET",
     "path": "/_ml/calendars/{calendar_id}",
     "namespaceFile": "ml_get_calendars"
+  },
+  {
+    "name": "get-categories",
+    "namespace": "ml",
+    "description": "Get anomaly detection job results for categories.",
+    "method": "GET",
+    "path": "/_ml/anomaly_detectors/{job_id}/results/categories/{category_id}",
+    "namespaceFile": "ml_get_categories"
   },
   {
     "name": "get-data-frame-analytics",
@@ -1514,6 +2548,14 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "ml_get_filters"
   },
   {
+    "name": "get-influencers",
+    "namespace": "ml",
+    "description": "Get anomaly detection job results for influencers.",
+    "method": "GET",
+    "path": "/_ml/anomaly_detectors/{job_id}/results/influencers",
+    "namespaceFile": "ml_get_influencers"
+  },
+  {
     "name": "get-job-stats",
     "namespace": "ml",
     "description": "Get anomaly detection job stats.",
@@ -1530,12 +2572,44 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "ml_get_jobs"
   },
   {
+    "name": "get-memory-stats",
+    "namespace": "ml",
+    "description": "Get machine learning memory usage info.",
+    "method": "GET",
+    "path": "/_ml/memory/{node_id}/_stats",
+    "namespaceFile": "ml_get_memory_stats"
+  },
+  {
+    "name": "get-model-snapshot-upgrade-stats",
+    "namespace": "ml",
+    "description": "Get anomaly detection job model snapshot upgrade usage info.",
+    "method": "GET",
+    "path": "/_ml/anomaly_detectors/{job_id}/model_snapshots/{snapshot_id}/_upgrade/_stats",
+    "namespaceFile": "ml_get_model_snapshot_upgrade_stats"
+  },
+  {
+    "name": "get-model-snapshots",
+    "namespace": "ml",
+    "description": "Get model snapshots info.",
+    "method": "GET",
+    "path": "/_ml/anomaly_detectors/{job_id}/model_snapshots/{snapshot_id}",
+    "namespaceFile": "ml_get_model_snapshots"
+  },
+  {
     "name": "get-overall-buckets",
     "namespace": "ml",
     "description": "Get overall bucket results.",
     "method": "GET",
     "path": "/_ml/anomaly_detectors/{job_id}/results/overall_buckets",
     "namespaceFile": "ml_get_overall_buckets"
+  },
+  {
+    "name": "get-records",
+    "namespace": "ml",
+    "description": "Get anomaly records for an anomaly detection job.",
+    "method": "GET",
+    "path": "/_ml/anomaly_detectors/{job_id}/results/records",
+    "namespaceFile": "ml_get_records"
   },
   {
     "name": "get-trained-models",
@@ -1562,6 +2636,14 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "ml_infer_trained_model"
   },
   {
+    "name": "info",
+    "namespace": "ml",
+    "description": "Get machine learning information.",
+    "method": "GET",
+    "path": "/_ml/info",
+    "namespaceFile": "ml_info"
+  },
+  {
     "name": "open-job",
     "namespace": "ml",
     "description": "Open anomaly detection jobs.",
@@ -1576,6 +2658,15 @@ export const apiManifest: readonly EsApiMeta[] = [
     "method": "POST",
     "path": "/_ml/calendars/{calendar_id}/events",
     "namespaceFile": "ml_post_calendar_events"
+  },
+  {
+    "name": "post-data",
+    "namespace": "ml",
+    "description": "Send data to an anomaly detection job for analysis.",
+    "method": "POST",
+    "path": "/_ml/anomaly_detectors/{job_id}/_data",
+    "namespaceFile": "ml_post_data",
+    "bodyFormat": "ndjson"
   },
   {
     "name": "preview-data-frame-analytics",
@@ -1682,6 +2773,22 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "ml_reset_job"
   },
   {
+    "name": "revert-model-snapshot",
+    "namespace": "ml",
+    "description": "Revert to a snapshot.",
+    "method": "POST",
+    "path": "/_ml/anomaly_detectors/{job_id}/model_snapshots/{snapshot_id}/_revert",
+    "namespaceFile": "ml_revert_model_snapshot"
+  },
+  {
+    "name": "set-upgrade-mode",
+    "namespace": "ml",
+    "description": "Set upgrade_mode for ML indices.",
+    "method": "POST",
+    "path": "/_ml/set_upgrade_mode",
+    "namespaceFile": "ml_set_upgrade_mode"
+  },
+  {
     "name": "start-data-frame-analytics",
     "namespace": "ml",
     "description": "Start a data frame analytics job.",
@@ -1762,12 +2869,28 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "ml_update_job"
   },
   {
+    "name": "update-model-snapshot",
+    "namespace": "ml",
+    "description": "Update a snapshot.",
+    "method": "POST",
+    "path": "/_ml/anomaly_detectors/{job_id}/model_snapshots/{snapshot_id}/_update",
+    "namespaceFile": "ml_update_model_snapshot"
+  },
+  {
     "name": "update-trained-model-deployment",
     "namespace": "ml",
     "description": "Update a trained model deployment.",
     "method": "POST",
     "path": "/_ml/trained_models/{model_id}/deployment/_update",
     "namespaceFile": "ml_update_trained_model_deployment"
+  },
+  {
+    "name": "upgrade-job-snapshot",
+    "namespace": "ml",
+    "description": "Upgrade a snapshot.",
+    "method": "POST",
+    "path": "/_ml/anomaly_detectors/{job_id}/model_snapshots/{snapshot_id}/_upgrade",
+    "namespaceFile": "ml_upgrade_job_snapshot"
   },
   {
     "name": "msearch",
@@ -1794,6 +2917,63 @@ export const apiManifest: readonly EsApiMeta[] = [
     "method": "GET",
     "path": "/{index}/_mtermvectors",
     "namespaceFile": "mtermvectors"
+  },
+  {
+    "name": "clear-repositories-metering-archive",
+    "namespace": "nodes",
+    "description": "Clear the archived repositories metering.",
+    "method": "DELETE",
+    "path": "/_nodes/{node_id}/_repositories_metering/{max_archive_version}",
+    "namespaceFile": "nodes_clear_repositories_metering_archive"
+  },
+  {
+    "name": "get-repositories-metering-info",
+    "namespace": "nodes",
+    "description": "Get cluster repositories metering.",
+    "method": "GET",
+    "path": "/_nodes/{node_id}/_repositories_metering",
+    "namespaceFile": "nodes_get_repositories_metering_info"
+  },
+  {
+    "name": "hot-threads",
+    "namespace": "nodes",
+    "description": "Get the hot threads for nodes.",
+    "method": "GET",
+    "path": "/_nodes/{node_id}/hot_threads",
+    "namespaceFile": "nodes_hot_threads",
+    "responseType": "text"
+  },
+  {
+    "name": "info",
+    "namespace": "nodes",
+    "description": "Get node information.",
+    "method": "GET",
+    "path": "/_nodes/{node_id}/{metric}",
+    "namespaceFile": "nodes_info"
+  },
+  {
+    "name": "reload-secure-settings",
+    "namespace": "nodes",
+    "description": "Reload the keystore on nodes in the cluster.",
+    "method": "POST",
+    "path": "/_nodes/{node_id}/reload_secure_settings",
+    "namespaceFile": "nodes_reload_secure_settings"
+  },
+  {
+    "name": "stats",
+    "namespace": "nodes",
+    "description": "Get node statistics.",
+    "method": "GET",
+    "path": "/_nodes/{node_id}/stats/{metric}/{index_metric}",
+    "namespaceFile": "nodes_stats"
+  },
+  {
+    "name": "usage",
+    "namespace": "nodes",
+    "description": "Get feature usage information.",
+    "method": "GET",
+    "path": "/_nodes/{node_id}/usage/{metric}",
+    "namespaceFile": "nodes_usage"
   },
   {
     "name": "open-point-in-time",
@@ -1948,12 +3128,84 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "reindex"
   },
   {
+    "name": "reindex-rethrottle",
+    "namespace": null,
+    "description": "Throttle a reindex operation.",
+    "method": "POST",
+    "path": "/_reindex/{task_id}/_rethrottle",
+    "namespaceFile": "reindex_rethrottle"
+  },
+  {
     "name": "render-search-template",
     "namespace": null,
     "description": "Render a search template.",
     "method": "GET",
     "path": "/_render/template/{id}",
     "namespaceFile": "render_search_template"
+  },
+  {
+    "name": "delete-job",
+    "namespace": "rollup",
+    "description": "Delete a rollup job.",
+    "method": "DELETE",
+    "path": "/_rollup/job/{id}",
+    "namespaceFile": "rollup_delete_job"
+  },
+  {
+    "name": "get-jobs",
+    "namespace": "rollup",
+    "description": "Get rollup job information.",
+    "method": "GET",
+    "path": "/_rollup/job/{id}",
+    "namespaceFile": "rollup_get_jobs"
+  },
+  {
+    "name": "get-rollup-caps",
+    "namespace": "rollup",
+    "description": "Get the rollup job capabilities.",
+    "method": "GET",
+    "path": "/_rollup/data/{id}",
+    "namespaceFile": "rollup_get_rollup_caps"
+  },
+  {
+    "name": "get-rollup-index-caps",
+    "namespace": "rollup",
+    "description": "Get the rollup index capabilities.",
+    "method": "GET",
+    "path": "/{index}/_rollup/data",
+    "namespaceFile": "rollup_get_rollup_index_caps"
+  },
+  {
+    "name": "put-job",
+    "namespace": "rollup",
+    "description": "Create a rollup job.",
+    "method": "PUT",
+    "path": "/_rollup/job/{id}",
+    "namespaceFile": "rollup_put_job"
+  },
+  {
+    "name": "rollup-search",
+    "namespace": "rollup",
+    "description": "Search rolled-up data.",
+    "method": "GET",
+    "path": "/{index}/_rollup_search",
+    "namespaceFile": "rollup_rollup_search"
+  },
+  {
+    "name": "start-job",
+    "namespace": "rollup",
+    "description": "Start rollup jobs.",
+    "method": "POST",
+    "path": "/_rollup/job/{id}/_start",
+    "namespaceFile": "rollup_start_job"
+  },
+  {
+    "name": "stop-job",
+    "namespace": "rollup",
+    "description": "Stop rollup jobs.",
+    "method": "POST",
+    "path": "/_rollup/job/{id}/_stop",
+    "namespaceFile": "rollup_stop_job"
   },
   {
     "name": "scripts-painless-execute",
@@ -2020,6 +3272,14 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "search_application_list"
   },
   {
+    "name": "post-behavioral-analytics-event",
+    "namespace": "search-application",
+    "description": "Create a behavioral analytics collection event.",
+    "method": "POST",
+    "path": "/_application/analytics/{collection_name}/event/{event_type}",
+    "namespaceFile": "search_application_post_behavioral_analytics_event"
+  },
+  {
     "name": "put",
     "namespace": "search-application",
     "description": "Create or update a search application.",
@@ -2034,6 +3294,14 @@ export const apiManifest: readonly EsApiMeta[] = [
     "method": "PUT",
     "path": "/_application/analytics/{name}",
     "namespaceFile": "search_application_put_behavioral_analytics"
+  },
+  {
+    "name": "render-query",
+    "namespace": "search-application",
+    "description": "Render a search application query.",
+    "method": "POST",
+    "path": "/_application/search_application/{name}/_render_query",
+    "namespaceFile": "search_application_render_query"
   },
   {
     "name": "search",
@@ -2052,12 +3320,60 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "search_mvt"
   },
   {
+    "name": "search-shards",
+    "namespace": null,
+    "description": "Get the search shards.",
+    "method": "GET",
+    "path": "/{index}/_search_shards",
+    "namespaceFile": "search_shards"
+  },
+  {
     "name": "search-template",
     "namespace": null,
     "description": "Run a search with a search template.",
     "method": "GET",
     "path": "/{index}/_search/template",
     "namespaceFile": "search_template"
+  },
+  {
+    "name": "cache-stats",
+    "namespace": "searchable-snapshots",
+    "description": "Get cache statistics.",
+    "method": "GET",
+    "path": "/_searchable_snapshots/{node_id}/cache/stats",
+    "namespaceFile": "searchable_snapshots_cache_stats"
+  },
+  {
+    "name": "clear-cache",
+    "namespace": "searchable-snapshots",
+    "description": "Clear the cache.",
+    "method": "POST",
+    "path": "/{index}/_searchable_snapshots/cache/clear",
+    "namespaceFile": "searchable_snapshots_clear_cache"
+  },
+  {
+    "name": "mount",
+    "namespace": "searchable-snapshots",
+    "description": "Mount a snapshot.",
+    "method": "POST",
+    "path": "/_snapshot/{repository}/{snapshot}/_mount",
+    "namespaceFile": "searchable_snapshots_mount"
+  },
+  {
+    "name": "stats",
+    "namespace": "searchable-snapshots",
+    "description": "Get searchable snapshot statistics.",
+    "method": "GET",
+    "path": "/{index}/_searchable_snapshots/stats",
+    "namespaceFile": "searchable_snapshots_stats"
+  },
+  {
+    "name": "activate-user-profile",
+    "namespace": "security",
+    "description": "Activate a user profile.",
+    "method": "POST",
+    "path": "/_security/profile/_activate",
+    "namespaceFile": "security_activate_user_profile"
   },
   {
     "name": "authenticate",
@@ -2068,6 +3384,86 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "security_authenticate"
   },
   {
+    "name": "bulk-delete-role",
+    "namespace": "security",
+    "description": "Bulk delete roles.",
+    "method": "DELETE",
+    "path": "/_security/role",
+    "namespaceFile": "security_bulk_delete_role"
+  },
+  {
+    "name": "bulk-put-role",
+    "namespace": "security",
+    "description": "Bulk create or update roles.",
+    "method": "POST",
+    "path": "/_security/role",
+    "namespaceFile": "security_bulk_put_role"
+  },
+  {
+    "name": "bulk-update-api-keys",
+    "namespace": "security",
+    "description": "Bulk update API keys.",
+    "method": "POST",
+    "path": "/_security/api_key/_bulk_update",
+    "namespaceFile": "security_bulk_update_api_keys"
+  },
+  {
+    "name": "change-password",
+    "namespace": "security",
+    "description": "Change passwords.",
+    "method": "PUT",
+    "path": "/_security/user/{username}/_password",
+    "namespaceFile": "security_change_password"
+  },
+  {
+    "name": "clear-api-key-cache",
+    "namespace": "security",
+    "description": "Clear the API key cache.",
+    "method": "POST",
+    "path": "/_security/api_key/{ids}/_clear_cache",
+    "namespaceFile": "security_clear_api_key_cache"
+  },
+  {
+    "name": "clear-cached-privileges",
+    "namespace": "security",
+    "description": "Clear the privileges cache.",
+    "method": "POST",
+    "path": "/_security/privilege/{application}/_clear_cache",
+    "namespaceFile": "security_clear_cached_privileges"
+  },
+  {
+    "name": "clear-cached-realms",
+    "namespace": "security",
+    "description": "Clear the user cache.",
+    "method": "POST",
+    "path": "/_security/realm/{realms}/_clear_cache",
+    "namespaceFile": "security_clear_cached_realms"
+  },
+  {
+    "name": "clear-cached-roles",
+    "namespace": "security",
+    "description": "Clear the roles cache.",
+    "method": "POST",
+    "path": "/_security/role/{name}/_clear_cache",
+    "namespaceFile": "security_clear_cached_roles"
+  },
+  {
+    "name": "clear-cached-service-tokens",
+    "namespace": "security",
+    "description": "Clear service account token caches.",
+    "method": "POST",
+    "path": "/_security/service/{namespace}/{service}/credential/token/{name}/_clear_cache",
+    "namespaceFile": "security_clear_cached_service_tokens"
+  },
+  {
+    "name": "clone-api-key",
+    "namespace": "security",
+    "description": "Clone an API key.",
+    "method": "POST",
+    "path": "/_security/api_key/clone",
+    "namespaceFile": "security_clone_api_key"
+  },
+  {
     "name": "create-api-key",
     "namespace": "security",
     "description": "Create an API key.",
@@ -2076,12 +3472,116 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "security_create_api_key"
   },
   {
+    "name": "create-cross-cluster-api-key",
+    "namespace": "security",
+    "description": "Create a cross-cluster API key.",
+    "method": "POST",
+    "path": "/_security/cross_cluster/api_key",
+    "namespaceFile": "security_create_cross_cluster_api_key"
+  },
+  {
+    "name": "create-service-token",
+    "namespace": "security",
+    "description": "Create a service account token.",
+    "method": "PUT",
+    "path": "/_security/service/{namespace}/{service}/credential/token/{name}",
+    "namespaceFile": "security_create_service_token"
+  },
+  {
+    "name": "delegate-pki",
+    "namespace": "security",
+    "description": "Delegate PKI authentication.",
+    "method": "POST",
+    "path": "/_security/delegate_pki",
+    "namespaceFile": "security_delegate_pki"
+  },
+  {
+    "name": "delete-privileges",
+    "namespace": "security",
+    "description": "Delete application privileges.",
+    "method": "DELETE",
+    "path": "/_security/privilege/{application}/{name}",
+    "namespaceFile": "security_delete_privileges"
+  },
+  {
     "name": "delete-role",
     "namespace": "security",
     "description": "Delete roles.",
     "method": "DELETE",
     "path": "/_security/role/{name}",
     "namespaceFile": "security_delete_role"
+  },
+  {
+    "name": "delete-role-mapping",
+    "namespace": "security",
+    "description": "Delete role mappings.",
+    "method": "DELETE",
+    "path": "/_security/role_mapping/{name}",
+    "namespaceFile": "security_delete_role_mapping"
+  },
+  {
+    "name": "delete-service-token",
+    "namespace": "security",
+    "description": "Delete service account tokens.",
+    "method": "DELETE",
+    "path": "/_security/service/{namespace}/{service}/credential/token/{name}",
+    "namespaceFile": "security_delete_service_token"
+  },
+  {
+    "name": "delete-user",
+    "namespace": "security",
+    "description": "Delete users.",
+    "method": "DELETE",
+    "path": "/_security/user/{username}",
+    "namespaceFile": "security_delete_user"
+  },
+  {
+    "name": "disable-user",
+    "namespace": "security",
+    "description": "Disable users.",
+    "method": "PUT",
+    "path": "/_security/user/{username}/_disable",
+    "namespaceFile": "security_disable_user"
+  },
+  {
+    "name": "disable-user-profile",
+    "namespace": "security",
+    "description": "Disable a user profile.",
+    "method": "PUT",
+    "path": "/_security/profile/{uid}/_disable",
+    "namespaceFile": "security_disable_user_profile"
+  },
+  {
+    "name": "enable-user",
+    "namespace": "security",
+    "description": "Enable users.",
+    "method": "PUT",
+    "path": "/_security/user/{username}/_enable",
+    "namespaceFile": "security_enable_user"
+  },
+  {
+    "name": "enable-user-profile",
+    "namespace": "security",
+    "description": "Enable a user profile.",
+    "method": "PUT",
+    "path": "/_security/profile/{uid}/_enable",
+    "namespaceFile": "security_enable_user_profile"
+  },
+  {
+    "name": "enroll-kibana",
+    "namespace": "security",
+    "description": "Enroll Kibana.",
+    "method": "GET",
+    "path": "/_security/enroll/kibana",
+    "namespaceFile": "security_enroll_kibana"
+  },
+  {
+    "name": "enroll-node",
+    "namespace": "security",
+    "description": "Enroll a node.",
+    "method": "GET",
+    "path": "/_security/enroll/node",
+    "namespaceFile": "security_enroll_node"
   },
   {
     "name": "get-api-key",
@@ -2100,12 +3600,100 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "security_get_builtin_privileges"
   },
   {
+    "name": "get-privileges",
+    "namespace": "security",
+    "description": "Get application privileges.",
+    "method": "GET",
+    "path": "/_security/privilege/{application}/{name}",
+    "namespaceFile": "security_get_privileges"
+  },
+  {
     "name": "get-role",
     "namespace": "security",
     "description": "Get roles.",
     "method": "GET",
     "path": "/_security/role/{name}",
     "namespaceFile": "security_get_role"
+  },
+  {
+    "name": "get-role-mapping",
+    "namespace": "security",
+    "description": "Get role mappings.",
+    "method": "GET",
+    "path": "/_security/role_mapping/{name}",
+    "namespaceFile": "security_get_role_mapping"
+  },
+  {
+    "name": "get-service-accounts",
+    "namespace": "security",
+    "description": "Get service accounts.",
+    "method": "GET",
+    "path": "/_security/service/{namespace}/{service}",
+    "namespaceFile": "security_get_service_accounts"
+  },
+  {
+    "name": "get-service-credentials",
+    "namespace": "security",
+    "description": "Get service account credentials.",
+    "method": "GET",
+    "path": "/_security/service/{namespace}/{service}/credential",
+    "namespaceFile": "security_get_service_credentials"
+  },
+  {
+    "name": "get-settings",
+    "namespace": "security",
+    "description": "Get security index settings.",
+    "method": "GET",
+    "path": "/_security/settings",
+    "namespaceFile": "security_get_settings"
+  },
+  {
+    "name": "get-stats",
+    "namespace": "security",
+    "description": "Get security stats.",
+    "method": "GET",
+    "path": "/_security/stats",
+    "namespaceFile": "security_get_stats"
+  },
+  {
+    "name": "get-token",
+    "namespace": "security",
+    "description": "Get a token.",
+    "method": "POST",
+    "path": "/_security/oauth2/token",
+    "namespaceFile": "security_get_token"
+  },
+  {
+    "name": "get-user",
+    "namespace": "security",
+    "description": "Get users.",
+    "method": "GET",
+    "path": "/_security/user/{username}",
+    "namespaceFile": "security_get_user"
+  },
+  {
+    "name": "get-user-privileges",
+    "namespace": "security",
+    "description": "Get user privileges.",
+    "method": "GET",
+    "path": "/_security/user/_privileges",
+    "namespaceFile": "security_get_user_privileges"
+  },
+  {
+    "name": "get-user-profile",
+    "namespace": "security",
+    "description": "Get a user profile.",
+    "method": "GET",
+    "path": "/_security/profile/{uid}",
+    "namespaceFile": "security_get_user_profile"
+  },
+  {
+    "name": "grant-api-key",
+    "namespace": "security",
+    "description": "Grant an API key.",
+    "method": "POST",
+    "path": "/_security/api_key/grant",
+    "namespaceFile": "security_grant_api_key"
   },
   {
     "name": "has-privileges",
@@ -2116,6 +3704,14 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "security_has_privileges"
   },
   {
+    "name": "has-privileges-user-profile",
+    "namespace": "security",
+    "description": "Check user profile privileges.",
+    "method": "GET",
+    "path": "/_security/profile/_has_privileges",
+    "namespaceFile": "security_has_privileges_user_profile"
+  },
+  {
     "name": "invalidate-api-key",
     "namespace": "security",
     "description": "Invalidate API keys.",
@@ -2124,12 +3720,68 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "security_invalidate_api_key"
   },
   {
+    "name": "invalidate-token",
+    "namespace": "security",
+    "description": "Invalidate a token.",
+    "method": "DELETE",
+    "path": "/_security/oauth2/token",
+    "namespaceFile": "security_invalidate_token"
+  },
+  {
+    "name": "oidc-authenticate",
+    "namespace": "security",
+    "description": "Authenticate OpenID Connect.",
+    "method": "POST",
+    "path": "/_security/oidc/authenticate",
+    "namespaceFile": "security_oidc_authenticate"
+  },
+  {
+    "name": "oidc-logout",
+    "namespace": "security",
+    "description": "Logout of OpenID Connect.",
+    "method": "POST",
+    "path": "/_security/oidc/logout",
+    "namespaceFile": "security_oidc_logout"
+  },
+  {
+    "name": "oidc-prepare-authentication",
+    "namespace": "security",
+    "description": "Prepare OpenID connect authentication.",
+    "method": "POST",
+    "path": "/_security/oidc/prepare",
+    "namespaceFile": "security_oidc_prepare_authentication"
+  },
+  {
+    "name": "put-privileges",
+    "namespace": "security",
+    "description": "Create or update application privileges.",
+    "method": "PUT",
+    "path": "/_security/privilege",
+    "namespaceFile": "security_put_privileges"
+  },
+  {
     "name": "put-role",
     "namespace": "security",
     "description": "Create or update roles.",
     "method": "PUT",
     "path": "/_security/role/{name}",
     "namespaceFile": "security_put_role"
+  },
+  {
+    "name": "put-role-mapping",
+    "namespace": "security",
+    "description": "Create or update role mappings.",
+    "method": "PUT",
+    "path": "/_security/role_mapping/{name}",
+    "namespaceFile": "security_put_role_mapping"
+  },
+  {
+    "name": "put-user",
+    "namespace": "security",
+    "description": "Create or update users.",
+    "method": "PUT",
+    "path": "/_security/user/{username}",
+    "namespaceFile": "security_put_user"
   },
   {
     "name": "query-api-keys",
@@ -2148,12 +3800,284 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "security_query_role"
   },
   {
+    "name": "query-user",
+    "namespace": "security",
+    "description": "Find users with a query.",
+    "method": "GET",
+    "path": "/_security/_query/user",
+    "namespaceFile": "security_query_user"
+  },
+  {
+    "name": "saml-authenticate",
+    "namespace": "security",
+    "description": "Authenticate SAML.",
+    "method": "POST",
+    "path": "/_security/saml/authenticate",
+    "namespaceFile": "security_saml_authenticate"
+  },
+  {
+    "name": "saml-complete-logout",
+    "namespace": "security",
+    "description": "Logout of SAML completely.",
+    "method": "POST",
+    "path": "/_security/saml/complete_logout",
+    "namespaceFile": "security_saml_complete_logout"
+  },
+  {
+    "name": "saml-invalidate",
+    "namespace": "security",
+    "description": "Invalidate SAML.",
+    "method": "POST",
+    "path": "/_security/saml/invalidate",
+    "namespaceFile": "security_saml_invalidate"
+  },
+  {
+    "name": "saml-logout",
+    "namespace": "security",
+    "description": "Logout of SAML.",
+    "method": "POST",
+    "path": "/_security/saml/logout",
+    "namespaceFile": "security_saml_logout"
+  },
+  {
+    "name": "saml-prepare-authentication",
+    "namespace": "security",
+    "description": "Prepare SAML authentication.",
+    "method": "POST",
+    "path": "/_security/saml/prepare",
+    "namespaceFile": "security_saml_prepare_authentication"
+  },
+  {
+    "name": "saml-service-provider-metadata",
+    "namespace": "security",
+    "description": "Create SAML service provider metadata.",
+    "method": "GET",
+    "path": "/_security/saml/metadata/{realm_name}",
+    "namespaceFile": "security_saml_service_provider_metadata"
+  },
+  {
+    "name": "suggest-user-profiles",
+    "namespace": "security",
+    "description": "Suggest a user profile.",
+    "method": "GET",
+    "path": "/_security/profile/_suggest",
+    "namespaceFile": "security_suggest_user_profiles"
+  },
+  {
     "name": "update-api-key",
     "namespace": "security",
     "description": "Update an API key.",
     "method": "PUT",
     "path": "/_security/api_key/{id}",
     "namespaceFile": "security_update_api_key"
+  },
+  {
+    "name": "update-cross-cluster-api-key",
+    "namespace": "security",
+    "description": "Update a cross-cluster API key.",
+    "method": "PUT",
+    "path": "/_security/cross_cluster/api_key/{id}",
+    "namespaceFile": "security_update_cross_cluster_api_key"
+  },
+  {
+    "name": "update-settings",
+    "namespace": "security",
+    "description": "Update security index settings.",
+    "method": "PUT",
+    "path": "/_security/settings",
+    "namespaceFile": "security_update_settings"
+  },
+  {
+    "name": "update-user-profile-data",
+    "namespace": "security",
+    "description": "Update user profile data.",
+    "method": "PUT",
+    "path": "/_security/profile/{uid}/_data",
+    "namespaceFile": "security_update_user_profile_data"
+  },
+  {
+    "name": "ingest",
+    "namespace": "simulate",
+    "description": "Simulate data ingestion.",
+    "method": "GET",
+    "path": "/_ingest/{index}/_simulate",
+    "namespaceFile": "simulate_ingest"
+  },
+  {
+    "name": "delete-lifecycle",
+    "namespace": "slm",
+    "description": "Delete a policy.",
+    "method": "DELETE",
+    "path": "/_slm/policy/{policy_id}",
+    "namespaceFile": "slm_delete_lifecycle"
+  },
+  {
+    "name": "execute-lifecycle",
+    "namespace": "slm",
+    "description": "Run a policy.",
+    "method": "PUT",
+    "path": "/_slm/policy/{policy_id}/_execute",
+    "namespaceFile": "slm_execute_lifecycle"
+  },
+  {
+    "name": "execute-retention",
+    "namespace": "slm",
+    "description": "Run a retention policy.",
+    "method": "POST",
+    "path": "/_slm/_execute_retention",
+    "namespaceFile": "slm_execute_retention"
+  },
+  {
+    "name": "get-lifecycle",
+    "namespace": "slm",
+    "description": "Get policy information.",
+    "method": "GET",
+    "path": "/_slm/policy/{policy_id}",
+    "namespaceFile": "slm_get_lifecycle"
+  },
+  {
+    "name": "get-stats",
+    "namespace": "slm",
+    "description": "Get snapshot lifecycle management statistics.",
+    "method": "GET",
+    "path": "/_slm/stats",
+    "namespaceFile": "slm_get_stats"
+  },
+  {
+    "name": "get-status",
+    "namespace": "slm",
+    "description": "Get the snapshot lifecycle management status.",
+    "method": "GET",
+    "path": "/_slm/status",
+    "namespaceFile": "slm_get_status"
+  },
+  {
+    "name": "put-lifecycle",
+    "namespace": "slm",
+    "description": "Create or update a policy.",
+    "method": "PUT",
+    "path": "/_slm/policy/{policy_id}",
+    "namespaceFile": "slm_put_lifecycle"
+  },
+  {
+    "name": "start",
+    "namespace": "slm",
+    "description": "Start snapshot lifecycle management.",
+    "method": "POST",
+    "path": "/_slm/start",
+    "namespaceFile": "slm_start"
+  },
+  {
+    "name": "stop",
+    "namespace": "slm",
+    "description": "Stop snapshot lifecycle management.",
+    "method": "POST",
+    "path": "/_slm/stop",
+    "namespaceFile": "slm_stop"
+  },
+  {
+    "name": "cleanup-repository",
+    "namespace": "snapshot",
+    "description": "Clean up the snapshot repository.",
+    "method": "POST",
+    "path": "/_snapshot/{repository}/_cleanup",
+    "namespaceFile": "snapshot_cleanup_repository"
+  },
+  {
+    "name": "clone",
+    "namespace": "snapshot",
+    "description": "Clone a snapshot.",
+    "method": "PUT",
+    "path": "/_snapshot/{repository}/{snapshot}/_clone/{target_snapshot}",
+    "namespaceFile": "snapshot_clone"
+  },
+  {
+    "name": "create",
+    "namespace": "snapshot",
+    "description": "Create a snapshot.",
+    "method": "PUT",
+    "path": "/_snapshot/{repository}/{snapshot}",
+    "namespaceFile": "snapshot_create"
+  },
+  {
+    "name": "create-repository",
+    "namespace": "snapshot",
+    "description": "Create or update a snapshot repository.",
+    "method": "PUT",
+    "path": "/_snapshot/{repository}",
+    "namespaceFile": "snapshot_create_repository"
+  },
+  {
+    "name": "delete",
+    "namespace": "snapshot",
+    "description": "Delete snapshots.",
+    "method": "DELETE",
+    "path": "/_snapshot/{repository}/{snapshot}",
+    "namespaceFile": "snapshot_delete"
+  },
+  {
+    "name": "delete-repository",
+    "namespace": "snapshot",
+    "description": "Delete snapshot repositories.",
+    "method": "DELETE",
+    "path": "/_snapshot/{repository}",
+    "namespaceFile": "snapshot_delete_repository"
+  },
+  {
+    "name": "get",
+    "namespace": "snapshot",
+    "description": "Get snapshot information.",
+    "method": "GET",
+    "path": "/_snapshot/{repository}/{snapshot}",
+    "namespaceFile": "snapshot_get"
+  },
+  {
+    "name": "get-repository",
+    "namespace": "snapshot",
+    "description": "Get snapshot repository information.",
+    "method": "GET",
+    "path": "/_snapshot/{repository}",
+    "namespaceFile": "snapshot_get_repository"
+  },
+  {
+    "name": "repository-analyze",
+    "namespace": "snapshot",
+    "description": "Analyze a snapshot repository.",
+    "method": "POST",
+    "path": "/_snapshot/{repository}/_analyze",
+    "namespaceFile": "snapshot_repository_analyze"
+  },
+  {
+    "name": "repository-verify-integrity",
+    "namespace": "snapshot",
+    "description": "Verify the repository integrity.",
+    "method": "POST",
+    "path": "/_snapshot/{repository}/_verify_integrity",
+    "namespaceFile": "snapshot_repository_verify_integrity"
+  },
+  {
+    "name": "restore",
+    "namespace": "snapshot",
+    "description": "Restore a snapshot.",
+    "method": "POST",
+    "path": "/_snapshot/{repository}/{snapshot}/_restore",
+    "namespaceFile": "snapshot_restore"
+  },
+  {
+    "name": "status",
+    "namespace": "snapshot",
+    "description": "Get the snapshot status.",
+    "method": "GET",
+    "path": "/_snapshot/{repository}/{snapshot}/_status",
+    "namespaceFile": "snapshot_status"
+  },
+  {
+    "name": "verify-repository",
+    "namespace": "snapshot",
+    "description": "Verify a snapshot repository.",
+    "method": "POST",
+    "path": "/_snapshot/{repository}/_verify",
+    "namespaceFile": "snapshot_verify_repository"
   },
   {
     "name": "clear-cursor",
@@ -2202,6 +4126,38 @@ export const apiManifest: readonly EsApiMeta[] = [
     "method": "POST",
     "path": "/_sql/translate",
     "namespaceFile": "sql_translate"
+  },
+  {
+    "name": "certificates",
+    "namespace": "ssl",
+    "description": "Get SSL certificates.",
+    "method": "GET",
+    "path": "/_ssl/certificates",
+    "namespaceFile": "ssl_certificates"
+  },
+  {
+    "name": "logs-disable",
+    "namespace": "streams",
+    "description": "Disable a named stream.",
+    "method": "POST",
+    "path": "/_streams/{name}/_disable",
+    "namespaceFile": "streams_logs_disable"
+  },
+  {
+    "name": "logs-enable",
+    "namespace": "streams",
+    "description": "Enable a named stream.",
+    "method": "POST",
+    "path": "/_streams/{name}/_enable",
+    "namespaceFile": "streams_logs_enable"
+  },
+  {
+    "name": "status",
+    "namespace": "streams",
+    "description": "Get the status of streams.",
+    "method": "GET",
+    "path": "/_streams/status",
+    "namespaceFile": "streams_status"
   },
   {
     "name": "delete-synonym",
@@ -2260,12 +4216,28 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "synonyms_put_synonym_rule"
   },
   {
+    "name": "cancel",
+    "namespace": "tasks",
+    "description": "Cancel a task.",
+    "method": "POST",
+    "path": "/_tasks/{task_id}/_cancel",
+    "namespaceFile": "tasks_cancel"
+  },
+  {
     "name": "get",
     "namespace": "tasks",
     "description": "Get task information.",
     "method": "GET",
     "path": "/_tasks/{task_id}",
     "namespaceFile": "tasks_get"
+  },
+  {
+    "name": "list",
+    "namespace": "tasks",
+    "description": "Get all tasks.",
+    "method": "GET",
+    "path": "/_tasks",
+    "namespaceFile": "tasks_list"
   },
   {
     "name": "terms-enum",
@@ -2282,6 +4254,39 @@ export const apiManifest: readonly EsApiMeta[] = [
     "method": "GET",
     "path": "/{index}/_termvectors/{id}",
     "namespaceFile": "termvectors"
+  },
+  {
+    "name": "find-field-structure",
+    "namespace": "text-structure",
+    "description": "Find the structure of a text field.",
+    "method": "GET",
+    "path": "/_text_structure/find_field_structure",
+    "namespaceFile": "text_structure_find_field_structure"
+  },
+  {
+    "name": "find-message-structure",
+    "namespace": "text-structure",
+    "description": "Find the structure of text messages.",
+    "method": "GET",
+    "path": "/_text_structure/find_message_structure",
+    "namespaceFile": "text_structure_find_message_structure"
+  },
+  {
+    "name": "find-structure",
+    "namespace": "text-structure",
+    "description": "Find the structure of a text file.",
+    "method": "POST",
+    "path": "/_text_structure/find_structure",
+    "namespaceFile": "text_structure_find_structure",
+    "bodyFormat": "ndjson"
+  },
+  {
+    "name": "test-grok-pattern",
+    "namespace": "text-structure",
+    "description": "Test a Grok pattern.",
+    "method": "GET",
+    "path": "/_text_structure/test_grok_pattern",
+    "namespaceFile": "text_structure_test_grok_pattern"
   },
   {
     "name": "delete-transform",
@@ -2348,6 +4353,14 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "transform_schedule_now_transform"
   },
   {
+    "name": "set-upgrade-mode",
+    "namespace": "transform",
+    "description": "Set upgrade_mode for transform indices.",
+    "method": "POST",
+    "path": "/_transform/set_upgrade_mode",
+    "namespaceFile": "transform_set_upgrade_mode"
+  },
+  {
     "name": "start-transform",
     "namespace": "transform",
     "description": "Start a transform.",
@@ -2372,6 +4385,14 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespaceFile": "transform_update_transform"
   },
   {
+    "name": "upgrade-transforms",
+    "namespace": "transform",
+    "description": "Upgrade all transforms.",
+    "method": "POST",
+    "path": "/_transform/_upgrade",
+    "namespaceFile": "transform_upgrade_transforms"
+  },
+  {
     "name": "update",
     "namespace": null,
     "description": "Update a document.",
@@ -2386,5 +4407,133 @@ export const apiManifest: readonly EsApiMeta[] = [
     "method": "POST",
     "path": "/{index}/_update_by_query",
     "namespaceFile": "update_by_query"
+  },
+  {
+    "name": "update-by-query-rethrottle",
+    "namespace": null,
+    "description": "Throttle an update by query operation.",
+    "method": "POST",
+    "path": "/_update_by_query/{task_id}/_rethrottle",
+    "namespaceFile": "update_by_query_rethrottle"
+  },
+  {
+    "name": "ack-watch",
+    "namespace": "watcher",
+    "description": "Acknowledge a watch.",
+    "method": "PUT",
+    "path": "/_watcher/watch/{watch_id}/_ack/{action_id}",
+    "namespaceFile": "watcher_ack_watch"
+  },
+  {
+    "name": "activate-watch",
+    "namespace": "watcher",
+    "description": "Activate a watch.",
+    "method": "PUT",
+    "path": "/_watcher/watch/{watch_id}/_activate",
+    "namespaceFile": "watcher_activate_watch"
+  },
+  {
+    "name": "deactivate-watch",
+    "namespace": "watcher",
+    "description": "Deactivate a watch.",
+    "method": "PUT",
+    "path": "/_watcher/watch/{watch_id}/_deactivate",
+    "namespaceFile": "watcher_deactivate_watch"
+  },
+  {
+    "name": "delete-watch",
+    "namespace": "watcher",
+    "description": "Delete a watch.",
+    "method": "DELETE",
+    "path": "/_watcher/watch/{id}",
+    "namespaceFile": "watcher_delete_watch"
+  },
+  {
+    "name": "execute-watch",
+    "namespace": "watcher",
+    "description": "Run a watch.",
+    "method": "PUT",
+    "path": "/_watcher/watch/{id}/_execute",
+    "namespaceFile": "watcher_execute_watch"
+  },
+  {
+    "name": "get-settings",
+    "namespace": "watcher",
+    "description": "Get Watcher index settings.",
+    "method": "GET",
+    "path": "/_watcher/settings",
+    "namespaceFile": "watcher_get_settings"
+  },
+  {
+    "name": "get-watch",
+    "namespace": "watcher",
+    "description": "Get a watch.",
+    "method": "GET",
+    "path": "/_watcher/watch/{id}",
+    "namespaceFile": "watcher_get_watch"
+  },
+  {
+    "name": "put-watch",
+    "namespace": "watcher",
+    "description": "Create or update a watch.",
+    "method": "PUT",
+    "path": "/_watcher/watch/{id}",
+    "namespaceFile": "watcher_put_watch"
+  },
+  {
+    "name": "query-watches",
+    "namespace": "watcher",
+    "description": "Query watches.",
+    "method": "GET",
+    "path": "/_watcher/_query/watches",
+    "namespaceFile": "watcher_query_watches"
+  },
+  {
+    "name": "start",
+    "namespace": "watcher",
+    "description": "Start the watch service.",
+    "method": "POST",
+    "path": "/_watcher/_start",
+    "namespaceFile": "watcher_start"
+  },
+  {
+    "name": "stats",
+    "namespace": "watcher",
+    "description": "Get Watcher statistics.",
+    "method": "GET",
+    "path": "/_watcher/stats/{metric}",
+    "namespaceFile": "watcher_stats"
+  },
+  {
+    "name": "stop",
+    "namespace": "watcher",
+    "description": "Stop the watch service.",
+    "method": "POST",
+    "path": "/_watcher/_stop",
+    "namespaceFile": "watcher_stop"
+  },
+  {
+    "name": "update-settings",
+    "namespace": "watcher",
+    "description": "Update Watcher index settings.",
+    "method": "PUT",
+    "path": "/_watcher/settings",
+    "namespaceFile": "watcher_update_settings"
+  },
+  {
+    "name": "info",
+    "namespace": "xpack",
+    "description": "Get information.",
+    "method": "GET",
+    "path": "/_xpack",
+    "namespaceFile": "xpack_info"
+  },
+  {
+    "name": "usage",
+    "namespace": "xpack",
+    "description": "Get usage information.",
+    "method": "GET",
+    "path": "/_xpack/usage",
+    "namespaceFile": "xpack_usage"
   }
 ] as const
