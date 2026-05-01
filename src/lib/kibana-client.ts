@@ -4,6 +4,7 @@
  */
 
 import { getResolvedConfig } from '../config/store.ts'
+import { isLoopbackUrl } from './is-loopback-host.ts'
 
 export type KibanaHttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD' | 'PATCH'
 
@@ -41,7 +42,7 @@ export class KibanaClient {
       const encoded = Buffer.from(`${auth.username}:${auth.password}`).toString('base64')
       this.authHeader = `Basic ${encoded}`
     }
-    if (this.baseUrl.startsWith('http://') && !/localhost|127\.0\.0\.1/.test(this.baseUrl)) {
+    if (this.baseUrl.startsWith('http://') && !isLoopbackUrl(this.baseUrl)) {
       process.stderr.write('Warning: using plaintext HTTP. Credentials will be sent unencrypted.\n')
     }
   }
