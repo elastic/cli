@@ -108,8 +108,8 @@ if (firstArg === 'stack') {
   }
 
   if (secondArg == null || kbArgs.has(secondArg)) {
-    const { registerKbCommands } = await import('./kb/register.ts')
-    const kbGroup = registerKbCommands()
+    const { registerKbCommandsLazy } = await import('./kb/register.ts')
+    const kbGroup = await registerKbCommandsLazy()
     kbGroup.alias('kibana')
     stackChildren.push(kbGroup)
   } else {
