@@ -82,6 +82,31 @@ describe('registerSanitizeCommands', () => {
     assert.ok(stderr.includes('stripped forbidden characters'), `stderr should list changes, got: ${stderr}`)
   })
 
+  it('returns error result when value is empty after sanitization', async () => {
+    const group = registerSanitizeCommands()
+    const indexCmd = (group.commands as Array<{ name: () => string }>).find(c => c.name() === 'index-name')!;
+
+    (indexCmd as import('commander').Command).exitOverride()
+    const stdoutChunks: string[] = []
+    const stderrChunks: string[] = []
+    const origStdout = process.stdout.write.bind(process.stdout)
+    const origStderr = process.stderr.write.bind(process.stderr)
+    const origExitCode = process.exitCode
+    process.stdout.write = ((chunk: string) => { stdoutChunks.push(chunk); return true }) as typeof process.stdout.write
+    process.stderr.write = ((chunk: string) => { stderrChunks.push(chunk); return true }) as typeof process.stderr.write
+    try {
+      await (indexCmd as import('commander').Command).parseAsync(['***'], { from: 'user' })
+    } finally {
+      process.stdout.write = origStdout
+      process.stderr.write = origStderr
+      process.exitCode = origExitCode
+    }
+
+    const stderr = stderrChunks.join('')
+    assert.equal(stdoutChunks.join(''), '', 'stdout should be empty')
+    assert.ok(stderr.includes('sanitize_empty') || stderr.includes('empty after sanitization'), `stderr should report empty result, got: ${stderr}`)
+  })
+
   it('plain-text mode does not write to stderr when input is unchanged', async () => {
     const group = registerSanitizeCommands()
     const indexCmd = (group.commands as Array<{ name: () => string }>).find(c => c.name() === 'index-name')!;

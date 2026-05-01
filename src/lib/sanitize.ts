@@ -27,6 +27,7 @@ export interface SanitizeResult {
 // Shared helpers
 // ---------------------------------------------------------------------------
 
+// Best-effort list of common zero-width / invisible characters; not exhaustive.
 const ZERO_WIDTH_CHARS = new Set([
   '\u200B', '\u200C', '\u200D', '\u200E', '\u200F',
   '\uFEFF', '\u00AD',
@@ -50,19 +51,11 @@ export function truncateUtf8 (value: string, maxBytes: number): string {
 }
 
 function stripChars (value: string, chars: Set<string>): string {
-  let result = ''
-  for (const ch of value) {
-    if (!chars.has(ch)) result += ch
-  }
-  return result
+  return Array.from(value).filter(ch => !chars.has(ch)).join('')
 }
 
 function stripZeroWidth (value: string): string {
-  let result = ''
-  for (const ch of value) {
-    if (!ZERO_WIDTH_CHARS.has(ch)) result += ch
-  }
-  return result
+  return Array.from(value).filter(ch => !ZERO_WIDTH_CHARS.has(ch)).join('')
 }
 
 // ---------------------------------------------------------------------------

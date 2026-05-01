@@ -56,7 +56,19 @@ export function registerSanitizeCommands (): OpaqueCommandHandle {
       positionalArg: { name: 'value', description: 'the value to sanitize', required: true },
       handler: (parsed) => {
         const value = parsed.arg ?? ''
-        return fn(value) as unknown as JsonValue
+        const result = fn(value)
+        if (result.sanitized.length === 0 && value.length > 0) {
+          return {
+            error: {
+              code: 'sanitize_empty',
+              message: `value became empty after sanitization`,
+              original: value,
+              type: result.type,
+              changes: result.changes,
+            },
+          }
+        }
+        return result as unknown as JsonValue
       },
       formatOutput: (result) => {
         const r = result as unknown as SanitizeResult
