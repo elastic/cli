@@ -8,6 +8,7 @@
     "src/es/apis/schemas/**",
     "src/es/apis/**",
     "src/cloud/apis/**",
+    "packages/es-schemas/src/**",
     "test/**",
     "codegen/**",
     "specs/**",
