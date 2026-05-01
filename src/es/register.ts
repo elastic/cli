@@ -22,12 +22,16 @@ function buildLeafHandle (
 ): OpaqueCommandHandle {
   const schema = def.input != null ? resolveInput(def.input) : z.looseObject({})
   const schemaArgs = defSchemaArgs.get(def) ?? []
-  return defineCommand({
+  const config: Parameters<typeof defineCommand>[0] = {
     name: def.name,
     description: def.description,
     input: schema,
-    handler: createEsHandler(def, schemaArgs)
-  })
+    handler: createEsHandler(def, schemaArgs),
+  }
+  if (def.responseType === 'text') {
+    config.formatOutput = (result) => String(result)
+  }
+  return defineCommand(config)
 }
 
 /**

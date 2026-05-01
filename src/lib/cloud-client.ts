@@ -5,6 +5,7 @@
 
 import type { HttpMethod } from '../cloud/types.ts'
 import { getResolvedConfig } from '../config/store.ts'
+import { isLoopbackUrl } from './is-loopback-host.ts'
 
 /**
  * Parameters for a single Cloud API request.
@@ -31,7 +32,7 @@ export class CloudClient {
   constructor(baseUrl: string, apiKey: string) {
     this.baseUrl = baseUrl.replace(/\/+$/, '')
     this.apiKey = apiKey
-    if (this.baseUrl.startsWith('http://') && !/localhost|127\.0\.0\.1/.test(this.baseUrl)) {
+    if (this.baseUrl.startsWith('http://') && !isLoopbackUrl(this.baseUrl)) {
       process.stderr.write('Warning: using plaintext HTTP. Credentials will be sent unencrypted.\n')
     }
   }

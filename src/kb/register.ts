@@ -3,12 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { Command } from 'commander'
 import { z } from 'zod'
 import { defineCommand, defineGroup } from '../factory.ts'
 import type { OpaqueCommandHandle } from '../factory.ts'
 import type { KbApiDefinition, KbPathParam, KbQueryParam, KbBodyParam } from './types.ts'
 import { validateKbApiDefinition } from './types.ts'
-import { allKbApis } from './apis.ts'
+import { kbApiManifest, loadKbApi } from './apis.ts'
+import type { KbApiMeta } from './api-manifest.ts'
 import { createKbHandler } from './handler.ts'
 
 /**
@@ -73,16 +75,111 @@ function buildLeafHandle (def: KbApiDefinition): OpaqueCommandHandle {
 }
 
 /**
- * Registers all Kibana API commands under a `kb` group, intended to be
- * nested under the top-level `stack` group by the CLI entrypoint.
- *
- * Definitions with a `namespace` are grouped into a sub-group (`elastic stack kb <namespace> <name>`).
- *
- * @param definitions - flat array of API definitions; defaults to the full built-in registry
- * @returns an `OpaqueCommandHandle` for the `kb` group, ready for `program.addCommand()`
+ * Builds a stub leaf command that loads its full definition on demand.
+ * Commander still shows the stub in group-level help.
+ */
+function buildStubLeaf (meta: KbApiMeta): OpaqueCommandHandle {
+  const cmd = new Command(meta.name)
+  cmd.description(meta.description)
+  cmd.allowUnknownOption(true)
+  cmd.action(async () => {
+    const def = await loadKbApi(meta)
+    const real = buildLeafHandle(def)
+    const parent = cmd.parent
+    if (parent != null) {
+      const list = parent.commands as Command[]
+      const idx = list.indexOf(cmd)
+      if (idx >= 0) list.splice(idx, 1)
+      parent.addCommand(real)
+      await parent.parseAsync(process.argv)
+    }
+  })
+  return cmd
+}
+
+/**
+ * Sniffs `process.argv` to identify which KB leaf command the user
+ * intends to invoke. Returns `null` on ambiguity or help requests.
+ */
+function sniffInvokedLeaf (argv: readonly string[], manifest: readonly KbApiMeta[]): KbApiMeta | null {
+  const kbIdx = argv.findIndex((a, i) => i >= 2 && (a === 'kb' || a === 'kibana'))
+  if (kbIdx < 0) return null
+
+  const afterKb = argv.slice(kbIdx + 1).filter(a => !a.startsWith('-'))
+  if (afterKb.length === 0) return null
+
+  const namespaces = new Set(manifest.map(m => m.namespace))
+
+  if (afterKb.length >= 2 && namespaces.has(afterKb[0]!)) {
+    const ns = afterKb[0]!
+    const leaf = afterKb[1]!
+    return manifest.find(m => m.namespace === ns && m.name === leaf) ?? null
+  }
+
+  if (afterKb.length >= 1 && !namespaces.has(afterKb[0]!)) {
+    const leaf = afterKb[0]!
+    return manifest.find(m => m.name === leaf) ?? null
+  }
+
+  return null
+}
+
+export interface RegisterLazyOptions {
+  argv?: readonly string[]
+}
+
+/**
+ * Lazily registers all Kibana API commands. Only the invoked endpoint's
+ * namespace file is loaded; everything else stays as lightweight stubs.
+ */
+export async function registerKbCommandsLazy (
+  opts: RegisterLazyOptions = {}
+): Promise<OpaqueCommandHandle> {
+  const argv = opts.argv ?? process.argv
+  const invoked = sniffInvokedLeaf(argv, kbApiManifest)
+
+  let invokedDef: KbApiDefinition | null = null
+  if (invoked != null) {
+    invokedDef = await loadKbApi(invoked)
+  }
+
+  const byNamespace = new Map<string, KbApiMeta[]>()
+  for (const m of kbApiManifest) {
+    let group = byNamespace.get(m.namespace)
+    if (group == null) {
+      group = []
+      byNamespace.set(m.namespace, group)
+    }
+    group.push(m)
+  }
+
+  function leafHandleFor (m: KbApiMeta): OpaqueCommandHandle {
+    if (invoked != null && invokedDef != null && m === invoked) {
+      return buildLeafHandle(invokedDef)
+    }
+    return buildStubLeaf(m)
+  }
+
+  const namespaceHandles: OpaqueCommandHandle[] = []
+  for (const [namespace, metas] of byNamespace) {
+    const leafHandles = metas.map(leafHandleFor)
+    namespaceHandles.push(
+      defineGroup({ name: namespace, description: `Kibana ${namespace} API commands` }, ...leafHandles)
+    )
+  }
+
+  return defineGroup(
+    { name: 'kb', description: 'Interact with the Kibana API' },
+    ...namespaceHandles
+  )
+}
+
+/**
+ * Eagerly registers all Kibana API commands (for tests and scripts).
+ * Requires all definitions to be passed in.
  */
 export function registerKbCommands (
-  definitions: KbApiDefinition[] = allKbApis
+  definitions: KbApiDefinition[]
 ): OpaqueCommandHandle {
   for (const def of definitions) {
     validateKbApiDefinition(def)
