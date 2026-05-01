@@ -346,4 +346,72 @@ describe('scroll-search command', () => {
     const stderrText = output.stderr.chunks.join('')
     assert.ok(stderrText.includes('1 documents'), `Expected summary in stderr, got: ${stderrText}`)
   })
+
+  it('warns on stderr when --json is used without explicit --max-docs', async () => {
+    const output = captureOutput()
+    const { transport } = mockTransport([
+      { _scroll_id: 'scroll-1', hits: { hits: [{ _source: { a: 1 } }] } },
+      { hits: { hits: [] } },
+      {}
+    ])
+
+    await runCommand(
+      ['--index', 'test-idx', '--query', '{}', '--json'],
+      makeDeps(transport, output)
+    )
+
+    const stderrText = output.stderr.chunks.join('')
+    assert.ok(stderrText.includes('--max-docs'), `Expected unbounded warning in stderr, got: ${stderrText}`)
+  })
+
+  it('does not warn when --json is used with explicit --max-docs', async () => {
+    const output = captureOutput()
+    const { transport } = mockTransport([
+      { _scroll_id: 'scroll-1', hits: { hits: [{ _source: { a: 1 } }] } },
+      { hits: { hits: [] } },
+      {}
+    ])
+
+    await runCommand(
+      ['--index', 'test-idx', '--query', '{}', '--json', '--max-docs', '100'],
+      makeDeps(transport, output)
+    )
+
+    const stderrText = output.stderr.chunks.join('')
+    assert.ok(!stderrText.includes('--max-docs'), `Should not warn when --max-docs is explicit, got: ${stderrText}`)
+  })
+
+  it('does not warn in NDJSON mode (no --json) even without --max-docs', async () => {
+    const output = captureOutput()
+    const { transport } = mockTransport([
+      { _scroll_id: 'scroll-1', hits: { hits: [{ _source: { a: 1 } }] } },
+      { hits: { hits: [] } },
+      {}
+    ])
+
+    await runCommand(
+      ['--index', 'test-idx', '--query', '{}'],
+      makeDeps(transport, output)
+    )
+
+    const stderrText = output.stderr.chunks.join('')
+    assert.ok(!stderrText.includes('--max-docs'), `Should not warn in NDJSON mode, got: ${stderrText}`)
+  })
+
+  it('does not warn when ELASTIC_NO_WARN=1 is set', async () => {
+    const output = captureOutput()
+    const { transport } = mockTransport([
+      { _scroll_id: 'scroll-1', hits: { hits: [{ _source: { a: 1 } }] } },
+      { hits: { hits: [] } },
+      {}
+    ])
+
+    await runCommand(
+      ['--index', 'test-idx', '--query', '{}', '--json'],
+      { ...makeDeps(transport, output), env: { ELASTIC_NO_WARN: '1' } }
+    )
+
+    const stderrText = output.stderr.chunks.join('')
+    assert.ok(!stderrText.includes('--max-docs'), `Should not warn when ELASTIC_NO_WARN=1, got: ${stderrText}`)
+  })
 })
