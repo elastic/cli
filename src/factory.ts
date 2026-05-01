@@ -350,15 +350,6 @@ function validateInput (name: string, input: unknown): void {
 }
 
 /**
- * Configures help output for a command to conditionally emit JSON Schema.
- *
- * When `--json` is present in the parsed global options and the command has an
- * input schema, help is replaced with the raw JSON Schema object so agents can
- * parse it directly. Commands without an input schema print nothing in that mode.
- * Without `--json`, standard human-readable help is printed with no schema appended.
- */
-
-/**
  * Recursively removes `found_in` keys from a JSON Schema object.
  *
  * `found_in` is internal routing metadata used by the request builder to classify
@@ -378,7 +369,11 @@ function stripTransportMeta (value: JsonValue): JsonValue {
   }
   return value
 }
-function configureHelpWithSchema (cmd: OpaqueCommandHandle, inputSchema?: z.ZodType): void {
+
+function configureHelpWithSchema (
+  cmd: OpaqueCommandHandle,
+  inputSchema: z.ZodType | undefined,
+): void {
   const origHelp = cmd.createHelp()
   cmd.configureHelp({
     formatHelp: (thisCmd, helper) => {
@@ -554,7 +549,10 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       const suffix = arg.required
         ? '(required)'
         : arg.defaultValue !== undefined ? `(default: ${JSON.stringify(arg.defaultValue)})` : undefined
-      const desc = [arg.description, suffix].filter(Boolean).join(' ')
+      const csvNote = arg.acceptsArrayForm === true && arg.foundIn === 'body'
+        ? 'Accepts a comma-separated list; use --input-file with a JSON array for values that contain commas.'
+        : undefined
+      const desc = [arg.description, csvNote, suffix].filter(Boolean).join(' ')
       if (arg.type === 'boolean') {
         // booleans omit the suffix; flag-style convention makes it clear
         cmd.option(`--${arg.cliFlag} [value]`, arg.description)
@@ -587,7 +585,10 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     cmd.option('--dry-run', 'validate all inputs and exit without performing any action')
   }
 
-  configureHelpWithSchema(cmd, config.input instanceof z.ZodType ? config.input : undefined)
+  configureHelpWithSchema(
+    cmd,
+    config.input instanceof z.ZodType ? config.input : undefined,
+  )
 
   cmd.action(async () => {
     const allRaw = cmd.optsWithGlobals()
@@ -654,6 +655,18 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
             // that accept plain strings (e.g. connector update-error --error)
             cliInput[arg.schemaKey] = raw
           }
+        } else if (
+          arg.type === 'string' &&
+          arg.acceptsArrayForm === true &&
+          arg.foundIn === 'body' &&
+          typeof raw === 'string' &&
+          raw.includes(',')
+        ) {
+          // JSON bodies need an array for union(T, array(T)) fields like `fields`; ES
+          // does not split CSV strings inside bodies (it only does so in path and query).
+          // Users whose individual field values contain literal commas can pass a
+          // pre-built JSON array via `--input-file` instead.
+          cliInput[arg.schemaKey] = raw.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
         } else {
           // string, number (already coerced by parseArg), enum
           cliInput[arg.schemaKey] = raw

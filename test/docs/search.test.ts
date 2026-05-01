@@ -6,6 +6,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { createSearchCommand } from '../../src/docs/search.ts'
+import { _testSetStdinReader } from '../../src/factory.ts'
 import type { DocsSearchResponse } from '../../src/docs/client.ts'
 
 function makeResp (overrides: Partial<DocsSearchResponse> = {}): DocsSearchResponse {
@@ -37,11 +38,11 @@ describe('createSearchCommand', () => {
     assert.equal(cmd.name(), 'search')
   })
 
-  it('has a positional argument', () => {
+  it('has a required --query option', () => {
     const cmd = createSearchCommand()
-    const args = cmd.registeredArguments
-    assert.equal(args.length, 1)
-    assert.equal(args[0].name(), 'query')
+    assert.equal(cmd.registeredArguments.length, 0)
+    const optNames = cmd.options.map((o) => o.long)
+    assert.ok(optNames.includes('--query'))
   })
 
   it('has --page and --size options', () => {
@@ -60,11 +61,13 @@ describe('createSearchCommand', () => {
 
     // Access the handler indirectly by invoking the command
     const results: unknown[] = []
+    const restoreStdin = _testSetStdinReader(() => '')
     const parseResult = await new Promise<unknown>((resolve) => {
       cmd.exitOverride()
       cmd.configureOutput({ writeOut: (s) => results.push(s), writeErr: () => {} })
-      cmd.parseAsync(['elasticsearch'], { from: 'user' }).then(() => resolve(results)).catch(resolve)
+      cmd.parseAsync(['--query', 'elasticsearch'], { from: 'user' }).then(() => resolve(results)).catch(resolve)
     })
+    restoreStdin()
 
     // The command itself handles output, just verify no crash
     assert.ok(parseResult !== undefined)
@@ -80,7 +83,10 @@ describe('createSearchCommand', () => {
     cmd.exitOverride()
     cmd.configureOutput({ writeErr: () => {} })
 
-    await cmd.parseAsync(['test-query'], { from: 'user' })
+    const restoreStdin = _testSetStdinReader(() => '')
+    try {
+      await cmd.parseAsync(['--query', 'test-query'], { from: 'user' })
+    } finally { restoreStdin() }
 
     // Error is written to stderr by the factory; verify process.exitCode was set
     assert.equal(process.exitCode, 1)

@@ -29,6 +29,13 @@ export interface SchemaArgDefinition {
 
   /** Routing destination derived from `.meta({found_in: ...})`, or `undefined` if absent */
   foundIn?: FoundIn
+
+  /**
+   * True when the schema accepts both a scalar and an array form (e.g. `Fields = union(Field, array(Field))`).
+   * Registered CLI flag is still scalar for UX; callers split comma-separated values into arrays where
+   * the destination demands it (e.g. JSON request bodies).
+   */
+  acceptsArrayForm?: boolean
 }
 
 /** Valid routing destinations for a parameter derived from `found_in` Zod metadata. */
@@ -140,6 +147,7 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
     }
 
     const foundIn = extractFoundIn(fieldSchema as z.ZodType)
+    const acceptsArrayForm = type !== 'array' && schemaAcceptsArrayForm(fieldSchema as z.ZodType)
     return {
       schemaKey: key,
       cliFlag: toKebabCase(key),
@@ -147,9 +155,33 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
       required: !isOptional && defaultValue === undefined,
       defaultValue,
       description,
-      ...(foundIn !== undefined ? { foundIn } : {})
+      ...(foundIn !== undefined ? { foundIn } : {}),
+      ...(acceptsArrayForm ? { acceptsArrayForm: true } : {})
     }
   })
+}
+
+/**
+ * Returns true when the schema (or any branch of its unions) accepts an array form.
+ *
+ * Elasticsearch commonly types fields as `union(T, array(T))` (e.g. `Fields`, `Indices`),
+ * which `unwrapField` collapses to the scalar branch for CLI ergonomics. Body-routed
+ * arguments still need the array form because ES does not split CSV strings inside JSON
+ * bodies (only in querystrings and URL paths).
+ */
+function schemaAcceptsArrayForm (field: z.ZodType): boolean {
+  const def = field.def as ZodFieldDef
+  if (def.type === 'array') return true
+  if ((def.type === 'optional' || def.type === 'default') && def.innerType != null) {
+    return schemaAcceptsArrayForm(def.innerType as unknown as z.ZodType)
+  }
+  if (def.type === 'lazy' && typeof def.getter === 'function') {
+    return schemaAcceptsArrayForm(def.getter())
+  }
+  if (def.type === 'union' && Array.isArray(def.options)) {
+    return def.options.some((o) => schemaAcceptsArrayForm(o))
+  }
+  return false
 }
 
 /**

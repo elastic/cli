@@ -272,3 +272,47 @@ describe('unwrapField handles complex Zod types (#92)', () => {
     assert.equal(args[0]?.type, 'object')
   })
 })
+
+describe('extractSchemaArgs acceptsArrayForm detection (#167)', () => {
+  it('flags union(string, array(string)) as acceptsArrayForm', () => {
+    const schema = z.object({
+      fields: z.union([z.string(), z.array(z.string())]).optional(),
+    })
+    const args = extractSchemaArgs(schema)
+    assert.equal(args[0]?.type, 'string')
+    assert.equal(args[0]?.acceptsArrayForm, true)
+  })
+
+  it('flags union wrapped through z.lazy() as acceptsArrayForm', () => {
+    const Field = z.string()
+    const Fields = z.union([z.lazy(() => Field), z.array(z.lazy(() => Field))])
+    const schema = z.object({
+      fields: z.lazy(() => Fields).optional().meta({ found_in: 'body' }),
+    })
+    const args = extractSchemaArgs(schema)
+    assert.equal(args[0]?.type, 'string')
+    assert.equal(args[0]?.acceptsArrayForm, true)
+    assert.equal(args[0]?.foundIn, 'body')
+  })
+
+  it('does not flag a plain string schema', () => {
+    const schema = z.object({ name: z.string() })
+    const args = extractSchemaArgs(schema)
+    assert.notEqual(args[0]?.acceptsArrayForm, true)
+  })
+
+  it('does not flag a plain array schema (already registered as JSON)', () => {
+    const schema = z.object({ tags: z.array(z.string()).optional() })
+    const args = extractSchemaArgs(schema)
+    assert.equal(args[0]?.type, 'array')
+    assert.notEqual(args[0]?.acceptsArrayForm, true)
+  })
+
+  it('does not flag a union without an array branch', () => {
+    const schema = z.object({
+      value: z.union([z.string(), z.number()]).optional(),
+    })
+    const args = extractSchemaArgs(schema)
+    assert.notEqual(args[0]?.acceptsArrayForm, true)
+  })
+})

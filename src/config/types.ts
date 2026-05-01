@@ -51,4 +51,6 @@ export interface ResolvedConfig {
   context: ResolvedContext
   /** Optional command allow/deny policy from the config file. */
   commands?: CommandPolicy
+  /** Whether to show the startup banner. Defaults to true when absent. */
+  banner?: boolean
 }

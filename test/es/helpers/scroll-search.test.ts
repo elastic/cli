@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os'
 import type { Transport, TransportRequestParams } from '@elastic/transport'
 import { createScrollSearchCommand } from '../../../src/es/helpers/scroll-search.ts'
 import type { ScrollSearchDeps } from '../../../src/es/helpers/scroll-search.ts'
+import { _testSetStdinReader } from '../../../src/factory.ts'
 import { Command } from 'commander'
 
 interface MockResponse {
@@ -75,9 +76,11 @@ async function runCommand (args: string[], deps: ScrollSearchDeps): Promise<{ re
     return true
   }) as typeof process.stderr.write
 
+  const restoreStdin = _testSetStdinReader(() => '')
   try {
     await program.parseAsync(['node', 'test', 'scroll-search', ...args])
   } finally {
+    restoreStdin()
     process.stdout.write = origStdoutWrite
     process.stderr.write = origStderrWrite
     process.exitCode = 0
@@ -198,7 +201,7 @@ describe('scroll-search command', () => {
     assert.deepStrictEqual(body, { query: { match: { title: 'test' } } })
   })
 
-  it('treats --input-file contents as the full search body', async () => {
+  it('treats --query-file contents as the full search body', async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'scroll-test-'))
     const filePath = join(tmpDir, 'body.json')
     writeFileSync(filePath, '{"query":{"match_all":{}},"sort":[{"_doc":"asc"}]}')
@@ -210,7 +213,7 @@ describe('scroll-search command', () => {
     ])
 
     await runCommand(
-      ['--index', 'test-idx', '--input-file', filePath, '--json'],
+      ['--index', 'test-idx', '--query-file', filePath, '--json'],
       makeDeps(transport, output)
     )
 

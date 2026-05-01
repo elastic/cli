@@ -10,9 +10,9 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "tsc -b",
+    "build": "node --max-old-space-size=6144 node_modules/typescript/bin/tsc -b",
     "test": "npm run build && npm run test:unit && npm run test:license",
-    "test:unit": "node --import tsx/esm --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=90 --test-coverage-functions=90 --test-coverage-include='src/**/*.ts' --test-coverage-include='packages/*/src/**/*.ts' --test-coverage-exclude='src/cloud/apis/**' --test-coverage-exclude='src/es/apis.ts' --test-coverage-exclude='src/cloud/apis.ts' --test-coverage-exclude='src/cloud/serverless-apis.ts' --test-coverage-exclude='node_modules/**'",
+    "test:unit": "node --import tsx/esm --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=90 --test-coverage-functions=90 --test-coverage-include='src/**/*.ts' --test-coverage-include='packages/*/src/**/*.ts' --test-coverage-exclude='src/cloud/apis/**' --test-coverage-exclude='src/es/apis.ts' --test-coverage-exclude='src/es/api-manifest.ts' --test-coverage-exclude='src/es/apis/**' --test-coverage-exclude='src/cloud/apis.ts' --test-coverage-exclude='src/cloud/serverless-apis.ts' --test-coverage-exclude='node_modules/**'",
     "test:lint": "eslint src packages",
     "codegen:functional": "npx tsx codegen/functional/index.ts --tests-dir ../elasticsearch-clients-tests/tests",
     "test:functional:es": "bash test/functional/es/run.sh",

@@ -6,7 +6,7 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'node:fs'
 import { join, relative, dirname } from 'node:path'
 import { parseArgs } from 'node:util'
-import { allApis } from '../../src/es/apis.ts'
+import { loadAllEsApis } from '../../src/es/apis.ts'
 import { parseTestFile, isServerless } from './parser.ts'
 import { generateScript, generateRunner } from './generator.ts'
 
@@ -68,6 +68,8 @@ let skippedNoActions = 0
 let skippedEnterprise = 0
 const scriptPaths: string[] = []
 const allSkippedActions = new Set<string>()
+
+const allApis = await loadAllEsApis()
 
 for (const yamlFile of yamlFiles) {
   const relPath = relative(testsDir, yamlFile)

@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { z } from 'zod'
 import { defineCommand } from '../factory.ts'
-import type { OpaqueCommandHandle, JsonValue, ParsedResult } from '../factory.ts'
+import type { OpaqueCommandHandle, JsonValue } from '../factory.ts'
 import { docsSearch, stripHtmlTags } from './client.ts'
 import { renderMarkdown } from './renderer.ts'
 
@@ -19,19 +20,19 @@ export interface SearchDeps {
 
 const defaultDeps: SearchDeps = { docsSearch, stderr: process.stderr }
 
+const inputSchema = z.object({
+  query: z.string().describe('Search terms'),
+  page: z.number().default(1).describe('Page number'),
+  size: z.number().default(5).describe('Results per page'),
+})
+
 export function createSearchCommand (deps: SearchDeps = defaultDeps): OpaqueCommandHandle {
   return defineCommand({
     name: 'search',
     description: 'Search Elastic documentation',
-    positionalArg: { name: 'query', description: 'Search terms', required: true },
-    options: [
-      { long: 'page', type: 'number', description: 'Page number', defaultValue: 1 },
-      { long: 'size', type: 'number', description: 'Results per page', defaultValue: 5 },
-    ],
-    handler: async (parsed: ParsedResult): Promise<JsonValue> => {
-      const query = parsed.arg ?? ''
-      const page = parsed.options['page'] as number
-      const size = parsed.options['size'] as number
+    input: inputSchema,
+    handler: async (parsed) => {
+      const { query, page, size } = parsed.input!
 
       try {
         const resp = await deps.docsSearch(query, page, size)

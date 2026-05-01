@@ -1,29 +1,68 @@
 # Elastic CLI
 
-This is a CLI that exposes a large surface area of subcommands to interact with Elasticsearch, Elastic Cloud and Elasticsearch Serverless control plane APIs.
-It targets LLM-powered agents as first-class users by providing several guardrails and machine-friendly inputs and outputs.
+CLI for interacting with Elasticsearch, Elastic Cloud, and Elasticsearch Serverless control plane APIs. Targets LLM-powered agents as first-class users.
 
 ## Tech Stack
 
-- **Runtime**: Node.js with native TypeScript (using `--experimental-strip-types`)
+- **Runtime**: Node.js with native TypeScript (`--experimental-strip-types`)
 - **CLI Framework**: Commander.js
 - **Validation**: Zod v4
-- **Config Management**: cosmiconfig
-- **Config Serialization**: YAML
-- **Testing**: Node.js built-in test runner (node:test)
+- **Config Management**: cosmiconfig (YAML serialization)
+- **Testing**: Node.js built-in test runner (`node:test`)
 - **Linting**: ESLint + TypeScript ESLint, MegaLinter (CI + pre-commit)
-- **TypeScript**: Strict mode with ESNext + nodenext module resolution
+- **TypeScript**: Strict mode, ESNext + nodenext module resolution
 
-Adding other new third-party dependencies is highly discouraged to reduce supply-chain attack surface.
+Avoid adding new third-party dependencies to reduce supply-chain attack surface.
 
 ## Architecture
 
-Commands are defined through shared, reusable config structures (see `factory.ts`). Custom logic only permitted for behaviors that cannot be expressed in config.
+Commands are defined via shared config structures (see `factory.ts`). Custom logic is only permitted for behaviors that cannot be expressed in config.
+
+## Command Authoring Requirements
+
+All requirements below are non-negotiable and enforced at review time.
+
+### Input
+
+- **JSON via stdin and `--input-file`**: Structured input MUST be accepted from stdin or `--input-file <path>`. Neither takes precedence; providing both MUST error.
+- **CLI flags for all input fields**: Every top-level schema field MUST have a corresponding kebab-case CLI flag. When both JSON input and flags are provided, flags take precedence.
+- **Zod input schema**: Every command with structured input MUST declare a Zod schema as the single source of truth for validation, type inference, and help text. `input: true` (untyped) MUST NOT be used in new commands.
+- **Validate before executing**: All input MUST be validated before any handler logic or network call. Invalid input is a hard error.
+- **Reject unknown keys**: Input with undefined keys MUST produce a validation error naming the unknown field(s). Silent stripping is not acceptable.
+
+### Output and Errors
+
+- **`--json`**: Every command MUST emit structured JSON when `--json` is passed.
+- **`--help --json`**: MUST output the full JSON Schema so agents can introspect valid inputs.
+- **Errors**: All errors MUST go to stderr with a non-zero exit code. With `--json`, errors MUST serialize as `{"error": {"code": "...", "message": "..."}}`.
+
+### Mutations and Side Effects
+
+- **`--dry-run`**: Every command that mutates state or makes a network call MUST support `--dry-run`. In dry-run mode: validate all inputs, print the resolved request payload, exit 0 without executing.
+
+### Credentials and Configuration
+
+- **No credentials as CLI flags**: API keys, passwords, and tokens belong only in the config file or environment variables. Never as CLI flags.
+- **Named contexts**: Connection info is managed via named contexts in the YAML config (kubectl-style). `--context <name>` MAY override for a single invocation; context fields MUST NOT be duplicated as first-class flags.
+
+### Transport Abstraction
+
+- **Hide routing metadata**: `found_in: path | query | body` is an implementation detail. It MUST NOT appear in help text, schema output, or error messages.
+- **Validate path parameter coverage**: If a schema field has `found_in: "path"` but the URL template has no matching placeholder, the system MUST fail fast at registration time.
+
+### Cross-Platform Compatibility
+
+- **Paths**: Use `path.join()` / `path.resolve()`. Hard-coded `/` or `\\` separators are forbidden.
+- **Config directories**: Resolve using `os.homedir()` and `process.env.APPDATA` (or OS equivalents). No Unix-only hard-coded paths.
+- **Platform guards**: Signal handling, TTY detection, and ANSI escape codes MUST be guarded behind capability checks.
+- **CI**: The full test suite MUST pass on Windows, Linux, and macOS before merge.
 
 ## Code Patterns & Conventions
 
-### SPDX Headers
-All code files **MUST** start with:
+### SPDX Header
+
+All code files MUST start with:
+
 ```
 /**
  * Copyright Elasticsearch B.V. and contributors
@@ -31,109 +70,107 @@ All code files **MUST** start with:
  */
 ```
 
-### Code Standards
-- **Docstrings**: All exported symbols in reusable utilities MUST have complete doc comments
-- **Comments**: Explain WHY, not WHAT. Don't restate code in prose
-- **Naming**: camelCase for functions/variables, PascalCase for types/interfaces
-- **YAML config**: ALL key names use `snake_case` (e.g. `api_key`, `current_context`). Never camelCase or kebab-case
-- **Files**: Proper trailing newline, no trailing whitespace
+### Standards
 
-### Use dependencies wisely
+- **Docstrings**: All exported symbols in reusable utilities MUST have complete doc comments.
+- **Comments**: Explain WHY, not WHAT. Do not restate code in prose.
+- **Naming**: camelCase for functions/variables, PascalCase for types/interfaces.
+- **YAML config keys**: Always `snake_case` (e.g. `api_key`, `current_context`). Never camelCase or kebab-case.
+- **Files**: Trailing newline required, no trailing whitespace.
 
-When writing code that does something that is not critical to this tool's core domain (i.e. interacting with Elastic APIs), and an installed dependency can likely handle it, **always** try to leverage that dependency in your solution first. For example, for an argument-parsing bug, check if `commander` can help solve it instead of using `process.argv` directly. Only apply a manual solution if that strategy does not succeed.
+### Dependencies
+
+When solving a problem outside this tool's core domain (Elastic API interaction), check if an installed dependency solves it before writing custom code. For example: prefer `commander` over `process.argv` for argument parsing. Apply a manual solution only if the dependency cannot help.
 
 ### TypeScript Configuration
-- Strict mode: `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `strict`, `verbatimModuleSyntax`, `isolatedModules`, `noUncheckedSideEffectImports`, `moduleDetection: force`
-- Source maps and declaration maps enabled
+
+Strict flags: `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `strict`, `verbatimModuleSyntax`, `isolatedModules`, `noUncheckedSideEffectImports`, `moduleDetection: force`. Source maps and declaration maps enabled.
 
 ## TDD Discipline
 
-**ALWAYS** follow this cycle autonomously:
-1. Write a failing test capturing intended behavior (RED)
-2. Confirm test fails for the right reason
-3. Write minimum implementation to make test pass (GREEN)
-4. Refactor under green, keeping tests passing (REFACTOR)
+Follow this cycle autonomously for every change:
 
-Do not stop between writing test and implementation. Proceed through the full cycle.
+1. Write a failing test (RED)
+2. Confirm it fails for the right reason
+3. Write minimum code to pass (GREEN)
+4. Refactor under green (REFACTOR)
 
-**Task completion**: All tests pass (`npm test` exits 0), lint checks pass, no style violations.
+Task is complete when `npm test` exits 0 and lint passes.
 
 ## Pre-commit Linting
 
-This repo uses a [MegaLinter](https://megalinter.io/) pre-commit hook that runs automatically on every commit when `pre-commit install` has been run. It checks only staged files and catches: TypeScript lint errors, YAML formatting issues, unpinned GitHub Actions, accidental secrets, and copy-paste duplication. Docker must be running.
+MegaLinter runs automatically on staged files when `pre-commit install` has been run. It catches TypeScript lint errors, YAML issues, unpinned GitHub Actions, accidental secrets, and copy-paste duplication. Docker must be running.
 
-If you are an AI agent and the pre-commit hook fails your commit, read the error output and fix the flagged files before retrying. Do not use `--no-verify` to bypass it. The hook exists to catch exactly the kinds of issues that agents commonly introduce.
+If the pre-commit hook fails, read the error output, fix flagged files, and retry. Do NOT use `--no-verify`.
 
-To run MegaLinter manually against the full codebase: `npm run test:megalinter` (requires Docker).
+To run MegaLinter manually: `npm run test:megalinter` (requires Docker).
 
 ## Thorough Testing
 
-After every implementation change, you MUST:
+After every implementation change:
 
-1. **Run the full test suite** (`npm test`) before considering work complete. Never skip this step.
-2. **Write regression tests for every bug fix.** Each fix must have at least one test that would have caught the original bug.
-3. **Test adversarial and edge-case inputs.** For any function that processes user input -- especially strings going into URLs, paths, commands, or queries -- add tests with malicious or unexpected values (`../`, `?#`, empty strings, special characters).
-4. **Test configuration, not just output.** When testing HTTP clients or request builders, assert on the full configuration object (e.g., `RequestInit` options like `redirect`, `credentials`), not only the response.
-5. **Don't copy test patterns from existing code without auditing them.** Existing tests may have gaps. When writing code modeled after another file, independently evaluate what tests are needed.
-6. **Manually verify fixes when feasible.** After unit tests pass, build (`npm run build`) and run the CLI end-to-end to confirm the fix works. Document the manual test commands in your response.
-7. **Check for lint errors** on all modified files before declaring work complete.
-8. **Never mold tests to make them pass.** If a test fails, investigate the implementation first -- the test may be correct and the code may be wrong. Never weaken assertions, skip test cases, or change expected values just to get green. The test is the spec; fix the code to match it, not the other way around.
-9. **Never mold code to make tests pass incorrectly.** Don't add special cases, workarounds, or dead code paths in production code solely to satisfy a poorly written test. If the test is wrong, fix the test with a clear explanation of why.
-10. **Test all code paths, not just the happy path.** For every function, ask: what happens with missing input, empty input, null, wrong types, boundary values? For HTTP code: what about redirects, timeouts, empty responses, error status codes?
-11. **Run the code you wrote.** Don't just run unit tests. Build the project and exercise the feature manually. If writing a CLI command, run it. If writing an API endpoint, call it. If writing a request builder, trace the actual HTTP request it produces.
+1. Run `npm test`. Never skip.
+2. Write a regression test for every bug fix.
+3. Test adversarial inputs for any function embedding user strings in URLs, paths, or queries (`../`, `?#`, empty strings, special characters).
+4. Assert on full `RequestInit` configuration (e.g. `redirect`, `credentials`), not just response output.
+5. Do not copy test patterns from existing code without auditing for gaps.
+6. After unit tests pass, build (`npm run build`) and verify end-to-end manually.
+7. Check for lint errors on all modified files.
+8. Never weaken assertions, skip cases, or change expected values to get green. The test is the spec; fix the code.
+9. Never add special cases or dead code in production code solely to satisfy a bad test. Fix the test instead.
+10. Test all code paths: missing input, empty input, null, wrong types, boundary values, HTTP error codes, redirects, timeouts.
+11. Run the code you wrote. For a CLI command, run it. For a request builder, trace the actual HTTP request.
 
 ## Security Checklist
 
-When creating or modifying code that constructs URLs, sends credentials, or makes HTTP requests:
+When constructing URLs, sending credentials, or making HTTP requests:
 
-- **Encode path parameters.** Never interpolate user input into URL paths with bare `String(value)`. Always use `encodeURIComponent()` or a wrapper that encodes each segment.
-- **Validate URL schemes.** Reject anything other than `http://` and `https://`. Warn on plaintext `http://` for non-localhost targets.
-- **Don't copy patterns blindly.** If replicating URL-building logic from another file, audit the source for encoding and validation gaps before copying.
-- **Set `redirect: 'error'`** (or `'manual'`) on every `fetch` call that sends credentials. Never rely on the default `'follow'` behavior.
-- **Assert on `RequestInit` configuration in tests**, not just on response output. Verify `redirect`, `method`, and `headers` are set as intended.
-- **Add at least one adversarial input test** for any function that accepts user-provided strings and embeds them in URLs or paths.
+- **Encode path parameters**: Use `encodeURIComponent()` or an equivalent wrapper. Never bare `String(value)`.
+- **Validate URL schemes**: Reject anything other than `http://` or `https://`. Warn on plaintext `http://` for non-localhost targets.
+- **Audit before copying**: If replicating URL-building logic from another file, check it for encoding and validation gaps.
+- **Set `redirect: 'error'`** (or `'manual'`) on every `fetch` call that sends credentials. Never rely on the default `'follow'`.
+- **Assert on `RequestInit`** in tests: verify `redirect`, `method`, and `headers`.
+- **Adversarial input test**: Add at least one test with malicious input for any function that embeds user strings in URLs or paths.
 
-## Generic Abstractions Must Handle Real-World Variation
+## Generic Abstractions: Lessons Learned
 
-### Lessons
+1. **Enumerate all variants upfront.** `unwrapField()` only handled `optional` and `default`; codegen also produced `z.lazy()`, `z.record()`, `z.any()`, `z.union()`, which all fell through silently. Inspect the full set of types the upstream system can produce and add explicit branches or a loud failure for unrecognized cases.
 
-1. **Enumerate all variants a system can produce, not just the ones you see first.** `unwrapField()` only handled `optional` and `default` because those were the only wrappers visible in the initial hand-written schemas. When codegen produced schemas using `z.lazy()`, `z.record()`, `z.any()`, and `z.union()`, they all silently fell through to a catch-all that mapped them to `"string"`. Before writing a generic handler, inspect the full set of types/formats the upstream system can produce and add explicit branches or a loud failure for unrecognized cases.
+2. **Fail loudly on unrecognized input.** A catch-all `return { typeName: def.type, isOptional: false }` silently returned garbage. `throw new Error('unhandled Zod type: ' + def.type)` would have surfaced the problem at registration time.
 
-2. **Fail loudly on unrecognized input instead of falling through to a default.** The `unwrapField` catch-all `return { typeName: def.type, isOptional: false }` silently returned garbage. A `throw new Error('unhandled Zod type: ' + def.type)` would have surfaced the problem immediately at registration time instead of producing subtle runtime validation failures across 1400+ fields.
+3. **Test with real generated schemas.** Hand-crafted toy schemas miss codegen-specific types like `z.lazy`.
 
-3. **Test with real generated schemas, not just hand-crafted toy schemas.** If our `extractSchemaArgs` tests had included even one actual schema from the codegen output (which uses `z.lazy` extensively), the bug would have been caught before merging.
+4. **Generic request builders need extension points for endpoint-specific semantics.** The bulk API needs NDJSON; the index API needs body promotion. Add explicit extension points (`bodyFormat`, `BODY_ROOT_FIELDS`) rather than special-casing later.
 
-4. **Generic request builders need escape hatches for endpoint-specific semantics.** The ES bulk API needs NDJSON; the index API needs body promotion. A "one size fits all" `collectBody()` silently produced wrong output for both. When designing generic abstractions, ask: "what endpoint-specific behavior could this need?" and add explicit extension points (`bodyFormat`, `BODY_ROOT_FIELDS`) rather than special-casing later.
+5. **Diagnose common mistakes in user-facing errors.** Map known error patterns (TLS mismatch, auth failure, DNS) to actionable hints instead of propagating raw messages.
 
-5. **User-facing error messages should diagnose common mistakes.** Raw error propagation (e.g., `SSL routines:tls_get_more_records:packet length too long`) is unhelpful. When you catch an error class that has known causes (TLS mismatch, auth failure, DNS resolution), pattern-match on the message and append a human-readable hint with a suggested fix.
+6. **Treat codegen output as untrusted input.** Validate assumptions about which Zod types appear with tests that use actual generated schemas.
 
-6. **When consuming codegen output, treat it as untrusted input.** The codegen produces valid schemas, but the CLI's generic layers made assumptions about which Zod types would appear. Validate those assumptions with tests that exercise actual generated output.
+7. **Read external type definitions before setting properties.** `TransportRequestParams` has `bulkBody` for NDJSON, not `body` + custom headers. JavaScript silently ignores extra properties; only `tsc --noEmit` or CI catches this. Run `npx tsc --noEmit` before pushing.
 
-7. **Inspect the type definition before setting properties on shared types.** When building an object typed as an external interface (e.g., `TransportRequestParams` from `@elastic/transport`), read the type definition first. Don't assume it has a property just because it seems logical -- `TransportRequestParams` has `bulkBody` for NDJSON, not `body` + `headers`. JavaScript silently allows setting non-existent properties, so only `tsc --noEmit` or CI will catch this. Always run a type-check (`npx tsc --noEmit`) locally before pushing, not just tests.
+8. **Guard clauses that discard data are dangerous.** `if (!(def.body instanceof z.ZodObject)) return undefined` silently dropped all stdin/`--input-file` input for Cloud POST commands. When a guard returns early with no data, ask what happens to the caller's input. Prefer forwarding with passthrough semantics over silent discard.
 
-8. **Guard clauses that silently discard data are dangerous.** `collectBody()` had `if (!(def.body instanceof z.ZodObject)) return undefined` -- a guard clause that silently threw away all stdin/`--input-file` input for every Cloud POST command without an explicit body schema. That was the *common* case, not the edge case. When writing a guard clause that returns early with no data, ask: "what happens to the caller's input?" If the answer is "it gets silently dropped," that's almost certainly a bug. Prefer forwarding unknown input (with clear passthrough semantics) over silently discarding it.
+9. **Trace the full data flow for every mode combination.** `--json` broke cat APIs because the handler returned raw text and the factory blindly called `JSON.stringify()`. When two layers cooperate (handler + formatter, request builder + transport), enumerate all mode combinations and verify each.
 
-9. **Trace the full data flow across layers for every combination of modes.** The `--json` flag broke cat APIs because the handler returned raw text and the factory blindly called `JSON.stringify()` on it. Neither layer was wrong in isolation -- the handler correctly returned text, the factory correctly serialized JSON. But together, the combination of `responseType: 'text'` + `--json` was never traced end-to-end. When a feature involves two cooperating layers (handler + output formatter, request builder + transport), enumerate all mode combinations and verify each one produces correct output.
-
-10. **Codegen output needs a UX review.** Machine-generated command names (e.g., `list-deployments` from `listDeployments` operationId) are precise but verbose. Users will instinctively try shorter forms (`list`, `get`). When registering auto-generated commands, add short aliases where unambiguous, and test that users can discover commands with intuitive names.
+10. **Review codegen command names for UX.** Machine-generated names (e.g. `list-deployments`) are precise but verbose. Add short aliases where unambiguous so users can discover commands intuitively.
 
 ## Spec-Kit Workflow
 
-The project uses [spec-kit](https://github.com/github/spec-kit) for AI-assisted feature development.
+Uses [spec-kit](https://github.com/github/spec-kit) for AI-assisted feature development.
 
 | Path | Purpose |
 |------|---------|
 | `.specify/specs/` | Feature specifications |
 | `.specify/plans/` | Implementation plans |
 | `.specify/tasks/` | Task definitions |
-| `.specify/memory/` | Long-lived context files (e.g. `constitution.md`) |
+| `.specify/memory/` | Long-lived context (e.g. `constitution.md`) |
 | `.specify/templates/` | Markdown templates |
-| `.specify/scripts/` | Helper shell scripts |
-| `.specify/hooks.yml` | CI/automation hook definitions |
+| `.specify/scripts/` | Helper scripts |
+| `.specify/hooks.yml` | CI/automation hooks |
 
 ## Conventional Commits
 
-All commit messages and PR titles MUST follow the [Conventional Commits v1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) specification. PR titles are validated in CI.
+All commit messages and PR titles MUST follow [Conventional Commits v1.0.0](https://www.conventionalcommits.org/en/v1.0.0/). PR titles are validated in CI.
 
 ### Format
 
@@ -149,76 +186,53 @@ All commit messages and PR titles MUST follow the [Conventional Commits v1.0.0](
 
 | Type | When to use | Triggers release? |
 |------|-------------|-------------------|
-| `feat` | New user-facing feature or capability | Yes (minor) |
+| `feat` | New user-facing feature | Yes (minor) |
 | `fix` | Bug fix | Yes (patch) |
-| `perf` | Performance improvement with no API change | Yes (patch) |
+| `perf` | Performance improvement, no API change | Yes (patch) |
 | `docs` | Documentation only | No |
 | `test` | Adding or updating tests | No |
-| `ci` | CI/CD pipeline changes | No |
-| `chore` | Dependency bumps, tooling, repo maintenance | No |
-| `refactor` | Code restructuring with no behavior change | No |
-| `revert` | Reverts a previous commit | Depends on reverted type |
+| `ci` | CI/CD changes | No |
+| `chore` | Dependencies, tooling, maintenance | No |
+| `refactor` | Code restructuring, no behavior change | No |
+| `revert` | Reverts a previous commit | Depends |
 
 ### Scope
 
-Use a scope when the change is clearly confined to one area of the codebase. Omit it for cross-cutting changes.
+Use a scope when the change is confined to one area. Omit for cross-cutting changes.
+
+Common scopes: `cli`, `config`, `auth`, `cloud`, `es`, `serverless`.
 
 ```
 feat(cli): add --format flag to search command
 fix(config): handle missing YAML key gracefully
 ci: add PR title validation step
-chore: update dependencies
 ```
-
-Common scopes for this project: `cli`, `config`, `auth`, `cloud`, `es`, `serverless`.
 
 ### Breaking Changes
 
-A breaking change triggers a **major** version bump. Indicate it one of two ways (or both):
+Indicate with `!` before the colon, a `BREAKING CHANGE` footer, or both:
 
-1. **`!` after the type/scope**, immediately before the colon:
-   ```
-   feat!: remove deprecated --legacy flag
-   feat(cli)!: rename --output to --format
-   ```
+```
+feat(cli)!: rename --output to --format
 
-2. **`BREAKING CHANGE` footer** in the commit body:
-   ```
-   feat: switch config format from JSON to YAML
-
-   BREAKING CHANGE: existing .elasticrc.json files must be migrated to .elasticrc.yml
-   ```
-
-   Using both `!` and the footer is valid. The footer is preferred when the breaking change needs a longer explanation than fits in the subject line.
+BREAKING CHANGE: --output is removed; use --format instead.
+```
 
 ### Release-Please Integration
 
-This project uses [release-please](https://github.com/googleapis/release-please) to automate versioning and changelogs. It reads commit messages (via squash-merge) to determine version bumps.
+[release-please](https://github.com/googleapis/release-please) automates versioning from commit messages via squash-merge.
 
-**Overriding commit messages after merge.** If a PR was already merged with a wrong or incomplete commit message, edit the merged PR's body on GitHub and add:
+To override a merged commit message, add to the PR body:
 
 ```
 BEGIN_COMMIT_OVERRIDE
-feat(cli): correct description of the change
+feat(cli): correct description
 
-fix(config): secondary fix included in same PR
+fix(config): secondary fix
 END_COMMIT_OVERRIDE
 ```
 
-Release-please will use the override block instead of the actual merge commit. This only works with squash-merge.
-
-**Multiple changes in one commit.** Use conventional commit lines as footers to represent additional changes:
-
-```
-feat: add v2 API support
-
-Adds the new /v2 endpoints for project management.
-
-fix(auth): token refresh no longer drops scopes
-  BREAKING-CHANGE: v1 token format is no longer accepted
-```
-
-**Forcing a specific version.** Use the `Release-As` trailer:
+To force a specific version, use the `Release-As` trailer:
 
 ```
 chore: release 3.0.0
@@ -228,10 +242,9 @@ Release-As: 3.0.0
 
 ### Common Mistakes
 
-- `Feat:` or `FIX:` -- types must be lowercase.
-- `feat(CLI):` -- scopes should be lowercase.
-- `feat : add thing` -- no space before the colon.
-- `feat:add thing` -- must have a space after the colon.
-- `feat: Add thing.` -- description should not be capitalized or end with a period.
-- `feat(): add thing` -- empty scope parentheses; omit them entirely.
-- `update README` -- missing type prefix entirely.
+- Types and scopes must be lowercase: `feat`, not `Feat`; `feat(cli)`, not `feat(CLI)`.
+- No space before the colon: `feat:`, not `feat :`.
+- Space after the colon: `feat: add`, not `feat:add`.
+- Description must not be capitalized or end with a period.
+- Empty scope parentheses are invalid: omit them entirely.
+- Every commit must have a type prefix.

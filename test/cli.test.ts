@@ -109,7 +109,7 @@ describe('elastic CLI -- preAction config error handling', () => {
   it('exits with error when no config file is found', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-'))
     try {
-      const { code, stderr } = await runCli(['stack', 'es', 'info'], { cwd: dir, env: { HOME: dir, XDG_CONFIG_HOME: dir } })
+      const { code, stderr } = await runCli(['stack', 'es', 'info'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } })
       assert.equal(code, 1, `expected exit code 1, got ${code}`)
       assert.ok(stderr.includes('Error:'), `expected stderr to contain "Error:", got: ${stderr}`)
       assert.ok(stderr.includes('No configuration file found'), `expected config error message, got: ${stderr}`)

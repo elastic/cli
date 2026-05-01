@@ -6,10 +6,7 @@ on:
     branches:
       - main
 
-permissions:
-  contents: read
-  issues: write
-  pull-requests: write
+permissions: {}
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -18,52 +15,76 @@ concurrency:
 jobs:
   test-node:
     name: Test Node.js
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         node-version: [22.x, 24.x, 25.x]
     runs-on: ${{ matrix.os }}
+    # Per-endpoint Zod schemas (#171) compile to ~72 MB of .d.ts; tsc needs
+    # more than the 2 GB Node default to hold the type graph during emit.
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: ${{ matrix.node-version }}
       - name: Install
-        run: npm install
+        run: npm ci
       - name: Run unit tests
         run: npm test
         shell: bash
 
   license-header:
     name: Check SPDX license header
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
       - name: Install
-        run: npm install
+        run: npm ci
       - name: License header check
         run: npm run test:spdx
 
   notice-file:
     name: Check NOTICE.txt is up to date
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
       - name: Install
-        run: npm install
+        run: npm ci
       - name: Verify NOTICE.txt
         run: npm run test:notice
 
   test-bun:
     name: Test Bun
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    # `bun run build` shells out to Node-hosted tsc; same heap constraint as
+    # the Node job above.
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
       - name: Install
         run: bun install
@@ -75,6 +96,8 @@ jobs:
   validate-pr-title:
     if: github.event_name == 'pull_request'
     name: Validate PR title
+    permissions:
+      pull-requests: read
     runs-on: ubuntu-latest
     steps:
       - name: PR Conventional Commit Validation
@@ -85,6 +108,9 @@ jobs:
 
   megalinter:
     name: MegaLinter
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
