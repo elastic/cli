@@ -29,12 +29,14 @@ export interface ScrollSearchDeps {
   getTransport: () => Transport
   stdout: { write: (chunk: string) => boolean }
   stderr: { write: (chunk: string) => boolean }
+  env?: NodeJS.ProcessEnv
 }
 
 const defaultDeps: ScrollSearchDeps = {
   getTransport,
   stdout: process.stdout,
-  stderr: process.stderr
+  stderr: process.stderr,
+  env: process.env,
 }
 
 const inputSchema = z.object({
@@ -87,7 +89,7 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
     let scrollId: string | undefined
     let totalDocs = 0
 
-    if (jsonMode && maxDocs === Infinity) {
+    if (jsonMode && maxDocs === Infinity && deps.env?.['ELASTIC_NO_WARN'] !== '1') {
       deps.stderr.write('Warning: --json buffers all documents in memory. Set --max-docs <n> to limit.\n')
     }
 

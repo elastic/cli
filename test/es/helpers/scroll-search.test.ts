@@ -397,4 +397,21 @@ describe('scroll-search command', () => {
     const stderrText = output.stderr.chunks.join('')
     assert.ok(!stderrText.includes('--max-docs'), `Should not warn in NDJSON mode, got: ${stderrText}`)
   })
+
+  it('does not warn when ELASTIC_NO_WARN=1 is set', async () => {
+    const output = captureOutput()
+    const { transport } = mockTransport([
+      { _scroll_id: 'scroll-1', hits: { hits: [{ _source: { a: 1 } }] } },
+      { hits: { hits: [] } },
+      {}
+    ])
+
+    await runCommand(
+      ['--index', 'test-idx', '--query', '{}', '--json'],
+      { ...makeDeps(transport, output), env: { ELASTIC_NO_WARN: '1' } }
+    )
+
+    const stderrText = output.stderr.chunks.join('')
+    assert.ok(!stderrText.includes('--max-docs'), `Should not warn when ELASTIC_NO_WARN=1, got: ${stderrText}`)
+  })
 })
