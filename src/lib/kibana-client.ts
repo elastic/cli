@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import fs from 'node:fs'
+import path from 'node:path'
 import { getResolvedConfig } from '../config/store.ts'
 import { isLoopbackUrl } from './is-loopback-host.ts'
 
@@ -16,6 +18,8 @@ export interface KibanaRequestParams {
   path: string
   querystring?: Record<string, unknown>
   body?: unknown
+  /** When set, the request is sent as multipart/form-data. Keys map to form field names; string values that resolve to an existing file path are sent as file uploads. */
+  multipartFields?: Record<string, string>
 }
 
 /**
@@ -66,7 +70,6 @@ export class KibanaClient {
     const headers: Record<string, string> = {
       'Authorization': this.authHeader,
       'Accept': 'application/json',
-      'Content-Type': 'application/json',
     }
 
     // Kibana requires kbn-xsrf for all state-mutating requests to protect against CSRF
@@ -76,7 +79,21 @@ export class KibanaClient {
 
     const init: RequestInit = { method, headers, redirect: 'error' }
 
-    if (params.body !== undefined) {
+    if (params.multipartFields != null) {
+      // Send as multipart/form-data; do NOT set Content-Type manually (fetch sets it with the boundary)
+      const form = new FormData()
+      for (const [field, value] of Object.entries(params.multipartFields)) {
+        const resolved = path.resolve(value)
+        if (fs.existsSync(resolved)) {
+          const blob = new Blob([fs.readFileSync(resolved)], { type: 'application/octet-stream' })
+          form.append(field, blob, path.basename(resolved))
+        } else {
+          form.append(field, value)
+        }
+      }
+      init.body = form
+    } else if (params.body !== undefined) {
+      headers['Content-Type'] = 'application/json'
       init.body = JSON.stringify(params.body)
     }
 
@@ -88,7 +105,15 @@ export class KibanaClient {
     }
 
     const text = await response.text()
-    return text.length > 0 ? JSON.parse(text) : {}
+    if (text.length === 0) return {}
+
+    // application/x-ndjson: parse each non-empty line as a JSON object
+    const contentType = response.headers.get('content-type') ?? ''
+    if (contentType.includes('ndjson')) {
+      return text.split('\n').filter((l) => l.trim().length > 0).map((l) => JSON.parse(l))
+    }
+
+    return JSON.parse(text)
   }
 
   /**
