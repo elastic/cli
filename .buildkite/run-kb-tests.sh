@@ -111,7 +111,24 @@ until curl -sf http://localhost:5601/api/status | jq -e '.status.overall.level =
   fi
   sleep 3
 done
-echo "Kibana is ready"
+echo "Kibana core is ready"
+
+# The actions and alerting plugins initialise after the main health check passes.
+# Wait until their APIs return 200 before running tests.
+echo "--- Waiting for alerting and actions plugins to be ready"
+RETRIES=0
+MAX_RETRIES=30
+until curl -sf http://localhost:5601/api/actions/connector_types > /dev/null 2>&1 && \
+      curl -sf "http://localhost:5601/api/alerting/rules/_find" > /dev/null 2>&1; do
+  RETRIES=$((RETRIES + 1))
+  if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
+    echo "Alerting/actions plugins did not become ready in time"
+    docker logs "$KB_CONTAINER_NAME" --tail 50
+    exit 1
+  fi
+  sleep 3
+done
+echo "Kibana plugins are ready"
 
 echo "--- Generating CI config file"
 CI_CONFIG_FILE="$(pwd)/.elasticrc-kb-ci.yml"
