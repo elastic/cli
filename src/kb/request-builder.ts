@@ -27,11 +27,17 @@ export function buildKibanaRequestParams (
 
   const path = interpolatePath(def, input)
   const querystring = buildQuerystring(def, input)
-  const body = collectBody(def, input)
 
   const params: KibanaRequestParams = { method: def.method, path }
   if (Object.keys(querystring).length > 0) params.querystring = querystring
-  if (body !== undefined) params.body = body
+
+  if (def.requestType === 'multipart') {
+    const fields = collectMultipartFields(def, input)
+    if (fields != null) params.multipartFields = fields
+  } else {
+    const body = collectBody(def, input)
+    if (body !== undefined) params.body = body
+  }
 
   return params
 }
@@ -70,6 +76,24 @@ function buildQuerystring (
     if (value !== undefined) qs[param.name] = value
   }
   return qs
+}
+
+/**
+ * Collects multipart form fields from body params.
+ * Each body param value is treated as a string (file path or literal value).
+ * Returns `undefined` when no fields are present.
+ */
+function collectMultipartFields (
+  def: KbApiDefinition,
+  input: Record<string, unknown>
+): Record<string, string> | undefined {
+  const fields: Record<string, string> = {}
+  for (const param of def.bodyParams ?? []) {
+    const key = param.cliFlag ?? param.name
+    const value = input[key]
+    if (value !== undefined) fields[param.name] = String(value)
+  }
+  return Object.keys(fields).length === 0 ? undefined : fields
 }
 
 /**
