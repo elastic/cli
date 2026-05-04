@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { RollupGetRollupCapsRequest } from '@elastic/es-schemas/rollup_get_rollup_caps.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const rollupGetRollupCapsApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const rollupGetRollupCapsApis: EsApiDefinition[] = [
   namespace: "rollup",
   description: "Get the rollup job capabilities.",
   method: "GET",
-  path: "/_rollup/data",
+  path: "/_rollup/data/{id}",
+  input: RollupGetRollupCapsRequest,
  },
 ]

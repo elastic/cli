@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { MlDeleteExpiredDataRequest } from '@elastic/es-schemas/ml_delete_expired_data.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const mlDeleteExpiredDataApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const mlDeleteExpiredDataApis: EsApiDefinition[] = [
   namespace: "ml",
   description: "Delete expired ML data.",
   method: "DELETE",
-  path: "/_ml/_delete_expired_data",
+  path: "/_ml/_delete_expired_data/{job_id}",
+  input: MlDeleteExpiredDataRequest,
  },
 ]

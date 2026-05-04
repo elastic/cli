@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { MlGetCalendarsRequest } from '@elastic/es-schemas/ml_get_calendars.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const mlGetCalendarsApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const mlGetCalendarsApis: EsApiDefinition[] = [
   namespace: "ml",
   description: "Get calendar configuration info.",
   method: "GET",
-  path: "/_ml/calendars",
+  path: "/_ml/calendars/{calendar_id}",
+  input: MlGetCalendarsRequest,
  },
 ]

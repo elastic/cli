@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { IndicesGetIndexTemplateRequest } from '@elastic/es-schemas/indices_get_index_template.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesGetIndexTemplateApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const indicesGetIndexTemplateApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Get index templates.",
   method: "GET",
-  path: "/_index_template",
+  path: "/_index_template/{name}",
+  input: IndicesGetIndexTemplateRequest,
  },
 ]

@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { IngestSimulateRequest } from '@elastic/es-schemas/ingest_simulate.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const ingestSimulateApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const ingestSimulateApis: EsApiDefinition[] = [
   namespace: "ingest",
   description: "Simulate a pipeline.",
   method: "GET",
-  path: "/_ingest/pipeline/_simulate",
+  path: "/_ingest/pipeline/{id}/_simulate",
+  input: IngestSimulateRequest,
  },
 ]

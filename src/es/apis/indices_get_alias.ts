@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { IndicesGetAliasRequest } from '@elastic/es-schemas/indices_get_alias.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesGetAliasApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const indicesGetAliasApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Get aliases.",
   method: "GET",
-  path: "/_alias",
+  path: "/{index}/_alias/{name}",
+  input: IndicesGetAliasRequest,
  },
 ]

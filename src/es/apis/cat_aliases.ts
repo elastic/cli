@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { CatAliasesRequest } from '@elastic/es-schemas/cat_aliases.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const catAliasesApis: EsApiDefinition[] = [
@@ -17,7 +18,8 @@ export const catAliasesApis: EsApiDefinition[] = [
   namespace: "cat",
   description: "Get aliases.",
   method: "GET",
-  path: "/_cat/aliases",
+  path: "/_cat/aliases/{name}",
+  input: CatAliasesRequest,
   responseType: 'text',
  },
 ]

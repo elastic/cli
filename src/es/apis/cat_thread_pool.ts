@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { CatThreadPoolRequest } from '@elastic/es-schemas/cat_thread_pool.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const catThreadPoolApis: EsApiDefinition[] = [
@@ -17,7 +18,8 @@ export const catThreadPoolApis: EsApiDefinition[] = [
   namespace: "cat",
   description: "Get thread pool statistics.",
   method: "GET",
-  path: "/_cat/thread_pool",
+  path: "/_cat/thread_pool/{thread_pool_patterns}",
+  input: CatThreadPoolRequest,
   responseType: 'text',
  },
 ]

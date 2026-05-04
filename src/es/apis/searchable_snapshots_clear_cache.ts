@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { SearchableSnapshotsClearCacheRequest } from '@elastic/es-schemas/searchable_snapshots_clear_cache.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const searchableSnapshotsClearCacheApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const searchableSnapshotsClearCacheApis: EsApiDefinition[] = [
   namespace: "searchable-snapshots",
   description: "Clear the cache.",
   method: "POST",
-  path: "/_searchable_snapshots/cache/clear",
+  path: "/{index}/_searchable_snapshots/cache/clear",
+  input: SearchableSnapshotsClearCacheRequest,
  },
 ]

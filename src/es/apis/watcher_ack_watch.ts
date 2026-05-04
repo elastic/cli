@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { WatcherAckWatchRequest } from '@elastic/es-schemas/watcher_ack_watch.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const watcherAckWatchApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const watcherAckWatchApis: EsApiDefinition[] = [
   namespace: "watcher",
   description: "Acknowledge a watch.",
   method: "PUT",
-  path: "/_watcher/watch/{watch_id}/_ack",
+  path: "/_watcher/watch/{watch_id}/_ack/{action_id}",
+  input: WatcherAckWatchRequest,
  },
 ]

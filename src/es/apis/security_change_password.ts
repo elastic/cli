@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { SecurityChangePasswordRequest } from '@elastic/es-schemas/security_change_password.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const securityChangePasswordApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const securityChangePasswordApis: EsApiDefinition[] = [
   namespace: "security",
   description: "Change passwords.",
   method: "PUT",
-  path: "/_security/user/_password",
+  path: "/_security/user/{username}/_password",
+  input: SecurityChangePasswordRequest,
  },
 ]

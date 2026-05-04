@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { IndicesSegmentsRequest } from '@elastic/es-schemas/indices_segments.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesSegmentsApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const indicesSegmentsApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Get index segments.",
   method: "GET",
-  path: "/_segments",
+  path: "/{index}/_segments",
+  input: IndicesSegmentsRequest,
  },
 ]

@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { SecurityGetRoleMappingRequest } from '@elastic/es-schemas/security_get_role_mapping.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const securityGetRoleMappingApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const securityGetRoleMappingApis: EsApiDefinition[] = [
   namespace: "security",
   description: "Get role mappings.",
   method: "GET",
-  path: "/_security/role_mapping",
+  path: "/_security/role_mapping/{name}",
+  input: SecurityGetRoleMappingRequest,
  },
 ]

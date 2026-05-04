@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { IndicesClearCacheRequest } from '@elastic/es-schemas/indices_clear_cache.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesClearCacheApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const indicesClearCacheApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Clear the cache.",
   method: "POST",
-  path: "/_cache/clear",
+  path: "/{index}/_cache/clear",
+  input: IndicesClearCacheRequest,
  },
 ]

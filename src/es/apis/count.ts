@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { CountRequest } from '@elastic/es-schemas/count.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const countApis: EsApiDefinition[] = [
@@ -16,6 +17,7 @@ export const countApis: EsApiDefinition[] = [
   name: "count",
   description: "Count search results.",
   method: "POST",
-  path: "/_count",
+  path: "/{index}/_count",
+  input: CountRequest,
  },
 ]

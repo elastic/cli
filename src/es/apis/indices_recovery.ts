@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { IndicesRecoveryRequest } from '@elastic/es-schemas/indices_recovery.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesRecoveryApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const indicesRecoveryApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Get index recovery information.",
   method: "GET",
-  path: "/_recovery",
+  path: "/{index}/_recovery",
+  input: IndicesRecoveryRequest,
  },
 ]

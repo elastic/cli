@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { CatShardsRequest } from '@elastic/es-schemas/cat_shards.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const catShardsApis: EsApiDefinition[] = [
@@ -17,7 +18,8 @@ export const catShardsApis: EsApiDefinition[] = [
   namespace: "cat",
   description: "Get shard information.",
   method: "GET",
-  path: "/_cat/shards",
+  path: "/_cat/shards/{index}",
+  input: CatShardsRequest,
   responseType: 'text',
  },
 ]

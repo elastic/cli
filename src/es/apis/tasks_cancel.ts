@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { TasksCancelRequest } from '@elastic/es-schemas/tasks_cancel.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const tasksCancelApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const tasksCancelApis: EsApiDefinition[] = [
   namespace: "tasks",
   description: "Cancel a task.",
   method: "POST",
-  path: "/_tasks/_cancel",
+  path: "/_tasks/{task_id}/_cancel",
+  input: TasksCancelRequest,
  },
 ]

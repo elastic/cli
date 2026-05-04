@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { SecurityGetUserRequest } from '@elastic/es-schemas/security_get_user.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const securityGetUserApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const securityGetUserApis: EsApiDefinition[] = [
   namespace: "security",
   description: "Get users.",
   method: "GET",
-  path: "/_security/user",
+  path: "/_security/user/{username}",
+  input: SecurityGetUserRequest,
  },
 ]

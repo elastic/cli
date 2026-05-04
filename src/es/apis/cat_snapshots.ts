@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { CatSnapshotsRequest } from '@elastic/es-schemas/cat_snapshots.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const catSnapshotsApis: EsApiDefinition[] = [
@@ -17,7 +18,8 @@ export const catSnapshotsApis: EsApiDefinition[] = [
   namespace: "cat",
   description: "Get snapshot information.",
   method: "GET",
-  path: "/_cat/snapshots",
+  path: "/_cat/snapshots/{repository}",
+  input: CatSnapshotsRequest,
   responseType: 'text',
  },
 ]

@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { NodesHotThreadsRequest } from '@elastic/es-schemas/nodes_hot_threads.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const nodesHotThreadsApis: EsApiDefinition[] = [
@@ -17,7 +18,8 @@ export const nodesHotThreadsApis: EsApiDefinition[] = [
   namespace: "nodes",
   description: "Get the hot threads for nodes.",
   method: "GET",
-  path: "/_nodes/hot_threads",
+  path: "/_nodes/{node_id}/hot_threads",
+  input: NodesHotThreadsRequest,
   responseType: 'text',
  },
 ]

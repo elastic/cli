@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { SearchableSnapshotsCacheStatsRequest } from '@elastic/es-schemas/searchable_snapshots_cache_stats.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const searchableSnapshotsCacheStatsApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const searchableSnapshotsCacheStatsApis: EsApiDefinition[] = [
   namespace: "searchable-snapshots",
   description: "Get cache statistics.",
   method: "GET",
-  path: "/_searchable_snapshots/cache/stats",
+  path: "/_searchable_snapshots/{node_id}/cache/stats",
+  input: SearchableSnapshotsCacheStatsRequest,
  },
 ]

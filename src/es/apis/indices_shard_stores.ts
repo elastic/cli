@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { IndicesShardStoresRequest } from '@elastic/es-schemas/indices_shard_stores.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesShardStoresApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const indicesShardStoresApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Get index shard stores.",
   method: "GET",
-  path: "/_shard_stores",
+  path: "/{index}/_shard_stores",
+  input: IndicesShardStoresRequest,
  },
 ]

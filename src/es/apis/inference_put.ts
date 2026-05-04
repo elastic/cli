@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { InferencePutRequest } from '@elastic/es-schemas/inference_put.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const inferencePutApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const inferencePutApis: EsApiDefinition[] = [
   namespace: "inference",
   description: "Create an inference endpoint.",
   method: "PUT",
-  path: "/_inference/{inference_id}",
+  path: "/_inference/{task_type}/{inference_id}",
+  input: InferencePutRequest,
  },
 ]

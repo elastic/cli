@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { MlGetMemoryStatsRequest } from '@elastic/es-schemas/ml_get_memory_stats.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const mlGetMemoryStatsApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const mlGetMemoryStatsApis: EsApiDefinition[] = [
   namespace: "ml",
   description: "Get machine learning memory usage info.",
   method: "GET",
-  path: "/_ml/memory/_stats",
+  path: "/_ml/memory/{node_id}/_stats",
+  input: MlGetMemoryStatsRequest,
  },
 ]

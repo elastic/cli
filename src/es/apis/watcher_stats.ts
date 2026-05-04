@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { WatcherStatsRequest } from '@elastic/es-schemas/watcher_stats.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const watcherStatsApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const watcherStatsApis: EsApiDefinition[] = [
   namespace: "watcher",
   description: "Get Watcher statistics.",
   method: "GET",
-  path: "/_watcher/stats",
+  path: "/_watcher/stats/{metric}",
+  input: WatcherStatsRequest,
  },
 ]

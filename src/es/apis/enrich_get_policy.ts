@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { EnrichGetPolicyRequest } from '@elastic/es-schemas/enrich_get_policy.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const enrichGetPolicyApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const enrichGetPolicyApis: EsApiDefinition[] = [
   namespace: "enrich",
   description: "Get an enrich policy.",
   method: "GET",
-  path: "/_enrich/policy",
+  path: "/_enrich/policy/{name}",
+  input: EnrichGetPolicyRequest,
  },
 ]

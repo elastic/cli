@@ -9,13 +9,15 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { IndexRequest } from '@elastic/es-schemas/index.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indexApis: EsApiDefinition[] = [
  {
   name: "index",
   description: "Create or update a document in an index.",
-  method: "POST",
-  path: "/{index}/_doc",
+  method: "PUT",
+  path: "/{index}/_doc/{id}",
+  input: IndexRequest,
  },
 ]

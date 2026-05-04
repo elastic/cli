@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { ConnectorPutRequest } from '@elastic/es-schemas/connector_put.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const connectorPutApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const connectorPutApis: EsApiDefinition[] = [
   namespace: "connector",
   description: "Create or update a connector.",
   method: "PUT",
-  path: "/_connector",
+  path: "/_connector/{connector_id}",
+  input: ConnectorPutRequest,
  },
 ]

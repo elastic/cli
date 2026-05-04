@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { IndicesGetSettingsRequest } from '@elastic/es-schemas/indices_get_settings.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesGetSettingsApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const indicesGetSettingsApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Get index settings.",
   method: "GET",
-  path: "/_settings",
+  path: "/{index}/_settings/{name}",
+  input: IndicesGetSettingsRequest,
  },
 ]

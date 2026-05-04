@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { CatTransformsRequest } from '@elastic/es-schemas/cat_transforms.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const catTransformsApis: EsApiDefinition[] = [
@@ -17,7 +18,8 @@ export const catTransformsApis: EsApiDefinition[] = [
   namespace: "cat",
   description: "Get transform information.",
   method: "GET",
-  path: "/_cat/transforms",
+  path: "/_cat/transforms/{transform_id}",
+  input: CatTransformsRequest,
   responseType: 'text',
  },
 ]

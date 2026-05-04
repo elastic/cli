@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { ClusterGetComponentTemplateRequest } from '@elastic/es-schemas/cluster_get_component_template.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const clusterGetComponentTemplateApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const clusterGetComponentTemplateApis: EsApiDefinition[] = [
   namespace: "cluster",
   description: "Get component templates.",
   method: "GET",
-  path: "/_component_template",
+  path: "/_component_template/{name}",
+  input: ClusterGetComponentTemplateRequest,
  },
 ]

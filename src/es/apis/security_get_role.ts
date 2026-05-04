@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { SecurityGetRoleRequest } from '@elastic/es-schemas/security_get_role.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const securityGetRoleApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const securityGetRoleApis: EsApiDefinition[] = [
   namespace: "security",
   description: "Get roles.",
   method: "GET",
-  path: "/_security/role",
+  path: "/_security/role/{name}",
+  input: SecurityGetRoleRequest,
  },
 ]

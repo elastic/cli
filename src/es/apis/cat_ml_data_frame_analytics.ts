@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { CatMlDataFrameAnalyticsRequest } from '@elastic/es-schemas/cat_ml_data_frame_analytics.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const catMlDataFrameAnalyticsApis: EsApiDefinition[] = [
@@ -17,7 +18,8 @@ export const catMlDataFrameAnalyticsApis: EsApiDefinition[] = [
   namespace: "cat",
   description: "Get data frame analytics jobs.",
   method: "GET",
-  path: "/_cat/ml/data_frame/analytics",
+  path: "/_cat/ml/data_frame/analytics/{id}",
+  input: CatMlDataFrameAnalyticsRequest,
   responseType: 'text',
  },
 ]

@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { RankEvalRequest } from '@elastic/es-schemas/rank_eval.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const rankEvalApis: EsApiDefinition[] = [
@@ -16,6 +17,7 @@ export const rankEvalApis: EsApiDefinition[] = [
   name: "rank-eval",
   description: "Evaluate ranked search results.",
   method: "GET",
-  path: "/_rank_eval",
+  path: "/{index}/_rank_eval",
+  input: RankEvalRequest,
  },
 ]

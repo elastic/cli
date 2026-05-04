@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { CatMlDatafeedsRequest } from '@elastic/es-schemas/cat_ml_datafeeds.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const catMlDatafeedsApis: EsApiDefinition[] = [
@@ -17,7 +18,8 @@ export const catMlDatafeedsApis: EsApiDefinition[] = [
   namespace: "cat",
   description: "Get datafeeds.",
   method: "GET",
-  path: "/_cat/ml/datafeeds",
+  path: "/_cat/ml/datafeeds/{datafeed_id}",
+  input: CatMlDatafeedsRequest,
   responseType: 'text',
  },
 ]

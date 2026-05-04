@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { MlGetCategoriesRequest } from '@elastic/es-schemas/ml_get_categories.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const mlGetCategoriesApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const mlGetCategoriesApis: EsApiDefinition[] = [
   namespace: "ml",
   description: "Get anomaly detection job results for categories.",
   method: "GET",
-  path: "/_ml/anomaly_detectors/{job_id}/results/categories",
+  path: "/_ml/anomaly_detectors/{job_id}/results/categories/{category_id}",
+  input: MlGetCategoriesRequest,
  },
 ]

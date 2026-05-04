@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { CatAllocationRequest } from '@elastic/es-schemas/cat_allocation.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const catAllocationApis: EsApiDefinition[] = [
@@ -17,7 +18,8 @@ export const catAllocationApis: EsApiDefinition[] = [
   namespace: "cat",
   description: "Get shard allocation information.",
   method: "GET",
-  path: "/_cat/allocation",
+  path: "/_cat/allocation/{node_id}",
+  input: CatAllocationRequest,
   responseType: 'text',
  },
 ]

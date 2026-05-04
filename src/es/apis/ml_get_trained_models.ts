@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { MlGetTrainedModelsRequest } from '@elastic/es-schemas/ml_get_trained_models.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const mlGetTrainedModelsApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const mlGetTrainedModelsApis: EsApiDefinition[] = [
   namespace: "ml",
   description: "Get trained model configuration info.",
   method: "GET",
-  path: "/_ml/trained_models",
+  path: "/_ml/trained_models/{model_id}",
+  input: MlGetTrainedModelsRequest,
  },
 ]

@@ -9,14 +9,21 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { z } from 'zod'
+import { BulkRequest } from '@elastic/es-schemas/bulk.js'
 import type { EsApiDefinition } from '../types.ts'
+
+const BulkRequestPassthrough = BulkRequest.extend({
+  operations: z.array(z.any()).optional().meta({ found_in: 'body' })
+})
 
 export const bulkApis: EsApiDefinition[] = [
  {
   name: "bulk",
   description: "Bulk index or delete documents.",
   method: "POST",
-  path: "/_bulk",
+  path: "/{index}/_bulk",
+  input: BulkRequestPassthrough,
   bodyFormat: 'ndjson',
  },
 ]

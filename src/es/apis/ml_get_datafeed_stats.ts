@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { MlGetDatafeedStatsRequest } from '@elastic/es-schemas/ml_get_datafeed_stats.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const mlGetDatafeedStatsApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const mlGetDatafeedStatsApis: EsApiDefinition[] = [
   namespace: "ml",
   description: "Get datafeed stats.",
   method: "GET",
-  path: "/_ml/datafeeds/_stats",
+  path: "/_ml/datafeeds/{datafeed_id}/_stats",
+  input: MlGetDatafeedStatsRequest,
  },
 ]

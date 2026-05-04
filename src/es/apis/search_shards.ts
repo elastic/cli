@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { SearchShardsRequest } from '@elastic/es-schemas/search_shards.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const searchShardsApis: EsApiDefinition[] = [
@@ -16,6 +17,7 @@ export const searchShardsApis: EsApiDefinition[] = [
   name: "search-shards",
   description: "Get the search shards.",
   method: "GET",
-  path: "/_search_shards",
+  path: "/{index}/_search_shards",
+  input: SearchShardsRequest,
  },
 ]

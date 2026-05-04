@@ -9,14 +9,21 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { z } from 'zod'
+import { MsearchRequest } from '@elastic/es-schemas/msearch.js'
 import type { EsApiDefinition } from '../types.ts'
+
+const MsearchRequestPassthrough = MsearchRequest.extend({
+  searches: z.array(z.any()).optional().meta({ found_in: 'body' })
+})
 
 export const msearchApis: EsApiDefinition[] = [
  {
   name: "msearch",
   description: "Run multiple searches.",
   method: "GET",
-  path: "/_msearch",
+  path: "/{index}/_msearch",
+  input: MsearchRequestPassthrough,
   bodyFormat: 'ndjson',
  },
 ]

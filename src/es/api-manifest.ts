@@ -51,7 +51,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "async-search",
     "description": "Run an async search.",
     "method": "POST",
-    "path": "/_async_search",
+    "path": "/{index}/_async_search",
     "namespaceFile": "async_search_submit"
   },
   {
@@ -59,7 +59,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": null,
     "description": "Bulk index or delete documents.",
     "method": "POST",
-    "path": "/_bulk",
+    "path": "/{index}/_bulk",
     "namespaceFile": "bulk",
     "bodyFormat": "ndjson"
   },
@@ -68,7 +68,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get aliases.",
     "method": "GET",
-    "path": "/_cat/aliases",
+    "path": "/_cat/aliases/{name}",
     "namespaceFile": "cat_aliases",
     "responseType": "text"
   },
@@ -77,7 +77,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get shard allocation information.",
     "method": "GET",
-    "path": "/_cat/allocation",
+    "path": "/_cat/allocation/{node_id}",
     "namespaceFile": "cat_allocation",
     "responseType": "text"
   },
@@ -86,7 +86,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get circuit breakers statistics.",
     "method": "GET",
-    "path": "/_cat/circuit_breaker",
+    "path": "/_cat/circuit_breaker/{circuit_breaker_patterns}",
     "namespaceFile": "cat_circuit_breaker",
     "responseType": "text"
   },
@@ -95,7 +95,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get component templates.",
     "method": "GET",
-    "path": "/_cat/component_templates",
+    "path": "/_cat/component_templates/{name}",
     "namespaceFile": "cat_component_templates",
     "responseType": "text"
   },
@@ -104,7 +104,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get a document count.",
     "method": "POST",
-    "path": "/_cat/count",
+    "path": "/_cat/count/{index}",
     "namespaceFile": "cat_count",
     "responseType": "text"
   },
@@ -113,7 +113,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get field data cache information.",
     "method": "GET",
-    "path": "/_cat/fielddata",
+    "path": "/_cat/fielddata/{fields}",
     "namespaceFile": "cat_fielddata",
     "responseType": "text"
   },
@@ -140,7 +140,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get index information.",
     "method": "GET",
-    "path": "/_cat/indices",
+    "path": "/_cat/indices/{index}",
     "namespaceFile": "cat_indices",
     "responseType": "text"
   },
@@ -158,7 +158,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get data frame analytics jobs.",
     "method": "GET",
-    "path": "/_cat/ml/data_frame/analytics",
+    "path": "/_cat/ml/data_frame/analytics/{id}",
     "namespaceFile": "cat_ml_data_frame_analytics",
     "responseType": "text"
   },
@@ -167,7 +167,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get datafeeds.",
     "method": "GET",
-    "path": "/_cat/ml/datafeeds",
+    "path": "/_cat/ml/datafeeds/{datafeed_id}",
     "namespaceFile": "cat_ml_datafeeds",
     "responseType": "text"
   },
@@ -176,7 +176,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get anomaly detection jobs.",
     "method": "GET",
-    "path": "/_cat/ml/anomaly_detectors",
+    "path": "/_cat/ml/anomaly_detectors/{job_id}",
     "namespaceFile": "cat_ml_jobs",
     "responseType": "text"
   },
@@ -185,7 +185,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get trained models.",
     "method": "GET",
-    "path": "/_cat/ml/trained_models",
+    "path": "/_cat/ml/trained_models/{model_id}",
     "namespaceFile": "cat_ml_trained_models",
     "responseType": "text"
   },
@@ -230,7 +230,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get shard recovery information.",
     "method": "GET",
-    "path": "/_cat/recovery",
+    "path": "/_cat/recovery/{index}",
     "namespaceFile": "cat_recovery",
     "responseType": "text"
   },
@@ -248,7 +248,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get segment information.",
     "method": "GET",
-    "path": "/_cat/segments",
+    "path": "/_cat/segments/{index}",
     "namespaceFile": "cat_segments",
     "responseType": "text"
   },
@@ -257,7 +257,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get shard information.",
     "method": "GET",
-    "path": "/_cat/shards",
+    "path": "/_cat/shards/{index}",
     "namespaceFile": "cat_shards",
     "responseType": "text"
   },
@@ -266,7 +266,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get snapshot information.",
     "method": "GET",
-    "path": "/_cat/snapshots",
+    "path": "/_cat/snapshots/{repository}",
     "namespaceFile": "cat_snapshots",
     "responseType": "text"
   },
@@ -284,7 +284,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get index template information.",
     "method": "GET",
-    "path": "/_cat/templates",
+    "path": "/_cat/templates/{name}",
     "namespaceFile": "cat_templates",
     "responseType": "text"
   },
@@ -293,7 +293,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get thread pool statistics.",
     "method": "GET",
-    "path": "/_cat/thread_pool",
+    "path": "/_cat/thread_pool/{thread_pool_patterns}",
     "namespaceFile": "cat_thread_pool",
     "responseType": "text"
   },
@@ -302,7 +302,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cat",
     "description": "Get transform information.",
     "method": "GET",
-    "path": "/_cat/transforms",
+    "path": "/_cat/transforms/{transform_id}",
     "namespaceFile": "cat_transforms",
     "responseType": "text"
   },
@@ -351,7 +351,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ccr",
     "description": "Get auto-follow patterns.",
     "method": "GET",
-    "path": "/_ccr/auto_follow",
+    "path": "/_ccr/auto_follow/{name}",
     "namespaceFile": "ccr_get_auto_follow_pattern"
   },
   {
@@ -463,7 +463,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cluster",
     "description": "Get component templates.",
     "method": "GET",
-    "path": "/_component_template",
+    "path": "/_component_template/{name}",
     "namespaceFile": "cluster_get_component_template"
   },
   {
@@ -479,7 +479,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cluster",
     "description": "Get the cluster health status.",
     "method": "GET",
-    "path": "/_cluster/health",
+    "path": "/_cluster/health/{index}",
     "namespaceFile": "cluster_health"
   },
   {
@@ -543,7 +543,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "cluster",
     "description": "Get the cluster state.",
     "method": "GET",
-    "path": "/_cluster/state",
+    "path": "/_cluster/state/{metric}/{index}",
     "namespaceFile": "cluster_state"
   },
   {
@@ -599,7 +599,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "connector",
     "description": "Create or update a connector.",
     "method": "PUT",
-    "path": "/_connector",
+    "path": "/_connector/{connector_id}",
     "namespaceFile": "connector_put"
   },
   {
@@ -791,7 +791,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": null,
     "description": "Count search results.",
     "method": "POST",
-    "path": "/_count",
+    "path": "/{index}/_count",
     "namespaceFile": "count"
   },
   {
@@ -879,7 +879,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "enrich",
     "description": "Get an enrich policy.",
     "method": "GET",
-    "path": "/_enrich/policy",
+    "path": "/_enrich/policy/{name}",
     "namespaceFile": "enrich_get_policy"
   },
   {
@@ -983,7 +983,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "esql",
     "description": "Get an ES|QL view.",
     "method": "GET",
-    "path": "/_query/view",
+    "path": "/_query/view/{name}",
     "namespaceFile": "esql_get_view"
   },
   {
@@ -1055,7 +1055,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": null,
     "description": "Get the field capabilities.",
     "method": "GET",
-    "path": "/_field_caps",
+    "path": "/{index}/_field_caps",
     "namespaceFile": "field_caps"
   },
   {
@@ -1071,7 +1071,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "fleet",
     "description": "Run multiple Fleet searches.",
     "method": "GET",
-    "path": "/_fleet/_fleet_msearch",
+    "path": "/{index}/_fleet/_fleet_msearch",
     "namespaceFile": "fleet_msearch",
     "bodyFormat": "ndjson"
   },
@@ -1136,7 +1136,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": null,
     "description": "Get the cluster health.",
     "method": "GET",
-    "path": "/_health_report",
+    "path": "/_health_report/{feature}",
     "namespaceFile": "health_report"
   },
   {
@@ -1160,7 +1160,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ilm",
     "description": "Get lifecycle policies.",
     "method": "GET",
-    "path": "/_ilm/policy",
+    "path": "/_ilm/policy/{policy}",
     "namespaceFile": "ilm_get_lifecycle"
   },
   {
@@ -1231,8 +1231,8 @@ export const apiManifest: readonly EsApiMeta[] = [
     "name": "index",
     "namespace": null,
     "description": "Create or update a document in an index.",
-    "method": "POST",
-    "path": "/{index}/_doc",
+    "method": "PUT",
+    "path": "/{index}/_doc/{id}",
     "namespaceFile": "index"
   },
   {
@@ -1248,7 +1248,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Get tokens from text analysis.",
     "method": "GET",
-    "path": "/_analyze",
+    "path": "/{index}/_analyze",
     "namespaceFile": "indices_analyze"
   },
   {
@@ -1264,7 +1264,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Clear the cache.",
     "method": "POST",
-    "path": "/_cache/clear",
+    "path": "/{index}/_cache/clear",
     "namespaceFile": "indices_clear_cache"
   },
   {
@@ -1312,7 +1312,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Get data stream stats.",
     "method": "GET",
-    "path": "/_data_stream/_stats",
+    "path": "/_data_stream/{name}/_stats",
     "namespaceFile": "indices_data_streams_stats"
   },
   {
@@ -1400,7 +1400,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Check aliases.",
     "method": "HEAD",
-    "path": "/_alias/{name}",
+    "path": "/{index}/_alias/{name}",
     "namespaceFile": "indices_exists_alias"
   },
   {
@@ -1440,7 +1440,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Flush data streams or indices.",
     "method": "POST",
-    "path": "/_flush",
+    "path": "/{index}/_flush",
     "namespaceFile": "indices_flush"
   },
   {
@@ -1448,7 +1448,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Force a merge.",
     "method": "POST",
-    "path": "/_forcemerge",
+    "path": "/{index}/_forcemerge",
     "namespaceFile": "indices_forcemerge"
   },
   {
@@ -1464,7 +1464,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Get aliases.",
     "method": "GET",
-    "path": "/_alias",
+    "path": "/{index}/_alias/{name}",
     "namespaceFile": "indices_get_alias"
   },
   {
@@ -1488,7 +1488,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Get data streams.",
     "method": "GET",
-    "path": "/_data_stream",
+    "path": "/_data_stream/{name}",
     "namespaceFile": "indices_get_data_stream"
   },
   {
@@ -1520,7 +1520,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Get mapping definitions.",
     "method": "GET",
-    "path": "/_mapping/field/{fields}",
+    "path": "/{index}/_mapping/field/{fields}",
     "namespaceFile": "indices_get_field_mapping"
   },
   {
@@ -1528,7 +1528,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Get index templates.",
     "method": "GET",
-    "path": "/_index_template",
+    "path": "/_index_template/{name}",
     "namespaceFile": "indices_get_index_template"
   },
   {
@@ -1536,7 +1536,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Get mapping definitions.",
     "method": "GET",
-    "path": "/_mapping",
+    "path": "/{index}/_mapping",
     "namespaceFile": "indices_get_mapping"
   },
   {
@@ -1552,7 +1552,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Get index settings.",
     "method": "GET",
-    "path": "/_settings",
+    "path": "/{index}/_settings/{name}",
     "namespaceFile": "indices_get_settings"
   },
   {
@@ -1560,7 +1560,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Get legacy index templates.",
     "method": "GET",
-    "path": "/_template",
+    "path": "/_template/{name}",
     "namespaceFile": "indices_get_template"
   },
   {
@@ -1664,7 +1664,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Update index settings.",
     "method": "PUT",
-    "path": "/_settings",
+    "path": "/{index}/_settings",
     "namespaceFile": "indices_put_settings"
   },
   {
@@ -1680,7 +1680,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Get index recovery information.",
     "method": "GET",
-    "path": "/_recovery",
+    "path": "/{index}/_recovery",
     "namespaceFile": "indices_recovery"
   },
   {
@@ -1688,7 +1688,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Refresh an index.",
     "method": "POST",
-    "path": "/_refresh",
+    "path": "/{index}/_refresh",
     "namespaceFile": "indices_refresh"
   },
   {
@@ -1712,7 +1712,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Resolve the cluster.",
     "method": "GET",
-    "path": "/_resolve/cluster",
+    "path": "/_resolve/cluster/{name}",
     "namespaceFile": "indices_resolve_cluster"
   },
   {
@@ -1728,7 +1728,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Roll over to a new index.",
     "method": "POST",
-    "path": "/{alias}/_rollover",
+    "path": "/{alias}/_rollover/{new_index}",
     "namespaceFile": "indices_rollover"
   },
   {
@@ -1736,7 +1736,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Get index segments.",
     "method": "GET",
-    "path": "/_segments",
+    "path": "/{index}/_segments",
     "namespaceFile": "indices_segments"
   },
   {
@@ -1744,7 +1744,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Get index shard stores.",
     "method": "GET",
-    "path": "/_shard_stores",
+    "path": "/{index}/_shard_stores",
     "namespaceFile": "indices_shard_stores"
   },
   {
@@ -1768,7 +1768,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Simulate an index template.",
     "method": "POST",
-    "path": "/_index_template/_simulate",
+    "path": "/_index_template/_simulate/{name}",
     "namespaceFile": "indices_simulate_template"
   },
   {
@@ -1784,7 +1784,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Get index statistics.",
     "method": "GET",
-    "path": "/_stats",
+    "path": "/{index}/_stats/{metric}",
     "namespaceFile": "indices_stats"
   },
   {
@@ -1800,7 +1800,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "indices",
     "description": "Validate a query.",
     "method": "GET",
-    "path": "/_validate/query",
+    "path": "/{index}/_validate/query",
     "namespaceFile": "indices_validate_query"
   },
   {
@@ -1824,7 +1824,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "inference",
     "description": "Delete an inference endpoint.",
     "method": "DELETE",
-    "path": "/_inference/{inference_id}",
+    "path": "/_inference/{task_type}/{inference_id}",
     "namespaceFile": "inference_delete"
   },
   {
@@ -1840,7 +1840,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "inference",
     "description": "Get an inference endpoint.",
     "method": "GET",
-    "path": "/_inference",
+    "path": "/_inference/{task_type}/{inference_id}",
     "namespaceFile": "inference_get"
   },
   {
@@ -1848,7 +1848,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "inference",
     "description": "Perform inference on the service.",
     "method": "POST",
-    "path": "/_inference/{inference_id}",
+    "path": "/_inference/{task_type}/{inference_id}",
     "namespaceFile": "inference_inference"
   },
   {
@@ -1856,7 +1856,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "inference",
     "description": "Create an inference endpoint.",
     "method": "PUT",
-    "path": "/_inference/{inference_id}",
+    "path": "/_inference/{task_type}/{inference_id}",
     "namespaceFile": "inference_put"
   },
   {
@@ -2104,7 +2104,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "inference",
     "description": "Update an inference endpoint.",
     "method": "PUT",
-    "path": "/_inference/{inference_id}/_update",
+    "path": "/_inference/{task_type}/{inference_id}/_update",
     "namespaceFile": "inference_update"
   },
   {
@@ -2152,7 +2152,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ingest",
     "description": "Get GeoIP database configurations.",
     "method": "GET",
-    "path": "/_ingest/geoip/database",
+    "path": "/_ingest/geoip/database/{id}",
     "namespaceFile": "ingest_get_geoip_database"
   },
   {
@@ -2160,7 +2160,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ingest",
     "description": "Get IP geolocation database configurations.",
     "method": "GET",
-    "path": "/_ingest/ip_location/database",
+    "path": "/_ingest/ip_location/database/{id}",
     "namespaceFile": "ingest_get_ip_location_database"
   },
   {
@@ -2168,7 +2168,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ingest",
     "description": "Get pipelines.",
     "method": "GET",
-    "path": "/_ingest/pipeline",
+    "path": "/_ingest/pipeline/{id}",
     "namespaceFile": "ingest_get_pipeline"
   },
   {
@@ -2208,7 +2208,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ingest",
     "description": "Simulate a pipeline.",
     "method": "GET",
-    "path": "/_ingest/pipeline/_simulate",
+    "path": "/_ingest/pipeline/{id}/_simulate",
     "namespaceFile": "ingest_simulate"
   },
   {
@@ -2280,7 +2280,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "logstash",
     "description": "Get Logstash pipelines.",
     "method": "GET",
-    "path": "/_logstash/pipeline",
+    "path": "/_logstash/pipeline/{id}",
     "namespaceFile": "logstash_get_pipeline"
   },
   {
@@ -2296,7 +2296,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": null,
     "description": "Get multiple documents.",
     "method": "GET",
-    "path": "/_mget",
+    "path": "/{index}/_mget",
     "namespaceFile": "mget"
   },
   {
@@ -2304,7 +2304,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "migration",
     "description": "Get deprecation information.",
     "method": "GET",
-    "path": "/_migration/deprecations",
+    "path": "/{index}/_migration/deprecations",
     "namespaceFile": "migration_deprecations"
   },
   {
@@ -2384,7 +2384,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Delete expired ML data.",
     "method": "DELETE",
-    "path": "/_ml/_delete_expired_data",
+    "path": "/_ml/_delete_expired_data/{job_id}",
     "namespaceFile": "ml_delete_expired_data"
   },
   {
@@ -2400,7 +2400,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Delete forecasts from a job.",
     "method": "DELETE",
-    "path": "/_ml/anomaly_detectors/{job_id}/_forecast",
+    "path": "/_ml/anomaly_detectors/{job_id}/_forecast/{forecast_id}",
     "namespaceFile": "ml_delete_forecast"
   },
   {
@@ -2456,7 +2456,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Explain data frame analytics config.",
     "method": "GET",
-    "path": "/_ml/data_frame/analytics/_explain",
+    "path": "/_ml/data_frame/analytics/{id}/_explain",
     "namespaceFile": "ml_explain_data_frame_analytics"
   },
   {
@@ -2480,7 +2480,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Get anomaly detection job results for buckets.",
     "method": "GET",
-    "path": "/_ml/anomaly_detectors/{job_id}/results/buckets",
+    "path": "/_ml/anomaly_detectors/{job_id}/results/buckets/{timestamp}",
     "namespaceFile": "ml_get_buckets"
   },
   {
@@ -2496,7 +2496,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Get calendar configuration info.",
     "method": "GET",
-    "path": "/_ml/calendars",
+    "path": "/_ml/calendars/{calendar_id}",
     "namespaceFile": "ml_get_calendars"
   },
   {
@@ -2504,7 +2504,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Get anomaly detection job results for categories.",
     "method": "GET",
-    "path": "/_ml/anomaly_detectors/{job_id}/results/categories",
+    "path": "/_ml/anomaly_detectors/{job_id}/results/categories/{category_id}",
     "namespaceFile": "ml_get_categories"
   },
   {
@@ -2512,7 +2512,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Get data frame analytics job configuration info.",
     "method": "GET",
-    "path": "/_ml/data_frame/analytics",
+    "path": "/_ml/data_frame/analytics/{id}",
     "namespaceFile": "ml_get_data_frame_analytics"
   },
   {
@@ -2520,7 +2520,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Get data frame analytics job stats.",
     "method": "GET",
-    "path": "/_ml/data_frame/analytics/_stats",
+    "path": "/_ml/data_frame/analytics/{id}/_stats",
     "namespaceFile": "ml_get_data_frame_analytics_stats"
   },
   {
@@ -2528,7 +2528,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Get datafeed stats.",
     "method": "GET",
-    "path": "/_ml/datafeeds/_stats",
+    "path": "/_ml/datafeeds/{datafeed_id}/_stats",
     "namespaceFile": "ml_get_datafeed_stats"
   },
   {
@@ -2536,7 +2536,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Get datafeeds configuration info.",
     "method": "GET",
-    "path": "/_ml/datafeeds",
+    "path": "/_ml/datafeeds/{datafeed_id}",
     "namespaceFile": "ml_get_datafeeds"
   },
   {
@@ -2544,7 +2544,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Get filters.",
     "method": "GET",
-    "path": "/_ml/filters",
+    "path": "/_ml/filters/{filter_id}",
     "namespaceFile": "ml_get_filters"
   },
   {
@@ -2560,7 +2560,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Get anomaly detection job stats.",
     "method": "GET",
-    "path": "/_ml/anomaly_detectors/_stats",
+    "path": "/_ml/anomaly_detectors/{job_id}/_stats",
     "namespaceFile": "ml_get_job_stats"
   },
   {
@@ -2568,7 +2568,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Get anomaly detection jobs configuration info.",
     "method": "GET",
-    "path": "/_ml/anomaly_detectors",
+    "path": "/_ml/anomaly_detectors/{job_id}",
     "namespaceFile": "ml_get_jobs"
   },
   {
@@ -2576,7 +2576,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Get machine learning memory usage info.",
     "method": "GET",
-    "path": "/_ml/memory/_stats",
+    "path": "/_ml/memory/{node_id}/_stats",
     "namespaceFile": "ml_get_memory_stats"
   },
   {
@@ -2592,7 +2592,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Get model snapshots info.",
     "method": "GET",
-    "path": "/_ml/anomaly_detectors/{job_id}/model_snapshots",
+    "path": "/_ml/anomaly_detectors/{job_id}/model_snapshots/{snapshot_id}",
     "namespaceFile": "ml_get_model_snapshots"
   },
   {
@@ -2616,7 +2616,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Get trained model configuration info.",
     "method": "GET",
-    "path": "/_ml/trained_models",
+    "path": "/_ml/trained_models/{model_id}",
     "namespaceFile": "ml_get_trained_models"
   },
   {
@@ -2624,7 +2624,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Get trained models usage info.",
     "method": "GET",
-    "path": "/_ml/trained_models/_stats",
+    "path": "/_ml/trained_models/{model_id}/_stats",
     "namespaceFile": "ml_get_trained_models_stats"
   },
   {
@@ -2673,7 +2673,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Preview features used by data frame analytics.",
     "method": "GET",
-    "path": "/_ml/data_frame/analytics/_preview",
+    "path": "/_ml/data_frame/analytics/{id}/_preview",
     "namespaceFile": "ml_preview_data_frame_analytics"
   },
   {
@@ -2681,7 +2681,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "ml",
     "description": "Preview a datafeed.",
     "method": "GET",
-    "path": "/_ml/datafeeds/_preview",
+    "path": "/_ml/datafeeds/{datafeed_id}/_preview",
     "namespaceFile": "ml_preview_datafeed"
   },
   {
@@ -2897,7 +2897,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": null,
     "description": "Run multiple searches.",
     "method": "GET",
-    "path": "/_msearch",
+    "path": "/{index}/_msearch",
     "namespaceFile": "msearch",
     "bodyFormat": "ndjson"
   },
@@ -2906,7 +2906,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": null,
     "description": "Run multiple templated searches.",
     "method": "GET",
-    "path": "/_msearch/template",
+    "path": "/{index}/_msearch/template",
     "namespaceFile": "msearch_template",
     "bodyFormat": "ndjson"
   },
@@ -2915,7 +2915,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": null,
     "description": "Get multiple term vectors.",
     "method": "GET",
-    "path": "/_mtermvectors",
+    "path": "/{index}/_mtermvectors",
     "namespaceFile": "mtermvectors"
   },
   {
@@ -2939,7 +2939,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "nodes",
     "description": "Get the hot threads for nodes.",
     "method": "GET",
-    "path": "/_nodes/hot_threads",
+    "path": "/_nodes/{node_id}/hot_threads",
     "namespaceFile": "nodes_hot_threads",
     "responseType": "text"
   },
@@ -2948,7 +2948,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "nodes",
     "description": "Get node information.",
     "method": "GET",
-    "path": "/_nodes",
+    "path": "/_nodes/{node_id}/{metric}",
     "namespaceFile": "nodes_info"
   },
   {
@@ -2956,7 +2956,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "nodes",
     "description": "Reload the keystore on nodes in the cluster.",
     "method": "POST",
-    "path": "/_nodes/reload_secure_settings",
+    "path": "/_nodes/{node_id}/reload_secure_settings",
     "namespaceFile": "nodes_reload_secure_settings"
   },
   {
@@ -2964,7 +2964,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "nodes",
     "description": "Get node statistics.",
     "method": "GET",
-    "path": "/_nodes/stats",
+    "path": "/_nodes/{node_id}/stats/{metric}/{index_metric}",
     "namespaceFile": "nodes_stats"
   },
   {
@@ -2972,7 +2972,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "nodes",
     "description": "Get feature usage information.",
     "method": "GET",
-    "path": "/_nodes/usage",
+    "path": "/_nodes/{node_id}/usage/{metric}",
     "namespaceFile": "nodes_usage"
   },
   {
@@ -3044,7 +3044,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": null,
     "description": "Create or update a script or search template.",
     "method": "PUT",
-    "path": "/_scripts/{id}",
+    "path": "/_scripts/{id}/{context}",
     "namespaceFile": "put_script"
   },
   {
@@ -3116,7 +3116,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": null,
     "description": "Evaluate ranked search results.",
     "method": "GET",
-    "path": "/_rank_eval",
+    "path": "/{index}/_rank_eval",
     "namespaceFile": "rank_eval"
   },
   {
@@ -3140,7 +3140,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": null,
     "description": "Render a search template.",
     "method": "GET",
-    "path": "/_render/template",
+    "path": "/_render/template/{id}",
     "namespaceFile": "render_search_template"
   },
   {
@@ -3156,7 +3156,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "rollup",
     "description": "Get rollup job information.",
     "method": "GET",
-    "path": "/_rollup/job",
+    "path": "/_rollup/job/{id}",
     "namespaceFile": "rollup_get_jobs"
   },
   {
@@ -3164,7 +3164,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "rollup",
     "description": "Get the rollup job capabilities.",
     "method": "GET",
-    "path": "/_rollup/data",
+    "path": "/_rollup/data/{id}",
     "namespaceFile": "rollup_get_rollup_caps"
   },
   {
@@ -3228,7 +3228,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": null,
     "description": "Run a search.",
     "method": "GET",
-    "path": "/_search",
+    "path": "/{index}/_search",
     "namespaceFile": "search"
   },
   {
@@ -3260,7 +3260,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "search-application",
     "description": "Get behavioral analytics collections.",
     "method": "GET",
-    "path": "/_application/analytics",
+    "path": "/_application/analytics/{name}",
     "namespaceFile": "search_application_get_behavioral_analytics"
   },
   {
@@ -3324,7 +3324,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": null,
     "description": "Get the search shards.",
     "method": "GET",
-    "path": "/_search_shards",
+    "path": "/{index}/_search_shards",
     "namespaceFile": "search_shards"
   },
   {
@@ -3332,7 +3332,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": null,
     "description": "Run a search with a search template.",
     "method": "GET",
-    "path": "/_search/template",
+    "path": "/{index}/_search/template",
     "namespaceFile": "search_template"
   },
   {
@@ -3340,7 +3340,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "searchable-snapshots",
     "description": "Get cache statistics.",
     "method": "GET",
-    "path": "/_searchable_snapshots/cache/stats",
+    "path": "/_searchable_snapshots/{node_id}/cache/stats",
     "namespaceFile": "searchable_snapshots_cache_stats"
   },
   {
@@ -3348,7 +3348,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "searchable-snapshots",
     "description": "Clear the cache.",
     "method": "POST",
-    "path": "/_searchable_snapshots/cache/clear",
+    "path": "/{index}/_searchable_snapshots/cache/clear",
     "namespaceFile": "searchable_snapshots_clear_cache"
   },
   {
@@ -3364,7 +3364,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "searchable-snapshots",
     "description": "Get searchable snapshot statistics.",
     "method": "GET",
-    "path": "/_searchable_snapshots/stats",
+    "path": "/{index}/_searchable_snapshots/stats",
     "namespaceFile": "searchable_snapshots_stats"
   },
   {
@@ -3412,7 +3412,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "security",
     "description": "Change passwords.",
     "method": "PUT",
-    "path": "/_security/user/_password",
+    "path": "/_security/user/{username}/_password",
     "namespaceFile": "security_change_password"
   },
   {
@@ -3483,8 +3483,8 @@ export const apiManifest: readonly EsApiMeta[] = [
     "name": "create-service-token",
     "namespace": "security",
     "description": "Create a service account token.",
-    "method": "POST",
-    "path": "/_security/service/{namespace}/{service}/credential/token",
+    "method": "PUT",
+    "path": "/_security/service/{namespace}/{service}/credential/token/{name}",
     "namespaceFile": "security_create_service_token"
   },
   {
@@ -3604,7 +3604,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "security",
     "description": "Get application privileges.",
     "method": "GET",
-    "path": "/_security/privilege",
+    "path": "/_security/privilege/{application}/{name}",
     "namespaceFile": "security_get_privileges"
   },
   {
@@ -3612,7 +3612,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "security",
     "description": "Get roles.",
     "method": "GET",
-    "path": "/_security/role",
+    "path": "/_security/role/{name}",
     "namespaceFile": "security_get_role"
   },
   {
@@ -3620,7 +3620,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "security",
     "description": "Get role mappings.",
     "method": "GET",
-    "path": "/_security/role_mapping",
+    "path": "/_security/role_mapping/{name}",
     "namespaceFile": "security_get_role_mapping"
   },
   {
@@ -3628,7 +3628,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "security",
     "description": "Get service accounts.",
     "method": "GET",
-    "path": "/_security/service",
+    "path": "/_security/service/{namespace}/{service}",
     "namespaceFile": "security_get_service_accounts"
   },
   {
@@ -3668,7 +3668,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "security",
     "description": "Get users.",
     "method": "GET",
-    "path": "/_security/user",
+    "path": "/_security/user/{username}",
     "namespaceFile": "security_get_user"
   },
   {
@@ -3700,7 +3700,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "security",
     "description": "Check user privileges.",
     "method": "GET",
-    "path": "/_security/user/_has_privileges",
+    "path": "/_security/user/{user}/_has_privileges",
     "namespaceFile": "security_has_privileges"
   },
   {
@@ -3900,7 +3900,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "simulate",
     "description": "Simulate data ingestion.",
     "method": "GET",
-    "path": "/_ingest/_simulate",
+    "path": "/_ingest/{index}/_simulate",
     "namespaceFile": "simulate_ingest"
   },
   {
@@ -3932,7 +3932,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "slm",
     "description": "Get policy information.",
     "method": "GET",
-    "path": "/_slm/policy",
+    "path": "/_slm/policy/{policy_id}",
     "namespaceFile": "slm_get_lifecycle"
   },
   {
@@ -4036,7 +4036,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "snapshot",
     "description": "Get snapshot repository information.",
     "method": "GET",
-    "path": "/_snapshot",
+    "path": "/_snapshot/{repository}",
     "namespaceFile": "snapshot_get_repository"
   },
   {
@@ -4068,7 +4068,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "snapshot",
     "description": "Get the snapshot status.",
     "method": "GET",
-    "path": "/_snapshot/_status",
+    "path": "/_snapshot/{repository}/{snapshot}/_status",
     "namespaceFile": "snapshot_status"
   },
   {
@@ -4220,7 +4220,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "tasks",
     "description": "Cancel a task.",
     "method": "POST",
-    "path": "/_tasks/_cancel",
+    "path": "/_tasks/{task_id}/_cancel",
     "namespaceFile": "tasks_cancel"
   },
   {
@@ -4252,7 +4252,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": null,
     "description": "Get term vector information.",
     "method": "GET",
-    "path": "/{index}/_termvectors",
+    "path": "/{index}/_termvectors/{id}",
     "namespaceFile": "termvectors"
   },
   {
@@ -4309,7 +4309,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "transform",
     "description": "Get transforms.",
     "method": "GET",
-    "path": "/_transform",
+    "path": "/_transform/{transform_id}",
     "namespaceFile": "transform_get_transform"
   },
   {
@@ -4325,7 +4325,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "transform",
     "description": "Preview a transform.",
     "method": "GET",
-    "path": "/_transform/_preview",
+    "path": "/_transform/{transform_id}/_preview",
     "namespaceFile": "transform_preview_transform"
   },
   {
@@ -4421,7 +4421,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "watcher",
     "description": "Acknowledge a watch.",
     "method": "PUT",
-    "path": "/_watcher/watch/{watch_id}/_ack",
+    "path": "/_watcher/watch/{watch_id}/_ack/{action_id}",
     "namespaceFile": "watcher_ack_watch"
   },
   {
@@ -4453,7 +4453,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "watcher",
     "description": "Run a watch.",
     "method": "PUT",
-    "path": "/_watcher/watch/_execute",
+    "path": "/_watcher/watch/{id}/_execute",
     "namespaceFile": "watcher_execute_watch"
   },
   {
@@ -4501,7 +4501,7 @@ export const apiManifest: readonly EsApiMeta[] = [
     "namespace": "watcher",
     "description": "Get Watcher statistics.",
     "method": "GET",
-    "path": "/_watcher/stats",
+    "path": "/_watcher/stats/{metric}",
     "namespaceFile": "watcher_stats"
   },
   {

@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { IndicesForcemergeRequest } from '@elastic/es-schemas/indices_forcemerge.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesForcemergeApis: EsApiDefinition[] = [
@@ -17,6 +18,7 @@ export const indicesForcemergeApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Force a merge.",
   method: "POST",
-  path: "/_forcemerge",
+  path: "/{index}/_forcemerge",
+  input: IndicesForcemergeRequest,
  },
 ]
