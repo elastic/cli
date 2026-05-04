@@ -17,6 +17,7 @@
     "codegen:functional": "npx tsx codegen/functional/index.ts --tests-dir ../elasticsearch-clients-tests/tests",
     "test:functional:es": "bash test/functional/es/run.sh",
     "test:functional:cloud": "bash test/functional/cloud/smoke.sh",
+    "test:functional:kb": "bash test/functional/kb/run.sh",
     "test:license": "license-checker --production",
     "test:spdx": "./scripts/check-spdx",
     "generate:notice": "node scripts/generate-notice.mjs",
