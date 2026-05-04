@@ -26,12 +26,13 @@ trap teardown EXIT
 
 output=$($CLI stack kb alerting post-alerting-rule-id \
   --id "$RULE_ID" \
-  --consumer "alerts" \
+  --consumer "stackAlerts" \
   --name "CLI FT Rule" \
   --rule-type-id ".es-query" \
   --schedule '{"interval":"1m"}' \
   --params "$RULE_PARAMS" \
-  --json 2>/dev/null)
+  --json 2>/dev/null) \
+  || { echo "FAIL: alerting create — command failed"; exit 1; }
 [ "$(echo "$output" | jq -r '.id')" = "$RULE_ID" ] \
   || { echo "FAIL: alerting create — id mismatch"; exit 1; }
 [ "$(echo "$output" | jq -r '.name')" = "CLI FT Rule" ] \

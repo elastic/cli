@@ -23,7 +23,8 @@ trap teardown EXIT
 
 # ── list connector types ───────────────────────────────────────────────
 
-output=$($CLI stack kb connectors get-actions-connector-types --json 2>/dev/null)
+output=$($CLI stack kb connectors get-actions-connector-types --json 2>/dev/null) \
+  || { echo "FAIL: connectors list-types — command failed"; exit 1; }
 count=$(echo "$output" | jq 'length')
 [ "$count" -gt 0 ] || { echo "FAIL: connectors list-types — empty list"; exit 1; }
 
@@ -34,10 +35,8 @@ index_type=$(echo "$output" | jq -r '[.[] | select(.id == ".index")] | .[0].id')
 
 # ── create ────────────────────────────────────────────────────────────
 
-# Kibana requires a UUID for connectors with encrypted secrets (most types).
-# The .index connector does not have encrypted secrets so any UUID works.
-CONNECTOR_UUID=$(python3 -c "import uuid; print(str(uuid.uuid4()))" 2>/dev/null \
-  || uuidgen 2>/dev/null | tr '[:upper:]' '[:lower:]')
+# Use Node.js crypto to generate a UUID (Node is always available in CI).
+CONNECTOR_UUID=$(node -e "process.stdout.write(require('crypto').randomUUID())")
 CONNECTOR_ID="$CONNECTOR_UUID"
 
 output=$($CLI stack kb connectors post-actions-connector-id \
@@ -45,7 +44,8 @@ output=$($CLI stack kb connectors post-actions-connector-id \
   --connector-type-id ".index" \
   --name "CLI FT Index Connector" \
   --kb-config '{"index":"cli-ft-connector-*"}' \
-  --json 2>/dev/null)
+  --json 2>/dev/null) \
+  || { echo "FAIL: connectors create — command failed"; exit 1; }
 [ "$(echo "$output" | jq -r '.id')" = "$CONNECTOR_UUID" ] \
   || { echo "FAIL: connectors create — id mismatch"; exit 1; }
 [ "$(echo "$output" | jq -r '.name')" = "CLI FT Index Connector" ] \
