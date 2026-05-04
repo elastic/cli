@@ -30,6 +30,23 @@ steps:
           STACK_VERSION: "9.3.0"
         command: ".buildkite/run-es-tests.sh"
 
+  - group: "KB Functional Tests"
+    steps:
+      - label: ":kibana: KB functional tests — Node {{matrix.node}}"
+        key: "kb-functional"
+        matrix:
+          setup:
+            node:
+              - "22"
+              - "24"
+        agents:
+          provider: gcp
+          image: family/core-ubuntu-2204
+        env:
+          NODE_VERSION: "{{matrix.node}}"
+          STACK_VERSION: "9.3.0"
+        command: ".buildkite/run-kb-tests.sh"
+
   - group: "Cloud Smoke Tests"
     steps:
       - label: ":cloud: Cloud smoke tests — Node {{matrix.node}}"
