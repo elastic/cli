@@ -58,8 +58,9 @@ trap summary EXIT
 # First arg is the test name (used for output) and the remaining args are the command to run.
 assert_exit_zero() {
   local name="$1"
+  local _output
   shift
-  if output=$("$@" 2>&1); then
+  if _output=$("$@" 2>&1); then
     pass "$name"
   else
     fail "$name" "exit code $?"
