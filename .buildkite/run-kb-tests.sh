@@ -65,6 +65,7 @@ docker run \
   --name "$ES_CONTAINER_NAME" \
   --network "$NETWORK_NAME" \
   --network-alias elasticsearch \
+  --publish 9200:9200 \
   --env "discovery.type=single-node" \
   --env "xpack.license.self_generated.type=trial" \
   --env "action.destructive_requires_name=false" \
@@ -76,8 +77,9 @@ docker run \
 
 echo "--- Waiting for Elasticsearch to be healthy"
 RETRIES=0
-MAX_RETRIES=60
-until curl -sf -u "elastic:${ES_PASSWORD}" http://localhost:9200/_cluster/health > /dev/null 2>&1; do
+MAX_RETRIES=90
+until docker exec "$ES_CONTAINER_NAME" \
+    curl -sf -u "elastic:${ES_PASSWORD}" http://localhost:9200/_cluster/health > /dev/null 2>&1; do
   RETRIES=$((RETRIES + 1))
   if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
     echo "Elasticsearch did not become healthy in time"
