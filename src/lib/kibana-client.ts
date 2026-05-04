@@ -35,12 +35,14 @@ export interface KibanaRequestParams {
  */
 export class KibanaClient {
   readonly baseUrl: string
-  private readonly authHeader: string
+  private readonly authHeader: string | undefined
   private _fetch: typeof fetch = globalThis.fetch
 
-  constructor (baseUrl: string, auth: { api_key: string } | { username: string; password: string }) {
+  constructor (baseUrl: string, auth?: { api_key: string } | { username: string; password: string }) {
     this.baseUrl = baseUrl.replace(/\/+$/, '')
-    if ('api_key' in auth) {
+    if (auth == null) {
+      this.authHeader = undefined
+    } else if ('api_key' in auth) {
       this.authHeader = `ApiKey ${auth.api_key}`
     } else {
       const encoded = Buffer.from(`${auth.username}:${auth.password}`).toString('base64')
@@ -68,8 +70,10 @@ export class KibanaClient {
 
     const method = params.method.toUpperCase()
     const headers: Record<string, string> = {
-      'Authorization': this.authHeader,
       'Accept': 'application/json',
+    }
+    if (this.authHeader != null) {
+      headers['Authorization'] = this.authHeader
     }
 
     // Kibana requires kbn-xsrf for all state-mutating requests to protect against CSRF
@@ -148,19 +152,15 @@ export function getKibanaClient (): KibanaClient {
   }
 
   const { url, auth } = kb
-  const authRecord = auth as Record<string, unknown>
+  const authRecord = auth as Record<string, unknown> | undefined
 
-  let typedAuth: { api_key: string } | { username: string; password: string }
-  if (typeof authRecord['api_key'] === 'string') {
-    typedAuth = { api_key: authRecord['api_key'] }
-  } else if (typeof authRecord['username'] === 'string' && typeof authRecord['password'] === 'string') {
-    typedAuth = { username: authRecord['username'], password: authRecord['password'] }
-  } else {
-    throw new Error(
-      'missing_config: Kibana auth requires either api_key or username/password. ' +
-      'Check your .elasticrc.yml config file.'
-    )
+  let typedAuth: { api_key: string } | { username: string; password: string } | undefined
+  if (typeof authRecord?.['api_key'] === 'string') {
+    typedAuth = { api_key: authRecord['api_key'] as string }
+  } else if (typeof authRecord?.['username'] === 'string' && typeof authRecord?.['password'] === 'string') {
+    typedAuth = { username: authRecord['username'] as string, password: authRecord['password'] as string }
   }
+  // auth is optional — when absent (e.g. security disabled), requests are sent without credentials
 
   _client = new KibanaClient(url, typedAuth)
   return _client
