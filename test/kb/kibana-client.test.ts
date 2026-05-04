@@ -52,6 +52,16 @@ function makeCapturingFetch (status = 200, body = '{}'): {
 // Constructor / auth header
 // ---------------------------------------------------------------------------
 
+describe('KibanaClient — no auth', () => {
+  it('omits Authorization header when no auth is provided', async () => {
+    const { fetch, calls } = makeCapturingFetch()
+    const client = new KibanaClient('https://kb.example.com')
+    client._testSetFetch(fetch)
+    await client.request({ method: 'GET', path: '/api/status' })
+    assert.equal((calls[0]!.init.headers as Record<string, string>)['Authorization'], undefined)
+  })
+})
+
 describe('KibanaClient — API key auth', () => {
   it('sets Authorization header to ApiKey <key>', async () => {
     const { fetch, calls } = makeCapturingFetch()
@@ -222,15 +232,11 @@ describe('getKibanaClient', () => {
     )
   })
 
-  it('throws missing_config when auth is missing api_key and credentials', () => {
+  it('returns an unauthenticated client when auth block is empty or absent', () => {
     setResolvedConfig(makeConfig({ kibana: { url: 'https://kb.example.com', auth: {} as never } }))
-    assert.throws(
-      () => getKibanaClient(),
-      (err: Error) => {
-        assert.ok(err.message.includes('missing_config'))
-        return true
-      }
-    )
+    const client = getKibanaClient()
+    assert.ok(client instanceof KibanaClient)
+    assert.equal(client.baseUrl, 'https://kb.example.com')
   })
 
   it('returns a KibanaClient instance configured with api_key auth', () => {
