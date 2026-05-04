@@ -70,6 +70,10 @@ export interface KbApiDefinition {
   pathParams?: KbPathParam[]
   queryParams?: KbQueryParam[]
   bodyParams?: KbBodyParam[]
+  /** When 'multipart', the request body must be sent as multipart/form-data. */
+  requestType?: 'multipart'
+  /** When 'ndjson', the success response is newline-delimited JSON (parsed into an array). */
+  responseType?: 'ndjson'
 }
 
 const VALID_NAME = /^[a-z0-9][a-z0-9-]*$/
