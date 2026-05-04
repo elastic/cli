@@ -57,15 +57,18 @@ npm link
 echo "--- Creating Docker network"
 docker network create "$NETWORK_NAME" 2>/dev/null || true
 
+# Use a fixed password so the CLI config can reference it without secrets management.
+ES_PASSWORD="changeme"
+
 echo "--- Starting Elasticsearch ${STACK_VERSION}"
 docker run \
   --name "$ES_CONTAINER_NAME" \
   --network "$NETWORK_NAME" \
   --network-alias elasticsearch \
   --env "discovery.type=single-node" \
-  --env "xpack.security.enabled=false" \
   --env "xpack.license.self_generated.type=trial" \
   --env "action.destructive_requires_name=false" \
+  --env "ELASTIC_PASSWORD=${ES_PASSWORD}" \
   --env "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
   --detach \
   --rm \
@@ -74,7 +77,7 @@ docker run \
 echo "--- Waiting for Elasticsearch to be healthy"
 RETRIES=0
 MAX_RETRIES=60
-until docker exec "$ES_CONTAINER_NAME" curl -sf http://localhost:9200/_cluster/health > /dev/null 2>&1; do
+until curl -sf -u "elastic:${ES_PASSWORD}" http://localhost:9200/_cluster/health > /dev/null 2>&1; do
   RETRIES=$((RETRIES + 1))
   if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
     echo "Elasticsearch did not become healthy in time"
@@ -91,10 +94,11 @@ docker run \
   --network "$NETWORK_NAME" \
   --publish 5601:5601 \
   --env "ELASTICSEARCH_HOSTS=http://elasticsearch:9200" \
-  --env "xpack.security.enabled=false" \
-  --env "xpack.encryptedSavedObjects.encryptionKey=aaaabbbbccccddddeeeeffffgggghhhh" \
-  --env "xpack.reporting.encryptionKey=aaaabbbbccccddddeeeeffffgggghhhh" \
-  --env "xpack.security.encryptionKey=aaaabbbbccccddddeeeeffffgggghhhh" \
+  --env "ELASTICSEARCH_USERNAME=elastic" \
+  --env "ELASTICSEARCH_PASSWORD=${ES_PASSWORD}" \
+  --env "xpack.encryptedSavedObjects.encryptionKey=xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj" \
+  --env "xpack.reporting.encryptionKey=xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj" \
+  --env "xpack.security.encryptionKey=xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj" \
   --detach \
   --rm \
   "docker.elastic.co/kibana/kibana:${STACK_VERSION}"
@@ -102,7 +106,8 @@ docker run \
 echo "--- Waiting for Kibana to be healthy"
 RETRIES=0
 MAX_RETRIES=90
-until curl -sf http://localhost:5601/api/status | jq -e '.status.overall.level == "available"' > /dev/null 2>&1; do
+until curl -sf -u "elastic:${ES_PASSWORD}" http://localhost:5601/api/status \
+      | jq -e '.status.overall.level == "available"' > /dev/null 2>&1; do
   RETRIES=$((RETRIES + 1))
   if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
     echo "Kibana did not become healthy in time"
@@ -118,8 +123,8 @@ echo "Kibana core is ready"
 echo "--- Waiting for alerting and actions plugins to be ready"
 RETRIES=0
 MAX_RETRIES=30
-until curl -sf http://localhost:5601/api/actions/connector_types > /dev/null 2>&1 && \
-      curl -sf "http://localhost:5601/api/alerting/rules/_find" > /dev/null 2>&1; do
+until curl -sf -u "elastic:${ES_PASSWORD}" http://localhost:5601/api/actions/connector_types > /dev/null 2>&1 && \
+      curl -sf -u "elastic:${ES_PASSWORD}" http://localhost:5601/api/alerting/rules/_find > /dev/null 2>&1; do
   RETRIES=$((RETRIES + 1))
   if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
     echo "Alerting/actions plugins did not become ready in time"
@@ -137,8 +142,14 @@ contexts:
   ci:
     elasticsearch:
       url: http://localhost:9200
+      auth:
+        username: elastic
+        password: "${ES_PASSWORD}"
     kibana:
       url: http://localhost:5601
+      auth:
+        username: elastic
+        password: "${ES_PASSWORD}"
 current_context: ci
 EOF
 export ELASTIC_CLI_CONFIG_FILE="$CI_CONFIG_FILE"
