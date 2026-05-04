@@ -26,6 +26,7 @@ export const savedObjectsApis: KbApiDefinition[] = [
     { name: "search", type: "string", description: "Search for documents to export using the Elasticsearch Simple Query String syntax." },
     { name: "type", type: "string", description: "The saved object types to include in the export. Use `*` to export all the types. Valid options depend on enabled plugins, but may include `visualization`, `dashboard`, `search`, `index-pattern`, `tag`, `config`, `config-global`, `lens`, `map`, `event-annotation-group`, `query`, `url`, `action`, `alert`, `alerting_rule_template`, `apm-indices`, `cases-user-actions`, `cases`, `cases-comments`, `infrastructure-monitoring-log-view`, `ml-trained-model`, `osquery-saved-query`, `osquery-pack`, `osquery-pack-asset`." },
     ],
+    responseType: "ndjson",
   },
   {
     name: "post-saved-objects-import",
@@ -38,5 +39,25 @@ export const savedObjectsApis: KbApiDefinition[] = [
     { name: "createNewCopies", type: "boolean", description: "Creates copies of saved objects, regenerates each object ID, and resets the origin. When used, potential conflict errors are avoided. NOTE: This option cannot be used with the `overwrite` and `compatibilityMode` options." },
     { name: "compatibilityMode", type: "boolean", description: "Applies various adjustments to the saved objects that are being imported to maintain compatibility between different Kibana versions. Use this option only if you encounter issues with imported saved objects. NOTE: This option cannot be used with the `createNewCopies` option." },
     ],
+    bodyParams: [
+    { name: "file", type: "string", description: "A file exported using the export API. Changing the contents of the exported file in any way before importing it can cause errors, crashes or data loss. NOTE: The `savedObjects.maxImportExportSize` configuration setting limits the number of saved objects which may be included in this file. Similarly, the `savedObjects.maxImportPayloadBytes` setting limits the overall size of the file that can be imported.", required: true },
+    ],
+    requestType: "multipart",
+  },
+  {
+    name: "post-saved-objects-resolve-import-errors",
+    namespace: "saved-objects",
+    description: "Resolve import errors",
+    method: "POST",
+    path: "/api/saved_objects/_resolve_import_errors",
+    queryParams: [
+    { name: "createNewCopies", type: "boolean", description: "Creates copies of saved objects, regenerates each object ID, and resets the origin." },
+    { name: "compatibilityMode", type: "boolean", description: "Applies adjustments to maintain compatibility between different Kibana versions." },
+    ],
+    bodyParams: [
+    { name: "file", type: "string", description: "", required: true },
+    { name: "retries", type: "string", description: "", required: true },
+    ],
+    requestType: "multipart",
   },
 ]
