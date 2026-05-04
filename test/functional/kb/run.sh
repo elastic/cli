@@ -26,10 +26,11 @@ run_test() {
   fi
 }
 
-run_test "data_views" "data_views.sh"
-run_test "spaces"     "spaces.sh"
-run_test "alerting"   "alerting.sh"
-run_test "connectors" "connectors.sh"
+run_test "data_views"   "data_views.sh"
+run_test "spaces"       "spaces.sh"
+run_test "alerting"     "alerting.sh"
+run_test "connectors"   "connectors.sh"
+run_test "saved_objects" "saved_objects.sh"
 
 echo ""
 echo "================================"
