@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { MlExplainDataFrameAnalyticsRequest } from '@elastic/es-schemas/ml_explain_data_frame_analytics.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const mlExplainDataFrameAnalyticsApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const mlExplainDataFrameAnalyticsApis: EsApiDefinition[] = [
   namespace: "ml",
   description: "Explain data frame analytics config.",
   method: "GET",
-  path: "/_ml/data_frame/analytics/{id}/_explain",
-  input: MlExplainDataFrameAnalyticsRequest,
+  path: "/_ml/data_frame/analytics/_explain",
  },
 ]

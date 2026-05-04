@@ -17,6 +17,6 @@ export const ilmGetLifecycleApis: EsApiDefinition[] = [
   namespace: "ilm",
   description: "Get lifecycle policies.",
   method: "GET",
-  path: "/_ilm/policy/{policy}",
+  path: "/_ilm/policy",
  },
 ]

@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { MlGetJobsRequest } from '@elastic/es-schemas/ml_get_jobs.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const mlGetJobsApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const mlGetJobsApis: EsApiDefinition[] = [
   namespace: "ml",
   description: "Get anomaly detection jobs configuration info.",
   method: "GET",
-  path: "/_ml/anomaly_detectors/{job_id}",
-  input: MlGetJobsRequest,
+  path: "/_ml/anomaly_detectors",
  },
 ]

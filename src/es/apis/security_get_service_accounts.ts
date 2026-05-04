@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { SecurityGetServiceAccountsRequest } from '@elastic/es-schemas/security_get_service_accounts.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const securityGetServiceAccountsApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const securityGetServiceAccountsApis: EsApiDefinition[] = [
   namespace: "security",
   description: "Get service accounts.",
   method: "GET",
-  path: "/_security/service/{namespace}/{service}",
-  input: SecurityGetServiceAccountsRequest,
+  path: "/_security/service",
  },
 ]

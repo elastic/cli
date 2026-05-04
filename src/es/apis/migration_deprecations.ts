@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { MigrationDeprecationsRequest } from '@elastic/es-schemas/migration_deprecations.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const migrationDeprecationsApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const migrationDeprecationsApis: EsApiDefinition[] = [
   namespace: "migration",
   description: "Get deprecation information.",
   method: "GET",
-  path: "/{index}/_migration/deprecations",
-  input: MigrationDeprecationsRequest,
+  path: "/_migration/deprecations",
  },
 ]

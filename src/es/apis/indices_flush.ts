@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { IndicesFlushRequest } from '@elastic/es-schemas/indices_flush.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesFlushApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const indicesFlushApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Flush data streams or indices.",
   method: "POST",
-  path: "/{index}/_flush",
-  input: IndicesFlushRequest,
+  path: "/_flush",
  },
 ]

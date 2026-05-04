@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { CatMlJobsRequest } from '@elastic/es-schemas/cat_ml_jobs.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const catMlJobsApis: EsApiDefinition[] = [
@@ -18,8 +17,7 @@ export const catMlJobsApis: EsApiDefinition[] = [
   namespace: "cat",
   description: "Get anomaly detection jobs.",
   method: "GET",
-  path: "/_cat/ml/anomaly_detectors/{job_id}",
-  input: CatMlJobsRequest,
+  path: "/_cat/ml/anomaly_detectors",
   responseType: 'text',
  },
 ]

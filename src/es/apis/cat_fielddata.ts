@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { CatFielddataRequest } from '@elastic/es-schemas/cat_fielddata.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const catFielddataApis: EsApiDefinition[] = [
@@ -18,8 +17,7 @@ export const catFielddataApis: EsApiDefinition[] = [
   namespace: "cat",
   description: "Get field data cache information.",
   method: "GET",
-  path: "/_cat/fielddata/{fields}",
-  input: CatFielddataRequest,
+  path: "/_cat/fielddata",
   responseType: 'text',
  },
 ]

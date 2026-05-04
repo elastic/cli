@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { InferenceDeleteRequest } from '@elastic/es-schemas/inference_delete.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const inferenceDeleteApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const inferenceDeleteApis: EsApiDefinition[] = [
   namespace: "inference",
   description: "Delete an inference endpoint.",
   method: "DELETE",
-  path: "/_inference/{task_type}/{inference_id}",
-  input: InferenceDeleteRequest,
+  path: "/_inference/{inference_id}",
  },
 ]

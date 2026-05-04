@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { TermvectorsRequest } from '@elastic/es-schemas/termvectors.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const termvectorsApis: EsApiDefinition[] = [
@@ -17,7 +16,6 @@ export const termvectorsApis: EsApiDefinition[] = [
   name: "termvectors",
   description: "Get term vector information.",
   method: "GET",
-  path: "/{index}/_termvectors/{id}",
-  input: TermvectorsRequest,
+  path: "/{index}/_termvectors",
  },
 ]

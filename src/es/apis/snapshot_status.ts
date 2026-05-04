@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { SnapshotStatusRequest } from '@elastic/es-schemas/snapshot_status.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const snapshotStatusApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const snapshotStatusApis: EsApiDefinition[] = [
   namespace: "snapshot",
   description: "Get the snapshot status.",
   method: "GET",
-  path: "/_snapshot/{repository}/{snapshot}/_status",
-  input: SnapshotStatusRequest,
+  path: "/_snapshot/_status",
  },
 ]

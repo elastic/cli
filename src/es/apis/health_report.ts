@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { HealthReportRequest } from '@elastic/es-schemas/health_report.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const healthReportApis: EsApiDefinition[] = [
@@ -17,7 +16,6 @@ export const healthReportApis: EsApiDefinition[] = [
   name: "health-report",
   description: "Get the cluster health.",
   method: "GET",
-  path: "/_health_report/{feature}",
-  input: HealthReportRequest,
+  path: "/_health_report",
  },
 ]

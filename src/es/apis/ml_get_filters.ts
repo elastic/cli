@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { MlGetFiltersRequest } from '@elastic/es-schemas/ml_get_filters.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const mlGetFiltersApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const mlGetFiltersApis: EsApiDefinition[] = [
   namespace: "ml",
   description: "Get filters.",
   method: "GET",
-  path: "/_ml/filters/{filter_id}",
-  input: MlGetFiltersRequest,
+  path: "/_ml/filters",
  },
 ]

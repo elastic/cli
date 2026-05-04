@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { SecurityCreateServiceTokenRequest } from '@elastic/es-schemas/security_create_service_token.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const securityCreateServiceTokenApis: EsApiDefinition[] = [
@@ -17,8 +16,7 @@ export const securityCreateServiceTokenApis: EsApiDefinition[] = [
   name: "create-service-token",
   namespace: "security",
   description: "Create a service account token.",
-  method: "PUT",
-  path: "/_security/service/{namespace}/{service}/credential/token/{name}",
-  input: SecurityCreateServiceTokenRequest,
+  method: "POST",
+  path: "/_security/service/{namespace}/{service}/credential/token",
  },
 ]

@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { IndicesResolveClusterRequest } from '@elastic/es-schemas/indices_resolve_cluster.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesResolveClusterApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const indicesResolveClusterApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Resolve the cluster.",
   method: "GET",
-  path: "/_resolve/cluster/{name}",
-  input: IndicesResolveClusterRequest,
+  path: "/_resolve/cluster",
  },
 ]

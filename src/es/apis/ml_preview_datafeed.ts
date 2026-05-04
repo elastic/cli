@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { MlPreviewDatafeedRequest } from '@elastic/es-schemas/ml_preview_datafeed.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const mlPreviewDatafeedApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const mlPreviewDatafeedApis: EsApiDefinition[] = [
   namespace: "ml",
   description: "Preview a datafeed.",
   method: "GET",
-  path: "/_ml/datafeeds/{datafeed_id}/_preview",
-  input: MlPreviewDatafeedRequest,
+  path: "/_ml/datafeeds/_preview",
  },
 ]

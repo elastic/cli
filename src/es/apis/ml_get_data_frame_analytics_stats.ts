@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { MlGetDataFrameAnalyticsStatsRequest } from '@elastic/es-schemas/ml_get_data_frame_analytics_stats.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const mlGetDataFrameAnalyticsStatsApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const mlGetDataFrameAnalyticsStatsApis: EsApiDefinition[] = [
   namespace: "ml",
   description: "Get data frame analytics job stats.",
   method: "GET",
-  path: "/_ml/data_frame/analytics/{id}/_stats",
-  input: MlGetDataFrameAnalyticsStatsRequest,
+  path: "/_ml/data_frame/analytics/_stats",
  },
 ]

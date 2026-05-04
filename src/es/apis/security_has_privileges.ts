@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { SecurityHasPrivilegesRequest } from '@elastic/es-schemas/security_has_privileges.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const securityHasPrivilegesApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const securityHasPrivilegesApis: EsApiDefinition[] = [
   namespace: "security",
   description: "Check user privileges.",
   method: "GET",
-  path: "/_security/user/{user}/_has_privileges",
-  input: SecurityHasPrivilegesRequest,
+  path: "/_security/user/_has_privileges",
  },
 ]

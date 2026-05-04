@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { MlGetBucketsRequest } from '@elastic/es-schemas/ml_get_buckets.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const mlGetBucketsApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const mlGetBucketsApis: EsApiDefinition[] = [
   namespace: "ml",
   description: "Get anomaly detection job results for buckets.",
   method: "GET",
-  path: "/_ml/anomaly_detectors/{job_id}/results/buckets/{timestamp}",
-  input: MlGetBucketsRequest,
+  path: "/_ml/anomaly_detectors/{job_id}/results/buckets",
  },
 ]

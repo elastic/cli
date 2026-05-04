@@ -9,13 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { z } from 'zod'
-import { FleetMsearchRequest } from '@elastic/es-schemas/fleet_msearch.js'
 import type { EsApiDefinition } from '../types.ts'
-
-const FleetMsearchRequestPassthrough = FleetMsearchRequest.extend({
-  searches: z.array(z.any()).optional().meta({ found_in: 'body' })
-})
 
 export const fleetMsearchApis: EsApiDefinition[] = [
  {
@@ -23,8 +17,7 @@ export const fleetMsearchApis: EsApiDefinition[] = [
   namespace: "fleet",
   description: "Run multiple Fleet searches.",
   method: "GET",
-  path: "/{index}/_fleet/_fleet_msearch",
-  input: FleetMsearchRequestPassthrough,
+  path: "/_fleet/_fleet_msearch",
   bodyFormat: 'ndjson',
  },
 ]

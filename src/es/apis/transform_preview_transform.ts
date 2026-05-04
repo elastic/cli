@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { TransformPreviewTransformRequest } from '@elastic/es-schemas/transform_preview_transform.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const transformPreviewTransformApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const transformPreviewTransformApis: EsApiDefinition[] = [
   namespace: "transform",
   description: "Preview a transform.",
   method: "GET",
-  path: "/_transform/{transform_id}/_preview",
-  input: TransformPreviewTransformRequest,
+  path: "/_transform/_preview",
  },
 ]

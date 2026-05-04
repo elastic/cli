@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { IndicesGetDataStreamRequest } from '@elastic/es-schemas/indices_get_data_stream.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesGetDataStreamApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const indicesGetDataStreamApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Get data streams.",
   method: "GET",
-  path: "/_data_stream/{name}",
-  input: IndicesGetDataStreamRequest,
+  path: "/_data_stream",
  },
 ]

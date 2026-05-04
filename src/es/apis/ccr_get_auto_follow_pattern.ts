@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { CcrGetAutoFollowPatternRequest } from '@elastic/es-schemas/ccr_get_auto_follow_pattern.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const ccrGetAutoFollowPatternApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const ccrGetAutoFollowPatternApis: EsApiDefinition[] = [
   namespace: "ccr",
   description: "Get auto-follow patterns.",
   method: "GET",
-  path: "/_ccr/auto_follow/{name}",
-  input: CcrGetAutoFollowPatternRequest,
+  path: "/_ccr/auto_follow",
  },
 ]

@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { MgetRequest } from '@elastic/es-schemas/mget.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const mgetApis: EsApiDefinition[] = [
@@ -17,7 +16,6 @@ export const mgetApis: EsApiDefinition[] = [
   name: "mget",
   description: "Get multiple documents.",
   method: "GET",
-  path: "/{index}/_mget",
-  input: MgetRequest,
+  path: "/_mget",
  },
 ]

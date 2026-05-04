@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { CatTemplatesRequest } from '@elastic/es-schemas/cat_templates.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const catTemplatesApis: EsApiDefinition[] = [
@@ -18,8 +17,7 @@ export const catTemplatesApis: EsApiDefinition[] = [
   namespace: "cat",
   description: "Get index template information.",
   method: "GET",
-  path: "/_cat/templates/{name}",
-  input: CatTemplatesRequest,
+  path: "/_cat/templates",
   responseType: 'text',
  },
 ]

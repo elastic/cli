@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { MlDeleteForecastRequest } from '@elastic/es-schemas/ml_delete_forecast.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const mlDeleteForecastApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const mlDeleteForecastApis: EsApiDefinition[] = [
   namespace: "ml",
   description: "Delete forecasts from a job.",
   method: "DELETE",
-  path: "/_ml/anomaly_detectors/{job_id}/_forecast/{forecast_id}",
-  input: MlDeleteForecastRequest,
+  path: "/_ml/anomaly_detectors/{job_id}/_forecast",
  },
 ]

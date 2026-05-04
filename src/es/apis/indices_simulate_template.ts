@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { IndicesSimulateTemplateRequest } from '@elastic/es-schemas/indices_simulate_template.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesSimulateTemplateApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const indicesSimulateTemplateApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Simulate an index template.",
   method: "POST",
-  path: "/_index_template/_simulate/{name}",
-  input: IndicesSimulateTemplateRequest,
+  path: "/_index_template/_simulate",
  },
 ]

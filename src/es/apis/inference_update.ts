@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { InferenceUpdateRequest } from '@elastic/es-schemas/inference_update.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const inferenceUpdateApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const inferenceUpdateApis: EsApiDefinition[] = [
   namespace: "inference",
   description: "Update an inference endpoint.",
   method: "PUT",
-  path: "/_inference/{task_type}/{inference_id}/_update",
-  input: InferenceUpdateRequest,
+  path: "/_inference/{inference_id}/_update",
  },
 ]

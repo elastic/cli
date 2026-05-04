@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { CatCountRequest } from '@elastic/es-schemas/cat_count.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const catCountApis: EsApiDefinition[] = [
@@ -18,8 +17,7 @@ export const catCountApis: EsApiDefinition[] = [
   namespace: "cat",
   description: "Get a document count.",
   method: "POST",
-  path: "/_cat/count/{index}",
-  input: CatCountRequest,
+  path: "/_cat/count",
   responseType: 'text',
  },
 ]

@@ -9,21 +9,14 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { z } from 'zod'
-import { MsearchTemplateRequest } from '@elastic/es-schemas/msearch_template.js'
 import type { EsApiDefinition } from '../types.ts'
-
-const MsearchTemplateRequestPassthrough = MsearchTemplateRequest.extend({
-  search_templates: z.array(z.any()).optional().meta({ found_in: 'body' })
-})
 
 export const msearchTemplateApis: EsApiDefinition[] = [
  {
   name: "msearch-template",
   description: "Run multiple templated searches.",
   method: "GET",
-  path: "/{index}/_msearch/template",
-  input: MsearchTemplateRequestPassthrough,
+  path: "/_msearch/template",
   bodyFormat: 'ndjson',
  },
 ]

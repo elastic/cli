@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { EsqlGetViewRequest } from '@elastic/es-schemas/esql_get_view.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const esqlGetViewApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const esqlGetViewApis: EsApiDefinition[] = [
   namespace: "esql",
   description: "Get an ES|QL view.",
   method: "GET",
-  path: "/_query/view/{name}",
-  input: EsqlGetViewRequest,
+  path: "/_query/view",
  },
 ]

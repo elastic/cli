@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { LogstashGetPipelineRequest } from '@elastic/es-schemas/logstash_get_pipeline.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const logstashGetPipelineApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const logstashGetPipelineApis: EsApiDefinition[] = [
   namespace: "logstash",
   description: "Get Logstash pipelines.",
   method: "GET",
-  path: "/_logstash/pipeline/{id}",
-  input: LogstashGetPipelineRequest,
+  path: "/_logstash/pipeline",
  },
 ]

@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { CatSegmentsRequest } from '@elastic/es-schemas/cat_segments.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const catSegmentsApis: EsApiDefinition[] = [
@@ -18,8 +17,7 @@ export const catSegmentsApis: EsApiDefinition[] = [
   namespace: "cat",
   description: "Get segment information.",
   method: "GET",
-  path: "/_cat/segments/{index}",
-  input: CatSegmentsRequest,
+  path: "/_cat/segments",
   responseType: 'text',
  },
 ]

@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { IndicesValidateQueryRequest } from '@elastic/es-schemas/indices_validate_query.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesValidateQueryApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const indicesValidateQueryApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Validate a query.",
   method: "GET",
-  path: "/{index}/_validate/query",
-  input: IndicesValidateQueryRequest,
+  path: "/_validate/query",
  },
 ]

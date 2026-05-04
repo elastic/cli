@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { IndicesAnalyzeRequest } from '@elastic/es-schemas/indices_analyze.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesAnalyzeApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const indicesAnalyzeApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Get tokens from text analysis.",
   method: "GET",
-  path: "/{index}/_analyze",
-  input: IndicesAnalyzeRequest,
+  path: "/_analyze",
  },
 ]

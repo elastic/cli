@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { IngestGetIpLocationDatabaseRequest } from '@elastic/es-schemas/ingest_get_ip_location_database.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const ingestGetIpLocationDatabaseApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const ingestGetIpLocationDatabaseApis: EsApiDefinition[] = [
   namespace: "ingest",
   description: "Get IP geolocation database configurations.",
   method: "GET",
-  path: "/_ingest/ip_location/database/{id}",
-  input: IngestGetIpLocationDatabaseRequest,
+  path: "/_ingest/ip_location/database",
  },
 ]

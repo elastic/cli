@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { IndicesRefreshRequest } from '@elastic/es-schemas/indices_refresh.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesRefreshApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const indicesRefreshApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Refresh an index.",
   method: "POST",
-  path: "/{index}/_refresh",
-  input: IndicesRefreshRequest,
+  path: "/_refresh",
  },
 ]

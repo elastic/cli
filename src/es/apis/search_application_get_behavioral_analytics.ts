@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { SearchApplicationGetBehavioralAnalyticsRequest } from '@elastic/es-schemas/search_application_get_behavioral_analytics.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const searchApplicationGetBehavioralAnalyticsApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const searchApplicationGetBehavioralAnalyticsApis: EsApiDefinition[] = [
   namespace: "search-application",
   description: "Get behavioral analytics collections.",
   method: "GET",
-  path: "/_application/analytics/{name}",
-  input: SearchApplicationGetBehavioralAnalyticsRequest,
+  path: "/_application/analytics",
  },
 ]

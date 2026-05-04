@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { NodesReloadSecureSettingsRequest } from '@elastic/es-schemas/nodes_reload_secure_settings.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const nodesReloadSecureSettingsApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const nodesReloadSecureSettingsApis: EsApiDefinition[] = [
   namespace: "nodes",
   description: "Reload the keystore on nodes in the cluster.",
   method: "POST",
-  path: "/_nodes/{node_id}/reload_secure_settings",
-  input: NodesReloadSecureSettingsRequest,
+  path: "/_nodes/reload_secure_settings",
  },
 ]

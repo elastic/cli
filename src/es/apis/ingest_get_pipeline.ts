@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { IngestGetPipelineRequest } from '@elastic/es-schemas/ingest_get_pipeline.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const ingestGetPipelineApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const ingestGetPipelineApis: EsApiDefinition[] = [
   namespace: "ingest",
   description: "Get pipelines.",
   method: "GET",
-  path: "/_ingest/pipeline/{id}",
-  input: IngestGetPipelineRequest,
+  path: "/_ingest/pipeline",
  },
 ]

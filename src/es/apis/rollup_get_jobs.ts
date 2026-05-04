@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { RollupGetJobsRequest } from '@elastic/es-schemas/rollup_get_jobs.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const rollupGetJobsApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const rollupGetJobsApis: EsApiDefinition[] = [
   namespace: "rollup",
   description: "Get rollup job information.",
   method: "GET",
-  path: "/_rollup/job/{id}",
-  input: RollupGetJobsRequest,
+  path: "/_rollup/job",
  },
 ]

@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { IngestGetGeoipDatabaseRequest } from '@elastic/es-schemas/ingest_get_geoip_database.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const ingestGetGeoipDatabaseApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const ingestGetGeoipDatabaseApis: EsApiDefinition[] = [
   namespace: "ingest",
   description: "Get GeoIP database configurations.",
   method: "GET",
-  path: "/_ingest/geoip/database/{id}",
-  input: IngestGetGeoipDatabaseRequest,
+  path: "/_ingest/geoip/database",
  },
 ]

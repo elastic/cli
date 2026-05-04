@@ -17,6 +17,6 @@ export const snapshotGetRepositoryApis: EsApiDefinition[] = [
   namespace: "snapshot",
   description: "Get snapshot repository information.",
   method: "GET",
-  path: "/_snapshot/{repository}",
+  path: "/_snapshot",
  },
 ]

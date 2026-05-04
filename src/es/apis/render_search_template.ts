@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { RenderSearchTemplateRequest } from '@elastic/es-schemas/render_search_template.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const renderSearchTemplateApis: EsApiDefinition[] = [
@@ -17,7 +16,6 @@ export const renderSearchTemplateApis: EsApiDefinition[] = [
   name: "render-search-template",
   description: "Render a search template.",
   method: "GET",
-  path: "/_render/template/{id}",
-  input: RenderSearchTemplateRequest,
+  path: "/_render/template",
  },
 ]

@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { IndicesExistsAliasRequest } from '@elastic/es-schemas/indices_exists_alias.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesExistsAliasApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const indicesExistsAliasApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Check aliases.",
   method: "HEAD",
-  path: "/{index}/_alias/{name}",
-  input: IndicesExistsAliasRequest,
+  path: "/_alias/{name}",
  },
 ]

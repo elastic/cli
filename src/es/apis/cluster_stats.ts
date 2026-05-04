@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { ClusterStatsRequest } from '@elastic/es-schemas/cluster_stats.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const clusterStatsApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const clusterStatsApis: EsApiDefinition[] = [
   namespace: "cluster",
   description: "Get cluster statistics.",
   method: "GET",
-  path: "/_cluster/stats/nodes/{node_id}",
-  input: ClusterStatsRequest,
+  path: "/_cluster/stats",
  },
 ]

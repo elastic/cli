@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { AsyncSearchSubmitRequest } from '@elastic/es-schemas/async_search_submit.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const asyncSearchSubmitApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const asyncSearchSubmitApis: EsApiDefinition[] = [
   namespace: "async-search",
   description: "Run an async search.",
   method: "POST",
-  path: "/{index}/_async_search",
-  input: AsyncSearchSubmitRequest,
+  path: "/_async_search",
  },
 ]

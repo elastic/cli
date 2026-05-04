@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { SlmGetLifecycleRequest } from '@elastic/es-schemas/slm_get_lifecycle.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const slmGetLifecycleApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const slmGetLifecycleApis: EsApiDefinition[] = [
   namespace: "slm",
   description: "Get policy information.",
   method: "GET",
-  path: "/_slm/policy/{policy_id}",
-  input: SlmGetLifecycleRequest,
+  path: "/_slm/policy",
  },
 ]

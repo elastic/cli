@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { CatMlTrainedModelsRequest } from '@elastic/es-schemas/cat_ml_trained_models.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const catMlTrainedModelsApis: EsApiDefinition[] = [
@@ -18,8 +17,7 @@ export const catMlTrainedModelsApis: EsApiDefinition[] = [
   namespace: "cat",
   description: "Get trained models.",
   method: "GET",
-  path: "/_cat/ml/trained_models/{model_id}",
-  input: CatMlTrainedModelsRequest,
+  path: "/_cat/ml/trained_models",
   responseType: 'text',
  },
 ]

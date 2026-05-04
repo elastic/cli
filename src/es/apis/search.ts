@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { SearchRequest } from '@elastic/es-schemas/search.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const searchApis: EsApiDefinition[] = [
@@ -17,7 +16,6 @@ export const searchApis: EsApiDefinition[] = [
   name: "search",
   description: "Run a search.",
   method: "GET",
-  path: "/{index}/_search",
-  input: SearchRequest,
+  path: "/_search",
  },
 ]

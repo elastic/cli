@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { InferenceInferenceRequest } from '@elastic/es-schemas/inference_inference.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const inferenceInferenceApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const inferenceInferenceApis: EsApiDefinition[] = [
   namespace: "inference",
   description: "Perform inference on the service.",
   method: "POST",
-  path: "/_inference/{task_type}/{inference_id}",
-  input: InferenceInferenceRequest,
+  path: "/_inference/{inference_id}",
  },
 ]

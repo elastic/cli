@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { FieldCapsRequest } from '@elastic/es-schemas/field_caps.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const fieldCapsApis: EsApiDefinition[] = [
@@ -17,7 +16,6 @@ export const fieldCapsApis: EsApiDefinition[] = [
   name: "field-caps",
   description: "Get the field capabilities.",
   method: "GET",
-  path: "/{index}/_field_caps",
-  input: FieldCapsRequest,
+  path: "/_field_caps",
  },
 ]

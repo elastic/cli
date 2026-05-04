@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { IndicesRolloverRequest } from '@elastic/es-schemas/indices_rollover.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesRolloverApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const indicesRolloverApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Roll over to a new index.",
   method: "POST",
-  path: "/{alias}/_rollover/{new_index}",
-  input: IndicesRolloverRequest,
+  path: "/{alias}/_rollover",
  },
 ]

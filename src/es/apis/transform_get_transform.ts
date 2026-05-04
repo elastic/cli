@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { TransformGetTransformRequest } from '@elastic/es-schemas/transform_get_transform.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const transformGetTransformApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const transformGetTransformApis: EsApiDefinition[] = [
   namespace: "transform",
   description: "Get transforms.",
   method: "GET",
-  path: "/_transform/{transform_id}",
-  input: TransformGetTransformRequest,
+  path: "/_transform",
  },
 ]

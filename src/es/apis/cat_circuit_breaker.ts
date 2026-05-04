@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { CatCircuitBreakerRequest } from '@elastic/es-schemas/cat_circuit_breaker.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const catCircuitBreakerApis: EsApiDefinition[] = [
@@ -18,8 +17,7 @@ export const catCircuitBreakerApis: EsApiDefinition[] = [
   namespace: "cat",
   description: "Get circuit breakers statistics.",
   method: "GET",
-  path: "/_cat/circuit_breaker/{circuit_breaker_patterns}",
-  input: CatCircuitBreakerRequest,
+  path: "/_cat/circuit_breaker",
   responseType: 'text',
  },
 ]

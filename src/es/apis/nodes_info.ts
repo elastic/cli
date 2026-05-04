@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { NodesInfoRequest } from '@elastic/es-schemas/nodes_info.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const nodesInfoApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const nodesInfoApis: EsApiDefinition[] = [
   namespace: "nodes",
   description: "Get node information.",
   method: "GET",
-  path: "/_nodes/{node_id}/{metric}",
-  input: NodesInfoRequest,
+  path: "/_nodes",
  },
 ]

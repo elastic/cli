@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { PutScriptRequest } from '@elastic/es-schemas/put_script.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const putScriptApis: EsApiDefinition[] = [
@@ -17,7 +16,6 @@ export const putScriptApis: EsApiDefinition[] = [
   name: "put-script",
   description: "Create or update a script or search template.",
   method: "PUT",
-  path: "/_scripts/{id}/{context}",
-  input: PutScriptRequest,
+  path: "/_scripts/{id}",
  },
 ]

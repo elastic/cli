@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { MlPreviewDataFrameAnalyticsRequest } from '@elastic/es-schemas/ml_preview_data_frame_analytics.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const mlPreviewDataFrameAnalyticsApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const mlPreviewDataFrameAnalyticsApis: EsApiDefinition[] = [
   namespace: "ml",
   description: "Preview features used by data frame analytics.",
   method: "GET",
-  path: "/_ml/data_frame/analytics/{id}/_preview",
-  input: MlPreviewDataFrameAnalyticsRequest,
+  path: "/_ml/data_frame/analytics/_preview",
  },
 ]

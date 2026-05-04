@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { MlGetModelSnapshotsRequest } from '@elastic/es-schemas/ml_get_model_snapshots.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const mlGetModelSnapshotsApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const mlGetModelSnapshotsApis: EsApiDefinition[] = [
   namespace: "ml",
   description: "Get model snapshots info.",
   method: "GET",
-  path: "/_ml/anomaly_detectors/{job_id}/model_snapshots/{snapshot_id}",
-  input: MlGetModelSnapshotsRequest,
+  path: "/_ml/anomaly_detectors/{job_id}/model_snapshots",
  },
 ]

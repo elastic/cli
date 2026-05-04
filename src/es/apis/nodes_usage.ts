@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { NodesUsageRequest } from '@elastic/es-schemas/nodes_usage.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const nodesUsageApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const nodesUsageApis: EsApiDefinition[] = [
   namespace: "nodes",
   description: "Get feature usage information.",
   method: "GET",
-  path: "/_nodes/{node_id}/usage/{metric}",
-  input: NodesUsageRequest,
+  path: "/_nodes/usage",
  },
 ]

@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { IndicesGetMappingRequest } from '@elastic/es-schemas/indices_get_mapping.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesGetMappingApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const indicesGetMappingApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Get mapping definitions.",
   method: "GET",
-  path: "/{index}/_mapping",
-  input: IndicesGetMappingRequest,
+  path: "/_mapping",
  },
 ]

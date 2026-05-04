@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { IndicesPutSettingsRequest } from '@elastic/es-schemas/indices_put_settings.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const indicesPutSettingsApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const indicesPutSettingsApis: EsApiDefinition[] = [
   namespace: "indices",
   description: "Update index settings.",
   method: "PUT",
-  path: "/{index}/_settings",
-  input: IndicesPutSettingsRequest,
+  path: "/_settings",
  },
 ]

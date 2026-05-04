@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { SearchableSnapshotsStatsRequest } from '@elastic/es-schemas/searchable_snapshots_stats.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const searchableSnapshotsStatsApis: EsApiDefinition[] = [
@@ -18,7 +17,6 @@ export const searchableSnapshotsStatsApis: EsApiDefinition[] = [
   namespace: "searchable-snapshots",
   description: "Get searchable snapshot statistics.",
   method: "GET",
-  path: "/{index}/_searchable_snapshots/stats",
-  input: SearchableSnapshotsStatsRequest,
+  path: "/_searchable_snapshots/stats",
  },
 ]

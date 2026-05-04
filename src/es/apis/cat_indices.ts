@@ -9,7 +9,6 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
-import { CatIndicesRequest } from '@elastic/es-schemas/cat_indices.js'
 import type { EsApiDefinition } from '../types.ts'
 
 export const catIndicesApis: EsApiDefinition[] = [
@@ -18,8 +17,7 @@ export const catIndicesApis: EsApiDefinition[] = [
   namespace: "cat",
   description: "Get index information.",
   method: "GET",
-  path: "/_cat/indices/{index}",
-  input: CatIndicesRequest,
+  path: "/_cat/indices",
   responseType: 'text',
  },
 ]
