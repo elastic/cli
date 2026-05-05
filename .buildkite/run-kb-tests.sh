@@ -3,22 +3,33 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Buildkite entry point for Kibana functional tests.
-# Starts Elasticsearch and Kibana using --network host so both services are
-# reachable at localhost:9200 and localhost:5601 from the host — no Docker
-# port publishing or bridge routing needed. This mirrors how Kibana's own CI
-# runs ES natively (via node scripts/es snapshot) and avoids iptables/nftables
-# issues present on Ubuntu 24.04 agents.
+#
+# On kibana-ubuntu-2404 agents, host→container networking is restricted:
+#   - --network host  → blocked (user namespace remapping is enabled)
+#   - --publish ports → broken (nftables replaces iptables, Docker NAT doesn't work)
+#   - direct bridge IP → not routed to host
+#
+# Solution: mirror Kibana's approach of running ES natively by putting all
+# connectivity inside Docker. Health checks and tests run in a dedicated
+# test-runner container on the same network as ES and Kibana, using Docker
+# DNS aliases (elasticsearch:9200, kibana:5601) which always work for
+# inter-container communication.
 
 set -euo pipefail
 
 STACK_VERSION="${STACK_VERSION:-9.3.0}"
 ES_CONTAINER_NAME="elastic-cli-kb-es"
 KB_CONTAINER_NAME="elastic-cli-kb"
+TEST_RUNNER_NAME="elastic-cli-kb-runner"
+NETWORK_NAME="elastic-cli-kb-net"
+NODE_RUNNER_IMAGE="node:${NODE_VERSION}-bookworm-slim"
 
 cleanup() {
   echo "--- Cleaning up"
+  docker rm -f "$TEST_RUNNER_NAME" 2>/dev/null || true
   docker rm -f "$KB_CONTAINER_NAME" 2>/dev/null || true
   docker rm -f "$ES_CONTAINER_NAME" 2>/dev/null || true
+  docker network rm "$NETWORK_NAME" 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -30,15 +41,10 @@ ES_IMAGE="docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}"
 KB_IMAGE="docker.elastic.co/kibana/kibana:${STACK_VERSION}"
 
 # ── Docker setup ────────────────────────────────────────────────────────────
-# Start containers as early as possible so ES and Kibana boot in the background
-# while npm install + build run.
-#
-# Both containers use --network host so they bind directly to the host's network
-# stack. This means:
-#   - ES is reachable at localhost:9200 from the host and from Kibana
-#   - Kibana is reachable at localhost:5601 from the host
-#   - No iptables/nftables port forwarding rules are needed
-# This is functionally equivalent to Kibana's approach of running ES natively.
+# Start all containers as early as possible so they boot while the CLI builds.
+
+echo "--- Creating Docker network"
+docker network create "$NETWORK_NAME" 2>/dev/null || true
 
 # Use the pre-cached ES snapshot on kibana-ubuntu-2404 agents if available,
 # otherwise fall back to a registry pull.
@@ -54,10 +60,17 @@ fi
 echo "--- Loading Kibana image"
 docker pull "$KB_IMAGE"
 
+# Pull the test-runner image in the background while ES/Kibana boot and the
+# CLI builds — it's only needed at the very end.
+echo "--- Pulling test-runner image (background)"
+docker pull "$NODE_RUNNER_IMAGE" &
+NODE_PULL_PID=$!
+
 echo "--- Starting Elasticsearch ${STACK_VERSION} (background)"
 docker run \
   --name "$ES_CONTAINER_NAME" \
-  --network host \
+  --network "$NETWORK_NAME" \
+  --network-alias elasticsearch \
   --env "discovery.type=single-node" \
   --env "xpack.license.self_generated.type=trial" \
   --env "action.destructive_requires_name=false" \
@@ -67,12 +80,12 @@ docker run \
   --rm \
   "$ES_IMAGE"
 
-# Kibana connects to ES at localhost:9200 since both share the host network.
 echo "--- Starting Kibana ${STACK_VERSION} (background)"
 docker run \
   --name "$KB_CONTAINER_NAME" \
-  --network host \
-  --env "ELASTICSEARCH_HOSTS=http://localhost:9200" \
+  --network "$NETWORK_NAME" \
+  --network-alias kibana \
+  --env "ELASTICSEARCH_HOSTS=http://elasticsearch:9200" \
   --env "ELASTICSEARCH_USERNAME=elastic" \
   --env "ELASTICSEARCH_PASSWORD=${ES_PASSWORD}" \
   --env "xpack.encryptedSavedObjects.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
@@ -82,7 +95,7 @@ docker run \
   --rm \
   "$KB_IMAGE"
 
-# ── Build CLI (runs concurrently with ES + Kibana startup) ──────────────────
+# ── Build CLI (concurrent with container startup + test-runner image pull) ──
 
 echo "--- Setting up Node.js ${NODE_VERSION}"
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
@@ -115,99 +128,21 @@ export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=6144"
 
 echo "--- Building CLI"
 npm run build
-npm link
 
-# ── Wait for services (should be near-instant after the build) ──────────────
+echo "--- Waiting for test-runner image pull to finish"
+wait "$NODE_PULL_PID"
 
-echo "--- Waiting for Elasticsearch to be healthy"
-RETRIES=0
-MAX_RETRIES=180
-until curl -sf -u "elastic:${ES_PASSWORD}" "http://localhost:9200/_cluster/health" > /dev/null 2>&1; do
-  RETRIES=$((RETRIES + 1))
-  if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
-    echo "Elasticsearch did not become healthy in time after $((MAX_RETRIES * 2))s"
-    docker logs "$ES_CONTAINER_NAME"
-    exit 1
-  fi
-  if [ $((RETRIES % 15)) -eq 0 ]; then
-    echo "  still waiting for Elasticsearch... (${RETRIES}/${MAX_RETRIES})"
-  fi
-  sleep 2
-done
-echo "Elasticsearch cluster is up"
+# ── Run health checks and tests inside the Docker network ───────────────────
+# The test-runner container has access to ES and Kibana via Docker DNS aliases.
+# The workspace (including the built CLI at dist/cli.js) is mounted read-only.
 
-# The cluster can report healthy before the .security index is fully bootstrapped.
-# Kibana's alerting/connectors plugins depend on ES API keys (encryptedSavedObjects),
-# so we must confirm the security index is ready.
-# Technique borrowed from Kibana's own kbn-es tooling (wait_for_security_index.ts).
-echo "--- Waiting for Elasticsearch security index to be ready"
-RETRIES=0
-MAX_RETRIES=60
-until curl -sf -u "elastic:${ES_PASSWORD}" \
-    -X POST "http://localhost:9200/_security/api_key" \
-    -H "Content-Type: application/json" \
-    -d '{"name":"healthcheck","expiration":"1m"}' > /dev/null 2>&1; do
-  RETRIES=$((RETRIES + 1))
-  if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
-    echo "Elasticsearch security index did not become ready in time"
-    docker logs "$ES_CONTAINER_NAME"
-    exit 1
-  fi
-  sleep 2
-done
-echo "Elasticsearch is ready"
-
-echo "--- Waiting for Kibana to be healthy"
-RETRIES=0
-MAX_RETRIES=90
-until curl -sf -u "elastic:${ES_PASSWORD}" "http://localhost:5601/api/status" \
-      | jq -e '.status.overall.level == "available"' > /dev/null 2>&1; do
-  RETRIES=$((RETRIES + 1))
-  if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
-    echo "Kibana did not become healthy in time"
-    docker logs "$KB_CONTAINER_NAME"
-    exit 1
-  fi
-  sleep 3
-done
-echo "Kibana core is ready"
-
-# The actions and alerting plugins initialise after the main health check passes.
-echo "--- Waiting for alerting and actions plugins to be ready"
-RETRIES=0
-MAX_RETRIES=30
-until curl -sf -u "elastic:${ES_PASSWORD}" "http://localhost:5601/api/actions/connector_types" > /dev/null 2>&1 && \
-      curl -sf -u "elastic:${ES_PASSWORD}" "http://localhost:5601/api/alerting/rules/_find" > /dev/null 2>&1; do
-  RETRIES=$((RETRIES + 1))
-  if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
-    echo "Alerting/actions plugins did not become ready in time"
-    docker logs "$KB_CONTAINER_NAME" --tail 50
-    exit 1
-  fi
-  sleep 3
-done
-echo "Kibana plugins are ready"
-
-# ── Run tests ────────────────────────────────────────────────────────────────
-
-echo "--- Generating CI config file"
-CI_CONFIG_FILE="$(pwd)/.elasticrc-kb-ci.yml"
-cat > "$CI_CONFIG_FILE" <<EOF
-contexts:
-  ci:
-    elasticsearch:
-      url: http://localhost:9200
-      auth:
-        username: elastic
-        password: "${ES_PASSWORD}"
-    kibana:
-      url: http://localhost:5601
-      auth:
-        username: elastic
-        password: "${ES_PASSWORD}"
-current_context: ci
-EOF
-export ELASTIC_CLI_CONFIG_FILE="$CI_CONFIG_FILE"
-
-echo "+++ Running KB functional tests"
-npm run test:functional:kb
+echo "--- Running tests inside Docker network"
+docker run \
+  --name "$TEST_RUNNER_NAME" \
+  --network "$NETWORK_NAME" \
+  --rm \
+  --volume "$(pwd):/workspace" \
+  --workdir /workspace \
+  --env "ES_PASSWORD=${ES_PASSWORD}" \
+  "$NODE_RUNNER_IMAGE" \
+  bash /workspace/.buildkite/run-kb-tests-runner.sh
