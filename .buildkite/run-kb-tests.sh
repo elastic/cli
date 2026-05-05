@@ -86,9 +86,29 @@ until curl -sf -u "elastic:${ES_PASSWORD}" http://localhost:9200/_cluster/health
     docker logs "$ES_CONTAINER_NAME"
     exit 1
   fi
-  # Print progress every 30 seconds so CI logs show we are still waiting.
   if [ $((RETRIES % 15)) -eq 0 ]; then
     echo "  still waiting for Elasticsearch... (${RETRIES}/${MAX_RETRIES})"
+  fi
+  sleep 2
+done
+echo "Elasticsearch cluster is up"
+
+# The cluster can report healthy before the .security index is fully bootstrapped.
+# Kibana's alerting/connectors plugins depend on ES API keys (encryptedSavedObjects),
+# so we must wait for the security index to be ready before starting Kibana.
+# Technique borrowed from Kibana's own kbn-es tooling (wait_for_security_index.ts).
+echo "--- Waiting for Elasticsearch security index to be ready"
+RETRIES=0
+MAX_RETRIES=60
+until curl -sf -u "elastic:${ES_PASSWORD}" \
+    -X POST "http://localhost:9200/_security/api_key" \
+    -H "Content-Type: application/json" \
+    -d '{"name":"healthcheck","expiration":"1m"}' > /dev/null 2>&1; do
+  RETRIES=$((RETRIES + 1))
+  if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
+    echo "Elasticsearch security index did not become ready in time"
+    docker logs "$ES_CONTAINER_NAME"
+    exit 1
   fi
   sleep 2
 done
