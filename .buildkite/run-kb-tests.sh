@@ -126,7 +126,25 @@ export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
 echo "--- Building CLI"
 npm run build
 
-# ── Start Kibana (after build, so ES has had ~3 min to fully boot) ───────────
+# ── Configure kibana_system user (after build, ES has had ~3 min to boot) ───
+# Kibana 9.x forbids using the elastic superuser as ELASTICSEARCH_USERNAME.
+# We must use kibana_system instead, which requires setting its password via the
+# ES API. A one-shot Node.js container on the same network handles this without
+# needing the host to reach ES directly.
+
+echo "--- Waiting for node runner image pull to finish"
+wait "$NODE_PULL_PID"
+
+echo "--- Configuring kibana_system user"
+docker run \
+  --rm \
+  --network "$NETWORK_NAME" \
+  --volume "$(pwd):/workspace:ro" \
+  --env "ES_PASSWORD=${ES_PASSWORD}" \
+  "$NODE_RUNNER_IMAGE" \
+  node /workspace/.buildkite/setup-kibana.js
+
+# ── Start Kibana ─────────────────────────────────────────────────────────────
 
 echo "--- Waiting for Kibana image pull to finish"
 wait "$KB_PULL_PID"
@@ -138,7 +156,7 @@ docker run \
   --network "$NETWORK_NAME" \
   --network-alias kibana \
   --env "ELASTICSEARCH_HOSTS=http://elasticsearch:9200" \
-  --env "ELASTICSEARCH_USERNAME=elastic" \
+  --env "ELASTICSEARCH_USERNAME=kibana_system" \
   --env "ELASTICSEARCH_PASSWORD=${ES_PASSWORD}" \
   --env "xpack.encryptedSavedObjects.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
   --env "xpack.reporting.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
@@ -156,9 +174,6 @@ KB_IP=$(docker inspect "$KB_CONTAINER_NAME" \
 echo "Container IPs — ES: ${ES_IP}, Kibana: ${KB_IP}"
 
 # ── Run health checks and tests inside the Docker network ───────────────────
-
-echo "--- Waiting for test-runner image pull to finish"
-wait "$NODE_PULL_PID"
 
 echo "--- Running tests inside Docker network"
 docker run \
