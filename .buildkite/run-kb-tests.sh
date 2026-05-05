@@ -77,9 +77,8 @@ docker run \
 
 echo "--- Waiting for Elasticsearch to be healthy"
 RETRIES=0
-MAX_RETRIES=90
-until docker exec "$ES_CONTAINER_NAME" \
-    curl -sf -u "elastic:${ES_PASSWORD}" http://localhost:9200/_cluster/health > /dev/null 2>&1; do
+MAX_RETRIES=120
+until curl -sf -u "elastic:${ES_PASSWORD}" http://localhost:9200/_cluster/health > /dev/null 2>&1; do
   RETRIES=$((RETRIES + 1))
   if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
     echo "Elasticsearch did not become healthy in time"
