@@ -3,8 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Runs INSIDE the test-runner container on the same Docker network as ES/Kibana.
-# Uses Docker DNS aliases (elasticsearch:9200, kibana:5601) for all connectivity,
-# which is the only networking that works reliably on kibana-ubuntu-2404 agents.
+# Prefers Docker DNS aliases (elasticsearch / kibana) but falls back to the
+# container IPs passed via ES_IP / KB_IP if the embedded DNS server is
+# unavailable (known issue with some rootless/userns Docker configurations).
 
 set -euo pipefail
 
@@ -13,13 +14,59 @@ ES_PASSWORD="${ES_PASSWORD:-changeme}"
 echo "--- Installing curl and jq"
 apt-get update -qq && apt-get install -y -q --no-install-recommends curl jq
 
+# ── Network diagnostics ──────────────────────────────────────────────────────
+echo "--- Network diagnostics"
+echo "resolv.conf:"
+cat /etc/resolv.conf || true
+echo "Routes:"
+ip route 2>/dev/null || true
+
+# Determine whether to use DNS names or IPs.
+ES_HOST="elasticsearch"
+KB_HOST="kibana"
+
+if getent hosts elasticsearch > /dev/null 2>&1; then
+  RESOLVED=$(getent hosts elasticsearch | awk '{print $1}')
+  echo "DNS OK: elasticsearch -> $RESOLVED"
+else
+  echo "DNS lookup for 'elasticsearch' failed"
+  if [[ -n "${ES_IP:-}" ]]; then
+    echo "Falling back to ES_IP=${ES_IP}"
+    ES_HOST="$ES_IP"
+  else
+    echo "No ES_IP provided and DNS failed — health checks will fail"
+  fi
+fi
+
+if getent hosts kibana > /dev/null 2>&1; then
+  RESOLVED=$(getent hosts kibana | awk '{print $1}')
+  echo "DNS OK: kibana -> $RESOLVED"
+else
+  echo "DNS lookup for 'kibana' failed"
+  if [[ -n "${KB_IP:-}" ]]; then
+    echo "Falling back to KB_IP=${KB_IP}"
+    KB_HOST="$KB_IP"
+  else
+    echo "No KB_IP provided and DNS failed — health checks will fail"
+  fi
+fi
+
+echo "Using ES_HOST=${ES_HOST}, KB_HOST=${KB_HOST}"
+
+# First connection attempt with full output for debugging.
+echo "First curl attempt (verbose):"
+curl -v -u "elastic:${ES_PASSWORD}" "http://${ES_HOST}:9200/_cluster/health" 2>&1 || true
+
+# ── Wait for Elasticsearch ───────────────────────────────────────────────────
 echo "--- Waiting for Elasticsearch to be healthy"
 RETRIES=0
 MAX_RETRIES=180
-until curl -sf -u "elastic:${ES_PASSWORD}" "http://elasticsearch:9200/_cluster/health" > /dev/null 2>&1; do
+until curl -sf -u "elastic:${ES_PASSWORD}" "http://${ES_HOST}:9200/_cluster/health" > /dev/null 2>&1; do
   RETRIES=$((RETRIES + 1))
   if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
     echo "Elasticsearch did not become healthy in time after $((MAX_RETRIES * 2))s"
+    echo "Last curl attempt:"
+    curl -v -u "elastic:${ES_PASSWORD}" "http://${ES_HOST}:9200/_cluster/health" 2>&1 || true
     exit 1
   fi
   if [ $((RETRIES % 15)) -eq 0 ]; then
@@ -37,7 +84,7 @@ echo "--- Waiting for Elasticsearch security index to be ready"
 RETRIES=0
 MAX_RETRIES=60
 until curl -sf -u "elastic:${ES_PASSWORD}" \
-    -X POST "http://elasticsearch:9200/_security/api_key" \
+    -X POST "http://${ES_HOST}:9200/_security/api_key" \
     -H "Content-Type: application/json" \
     -d '{"name":"healthcheck","expiration":"1m"}' > /dev/null 2>&1; do
   RETRIES=$((RETRIES + 1))
@@ -52,11 +99,13 @@ echo "Elasticsearch is ready"
 echo "--- Waiting for Kibana to be healthy"
 RETRIES=0
 MAX_RETRIES=90
-until curl -sf -u "elastic:${ES_PASSWORD}" "http://kibana:5601/api/status" \
+until curl -sf -u "elastic:${ES_PASSWORD}" "http://${KB_HOST}:5601/api/status" \
       | jq -e '.status.overall.level == "available"' > /dev/null 2>&1; do
   RETRIES=$((RETRIES + 1))
   if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
     echo "Kibana did not become healthy in time"
+    echo "Last Kibana status:"
+    curl -sf -u "elastic:${ES_PASSWORD}" "http://${KB_HOST}:5601/api/status" 2>&1 || true
     exit 1
   fi
   sleep 3
@@ -67,8 +116,8 @@ echo "Kibana core is ready"
 echo "--- Waiting for alerting and actions plugins to be ready"
 RETRIES=0
 MAX_RETRIES=30
-until curl -sf -u "elastic:${ES_PASSWORD}" "http://kibana:5601/api/actions/connector_types" > /dev/null 2>&1 && \
-      curl -sf -u "elastic:${ES_PASSWORD}" "http://kibana:5601/api/alerting/rules/_find" > /dev/null 2>&1; do
+until curl -sf -u "elastic:${ES_PASSWORD}" "http://${KB_HOST}:5601/api/actions/connector_types" > /dev/null 2>&1 && \
+      curl -sf -u "elastic:${ES_PASSWORD}" "http://${KB_HOST}:5601/api/alerting/rules/_find" > /dev/null 2>&1; do
   RETRIES=$((RETRIES + 1))
   if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
     echo "Alerting/actions plugins did not become ready in time"
@@ -83,12 +132,12 @@ cat > /tmp/elastic-rc.yml <<EOF
 contexts:
   ci:
     elasticsearch:
-      url: http://elasticsearch:9200
+      url: http://${ES_HOST}:9200
       auth:
         username: elastic
         password: "${ES_PASSWORD}"
     kibana:
-      url: http://kibana:5601
+      url: http://${KB_HOST}:5601
       auth:
         username: elastic
         password: "${ES_PASSWORD}"

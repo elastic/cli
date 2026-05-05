@@ -9,11 +9,10 @@
 #   - --publish ports → broken (nftables replaces iptables, Docker NAT doesn't work)
 #   - direct bridge IP → not routed to host
 #
-# Solution: mirror Kibana's approach of running ES natively by putting all
-# connectivity inside Docker. Health checks and tests run in a dedicated
-# test-runner container on the same network as ES and Kibana, using Docker
-# DNS aliases (elasticsearch:9200, kibana:5601) which always work for
-# inter-container communication.
+# Solution: health checks and tests run in a dedicated test-runner container on
+# the same Docker bridge network as ES and Kibana. Container IPs are fetched via
+# docker inspect on the host and passed to the runner in case embedded DNS is
+# unavailable (known issue with some rootless/userns Docker configurations).
 
 set -euo pipefail
 
@@ -25,6 +24,10 @@ NETWORK_NAME="elastic-cli-kb-net"
 NODE_RUNNER_IMAGE="node:${NODE_VERSION}-bookworm-slim"
 
 cleanup() {
+  echo "--- ES logs (last 50 lines)"
+  docker logs "$ES_CONTAINER_NAME" 2>&1 | tail -50 || true
+  echo "--- Kibana logs (last 20 lines)"
+  docker logs "$KB_CONTAINER_NAME" 2>&1 | tail -20 || true
   echo "--- Cleaning up"
   docker rm -f "$TEST_RUNNER_NAME" 2>/dev/null || true
   docker rm -f "$KB_CONTAINER_NAME" 2>/dev/null || true
@@ -95,6 +98,15 @@ docker run \
   --rm \
   "$KB_IMAGE"
 
+# Fetch container IPs immediately after starting — Docker assigns them before
+# the main process runs. We pass these to the test runner as a fallback in case
+# the embedded DNS server (127.0.0.11) is unavailable on this agent.
+ES_IP=$(docker inspect "$ES_CONTAINER_NAME" \
+  --format="{{(index .NetworkSettings.Networks \"$NETWORK_NAME\").IPAddress}}")
+KB_IP=$(docker inspect "$KB_CONTAINER_NAME" \
+  --format="{{(index .NetworkSettings.Networks \"$NETWORK_NAME\").IPAddress}}")
+echo "Container IPs — ES: ${ES_IP}, Kibana: ${KB_IP}"
+
 # ── Build CLI (concurrent with container startup + test-runner image pull) ──
 
 echo "--- Setting up Node.js ${NODE_VERSION}"
@@ -124,7 +136,7 @@ echo "Using jq $(jq --version)"
 echo "--- Installing dependencies"
 npm ci
 
-export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=6144"
+export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
 
 echo "--- Building CLI"
 npm run build
@@ -133,8 +145,7 @@ echo "--- Waiting for test-runner image pull to finish"
 wait "$NODE_PULL_PID"
 
 # ── Run health checks and tests inside the Docker network ───────────────────
-# The test-runner container has access to ES and Kibana via Docker DNS aliases.
-# The workspace (including the built CLI at dist/cli.js) is mounted read-only.
+# The test-runner container uses ES_IP / KB_IP directly if DNS is unavailable.
 
 echo "--- Running tests inside Docker network"
 docker run \
@@ -144,5 +155,7 @@ docker run \
   --volume "$(pwd):/workspace" \
   --workdir /workspace \
   --env "ES_PASSWORD=${ES_PASSWORD}" \
+  --env "ES_IP=${ES_IP}" \
+  --env "KB_IP=${KB_IP}" \
   "$NODE_RUNNER_IMAGE" \
   bash /workspace/.buildkite/run-kb-tests-runner.sh
