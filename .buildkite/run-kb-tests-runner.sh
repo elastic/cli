@@ -14,48 +14,20 @@ ES_PASSWORD="${ES_PASSWORD:-changeme}"
 echo "--- Installing curl and jq"
 apt-get update -qq && apt-get install -y -q --no-install-recommends curl jq
 
-# ── Network diagnostics ──────────────────────────────────────────────────────
-echo "--- Network diagnostics"
-echo "resolv.conf:"
-cat /etc/resolv.conf || true
-echo "Routes:"
-ip route 2>/dev/null || true
-
-# Determine whether to use DNS names or IPs.
+# Prefer Docker DNS aliases; fall back to container IPs if DNS is unavailable.
 ES_HOST="elasticsearch"
 KB_HOST="kibana"
 
-if getent hosts elasticsearch > /dev/null 2>&1; then
-  RESOLVED=$(getent hosts elasticsearch | awk '{print $1}')
-  echo "DNS OK: elasticsearch -> $RESOLVED"
-else
-  echo "DNS lookup for 'elasticsearch' failed"
-  if [[ -n "${ES_IP:-}" ]]; then
-    echo "Falling back to ES_IP=${ES_IP}"
-    ES_HOST="$ES_IP"
-  else
-    echo "No ES_IP provided and DNS failed — health checks will fail"
-  fi
+if ! getent hosts elasticsearch > /dev/null 2>&1; then
+  echo "DNS for 'elasticsearch' unavailable; falling back to ES_IP=${ES_IP:-<unset>}"
+  ES_HOST="${ES_IP:-elasticsearch}"
+fi
+if ! getent hosts kibana > /dev/null 2>&1; then
+  echo "DNS for 'kibana' unavailable; falling back to KB_IP=${KB_IP:-<unset>}"
+  KB_HOST="${KB_IP:-kibana}"
 fi
 
-if getent hosts kibana > /dev/null 2>&1; then
-  RESOLVED=$(getent hosts kibana | awk '{print $1}')
-  echo "DNS OK: kibana -> $RESOLVED"
-else
-  echo "DNS lookup for 'kibana' failed"
-  if [[ -n "${KB_IP:-}" ]]; then
-    echo "Falling back to KB_IP=${KB_IP}"
-    KB_HOST="$KB_IP"
-  else
-    echo "No KB_IP provided and DNS failed — health checks will fail"
-  fi
-fi
-
-echo "Using ES_HOST=${ES_HOST}, KB_HOST=${KB_HOST}"
-
-# First connection attempt with full output for debugging.
-echo "First curl attempt (verbose):"
-curl -v -u "elastic:${ES_PASSWORD}" "http://${ES_HOST}:9200/_cluster/health" 2>&1 || true
+echo "ES_HOST=${ES_HOST}  KB_HOST=${KB_HOST}"
 
 # ── Wait for Elasticsearch ───────────────────────────────────────────────────
 echo "--- Waiting for Elasticsearch to be healthy"
@@ -64,9 +36,8 @@ MAX_RETRIES=180
 until curl -sf -u "elastic:${ES_PASSWORD}" "http://${ES_HOST}:9200/_cluster/health" > /dev/null 2>&1; do
   RETRIES=$((RETRIES + 1))
   if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
-    echo "Elasticsearch did not become healthy in time after $((MAX_RETRIES * 2))s"
-    echo "Last curl attempt:"
-    curl -v -u "elastic:${ES_PASSWORD}" "http://${ES_HOST}:9200/_cluster/health" 2>&1 || true
+    echo "Elasticsearch did not become healthy after $((MAX_RETRIES * 2))s"
+    curl -s -u "elastic:${ES_PASSWORD}" "http://${ES_HOST}:9200/_cluster/health" 2>&1 || true
     exit 1
   fi
   if [ $((RETRIES % 15)) -eq 0 ]; then
@@ -112,13 +83,10 @@ until curl -sf -u "elastic:${ES_PASSWORD}" "http://${KB_HOST}:5601/api/status" \
 done
 echo "Kibana core is ready"
 
-# Wait for the actions and alerting plugins to be individually "available" by
-# polling /api/status.  That endpoint always returns HTTP 200, so it never
-# causes the 500 Server Error noise in Kibana logs that polling the actions
-# endpoint directly does (the actions HTTP context isn't wired until slightly
-# after overall "available", returning 500 during that window).
-# Fleet being degraded shows up only in plugins.fleet — it does not affect
-# plugins.actions or plugins.alerting.
+# Poll /api/status for plugin-level readiness rather than calling the actions
+# endpoint directly (the actions HTTP context returns 500 briefly after
+# Kibana's overall "available", and Fleet degradation is isolated to
+# plugins.fleet and does not affect plugins.actions or plugins.alerting).
 echo "--- Waiting for actions + alerting plugins to be available"
 RETRIES=0
 MAX_RETRIES=60
