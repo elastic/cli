@@ -21,6 +21,34 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Use fixed dummy values so the CLI config can reference them without secrets management.
+ES_PASSWORD="changeme"
+KIBANA_ENCRYPTION_KEY="xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj" # gitleaks:allow
+
+# Pull images and start ES as early as possible so it can boot in the background
+# while npm install and the CLI build run (which together take ~15-20 minutes).
+# On slow CI agents, Docker container startup + ES security bootstrap alone can
+# take 7-10 minutes, so giving it a head start is critical.
+echo "--- Pulling Docker images"
+docker network create "$NETWORK_NAME" 2>/dev/null || true
+docker pull "docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}"
+docker pull "docker.elastic.co/kibana/kibana:${STACK_VERSION}"
+
+echo "--- Starting Elasticsearch ${STACK_VERSION} (background)"
+docker run \
+  --name "$ES_CONTAINER_NAME" \
+  --network "$NETWORK_NAME" \
+  --network-alias elasticsearch \
+  --publish 9200:9200 \
+  --env "discovery.type=single-node" \
+  --env "xpack.license.self_generated.type=trial" \
+  --env "action.destructive_requires_name=false" \
+  --env "ELASTIC_PASSWORD=${ES_PASSWORD}" \
+  --env "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
+  --detach \
+  --rm \
+  "docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}"
+
 echo "--- Setting up Node.js ${NODE_VERSION}"
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 if [ ! -s "$NVM_DIR/nvm.sh" ]; then
@@ -54,34 +82,8 @@ echo "--- Building CLI"
 npm run build
 npm link
 
-echo "--- Creating Docker network"
-docker network create "$NETWORK_NAME" 2>/dev/null || true
-
-# Use fixed dummy values so the CLI config can reference them without secrets management.
-ES_PASSWORD="changeme"
-KIBANA_ENCRYPTION_KEY="xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj" # gitleaks:allow
-
-# Pull images up front so the health-check timer measures actual startup time,
-# not image download time (image pull can take several minutes on cold CI agents).
-echo "--- Pulling Docker images"
-docker pull "docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}"
-docker pull "docker.elastic.co/kibana/kibana:${STACK_VERSION}"
-
-echo "--- Starting Elasticsearch ${STACK_VERSION}"
-docker run \
-  --name "$ES_CONTAINER_NAME" \
-  --network "$NETWORK_NAME" \
-  --network-alias elasticsearch \
-  --publish 9200:9200 \
-  --env "discovery.type=single-node" \
-  --env "xpack.license.self_generated.type=trial" \
-  --env "action.destructive_requires_name=false" \
-  --env "ELASTIC_PASSWORD=${ES_PASSWORD}" \
-  --env "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
-  --detach \
-  --rm \
-  "docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}"
-
+# ES has been running in the background during the entire npm install + build phase.
+# It should be healthy (or close to it) by now.
 echo "--- Waiting for Elasticsearch to be healthy"
 RETRIES=0
 MAX_RETRIES=180
