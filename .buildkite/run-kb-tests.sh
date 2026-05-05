@@ -13,6 +13,12 @@
 # the same Docker bridge network as ES and Kibana. Container IPs are fetched via
 # docker inspect on the host and passed to the runner in case embedded DNS is
 # unavailable (known issue with some rootless/userns Docker configurations).
+#
+# Startup order:
+#   1. Start ES early so it is fully ready before Kibana connects.
+#   2. Pull Kibana + test-runner images while the CLI builds.
+#   3. Start Kibana only after the build completes (~3 min buffer for ES).
+#   4. Run the test-runner container for health checks + tests.
 
 set -euo pipefail
 
@@ -26,8 +32,8 @@ NODE_RUNNER_IMAGE="node:${NODE_VERSION}-bookworm-slim"
 cleanup() {
   echo "--- ES logs (last 50 lines)"
   docker logs "$ES_CONTAINER_NAME" 2>&1 | tail -50 || true
-  echo "--- Kibana logs (last 20 lines)"
-  docker logs "$KB_CONTAINER_NAME" 2>&1 | tail -20 || true
+  echo "--- Kibana logs (last 50 lines)"
+  docker logs "$KB_CONTAINER_NAME" 2>&1 | tail -50 || true
   echo "--- Cleaning up"
   docker rm -f "$TEST_RUNNER_NAME" 2>/dev/null || true
   docker rm -f "$KB_CONTAINER_NAME" 2>/dev/null || true
@@ -43,14 +49,15 @@ KIBANA_ENCRYPTION_KEY="xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj" # gitleaks:allow
 ES_IMAGE="docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}"
 KB_IMAGE="docker.elastic.co/kibana/kibana:${STACK_VERSION}"
 
-# ── Docker setup ────────────────────────────────────────────────────────────
-# Start all containers as early as possible so they boot while the CLI builds.
-
+# ── Docker network ───────────────────────────────────────────────────────────
 echo "--- Creating Docker network"
 docker network create "$NETWORK_NAME" 2>/dev/null || true
 
-# Use the pre-cached ES snapshot on kibana-ubuntu-2404 agents if available,
-# otherwise fall back to a registry pull.
+# ── Elasticsearch ────────────────────────────────────────────────────────────
+# Start ES as early as possible. It needs ~1-2 minutes to bootstrap the
+# security index. Kibana will not start until after the build so ES has
+# plenty of time to be fully ready before Kibana connects.
+
 echo "--- Loading Elasticsearch image"
 ES_CACHE_DIR="${ES_CACHE_DIR:-}"
 if [[ -n "$ES_CACHE_DIR" ]] && compgen -G "$ES_CACHE_DIR/elasticsearch-$STACK_VERSION*.tar.gz" > /dev/null 2>&1; then
@@ -59,15 +66,6 @@ if [[ -n "$ES_CACHE_DIR" ]] && compgen -G "$ES_CACHE_DIR/elasticsearch-$STACK_VE
 else
   docker pull "$ES_IMAGE"
 fi
-
-echo "--- Loading Kibana image"
-docker pull "$KB_IMAGE"
-
-# Pull the test-runner image in the background while ES/Kibana boot and the
-# CLI builds — it's only needed at the very end.
-echo "--- Pulling test-runner image (background)"
-docker pull "$NODE_RUNNER_IMAGE" &
-NODE_PULL_PID=$!
 
 echo "--- Starting Elasticsearch ${STACK_VERSION} (background)"
 docker run \
@@ -79,36 +77,22 @@ docker run \
   --env "action.destructive_requires_name=false" \
   --env "ELASTIC_PASSWORD=${ES_PASSWORD}" \
   --env "xpack.security.http.ssl.enabled=false" \
+  --env "xpack.security.transport.ssl.enabled=false" \
   --env "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
   --detach \
   --rm \
   "$ES_IMAGE"
 
-echo "--- Starting Kibana ${STACK_VERSION} (background)"
-docker run \
-  --name "$KB_CONTAINER_NAME" \
-  --network "$NETWORK_NAME" \
-  --network-alias kibana \
-  --env "ELASTICSEARCH_HOSTS=http://elasticsearch:9200" \
-  --env "ELASTICSEARCH_USERNAME=elastic" \
-  --env "ELASTICSEARCH_PASSWORD=${ES_PASSWORD}" \
-  --env "xpack.encryptedSavedObjects.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
-  --env "xpack.reporting.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
-  --env "xpack.security.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
-  --detach \
-  --rm \
-  "$KB_IMAGE"
+# Pull Kibana and the test-runner images while ES boots and the CLI builds.
+echo "--- Pulling Kibana image (background)"
+docker pull "$KB_IMAGE" &
+KB_PULL_PID=$!
 
-# Fetch container IPs immediately after starting — Docker assigns them before
-# the main process runs. We pass these to the test runner as a fallback in case
-# the embedded DNS server (127.0.0.11) is unavailable on this agent.
-ES_IP=$(docker inspect "$ES_CONTAINER_NAME" \
-  --format="{{(index .NetworkSettings.Networks \"$NETWORK_NAME\").IPAddress}}")
-KB_IP=$(docker inspect "$KB_CONTAINER_NAME" \
-  --format="{{(index .NetworkSettings.Networks \"$NETWORK_NAME\").IPAddress}}")
-echo "Container IPs — ES: ${ES_IP}, Kibana: ${KB_IP}"
+echo "--- Pulling test-runner image (background)"
+docker pull "$NODE_RUNNER_IMAGE" &
+NODE_PULL_PID=$!
 
-# ── Build CLI (concurrent with container startup + test-runner image pull) ──
+# ── Build CLI (concurrent with ES startup + image pulls) ────────────────────
 
 echo "--- Setting up Node.js ${NODE_VERSION}"
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
@@ -142,11 +126,39 @@ export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
 echo "--- Building CLI"
 npm run build
 
-echo "--- Waiting for test-runner image pull to finish"
-wait "$NODE_PULL_PID"
+# ── Start Kibana (after build, so ES has had ~3 min to fully boot) ───────────
+
+echo "--- Waiting for Kibana image pull to finish"
+wait "$KB_PULL_PID"
+
+echo "--- Starting Kibana ${STACK_VERSION}"
+# Intentionally no --rm so crash logs are always available in cleanup.
+docker run \
+  --name "$KB_CONTAINER_NAME" \
+  --network "$NETWORK_NAME" \
+  --network-alias kibana \
+  --env "ELASTICSEARCH_HOSTS=http://elasticsearch:9200" \
+  --env "ELASTICSEARCH_USERNAME=elastic" \
+  --env "ELASTICSEARCH_PASSWORD=${ES_PASSWORD}" \
+  --env "xpack.encryptedSavedObjects.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
+  --env "xpack.reporting.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
+  --env "xpack.security.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
+  --detach \
+  "$KB_IMAGE"
+
+# Fetch container IPs immediately after starting — Docker assigns them before
+# the main process runs. We pass these to the test runner as a fallback in case
+# the embedded DNS server (127.0.0.11) is unavailable on this agent.
+ES_IP=$(docker inspect "$ES_CONTAINER_NAME" \
+  --format="{{(index .NetworkSettings.Networks \"$NETWORK_NAME\").IPAddress}}")
+KB_IP=$(docker inspect "$KB_CONTAINER_NAME" \
+  --format="{{(index .NetworkSettings.Networks \"$NETWORK_NAME\").IPAddress}}")
+echo "Container IPs — ES: ${ES_IP}, Kibana: ${KB_IP}"
 
 # ── Run health checks and tests inside the Docker network ───────────────────
-# The test-runner container uses ES_IP / KB_IP directly if DNS is unavailable.
+
+echo "--- Waiting for test-runner image pull to finish"
+wait "$NODE_PULL_PID"
 
 echo "--- Running tests inside Docker network"
 docker run \
