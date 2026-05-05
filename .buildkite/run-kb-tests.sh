@@ -78,13 +78,17 @@ docker run \
 
 echo "--- Waiting for Elasticsearch to be healthy"
 RETRIES=0
-MAX_RETRIES=120
+MAX_RETRIES=180
 until curl -sf -u "elastic:${ES_PASSWORD}" http://localhost:9200/_cluster/health > /dev/null 2>&1; do
   RETRIES=$((RETRIES + 1))
   if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
-    echo "Elasticsearch did not become healthy in time"
+    echo "Elasticsearch did not become healthy in time after $((MAX_RETRIES * 2))s"
     docker logs "$ES_CONTAINER_NAME"
     exit 1
+  fi
+  # Print progress every 30 seconds so CI logs show we are still waiting.
+  if [ $((RETRIES % 15)) -eq 0 ]; then
+    echo "  still waiting for Elasticsearch... (${RETRIES}/${MAX_RETRIES})"
   fi
   sleep 2
 done
