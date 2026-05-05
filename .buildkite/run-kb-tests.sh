@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Buildkite entry point for Kibana functional tests.
-# Starts an Elasticsearch container, then a Kibana container that connects to it,
-# generates a CLI config pointing at both, and runs the hand-authored KB test suite.
+# Starts Elasticsearch and Kibana containers in the background, then builds the
+# CLI concurrently, and runs the hand-authored KB test suite once everything is ready.
 
 set -euo pipefail
 
@@ -25,14 +25,30 @@ trap cleanup EXIT
 ES_PASSWORD="changeme"
 KIBANA_ENCRYPTION_KEY="xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj" # gitleaks:allow
 
-# Pull images and start ES as early as possible so it can boot in the background
-# while npm install and the CLI build run (which together take ~15-20 minutes).
-# On slow CI agents, Docker container startup + ES security bootstrap alone can
-# take 7-10 minutes, so giving it a head start is critical.
-echo "--- Pulling Docker images"
+ES_IMAGE="docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}"
+KB_IMAGE="docker.elastic.co/kibana/kibana:${STACK_VERSION}"
+
+# ── Docker setup ────────────────────────────────────────────────────────────
+# Start containers as early as possible so ES and Kibana boot in the background
+# while npm install + build run (~15-20 min). On slow CI agents ES overlay2
+# setup + security bootstrap alone can take 7-10 min, so the head start is critical.
+
+echo "--- Creating Docker network"
 docker network create "$NETWORK_NAME" 2>/dev/null || true
-docker pull "docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}"
-docker pull "docker.elastic.co/kibana/kibana:${STACK_VERSION}"
+
+# Use the pre-cached ES snapshot on kibana-ubuntu-2404 agents if available,
+# otherwise fall back to a registry pull (same technique as Kibana's kbn-es tooling).
+echo "--- Loading Elasticsearch image"
+ES_CACHE_DIR="${ES_CACHE_DIR:-}"
+if [[ -n "$ES_CACHE_DIR" ]] && compgen -G "$ES_CACHE_DIR/elasticsearch-$STACK_VERSION*.tar.gz" > /dev/null 2>&1; then
+  echo "  Loading from agent cache: $ES_CACHE_DIR"
+  docker load < "$(ls "$ES_CACHE_DIR/elasticsearch-$STACK_VERSION"*.tar.gz | head -1)"
+else
+  docker pull "$ES_IMAGE"
+fi
+
+echo "--- Loading Kibana image"
+docker pull "$KB_IMAGE"
 
 echo "--- Starting Elasticsearch ${STACK_VERSION} (background)"
 docker run \
@@ -47,7 +63,26 @@ docker run \
   --env "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
   --detach \
   --rm \
-  "docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}"
+  "$ES_IMAGE"
+
+# Start Kibana immediately alongside ES — Kibana will retry the ES connection
+# until ES is ready, so the order doesn't matter for correctness.
+echo "--- Starting Kibana ${STACK_VERSION} (background)"
+docker run \
+  --name "$KB_CONTAINER_NAME" \
+  --network "$NETWORK_NAME" \
+  --publish 5601:5601 \
+  --env "ELASTICSEARCH_HOSTS=http://elasticsearch:9200" \
+  --env "ELASTICSEARCH_USERNAME=elastic" \
+  --env "ELASTICSEARCH_PASSWORD=${ES_PASSWORD}" \
+  --env "xpack.encryptedSavedObjects.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
+  --env "xpack.reporting.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
+  --env "xpack.security.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
+  --detach \
+  --rm \
+  "$KB_IMAGE"
+
+# ── Build CLI (runs concurrently with ES + Kibana startup) ──────────────────
 
 echo "--- Setting up Node.js ${NODE_VERSION}"
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
@@ -82,8 +117,8 @@ echo "--- Building CLI"
 npm run build
 npm link
 
-# ES has been running in the background during the entire npm install + build phase.
-# It should be healthy (or close to it) by now.
+# ── Wait for services (should be near-instant after the ~15 min build) ──────
+
 echo "--- Waiting for Elasticsearch to be healthy"
 RETRIES=0
 MAX_RETRIES=180
@@ -103,7 +138,7 @@ echo "Elasticsearch cluster is up"
 
 # The cluster can report healthy before the .security index is fully bootstrapped.
 # Kibana's alerting/connectors plugins depend on ES API keys (encryptedSavedObjects),
-# so we must wait for the security index to be ready before starting Kibana.
+# so we must confirm the security index is ready.
 # Technique borrowed from Kibana's own kbn-es tooling (wait_for_security_index.ts).
 echo "--- Waiting for Elasticsearch security index to be ready"
 RETRIES=0
@@ -122,21 +157,6 @@ until curl -sf -u "elastic:${ES_PASSWORD}" \
 done
 echo "Elasticsearch is ready"
 
-echo "--- Starting Kibana ${STACK_VERSION}"
-docker run \
-  --name "$KB_CONTAINER_NAME" \
-  --network "$NETWORK_NAME" \
-  --publish 5601:5601 \
-  --env "ELASTICSEARCH_HOSTS=http://elasticsearch:9200" \
-  --env "ELASTICSEARCH_USERNAME=elastic" \
-  --env "ELASTICSEARCH_PASSWORD=${ES_PASSWORD}" \
-  --env "xpack.encryptedSavedObjects.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
-  --env "xpack.reporting.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
-  --env "xpack.security.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
-  --detach \
-  --rm \
-  "docker.elastic.co/kibana/kibana:${STACK_VERSION}"
-
 echo "--- Waiting for Kibana to be healthy"
 RETRIES=0
 MAX_RETRIES=90
@@ -153,7 +173,6 @@ done
 echo "Kibana core is ready"
 
 # The actions and alerting plugins initialise after the main health check passes.
-# Wait until their APIs return 200 before running tests.
 echo "--- Waiting for alerting and actions plugins to be ready"
 RETRIES=0
 MAX_RETRIES=30
@@ -168,6 +187,8 @@ until curl -sf -u "elastic:${ES_PASSWORD}" http://localhost:5601/api/actions/con
   sleep 3
 done
 echo "Kibana plugins are ready"
+
+# ── Run tests ────────────────────────────────────────────────────────────────
 
 echo "--- Generating CI config file"
 CI_CONFIG_FILE="$(pwd)/.elasticrc-kb-ci.yml"
