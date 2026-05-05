@@ -61,6 +61,12 @@ docker network create "$NETWORK_NAME" 2>/dev/null || true
 ES_PASSWORD="changeme"
 KIBANA_ENCRYPTION_KEY="xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj" # gitleaks:allow
 
+# Pull images up front so the health-check timer measures actual startup time,
+# not image download time (image pull can take several minutes on cold CI agents).
+echo "--- Pulling Docker images"
+docker pull "docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}"
+docker pull "docker.elastic.co/kibana/kibana:${STACK_VERSION}"
+
 echo "--- Starting Elasticsearch ${STACK_VERSION}"
 docker run \
   --name "$ES_CONTAINER_NAME" \
