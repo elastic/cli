@@ -158,9 +158,9 @@ docker run \
   --env "ELASTICSEARCH_HOSTS=http://elasticsearch:9200" \
   --env "ELASTICSEARCH_USERNAME=kibana_system" \
   --env "ELASTICSEARCH_PASSWORD=${ES_PASSWORD}" \
-  --env "xpack.encryptedSavedObjects.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
-  --env "xpack.reporting.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
-  --env "xpack.security.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
+  --env "XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY}" \
+  --env "XPACK_REPORTING_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY}" \
+  --env "XPACK_SECURITY_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY}" \
   --detach \
   "$KB_IMAGE"
 
