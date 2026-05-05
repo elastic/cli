@@ -112,26 +112,31 @@ until curl -sf -u "elastic:${ES_PASSWORD}" "http://${KB_HOST}:5601/api/status" \
 done
 echo "Kibana core is ready"
 
-# Poll the actions API directly — it requires the license to be loaded from ES.
-# Kibana's actions plugin returns 403 with "license information is not available"
-# until its licensing subscription fires (usually a few seconds after "available",
-# but can be longer on cold starts).  Polling the real endpoint is more reliable
-# than a fixed sleep.
-echo "--- Waiting for Kibana actions API (license must be loaded)"
+# Wait for the actions and alerting plugins to be individually "available" by
+# polling /api/status.  That endpoint always returns HTTP 200, so it never
+# causes the 500 Server Error noise in Kibana logs that polling the actions
+# endpoint directly does (the actions HTTP context isn't wired until slightly
+# after overall "available", returning 500 during that window).
+# Fleet being degraded shows up only in plugins.fleet — it does not affect
+# plugins.actions or plugins.alerting.
+echo "--- Waiting for actions + alerting plugins to be available"
 RETRIES=0
 MAX_RETRIES=60
-until curl -sf -u "elastic:${ES_PASSWORD}" \
-    "http://${KB_HOST}:5601/api/actions/connector_types" > /dev/null 2>&1; do
+until curl -sf -u "elastic:${ES_PASSWORD}" "http://${KB_HOST}:5601/api/status" \
+    | jq -e '
+        (.status.plugins.actions.level   // "") == "available" and
+        (.status.plugins.alerting.level  // "") == "available"
+      ' > /dev/null 2>&1; do
   RETRIES=$((RETRIES + 1))
   if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
-    echo "Kibana actions API did not become ready in time"
-    echo "Last response:"
-    curl -u "elastic:${ES_PASSWORD}" \
-        "http://${KB_HOST}:5601/api/actions/connector_types" 2>&1 || true
+    echo "Actions/alerting plugins did not reach 'available' in time"
+    echo "Last plugin statuses:"
+    curl -sf -u "elastic:${ES_PASSWORD}" "http://${KB_HOST}:5601/api/status" \
+      | jq '.status.plugins | with_entries(select(.value.level != "available"))' 2>&1 || true
     exit 1
   fi
   if [ $((RETRIES % 10)) -eq 0 ]; then
-    echo "  still waiting for actions API... (${RETRIES}/${MAX_RETRIES})"
+    echo "  still waiting... (${RETRIES}/${MAX_RETRIES})"
   fi
   sleep 2
 done
