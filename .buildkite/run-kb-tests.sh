@@ -59,8 +59,7 @@ docker network create "$NETWORK_NAME" 2>/dev/null || true
 
 # Use fixed dummy values so the CLI config can reference them without secrets management.
 ES_PASSWORD="changeme"
-# Dummy key used only for local/CI testing — not a real secret. # gitleaks:allow
-KIBANA_ENCRYPTION_KEY="xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj"
+KIBANA_ENCRYPTION_KEY="xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj" # gitleaks:allow
 
 echo "--- Starting Elasticsearch ${STACK_VERSION}"
 docker run \

@@ -1,0 +1,8 @@
+[extend]
+# Extend the default gitleaks ruleset.
+useDefault = true
+
+[[allowlist]]
+description = "Dummy Kibana encryption key used only in CI test scripts"
+regexTarget = "line"
+regex = '''xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj'''
