@@ -78,6 +78,7 @@ docker run \
   --env "xpack.license.self_generated.type=trial" \
   --env "action.destructive_requires_name=false" \
   --env "ELASTIC_PASSWORD=${ES_PASSWORD}" \
+  --env "xpack.security.http.ssl.enabled=false" \
   --env "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
   --detach \
   --rm \
