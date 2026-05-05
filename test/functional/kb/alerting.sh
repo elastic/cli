@@ -31,8 +31,8 @@ output=$($CLI stack kb alerting post-alerting-rule-id \
   --rule-type-id ".es-query" \
   --schedule '{"interval":"1m"}' \
   --params "$RULE_PARAMS" \
-  --json 2>/dev/null) \
-  || { echo "FAIL: alerting create — command failed"; exit 1; }
+  --json 2>/tmp/cli-err.txt) \
+  || { echo "FAIL: alerting create — command failed"; cat /tmp/cli-err.txt; exit 1; }
 [ "$(echo "$output" | jq -r '.id')" = "$RULE_ID" ] \
   || { echo "FAIL: alerting create — id mismatch"; exit 1; }
 [ "$(echo "$output" | jq -r '.name')" = "CLI FT Rule" ] \

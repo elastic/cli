@@ -112,11 +112,29 @@ until curl -sf -u "elastic:${ES_PASSWORD}" "http://${KB_HOST}:5601/api/status" \
 done
 echo "Kibana core is ready"
 
-# Give essential plugins (alerting, actions) a moment to finish initialising
-# after the overall status flips to "available". Fleet may be retrying in the
-# background (it needs an encrypted API key for agent binary source) but that
-# does not block the plugins we actually test.
-sleep 15
+# Poll the actions API directly — it requires the license to be loaded from ES.
+# Kibana's actions plugin returns 403 with "license information is not available"
+# until its licensing subscription fires (usually a few seconds after "available",
+# but can be longer on cold starts).  Polling the real endpoint is more reliable
+# than a fixed sleep.
+echo "--- Waiting for Kibana actions API (license must be loaded)"
+RETRIES=0
+MAX_RETRIES=60
+until curl -sf -u "elastic:${ES_PASSWORD}" \
+    "http://${KB_HOST}:5601/api/actions/connector_types" > /dev/null 2>&1; do
+  RETRIES=$((RETRIES + 1))
+  if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
+    echo "Kibana actions API did not become ready in time"
+    echo "Last response:"
+    curl -u "elastic:${ES_PASSWORD}" \
+        "http://${KB_HOST}:5601/api/actions/connector_types" 2>&1 || true
+    exit 1
+  fi
+  if [ $((RETRIES % 10)) -eq 0 ]; then
+    echo "  still waiting for actions API... (${RETRIES}/${MAX_RETRIES})"
+  fi
+  sleep 2
+done
 echo "Kibana is ready"
 
 echo "--- Generating CLI config file"

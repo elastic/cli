@@ -68,8 +68,8 @@ export const connectorsApis: KbApiDefinition[] = [
     bodyParams: [
     { name: "connector_type_id", type: "string", description: "The type of connector.", required: true },
     { name: "name", type: "string", description: "The display name for the connector.", required: true },
-    { name: "config", cliFlag: "kb-config", type: "string", description: "The connector configuration details." },
-    { name: "secrets", type: "string", description: "" },
+    { name: "config", cliFlag: "kb-config", type: "object", description: "The connector configuration details." },
+    { name: "secrets", type: "object", description: "" },
     ],
   },
   {
@@ -83,8 +83,8 @@ export const connectorsApis: KbApiDefinition[] = [
     ],
     bodyParams: [
     { name: "name", type: "string", description: "The display name for the connector.", required: true },
-    { name: "config", cliFlag: "kb-config", type: "string", description: "The connector configuration details." },
-    { name: "secrets", type: "string", description: "" },
+    { name: "config", cliFlag: "kb-config", type: "object", description: "The connector configuration details." },
+    { name: "secrets", type: "object", description: "" },
     ],
   },
   {
@@ -97,7 +97,7 @@ export const connectorsApis: KbApiDefinition[] = [
     { name: "id", description: "An identifier for the connector.", required: true },
     ],
     bodyParams: [
-    { name: "params", type: "string", description: "", required: true },
+    { name: "params", type: "object", description: "", required: true },
     ],
   },
   {

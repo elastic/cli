@@ -23,8 +23,8 @@ trap teardown EXIT
 
 # ── list connector types ───────────────────────────────────────────────
 
-output=$($CLI stack kb connectors get-actions-connector-types --json 2>/dev/null) \
-  || { echo "FAIL: connectors list-types — command failed"; exit 1; }
+output=$($CLI stack kb connectors get-actions-connector-types --json 2>/tmp/cli-err.txt) \
+  || { echo "FAIL: connectors list-types — command failed"; cat /tmp/cli-err.txt; exit 1; }
 count=$(echo "$output" | jq 'length')
 [ "$count" -gt 0 ] || { echo "FAIL: connectors list-types — empty list"; exit 1; }
 
@@ -44,8 +44,8 @@ output=$($CLI stack kb connectors post-actions-connector-id \
   --connector-type-id ".index" \
   --name "CLI FT Index Connector" \
   --kb-config '{"index":"cli-ft-connector-*"}' \
-  --json 2>/dev/null) \
-  || { echo "FAIL: connectors create — command failed"; exit 1; }
+  --json 2>/tmp/cli-err.txt) \
+  || { echo "FAIL: connectors create — command failed"; cat /tmp/cli-err.txt; exit 1; }
 [ "$(echo "$output" | jq -r '.id')" = "$CONNECTOR_UUID" ] \
   || { echo "FAIL: connectors create — id mismatch"; exit 1; }
 [ "$(echo "$output" | jq -r '.name')" = "CLI FT Index Connector" ] \

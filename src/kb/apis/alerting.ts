@@ -54,7 +54,7 @@ export const alertingApis: KbApiDefinition[] = [
     { name: "schedule", type: "object", description: "The check interval, which specifies how frequently the rule conditions are checked.", required: true },
     { name: "tags", type: "array", description: "The tags for the rule." },
     { name: "throttle", type: "string", description: "Use the `throttle` property in the action `frequency` object instead. The throttle interval, which defines how often an alert generates repeated actions. NOTE: You cannot specify the throttle interval at both the rule and action level. If you set it at the rule level then update the rule in Kibana, it is automatically changed to use action-specific values." },
-    { name: "params", type: "string", description: "The parameters for the rule." },
+    { name: "params", type: "object", description: "The parameters for the rule." },
     ],
   },
   {
