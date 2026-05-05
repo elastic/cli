@@ -33,6 +33,7 @@ function request(method, path, body) {
         });
       }
     );
+    req.setTimeout(5000, () => { req.destroy(new Error('request timed out')); });
     req.on('error', reject);
     if (data) req.write(data);
     req.end();
