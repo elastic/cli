@@ -57,8 +57,10 @@ npm link
 echo "--- Creating Docker network"
 docker network create "$NETWORK_NAME" 2>/dev/null || true
 
-# Use a fixed password so the CLI config can reference it without secrets management.
+# Use fixed dummy values so the CLI config can reference them without secrets management.
 ES_PASSWORD="changeme"
+# Dummy key used only for local/CI testing — not a real secret. # gitleaks:allow
+KIBANA_ENCRYPTION_KEY="xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj"
 
 echo "--- Starting Elasticsearch ${STACK_VERSION}"
 docker run \
@@ -97,9 +99,9 @@ docker run \
   --env "ELASTICSEARCH_HOSTS=http://elasticsearch:9200" \
   --env "ELASTICSEARCH_USERNAME=elastic" \
   --env "ELASTICSEARCH_PASSWORD=${ES_PASSWORD}" \
-  --env "xpack.encryptedSavedObjects.encryptionKey=xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj" \
-  --env "xpack.reporting.encryptionKey=xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj" \
-  --env "xpack.security.encryptionKey=xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj" \
+  --env "xpack.encryptedSavedObjects.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
+  --env "xpack.reporting.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
+  --env "xpack.security.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
   --detach \
   --rm \
   "docker.elastic.co/kibana/kibana:${STACK_VERSION}"
