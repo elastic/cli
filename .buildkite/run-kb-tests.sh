@@ -3,21 +3,22 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Buildkite entry point for Kibana functional tests.
-# Starts Elasticsearch and Kibana containers in the background, then builds the
-# CLI concurrently, and runs the hand-authored KB test suite once everything is ready.
+# Starts Elasticsearch and Kibana using --network host so both services are
+# reachable at localhost:9200 and localhost:5601 from the host — no Docker
+# port publishing or bridge routing needed. This mirrors how Kibana's own CI
+# runs ES natively (via node scripts/es snapshot) and avoids iptables/nftables
+# issues present on Ubuntu 24.04 agents.
 
 set -euo pipefail
 
 STACK_VERSION="${STACK_VERSION:-9.3.0}"
 ES_CONTAINER_NAME="elastic-cli-kb-es"
 KB_CONTAINER_NAME="elastic-cli-kb"
-NETWORK_NAME="elastic-cli-kb-net"
 
 cleanup() {
   echo "--- Cleaning up"
   docker rm -f "$KB_CONTAINER_NAME" 2>/dev/null || true
   docker rm -f "$ES_CONTAINER_NAME" 2>/dev/null || true
-  docker network rm "$NETWORK_NAME" 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -32,15 +33,15 @@ KB_IMAGE="docker.elastic.co/kibana/kibana:${STACK_VERSION}"
 # Start containers as early as possible so ES and Kibana boot in the background
 # while npm install + build run.
 #
-# Note: we do NOT use --publish to expose ports on the host. Ubuntu 24.04 agents
-# use nftables, which can break Docker port publishing. Instead we connect directly
-# to the container IPs on the bridge network, which always works on Linux hosts.
-
-echo "--- Creating Docker network"
-docker network create "$NETWORK_NAME" 2>/dev/null || true
+# Both containers use --network host so they bind directly to the host's network
+# stack. This means:
+#   - ES is reachable at localhost:9200 from the host and from Kibana
+#   - Kibana is reachable at localhost:5601 from the host
+#   - No iptables/nftables port forwarding rules are needed
+# This is functionally equivalent to Kibana's approach of running ES natively.
 
 # Use the pre-cached ES snapshot on kibana-ubuntu-2404 agents if available,
-# otherwise fall back to a registry pull (same technique as Kibana's kbn-es tooling).
+# otherwise fall back to a registry pull.
 echo "--- Loading Elasticsearch image"
 ES_CACHE_DIR="${ES_CACHE_DIR:-}"
 if [[ -n "$ES_CACHE_DIR" ]] && compgen -G "$ES_CACHE_DIR/elasticsearch-$STACK_VERSION*.tar.gz" > /dev/null 2>&1; then
@@ -56,8 +57,7 @@ docker pull "$KB_IMAGE"
 echo "--- Starting Elasticsearch ${STACK_VERSION} (background)"
 docker run \
   --name "$ES_CONTAINER_NAME" \
-  --network "$NETWORK_NAME" \
-  --network-alias elasticsearch \
+  --network host \
   --env "discovery.type=single-node" \
   --env "xpack.license.self_generated.type=trial" \
   --env "action.destructive_requires_name=false" \
@@ -67,13 +67,12 @@ docker run \
   --rm \
   "$ES_IMAGE"
 
-# Start Kibana immediately alongside ES — Kibana will retry the ES connection
-# until ES is ready, so the order doesn't matter for correctness.
+# Kibana connects to ES at localhost:9200 since both share the host network.
 echo "--- Starting Kibana ${STACK_VERSION} (background)"
 docker run \
   --name "$KB_CONTAINER_NAME" \
-  --network "$NETWORK_NAME" \
-  --env "ELASTICSEARCH_HOSTS=http://elasticsearch:9200" \
+  --network host \
+  --env "ELASTICSEARCH_HOSTS=http://localhost:9200" \
   --env "ELASTICSEARCH_USERNAME=elastic" \
   --env "ELASTICSEARCH_PASSWORD=${ES_PASSWORD}" \
   --env "xpack.encryptedSavedObjects.encryptionKey=${KIBANA_ENCRYPTION_KEY}" \
@@ -82,14 +81,6 @@ docker run \
   --detach \
   --rm \
   "$KB_IMAGE"
-
-# Resolve container IPs on the Docker bridge network.
-# We use these directly instead of published ports to avoid iptables/nftables issues
-# on Ubuntu 24.04 agents. On Linux the host can always reach bridge network IPs.
-ES_IP=$(docker inspect --format='{{(index .NetworkSettings.Networks "'"$NETWORK_NAME"'").IPAddress}}' "$ES_CONTAINER_NAME")
-KB_IP=$(docker inspect --format='{{(index .NetworkSettings.Networks "'"$NETWORK_NAME"'").IPAddress}}' "$KB_CONTAINER_NAME")
-echo "Elasticsearch IP: ${ES_IP}"
-echo "Kibana IP: ${KB_IP}"
 
 # ── Build CLI (runs concurrently with ES + Kibana startup) ──────────────────
 
@@ -131,7 +122,7 @@ npm link
 echo "--- Waiting for Elasticsearch to be healthy"
 RETRIES=0
 MAX_RETRIES=180
-until curl -sf -u "elastic:${ES_PASSWORD}" "http://${ES_IP}:9200/_cluster/health" > /dev/null 2>&1; do
+until curl -sf -u "elastic:${ES_PASSWORD}" "http://localhost:9200/_cluster/health" > /dev/null 2>&1; do
   RETRIES=$((RETRIES + 1))
   if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
     echo "Elasticsearch did not become healthy in time after $((MAX_RETRIES * 2))s"
@@ -153,7 +144,7 @@ echo "--- Waiting for Elasticsearch security index to be ready"
 RETRIES=0
 MAX_RETRIES=60
 until curl -sf -u "elastic:${ES_PASSWORD}" \
-    -X POST "http://${ES_IP}:9200/_security/api_key" \
+    -X POST "http://localhost:9200/_security/api_key" \
     -H "Content-Type: application/json" \
     -d '{"name":"healthcheck","expiration":"1m"}' > /dev/null 2>&1; do
   RETRIES=$((RETRIES + 1))
@@ -169,7 +160,7 @@ echo "Elasticsearch is ready"
 echo "--- Waiting for Kibana to be healthy"
 RETRIES=0
 MAX_RETRIES=90
-until curl -sf -u "elastic:${ES_PASSWORD}" "http://${KB_IP}:5601/api/status" \
+until curl -sf -u "elastic:${ES_PASSWORD}" "http://localhost:5601/api/status" \
       | jq -e '.status.overall.level == "available"' > /dev/null 2>&1; do
   RETRIES=$((RETRIES + 1))
   if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
@@ -185,8 +176,8 @@ echo "Kibana core is ready"
 echo "--- Waiting for alerting and actions plugins to be ready"
 RETRIES=0
 MAX_RETRIES=30
-until curl -sf -u "elastic:${ES_PASSWORD}" "http://${KB_IP}:5601/api/actions/connector_types" > /dev/null 2>&1 && \
-      curl -sf -u "elastic:${ES_PASSWORD}" "http://${KB_IP}:5601/api/alerting/rules/_find" > /dev/null 2>&1; do
+until curl -sf -u "elastic:${ES_PASSWORD}" "http://localhost:5601/api/actions/connector_types" > /dev/null 2>&1 && \
+      curl -sf -u "elastic:${ES_PASSWORD}" "http://localhost:5601/api/alerting/rules/_find" > /dev/null 2>&1; do
   RETRIES=$((RETRIES + 1))
   if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
     echo "Alerting/actions plugins did not become ready in time"
@@ -205,12 +196,12 @@ cat > "$CI_CONFIG_FILE" <<EOF
 contexts:
   ci:
     elasticsearch:
-      url: http://${ES_IP}:9200
+      url: http://localhost:9200
       auth:
         username: elastic
         password: "${ES_PASSWORD}"
     kibana:
-      url: http://${KB_IP}:5601
+      url: http://localhost:5601
       auth:
         username: elastic
         password: "${ES_PASSWORD}"
