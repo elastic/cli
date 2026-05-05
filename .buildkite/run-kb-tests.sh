@@ -142,7 +142,7 @@ docker run \
   --volume "$(pwd):/workspace:ro" \
   --env "ES_PASSWORD=${ES_PASSWORD}" \
   "$NODE_RUNNER_IMAGE" \
-  node /workspace/.buildkite/setup-kibana.js
+  node /workspace/.buildkite/setup-kibana.cjs
 
 # ── Start Kibana ─────────────────────────────────────────────────────────────
 

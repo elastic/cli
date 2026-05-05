@@ -1,4 +1,6 @@
-'use strict';
+// Copyright Elasticsearch B.V. and contributors
+// SPDX-License-Identifier: Apache-2.0
+//
 // Runs inside a Node.js container on the same Docker network as Elasticsearch.
 // Waits for ES to be fully ready (cluster health + security index), then sets
 // the kibana_system password so Kibana can connect as that user.
