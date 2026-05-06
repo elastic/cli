@@ -8,8 +8,6 @@ import { createRequire } from 'node:module'
 
 const require = createRequire(import.meta.url)
 const cliVersion: string = (require('../../package.json') as { version: string }).version
-const transportVersion: string = (require('@elastic/transport/package.json') as { version: string }).version
-const undiciVersion: string = (require('undici/package.json') as { version: string }).version
 
 /**
  * Converts a semver string to the format required by the x-elastic-client-meta spec.
@@ -19,18 +17,20 @@ export function toMetaVersion(version: string): string {
   return version.replace(/-.*$/, 'p')
 }
 
+const _metaVersion = toMetaVersion(cliVersion)
+const _clientHeaders = {
+  'user-agent': `elastic-cli/${cliVersion} (${os.platform()} ${os.arch()}; Node.js ${process.version})`,
+  'x-elastic-client-meta': `et=${_metaVersion},js=${process.versions.node},t=${_metaVersion}`,
+}
+
 /**
  * Returns HTTP headers that uniquely identify CLI traffic.
  *
  * - `user-agent` — human-readable identifier: CLI name/version, OS, and Node.js version
  * - `x-elastic-client-meta` — structured key=value pairs per the Elastic client-meta spec:
- *   service key (`et`), language key (`js`), transport key (`t`), HTTP client key (`un`)
- *
- * These override the generic defaults set by `@elastic/transport`.
+ *   service key (`et`), language key (`js`), transport key (`t`).
+ *   Per spec, when there is no separate transport library `t` equals the client version.
  */
 export function clientHeaders(): { 'user-agent': string; 'x-elastic-client-meta': string } {
-  const userAgent = `elastic-cli/${cliVersion} (${os.platform()} ${os.arch()}; Node.js ${process.version})`
-  const metaVersion = toMetaVersion(cliVersion)
-  const clientMeta = `et=${metaVersion},js=${process.versions.node},t=${transportVersion},un=${undiciVersion}`
-  return { 'user-agent': userAgent, 'x-elastic-client-meta': clientMeta }
+  return _clientHeaders
 }

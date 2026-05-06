@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TransportRequestParams } from '@elastic/transport'
+import type { EsRequestParams } from '../lib/es-client.ts'
 import type { EsApiDefinition } from './types.ts'
 import type { SchemaArgDefinition } from '../lib/schema-args.ts'
 import type { RawJsonValue, ParsedResult } from '../factory.ts'
@@ -23,13 +23,13 @@ import type { RawJsonValue, ParsedResult } from '../factory.ts'
  * @param def - the API definition describing the endpoint
  * @param parsed - the CLI-parsed result; all API params live in `parsed.input`
  * @param schemaArgs - arg definitions extracted from `def.input` at registration time
- * @returns `TransportRequestParams` ready to pass to `transport.request()`
+ * @returns `EsRequestParams` ready to pass to `EsClient.request()`
  */
 export function buildRequestParams (
   def: EsApiDefinition,
   parsed: ParsedResult,
   schemaArgs: SchemaArgDefinition[]
-): TransportRequestParams {
+): EsRequestParams {
   const input = (parsed.input ?? {}) as Record<string, unknown>
   const rawBody = parsed.rawBodyValues ?? {}
 
@@ -47,7 +47,7 @@ export function buildRequestParams (
     if (idArg != null && input[idArg.schemaKey] === undefined) method = 'POST'
   }
 
-  const params: TransportRequestParams = { method, path }
+  const params: EsRequestParams = { method, path }
   if (Object.keys(querystring).length > 0) params.querystring = querystring
 
   if (body !== undefined) {
@@ -56,7 +56,7 @@ export function buildRequestParams (
     } else if (def.bodyFormat === 'ndjson') {
       params.bulkBody = toNdjson(body)
     } else {
-      params.body = body as NonNullable<TransportRequestParams['body']>
+      params.body = body
     }
   }
   return params

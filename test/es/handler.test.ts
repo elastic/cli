@@ -5,8 +5,8 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { errors } from '@elastic/transport'
-import type { Transport, TransportRequestParams } from '@elastic/transport'
+import { EsClient, EsResponseError, EsConnectionError } from '../../src/lib/es-client.ts'
+import type { EsRequestParams } from '../../src/lib/es-client.ts'
 import type { EsApiDefinition } from '../../src/es/types.ts'
 import { createEsHandler } from '../../src/es/handler.ts'
 import type { EsHandlerDeps } from '../../src/es/handler.ts'
@@ -31,13 +31,13 @@ function parsedInput(
   return { options, input }
 }
 
-const BUILT_PARAMS: TransportRequestParams = { method: 'GET', path: '/_cat/health' }
+const BUILT_PARAMS: EsRequestParams = { method: 'GET', path: '/_cat/health' }
 
 /** makes a deps stub with sensible defaults overridable per-test */
 function makeDeps(overrides: Partial<EsHandlerDeps> = {}): EsHandlerDeps {
   return {
     buildRequestParams: () => BUILT_PARAMS,
-    getTransport: () => ({ request: async () => 'ok' } as unknown as Transport),
+    getEsClient: () => ({ request: async () => 'ok' } as unknown as EsClient),
     ...overrides,
   }
 }
@@ -54,20 +54,6 @@ function spy<T extends (...args: never[]) => unknown>(fn: T): T & { calls: Param
   }) as T & { calls: Parameters<T>[] }
   wrapper.calls = calls
   return wrapper
-}
-
-function makeDiagnostic (url: string) {
-  return {
-    body: null,
-    statusCode: null,
-    headers: {},
-    warnings: null,
-    meta: {
-      context: null, name: 'test', attempts: 1, aborted: false,
-      request: { params: { method: 'GET', path: '/' }, options: {}, id: 1 },
-      connection: { url: new URL(url) },
-    },
-  }
 }
 
 describe('createEsHandler', () => {
@@ -88,7 +74,7 @@ describe('createEsHandler', () => {
   it('calls transport.request() with the params from buildRequestParams', async () => {
     const requestSpy = spy(async () => 'green\n')
     const deps = makeDeps({
-      getTransport: () => ({ request: requestSpy } as unknown as Transport),
+      getEsClient: () => ({ request: requestSpy } as unknown as EsClient),
     })
 
     const handler = createEsHandler(makeDef(), [], deps)
@@ -100,7 +86,7 @@ describe('createEsHandler', () => {
 
   it('returns raw body string for responseType: text', async () => {
     const deps = makeDeps({
-      getTransport: () => ({ request: async () => 'green\n' } as unknown as Transport),
+      getEsClient: () => ({ request: async () => 'green\n' } as unknown as EsClient),
     })
 
     const handler = createEsHandler(makeDef({ responseType: 'text' }), [], deps)
@@ -111,7 +97,7 @@ describe('createEsHandler', () => {
   it('returns parsed body object for responseType: json', async () => {
     const responseBody = { status: 'green', number_of_nodes: 3 }
     const deps = makeDeps({
-      getTransport: () => ({ request: async () => responseBody } as unknown as Transport),
+      getEsClient: () => ({ request: async () => responseBody } as unknown as EsClient),
     })
 
     const handler = createEsHandler(makeDef({ responseType: 'json' }), [], deps)
@@ -122,7 +108,7 @@ describe('createEsHandler', () => {
   it('defaults to json responseType when responseType is omitted', async () => {
     const responseBody = { status: 'green' }
     const deps = makeDeps({
-      getTransport: () => ({ request: async () => responseBody } as unknown as Transport),
+      getEsClient: () => ({ request: async () => responseBody } as unknown as EsClient),
     })
 
     const handler = createEsHandler(makeDef({ responseType: undefined }), [], deps)
@@ -130,9 +116,9 @@ describe('createEsHandler', () => {
     assert.deepEqual(result, responseBody)
   })
 
-  it('returns structured missing_config error when getTransport throws', async () => {
+  it('returns structured missing_config error when getEsClient throws', async () => {
     const deps = makeDeps({
-      getTransport: () => {
+      getEsClient: () => {
         throw new Error('missing_config: No Elasticsearch connection configured in the active context.')
       },
     })
@@ -146,24 +132,13 @@ describe('createEsHandler', () => {
     assert.match(err['message'] as string, /missing_config/)
   })
 
-  it('returns transport_error with status code and ES body for ResponseError', async () => {
+  it('returns transport_error with status code and ES body for EsResponseError', async () => {
     const esErrorBody = { error: { type: 'index_not_found_exception', reason: 'no such index' }, status: 404 }
-    const diagResult = {
-      body: esErrorBody,
-      statusCode: 404,
-      headers: {},
-      warnings: null,
-      meta: {
-        context: null, name: 'test', attempts: 1, aborted: false,
-        request: { params: { method: 'GET', path: '/' }, options: {}, id: 1 },
-        connection: null,
-      },
-    }
-    const responseError = new errors.ResponseError(diagResult as never)
+    const responseError = new EsResponseError(404, esErrorBody)
     const deps = makeDeps({
-      getTransport: () => ({
+      getEsClient: () => ({
         request: async () => { throw responseError },
-      } as unknown as Transport),
+      } as unknown as EsClient),
     })
 
     const handler = createEsHandler(makeDef(), [], deps)
@@ -175,11 +150,11 @@ describe('createEsHandler', () => {
     assert.deepEqual(err['body'], esErrorBody)
   })
 
-  it('returns connection_error with message for ConnectionError with non-empty message', async () => {
+  it('returns connection_error for EsConnectionError', async () => {
     const deps = makeDeps({
-      getTransport: () => ({
-        request: async () => { throw new errors.ConnectionError('Connection refused') },
-      } as unknown as Transport),
+      getEsClient: () => ({
+        request: async () => { throw new EsConnectionError('Connection refused') },
+      } as unknown as EsClient),
     })
 
     const handler = createEsHandler(makeDef(), [], deps)
@@ -190,12 +165,11 @@ describe('createEsHandler', () => {
     assert.equal(err['message'], 'Connection refused')
   })
 
-  it('returns connection_error with URL from meta when message is empty', async () => {
-    const connErr = new errors.ConnectionError('', makeDiagnostic('http://localhost:19999') as never)
+  it('returns connection_error with fallback message for empty EsConnectionError', async () => {
     const deps = makeDeps({
-      getTransport: () => ({
-        request: async () => { throw connErr },
-      } as unknown as Transport),
+      getEsClient: () => ({
+        request: async () => { throw new EsConnectionError('') },
+      } as unknown as EsClient),
     })
 
     const handler = createEsHandler(makeDef(), [], deps)
@@ -203,61 +177,14 @@ describe('createEsHandler', () => {
 
     const err = result['error'] as Record<string, unknown>
     assert.equal(err['code'], 'connection_error')
-    assert.equal(err['message'], 'connection failed (http://localhost:19999/)')
+    assert.ok((err['message'] as string).length > 0)
   })
 
-  it('includes both message and URL when ConnectionError has both', async () => {
-    const connErr = new errors.ConnectionError('Connection refused', makeDiagnostic('http://localhost:19999') as never)
+  it('returns transport_error with message for generic errors', async () => {
     const deps = makeDeps({
-      getTransport: () => ({
-        request: async () => { throw connErr },
-      } as unknown as Transport),
-    })
-
-    const handler = createEsHandler(makeDef(), [], deps)
-    const result = await handler(parsedInput()) as Record<string, unknown>
-
-    const err = result['error'] as Record<string, unknown>
-    assert.equal(err['code'], 'connection_error')
-    assert.equal(err['message'], 'Connection refused (http://localhost:19999/)')
-  })
-
-  it('returns connection_error with fallback message when both message and cause are empty', async () => {
-    const connErr = new errors.ConnectionError('')
-    const deps = makeDeps({
-      getTransport: () => ({
-        request: async () => { throw connErr },
-      } as unknown as Transport),
-    })
-
-    const handler = createEsHandler(makeDef(), [], deps)
-    const result = await handler(parsedInput()) as Record<string, unknown>
-
-    const err = result['error'] as Record<string, unknown>
-    assert.equal(err['code'], 'connection_error')
-    assert.ok((err['message'] as string).length > 0, 'message should not be empty')
-  })
-
-  it('returns timeout_error for TimeoutError', async () => {
-    const deps = makeDeps({
-      getTransport: () => ({
-        request: async () => { throw new errors.TimeoutError('Request timed out') },
-      } as unknown as Transport),
-    })
-
-    const handler = createEsHandler(makeDef(), [], deps)
-    const result = await handler(parsedInput()) as Record<string, unknown>
-
-    const err = result['error'] as Record<string, unknown>
-    assert.equal(err['code'], 'timeout_error')
-    assert.equal(err['message'], 'Request timed out')
-  })
-
-  it('returns transport_error with message for non-ResponseError non-ConnectionError errors', async () => {
-    const deps = makeDeps({
-      getTransport: () => ({
+      getEsClient: () => ({
         request: async () => { throw new Error('something unexpected') },
-      } as unknown as Transport),
+      } as unknown as EsClient),
     })
 
     const handler = createEsHandler(makeDef(), [], deps)
@@ -269,15 +196,15 @@ describe('createEsHandler', () => {
   })
 
   it('injects format=json and parses as JSON when --json is active with responseType: text (#88)', async () => {
-    const capturedParams: TransportRequestParams[] = []
+    const capturedParams: EsRequestParams[] = []
     const jsonBody = [{ alias: '.kibana', index: '.kibana_1' }]
     const deps = makeDeps({
-      getTransport: () => ({
-        request: async (params: TransportRequestParams) => {
+      getEsClient: () => ({
+        request: async (params: EsRequestParams) => {
           capturedParams.push(params)
           return jsonBody
         },
-      } as unknown as Transport),
+      } as unknown as EsClient),
       buildRequestParams: () => ({ method: 'GET', path: '/_cat/aliases' }),
     })
 
@@ -289,14 +216,14 @@ describe('createEsHandler', () => {
   })
 
   it('does not inject format=json when --json is not active with responseType: text', async () => {
-    const capturedParams: TransportRequestParams[] = []
+    const capturedParams: EsRequestParams[] = []
     const deps = makeDeps({
-      getTransport: () => ({
-        request: async (params: TransportRequestParams) => {
+      getEsClient: () => ({
+        request: async (params: EsRequestParams) => {
           capturedParams.push(params)
           return 'green\n'
         },
-      } as unknown as Transport),
+      } as unknown as EsClient),
       buildRequestParams: () => ({ method: 'GET', path: '/_cat/health' }),
     })
 
@@ -308,15 +235,15 @@ describe('createEsHandler', () => {
   })
 
   it('does not inject format=json for responseType: json even with --json', async () => {
-    const capturedParams: TransportRequestParams[] = []
+    const capturedParams: EsRequestParams[] = []
     const jsonBody = { status: 'green' }
     const deps = makeDeps({
-      getTransport: () => ({
-        request: async (params: TransportRequestParams) => {
+      getEsClient: () => ({
+        request: async (params: EsRequestParams) => {
           capturedParams.push(params)
           return jsonBody
         },
-      } as unknown as Transport),
+      } as unknown as EsClient),
       buildRequestParams: () => ({ method: 'GET', path: '/_cluster/health' }),
     })
 

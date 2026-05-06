@@ -8,7 +8,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import type { Transport, TransportRequestParams } from '@elastic/transport'
+import type { EsClient, EsRequestParams } from '../../../src/lib/es-client.ts'
 import { createScrollSearchCommand } from '../../../src/es/helpers/scroll-search.ts'
 import type { ScrollSearchDeps } from '../../../src/es/helpers/scroll-search.ts'
 import { _testSetStdinReader } from '../../../src/factory.ts'
@@ -20,19 +20,19 @@ interface MockResponse {
 }
 
 function mockTransport (responses: MockResponse[]): {
-  transport: Transport
-  requests: Array<{ params: TransportRequestParams }>
+  transport: EsClient
+  requests: Array<{ params: EsRequestParams }>
 } {
-  const requests: Array<{ params: TransportRequestParams }> = []
+  const requests: Array<{ params: EsRequestParams }> = []
   let callIndex = 0
   const transport = {
-    request: async (params: TransportRequestParams) => {
+    request: async (params: EsRequestParams) => {
       requests.push({ params })
       const response = responses[callIndex] ?? { hits: { hits: [] } }
       callIndex++
       return response
     }
-  } as unknown as Transport
+  } as unknown as EsClient
   return { transport, requests }
 }
 
@@ -51,9 +51,9 @@ function captureOutput (): { stdout: { write: (s: string) => boolean, chunks: st
   }
 }
 
-function makeDeps (transport: Transport, output?: ReturnType<typeof captureOutput>): ScrollSearchDeps {
+function makeDeps (transport: EsClient, output?: ReturnType<typeof captureOutput>): ScrollSearchDeps {
   const io = output ?? captureOutput()
-  return { getTransport: () => transport, stdout: io.stdout, stderr: io.stderr }
+  return { getEsClient: () => transport, stdout: io.stdout, stderr: io.stderr }
 }
 
 async function runCommand (args: string[], deps: ScrollSearchDeps): Promise<{ result: unknown, stdout: string[], stderr: string[] }> {
@@ -243,7 +243,7 @@ describe('scroll-search command', () => {
     const output = captureOutput()
     let deleteCallCount = 0
     const transport = {
-      request: async (params: TransportRequestParams) => {
+      request: async (params: EsRequestParams) => {
         if (params.method === 'DELETE') {
           deleteCallCount++
           return {}
@@ -253,7 +253,7 @@ describe('scroll-search command', () => {
         }
         return { _scroll_id: 'scroll-err', hits: { hits: [{ _source: { a: 1 } }] } }
       }
-    } as unknown as Transport
+    } as unknown as EsClient
 
     await runCommand(
       ['--index', 'test-idx', '--query', '{}', '--json'],
@@ -266,7 +266,7 @@ describe('scroll-search command', () => {
   it('returns missing_config error when transport is not configured', async () => {
     const output = captureOutput()
     const deps: ScrollSearchDeps = {
-      getTransport: () => { throw new Error('missing_config: no ES configured') },
+      getEsClient: () => { throw new Error('missing_config: no ES configured') },
       stdout: output.stdout,
       stderr: output.stderr
     }
