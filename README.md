@@ -107,15 +107,15 @@ For agent/LLM workflows, `serverless projects create` and `reset-credentials`
 accept `--save-as <context>` to avoid leaking admin credentials through stdout:
 
 ```bash
-elastic cloud serverless es projects create --wait --save-as scratch \
+elastic cloud serverless projects search create --wait --save-as scratch \
   --name scratch-es --region-id aws-us-east-1
 
 # stdout has endpoints + a `savedAs: scratch` marker, password is redacted.
 # The keychain now holds scratch:elasticsearch.auth.password etc.
-elastic --use-context scratch stack es indices list
+elastic --use-context scratch es indices list
 
 # Rotate creds; URL stays, only the password moves.
-elastic cloud serverless es projects reset-credentials --id <id> \
+elastic cloud serverless projects search reset-credentials --id <id> \
   --save-as scratch --force
 ```
 
@@ -235,22 +235,24 @@ elastic version
 elastic --json version
 ```
 
-### `stack` - Elastic Stack
+### `stack` / `es` / `kb` - Elastic Stack
 
-Interact with Elastic Stack components. Both `stack es` (Elasticsearch) and
-`stack kb` (Kibana) are available. Full-name aliases also work:
+Interact with Elastic Stack components. `es` and `kb` work as top-level
+shortcuts alongside the full `stack es` / `stack kb` paths:
 
 ```bash
+elastic es --help                # same as: elastic stack es --help
+elastic kb --help                # same as: elastic stack kb --help
 elastic stack --help
 elastic stack es --help          # or: elastic stack elasticsearch --help
 elastic stack kb --help          # or: elastic stack kibana --help
 ```
 
-#### `stack es` - Elasticsearch API
+#### `es` - Elasticsearch API
 
 Run Elasticsearch API calls. Commands map directly to Elasticsearch API endpoints.
 
-All `stack es` subcommands support:
+All `es` subcommands support:
 
 | Option | Description |
 |---|---|
@@ -281,28 +283,28 @@ All `stack es` subcommands support:
 - `tasks` - task management
 - `transform` - transforms
 
-**Top-level `stack es` commands** (examples):
+**Top-level `es` commands** (examples):
 
 ```bash
-elastic stack es search --index my-index
-elastic stack es get --index my-index --id abc123
-elastic stack es index --index my-index --id abc123
-elastic stack es delete --index my-index --id abc123
-elastic stack es count --index my-index
-elastic stack es info
-elastic stack es bulk
-elastic stack es reindex
-elastic stack es update --index my-index --id abc123
+elastic es search --index my-index
+elastic es get --index my-index --id abc123
+elastic es index --index my-index --id abc123
+elastic es delete --index my-index --id abc123
+elastic es count --index my-index
+elastic es info
+elastic es bulk
+elastic es reindex
+elastic es update --index my-index --id abc123
 ```
 
-Run `elastic stack es <command> --help` for all available options on any command.
+Run `elastic es <command> --help` for all available options on any command.
 
-#### `stack kb` - Kibana API
+#### `kb` - Kibana API
 
 Run Kibana API calls. Commands are organised by namespace (e.g. `data-views`,
 `cases`, `alerting`). Requires a `kibana` service block in the active context.
 
-All `stack kb` subcommands support:
+All `kb` subcommands support:
 
 | Option | Description |
 |---|---|
@@ -310,13 +312,13 @@ All `stack kb` subcommands support:
 | `--input-file <path>` | Load command input from a JSON file instead of CLI flags |
 
 ```bash
-elastic stack kb data-views list
-elastic stack kb data-views get --data-view-id <id>
-elastic stack kb cases list
-elastic stack kb alerting list-rule-types
+elastic kb data-views list
+elastic kb data-views get --data-view-id <id>
+elastic kb cases list
+elastic kb alerting list-rule-types
 ```
 
-Run `elastic stack kb <namespace> --help` for all available commands in a namespace.
+Run `elastic kb <namespace> --help` for all available commands in a namespace.
 
 ### `cloud` - Elastic Cloud
 
@@ -330,14 +332,15 @@ The tree has three kinds of children:
 - `cloud hosted …` for Hosted-Deployment APIs.
 - `cloud serverless …` for Serverless-Project APIs.
 
-#### Cross-cutting (account, auth, orgs, roles)
+#### Cross-cutting (trust, auth, orgs, users, billing)
 
 ```bash
-elastic cloud accounts get-current-account
-elastic cloud authentication get-api-keys
-elastic cloud organizations list-organizations
-elastic cloud organizations get-organization --organization-id <id>
-elastic cloud user-role-assignments add-role-assignments --user-id <id> <<< '{...}'
+elastic cloud trust get-current-account
+elastic cloud auth get-api-keys
+elastic cloud orgs list-organizations
+elastic cloud orgs get-organization --organization-id <id>
+elastic cloud users add-role-assignments --user-id <id> <<< '{...}'
+elastic cloud billing get-costs-overview
 ```
 
 #### `cloud hosted` - Hosted Deployments
@@ -348,32 +351,33 @@ elastic cloud hosted deployments get-deployment --id <id>
 elastic cloud hosted deployments shutdown-deployment --id <id>
 elastic cloud hosted deployments create-deployment <<< '{"name":"my-deployment",...}'
 elastic cloud hosted deployment-templates list-deployment-templates
+elastic cloud hosted traffic-filters get-traffic-filter-rulesets
 elastic cloud hosted extensions list-extensions
 elastic cloud hosted stack get-version-stacks
 ```
 
 Run `elastic cloud hosted --help` for all available namespace groups
-(billing-costs-analysis, deployment-templates, deployments, deployments-traffic-filter,
-extensions, stack, trusted-environments).
+(deployment-templates, deployments, traffic-filters, extensions, stack, trusted-environments).
 
 #### `cloud serverless` - Serverless Projects
 
 ```bash
-elastic cloud serverless es projects list
-elastic cloud serverless es projects create <<< '{"name":"demo","region_id":"aws-us-east-1"}'
-elastic cloud serverless es projects create --wait <<< '{"name":"demo","region_id":"aws-us-east-1"}'
-elastic cloud serverless es projects get --id <id>
-elastic cloud serverless es projects delete --id <id>
-elastic cloud serverless es projects get-status --id <id>
-elastic cloud serverless es projects get-roles --id <id>
-elastic cloud serverless es projects reset-credentials --id <id>
+elastic cloud serverless projects search list
+elastic cloud serverless projects search create <<< '{"name":"demo","region_id":"aws-us-east-1"}'
+elastic cloud serverless projects search create --wait <<< '{"name":"demo","region_id":"aws-us-east-1"}'
+elastic cloud serverless projects search get --id <id>
+elastic cloud serverless projects search delete --id <id>
+elastic cloud serverless projects search get-status --id <id>
+elastic cloud serverless projects search get-roles --id <id>
+elastic cloud serverless projects search reset-credentials --id <id>
 ```
 
-Same commands are available under `observability` and `security`:
+`search` also accepts `elasticsearch` as an alias. Same commands are available
+under `observability` and `security`:
 
 ```bash
-elastic cloud serverless observability projects list
-elastic cloud serverless security projects create --wait <<< '{"name":"demo","region_id":"aws-us-east-1"}'
+elastic cloud serverless projects observability list
+elastic cloud serverless projects security create --wait <<< '{"name":"demo","region_id":"aws-us-east-1"}'
 ```
 
 Other serverless resources:
@@ -381,6 +385,7 @@ Other serverless resources:
 ```bash
 elastic cloud serverless regions list-regions
 elastic cloud serverless traffic-filters list-traffic-filters
+elastic cloud serverless cross-project get-elasticsearch-project-link-candidates
 ```
 
 Run `elastic cloud serverless --help` for all available groups.
