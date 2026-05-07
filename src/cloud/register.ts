@@ -68,11 +68,12 @@ function queryParamToZod(q: CloudQueryParam): z.ZodType {
 
 /**
  * Maps project-type namespaces from codegen to short CLI group names.
- * E.g. `elasticsearch-projects` → `es`, used to build
- * `elastic cloud serverless es projects <action>`.
+ * E.g. `elasticsearch-projects` → `search`, used to build
+ * `elastic cloud serverless projects search <action>`.
+ * The elasticsearch type also gets an `elasticsearch` alias.
  */
 const PROJECT_NAMESPACES: Record<string, string> = {
-  'elasticsearch-projects': 'es',
+  'elasticsearch-projects': 'search',
   'observability-projects': 'observability',
   'security-projects': 'security',
 }
@@ -80,12 +81,30 @@ const PROJECT_NAMESPACES: Record<string, string> = {
 /**
  * Cross-cutting namespaces promoted to direct children of `cloud` because their APIs
  * apply to both Hosted deployments and Serverless projects.
+ * Values are the display names shown in the CLI tree.
  */
-const PROMOTED_NAMESPACES = new Set<string>([
-  'accounts',
-  'authentication',
-  'organizations',
-  'user-role-assignments',
+const PROMOTED_NAMESPACES = new Map<string, string>([
+  ['accounts',              'trust'],
+  ['authentication',        'auth'],
+  ['organizations',         'orgs'],
+  ['user-role-assignments', 'users'],
+  ['billing-costs-analysis','billing'],
+])
+
+/**
+ * Serverless namespaces whose commands are merged into a single `cross-project`
+ * group rather than exposed as two separate namespaces.
+ */
+const CROSS_PROJECT_NAMESPACES = new Set<string>([
+  'linked-projects',
+  'linked-candidate-projects',
+])
+
+/**
+ * Display name overrides for hosted namespaces.
+ */
+const HOSTED_NAMESPACE_RENAMES = new Map<string, string>([
+  ['deployments-traffic-filter', 'traffic-filters'],
 ])
 
 /**
@@ -153,22 +172,33 @@ function buildFlatLeaf (def: CloudApiDefinition): OpaqueCommandHandle {
   })
 }
 
+/**
+ * Builds flat namespace group handles.
+ * `renames` maps internal namespace keys to the display names used in the CLI tree;
+ * if a namespace is not in the map its key is used as-is.
+ */
 function buildFlatNamespaceGroups (
   defsByNamespace: Map<string, CloudApiDefinition[]>,
   descriptionPrefix: string,
+  renames: ReadonlyMap<string, string> = new Map(),
 ): OpaqueCommandHandle[] {
   const handles: OpaqueCommandHandle[] = []
   for (const [namespace, defs] of defsByNamespace) {
-    checkDuplicates(defs, namespace)
+    const displayName = renames.get(namespace) ?? namespace
+    checkDuplicates(defs, displayName)
     const leaves = defs.map(buildFlatLeaf)
     handles.push(
-      defineGroup({ name: namespace, description: `${descriptionPrefix} ${namespace} commands` }, ...leaves),
+      defineGroup({ name: displayName, description: `${descriptionPrefix} ${displayName} commands` }, ...leaves),
     )
   }
   return handles
 }
 
-function buildServerlessProjectGroup (
+/**
+ * Builds a single project-type subgroup for use inside `cloud serverless projects`.
+ * E.g. `elasticsearch-projects` → `search|elasticsearch` group with shortened action names.
+ */
+function buildServerlessTypeGroup (
   namespace: string,
   defs: CloudApiDefinition[],
 ): OpaqueCommandHandle {
@@ -201,19 +231,20 @@ function buildServerlessProjectGroup (
     return cmd
   })
 
-  const projectsGroup = defineGroup(
-    { name: 'projects', description: `Manage ${typeLabel} projects` },
+  const group = defineGroup(
+    { name: typeShort, description: `Manage ${typeLabel} projects` },
     ...leaves,
   )
-  return defineGroup(
-    { name: typeShort, description: `Elastic Serverless ${typeLabel} commands` },
-    projectsGroup,
-  )
+  // elasticsearch gets an explicit alias so both `search` and `elasticsearch` resolve
+  if (typeShort === 'search') {
+    ;(group as Command).alias('elasticsearch')
+  }
+  return group
 }
 
 function buildHostedGroup (defs: CloudApiDefinition[]): OpaqueCommandHandle {
   const byNamespace = groupByNamespace(defs)
-  const namespaceHandles = buildFlatNamespaceGroups(byNamespace, 'Cloud hosted')
+  const namespaceHandles = buildFlatNamespaceGroups(byNamespace, 'Cloud hosted', HOSTED_NAMESPACE_RENAMES)
   return defineGroup(
     { name: 'hosted', description: 'Manage Elastic Cloud Hosted deployments' },
     ...namespaceHandles,
@@ -222,22 +253,46 @@ function buildHostedGroup (defs: CloudApiDefinition[]): OpaqueCommandHandle {
 
 function buildServerlessGroup (defs: CloudApiDefinition[]): OpaqueCommandHandle {
   const projectDefs = new Map<string, CloudApiDefinition[]>()
+  const crossProjectDefs: CloudApiDefinition[] = []
   const otherDefs = new Map<string, CloudApiDefinition[]>()
 
   for (const def of defs) {
-    const target = PROJECT_NAMESPACES[def.namespace] != null ? projectDefs : otherDefs
-    let group = target.get(def.namespace)
-    if (group == null) {
-      group = []
-      target.set(def.namespace, group)
+    if (PROJECT_NAMESPACES[def.namespace] != null) {
+      let group = projectDefs.get(def.namespace)
+      if (group == null) { group = []; projectDefs.set(def.namespace, group) }
+      group.push(def)
+    } else if (CROSS_PROJECT_NAMESPACES.has(def.namespace)) {
+      crossProjectDefs.push(def)
+    } else {
+      let group = otherDefs.get(def.namespace)
+      if (group == null) { group = []; otherDefs.set(def.namespace, group) }
+      group.push(def)
     }
-    group.push(def)
   }
 
   const children: OpaqueCommandHandle[] = []
-  for (const [namespace, nsDefs] of projectDefs) {
-    children.push(buildServerlessProjectGroup(namespace, nsDefs))
+
+  // Inverted axis: cloud serverless projects <type> <action>
+  if (projectDefs.size > 0) {
+    const typeGroups: OpaqueCommandHandle[] = []
+    for (const [namespace, nsDefs] of projectDefs) {
+      typeGroups.push(buildServerlessTypeGroup(namespace, nsDefs))
+    }
+    children.push(defineGroup(
+      { name: 'projects', description: 'Manage Serverless projects' },
+      ...typeGroups,
+    ))
   }
+
+  // Merge linked-projects + linked-candidate-projects into cross-project
+  if (crossProjectDefs.length > 0) {
+    checkDuplicates(crossProjectDefs, 'cross-project')
+    children.push(defineGroup(
+      { name: 'cross-project', description: 'Serverless cross-project commands' },
+      ...crossProjectDefs.map(buildFlatLeaf),
+    ))
+  }
+
   children.push(...buildFlatNamespaceGroups(otherDefs, 'Serverless'))
 
   return defineGroup(
@@ -332,7 +387,7 @@ export function registerCloudCommands(
 
   const { promoted, hosted, serverless } = partitionDefinitions(definitions)
 
-  const promotedGroups = buildFlatNamespaceGroups(promoted, 'Cloud')
+  const promotedGroups = buildFlatNamespaceGroups(promoted, 'Cloud', PROMOTED_NAMESPACES)
   const hostedGroup = buildHostedGroup(hosted)
   const serverlessGroup = buildServerlessGroup(serverless)
 
