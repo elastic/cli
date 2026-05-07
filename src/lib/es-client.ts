@@ -106,8 +106,9 @@ export class EsClient {
 
     let response: Response
     try {
+      const method = fetchBody !== undefined && params.method.toUpperCase() === 'GET' ? 'POST' : params.method
       response = await this._fetch(url, {
-        method: params.method,
+        method,
         headers,
         ...(fetchBody !== undefined && { body: fetchBody }),
         redirect: 'error',

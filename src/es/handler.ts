@@ -47,15 +47,11 @@ export function createEsHandler (
       const responseType = def.responseType ?? 'json'
       const jsonRequested = parsed.options.json === true
 
-      const reqOpts = typeof params.body === 'string'
-        ? { headers: { 'content-type': 'application/json' as string } }
-        : undefined
-
       if (responseType === 'text' && jsonRequested) {
         params.querystring = { ...(params.querystring ?? {}), format: 'json' }
       }
 
-      return await transport.request<JsonValue>(params, reqOpts)
+      return await transport.request<JsonValue>(params)
     } catch (err) {
       return transportError(err)
     }
