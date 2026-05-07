@@ -42,9 +42,10 @@ describe('getEsClient', () => {
     assert.ok(client instanceof EsClient)
   })
 
-  it('throws when auth is missing api_key and username/password', () => {
-    setResolvedConfig({ context: { elasticsearch: { url: 'http://localhost:9200', auth: {} } } } as unknown as ResolvedConfig)
-    assert.throws(() => getEsClient(), /missing_config/)
+  it('returns an EsClient without credentials when auth is absent', () => {
+    setResolvedConfig({ context: { elasticsearch: { url: 'http://localhost:9200' } } } as unknown as ResolvedConfig)
+    const client = getEsClient()
+    assert.ok(client instanceof EsClient)
   })
 
   it('caches the instance (singleton per invocation)', () => {
@@ -68,8 +69,8 @@ describe('getEsClient', () => {
 })
 
 describe('EsClient.request', () => {
-  function makeClient (auth: { api_key: string } | { username: string; password: string } = { api_key: 'test-key' }) {
-    return new EsClient('http://localhost:9200', auth)
+  function makeClient (auth?: { api_key: string } | { username: string; password: string }) {
+    return new EsClient('http://localhost:9200', auth ?? { api_key: 'test-key' })
   }
 
   it('sends x-elastic-client-meta on every request', async () => {
@@ -109,6 +110,18 @@ describe('EsClient.request', () => {
     await client.request({ method: 'GET', path: '/' })
     const expected = `Basic ${Buffer.from('elastic:changeme').toString('base64')}`
     assert.equal(capturedHeaders['Authorization'], expected)
+  })
+
+  it('omits Authorization header when no auth is provided', async () => {
+    const client = new EsClient('http://localhost:9200')
+    let capturedHeaders: Record<string, string> = {}
+    client._testSetFetch(((url: string, init: RequestInit) => {
+      capturedHeaders = init.headers as Record<string, string>
+      return Promise.resolve(new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }))
+    }) as typeof fetch)
+
+    await client.request({ method: 'GET', path: '/' })
+    assert.equal(capturedHeaders['Authorization'], undefined)
   })
 
   it('composes URL from baseUrl and path', async () => {

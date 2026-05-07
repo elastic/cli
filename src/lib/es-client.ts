@@ -50,12 +50,14 @@ export class EsConnectionError extends Error {
  */
 export class EsClient {
   readonly baseUrl: string
-  private readonly authHeader: string
+  private readonly authHeader: string | undefined
   private _fetch: typeof fetch = globalThis.fetch
 
-  constructor (url: string, auth: { api_key: string } | { username: string; password: string }) {
+  constructor (url: string, auth?: { api_key: string } | { username: string; password: string }) {
     this.baseUrl = url.replace(/\/+$/, '')
-    if ('api_key' in auth) {
+    if (auth == null) {
+      this.authHeader = undefined
+    } else if ('api_key' in auth) {
       this.authHeader = `ApiKey ${auth.api_key}`
     } else {
       const encoded = Buffer.from(`${auth.username}:${auth.password}`).toString('base64')
@@ -82,7 +84,7 @@ export class EsClient {
 
     const headers: Record<string, string> = {
       ...clientHeaders(),
-      'Authorization': this.authHeader,
+      ...(this.authHeader != null && { 'Authorization': this.authHeader }),
       'Accept': 'application/json',
     }
 
@@ -161,18 +163,13 @@ export function getEsClient (): EsClient {
   }
 
   const { url, auth } = es
-  const authRecord = auth as Record<string, unknown>
+  const authRecord = auth != null ? auth as Record<string, unknown> : undefined
 
-  let typedAuth: { api_key: string } | { username: string; password: string }
-  if (typeof authRecord['api_key'] === 'string') {
-    typedAuth = { api_key: authRecord['api_key'] }
-  } else if (typeof authRecord['username'] === 'string' && typeof authRecord['password'] === 'string') {
-    typedAuth = { username: authRecord['username'], password: authRecord['password'] }
-  } else {
-    throw new Error(
-      'missing_config: Elasticsearch auth requires either api_key or username/password. ' +
-      'Check your .elasticrc.yml config file.'
-    )
+  let typedAuth: { api_key: string } | { username: string; password: string } | undefined
+  if (typeof authRecord?.['api_key'] === 'string') {
+    typedAuth = { api_key: authRecord['api_key'] as string }
+  } else if (typeof authRecord?.['username'] === 'string' && typeof authRecord?.['password'] === 'string') {
+    typedAuth = { username: authRecord['username'] as string, password: authRecord['password'] as string }
   }
 
   _client = new EsClient(url, typedAuth)
