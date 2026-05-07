@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { readFileSync } from 'node:fs'
 import assert from 'node:assert/strict'
 import type { ResolvedConfig, CommandPolicy } from './config/types.ts'
+import { resolveBuiltinProfile } from './config/profiles.ts'
 import { getResolvedConfig } from './config/store.ts'
 import { extractSchemaArgs, validateSchemaArgs } from './lib/schema-args.ts'
 import type { SchemaArgDefinition } from './lib/schema-args.ts'
@@ -221,6 +222,19 @@ export function isCommandAllowed(commandDotPath: string, policy: CommandPolicy |
     return commandDotPath === pattern
   }
 
+  // Profile-based filtering: resolve the named profile to its allow-list and
+  // check against it first, then apply any additional `blocked` restriction.
+  if (policy.profile != null) {
+    const profilePolicy = resolveBuiltinProfile(policy.profile)
+    if (profilePolicy != null) {
+      // Profile acts as an allow-list; if the command is not in it, deny.
+      if (!profilePolicy.allowed.some(matches)) return false
+    }
+    // `blocked` further restricts on top of the profile (always allowed to restrict more).
+    if (policy.blocked != null) return !policy.blocked.some(matches)
+    return true
+  }
+
   if (policy.allowed != null) return policy.allowed.some(matches)
   if (policy.blocked != null) return !policy.blocked.some(matches)
   return true
@@ -234,8 +248,24 @@ function setHidden(cmd: OpaqueCommandHandle, value: boolean): void { (cmd as unk
 function isHidden(cmd: OpaqueCommandHandle): boolean { return (cmd as unknown as any)._hidden === true }
 
 /**
+ * Returns true if `cmd` is a stub group — a group with no children that was
+ * registered in cli.ts as a lazy-loading placeholder.
+ *
+ * Stub groups should never be hidden by policy because their children have not
+ * been loaded yet; we cannot determine whether any child would be allowed.
+ * When the user navigates into the group its children are loaded and filtered
+ * correctly at that level.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isStubGroup (cmd: OpaqueCommandHandle): boolean {
+  const c = cmd as unknown as any
+  return c._isGroup === true && (c.commands == null || c.commands.length === 0)
+}
+
+/**
  * Walk the command tree and hide any commands the policy blocks.
  * Groups where every child is hidden are hidden too.
+ * Stub groups (unloaded lazy namespaces) are never hidden.
  * Call on the root program so dot-paths like `es.cat.health` are built correctly.
  */
 export function hideBlockedCommands(root: OpaqueCommandHandle, policy: CommandPolicy | undefined, prefix = ''): void {
@@ -246,6 +276,8 @@ export function hideBlockedCommands(root: OpaqueCommandHandle, policy: CommandPo
     if (subs.length > 0) {
       hideBlockedCommands(child, policy, path)
       if (subs.every(isHidden)) setHidden(child, true)
+    } else if (isStubGroup(child)) {
+      // Unloaded lazy namespace: leave visible. Children are filtered when loaded.
     } else {
       setHidden(child, !isCommandAllowed(path, policy))
     }
@@ -827,6 +859,9 @@ export function defineGroup (config: GroupConfig, ...commands: OpaqueCommandHand
   group.description(config.description)
   group.allowExcessArguments(true)
   configureErrorOutput(group)
+  // Mark as a group so hideBlockedCommands can distinguish groups from leaf commands.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(group as unknown as any)._isGroup = true
   for (const cmd of commands) {
     group.addCommand(cmd)
   }

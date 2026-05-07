@@ -199,7 +199,7 @@ export function buildFlagKeyMap (args: SchemaArgDefinition[]): FlagKeyMap {
 }
 
 /** Reserved CLI flag names that schema keys must not collide with. */
-const RESERVED_FLAGS = new Set(['help', 'json', 'config-file', 'use-context', 'input-file'])
+const RESERVED_FLAGS = new Set(['help', 'json', 'config-file', 'use-context', 'profile', 'input-file'])
 
 /**
  * Validates schema arguments for naming conflicts.

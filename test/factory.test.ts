@@ -2466,6 +2466,59 @@ describe('isCommandAllowed', () => {
   it('blocked list: returns true for commands outside the blocked namespace', () => {
     assert.equal(isCommandAllowed('elasticsearch.search', { blocked: ['config.*'] }), true)
   })
+
+  // --- profile-based filtering ---
+
+  it('profile serverless: allows stack.es.indices.list', () => {
+    assert.equal(isCommandAllowed('stack.es.indices.list', { profile: 'serverless' }), true)
+  })
+
+  it('profile serverless: allows stack.kb.data-views.list', () => {
+    assert.equal(isCommandAllowed('stack.kb.data-views.list', { profile: 'serverless' }), true)
+  })
+
+  it('profile serverless: allows cloud.serverless.projects.search.list', () => {
+    assert.equal(isCommandAllowed('cloud.serverless.projects.search.list', { profile: 'serverless' }), true)
+  })
+
+  it('profile serverless: allows cloud cross-cutting namespaces', () => {
+    for (const path of ['cloud.trust.get', 'cloud.auth.list', 'cloud.orgs.list', 'cloud.users.add', 'cloud.billing.get']) {
+      assert.equal(isCommandAllowed(path, { profile: 'serverless' }), true, `expected "${path}" to be allowed`)
+    }
+  })
+
+  it('profile serverless: blocks cloud.hosted commands', () => {
+    assert.equal(isCommandAllowed('cloud.hosted.deployments.list', { profile: 'serverless' }), false)
+    assert.equal(isCommandAllowed('cloud.hosted.traffic-filters.list', { profile: 'serverless' }), false)
+  })
+
+  it('profile serverless: allows version and config commands', () => {
+    assert.equal(isCommandAllowed('version', { profile: 'serverless' }), true)
+    assert.equal(isCommandAllowed('config.context.list', { profile: 'serverless' }), true)
+  })
+
+  it('profile default: behaves the same as serverless', () => {
+    assert.equal(isCommandAllowed('cloud.hosted.deployments.list', { profile: 'default' }), false)
+    assert.equal(isCommandAllowed('stack.es.search', { profile: 'default' }), true)
+  })
+
+  it('profile stack: allows all commands (no restriction)', () => {
+    assert.equal(isCommandAllowed('cloud.hosted.deployments.list', { profile: 'stack' }), true)
+    assert.equal(isCommandAllowed('cloud.serverless.projects.search.list', { profile: 'stack' }), true)
+    assert.equal(isCommandAllowed('anything.at.all', { profile: 'stack' }), true)
+  })
+
+  it('profile + blocked: profile allows but blocked further restricts', () => {
+    const policy = { profile: 'serverless' as const, blocked: ['stack.es.ml.*'] }
+    assert.equal(isCommandAllowed('stack.es.search', policy), true)
+    assert.equal(isCommandAllowed('stack.es.ml.get-records', policy), false)
+  })
+
+  it('profile + blocked: blocked does not affect commands already excluded by profile', () => {
+    const policy = { profile: 'serverless' as const, blocked: ['stack.es.ml.*'] }
+    // cloud.hosted is already blocked by the serverless profile; the extra blocked entry doesn't matter
+    assert.equal(isCommandAllowed('cloud.hosted.deployments.list', policy), false)
+  })
 })
 
 describe('command policy enforcement', () => {

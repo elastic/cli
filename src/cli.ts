@@ -8,6 +8,7 @@ import { Command } from 'commander'
 import { defineCommand, defineGroup, hideBlockedCommands } from './factory.js'
 import type { OpaqueCommandHandle } from './factory.js'
 import { loadConfig, type LoadConfigResult } from './config/loader.ts'
+import { BUILT_IN_PROFILES, type BuiltInProfile } from './config/profiles.ts'
 import { setResolvedConfig } from './config/store.ts'
 import { renderLogo } from './lib/logo.ts'
 
@@ -22,6 +23,7 @@ program
   .description('Interface with the Elastic Stack and Elastic Cloud from the command line.')
   .option('--config-file <path>', 'path to a config file (default: ~/.elasticrc.yml)')
   .option('--use-context <name>', 'override the active context from the config file')
+  .option(`--profile <name>`, `restrict available commands to a deployment profile (${BUILT_IN_PROFILES.join(', ')})`)
   .option('--json', 'output as JSON')
   .option('--output-fields <list>', 'comma-separated list of fields to include in output (dot-notation supported)')
   .option('--output-template <string>', 'Mustache-like template for custom text output (e.g. "{{id}}: {{name}}")')
@@ -43,16 +45,18 @@ program.hook('preAction', async (thisCommand, actionCommand) => {
   for (let c = actionCommand.parent; c != null; c = c.parent) {
     if (c.name() === 'config') return
   }
-  const { configFile: configPath, useContext: contextName } = thisCommand.opts()
+  const { configFile: configPath, useContext: contextName, profile: profileName } = thisCommand.opts()
+  const typedProfileName = profileName as BuiltInProfile | undefined
 
-  if (configPath == null && contextName == null && earlyConfig?.ok === true) {
+  if (configPath == null && contextName == null && profileName == null && earlyConfig?.ok === true) {
     setResolvedConfig(earlyConfig.value)
     return
   }
 
   const result = await loadConfig({
     ...(configPath != null && { configPath }),
-    ...(contextName != null && { contextName })
+    ...(contextName != null && { contextName }),
+    ...(typedProfileName != null && { profileName: typedProfileName }),
   })
   if (result.ok) {
     setResolvedConfig(result.value)
@@ -177,7 +181,14 @@ if (firstArg === 'sanitize') {
 // to avoid unnecessary file I/O and a confusing "no config found" path.
 // The result is cached in earlyConfig so the preAction hook can reuse it.
 if (firstArg !== 'version' && firstArg !== 'config' && firstArg !== 'sanitize') {
-  earlyConfig = await loadConfig({})
+  // Parse --profile early (before Commander's full parse) so the early config load
+  // and hideBlockedCommands can apply the correct profile-based allow-list to --help.
+  const profileArgIdx = process.argv.indexOf('--profile')
+  const earlyProfile = profileArgIdx !== -1 ? process.argv[profileArgIdx + 1] as BuiltInProfile | undefined : undefined
+
+  earlyConfig = await loadConfig({
+    ...(earlyProfile != null && { profileName: earlyProfile }),
+  })
   if (earlyConfig.ok) {
     setResolvedConfig(earlyConfig.value)
     hideBlockedCommands(program, earlyConfig.value.commands)

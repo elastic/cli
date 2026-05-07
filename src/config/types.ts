@@ -11,6 +11,7 @@ import type {
   ConfigFileSchema,
   CommandPolicySchema,
 } from './schema.ts'
+export type { BuiltInProfile } from './profiles.ts'
 
 /**
  * TypeScript types exported from Zod schemas for the configuration system.

@@ -240,6 +240,31 @@ describe('ContextSchema', () => {
     if (!result.success) return
     assert.equal('extra' in result.data, false)
   })
+
+  it('accepts a per-context commands policy', () => {
+    const result = ContextSchema.safeParse({
+      elasticsearch: esBlock,
+      commands: { profile: 'serverless' },
+    })
+    assert.equal(result.success, true)
+    if (result.success) assert.equal(result.data.commands?.profile, 'serverless')
+  })
+
+  it('accepts a per-context commands.blocked on top of a profile', () => {
+    const result = ContextSchema.safeParse({
+      elasticsearch: esBlock,
+      commands: { profile: 'serverless', blocked: ['stack.es.ml.*'] },
+    })
+    assert.equal(result.success, true)
+  })
+
+  it('rejects per-context commands with profile + allowed', () => {
+    const result = ContextSchema.safeParse({
+      elasticsearch: esBlock,
+      commands: { profile: 'serverless', allowed: ['stack.es.*'] },
+    })
+    assert.equal(result.success, false)
+  })
 })
 
 describe('CommandPolicySchema', () => {
@@ -301,6 +326,33 @@ describe('CommandPolicySchema', () => {
 
   it('rejects empty strings in blocked list', () => {
     const result = CommandPolicySchema.safeParse({ blocked: [''] })
+    assert.equal(result.success, false)
+  })
+
+  it('accepts a valid profile name alone', () => {
+    for (const profile of ['serverless', 'stack', 'default'] as const) {
+      const result = CommandPolicySchema.safeParse({ profile })
+      assert.equal(result.success, true, `expected profile "${profile}" to be accepted`)
+      if (result.success) assert.equal(result.data.profile, profile)
+    }
+  })
+
+  it('accepts profile + blocked (composition)', () => {
+    const result = CommandPolicySchema.safeParse({ profile: 'serverless', blocked: ['stack.es.ml.*'] })
+    assert.equal(result.success, true)
+    if (result.success) {
+      assert.equal(result.data.profile, 'serverless')
+      assert.deepEqual(result.data.blocked, ['stack.es.ml.*'])
+    }
+  })
+
+  it('rejects profile + allowed (mutually exclusive)', () => {
+    const result = CommandPolicySchema.safeParse({ profile: 'serverless', allowed: ['stack.es.*'] })
+    assert.equal(result.success, false)
+  })
+
+  it('rejects an unknown profile name', () => {
+    const result = CommandPolicySchema.safeParse({ profile: 'unknown-profile' })
     assert.equal(result.success, false)
   })
 })
@@ -408,5 +460,47 @@ describe('ConfigFileSchema', () => {
       commands: { allowed: ['ping'], blocked: ['elasticsearch.bulk'] },
     })
     assert.equal(result.success, false)
+  })
+
+  it('accepts commands.profile at root level', () => {
+    const result = ConfigFileSchema.safeParse({
+      'current_context': 'production',
+      contexts: { production: { elasticsearch: esBlock } },
+      commands: { profile: 'serverless' },
+    })
+    assert.equal(result.success, true)
+    if (result.success) assert.equal(result.data.commands?.profile, 'serverless')
+  })
+
+  it('accepts default_profile at root level', () => {
+    const result = ConfigFileSchema.safeParse({
+      'current_context': 'production',
+      contexts: { production: { elasticsearch: esBlock } },
+      default_profile: 'serverless',
+    })
+    assert.equal(result.success, true)
+    if (result.success) assert.equal(result.data.default_profile, 'serverless')
+  })
+
+  it('rejects an invalid default_profile value', () => {
+    const result = ConfigFileSchema.safeParse({
+      'current_context': 'production',
+      contexts: { production: { elasticsearch: esBlock } },
+      default_profile: 'not-a-profile',
+    })
+    assert.equal(result.success, false)
+  })
+
+  it('accepts per-context commands.profile', () => {
+    const result = ConfigFileSchema.safeParse({
+      'current_context': 'production',
+      contexts: {
+        production: { elasticsearch: esBlock, commands: { profile: 'stack' } },
+      },
+    })
+    assert.equal(result.success, true)
+    if (result.success) {
+      assert.equal(result.data.contexts['production']?.commands?.profile, 'stack')
+    }
   })
 })

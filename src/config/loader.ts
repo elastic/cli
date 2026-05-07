@@ -34,6 +34,7 @@ import { ContextSchema, CommandPolicySchema, StructuralConfigSchema } from './sc
 import { resolveExpressions } from '@elastic/config-resolver'
 import { hasInlineSecrets, type RawConfig } from './writer.ts'
 import type { ConfigFile, ResolvedConfig, ResolvedContext } from './types.ts'
+import { BUILT_IN_PROFILES, type BuiltInProfile } from './profiles.ts'
 
 /** Extensions that are rejected to prevent arbitrary code execution. */
 const EXECUTABLE_EXTENSIONS = new Set(['.js', '.ts', '.mjs', '.cjs'])
@@ -103,7 +104,60 @@ export async function loadConfigFile (filePath: string): Promise<unknown> {
  * @param contextName - The key of the context to resolve.
  * @returns A `ResolvedConfig` wrapping only that context's service blocks.
  */
-export function resolveContext (config: ConfigFile, contextName: string): ResolvedConfig {
+/**
+ * Computes the effective command policy from the per-context policy, the root policy,
+ * a `default_profile` fallback, and an optional `--profile` flag override.
+ *
+ * Precedence (highest to lowest):
+ *  1. `profileOverride` — the `--profile` CLI flag
+ *  2. Per-context `commands.profile` / `commands.allowed`
+ *  3. Root `commands.profile` / `commands.allowed`
+ *  4. `defaultProfile` — `default_profile` from the root config
+ *
+ * `blocked` lists from context and root are unioned (further restriction always applies).
+ * `profile` and `allowed` are mutually exclusive; passing `--profile` with a context
+ * that declares `commands.allowed` is an error.
+ *
+ * Returns `undefined` when no filtering is active (allow everything).
+ * Returns `{ error }` on an invalid combination.
+ */
+export function resolveEffectiveCommands (
+  contextCommands: ConfigFile['commands'],
+  rootCommands: ConfigFile['commands'],
+  defaultProfile: BuiltInProfile | undefined,
+  profileOverride: BuiltInProfile | undefined,
+): { commands: ConfigFile['commands'] } | { error: string } {
+  // Effective allowed/blocked from config (context overrides root)
+  const effectiveAllowed = contextCommands?.allowed ?? rootCommands?.allowed
+  const contextBlocked = contextCommands?.blocked ?? []
+  const rootBlocked = rootCommands?.blocked ?? []
+  const effectiveBlocked = [...contextBlocked, ...rootBlocked.filter(p => !contextBlocked.includes(p))]
+
+  // Effective profile from precedence chain
+  const configProfile = contextCommands?.profile ?? rootCommands?.profile ?? defaultProfile
+  const effectiveProfile = profileOverride ?? configProfile
+
+  // Validate: --profile flag cannot be used when allowed is set
+  if (profileOverride != null && effectiveAllowed != null) {
+    return { error: '--profile flag cannot be used with a context that has commands.allowed set' }
+  }
+
+  const hasProfile = effectiveProfile != null
+  const hasAllowed = effectiveAllowed != null
+  const hasBlocked = effectiveBlocked.length > 0
+
+  if (!hasProfile && !hasAllowed && !hasBlocked) return { commands: undefined }
+
+  return {
+    commands: {
+      ...(hasProfile && { profile: effectiveProfile }),
+      ...(hasAllowed && { allowed: effectiveAllowed }),
+      ...(hasBlocked && { blocked: effectiveBlocked }),
+    },
+  }
+}
+
+export function resolveContext (config: ConfigFile, contextName: string, profileOverride?: BuiltInProfile): ResolvedConfig {
   // non-null: caller (loadConfig) guarantees contextName exists in config.contexts
   const ctx = config.contexts[contextName]!
   const resolved: ResolvedContext = {}
@@ -111,7 +165,19 @@ export function resolveContext (config: ConfigFile, contextName: string): Resolv
   if (ctx.kibana != null) resolved.kibana = ctx.kibana
   if (ctx.cloud != null) resolved.cloud = ctx.cloud
   const result: ResolvedConfig = { context: resolved }
-  if (config.commands != null) result.commands = config.commands
+
+  const effectiveCommandsResult = resolveEffectiveCommands(
+    ctx.commands,
+    config.commands,
+    config.default_profile,
+    profileOverride,
+  )
+  if ('error' in effectiveCommandsResult) {
+    // Surface the error; callers (loadConfig) catch this and return LoadConfigErr
+    throw new Error(effectiveCommandsResult.error)
+  }
+  if (effectiveCommandsResult.commands != null) result.commands = effectiveCommandsResult.commands
+
   if (config.banner != null) result.banner = config.banner
   return result
 }
@@ -151,6 +217,8 @@ export interface LoadConfigOptions {
   configPath?: string
   /** Context name override (`--use-context` flag). Overrides `current_context` in the file. */
   contextName?: string
+  /** Profile name override (`--profile` flag). Overrides any profile set in the config file. */
+  profileName?: BuiltInProfile
 }
 
 /** Successful result from {@link loadConfig}. */
@@ -183,7 +251,13 @@ export type LoadConfigResult = LoadConfigOk | LoadConfigErr
  * @returns A `LoadConfigResult` discriminated union.
  */
 export async function loadConfig (options: LoadConfigOptions = {}): Promise<LoadConfigResult> {
-  const { configPath, contextName } = options
+  const { configPath, contextName, profileName } = options
+
+  // Validate profileName early (before any I/O) so the error is immediate and clear
+  if (profileName != null && !(BUILT_IN_PROFILES as readonly string[]).includes(profileName)) {
+    const valid = BUILT_IN_PROFILES.join(', ')
+    return { ok: false, error: { message: `Unknown profile "${profileName}". Valid profiles: ${valid}` } }
+  }
 
   // Step 1: load raw config
   // Precedence: --config-file flag > ELASTIC_CLI_CONFIG_FILE env var > home-directory discovery
@@ -223,7 +297,7 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     return { ok: false, error: { message: z.prettifyError(structural.error) } }
   }
 
-  const { current_context, contexts, commands: rawCommands } = structural.data
+  const { current_context, contexts, commands: rawCommands, default_profile: rawDefaultProfile } = structural.data
 
   // Step 3: resolve context name (--use-context override or current_context from file)
   const resolvedContextName = contextName ?? current_context
@@ -236,6 +310,16 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
         message: `Context "${resolvedContextName}" not found. Available contexts: ${available}`
       }
     }
+  }
+
+  // Validate default_profile if present
+  let defaultProfile: BuiltInProfile | undefined
+  if (rawDefaultProfile != null) {
+    if (!(BUILT_IN_PROFILES as readonly unknown[]).includes(rawDefaultProfile)) {
+      const valid = BUILT_IN_PROFILES.join(', ')
+      return { ok: false, error: { message: `default_profile: unknown profile "${String(rawDefaultProfile)}". Valid profiles: ${valid}` } }
+    }
+    defaultProfile = rawDefaultProfile as BuiltInProfile
   }
 
   // Step 4: resolve expressions only in active context and commands (in parallel)
@@ -271,7 +355,13 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     current_context: resolvedContextName,
     contexts: { [resolvedContextName]: contextParsed.data },
     ...(commands != null && { commands }),
+    ...(defaultProfile != null && { default_profile: defaultProfile }),
     ...(structural.data.banner != null && { banner: structural.data.banner }),
   }
-  return { ok: true, value: resolveContext(config, resolvedContextName) }
+  try {
+    return { ok: true, value: resolveContext(config, resolvedContextName, profileName) }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return { ok: false, error: { message } }
+  }
 }

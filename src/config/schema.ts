@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod'
+import { BUILT_IN_PROFILES } from './profiles.ts'
 
 /**
  * Zod schemas for configuration file validation.
@@ -41,12 +42,46 @@ export const ServiceBlockSchema = z.object({
   auth: AuthSchema.optional()
 })
 
-/** A context value: optional service blocks with at least one present. */
+/**
+ * Policy controlling which commands are permitted to run.
+ *
+ * Mutually exclusive combinations:
+ * - `profile` and `allowed` cannot both be set (profile replaces the allow-list)
+ * - `allowed` and `blocked` cannot both be set
+ *
+ * Valid combinations:
+ * - `profile` alone — use a built-in allow-list
+ * - `profile` + `blocked` — built-in allow-list with additional restrictions
+ * - `allowed` alone — explicit allow-list
+ * - `blocked` alone — explicit deny-list (everything else is allowed)
+ *
+ * Entries may use a trailing wildcard (e.g. `stack.es.*`) to match a namespace.
+ */
+export const CommandPolicySchema = z
+  .object({
+    profile: z.enum(BUILT_IN_PROFILES).optional(),
+    allowed: z.array(z.string().min(1)).min(1).optional(),
+    blocked: z.array(z.string().min(1)).min(1).optional(),
+  })
+  .refine(
+    (p) => !(p.profile != null && p.allowed != null),
+    { error: 'commands: "profile" and "allowed" are mutually exclusive' },
+  )
+  .refine(
+    (p) => !(p.allowed != null && p.blocked != null),
+    { error: 'commands: "allowed" and "blocked" are mutually exclusive' },
+  )
+
+/**
+ * A context value: optional service blocks with at least one present, plus
+ * an optional per-context command policy that overrides the root-level policy.
+ */
 export const ContextSchema = z
   .object({
     elasticsearch: ServiceBlockSchema.optional(),
     kibana: ServiceBlockSchema.optional(),
-    cloud: ServiceBlockSchema.optional()
+    cloud: ServiceBlockSchema.optional(),
+    commands: CommandPolicySchema.optional(),
   })
   .refine(
     (ctx) => ctx.elasticsearch != null || ctx.kibana != null || ctx.cloud != null,
@@ -54,21 +89,14 @@ export const ContextSchema = z
   )
 
 /**
- * Policy controlling which commands are permitted to run.
- * Only one of `allowed` or `blocked` may be present.
- * Entries may use a trailing wildcard (e.g. `elasticsearch.*`) to match a namespace.
+ * The root configuration file structure.
+ *
+ * `default_profile` sets a fallback profile for all contexts that don't
+ * specify their own `commands.profile`. It is overridden by a per-context
+ * `commands.profile` and by the `--profile` CLI flag.
+ *
+ * `commands` is the root-level policy; per-context `commands` takes precedence.
  */
-export const CommandPolicySchema = z
-  .object({
-    allowed: z.array(z.string().min(1)).min(1).optional(),
-    blocked: z.array(z.string().min(1)).min(1).optional(),
-  })
-  .refine(
-    (p) => !(p.allowed != null && p.blocked != null),
-    { error: 'commands: "allowed" and "blocked" are mutually exclusive' },
-  )
-
-/** The root configuration file structure. */
 export const ConfigFileSchema = z
   .object({
     current_context: z.string().min(1),
@@ -77,6 +105,7 @@ export const ConfigFileSchema = z
       { error: 'contexts must contain at least one entry' },
     ),
     commands: CommandPolicySchema.optional(),
+    default_profile: z.enum(BUILT_IN_PROFILES).optional(),
     banner: z.boolean().optional(),
   })
   .refine(
@@ -97,5 +126,6 @@ export const StructuralConfigSchema = z
       { error: 'contexts must contain at least one entry' },
     ),
     commands: z.unknown().optional(),
+    default_profile: z.unknown().optional(),
     banner: z.boolean().optional(),
   })

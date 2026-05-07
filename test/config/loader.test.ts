@@ -8,7 +8,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { loadConfigFile, discoverConfigFile, resolveContext, loadConfig } from '../../src/config/loader.ts'
+import { loadConfigFile, discoverConfigFile, resolveContext, resolveEffectiveCommands, loadConfig } from '../../src/config/loader.ts'
 import type { ConfigFile, ResolvedConfig } from '../../src/config/types.ts'
 
 // ---------------------------------------------------------------------------
@@ -447,6 +447,106 @@ commands:
     if (result.ok) return
     assert.match(result.error.message, /mutually exclusive/)
   })
+
+  it('loadConfig threads commands.profile into ResolvedConfig', async () => {
+    const yaml = `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: http://localhost:9200
+      auth:
+        api_key: key1
+commands:
+  profile: serverless
+`.trimStart()
+    const configPath = join(tmpDir, 'profile.yml')
+    await writeFile(configPath, yaml)
+    const result = await loadConfig({ configPath })
+    assert.ok(result.ok)
+    if (!result.ok) return
+    assert.equal(result.value.commands?.profile, 'serverless')
+  })
+
+  it('loadConfig applies default_profile when no context-level profile is set', async () => {
+    const yaml = `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: http://localhost:9200
+      auth:
+        api_key: key1
+default_profile: serverless
+`.trimStart()
+    const configPath = join(tmpDir, 'default-profile.yml')
+    await writeFile(configPath, yaml)
+    const result = await loadConfig({ configPath })
+    assert.ok(result.ok)
+    if (!result.ok) return
+    assert.equal(result.value.commands?.profile, 'serverless')
+  })
+
+  it('loadConfig profileName option overrides config profile', async () => {
+    const yaml = `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: http://localhost:9200
+      auth:
+        api_key: key1
+commands:
+  profile: stack
+`.trimStart()
+    const configPath = join(tmpDir, 'profile-override.yml')
+    await writeFile(configPath, yaml)
+    const result = await loadConfig({ configPath, profileName: 'serverless' })
+    assert.ok(result.ok)
+    if (!result.ok) return
+    assert.equal(result.value.commands?.profile, 'serverless')
+  })
+
+  it('loadConfig profileName option rejects unknown profile', async () => {
+    const yaml = `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: http://localhost:9200
+      auth:
+        api_key: key1
+`.trimStart()
+    const configPath = join(tmpDir, 'profile-unknown.yml')
+    await writeFile(configPath, yaml)
+    // @ts-expect-error — testing runtime validation of invalid profile
+    const result = await loadConfig({ configPath, profileName: 'not-a-profile' })
+    assert.ok(!result.ok)
+    if (result.ok) return
+    assert.match(result.error.message, /Unknown profile/)
+  })
+
+  it('loadConfig per-context commands.profile overrides root commands.profile', async () => {
+    const yaml = `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: http://localhost:9200
+      auth:
+        api_key: key1
+    commands:
+      profile: stack
+commands:
+  profile: serverless
+`.trimStart()
+    const configPath = join(tmpDir, 'context-profile.yml')
+    await writeFile(configPath, yaml)
+    const result = await loadConfig({ configPath })
+    assert.ok(result.ok)
+    if (!result.ok) return
+    assert.equal(result.value.commands?.profile, 'stack')
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -681,6 +781,80 @@ describe('security: executable config formats are rejected', () => {
         assert.match(result.error.message, /not supported.*security/)
       })
     }
+  })
+
+  describe('resolveEffectiveCommands', () => {
+    it('returns undefined when no policy is active', () => {
+      const result = resolveEffectiveCommands(undefined, undefined, undefined, undefined)
+      assert.ok(!('error' in result))
+      if (!('error' in result)) assert.equal(result.commands, undefined)
+    })
+
+    it('profile override takes highest precedence', () => {
+      const result = resolveEffectiveCommands(
+        { profile: 'stack' },   // context says stack
+        undefined,
+        undefined,
+        'serverless',           // --profile flag says serverless → wins
+      )
+      assert.ok(!('error' in result))
+      if (!('error' in result)) assert.equal(result.commands?.profile, 'serverless')
+    })
+
+    it('context commands.profile overrides root commands.profile', () => {
+      const result = resolveEffectiveCommands(
+        { profile: 'stack' },
+        { profile: 'serverless' },
+        undefined,
+        undefined,
+      )
+      assert.ok(!('error' in result))
+      if (!('error' in result)) assert.equal(result.commands?.profile, 'stack')
+    })
+
+    it('default_profile is used as fallback when no profile elsewhere', () => {
+      const result = resolveEffectiveCommands(undefined, undefined, 'serverless', undefined)
+      assert.ok(!('error' in result))
+      if (!('error' in result)) assert.equal(result.commands?.profile, 'serverless')
+    })
+
+    it('blocked lists from context and root are unioned', () => {
+      const result = resolveEffectiveCommands(
+        { blocked: ['stack.es.ml.*'] },
+        { blocked: ['cloud.hosted.*'] },
+        undefined,
+        undefined,
+      )
+      assert.ok(!('error' in result))
+      if (!('error' in result)) {
+        assert.ok(result.commands?.blocked?.includes('stack.es.ml.*'))
+        assert.ok(result.commands?.blocked?.includes('cloud.hosted.*'))
+      }
+    })
+
+    it('returns error when --profile flag is combined with context allowed list', () => {
+      const result = resolveEffectiveCommands(
+        { allowed: ['stack.es.*'] },
+        undefined,
+        undefined,
+        'serverless',
+      )
+      assert.ok('error' in result)
+    })
+
+    it('profile + context blocked: both are preserved', () => {
+      const result = resolveEffectiveCommands(
+        { profile: 'serverless', blocked: ['stack.es.ml.*'] },
+        undefined,
+        undefined,
+        undefined,
+      )
+      assert.ok(!('error' in result))
+      if (!('error' in result)) {
+        assert.equal(result.commands?.profile, 'serverless')
+        assert.deepEqual(result.commands?.blocked, ['stack.es.ml.*'])
+      }
+    })
   })
 
   describe('discoverConfigFile ignores executable file names', () => {
