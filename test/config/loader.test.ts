@@ -795,7 +795,7 @@ describe('security: executable config formats are rejected', () => {
         { profile: 'stack' },   // context says stack
         undefined,
         undefined,
-        'serverless',           // --profile flag says serverless → wins
+        'serverless',           // --command-profile flag says serverless → wins
       )
       assert.ok(!('error' in result))
       if (!('error' in result)) assert.equal(result.commands?.profile, 'serverless')
@@ -832,7 +832,7 @@ describe('security: executable config formats are rejected', () => {
       }
     })
 
-    it('returns error when --profile flag is combined with context allowed list', () => {
+    it('returns error when --command-profile flag is combined with context allowed list', () => {
       const result = resolveEffectiveCommands(
         { allowed: ['stack.es.*'] },
         undefined,
