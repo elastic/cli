@@ -80,11 +80,18 @@ program.addCommand(versionCmd)
 const { operands } = program.parseOptions(process.argv.slice(2))
 let firstArg = operands[0]
 
-// Deprecation redirect: `elastic kb ...` → `elastic stack kb ...`
-if (firstArg === 'kb') {
-  process.stderr.write('Warning: "elastic kb" is deprecated. Use "elastic stack kb" instead.\n')
-  const kbIdx = process.argv.indexOf('kb', 2)
-  if (kbIdx !== -1) process.argv.splice(kbIdx, 0, 'stack')
+// Transparent aliases: `elastic es ...` and `elastic kb ...` are first-class
+// shortcuts for `elastic stack es ...` and `elastic stack kb ...`.
+// argv is rewritten before Commander parses so all routing and dot-paths remain
+// consistent (e.g. policy entries still use `stack.es.*`).
+if (firstArg === 'es' || firstArg === 'elasticsearch') {
+  const idx = process.argv.indexOf(firstArg, 2)
+  if (idx !== -1) process.argv.splice(idx, 0, 'stack')
+  operands.splice(0, 0, 'stack')
+  firstArg = 'stack'
+} else if (firstArg === 'kb' || firstArg === 'kibana') {
+  const idx = process.argv.indexOf(firstArg, 2)
+  if (idx !== -1) process.argv.splice(idx, 0, 'stack')
   operands.splice(0, 0, 'stack')
   firstArg = 'stack'
 }
@@ -125,6 +132,17 @@ if (firstArg === 'stack') {
 } else {
   program.addCommand(defineGroup({ name: 'stack', description: 'Interact with Elastic Stack components (Elasticsearch, Kibana, Fleet)' }))
 }
+
+// Register top-level es|elasticsearch and kb|kibana stubs so they appear in
+// `elastic --help` as first-class aliases. When invoked, argv has already been
+// rewritten above so Commander routes through `stack es` / `stack kb`.
+const esAlias = defineGroup({ name: 'es', description: 'Interact with the Elasticsearch API' })
+esAlias.alias('elasticsearch')
+program.addCommand(esAlias)
+
+const kbAlias = defineGroup({ name: 'kb', description: 'Interact with the Kibana API' })
+kbAlias.alias('kibana')
+program.addCommand(kbAlias)
 
 if (firstArg === 'cloud') {
   const { registerCloudCommands } = await import('./cloud/register.ts')
