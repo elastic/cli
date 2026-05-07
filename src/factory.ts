@@ -256,8 +256,8 @@ function isHidden(cmd: OpaqueCommandHandle): boolean { return (cmd as unknown as
  * When the user navigates into the group its children are loaded and filtered
  * correctly at that level.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isStubGroup (cmd: OpaqueCommandHandle): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const c = cmd as unknown as any
   return c._isGroup === true && (c.commands == null || c.commands.length === 0)
 }
