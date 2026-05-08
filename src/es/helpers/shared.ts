@@ -5,6 +5,7 @@
 
 import { readFileSync, globSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { parse as parseCsv } from 'csv-parse/sync'
 import type { JsonValue } from '../../factory.ts'
 
 /**
@@ -36,6 +37,41 @@ export function parseInput (raw: string): unknown[] {
     }
   }
   return docs
+}
+
+export interface CsvParseOptions {
+  delimiter?: string
+  /** Explicit column names. If provided, the first data row is treated as data (not headers). */
+  columns?: string[]
+  /** Skip the first row of the file (useful when the file has a header you want to discard). */
+  skipHeader?: boolean
+}
+
+/**
+ * Parses CSV text into an array of objects.
+ * By default the first row is used as column headers.
+ * If `columns` is provided, those names are used instead and every row is treated as data.
+ * `skipHeader: true` discards the first row (combine with `columns` to rename headers).
+ */
+export function parseCsvInput (raw: string, opts: CsvParseOptions = {}): unknown[] {
+  const { delimiter = ',', columns, skipHeader = false } = opts
+
+  const fromLine = skipHeader ? 2 : 1
+  const columnsOpt: string[] | true = columns != null && columns.length > 0 ? columns : true
+
+  return parseCsv(raw, {
+    delimiter,
+    columns: columnsOpt,
+    from_line: fromLine,
+    skip_empty_lines: true,
+    trim: true,
+    cast (value) {
+      if (value === 'true') return true
+      if (value === 'false') return false
+      if (value !== '' && !isNaN(Number(value))) return Number(value)
+      return value
+    },
+  }) as unknown[]
 }
 
 /**

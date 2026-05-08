@@ -12,6 +12,7 @@ import { getTransport } from '../../lib/transport.ts'
 import { missingConfigError, transportError } from '../errors.ts'
 import {
   parseInput,
+  parseCsvInput,
   readRawInput,
   globFiles,
   buildBulkNdjsonBody,
@@ -27,12 +28,19 @@ export interface BulkIngestDeps {
 
 const defaultDeps: BulkIngestDeps = { getTransport }
 
+const SOURCE_FORMATS = ['ndjson', 'json', 'csv'] as const
+type SourceFormat = typeof SOURCE_FORMATS[number]
+
 const inputSchema = z.object({
   index: z.string().describe('Target index'),
-  data_file: z.string().optional().describe('Path to data file (NDJSON or JSON array)'),
+  data_file: z.string().optional().describe('Path to data file (NDJSON, JSON array, or CSV)'),
   data_dir: z.string().optional().describe('Path to directory of data files to ingest'),
-  glob: z.string().default('**/*.json').describe('Glob pattern for --data-dir file matching'),
+  glob: z.string().optional().describe('Glob pattern for --data-dir file matching (default: **/*.json, or **/*.csv when --source-format csv)'),
   no_recursive: z.boolean().optional().describe('Do not recurse into subdirectories when using --data-dir'),
+  source_format: z.enum(SOURCE_FORMATS).default('ndjson').describe('Input file format: ndjson, json, or csv'),
+  csv_delimiter: z.string().optional().describe('CSV column delimiter (default: ",")'),
+  csv_columns: z.string().optional().describe('Comma-separated list of column names (overrides CSV header row)'),
+  skip_header: z.boolean().optional().describe('Skip the first row of a CSV file'),
   flush_bytes: z.number().default(5242880).describe('Batch size threshold in bytes'),
   concurrency: z.number().default(5).describe('Number of parallel bulk requests'),
   retries: z.number().default(3).describe('Max retries per failed batch'),
@@ -68,6 +76,27 @@ function splitIntoBatches (docs: unknown[], flushBytes: number): unknown[][] {
   return batches
 }
 
+/** Parses raw file content according to the selected source format. */
+function parseByFormat (raw: string, opts: BulkIngestInput): unknown[] {
+  if (opts.source_format === 'csv') {
+    const csvColumns = opts.csv_columns != null
+      ? opts.csv_columns.split(',').map((c) => c.trim()).filter(Boolean)
+      : undefined
+    return parseCsvInput(raw, {
+      ...(opts.csv_delimiter != null && { delimiter: opts.csv_delimiter }),
+      ...(csvColumns != null && { columns: csvColumns }),
+      ...(opts.skip_header != null && { skipHeader: opts.skip_header }),
+    })
+  }
+  return parseInput(raw)
+}
+
+/** Returns the default glob pattern for the given source format. */
+function defaultGlob (format: SourceFormat): string {
+  if (format === 'csv') return '**/*.csv'
+  return '**/*.json'
+}
+
 /** Collects documents from the resolved input source. */
 function collectDocuments (opts: BulkIngestInput): { docs: unknown[], filesProcessed: number } {
   const { data_file, data_dir } = opts
@@ -77,16 +106,17 @@ function collectDocuments (opts: BulkIngestInput): { docs: unknown[], filesProce
   }
 
   if (data_dir != null) {
+    const pattern = opts.glob ?? defaultGlob(opts.source_format)
     const recursive = opts.no_recursive !== true
-    const pattern = recursive ? opts.glob : opts.glob.replace(/^\*\*\//, '')
-    const files = globFiles(data_dir, pattern)
+    const resolvedPattern = recursive ? pattern : pattern.replace(/^\*\*\//, '')
+    const files = globFiles(data_dir, resolvedPattern)
     if (files.length === 0) {
-      throw new Error(`No files matched pattern "${opts.glob}" in ${data_dir}`)
+      throw new Error(`No files matched pattern "${resolvedPattern}" in ${data_dir}`)
     }
     const allDocs: unknown[] = []
     for (const file of files) {
       const raw = readFileSync(file, 'utf-8')
-      allDocs.push(...parseInput(raw))
+      allDocs.push(...parseByFormat(raw, opts))
     }
     return { docs: allDocs, filesProcessed: files.length }
   }
@@ -96,7 +126,7 @@ function collectDocuments (opts: BulkIngestInput): { docs: unknown[], filesProce
     if (raw == null || raw.trim().length === 0) {
       throw new Error('No input data received from file')
     }
-    return { docs: parseInput(raw), filesProcessed: 1 }
+    return { docs: parseByFormat(raw, opts), filesProcessed: 1 }
   }
 
   // Fall back to stdin
@@ -104,7 +134,7 @@ function collectDocuments (opts: BulkIngestInput): { docs: unknown[], filesProce
   if (raw == null || raw.trim().length === 0) {
     throw new Error('No input provided. Use --data-file, --data-dir, or pipe data to stdin')
   }
-  return { docs: parseInput(raw), filesProcessed: 0 }
+  return { docs: parseByFormat(raw, opts), filesProcessed: 0 }
 }
 
 /** Sends a single bulk batch to Elasticsearch. Returns the count of errors. */
