@@ -15,6 +15,86 @@ import type { EsApiMeta } from './api-manifest.ts'
 import { createEsHandler } from './handler.ts'
 import { registerHelperCommands } from './helpers/register.ts'
 
+/**
+ * Maps root-level (no-namespace) command names to the help section they belong to.
+ * Commands not listed here fall into the catch-all "Other commands" group.
+ * Order within each group reflects usage frequency — most-common first.
+ */
+const ROOT_COMMAND_GROUPS: Record<string, string> = {
+  // Documents
+  get: 'Documents',
+  index: 'Documents',
+  create: 'Documents',
+  update: 'Documents',
+  delete: 'Documents',
+  bulk: 'Documents',
+  mget: 'Documents',
+  exists: 'Documents',
+  'exists-source': 'Documents',
+  'get-source': 'Documents',
+  'delete-by-query': 'Documents',
+  'update-by-query': 'Documents',
+  reindex: 'Documents',
+  // Search
+  search: 'Search',
+  msearch: 'Search',
+  'search-template': 'Search',
+  'msearch-template': 'Search',
+  scroll: 'Search',
+  'clear-scroll': 'Search',
+  'open-point-in-time': 'Search',
+  'close-point-in-time': 'Search',
+  'search-mvt': 'Search',
+  'search-shards': 'Search',
+  'render-search-template': 'Search',
+  // Analysis
+  count: 'Analysis',
+  explain: 'Analysis',
+  'field-caps': 'Analysis',
+  termvectors: 'Analysis',
+  mtermvectors: 'Analysis',
+  'rank-eval': 'Analysis',
+  'terms-enum': 'Analysis',
+  // Scripts
+  'get-script': 'Scripts',
+  'put-script': 'Scripts',
+  'delete-script': 'Scripts',
+  'scripts-painless-execute': 'Scripts',
+  'get-script-context': 'Scripts',
+  'get-script-languages': 'Scripts',
+  // Cluster
+  ping: 'Cluster',
+  info: 'Cluster',
+  'health-report': 'Cluster',
+  // Throttle / admin — shown but deprioritised
+  'delete-by-query-rethrottle': 'Advanced',
+  'update-by-query-rethrottle': 'Advanced',
+  'reindex-rethrottle': 'Advanced',
+}
+
+/** Group label applied to every namespace sub-tree (cat, cluster, indices, …). */
+const NAMESPACE_GROUP = 'API namespaces'
+
+/**
+ * Controls the display order of root-level sections in help output.
+ * Lower numbers appear first. Sections not listed here sort after all listed ones.
+ */
+const GROUP_PRIORITY: Record<string, number> = {
+  Documents: 0,
+  Search: 1,
+  Analysis: 2,
+  Scripts: 3,
+  Cluster: 4,
+  Advanced: 5,
+  'Other commands': 6,
+}
+
+/** Applies a help-section heading to a command handle (no-op if already set). */
+function applyHelpGroup (handle: OpaqueCommandHandle, group: string): OpaqueCommandHandle {
+  handle.helpGroup(group)
+  return handle
+}
+
 /** Builds a leaf command handle from an eagerly-available definition and its pre-computed schema args. */
 function buildLeafHandle (
   def: EsApiDefinition,
@@ -189,10 +269,16 @@ function buildEagerTree (definitions: EsApiDefinition[]): OpaqueCommandHandle {
     }
 
     const leafHandles = defs.map((def) => buildLeafHandle(def, defSchemaArgs))
-    namespaceHandles.push(
-      defineGroup({ name: namespace, description: `Elasticsearch ${namespace} API commands` }, ...leafHandles)
-    )
+    const nsHandle = defineGroup({ name: namespace, description: `Elasticsearch ${namespace} API commands` }, ...leafHandles)
+    applyHelpGroup(nsHandle, NAMESPACE_GROUP)
+    namespaceHandles.push(nsHandle)
   }
+
+  rootDefs.sort((a, b) => {
+    const pa = GROUP_PRIORITY[ROOT_COMMAND_GROUPS[a.name] ?? 'Other commands'] ?? 99
+    const pb = GROUP_PRIORITY[ROOT_COMMAND_GROUPS[b.name] ?? 'Other commands'] ?? 99
+    return pa - pb || a.name.localeCompare(b.name)
+  })
 
   const rootHandles: OpaqueCommandHandle[] = []
   for (const def of rootDefs) {
@@ -200,10 +286,13 @@ function buildEagerTree (definitions: EsApiDefinition[]): OpaqueCommandHandle {
       throw new Error(`duplicate command name "${def.name}" at the top level of es`)
     }
     topLevelNames.add(def.name)
-    rootHandles.push(buildLeafHandle(def, defSchemaArgs))
+    const h = buildLeafHandle(def, defSchemaArgs)
+    applyHelpGroup(h, ROOT_COMMAND_GROUPS[def.name] ?? 'Other commands')
+    rootHandles.push(h)
   }
 
   const helpersGroup = registerHelperCommands()
+  applyHelpGroup(helpersGroup, 'Helpers')
 
   return defineGroup({ name: 'es', description: 'Interact with the Elasticsearch API' }, ...namespaceHandles, ...rootHandles, helpersGroup)
 }
@@ -271,9 +360,9 @@ async function buildLazyTree (manifest: readonly EsApiMeta[], argv: readonly str
     // This keeps Commander object count proportional to the invoked namespace
     // size (worst case ~70 stubs) rather than the total manifest size (~560).
     if (namespace !== invokedNamespace) {
-      namespaceHandles.push(
-        defineGroup({ name: namespace, description: `Elasticsearch ${namespace} API commands` })
-      )
+      const stubHandle = defineGroup({ name: namespace, description: `Elasticsearch ${namespace} API commands` })
+      applyHelpGroup(stubHandle, NAMESPACE_GROUP)
+      namespaceHandles.push(stubHandle)
       continue
     }
 
@@ -286,25 +375,33 @@ async function buildLazyTree (manifest: readonly EsApiMeta[], argv: readonly str
     }
 
     const leafHandles = metas.map(leafHandleFor)
-    namespaceHandles.push(
-      defineGroup({ name: namespace, description: `Elasticsearch ${namespace} API commands` }, ...leafHandles)
-    )
+    const nsHandle = defineGroup({ name: namespace, description: `Elasticsearch ${namespace} API commands` }, ...leafHandles)
+    applyHelpGroup(nsHandle, NAMESPACE_GROUP)
+    namespaceHandles.push(nsHandle)
   }
 
   // Root-level commands: only build stubs when the user targets root-level.
   // When a namespace is targeted, root stubs are skipped entirely.
   const rootHandles: OpaqueCommandHandle[] = []
   if (invokedNamespace == null || !byNamespace.has(invokedNamespace)) {
+    rootMetas.sort((a, b) => {
+      const pa = GROUP_PRIORITY[ROOT_COMMAND_GROUPS[a.name] ?? 'Other commands'] ?? 99
+      const pb = GROUP_PRIORITY[ROOT_COMMAND_GROUPS[b.name] ?? 'Other commands'] ?? 99
+      return pa - pb || a.name.localeCompare(b.name)
+    })
     for (const m of rootMetas) {
       if (topLevelNames.has(m.name)) {
         throw new Error(`duplicate command name "${m.name}" at the top level of es`)
       }
       topLevelNames.add(m.name)
-      rootHandles.push(leafHandleFor(m))
+      const h = leafHandleFor(m)
+      applyHelpGroup(h, ROOT_COMMAND_GROUPS[m.name] ?? 'Other commands')
+      rootHandles.push(h)
     }
   }
 
   const helpersGroup = registerHelperCommands()
+  applyHelpGroup(helpersGroup, 'Helpers')
 
   return defineGroup({ name: 'es', description: 'Interact with the Elasticsearch API' }, ...namespaceHandles, ...rootHandles, helpersGroup)
 }

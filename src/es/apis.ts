@@ -77,7 +77,13 @@ export async function loadEsApi (meta: EsApiMeta): Promise<EsApiDefinition> {
  * startup path stays on the manifest + `loadEsApi()`.
  */
 export async function loadAllEsApis (): Promise<EsApiDefinition[]> {
-  const files = new Set(apiManifest.map((m) => m.namespaceFile))
-  const loaded = await Promise.all([...files].map(loadEsApisInFile))
-  return loaded.flat()
+  // Load namespace files sequentially rather than concurrently to keep peak heap
+  // usage bounded. Concurrent loading via Promise.all compiles all ~40 modules at
+  // once, which can exceed 4 GB on tight heap environments (e.g. V8 on Apple Silicon).
+  const files = [...new Set(apiManifest.map((m) => m.namespaceFile))]
+  const results: EsApiDefinition[][] = []
+  for (const file of files) {
+    results.push(await loadEsApisInFile(file))
+  }
+  return results.flat()
 }

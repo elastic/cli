@@ -345,11 +345,87 @@ describe('registerEsCommands - external schema consumption', () => {
   })
 })
 
+describe('registerEsCommands - help groups', () => {
+  it('namespace commands belong to the "API namespaces" group', () => {
+    const defs: EsApiDefinition[] = [makeDef('health', 'cat'), makeDef('create', 'indices')]
+    const handle = registerEsCommands(defs)
+    const cat = handle.commands.find((c) => c.name() === 'cat')
+    assert.ok(cat != null)
+    assert.equal(cat.helpGroup(), 'API namespaces')
+    const idx = handle.commands.find((c) => c.name() === 'indices')
+    assert.ok(idx != null)
+    assert.equal(idx.helpGroup(), 'API namespaces')
+  })
+
+  it('helpers group belongs to the "Helpers" group', () => {
+    const handle = registerEsCommands([])
+    const helpers = handle.commands.find((c) => c.name() === 'helpers')
+    assert.ok(helpers != null)
+    assert.equal(helpers.helpGroup(), 'Helpers')
+  })
+
+  it('known root-level commands are assigned to their domain group', () => {
+    const defs: EsApiDefinition[] = [
+      makeRootDef('search'),
+      makeRootDef('get'),
+      makeRootDef('count'),
+      makeRootDef('put-script'),
+      makeRootDef('ping'),
+      makeRootDef('reindex-rethrottle'),
+    ]
+    const handle = registerEsCommands(defs)
+    const groupOf = (name: string) => handle.commands.find((c) => c.name() === name)?.helpGroup()
+    assert.equal(groupOf('search'), 'Search')
+    assert.equal(groupOf('get'), 'Documents')
+    assert.equal(groupOf('count'), 'Analysis')
+    assert.equal(groupOf('put-script'), 'Scripts')
+    assert.equal(groupOf('ping'), 'Cluster')
+    assert.equal(groupOf('reindex-rethrottle'), 'Advanced')
+  })
+
+  it('unknown root-level commands fall back to "Other commands"', () => {
+    const defs: EsApiDefinition[] = [makeRootDef('some-new-command')]
+    const handle = registerEsCommands(defs)
+    const cmd = handle.commands.find((c) => c.name() === 'some-new-command')
+    assert.ok(cmd != null)
+    assert.equal(cmd.helpGroup(), 'Other commands')
+  })
+
+  it('root-level commands appear in section order: Documents before Search before Analysis', () => {
+    const defs: EsApiDefinition[] = [
+      makeRootDef('search'),
+      makeRootDef('count'),
+      makeRootDef('get'),
+    ]
+    const handle = registerEsCommands(defs)
+    const rootCmds = handle.commands.filter((c) => c.name() !== 'helpers')
+    const names = rootCmds.map((c) => c.name())
+    assert.ok(names.indexOf('get') < names.indexOf('search'), 'Documents (get) should precede Search (search)')
+    assert.ok(names.indexOf('search') < names.indexOf('count'), 'Search (search) should precede Analysis (count)')
+  })
+})
+
 describe('registerEsCommands - built-in API surface', () => {
   it('all built-in API schemas are JSON-Schema-serializable', async () => {
-    const { loadAllEsApis } = await import('../../src/es/apis.ts')
-    const allApis = await loadAllEsApis()
-    assert.doesNotThrow(() => registerEsCommands(allApis))
+    // Loading all 560 Zod schema modules simultaneously occupies ~5 GB of heap.
+    // V8 can dynamically lower the effective heap limit under memory pressure even
+    // when --max-old-space-size is set, causing OOM in the shared test-runner process.
+    // Spawning a dedicated child process gives the validation a clean 6 GB V8 isolate
+    // with no competing allocations from the test runner or other test modules.
+    const { spawnSync } = await import('node:child_process')
+    const { fileURLToPath } = await import('node:url')
+    // fileURLToPath handles Windows paths correctly (URL.pathname gives /C:/... on Windows)
+    const script = fileURLToPath(new URL('../../scripts/validate-es-schemas.mts', import.meta.url))
+    // Bun runs this test suite in CI and understands TypeScript natively — no tsx
+    // loader or --max-old-space-size flag needed. Under Node, both are required.
+    // Always use process.execPath (guaranteed correct binary) rather than a bare
+    // 'bun' or 'node' string that depends on PATH resolution in the child env.
+    const isBun = 'bun' in process.versions
+    const args = isBun
+      ? [script]
+      : ['--max-old-space-size=6144', '--import', 'tsx/esm', script]
+    const result = spawnSync(process.execPath, args, { encoding: 'utf-8', timeout: 120_000 })
+    assert.strictEqual(result.status, 0, `Schema validation failed:\n${result.stderr}`)
   })
 
   it('throws at registration time when a schema contains z.date()', () => {
