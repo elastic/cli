@@ -75,6 +75,11 @@ export async function loadEsApi (meta: EsApiMeta): Promise<EsApiDefinition> {
  * Eagerly loads every API definition, triggering every schema module. ONLY use
  * this from tests or scripts that really need the full set - the typical CLI
  * startup path stays on the manifest + `loadEsApi()`.
+ *
+ * Files are loaded sequentially rather than with Promise.all to keep peak heap
+ * manageable. Each namespace file carries multi-MB Zod type closures; loading
+ * all 500+ simultaneously can exhaust the V8 heap before GC has a chance to
+ * reclaim compile-time allocations from earlier modules.
  */
 export async function loadAllEsApis (): Promise<EsApiDefinition[]> {
   // Load namespace files sequentially rather than concurrently to keep peak heap
