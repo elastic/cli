@@ -144,6 +144,40 @@ describe('bulk-ingest command', () => {
     assert.ok(body.includes('"b"'))
   })
 
+  it('ingests .ndjson files from --data-dir without an explicit --glob', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-ndjson-'))
+    writeFileSync(join(tmpDir, 'a.ndjson'), '{"x":1}\n{"x":2}\n')
+
+    const { transport, requests } = mockTransport([successResponse(2)])
+
+    await runCommand([
+      '--index', 'test-idx',
+      '--data-dir', tmpDir,
+      '--json'
+    ], makeDeps(transport))
+
+    assert.equal(requests.length, 1)
+    const body = requests[0]!.params.body as string
+    assert.ok(body.includes('"x"'), 'expected .ndjson file to be picked up by default glob')
+  })
+
+  it('ingests .jsonl files from --data-dir without an explicit --glob', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-jsonl-'))
+    writeFileSync(join(tmpDir, 'a.jsonl'), '{"y":1}\n{"y":2}\n')
+
+    const { transport, requests } = mockTransport([successResponse(2)])
+
+    await runCommand([
+      '--index', 'test-idx',
+      '--data-dir', tmpDir,
+      '--json'
+    ], makeDeps(transport))
+
+    assert.equal(requests.length, 1)
+    const body = requests[0]!.params.body as string
+    assert.ok(body.includes('"y"'), 'expected .jsonl file to be picked up by default glob')
+  })
+
   it('recurses into subdirectories by default', async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
     mkdirSync(join(tmpDir, 'sub'))

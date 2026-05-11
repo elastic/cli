@@ -94,7 +94,7 @@ function parseByFormat (raw: string, opts: BulkIngestInput): unknown[] {
 /** Returns the default glob pattern for the given source format. */
 function defaultGlob (format: SourceFormat): string {
   if (format === 'csv') return '**/*.csv'
-  return '**/*.json'
+  return '**/*.{json,ndjson,jsonl}'
 }
 
 /** Collects documents from the resolved input source. */
