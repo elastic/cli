@@ -1,0 +1,10 @@
+#!/bin/sh
+# Regenerate NOTICE.txt whenever package.json or package-lock.json is staged.
+# This keeps the file accurate for both manual dependency bumps and automated
+# tool runs (e.g. `npm install`) that stage lockfile changes.
+
+if git diff --cached --name-only | grep -qE '^package(-lock)?\.json$'; then
+  echo "package.json or package-lock.json changed — regenerating NOTICE.txt..."
+  node scripts/generate-notice.mjs
+  git add NOTICE.txt
+fi
