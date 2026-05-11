@@ -104,6 +104,8 @@ export class EsClient {
       Object.assign(headers, opts.headers)
     }
 
+    const isHead = params.method.toUpperCase() === 'HEAD'
+
     let response: Response
     try {
       const method = fetchBody !== undefined && params.method.toUpperCase() === 'GET' ? 'POST' : params.method
@@ -115,6 +117,11 @@ export class EsClient {
       })
     } catch (err) {
       throw new EsConnectionError(err instanceof Error ? err.message : String(err))
+    }
+
+    if (isHead) {
+      if (response.ok) return true as T
+      if (response.status === 404) return false as T
     }
 
     if (!response.ok) {

@@ -251,6 +251,42 @@ describe('EsClient.request', () => {
     )
   })
 
+  it('returns true for HEAD requests with 2xx status', async () => {
+    const client = makeClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response(null, { status: 200 }))
+    ) as typeof fetch)
+
+    const result = await client.request({ method: 'HEAD', path: '/my-index' })
+    assert.equal(result, true)
+  })
+
+  it('returns false for HEAD requests with 404 status', async () => {
+    const client = makeClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response(null, { status: 404 }))
+    ) as typeof fetch)
+
+    const result = await client.request({ method: 'HEAD', path: '/missing-index' })
+    assert.equal(result, false)
+  })
+
+  it('throws EsResponseError for HEAD requests with non-404 error status', async () => {
+    const client = makeClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: { 'content-type': 'application/json' } }))
+    ) as typeof fetch)
+
+    await assert.rejects(
+      () => client.request({ method: 'HEAD', path: '/restricted-index' }),
+      (err: unknown) => {
+        assert.ok(err instanceof EsResponseError)
+        assert.equal(err.statusCode, 403)
+        return true
+      }
+    )
+  })
+
   it('throws EsConnectionError when fetch throws TypeError', async () => {
     const client = makeClient()
     client._testSetFetch((() =>
