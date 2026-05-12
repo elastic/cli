@@ -7,9 +7,10 @@
 import { Command } from 'commander'
 import { defineCommand, defineGroup, hideBlockedCommands } from './factory.js'
 import type { OpaqueCommandHandle } from './factory.js'
-import { loadConfig, type LoadConfigResult } from './config/loader.ts'
+import { loadConfig } from './config/loader.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './config/profiles.ts'
 import { setResolvedConfig } from './config/store.ts'
+import { getCachedConfig, setCachedConfig } from './config/cache.ts'
 import { renderLogo } from './lib/logo.ts'
 
 // x-release-please-start-version
@@ -34,8 +35,6 @@ program
 //
 // When no --config-file or --use-context overrides are specified, the hook
 // reuses the cached earlyConfig to avoid a redundant load+resolve cycle.
-let earlyConfig: LoadConfigResult | undefined
-
 program.hook('preAction', async (thisCommand, actionCommand) => {
   if (actionCommand.name() === 'version') return
   if (actionCommand.parent?.name() === 'docs') return
@@ -48,6 +47,7 @@ program.hook('preAction', async (thisCommand, actionCommand) => {
   const { configFile: configPath, useContext: contextName, commandProfile: profileName } = thisCommand.opts()
   const typedProfileName = profileName as BuiltInProfile | undefined
 
+  const earlyConfig = getCachedConfig()
   if (configPath == null && contextName == null && profileName == null && earlyConfig?.ok === true) {
     setResolvedConfig(earlyConfig.value)
     return
@@ -179,16 +179,17 @@ if (firstArg === 'sanitize') {
 // Load config early so --help can hide blocked commands. Skip for commands
 // that don't need config (e.g. `version`, `sanitize`, or `config` which authors the file)
 // to avoid unnecessary file I/O and a confusing "no config found" path.
-// The result is cached in earlyConfig so the preAction hook can reuse it.
+// The result is cached via setCachedConfig() so the preAction hook can reuse it.
 if (firstArg !== 'version' && firstArg !== 'config' && firstArg !== 'sanitize') {
   // Parse --profile early (before Commander's full parse) so the early config load
   // and hideBlockedCommands can apply the correct profile-based allow-list to --help.
   const profileArgIdx = process.argv.indexOf('--command-profile')
   const earlyProfile = profileArgIdx !== -1 ? process.argv[profileArgIdx + 1] as BuiltInProfile | undefined : undefined
 
-  earlyConfig = await loadConfig({
+  const earlyConfig = await loadConfig({
     ...(earlyProfile != null && { profileName: earlyProfile }),
   })
+  setCachedConfig(earlyConfig)
   if (earlyConfig.ok) {
     setResolvedConfig(earlyConfig.value)
     hideBlockedCommands(program, earlyConfig.value.commands)
@@ -196,6 +197,7 @@ if (firstArg !== 'version' && firstArg !== 'config' && firstArg !== 'sanitize') 
 }
 
 if (process.argv.slice(2).length === 0) {
+  const earlyConfig = getCachedConfig()
   if (!earlyConfig?.ok || earlyConfig.value.banner !== false) {
     process.stdout.write(renderLogo(VERSION))
   }
