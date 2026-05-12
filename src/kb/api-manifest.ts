@@ -319,6 +319,14 @@ export const kbApiManifest: readonly KbApiMeta[] = [
     "namespaceFile": "agent-builder"
   },
   {
+    "name": "post-agent-builder-nl-to-esql",
+    "namespace": "agent-builder",
+    "description": "Generate an ES|QL query from natural language",
+    "method": "POST",
+    "path": "/api/agent_builder/nl_to_esql",
+    "namespaceFile": "agent-builder"
+  },
+  {
     "name": "delete-alerting-rule-id",
     "namespace": "alerting",
     "description": "Delete a rule",
