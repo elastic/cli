@@ -15,12 +15,15 @@
  *   elastic extension list                  list installed extensions
  *   elastic extension install <source>      install from github: or npm:
  *   elastic extension remove <name>         uninstall by name
+ *   elastic extension upgrade [name]        upgrade one or all extensions
+ *   elastic extension search [query]        discover extensions via GitHub topic
  */
 
 import { defineCommand, defineGroup } from '../factory.ts'
 import type { JsonValue, OpaqueCommandHandle } from '../factory.ts'
 import { readExtensions } from './store.ts'
-import { installExtension, uninstallExtension } from './installer.ts'
+import { installExtension, uninstallExtension, upgradeExtension, upgradeAllExtensions } from './installer.ts'
+import { searchExtensions } from './search.ts'
 
 // ---------------------------------------------------------------------------
 // Handlers
@@ -60,6 +63,22 @@ async function handleRemove (parsed: { arg?: string }): Promise<JsonValue> {
   return { removed: true, name } as unknown as JsonValue
 }
 
+async function handleUpgrade (parsed: { arg?: string }): Promise<JsonValue> {
+  const name = parsed.arg?.trim()
+  if (name != null && name.length > 0) {
+    const updated = await upgradeExtension(name)
+    return { upgraded: true, name: updated.name, source: updated.source, entrypoint: updated.entrypoint } as unknown as JsonValue
+  }
+  const all = await upgradeAllExtensions()
+  return { upgraded: true, extensions: all.map((e) => ({ name: e.name, source: e.source })) } as unknown as JsonValue
+}
+
+async function handleSearch (parsed: { arg?: string }): Promise<JsonValue> {
+  const query = parsed.arg?.trim()
+  const results = await searchExtensions(query)
+  return results as unknown as JsonValue
+}
+
 // ---------------------------------------------------------------------------
 // Command tree
 // ---------------------------------------------------------------------------
@@ -96,10 +115,34 @@ export function registerExtensionCommands (): OpaqueCommandHandle {
     handler: async (parsed) => handleRemove(parsed),
   })
 
+  const upgradeCmd = defineCommand({
+    name: 'upgrade',
+    description: 'Upgrade an installed extension, or all extensions if no name is given',
+    positionalArg: {
+      name: 'name',
+      description: 'Short extension name to upgrade (omit to upgrade all)',
+      required: false,
+    },
+    handler: async (parsed) => handleUpgrade(parsed),
+  })
+
+  const searchCmd = defineCommand({
+    name: 'search',
+    description: 'Discover extensions tagged with the elastic-extension GitHub topic',
+    positionalArg: {
+      name: 'query',
+      description: 'Optional search terms to narrow results',
+      required: false,
+    },
+    handler: async (parsed) => handleSearch(parsed),
+  })
+
   return defineGroup(
     { name: 'extension', description: 'Manage elastic CLI extensions' },
     listCmd,
     installCmd,
     removeCmd,
+    upgradeCmd,
+    searchCmd,
   )
 }
