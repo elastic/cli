@@ -45,6 +45,10 @@ program.hook('preAction', async (thisCommand, actionCommand) => {
   for (let c = actionCommand.parent; c != null; c = c.parent) {
     if (c.name() === 'config') return
   }
+  // `extension` commands manage the extension registry, not the Elastic stack
+  for (let c = actionCommand.parent; c != null; c = c.parent) {
+    if (c.name() === 'extension') return
+  }
   const { configFile: configPath, useContext: contextName, commandProfile: profileName } = thisCommand.opts()
   const typedProfileName = profileName as BuiltInProfile | undefined
 
@@ -176,11 +180,18 @@ if (firstArg === 'sanitize') {
   program.addCommand(defineGroup({ name: 'sanitize', description: 'Sanitize values for safe use in Elasticsearch' }))
 }
 
+if (firstArg === 'extension') {
+  const { registerExtensionCommands } = await import('./extension/register.ts')
+  program.addCommand(registerExtensionCommands())
+} else {
+  program.addCommand(defineGroup({ name: 'extension', description: 'Manage elastic CLI extensions' }))
+}
+
 // Load config early so --help can hide blocked commands. Skip for commands
 // that don't need config (e.g. `version`, `sanitize`, or `config` which authors the file)
 // to avoid unnecessary file I/O and a confusing "no config found" path.
 // The result is cached in earlyConfig so the preAction hook can reuse it.
-if (firstArg !== 'version' && firstArg !== 'config' && firstArg !== 'sanitize') {
+if (firstArg !== 'version' && firstArg !== 'config' && firstArg !== 'sanitize' && firstArg !== 'extension') {
   // Parse --profile early (before Commander's full parse) so the early config load
   // and hideBlockedCommands can apply the correct profile-based allow-list to --help.
   const profileArgIdx = process.argv.indexOf('--command-profile')
