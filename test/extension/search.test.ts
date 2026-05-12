@@ -17,7 +17,7 @@ let _stubResponse: { ok: boolean; status: number; statusText: string; json: () =
 
 function stubFetch (response: typeof _stubResponse): void {
   _stubResponse = response
-  globalThis.fetch = async (_url: string | URL | Request, _init?: RequestInit) => {
+  globalThis.fetch = async () => {
     if (_stubResponse == null) throw new Error('No stub response configured')
     return {
       ok: _stubResponse.ok,
