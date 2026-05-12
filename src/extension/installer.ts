@@ -26,7 +26,7 @@ import { access, constants, mkdir, readFile, rm } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join, isAbsolute, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
-import { upsertExtension, removeExtension as removeFromStore } from './store.ts'
+import { readExtensions, upsertExtension, findExtension, removeExtension as removeFromStore } from './store.ts'
 import type { InstalledExtension } from './store.ts'
 
 // ---------------------------------------------------------------------------
@@ -269,4 +269,56 @@ export async function uninstallExtension (name: string): Promise<void> {
   const installDir = join(extensionsDir(), `elastic-${name}`)
   await rm(installDir, { recursive: true, force: true })
   await removeFromStore(name)
+}
+
+/**
+ * Upgrades a single installed extension in-place:
+ *   - github: `git pull --ff-only`, then `npm install --production` if package.json is present
+ *   - npm: `npm update --prefix <dir>`
+ *
+ * Rediscovers the entrypoint after the upgrade and persists the updated entry.
+ * Throws if the extension is not installed.
+ */
+export async function upgradeExtension (name: string): Promise<InstalledExtension> {
+  const ext = await findExtension(name)
+  if (ext == null) throw new Error(`Extension "${name}" is not installed.`)
+
+  const parsed = parseSource(ext.source)
+
+  if (parsed.type === 'github') {
+    run('git', ['pull', '--ff-only'], ext.path)
+    const hasPkg = await readFile(join(ext.path, 'package.json'), 'utf-8').then(() => true).catch(() => false)
+    if (hasPkg) {
+      run('npm', ['install', '--production', '--no-fund', '--no-audit'], ext.path)
+    }
+    const entrypoint = await discoverGithubEntrypoint(ext.path, parsed.baseName)
+    const updated: InstalledExtension = { ...ext, entrypoint: resolve(entrypoint) }
+    await upsertExtension(updated)
+    return updated
+  } else {
+    run('npm', ['update', '--prefix', ext.path, '--no-fund', '--no-audit'], extensionsDir())
+    await upsertExtension(ext)
+    return ext
+  }
+}
+
+/**
+ * Upgrades all installed extensions. Returns each updated entry.
+ * Errors from individual upgrades are collected and re-thrown together at the end.
+ */
+export async function upgradeAllExtensions (): Promise<InstalledExtension[]> {
+  const extensions = await readExtensions()
+  const results: InstalledExtension[] = []
+  const errors: string[] = []
+  for (const ext of extensions) {
+    try {
+      results.push(await upgradeExtension(ext.name))
+    } catch (err: unknown) {
+      errors.push(`${ext.name}: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
+  if (errors.length > 0) {
+    throw new Error(`Some extensions failed to upgrade:\n${errors.map((e) => `  ${e}`).join('\n')}`)
+  }
+  return results
 }
