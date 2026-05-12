@@ -214,4 +214,24 @@ if (process.argv.slice(2).length === 0) {
   process.exit(0)
 }
 
+// If the first argument does not match any built-in command, attempt to
+// dispatch to an installed extension named `elastic-<firstArg>`.
+// This check runs after all built-ins are registered so the set is complete.
+const BUILT_IN_COMMANDS = new Set([
+  'version', 'stack', 'es', 'elasticsearch', 'kb', 'kibana',
+  'cloud', 'docs', 'config', 'sanitize', 'extension',
+])
+
+if (firstArg != null && !BUILT_IN_COMMANDS.has(firstArg)) {
+  const { findExtension } = await import('./extension/store.ts')
+  const ext = await findExtension(firstArg)
+  if (ext != null) {
+    const { buildContextEnv } = await import('./extension/context.ts')
+    const { runExtension } = await import('./extension/runner.ts')
+    const contextEnv = earlyConfig?.ok === true ? buildContextEnv(earlyConfig.value) : {}
+    const exitCode = await runExtension(ext, process.argv.slice(3), contextEnv)
+    process.exit(exitCode)
+  }
+}
+
 await program.parseAsync(process.argv)
