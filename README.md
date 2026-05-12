@@ -4,15 +4,10 @@ Interact with the Elastic Stack and Elastic Cloud from the command line.
 
 ## Installation
 
-This CLI is not yet available on npm.
-To install it, clone the repository, install dependencies, build and link:
+Install from npm:
 
 ```bash
-git clone git@github.com:elastic/cli.git
-cd cli
-npm install
-npm run build
-npm link
+npm install @elastic/cli
 ```
 
 Then you should be able to run `elastic` commands:
