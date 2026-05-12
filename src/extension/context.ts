@@ -11,6 +11,16 @@
  * Only variables with a defined value are included in the returned object.
  * Extensions must treat absent variables as "service not configured".
  *
+ * Security / trust model:
+ * - Credentials are passed as env vars, which is the standard approach for
+ *   CLI extension systems (same model as `gh`). On Linux, a process's env is
+ *   readable by root via /proc/<pid>/environ and by any process running as the
+ *   same user, so this offers no additional protection over the config file.
+ * - All child processes spawned by the extension inherit these env vars. Authors
+ *   should be aware and avoid leaking them into further subprocesses or logs.
+ * - The caller (runner) must NOT use `shell: true` when spawning extensions.
+ *   Use spawn with an explicit args array to avoid shell injection.
+ *
  * Exported variable names:
  *   ELASTIC_ES_URL              Elasticsearch URL
  *   ELASTIC_ES_API_KEY          Elasticsearch API key (api_key auth)
