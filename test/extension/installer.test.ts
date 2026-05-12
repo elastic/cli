@@ -17,7 +17,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, rm, mkdir, writeFile, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { installExtension, uninstallExtension, _testSetExtensionsDir } from '../../src/extension/installer.ts'
+import { installExtension, uninstallExtension, upgradeExtension, upgradeAllExtensions, _testSetExtensionsDir } from '../../src/extension/installer.ts'
 import { readExtensions, writeExtensions, _testSetRegistryPath } from '../../src/extension/store.ts'
 import type { InstalledExtension } from '../../src/extension/store.ts'
 
@@ -104,6 +104,19 @@ describe('installer', () => {
 
       await uninstallExtension('gone')
       assert.deepEqual(await readExtensions(), [])
+    })
+  })
+
+  describe('upgradeExtension', () => {
+    it('throws when the extension is not installed', async () => {
+      await assert.rejects(upgradeExtension('nonexistent'), /not installed/)
+    })
+  })
+
+  describe('upgradeAllExtensions', () => {
+    it('returns empty array when no extensions are installed', async () => {
+      const results = await upgradeAllExtensions()
+      assert.deepEqual(results, [])
     })
   })
 })
