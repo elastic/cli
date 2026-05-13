@@ -1,30 +1,41 @@
-import { allKbApis } from '../src/kb/apis.ts'
 import * as fs from 'fs'
 import * as path from 'path'
+import { pathToFileURL } from 'url'
+import type { KbApiDefinition } from '../src/kb/types.ts'
 
-const apisDir = './src/kb/apis'
-const files = fs.readdirSync(apisDir).filter(f => f.endsWith('.ts'))
+const apisDir = path.resolve('./src/kb/apis')
+const files = fs.readdirSync(apisDir).filter(f => f.endsWith('.ts')).sort()
 
-const nsToFile = new Map<string, string>()
-for (const def of allKbApis) {
-  if (!nsToFile.has(def.namespace)) {
-    for (const file of files) {
-      const content = fs.readFileSync(path.join(apisDir, file), 'utf8')
-      if (content.includes(`namespace: "${def.namespace}"`)) {
-        nsToFile.set(def.namespace, file.replace('.ts', ''))
-        break
-      }
-    }
+function toCamelCase (stem: string): string {
+  return stem.replace(/-([a-z0-9])/g, (_, c: string) => c.toUpperCase())
+}
+
+interface Entry {
+  def: KbApiDefinition
+  file: string
+}
+
+const entries: Entry[] = []
+for (const file of files) {
+  const stem = file.replace(/\.ts$/, '')
+  const exportName = `${toCamelCase(stem)}Apis`
+  const mod = await import(pathToFileURL(path.join(apisDir, file)).href) as Record<string, KbApiDefinition[]>
+  const defs = mod[exportName]
+  if (!Array.isArray(defs)) {
+    throw new Error(`src/kb/apis/${file} did not export ${exportName}`)
+  }
+  for (const def of defs) {
+    entries.push({ def, file: stem })
   }
 }
 
-const manifest = allKbApis.map(d => ({
-  name: d.name,
-  namespace: d.namespace,
-  description: d.description,
-  method: d.method,
-  path: d.path,
-  namespaceFile: nsToFile.get(d.namespace) ?? 'unknown',
+const manifest = entries.map(({ def, file }) => ({
+  name: def.name,
+  namespace: def.namespace,
+  description: def.description,
+  method: def.method,
+  path: def.path,
+  namespaceFile: file,
 }))
 
 const lines = [
@@ -34,7 +45,7 @@ const lines = [
   ' */',
   '',
   '/*',
-  ' * AUTO-GENERATED from src/kb/apis/*.ts.',
+  ' * AUTO-GENERATED from src/kb/apis/*.ts via scripts/build-kb-manifest.mts.',
   ' * DO NOT EDIT BY HAND. Regenerate after running the code generator.',
   ' */',
   '',

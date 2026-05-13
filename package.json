@@ -19,6 +19,7 @@
     "codegen:functional": "npx tsx codegen/functional/index.ts --tests-dir ../elasticsearch-clients-tests/tests",
     "codegen:es": "node scripts/codegen.mjs es",
     "codegen:cloud": "node scripts/codegen.mjs cloud",
+    "codegen:kibana": "node scripts/codegen.mjs kibana",
     "test:functional:es": "bash test/functional/es/run.sh",
     "test:functional:cloud": "bash test/functional/cloud/smoke.sh",
     "test:functional:kb": "bash test/functional/kb/run.sh",

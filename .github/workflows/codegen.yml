@@ -1,8 +1,8 @@
 name: Weekly Codegen
 
-# Regenerates the auto-generated ES and Cloud API bindings against the latest
-# upstream `elastic/elastic-client-generator-js` output and, when the diff is
-# non-empty, opens a PR. See https://github.com/elastic/cli/issues/79.
+# Regenerates the auto-generated ES, Cloud and Kibana API bindings against the
+# latest upstream `elastic/elastic-client-generator-js` output and, when the
+# diff is non-empty, opens a PR. See https://github.com/elastic/cli/issues/79.
 on:
   schedule:
     # Monday 07:00 UTC — matches the cadence of the wider client-codegen suite
@@ -65,9 +65,10 @@ jobs:
         env:
           CODEGEN_GENERATOR_DIR: ${{ steps.generator.outputs.dir }}
         run: npm run codegen:cloud
-      # TODO(#79): add a `codegen:kibana` step here once the Kibana target
-      # lands in elastic/elastic-client-generator-js. The Kibana bindings
-      # tracking issue (elastic/cli#72) will gate this.
+      - name: Regenerate Kibana bindings
+        env:
+          CODEGEN_GENERATOR_DIR: ${{ steps.generator.outputs.dir }}
+        run: npm run codegen:kibana
 
       - name: Build
         run: npm run build
@@ -78,12 +79,12 @@ jobs:
         id: diff
         shell: bash
         run: |
-          if git diff --quiet -- src/es src/cloud; then
+          if git diff --quiet -- src/es src/cloud src/kb; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No generated changes — nothing to PR."
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            git --no-pager diff --stat -- src/es src/cloud
+            git --no-pager diff --stat -- src/es src/cloud src/kb
           fi
 
       # Reuse the ephemeral token fetched at the start of the job — see the
@@ -102,14 +103,19 @@ jobs:
           commit-message: "chore(codegen): weekly update of generated API bindings"
           title: "chore(codegen): weekly update of generated API bindings"
           body: |
-            Automated weekly regeneration of the ES and Cloud API bindings
-            against the latest `elastic/elastic-client-generator-js` output.
+            Automated weekly regeneration of the ES, Cloud and Kibana API
+            bindings against the latest `elastic/elastic-client-generator-js`
+            output.
 
-            - `src/es/apis/**` and `src/es/apis.ts` — produced by `npm run cli-es`
+            - `src/es/apis/**` — produced by `npm run cli-es`
             - `src/es/apis/schemas/**` — produced by `npm run zod`
+            - `src/es/api-manifest.ts` — produced by `scripts/build-api-manifest.mjs`
             - `src/cloud/apis/**` and `src/cloud/apis.ts` — produced by `npm run cli-cloud`
+            - `src/kb/apis/**` — produced by `npx tsx cli/kibana/index.ts`
+            - `src/kb/api-manifest.ts` — produced by `scripts/build-kb-manifest.mts`
 
-            Run locally with `npm run codegen:es` / `npm run codegen:cloud`.
+            Run locally with `npm run codegen:es` / `npm run codegen:cloud` /
+            `npm run codegen:kibana`.
 
             Refs: #79
           committer: "elastic-machine <elasticmachine@users.noreply.github.com>"
@@ -117,6 +123,7 @@ jobs:
           add-paths: |
             src/es
             src/cloud
+            src/kb
 
       - name: PR summary
         if: steps.cpr.outputs.pull-request-url
