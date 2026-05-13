@@ -11,8 +11,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+  id-token: write
 
 concurrency:
   group: ${{ github.workflow }}
@@ -30,12 +30,30 @@ jobs:
       - name: Install repo dependencies
         run: npm ci
 
+      # Issued via Vault OIDC. The backing token policy
+      # (resources/github-token-policies/token-policy-elastic-cli-codegen.yaml
+      # in elastic/catalog-info) scopes this token to elastic/cli and
+      # elastic/elastic-client-generator-js — the former so peter-evans can
+      # push the chore/weekly-codegen branch and open the PR, the latter so
+      # the generator repo (private) can be cloned.
+      - name: Fetch ephemeral Github token
+        id: fetch-token
+        uses: elastic/ci-gh-actions/fetch-github-token@622f9dc1eecdd4af2e81dfb38028aacb1dae03e8 # v1.5.0
+        with:
+          vault-instance: "ci-prod"
+
       - name: Prepare generator checkout (shared between codegen steps)
         id: generator
         shell: bash
+        env:
+          GH_TOKEN: ${{ steps.fetch-token.outputs.token }}
         run: |
           dir="$RUNNER_TEMP/elastic-client-generator-js"
-          git clone --depth 1 --branch main https://github.com/elastic/elastic-client-generator-js.git "$dir"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: bearer $GH_TOKEN" \
+            clone --depth 1 --branch main https://github.com/elastic/elastic-client-generator-js.git "$dir"
+          # Drop the credential from the cloned repo's git config so it can't
+          # be reused by anything later in the job.
+          git -C "$dir" config --unset-all http.https://github.com/.extraheader || true
           (cd "$dir" && npm install --no-audit --no-fund)
           echo "dir=$dir" >> "$GITHUB_OUTPUT"
 
@@ -68,17 +86,16 @@ jobs:
             git --no-pager diff --stat -- src/es src/cloud
           fi
 
-      # NOTE: Using GITHUB_TOKEN means the resulting PR will NOT trigger further
-      # workflow runs (including `ci.yml`). To get CI on weekly codegen PRs,
-      # replace `GITHUB_TOKEN` below with a fine-grained PAT stored as
-      # `CODEGEN_PR_TOKEN`. See:
-      # https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication#using-the-github_token-in-a-workflow
+      # Reuse the ephemeral token fetched at the start of the job — see the
+      # "Fetch ephemeral Github token" step above. Using it (vs. GITHUB_TOKEN)
+      # also means the resulting PR is authored by a non-Actions identity and
+      # therefore triggers downstream CI (e.g. `ci.yml`).
       - name: Create Pull Request
         if: steps.diff.outputs.changed == 'true'
         id: cpr
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
-          token: ${{ secrets.CODEGEN_PR_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ steps.fetch-token.outputs.token }}
           branch: chore/weekly-codegen
           delete-branch: true
           base: main
