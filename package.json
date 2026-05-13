@@ -66,6 +66,10 @@
     "yaml": "^2.8.3",
     "zod": "^4.3.6"
   },
+  "bundledDependencies": [
+    "@elastic/config-resolver",
+    "@elastic/es-schemas"
+  ],
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/marked-terminal": "6.1.1",

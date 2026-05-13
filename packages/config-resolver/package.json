@@ -3,8 +3,7 @@
   "version": "0.1.0",
   "description": "Expression resolver for the Elastic CLI config pipeline. Resolves $(name:params) references from sources like env vars, files, and OS keychains.",
   "license": "Apache-2.0",
-  "private": true,
-  "type": "module",
+"type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
