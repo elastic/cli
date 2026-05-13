@@ -39,19 +39,27 @@ async function handleList (): Promise<JsonValue> {
   })) as unknown as JsonValue
 }
 
+function handlerError (code: string, err: unknown): JsonValue {
+  return { error: { code, message: err instanceof Error ? err.message : String(err) } } as unknown as JsonValue
+}
+
 async function handleInstall (parsed: { arg?: string }): Promise<JsonValue> {
   const source = parsed.arg?.trim()
   if (source == null || source.length === 0) {
     return { error: { code: 'missing_source', message: 'A source is required. Use github:owner/repo or npm:package-name.' } }
   }
-  const entry = await installExtension(source)
-  return {
-    installed: true,
-    name: entry.name,
-    source: entry.source,
-    path: entry.path,
-    entrypoint: entry.entrypoint,
-  } as unknown as JsonValue
+  try {
+    const entry = await installExtension(source)
+    return {
+      installed: true,
+      name: entry.name,
+      source: entry.source,
+      path: entry.path,
+      entrypoint: entry.entrypoint,
+    } as unknown as JsonValue
+  } catch (err) {
+    return handlerError('install_failed', err)
+  }
 }
 
 async function handleRemove (parsed: { arg?: string }): Promise<JsonValue> {
@@ -59,24 +67,36 @@ async function handleRemove (parsed: { arg?: string }): Promise<JsonValue> {
   if (name == null || name.length === 0) {
     return { error: { code: 'missing_name', message: 'An extension name is required.' } }
   }
-  await uninstallExtension(name)
-  return { removed: true, name } as unknown as JsonValue
+  try {
+    await uninstallExtension(name)
+    return { removed: true, name } as unknown as JsonValue
+  } catch (err) {
+    return handlerError('remove_failed', err)
+  }
 }
 
 async function handleUpgrade (parsed: { arg?: string }): Promise<JsonValue> {
   const name = parsed.arg?.trim()
-  if (name != null && name.length > 0) {
-    const updated = await upgradeExtension(name)
-    return { upgraded: true, name: updated.name, source: updated.source, entrypoint: updated.entrypoint } as unknown as JsonValue
+  try {
+    if (name != null && name.length > 0) {
+      const updated = await upgradeExtension(name)
+      return { upgraded: true, name: updated.name, source: updated.source, entrypoint: updated.entrypoint } as unknown as JsonValue
+    }
+    const all = await upgradeAllExtensions()
+    return { upgraded: true, extensions: all.map((e) => ({ name: e.name, source: e.source })) } as unknown as JsonValue
+  } catch (err) {
+    return handlerError('upgrade_failed', err)
   }
-  const all = await upgradeAllExtensions()
-  return { upgraded: true, extensions: all.map((e) => ({ name: e.name, source: e.source })) } as unknown as JsonValue
 }
 
 async function handleSearch (parsed: { arg?: string }): Promise<JsonValue> {
   const query = parsed.arg?.trim()
-  const results = await searchExtensions(query)
-  return results as unknown as JsonValue
+  try {
+    const results = await searchExtensions(query)
+    return results as unknown as JsonValue
+  } catch (err) {
+    return handlerError('search_failed', err)
+  }
 }
 
 // ---------------------------------------------------------------------------
