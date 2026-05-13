@@ -1186,6 +1186,58 @@ describe('defineCommand', () => {
         restore()
       }
     })
+
+    it('treats EAGAIN from stdin as no input (non-blocking fd in IDE terminals)', async () => {
+      const eagainErr = Object.assign(new Error('EAGAIN'), { code: 'EAGAIN' })
+      const restore = _testSetStdinReader(() => { throw eagainErr })
+      try {
+        const received: unknown[] = []
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Run a search',
+          input: z.object({ q: z.string().optional() }),
+          handler: (p) => { received.push(p.input); return {} },
+        })
+        await invokeAsync(cmd, [])
+        assert.equal(received.length, 1)
+      } finally {
+        restore()
+      }
+    })
+
+    it('treats EBADF from stdin as no input', async () => {
+      const ebadfErr = Object.assign(new Error('EBADF'), { code: 'EBADF' })
+      const restore = _testSetStdinReader(() => { throw ebadfErr })
+      try {
+        const received: unknown[] = []
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Run a search',
+          input: z.object({ q: z.string().optional() }),
+          handler: (p) => { received.push(p.input); return {} },
+        })
+        await invokeAsync(cmd, [])
+        assert.equal(received.length, 1)
+      } finally {
+        restore()
+      }
+    })
+
+    it('re-throws unexpected stdin errors (not EAGAIN/EBADF)', async () => {
+      const ioErr = Object.assign(new Error('EIO'), { code: 'EIO' })
+      const restore = _testSetStdinReader(() => { throw ioErr })
+      try {
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Run a search',
+          input: z.object({ q: z.string().optional() }),
+          handler: () => ({}),
+        })
+        await assert.rejects(() => invokeAsync(cmd, []), { code: 'EIO' })
+      } finally {
+        restore()
+      }
+    })
   })
 
   describe('JSON input conflict resolution', () => {
