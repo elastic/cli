@@ -13,7 +13,7 @@ import { setResolvedConfig } from './config/store.ts'
 import { renderLogo } from './lib/logo.ts'
 
 // x-release-please-start-version
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 // x-release-please-end
 
 const program = new Command()
