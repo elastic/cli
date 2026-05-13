@@ -65,7 +65,7 @@ released to the public npm registry; depend on it through the workspace.
 
 ------------------------------------------------------------------------
 @elastic/es-schemas@1.0.0
-License: Apache-2.0
+License: UNLICENSED
 Repository: https://github.com/elastic/cli
 Publisher: Elastic Client Library Maintainers
 ------------------------------------------------------------------------
