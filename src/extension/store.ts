@@ -195,12 +195,10 @@ export async function findExtension (name: string): Promise<InstalledExtension |
 export async function upsertExtension (entry: InstalledExtension): Promise<void> {
   const extensions = await readExtensions()
   const idx = extensions.findIndex((e) => e.name === entry.name)
-  if (idx === -1) {
-    extensions.push(entry)
-  } else {
-    extensions[idx] = entry
-  }
-  await writeExtensions(extensions)
+  const updated = idx === -1
+    ? [...extensions, entry]
+    : extensions.map((e, i) => (i === idx ? entry : e))
+  await writeExtensions(updated)
 }
 
 /**
