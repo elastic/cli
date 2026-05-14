@@ -57,6 +57,13 @@ export interface InstalledExtension {
  */
 const SAFE_NAME_RE = /^[a-z0-9-]+$/
 
+/**
+ * Loose source format check: must start with a known prefix or contain a
+ * slash (bare owner/repo). Rejects clearly invalid values while remaining
+ * open to future prefixes (e.g. git:).
+ */
+const SAFE_SOURCE_RE = /^(github:|npm:|git:)|^[^:]+\//
+
 // ---------------------------------------------------------------------------
 // Test seam
 // ---------------------------------------------------------------------------
@@ -101,6 +108,13 @@ function validateEntry (value: unknown, index: number): InstalledExtension {
   if (!SAFE_NAME_RE.test(name)) {
     throw new Error(
       `extensions.json: entry[${index}].name "${name}" contains invalid characters (allowed: a-z, 0-9, hyphen)`
+    )
+  }
+
+  const source = obj['source'] as string
+  if (!SAFE_SOURCE_RE.test(source)) {
+    throw new Error(
+      `extensions.json: entry[${index}].source "${source}" does not match a recognised format (github:owner/repo, npm:package, owner/repo)`
     )
   }
 
@@ -196,5 +210,6 @@ export async function upsertExtension (entry: InstalledExtension): Promise<void>
 export async function removeExtension (name: string): Promise<void> {
   const extensions = await readExtensions()
   const filtered = extensions.filter((e) => e.name !== name)
+  if (filtered.length === extensions.length) return
   await writeExtensions(filtered)
 }

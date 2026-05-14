@@ -72,10 +72,13 @@ describe('extension store', () => {
     it('creates the parent directory if missing', async () => {
       const nested = join(tmpDir, 'subdir', 'extensions.json')
       _testSetRegistryPath(nested)
-      await writeExtensions([ext1])
-      const raw = await readFile(nested, 'utf-8')
-      assert.deepEqual(JSON.parse(raw), [ext1])
-      _testSetRegistryPath(registryFile)
+      try {
+        await writeExtensions([ext1])
+        const raw = await readFile(nested, 'utf-8')
+        assert.deepEqual(JSON.parse(raw), [ext1])
+      } finally {
+        _testSetRegistryPath(registryFile)
+      }
     })
 
     it('writes valid JSON with a trailing newline', async () => {
@@ -211,6 +214,22 @@ describe('extension store', () => {
       const bad = { ...ext1, path: '../outside' }
       await writeFile(registryFile, JSON.stringify([bad]), 'utf-8')
       await assert.rejects(readExtensions(), /must be an absolute path/)
+    })
+
+    it('throws when source does not match a recognised format', async () => {
+      const bad = { ...ext1, source: 'justaplainstring' }
+      await writeFile(registryFile, JSON.stringify([bad]), 'utf-8')
+      await assert.rejects(readExtensions(), /does not match a recognised format/)
+    })
+  })
+
+  describe('removeExtension -- no-op write optimisation', () => {
+    it('does not write when name is not found', async () => {
+      await writeExtensions([ext1])
+      const statBefore = await import('node:fs/promises').then((m) => m.stat(registryFile))
+      await removeExtension('nonexistent')
+      const statAfter = await import('node:fs/promises').then((m) => m.stat(registryFile))
+      assert.equal(statBefore.mtimeMs, statAfter.mtimeMs, 'mtime should not change when no entry was removed')
     })
   })
 })
