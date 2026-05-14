@@ -487,11 +487,8 @@ export const agentBuilderApis: KbApiDefinition[] = [
     method: "POST",
     path: "/api/agent_builder/nl_to_esql",
     bodyParams: [
-    { name: "context", cliFlag: "kb-context", type: "string", description: "Additional context that could be useful to generate the ES|QL query." },
-    { name: "disable_named_params", type: "boolean", description: "If true, disables the instruction to use named parameters (?_tstart, ?_tend) for time range filtering." },
     { name: "index", type: "string", description: "Index or index-pattern to search against. If not provided, will automatically select the best index to use based on the query." },
-    { name: "query", type: "string", description: "A natural language query to generate an ES|QL query from.", required: true },
-    { name: "time_range", type: "object", description: "Time range to use for named parameters ?_tstart and ?_tend when validating the generated query. If not provided, falls back to the time range from the screen context." },
+    { name: "query", type: "string", description: "A natural language query to generate an ES|QL query from.", required: true }
     ],
   }
 ]
