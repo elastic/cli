@@ -647,6 +647,46 @@ export const kbApiManifest: readonly KbApiMeta[] = [
     "namespaceFile": "connectors"
   },
   {
+    "name": "get-dashboards",
+    "namespace": "dashboards",
+    "description": "Search dashboards",
+    "method": "GET",
+    "path": "/api/dashboards",
+    "namespaceFile": "dashboards"
+  },
+  {
+    "name": "post-dashboards",
+    "namespace": "dashboards",
+    "description": "Create a dashboard",
+    "method": "POST",
+    "path": "/api/dashboards",
+    "namespaceFile": "dashboards"
+  },
+  {
+    "name": "delete-dashboards-id",
+    "namespace": "dashboards",
+    "description": "Delete a dashboard",
+    "method": "DELETE",
+    "path": "/api/dashboards/{id}",
+    "namespaceFile": "dashboards"
+  },
+  {
+    "name": "get-dashboards-id",
+    "namespace": "dashboards",
+    "description": "Get a dashboard",
+    "method": "GET",
+    "path": "/api/dashboards/{id}",
+    "namespaceFile": "dashboards"
+  },
+  {
+    "name": "put-dashboards-id",
+    "namespace": "dashboards",
+    "description": "Upsert a dashboard",
+    "method": "PUT",
+    "path": "/api/dashboards/{id}",
+    "namespaceFile": "dashboards"
+  },
+  {
     "name": "get-fleet-data-streams",
     "namespace": "data-streams",
     "description": "Get data streams",
@@ -2004,6 +2044,14 @@ export const kbApiManifest: readonly KbApiMeta[] = [
     "description": "Import saved objects",
     "method": "POST",
     "path": "/api/saved_objects/_import",
+    "namespaceFile": "saved-objects"
+  },
+  {
+    "name": "post-saved-objects-resolve-import-errors",
+    "namespace": "saved-objects",
+    "description": "Resolve import errors",
+    "method": "POST",
+    "path": "/api/saved_objects/_resolve_import_errors",
     "namespaceFile": "saved-objects"
   },
   {
