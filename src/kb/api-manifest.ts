@@ -127,6 +127,14 @@ export const kbApiManifest: readonly KbApiMeta[] = [
     "namespaceFile": "agent-builder"
   },
   {
+    "name": "get-agent-builder-conversations-conversation-id-attachments-stale",
+    "namespace": "agent-builder",
+    "description": "Check attachment staleness",
+    "method": "GET",
+    "path": "/api/agent_builder/conversations/{conversation_id}/attachments/stale",
+    "namespaceFile": "agent-builder"
+  },
+  {
     "name": "delete-agent-builder-conversations-conversation-id-attachments-attachment-id",
     "namespace": "agent-builder",
     "description": "Delete conversation attachment",
@@ -167,14 +175,6 @@ export const kbApiManifest: readonly KbApiMeta[] = [
     "namespaceFile": "agent-builder"
   },
   {
-    "name": "get-agent-builder-conversations-conversation-id-attachments-stale",
-    "namespace": "agent-builder",
-    "description": "Check attachment staleness",
-    "method": "GET",
-    "path": "/api/agent_builder/conversations/{conversation_id}/attachments/stale",
-    "namespaceFile": "agent-builder"
-  },
-  {
     "name": "post-agent-builder-converse",
     "namespace": "agent-builder",
     "description": "Send chat message",
@@ -199,11 +199,35 @@ export const kbApiManifest: readonly KbApiMeta[] = [
     "namespaceFile": "agent-builder"
   },
   {
+    "name": "post-agent-builder-nl-to-esql",
+    "namespace": "agent-builder",
+    "description": "Generate an ES|QL query from natural language",
+    "method": "POST",
+    "path": "/api/agent_builder/nl_to_esql",
+    "namespaceFile": "agent-builder"
+  },
+  {
+    "name": "post-agent-builder-nl-to-visualization",
+    "namespace": "agent-builder",
+    "description": "Generate a Lens visualization config from natural language",
+    "method": "POST",
+    "path": "/api/agent_builder/nl_to_visualization",
+    "namespaceFile": "agent-builder"
+  },
+  {
     "name": "get-agent-builder-plugins",
     "namespace": "agent-builder",
     "description": "List plugins",
     "method": "GET",
     "path": "/api/agent_builder/plugins",
+    "namespaceFile": "agent-builder"
+  },
+  {
+    "name": "post-agent-builder-plugins-install",
+    "namespace": "agent-builder",
+    "description": "Install a plugin",
+    "method": "POST",
+    "path": "/api/agent_builder/plugins/install",
     "namespaceFile": "agent-builder"
   },
   {
@@ -220,14 +244,6 @@ export const kbApiManifest: readonly KbApiMeta[] = [
     "description": "Get a plugin by id",
     "method": "GET",
     "path": "/api/agent_builder/plugins/{pluginId}",
-    "namespaceFile": "agent-builder"
-  },
-  {
-    "name": "post-agent-builder-plugins-install",
-    "namespace": "agent-builder",
-    "description": "Install a plugin",
-    "method": "POST",
-    "path": "/api/agent_builder/plugins/install",
     "namespaceFile": "agent-builder"
   },
   {
@@ -316,14 +332,6 @@ export const kbApiManifest: readonly KbApiMeta[] = [
     "description": "Update a tool",
     "method": "PUT",
     "path": "/api/agent_builder/tools/{toolId}",
-    "namespaceFile": "agent-builder"
-  },
-  {
-    "name": "post-agent-builder-nl-to-esql",
-    "namespace": "agent-builder",
-    "description": "Generate an ES|QL query from natural language",
-    "method": "POST",
-    "path": "/api/agent_builder/nl_to_esql",
     "namespaceFile": "agent-builder"
   },
   {

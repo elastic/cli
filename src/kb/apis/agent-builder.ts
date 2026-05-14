@@ -167,12 +167,22 @@ export const agentBuilderApis: KbApiDefinition[] = [
     { name: "conversation_id", description: "The unique identifier of the conversation.", required: true },
     ],
     bodyParams: [
-    { name: "data", type: "string", description: "", required: true },
+    { name: "data", type: "string", description: "The attachment data/content. Required unless origin is provided.", required: true },
     { name: "description", type: "string", description: "Human-readable description of the attachment." },
     { name: "hidden", type: "boolean", description: "Whether the attachment should be hidden from the user." },
     { name: "id", type: "string", description: "Optional custom ID for the attachment." },
     { name: "origin", type: "string", description: "Origin string (for example, saved object ID) for by-reference attachments. When provided without data, the content is resolved once at creation time." },
     { name: "type", type: "string", description: "The type of the attachment (e.g., text, esql, visualization).", required: true },
+    ],
+  },
+  {
+    name: "get-agent-builder-conversations-conversation-id-attachments-stale",
+    namespace: "agent-builder",
+    description: "Check attachment staleness",
+    method: "GET",
+    path: "/api/agent_builder/conversations/{conversation_id}/attachments/stale",
+    pathParams: [
+    { name: "conversation_id", description: "The unique identifier of the conversation.", required: true },
     ],
   },
   {
@@ -214,7 +224,7 @@ export const agentBuilderApis: KbApiDefinition[] = [
     { name: "attachment_id", description: "The unique identifier of the attachment to update.", required: true },
     ],
     bodyParams: [
-    { name: "data", type: "string", description: "", required: true },
+    { name: "data", type: "string", description: "The new attachment data/content.", required: true },
     { name: "description", type: "string", description: "Optional new description for the attachment." },
     ],
   },
@@ -244,16 +254,6 @@ export const agentBuilderApis: KbApiDefinition[] = [
     ],
   },
   {
-    name: "get-agent-builder-conversations-conversation-id-attachments-stale",
-    namespace: "agent-builder",
-    description: "Check attachment staleness",
-    method: "GET",
-    path: "/api/agent_builder/conversations/{conversation_id}/attachments/stale",
-    pathParams: [
-    { name: "conversation_id", description: "The unique identifier of the conversation.", required: true },
-    ],
-  },
-  {
     name: "post-agent-builder-converse",
     namespace: "agent-builder",
     description: "Send chat message",
@@ -267,8 +267,9 @@ export const agentBuilderApis: KbApiDefinition[] = [
     { name: "browser_api_tools", type: "array", description: "Optional browser API tools to be registered as LLM tools with browser.* namespace. These tools execute on the client side." },
     { name: "capabilities", type: "object", description: "Controls agent capabilities during conversation. Currently supports visualization rendering for tabular tool results." },
     { name: "configuration_overrides", type: "object", description: "Runtime configuration overrides. These override the stored agent configuration for this execution only." },
-    { name: "connector_id", type: "string", description: "Optional connector ID for the agent to use for external integrations." },
+    { name: "connector_id", type: "string", description: "Optional connector ID for the agent to use for model routing. Mutually exclusive with `inference_id`; omit or use only one." },
     { name: "conversation_id", type: "string", description: "Optional existing conversation ID to continue a previous conversation." },
+    { name: "inference_id", type: "string", description: "Optional inference endpoint ID for model routing (public alias for the same internal identifier as `connector_id`). Mutually exclusive with `connector_id`." },
     { name: "input", type: "string", description: "The user input message to send to the agent." },
     { name: "prompts", type: "object", description: "Can be used to respond to a confirmation prompt." },
     ],
@@ -287,8 +288,9 @@ export const agentBuilderApis: KbApiDefinition[] = [
     { name: "browser_api_tools", type: "array", description: "Optional browser API tools to be registered as LLM tools with browser.* namespace. These tools execute on the client side." },
     { name: "capabilities", type: "object", description: "Controls agent capabilities during conversation. Currently supports visualization rendering for tabular tool results." },
     { name: "configuration_overrides", type: "object", description: "Runtime configuration overrides. These override the stored agent configuration for this execution only." },
-    { name: "connector_id", type: "string", description: "Optional connector ID for the agent to use for external integrations." },
+    { name: "connector_id", type: "string", description: "Optional connector ID for the agent to use for model routing. Mutually exclusive with `inference_id`; omit or use only one." },
     { name: "conversation_id", type: "string", description: "Optional existing conversation ID to continue a previous conversation." },
+    { name: "inference_id", type: "string", description: "Optional inference endpoint ID for model routing (public alias for the same internal identifier as `connector_id`). Mutually exclusive with `connector_id`." },
     { name: "input", type: "string", description: "The user input message to send to the agent." },
     { name: "prompts", type: "object", description: "Can be used to respond to a confirmation prompt." },
     ],
@@ -304,11 +306,46 @@ export const agentBuilderApis: KbApiDefinition[] = [
     ],
   },
   {
+    name: "post-agent-builder-nl-to-esql",
+    namespace: "agent-builder",
+    description: "Generate an ES|QL query from natural language",
+    method: "POST",
+    path: "/api/agent_builder/nl_to_esql",
+    bodyParams: [
+    { name: "index", type: "string", description: "Index or index-pattern to search against. If not provided, will automatically select the best index to use based on the query." },
+    { name: "query", type: "string", description: "A natural language query to generate an ES|QL query from.", required: true },
+    ],
+  },
+  {
+    name: "post-agent-builder-nl-to-visualization",
+    namespace: "agent-builder",
+    description: "Generate a Lens visualization config from natural language",
+    method: "POST",
+    path: "/api/agent_builder/nl_to_visualization",
+    bodyParams: [
+    { name: "chart_type", type: "string", description: "Optional chart type override. One of: metric, gauge, tagcloud, xy, region_map, heatmap, datatable, pie, treemap, waffle, mosaic" },
+    { name: "esql", type: "string", description: "An ES|QL query to use. If not provided, one will be generated automatically." },
+    { name: "index", type: "string", description: "Index or index-pattern to target. If not provided, will automatically discover the best index." },
+    { name: "query", type: "string", description: "A natural language query describing the desired visualization.", required: true },
+    ],
+  },
+  {
     name: "get-agent-builder-plugins",
     namespace: "agent-builder",
     description: "List plugins",
     method: "GET",
     path: "/api/agent_builder/plugins",
+  },
+  {
+    name: "post-agent-builder-plugins-install",
+    namespace: "agent-builder",
+    description: "Install a plugin",
+    method: "POST",
+    path: "/api/agent_builder/plugins/install",
+    bodyParams: [
+    { name: "plugin_name", type: "string", description: "Optional name override for the plugin. Defaults to the manifest name." },
+    { name: "url", type: "string", description: "URL to install the plugin from (GitHub URL or direct zip URL).", required: true },
+    ],
   },
   {
     name: "delete-agent-builder-plugins-pluginid",
@@ -331,17 +368,6 @@ export const agentBuilderApis: KbApiDefinition[] = [
     path: "/api/agent_builder/plugins/{pluginId}",
     pathParams: [
     { name: "pluginId", description: "The unique identifier of the plugin.", required: true },
-    ],
-  },
-  {
-    name: "post-agent-builder-plugins-install",
-    namespace: "agent-builder",
-    description: "Install a plugin",
-    method: "POST",
-    path: "/api/agent_builder/plugins/install",
-    bodyParams: [
-    { name: "plugin_name", type: "string", description: "Optional name override for the plugin. Defaults to the manifest name." },
-    { name: "url", type: "string", description: "URL to install the plugin from (GitHub URL or direct zip URL).", required: true },
     ],
   },
   {
@@ -480,15 +506,4 @@ export const agentBuilderApis: KbApiDefinition[] = [
     { name: "tags", type: "array", description: "Updated tags for categorizing and organizing tools." },
     ],
   },
-  {
-    name: "post-agent-builder-nl-to-esql",
-    namespace: "agent-builder",
-    description: "Generate an ES|QL query from natural language",
-    method: "POST",
-    path: "/api/agent_builder/nl_to_esql",
-    bodyParams: [
-    { name: "index", type: "string", description: "Index or index-pattern to search against. If not provided, will automatically select the best index to use based on the query." },
-    { name: "query", type: "string", description: "A natural language query to generate an ES|QL query from.", required: true }
-    ],
-  }
 ]
