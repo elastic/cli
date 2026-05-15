@@ -4,7 +4,7 @@
  */
 
 /*
- * AUTO-GENERATED from src/kb/apis/*.ts.
+ * AUTO-GENERATED from src/kb/apis/*.ts via scripts/build-kb-manifest.mts.
  * DO NOT EDIT BY HAND. Regenerate after running the code generator.
  */
 
@@ -1996,6 +1996,14 @@ export const kbApiManifest: readonly KbApiMeta[] = [
     "description": "Import saved objects",
     "method": "POST",
     "path": "/api/saved_objects/_import",
+    "namespaceFile": "saved-objects"
+  },
+  {
+    "name": "post-saved-objects-resolve-import-errors",
+    "namespace": "saved-objects",
+    "description": "Resolve import errors",
+    "method": "POST",
+    "path": "/api/saved_objects/_resolve_import_errors",
     "namespaceFile": "saved-objects"
   },
   {
