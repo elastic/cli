@@ -1,0 +1,132 @@
+name: Weekly Codegen
+
+# Regenerates the auto-generated ES, Cloud and Kibana API bindings against the
+# latest upstream `elastic/elastic-client-generator-js` output and, when the
+# diff is non-empty, opens a PR. See https://github.com/elastic/cli/issues/79.
+on:
+  schedule:
+    # Monday 07:00 UTC — matches the cadence of the wider client-codegen suite
+    # run by elastic/devtools-team (which fires one hour earlier).
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  codegen:
+    name: Regenerate API bindings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 24
+      - name: Install repo dependencies
+        run: npm ci
+
+      # Issued via Vault OIDC. The backing token policy
+      # (resources/github-token-policies/token-policy-elastic-cli-codegen.yaml
+      # in elastic/catalog-info) scopes this token to elastic/cli and
+      # elastic/elastic-client-generator-js — the former so peter-evans can
+      # push the chore/weekly-codegen branch and open the PR, the latter so
+      # the generator repo (private) can be cloned.
+      - name: Fetch ephemeral Github token
+        id: fetch-token
+        uses: elastic/ci-gh-actions/fetch-github-token@622f9dc1eecdd4af2e81dfb38028aacb1dae03e8 # v1.5.0
+        with:
+          vault-instance: "ci-prod"
+
+      - name: Prepare generator checkout (shared between codegen steps)
+        id: generator
+        shell: bash
+        env:
+          GH_TOKEN: ${{ steps.fetch-token.outputs.token }}
+        run: |
+          dir="$RUNNER_TEMP/elastic-client-generator-js"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: bearer $GH_TOKEN" \
+            clone --depth 1 --branch main https://github.com/elastic/elastic-client-generator-js.git "$dir"
+          # Drop the credential from the cloned repo's git config so it can't
+          # be reused by anything later in the job.
+          git -C "$dir" config --unset-all http.https://github.com/.extraheader || true
+          (cd "$dir" && npm install --no-audit --no-fund)
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
+      - name: Regenerate ES bindings
+        env:
+          CODEGEN_GENERATOR_DIR: ${{ steps.generator.outputs.dir }}
+        run: npm run codegen:es
+      - name: Regenerate Cloud bindings
+        env:
+          CODEGEN_GENERATOR_DIR: ${{ steps.generator.outputs.dir }}
+        run: npm run codegen:cloud
+      - name: Regenerate Kibana bindings
+        env:
+          CODEGEN_GENERATOR_DIR: ${{ steps.generator.outputs.dir }}
+        run: npm run codegen:kibana
+
+      - name: Build
+        run: npm run build
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Detect generated diff
+        id: diff
+        shell: bash
+        run: |
+          if git diff --quiet -- src/es src/cloud src/kb; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No generated changes — nothing to PR."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git --no-pager diff --stat -- src/es src/cloud src/kb
+          fi
+
+      # Reuse the ephemeral token fetched at the start of the job — see the
+      # "Fetch ephemeral Github token" step above. Using it (vs. GITHUB_TOKEN)
+      # also means the resulting PR is authored by a non-Actions identity and
+      # therefore triggers downstream CI (e.g. `ci.yml`).
+      - name: Create Pull Request
+        if: steps.diff.outputs.changed == 'true'
+        id: cpr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ steps.fetch-token.outputs.token }}
+          branch: chore/weekly-codegen
+          delete-branch: true
+          base: main
+          commit-message: "chore(codegen): weekly update of generated API bindings"
+          title: "chore(codegen): weekly update of generated API bindings"
+          body: |
+            Automated weekly regeneration of the ES, Cloud and Kibana API
+            bindings against the latest `elastic/elastic-client-generator-js`
+            output.
+
+            - `src/es/apis/**` — produced by `npm run cli-es`
+            - `src/es/apis/schemas/**` — produced by `npm run zod`
+            - `src/es/api-manifest.ts` — produced by `scripts/build-api-manifest.mjs`
+            - `src/cloud/apis/**` and `src/cloud/apis.ts` — produced by `npm run cli-cloud`
+            - `src/kb/apis/**` — produced by `npx tsx cli/kibana/index.ts`
+            - `src/kb/api-manifest.ts` — produced by `scripts/build-kb-manifest.mts`
+
+            Run locally with `npm run codegen:es` / `npm run codegen:cloud` /
+            `npm run codegen:kibana`.
+
+            Refs: #79
+          committer: "elastic-machine <elasticmachine@users.noreply.github.com>"
+          author: "elastic-machine <elasticmachine@users.noreply.github.com>"
+          add-paths: |
+            src/es
+            src/cloud
+            src/kb
+
+      - name: PR summary
+        if: steps.cpr.outputs.pull-request-url
+        shell: bash
+        run: |
+          echo "Opened: ${{ steps.cpr.outputs.pull-request-url }}" >> "$GITHUB_STEP_SUMMARY"
