@@ -21,6 +21,7 @@ import { Command } from 'commander'
 function makeProgram(): InstanceType<typeof Command> {
   const prog = new Command('elastic')
   prog.exitOverride()
+  prog.version('0.1.1', '-V, --version', 'Print the elastic CLI version')
   prog.option('--config-file <path>', 'path to a config file (default: ~/.elasticrc.yml)')
   prog.option('--use-context <name>', 'override the active context from the config file')
   prog.option('--json', 'output as JSON')
@@ -47,10 +48,12 @@ describe('elastic CLI -- global flags', () => {
     assert.ok(!opt.required, '--json should be a boolean flag (no required value)')
   })
 
-  it('does not register --version as a flag (version is a subcommand)', () => {
+  it('registers --version as a boolean flag', () => {
     const prog = makeProgram()
     const opt = prog.options.find((o) => o.long === '--version')
-    assert.ok(opt == null, '--version must not be a global flag; use `elastic version` subcommand')
+    assert.ok(opt != null, 'expected --version option')
+    assert.ok(!opt.required, '--version should be a boolean flag (no required value)')
+    assert.equal(opt.short, '-V')
   })
 
   it('does not register --format as a flag', () => {
@@ -193,6 +196,28 @@ describe('elastic CLI -- config caching (preAction reuse)', () => {
 })
 
 describe('elastic CLI -- config-free commands', () => {
+  it('`elastic --version` succeeds without a config file', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-'))
+    try {
+      const { code, stdout } = await runCli(['--version'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      assert.match(stdout, /^0\.1\.1\s*$/)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('`elastic -V` succeeds without a config file', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-'))
+    try {
+      const { code, stdout } = await runCli(['-V'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      assert.match(stdout, /^0\.1\.1\s*$/)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
   it('`elastic version` succeeds without a config file', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-'))
     try {
