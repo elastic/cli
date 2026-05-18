@@ -1073,6 +1073,56 @@ describe('defineCommand', () => {
       const err = await captureErrAsync(cmd, [])
       assert.match(err, /input validation failed/i)
     })
+
+    it('reads from stdin when --input-file is "-" (stdin sentinel)', async () => {
+      const restore = _testSetStdinReader(() => JSON.stringify({ cluster: 'test', shards: 5 }))
+      try {
+        const received: ParsedResult[] = []
+        const cmd = defineCommand({
+          name: 'query',
+          description: 'Run a query',
+          input: z.object({ cluster: z.string(), shards: z.number() }),
+          handler: (parsed) => { received.push(parsed); return {} },
+        })
+        await invokeAsync(cmd, ['--input-file', '-'])
+        assert.equal(received.length, 1)
+        assert.deepEqual(received[0].input, { cluster: 'test', shards: 5 })
+      } finally {
+        restore()
+      }
+    })
+
+    it('errors with --input-file source label when stdin (via "-") contains malformed JSON', async () => {
+      const restore = _testSetStdinReader(() => 'not { valid } json ][')
+      try {
+        const cmd = defineCommand({
+          name: 'query',
+          description: 'Run a query',
+          input: z.object({ q: z.string() }),
+          handler: () => ({}),
+        })
+        const err = await captureErrAsync(cmd, ['--input-file', '-'])
+        assert.match(err, /--input-file: invalid JSON:/)
+      } finally {
+        restore()
+      }
+    })
+
+    it('errors with "empty content" when --input-file is "-" and stdin is empty', async () => {
+      const restore = _testSetStdinReader(() => '')
+      try {
+        const cmd = defineCommand({
+          name: 'query',
+          description: 'Run a query',
+          input: z.object({ q: z.string() }),
+          handler: () => ({}),
+        })
+        const err = await captureErrAsync(cmd, ['--input-file', '-'])
+        assert.match(err, /--input-file: invalid JSON: empty content/)
+      } finally {
+        restore()
+      }
+    })
   })
 
   describe('JSON input via stdin', () => {
