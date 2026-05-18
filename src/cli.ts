@@ -21,6 +21,7 @@ const program = new Command()
 program
   .name('elastic')
   .description('Interface with the Elastic Stack and Elastic Cloud from the command line.')
+  .version(VERSION, '-V, --version', 'Print the Elastic CLI version')
   .option('--config-file <path>', 'path to a config file (default: ~/.elasticrc.yml)')
   .option('--use-context <name>', 'override the active context from the config file')
   .option(`--command-profile <name>`, `restrict available commands to a deployment profile (${BUILT_IN_PROFILES.join(', ')})`)

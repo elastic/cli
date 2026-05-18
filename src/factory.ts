@@ -652,10 +652,14 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       const filePath = cmd.getOptionValue('inputFile') as string | undefined
       if (filePath !== undefined) {
         let fileContent: string
-        try {
-          fileContent = readFileSync(filePath, 'utf-8')
-        } catch {
-          return cmd.error(`--input-file: file not found: ${filePath}`)
+        if (filePath === '-') {
+          fileContent = stdinReader()
+        } else {
+          try {
+            fileContent = readFileSync(filePath, 'utf-8')
+          } catch {
+            return cmd.error(`--input-file: file not found: ${filePath}`)
+          }
         }
         inputValue = parseJsonContent(fileContent, '--input-file', cmd)
       } else if (!process.stdin.isTTY) {
