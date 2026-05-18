@@ -1,0 +1,33 @@
+name: Regenerate NOTICE.txt
+
+on:
+  pull_request:
+    paths:
+      - "package-lock.json"
+      - "package.json"
+
+permissions: {}
+
+jobs:
+  regenerate-notice:
+    name: Regenerate NOTICE.txt
+    # Renovate PRs are always from same-repo branches, so GITHUB_TOKEN has push access.
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+      - name: Install
+        run: npm ci
+      - name: Regenerate NOTICE.txt
+        run: node scripts/generate-notice.mjs
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add NOTICE.txt
+          git diff --staged --quiet || git commit -m "chore: regenerate NOTICE.txt" && git push
