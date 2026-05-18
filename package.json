@@ -71,7 +71,8 @@
   },
   "bundledDependencies": [
     "@elastic/config-resolver",
-    "@elastic/es-schemas"
+    "@elastic/es-schemas",
+    "zod"
   ],
   "devDependencies": {
     "@eslint/js": "10.0.1",
