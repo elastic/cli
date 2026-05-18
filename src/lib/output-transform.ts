@@ -24,6 +24,12 @@ export function pickFields (value: JsonValue, fields: string[]): JsonValue {
 
   const result: Record<string, JsonValue> = {}
   for (const field of fields) {
+    // If the source has the literal dotted key (cat API style), preserve it
+    // verbatim in the result; otherwise descend the path nestedly.
+    if (Object.prototype.hasOwnProperty.call(value, field) && value[field] !== undefined) {
+      result[field] = value[field]
+      continue
+    }
     const val = getNestedValue(value, field)
     if (val !== undefined) {
       setNestedValue(result, field, val)
@@ -33,6 +39,12 @@ export function pickFields (value: JsonValue, fields: string[]): JsonValue {
 }
 
 function getNestedValue (obj: Record<string, JsonValue>, path: string): JsonValue | undefined {
+  // Literal-key fast path: cat APIs and similar return flat objects whose keys
+  // contain literal dots (e.g. "docs.count"). Prefer a literal match over splitting,
+  // so a literal key wins over an equivalent nested path when both exist.
+  if (obj !== null && typeof obj === 'object' && !Array.isArray(obj) && obj[path] !== undefined) {
+    return obj[path]
+  }
   const parts = path.split('.')
   let current: JsonValue = obj
   for (const part of parts) {
