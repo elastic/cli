@@ -30,11 +30,17 @@ import {
 interface SanitizerEntry {
   name: string
   description: string
+  stderrNote?: string
   fn: (value: string) => SanitizeResult
 }
 
 const SANITIZERS: SanitizerEntry[] = [
-  { name: 'index-name', description: 'Sanitize an Elasticsearch index or alias name', fn: sanitizeIndexName },
+  {
+    name: 'index-name',
+    description: 'Apply local sanitization rules for an Elasticsearch index or alias name; full Elasticsearch validation still required',
+    stderrNote: 'full Elasticsearch validation still required',
+    fn: sanitizeIndexName,
+  },
   { name: 'snapshot-name', description: 'Sanitize an Elasticsearch snapshot name', fn: sanitizeSnapshotName },
   { name: 'data-stream-type', description: 'Sanitize a data stream type component', fn: sanitizeDataStreamType },
   { name: 'data-stream-dataset', description: 'Sanitize a data stream dataset component', fn: sanitizeDataStreamDataset },
@@ -49,7 +55,7 @@ const SANITIZERS: SanitizerEntry[] = [
  * value type.
  */
 export function registerSanitizeCommands (): OpaqueCommandHandle {
-  const commands = SANITIZERS.map(({ name, description, fn }) =>
+  const commands = SANITIZERS.map(({ name, description, stderrNote, fn }) =>
     defineCommand({
       name,
       description,
@@ -73,7 +79,8 @@ export function registerSanitizeCommands (): OpaqueCommandHandle {
       formatOutput: (result) => {
         const r = result as unknown as SanitizeResult
         if (r.changes.length > 0) {
-          process.stderr.write(`# changes: ${r.changes.join(', ')}\n`)
+          const note = stderrNote !== undefined ? `; note: ${stderrNote}` : ''
+          process.stderr.write(`# changes: ${r.changes.join(', ')}${note}\n`)
         }
         return r.sanitized + '\n'
       },

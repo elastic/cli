@@ -82,6 +82,39 @@ describe('registerSanitizeCommands', () => {
     assert.ok(stderr.includes('stripped forbidden characters'), `stderr should list changes, got: ${stderr}`)
   })
 
+  it('index-name help documents local sanitization scope', () => {
+    const group = registerSanitizeCommands()
+    const indexCmd = (group.commands as Array<{ name: () => string }>).find(c => c.name() === 'index-name')!;
+
+    const help = (indexCmd as import('commander').Command).helpInformation()
+    assert.match(help, /local sanitization rules/i)
+    assert.match(help, /full\s+Elasticsearch\s+validation/i)
+  })
+
+  it('index-name stderr notes that full validation still applies', async () => {
+    const group = registerSanitizeCommands()
+    const indexCmd = (group.commands as Array<{ name: () => string }>).find(c => c.name() === 'index-name')!;
+
+    (indexCmd as import('commander').Command).exitOverride()
+    const stdoutChunks: string[] = []
+    const stderrChunks: string[] = []
+    const origStdout = process.stdout.write.bind(process.stdout)
+    const origStderr = process.stderr.write.bind(process.stderr)
+    process.stdout.write = ((chunk: string) => { stdoutChunks.push(chunk); return true }) as typeof process.stdout.write
+    process.stderr.write = ((chunk: string) => { stderrChunks.push(chunk); return true }) as typeof process.stderr.write
+    try {
+      await (indexCmd as import('commander').Command).parseAsync(['Foo Bar!'], { from: 'user' })
+    } finally {
+      process.stdout.write = origStdout
+      process.stderr.write = origStderr
+    }
+
+    assert.equal(stdoutChunks.join(''), 'foobar!\n')
+    const stderr = stderrChunks.join('')
+    assert.ok(stderr.includes('lowercased'), `stderr should list changes, got: ${stderr}`)
+    assert.ok(stderr.includes('full Elasticsearch validation still required'), `stderr should note validation scope, got: ${stderr}`)
+  })
+
   it('returns error result when value is empty after sanitization', async () => {
     const group = registerSanitizeCommands()
     const indexCmd = (group.commands as Array<{ name: () => string }>).find(c => c.name() === 'index-name')!;
