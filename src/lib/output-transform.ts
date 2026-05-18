@@ -32,16 +32,22 @@ export function pickFields (value: JsonValue, fields: string[]): JsonValue {
   return result
 }
 
-function getNestedValue (obj: Record<string, JsonValue>, path: string): JsonValue | undefined {
-  const parts = path.split('.')
-  let current: JsonValue = obj
-  for (const part of parts) {
-    if (current === null || typeof current !== 'object' || Array.isArray(current)) return undefined
-    const next: JsonValue | undefined = (current as Record<string, JsonValue>)[part]
-    if (next === undefined) return undefined
-    current = next
+function getNestedValue (obj: JsonValue, path: string): JsonValue | undefined {
+  if (obj === null || typeof obj !== 'object') return undefined
+  if (Array.isArray(obj)) {
+    return obj
+      .map((el) => getNestedValue(el, path))
+      .filter((v): v is JsonValue => v !== undefined)
   }
-  return current
+  const dot = path.indexOf('.')
+  if (dot === -1) {
+    return (obj as Record<string, JsonValue>)[path]
+  }
+  const head = path.slice(0, dot)
+  const rest = path.slice(dot + 1)
+  const next = (obj as Record<string, JsonValue>)[head]
+  if (next === undefined) return undefined
+  return getNestedValue(next, rest)
 }
 
 function setNestedValue (obj: Record<string, JsonValue>, path: string, value: JsonValue): void {
@@ -86,7 +92,7 @@ export function applyTemplate (value: JsonValue, template: string): string {
 
   return template.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_match, field: string) => {
     if (field === '.') return JSON.stringify(value)
-    const val = getNestedValue(value as Record<string, JsonValue>, field)
+    const val = getNestedValue(value, field)
     if (val === undefined || val === null) return ''
     if (typeof val === 'object') return JSON.stringify(val)
     return String(val)

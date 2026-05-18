@@ -93,6 +93,58 @@ describe('pickFields — arrays', () => {
 })
 
 // ---------------------------------------------------------------------------
+// pickFields — projection across arrays (mid-path)
+// ---------------------------------------------------------------------------
+
+describe('pickFields — projection across arrays', () => {
+  it('projects a leaf path across an inner array', () => {
+    const input = { hits: { hits: [{ _id: 'x' }, { _id: 'y' }] } }
+    assert.deepEqual(pickFields(input, ['hits.hits._id']), { hits: { hits: { _id: ['x', 'y'] } } })
+  })
+
+  it('projects multiple paths across an inner array', () => {
+    const input = {
+      hits: {
+        hits: [
+          { _id: '1', _source: { title: 'First' } },
+          { _id: '2', _source: { title: 'Second' } },
+        ],
+      },
+    }
+    assert.deepEqual(pickFields(input, ['hits.hits._id', 'hits.hits._source.title']), {
+      hits: {
+        hits: {
+          _id: ['1', '2'],
+          _source: { title: ['First', 'Second'] },
+        },
+      },
+    })
+  })
+
+  it('drops array elements where the projected path is missing', () => {
+    const input = { items: [{ a: 1 }, { b: 2 }, { a: 3 }] }
+    assert.deepEqual(pickFields(input, ['items.a']), { items: { a: [1, 3] } })
+  })
+
+  it('returns an empty array when no element matches the path', () => {
+    const input = { items: [{ a: 1 }, { a: 2 }] }
+    assert.deepEqual(pickFields(input, ['items.b']), { items: { b: [] } })
+  })
+
+  it('handles nested arrays in the middle of a path', () => {
+    const input = {
+      groups: [
+        { items: [{ id: 'a' }, { id: 'b' }] },
+        { items: [{ id: 'c' }] },
+      ],
+    }
+    assert.deepEqual(pickFields(input, ['groups.items.id']), {
+      groups: { items: { id: [['a', 'b'], ['c']] } },
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
 // pickFields — primitives (pass-through)
 // ---------------------------------------------------------------------------
 
