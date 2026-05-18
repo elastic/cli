@@ -2142,7 +2142,7 @@ THIS SOFTWARE.
 
 
 ------------------------------------------------------------------------
-yaml@2.8.3
+yaml@2.8.4
 License: ISC
 Repository: https://github.com/eemeli/yaml
 Publisher: Eemeli Aro <eemeli@gmail.com>
@@ -2216,7 +2216,7 @@ THE SOFTWARE.
 
 
 ------------------------------------------------------------------------
-zod@4.3.6
+zod@4.4.3
 License: MIT
 Repository: https://github.com/colinhacks/zod
 Publisher: Colin McDonnell <zod@colinhacks.com>
