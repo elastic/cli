@@ -35,12 +35,60 @@ import type { OpaqueCommandHandle } from '../factory.ts'
 import { rewriteTopLevelAliases } from './argv-aliases.ts'
 import { enumerate, DIRECTIVE_NO_FILE_COMP } from './enumerate.ts'
 import { defaultRegistry } from './registry.ts'
-import { loadConfig } from '../config/loader.ts'
+import {
+  discoverConfigFile,
+  loadConfigFile,
+  resolveEffectiveCommands,
+} from '../config/loader.ts'
+import { StructuralConfigSchema, CommandPolicySchema } from '../config/schema.ts'
+import type { CommandPolicy } from '../config/types.ts'
 
 /** Words recognised as the user-facing form of the `stack es` subtree. */
 const ES_ALIASES = new Set(['es', 'elasticsearch'])
 /** Words recognised as the user-facing form of the `stack kb` subtree. */
 const KB_ALIASES = new Set(['kb', 'kibana'])
+const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
+
+async function loadCompletionCommandPolicy (): Promise<CommandPolicy | undefined> {
+  const envPath = process.env[ENV_CONFIG_FILE]
+  const path = envPath != null && envPath.length > 0
+    ? envPath
+    : await discoverConfigFile()
+  if (path == null) return undefined
+
+  const raw = await loadConfigFile(path)
+  const structural = StructuralConfigSchema.safeParse(raw)
+  if (!structural.success) return undefined
+
+  const { current_context, contexts, commands: rawRootCommands, default_profile: rawDefaultProfile } = structural.data
+  const rawContext = contexts[current_context]
+  if (rawContext == null) return undefined
+
+  let defaultProfile
+  if (rawDefaultProfile != null) {
+    const defaultProfileParsed = CommandPolicySchema.shape.profile.safeParse(rawDefaultProfile)
+    if (!defaultProfileParsed.success) return undefined
+    defaultProfile = defaultProfileParsed.data
+  }
+
+  let rootCommands: CommandPolicy | undefined
+  if (rawRootCommands != null) {
+    const rootCommandsParsed = CommandPolicySchema.safeParse(rawRootCommands)
+    if (!rootCommandsParsed.success) return undefined
+    rootCommands = rootCommandsParsed.data
+  }
+
+  let contextCommands: CommandPolicy | undefined
+  if (rawContext.commands != null) {
+    const contextCommandsParsed = CommandPolicySchema.safeParse(rawContext.commands)
+    if (!contextCommandsParsed.success) return undefined
+    contextCommands = contextCommandsParsed.data
+  }
+
+  const effective = resolveEffectiveCommands(contextCommands, rootCommands, defaultProfile, undefined)
+  if ('error' in effective) return undefined
+  return effective.commands
+}
 
 /**
  * Constructs the `stack` group with conditional loading of the es/kb subtrees.
@@ -193,10 +241,7 @@ export async function handleComplete (
     // (missing config, invalid YAML, network-bound expression) is silently
     // ignored — completion availability must not depend on a working config.
     try {
-      const config = await loadConfig({})
-      if (config.ok && config.value.commands != null) {
-        hideBlockedCommands(root, config.value.commands)
-      }
+      hideBlockedCommands(root, await loadCompletionCommandPolicy())
     } catch { /* swallowed by design */ }
 
     const result = await enumerate(root, rewritten, defaultRegistry)

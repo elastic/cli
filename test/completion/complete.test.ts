@@ -140,6 +140,36 @@ describe('handleComplete -- policy enforcement', () => {
     assert.ok(out.candidates.includes('stack'))
     assert.ok(out.candidates.includes('version'))
   })
+
+  it('applies blocked commands without resolving active-context expressions', async () => {
+    const { mkdtemp, writeFile, rm } = await import('node:fs/promises')
+    const { tmpdir } = await import('node:os')
+    const { join } = await import('node:path')
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-policy-'))
+    const path = join(dir, 'config.yml')
+    await writeFile(path, [
+      'current_context: local',
+      'commands:',
+      '  blocked:',
+      '    - sanitize.*',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: $(env:ELASTIC_COMPLETION_MISSING_URL)',
+      '',
+    ].join('\n'))
+    process.env['ELASTIC_CLI_CONFIG_FILE'] = path
+    delete process.env['ELASTIC_COMPLETION_MISSING_URL']
+
+    const buf = bufferedWriter()
+    await handleComplete([''], buf.write)
+    await rm(dir, { recursive: true })
+
+    const out = parseOutput(buf.chunks.join(''))
+    assert.ok(!out.candidates.includes('sanitize'),
+      `sanitize should be hidden by policy even with unresolved expressions; got: ${out.candidates.join(',')}`)
+    assert.ok(out.candidates.includes('stack'))
+  })
 })
 
 describe('handleComplete -- stdout protocol', () => {
