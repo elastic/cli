@@ -128,17 +128,20 @@ describe('handleComplete -- policy enforcement', () => {
     ].join('\n'))
     process.env['ELASTIC_CLI_CONFIG_FILE'] = path
 
-    const buf = bufferedWriter()
-    await handleComplete([''], buf.write)
-    await rm(dir, { recursive: true })
+    try {
+      const buf = bufferedWriter()
+      await handleComplete([''], buf.write)
 
-    const out = parseOutput(buf.chunks.join(''))
-    // Top-level group with all children blocked should be hidden entirely.
-    assert.ok(!out.candidates.includes('sanitize'),
-      `sanitize should be hidden by policy; got: ${out.candidates.join(',')}`)
-    // Groups not blocked should still appear.
-    assert.ok(out.candidates.includes('stack'))
-    assert.ok(out.candidates.includes('version'))
+      const out = parseOutput(buf.chunks.join(''))
+      // Top-level group with all children blocked should be hidden entirely.
+      assert.ok(!out.candidates.includes('sanitize'),
+        `sanitize should be hidden by policy; got: ${out.candidates.join(',')}`)
+      // Groups not blocked should still appear.
+      assert.ok(out.candidates.includes('stack'))
+      assert.ok(out.candidates.includes('version'))
+    } finally {
+      await rm(dir, { recursive: true })
+    }
   })
 
   it('applies blocked commands without resolving active-context expressions', async () => {
@@ -161,14 +164,17 @@ describe('handleComplete -- policy enforcement', () => {
     process.env['ELASTIC_CLI_CONFIG_FILE'] = path
     delete process.env['ELASTIC_COMPLETION_MISSING_URL']
 
-    const buf = bufferedWriter()
-    await handleComplete([''], buf.write)
-    await rm(dir, { recursive: true })
+    try {
+      const buf = bufferedWriter()
+      await handleComplete([''], buf.write)
 
-    const out = parseOutput(buf.chunks.join(''))
-    assert.ok(!out.candidates.includes('sanitize'),
-      `sanitize should be hidden by policy even with unresolved expressions; got: ${out.candidates.join(',')}`)
-    assert.ok(out.candidates.includes('stack'))
+      const out = parseOutput(buf.chunks.join(''))
+      assert.ok(!out.candidates.includes('sanitize'),
+        `sanitize should be hidden by policy even with unresolved expressions; got: ${out.candidates.join(',')}`)
+      assert.ok(out.candidates.includes('stack'))
+    } finally {
+      await rm(dir, { recursive: true })
+    }
   })
 })
 

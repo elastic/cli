@@ -85,7 +85,8 @@ async function loadCompletionCommandPolicy (): Promise<CommandPolicy | undefined
     contextCommands = contextCommandsParsed.data
   }
 
-  const effective = resolveEffectiveCommands(contextCommands, rootCommands, defaultProfile, undefined)
+  const profileOverride = undefined
+  const effective = resolveEffectiveCommands(contextCommands, rootCommands, defaultProfile, profileOverride)
   if ('error' in effective) return undefined
   return effective.commands
 }
