@@ -277,43 +277,53 @@ export async function createLocalExtension (name: string, targetPath?: string): 
   const installDir = targetPath != null ? resolve(targetPath) : join(extensionsDir(), `elastic-${name}`)
   await mkdir(installDir, { recursive: true })
 
-  const pkg = {
-    name: `elastic-${name}`,
-    version: '0.1.0',
-    description: `elastic ${name} extension`,
-    bin: { [`elastic-${name}`]: './index.js' },
+  // Only scaffold files that don't already exist — avoids clobbering an existing extension when --path points to a live directory.
+  const pkgPath = join(installDir, 'package.json')
+  const pkgExists = await access(pkgPath).then(() => true).catch(() => false)
+  if (!pkgExists) {
+    const pkg = {
+      name: `elastic-${name}`,
+      version: '0.1.0',
+      description: `elastic ${name} extension`,
+      bin: { [`elastic-${name}`]: './index.js' },
+    }
+    await writeFile(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf-8')
   }
-  await writeFile(join(installDir, 'package.json'), JSON.stringify(pkg, null, 2) + '\n', 'utf-8')
 
-  const entrypoint = join(installDir, 'index.js')
-  const script = [
-    '#!/usr/bin/env node',
-    "'use strict'",
-    '',
-    '// Elastic extension entrypoint. Edit this file to implement your extension.',
-    '// The elastic CLI sets these env vars before spawning this process:',
-    '//   ELASTIC_ES_URL, ELASTIC_ES_API_KEY, ELASTIC_KIBANA_URL, ELASTIC_CLOUD_API_KEY, ...',
-    'const result = {',
-    `  name: '${name}',`,
-    '  esUrl: process.env.ELASTIC_ES_URL ?? null,',
-    '  kibanaUrl: process.env.ELASTIC_KIBANA_URL ?? null,',
-    '  args: process.argv.slice(2),',
-    '}',
-    '',
-    "process.stdout.write(JSON.stringify(result, null, 2) + '\\n')",
-    '',
-  ].join('\n')
-
-  await writeFile(entrypoint, script, { encoding: 'utf-8', mode: 0o755 })
-  if (process.platform !== 'win32') {
-    await chmod(entrypoint, 0o755)
+  const defaultEntrypoint = join(installDir, 'index.js')
+  const entrypointExists = await access(defaultEntrypoint).then(() => true).catch(() => false)
+  if (!entrypointExists) {
+    const script = [
+      '#!/usr/bin/env node',
+      "'use strict'",
+      '',
+      '// Elastic extension entrypoint. Edit this file to implement your extension.',
+      '// The elastic CLI sets these env vars before spawning this process:',
+      '//   ELASTIC_ES_URL, ELASTIC_ES_API_KEY, ELASTIC_KIBANA_URL, ELASTIC_CLOUD_API_KEY, ...',
+      'const result = {',
+      `  name: '${name}',`,
+      '  esUrl: process.env.ELASTIC_ES_URL ?? null,',
+      '  kibanaUrl: process.env.ELASTIC_KIBANA_URL ?? null,',
+      '  args: process.argv.slice(2),',
+      '}',
+      '',
+      "process.stdout.write(JSON.stringify(result, null, 2) + '\\n')",
+      '',
+    ].join('\n')
+    await writeFile(defaultEntrypoint, script, { encoding: 'utf-8', mode: 0o755 })
+    if (process.platform !== 'win32') {
+      await chmod(defaultEntrypoint, 0o755)
+    }
   }
+
+  // Resolve entrypoint: prefer the bin field in package.json (respects existing extensions), fall back to index.js.
+  const entrypoint = (await resolveNpmBin(installDir, `elastic-${name}`)) ?? defaultEntrypoint
 
   const entry: InstalledExtension = {
     name,
     source: `local:${installDir}`,
     path: installDir,
-    entrypoint,
+    entrypoint: resolve(entrypoint),
   }
   await upsertExtension(entry)
   return entry
@@ -340,6 +350,9 @@ export async function uninstallExtension (name: string): Promise<void> {
 export async function upgradeExtension (name: string): Promise<InstalledExtension> {
   const ext = await findExtension(name)
   if (ext == null) throw new Error(`Extension "${name}" is not installed.`)
+  if (ext.source.startsWith('local:')) {
+    throw new Error(`Extension "${name}" is a local extension. Edit the files in ${ext.path} directly.`)
+  }
 
   const parsed = parseSource(ext.source)
 
