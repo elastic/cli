@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "prepare": "git config core.hooksPath .githooks || true",
-    "build": "node --max-old-space-size=6144 node_modules/typescript/bin/tsc -b",
+    "build": "node --max-old-space-size=8192 node_modules/typescript/bin/tsc -b",
     "postbuild": "node -e \"const {unlinkSync,readdirSync,existsSync}=require('fs'),{join}=require('path'),d='dist/es/apis/schemas';if(existsSync(d))readdirSync(d).filter(f=>/\\.(d\\.ts|d\\.ts\\.map|js\\.map)$/.test(f)).forEach(f=>unlinkSync(join(d,f)))\"",
     "test": "npm run build && npm run test:unit && npm run test:license",
     "test:unit": "node --max-old-space-size=8192 --import tsx/esm --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=90 --test-coverage-functions=90 --test-coverage-include='src/**/*.ts' --test-coverage-include='packages/*/src/**/*.ts' --test-coverage-exclude='src/cloud/apis/**' --test-coverage-exclude='src/es/apis.ts' --test-coverage-exclude='src/es/api-manifest.ts' --test-coverage-exclude='src/es/apis/**' --test-coverage-exclude='src/cloud/apis.ts' --test-coverage-exclude='src/cloud/serverless-apis.ts' --test-coverage-exclude='node_modules/**'",
