@@ -69,13 +69,13 @@ async function loadCompletionCommandPolicy (): Promise<CommandPolicy | undefined
   const structural = StructuralConfigSchema.safeParse(raw)
   if (!structural.success) return undefined
 
-  const { current_context, contexts, commands: rawRootCommands, default_profile: rawDefaultProfileValue } = structural.data
+  const { current_context, contexts, commands: rawRootCommands, default_profile: rawDefaultProfile } = structural.data
   const rawContext = contexts[current_context]
   if (rawContext == null) return undefined
 
   let defaultProfile
-  if (rawDefaultProfileValue != null) {
-    const defaultProfileParsed = CommandPolicySchema.shape.profile.safeParse(rawDefaultProfileValue)
+  if (rawDefaultProfile != null) {
+    const defaultProfileParsed = CommandPolicySchema.shape.profile.safeParse(rawDefaultProfile)
     if (!defaultProfileParsed.success) return undefined
     defaultProfile = defaultProfileParsed.data
   }
