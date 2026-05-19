@@ -109,6 +109,17 @@ if (aliasRewritten.length !== operands.length) {
   // options and their values. We can't use indexOf because an option value
   // might coincidentally equal the alias (e.g. --command-profile es).
   const original = firstArg!
+  
+  // Build set of options that take values from the program's option definitions
+  const valueOptions = new Set<string>()
+  for (const opt of program.options) {
+    if (opt.required || opt.optional) {
+      // Option takes a value
+      if (opt.long) valueOptions.add(opt.long)
+      if (opt.short) valueOptions.add(opt.short)
+    }
+  }
+  
   let idx = 2  // start after 'node' and script name
   while (idx < process.argv.length) {
     const arg = process.argv[idx]!
@@ -120,21 +131,11 @@ if (aliasRewritten.length !== operands.length) {
     // Skip this argument
     idx++
     // If it's an option that takes a value, skip the value too
-    if (arg.startsWith('-') && !arg.startsWith('--') && arg.length > 2) {
-      // Short option cluster like -abc, no value to skip
-      continue
-    }
-    if (arg.startsWith('--')) {
+    if (arg.startsWith('-')) {
       const eqIdx = arg.indexOf('=')
       if (eqIdx === -1) {
-        // Long option without =, might have a separate value argument
-        // Check if this is a known option that takes a value
-        const optName = arg
-        const knownValueOptions = new Set([
-          '--config-file', '--use-context', '--command-profile',
-          '--output-fields', '--output-template'
-        ])
-        if (knownValueOptions.has(optName)) {
+        // No = sign, check if this option takes a value
+        if (valueOptions.has(arg)) {
           idx++  // skip the value
         }
       }
