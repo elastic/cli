@@ -215,12 +215,12 @@ describe('createEsHandler', () => {
     assert.equal((capturedParams[0]?.querystring as Record<string, unknown>)?.format, 'json')
   })
 
-  it('does not inject format=json when --json is not active with responseType: text', async () => {
-    const capturedParams: EsRequestParams[] = []
+  it('sends Accept: text/plain when --json is not active with responseType: text', async () => {
+    const capturedOpts: Array<{ headers?: Record<string, string> }> = []
     const deps = makeDeps({
       getEsClient: () => ({
-        request: async (params: EsRequestParams) => {
-          capturedParams.push(params)
+        request: async (_params: EsRequestParams, opts?: { headers?: Record<string, string> }) => {
+          capturedOpts.push(opts ?? {})
           return 'green\n'
         },
       } as unknown as EsClient),
@@ -231,7 +231,7 @@ describe('createEsHandler', () => {
     const result = await handler(parsedInput())
 
     assert.equal(result, 'green\n')
-    assert.equal(capturedParams[0]?.querystring, undefined)
+    assert.equal(capturedOpts[0]?.headers?.['Accept'], 'text/plain')
   })
 
   it('does not inject format=json for responseType: json even with --json', async () => {
