@@ -361,18 +361,20 @@ export async function upgradeExtension (name: string): Promise<InstalledExtensio
 }
 
 /**
- * Upgrades all installed extensions. Returns each updated entry.
+ * Upgrades all installed extensions concurrently. Returns each updated entry.
  * Errors from individual upgrades are collected and re-thrown together at the end.
  */
 export async function upgradeAllExtensions (): Promise<InstalledExtension[]> {
   const extensions = await readExtensions()
+  const settled = await Promise.allSettled(extensions.map((ext) => upgradeExtension(ext.name)))
   const results: InstalledExtension[] = []
   const errors: string[] = []
-  for (const ext of extensions) {
-    try {
-      results.push(await upgradeExtension(ext.name))
-    } catch (err: unknown) {
-      errors.push(`${ext.name}: ${err instanceof Error ? err.message : String(err)}`)
+  for (const [i, outcome] of settled.entries()) {
+    if (outcome.status === 'fulfilled') {
+      results.push(outcome.value)
+    } else {
+      const name = extensions[i]!.name
+      errors.push(`${name}: ${outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason)}`)
     }
   }
   if (errors.length > 0) {

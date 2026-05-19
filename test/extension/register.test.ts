@@ -35,7 +35,7 @@ async function invoke (args: string[]): Promise<{ stdout: string; stderr: string
   process.stdout.write = (chunk: unknown) => { stdout.push(String(chunk)); return true }
   process.stderr.write = (chunk: unknown) => { stderr.push(String(chunk)); return true }
 
-  let exitCode = 0
+  let exitCode: number
   const origExit = process.exitCode
   try {
     await program.parseAsync(['node', 'elastic', 'extension', ...args])
@@ -100,7 +100,7 @@ describe('extension register -- error handling', () => {
       // uninstallExtension itself does not throw for unknown names (rm --force),
       // but an invalid name with path traversal chars will throw from the store
       // validate step -- confirm no stack trace leaks
-      const { stderr, exitCode } = await invoke(['remove', 'nonexistent-ext'])
+      const { exitCode } = await invoke(['remove', 'nonexistent-ext'])
       // remove of unknown name succeeds silently (no-op)
       assert.equal(exitCode, 0)
     })
