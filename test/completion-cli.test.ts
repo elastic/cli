@@ -11,12 +11,19 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 const CLI_ENTRY = join(process.cwd(), 'src', 'cli.ts')
-const TSX_BIN = join(process.cwd(), 'node_modules', '.bin', 'tsx')
+const IS_BUN = 'bun' in process.versions
 
 /**
- * Spawns the CLI directly from source via tsx so the tests do not depend on
- * a fresh `dist/` build. This is slower per-spawn than the production
- * `dist/cli.js` path but exercises the same end-to-end protocol.
+ * Spawns the CLI directly from source so the tests do not depend on a fresh
+ * `dist/` build. Uses `process.execPath` to invoke the same runtime as the
+ * parent (matches the cross-runtime pattern in test/es/register.test.ts):
+ *   - Node: requires the `tsx/esm` loader to evaluate `.ts` entry points.
+ *   - Bun:  understands TypeScript natively; spawning `node_modules/.bin/tsx`
+ *           through Bun's child-process env corrupts dynamic `import()` for
+ *           heavier subtrees (e.g. `es/register.ts`), so we sidestep it.
+ *
+ * Slower per-spawn than `node dist/cli.js`, but exercises the source path
+ * and the same end-to-end completion protocol.
  */
 function runCli (
   args: string[],
@@ -31,7 +38,10 @@ function runCli (
     // the child) from leaking partial-function coverage into the parent's
     // report and dragging the project's averages below the 90% threshold.
     const childEnv = { ...process.env, NODE_V8_COVERAGE: '', ...env }
-    const child = spawn(TSX_BIN, [CLI_ENTRY, ...args], {
+    const runtimeArgs = IS_BUN
+      ? [CLI_ENTRY, ...args]
+      : ['--import', 'tsx/esm', CLI_ENTRY, ...args]
+    const child = spawn(process.execPath, runtimeArgs, {
       stdio: ['pipe', 'pipe', 'pipe'],
       env: childEnv,
     })
