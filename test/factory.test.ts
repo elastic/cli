@@ -3199,6 +3199,70 @@ describe('repeated flags', () => {
     const help = cmd.helpInformation()
     assert.doesNotMatch(help, /--input-file with a JSON array/)
   })
+
+  describe('Sort body args (id="Sort") -- field:direction parsing (#330)', () => {
+    // Mirrors the ES `Sort` schema shape: union(union(Field, SortOptions), array(...)) tagged with id="Sort".
+    const SortOptions = z.object({ _score: z.string().optional() }).meta({ id: 'SortOptions' })
+    const SortCombinations = z.union([z.string(), SortOptions]).meta({ id: 'SortCombinations' })
+    const Sort = z.union([SortCombinations, z.array(SortCombinations)]).meta({ id: 'Sort' })
+
+    function makeCmd (captured: { value?: unknown }): OpaqueCommandHandle {
+      const schema = z.object({
+        sort: z.lazy(() => Sort).describe('A comma-separated list of <field>:<direction> pairs.').optional().meta({ found_in: 'body' }),
+      })
+      return defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: (parsed) => { captured.value = parsed.input; return {} },
+      })
+    }
+
+    it('single field:direction is sent as [{field: direction}]', async () => {
+      const captured: { value?: unknown } = {}
+      await invokeAsync(makeCmd(captured), ['--sort', 'views:desc'])
+      assert.deepEqual(captured.value, { sort: [{ views: 'desc' }] })
+    })
+
+    it('bare field name with no colon is preserved as a string', async () => {
+      const captured: { value?: unknown } = {}
+      await invokeAsync(makeCmd(captured), ['--sort', 'views'])
+      assert.deepEqual(captured.value, { sort: 'views' })
+    })
+
+    it('multiple field:direction pairs become an array of objects', async () => {
+      const captured: { value?: unknown } = {}
+      await invokeAsync(makeCmd(captured), ['--sort', 'views:desc,timestamp:asc'])
+      assert.deepEqual(captured.value, { sort: [{ views: 'desc' }, { timestamp: 'asc' }] })
+    })
+
+    it('mixed bare and pair entries are preserved per entry', async () => {
+      const captured: { value?: unknown } = {}
+      await invokeAsync(makeCmd(captured), ['--sort', 'views,timestamp:desc'])
+      assert.deepEqual(captured.value, { sort: ['views', { timestamp: 'desc' }] })
+    })
+
+    it('dotted field names are kept whole', async () => {
+      const captured: { value?: unknown } = {}
+      await invokeAsync(makeCmd(captured), ['--sort', 'user.name:asc'])
+      assert.deepEqual(captured.value, { sort: [{ 'user.name': 'asc' }] })
+    })
+
+    it('non-Sort string fields are unaffected by the colon transform', async () => {
+      let captured: unknown
+      const schema = z.object({
+        q: z.string().optional().describe('Query').meta({ found_in: 'query' }),
+      })
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        handler: (parsed) => { captured = parsed.input; return {} },
+      })
+      await invokeAsync(cmd, ['--q', 'k:v'])
+      assert.deepEqual(captured, { q: 'k:v' })
+    })
+  })
 })
 
 describe('defineCommand schema input - passthrough validation', () => {
