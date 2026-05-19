@@ -49,6 +49,15 @@ const ES_ALIASES = new Set(['es', 'elasticsearch'])
 const KB_ALIASES = new Set(['kb', 'kibana'])
 const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
 
+/**
+ * Loads the effective command policy for completion without resolving config
+ * expressions.
+ *
+ * The completion path only needs command visibility rules, so it reuses the
+ * structural config parse plus direct `CommandPolicySchema` validation on the
+ * root and active-context `commands` fields. Any missing file, invalid config,
+ * or invalid policy returns `undefined` so shell completion remains best-effort.
+ */
 async function loadCompletionCommandPolicy (): Promise<CommandPolicy | undefined> {
   const envPath = process.env[ENV_CONFIG_FILE]
   const path = envPath != null && envPath.length > 0
@@ -60,13 +69,13 @@ async function loadCompletionCommandPolicy (): Promise<CommandPolicy | undefined
   const structural = StructuralConfigSchema.safeParse(raw)
   if (!structural.success) return undefined
 
-  const { current_context, contexts, commands: rawRootCommands, default_profile: rawDefaultProfile } = structural.data
+  const { current_context, contexts, commands: rawRootCommands, default_profile: rawDefaultProfileValue } = structural.data
   const rawContext = contexts[current_context]
   if (rawContext == null) return undefined
 
   let defaultProfile
-  if (rawDefaultProfile != null) {
-    const defaultProfileParsed = CommandPolicySchema.shape.profile.safeParse(rawDefaultProfile)
+  if (rawDefaultProfileValue != null) {
+    const defaultProfileParsed = CommandPolicySchema.shape.profile.safeParse(rawDefaultProfileValue)
     if (!defaultProfileParsed.success) return undefined
     defaultProfile = defaultProfileParsed.data
   }
@@ -85,8 +94,9 @@ async function loadCompletionCommandPolicy (): Promise<CommandPolicy | undefined
     contextCommands = contextCommandsParsed.data
   }
 
-  const profileOverride = undefined
-  const effective = resolveEffectiveCommands(contextCommands, rootCommands, defaultProfile, profileOverride)
+  // Completion does not inspect a `--profile` override, so config policy is
+  // merged exactly as it appears in the discovered file.
+  const effective = resolveEffectiveCommands(contextCommands, rootCommands, defaultProfile, undefined)
   if ('error' in effective) return undefined
   return effective.commands
 }
