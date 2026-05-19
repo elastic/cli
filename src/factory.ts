@@ -770,9 +770,6 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       if (jsonBodyFields.length > 0 && validationSchema instanceof z.ZodObject) {
         const overrides: Record<string, z.ZodType> = {}
         for (const f of jsonBodyFields) {
-          // Preserve the original field's optionality. Since Zod 4.4, `.extend()`
-          // drops `.optional()` from the replaced field, so an optional body field
-          // overridden with bare `z.any()` would suddenly become a required key.
           overrides[f.schemaKey] = f.required ? z.any() : z.any().optional()
         }
         validationSchema = (validationSchema as z.ZodObject<z.ZodRawShape>).extend(overrides)
