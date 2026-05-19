@@ -105,9 +105,42 @@ let firstArg = operands[0]
 // consistent (e.g. policy entries still use `stack.es.*`).
 const aliasRewritten = rewriteTopLevelAliases(operands)
 if (aliasRewritten.length !== operands.length) {
+  // Find the position of the first operand in process.argv by scanning past
+  // options and their values. We can't use indexOf because an option value
+  // might coincidentally equal the alias (e.g. --command-profile es).
   const original = firstArg!
-  const idx = process.argv.indexOf(original, 2)
-  if (idx !== -1) process.argv.splice(idx, 0, 'stack')
+  let idx = 2  // start after 'node' and script name
+  while (idx < process.argv.length) {
+    const arg = process.argv[idx]!
+    if (arg === original) {
+      // Found the first operand
+      process.argv.splice(idx, 0, 'stack')
+      break
+    }
+    // Skip this argument
+    idx++
+    // If it's an option that takes a value, skip the value too
+    if (arg.startsWith('-') && !arg.startsWith('--') && arg.length > 2) {
+      // Short option cluster like -abc, no value to skip
+      continue
+    }
+    if (arg.startsWith('--')) {
+      const eqIdx = arg.indexOf('=')
+      if (eqIdx === -1) {
+        // Long option without =, might have a separate value argument
+        // Check if this is a known option that takes a value
+        const optName = arg
+        const knownValueOptions = new Set([
+          '--config-file', '--use-context', '--command-profile',
+          '--output-fields', '--output-template'
+        ])
+        if (knownValueOptions.has(optName)) {
+          idx++  // skip the value
+        }
+      }
+      // else: --option=value format, value is already part of this arg
+    }
+  }
   operands.splice(0, 0, 'stack')
   firstArg = 'stack'
 }

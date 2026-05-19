@@ -6,7 +6,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
@@ -317,6 +317,76 @@ describe('elastic CLI -- stack command tree', () => {
       assert.equal(code, 0, `expected exit code 0, got ${code}`)
       assert.doesNotMatch(stderr, /deprecated/i, 'expected no deprecation warning on stderr')
       assert.match(stdout, /es\|elasticsearch/m, 'expected es commands in output')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+})
+
+describe('elastic CLI -- alias rewriting with option values', () => {
+  it('correctly rewrites es alias when --command-profile value is also "es"', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-alias-'))
+    const configPath = join(dir, 'config.yml')
+    await writeFile(configPath, [
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '',
+    ].join('\n'))
+
+    try {
+      const result = await new Promise<{ stdout: string; stderr: string; code: number | null }>((resolve) => {
+        const proc = spawn(
+          process.execPath,
+          ['dist/cli.js', '--config-file', configPath, '--command-profile', 'es', 'es', '--help'],
+          { cwd: join(dirname(fileURLToPath(import.meta.url)), '..') }
+        )
+        let stdout = ''
+        let stderr = ''
+        proc.stdout.on('data', (chunk) => { stdout += chunk })
+        proc.stderr.on('data', (chunk) => { stderr += chunk })
+        proc.on('close', (code) => { resolve({ stdout, stderr, code }) })
+      })
+
+      // Should show es help, not error about invalid command
+      assert.match(result.stdout, /Interact with the Elasticsearch API/)
+      assert.equal(result.code, 0)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('correctly rewrites kb alias when --config-file value is "kb"', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-alias-'))
+    const configPath = join(dir, 'kb')  // config file named "kb"
+    await writeFile(configPath, [
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    kibana:',
+      '      url: http://localhost:5601',
+      '',
+    ].join('\n'))
+
+    try {
+      const result = await new Promise<{ stdout: string; stderr: string; code: number | null }>((resolve) => {
+        const proc = spawn(
+          process.execPath,
+          ['dist/cli.js', '--config-file', configPath, 'kb', '--help'],
+          { cwd: join(dirname(fileURLToPath(import.meta.url)), '..') }
+        )
+        let stdout = ''
+        let stderr = ''
+        proc.stdout.on('data', (chunk) => { stdout += chunk })
+        proc.stderr.on('data', (chunk) => { stderr += chunk })
+        proc.on('close', (code) => { resolve({ stdout, stderr, code }) })
+      })
+
+      // Should show kb help, not error about invalid command
+      assert.match(result.stdout, /Interact with the Kibana API/)
+      assert.equal(result.code, 0)
     } finally {
       await rm(dir, { recursive: true })
     }
