@@ -6,6 +6,7 @@
 import type { HttpMethod } from '../cloud/types.ts'
 import { getResolvedConfig } from '../config/store.ts'
 import { isLoopbackUrl } from './is-loopback-host.ts'
+import { clientHeaders } from './meta.ts'
 
 /**
  * Parameters for a single Cloud API request.
@@ -56,6 +57,7 @@ export class CloudClient {
     }
 
     const headers: Record<string, string> = {
+      ...clientHeaders(),
       'Authorization': `ApiKey ${this.apiKey}`,
       'Accept': 'application/json',
     }

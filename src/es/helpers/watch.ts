@@ -4,10 +4,10 @@
  */
 
 import { z } from 'zod'
-import type { Transport } from '@elastic/transport'
+import type { EsClient } from '../../lib/es-client.ts'
 import { defineCommand } from '../../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../../factory.ts'
-import { getTransport } from '../../lib/transport.ts'
+import { getEsClient } from '../../lib/es-client.ts'
 import { missingConfigError, transportError } from '../errors.ts'
 import { readRawInput } from './shared.ts'
 
@@ -25,7 +25,7 @@ interface SearchResponse {
 
 /** Dependencies injectable for testing. */
 export interface WatchDeps {
-  getTransport: () => Transport
+  getEsClient: () => EsClient
   stdout: { write: (chunk: string) => boolean }
   stderr: { write: (chunk: string) => boolean }
   sleep: (ms: number) => Promise<void>
@@ -34,7 +34,7 @@ export interface WatchDeps {
 }
 
 const defaultDeps: WatchDeps = {
-  getTransport,
+  getEsClient,
   stdout: process.stdout,
   stderr: process.stderr,
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
@@ -118,9 +118,9 @@ function createWatchHandler (deps: WatchDeps = defaultDeps) {
   return async (parsed: { input?: z.infer<typeof inputSchema>; options: Record<string, string | number | boolean> }): Promise<JsonValue> => {
     const { index, query, query_file, sort_field, poll_interval, from, size, format } = parsed.input!
 
-    let transport: Transport
+    let transport: EsClient
     try {
-      transport = deps.getTransport()
+      transport = deps.getEsClient()
     } catch (err) {
       return missingConfigError(err)
     }

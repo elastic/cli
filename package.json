@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "prepare": "git config core.hooksPath .githooks || true",
-    "build": "node --max-old-space-size=6144 node_modules/typescript/bin/tsc -b",
+    "build": "node --max-old-space-size=8192 node_modules/typescript/bin/tsc -b",
     "postbuild": "node -e \"const {unlinkSync,readdirSync,existsSync}=require('fs'),{join}=require('path'),d='dist/es/apis/schemas';if(existsSync(d))readdirSync(d).filter(f=>/\\.(d\\.ts|d\\.ts\\.map|js\\.map)$/.test(f)).forEach(f=>unlinkSync(join(d,f)))\"",
     "test": "npm run build && npm run test:unit && npm run test:license",
     "test:unit": "node --max-old-space-size=8192 --import tsx/esm --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=90 --test-coverage-functions=90 --test-coverage-include='src/**/*.ts' --test-coverage-include='packages/*/src/**/*.ts' --test-coverage-exclude='src/cloud/apis/**' --test-coverage-exclude='src/es/apis.ts' --test-coverage-exclude='src/es/api-manifest.ts' --test-coverage-exclude='src/es/apis/**' --test-coverage-exclude='src/cloud/apis.ts' --test-coverage-exclude='src/cloud/serverless-apis.ts' --test-coverage-exclude='node_modules/**'",
@@ -60,7 +60,6 @@
   "dependencies": {
     "@elastic/config-resolver": "*",
     "@elastic/es-schemas": "1.0.1",
-    "@elastic/transport": "^9.3.5",
     "cli-table3": "^0.6.5",
     "commander": "^14.0.3",
     "csv-parse": "^6.2.1",
@@ -71,17 +70,18 @@
   },
   "bundledDependencies": [
     "@elastic/config-resolver",
-    "@elastic/es-schemas"
+    "@elastic/es-schemas",
+    "zod"
   ],
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/marked-terminal": "6.1.1",
     "@types/node": "25.6.0",
-    "eslint": "10.2.1",
+    "eslint": "10.3.0",
     "license-checker": "25.0.1",
     "mega-linter-runner": "9.4.0",
     "tsx": "4.21.0",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.59.0"
+    "typescript-eslint": "8.59.2"
   }
 }

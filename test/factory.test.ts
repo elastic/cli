@@ -1073,6 +1073,56 @@ describe('defineCommand', () => {
       const err = await captureErrAsync(cmd, [])
       assert.match(err, /input validation failed/i)
     })
+
+    it('reads from stdin when --input-file is "-" (stdin sentinel)', async () => {
+      const restore = _testSetStdinReader(() => JSON.stringify({ cluster: 'test', shards: 5 }))
+      try {
+        const received: ParsedResult[] = []
+        const cmd = defineCommand({
+          name: 'query',
+          description: 'Run a query',
+          input: z.object({ cluster: z.string(), shards: z.number() }),
+          handler: (parsed) => { received.push(parsed); return {} },
+        })
+        await invokeAsync(cmd, ['--input-file', '-'])
+        assert.equal(received.length, 1)
+        assert.deepEqual(received[0].input, { cluster: 'test', shards: 5 })
+      } finally {
+        restore()
+      }
+    })
+
+    it('errors with --input-file source label when stdin (via "-") contains malformed JSON', async () => {
+      const restore = _testSetStdinReader(() => 'not { valid } json ][')
+      try {
+        const cmd = defineCommand({
+          name: 'query',
+          description: 'Run a query',
+          input: z.object({ q: z.string() }),
+          handler: () => ({}),
+        })
+        const err = await captureErrAsync(cmd, ['--input-file', '-'])
+        assert.match(err, /--input-file: invalid JSON:/)
+      } finally {
+        restore()
+      }
+    })
+
+    it('errors with "empty content" when --input-file is "-" and stdin is empty', async () => {
+      const restore = _testSetStdinReader(() => '')
+      try {
+        const cmd = defineCommand({
+          name: 'query',
+          description: 'Run a query',
+          input: z.object({ q: z.string() }),
+          handler: () => ({}),
+        })
+        const err = await captureErrAsync(cmd, ['--input-file', '-'])
+        assert.match(err, /--input-file: invalid JSON: empty content/)
+      } finally {
+        restore()
+      }
+    })
   })
 
   describe('JSON input via stdin', () => {
@@ -1557,6 +1607,47 @@ describe('defineCommand', () => {
       assert.equal(received.length, 1)
       const input = received[0] as Record<string, unknown>
       assert.deepEqual(input.operations, [{ index: {} }, { name: 'doc' }])
+    })
+
+    // Regression: in Zod >=4.4, `.extend({ key: z.any() })` drops `.optional()`
+    // from the replaced field, turning previously-optional JSON body fields
+    // into required keys. The factory must re-apply `.optional()` on its
+    // body-field overrides so omitted optional fields still validate.
+    it('omitting an optional object body field still validates', async () => {
+      const schema = z.object({
+        index: z.string().meta({ found_in: 'path' }),
+        aliases: z.record(z.string(), z.any()).optional().meta({ found_in: 'body' }),
+        mappings: z.object({ properties: z.record(z.string(), z.any()) }).optional().meta({ found_in: 'body' }),
+      })
+      const received: unknown[] = []
+      const cmd = defineCommand({
+        name: 'create',
+        description: 'Create index',
+        input: schema,
+        handler: (parsed) => { received.push(parsed.input); return {} },
+      })
+      await invokeAsync(cmd, ['--index', 'foo'])
+      assert.equal(received.length, 1)
+      const input = received[0] as Record<string, unknown>
+      assert.equal(input.index, 'foo')
+    })
+
+    it('required object body fields remain required after relaxation', async () => {
+      const schema = z.object({
+        service: z.string().meta({ found_in: 'body' }),
+        service_settings: z.object({ api_key: z.string() }).meta({ found_in: 'body' }),
+      })
+      const cmd = defineCommand({
+        name: 'put',
+        description: 'Put inference',
+        input: schema,
+        handler: () => ({}),
+      })
+      // Missing required object body field should still fail validation.
+      await assert.rejects(
+        invokeAsync(cmd, ['--service', 'mistral']),
+        /input validation failed|service_settings/i,
+      )
     })
   })
 

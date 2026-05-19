@@ -42,32 +42,30 @@ jobs:
         with:
           vault-instance: "ci-prod"
 
-      - name: Prepare generator checkout (shared between codegen steps)
-        id: generator
-        shell: bash
-        env:
-          GH_TOKEN: ${{ steps.fetch-token.outputs.token }}
-        run: |
-          dir="$RUNNER_TEMP/elastic-client-generator-js"
-          git -c "http.https://github.com/.extraheader=AUTHORIZATION: bearer $GH_TOKEN" \
-            clone --depth 1 --branch main https://github.com/elastic/elastic-client-generator-js.git "$dir"
-          # Drop the credential from the cloned repo's git config so it can't
-          # be reused by anything later in the job.
-          git -C "$dir" config --unset-all http.https://github.com/.extraheader || true
-          (cd "$dir" && npm install --no-audit --no-fund)
-          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+      - name: Checkout generator repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          repository: elastic/elastic-client-generator-js
+          path: elastic-client-generator-js
+          ref: main
+          token: ${{ steps.fetch-token.outputs.token }}
+          persist-credentials: false
+
+      - name: Install generator dependencies
+        working-directory: elastic-client-generator-js
+        run: npm install --no-audit --no-fund
 
       - name: Regenerate ES bindings
         env:
-          CODEGEN_GENERATOR_DIR: ${{ steps.generator.outputs.dir }}
+          CODEGEN_GENERATOR_DIR: ${{ github.workspace }}/elastic-client-generator-js
         run: npm run codegen:es
       - name: Regenerate Cloud bindings
         env:
-          CODEGEN_GENERATOR_DIR: ${{ steps.generator.outputs.dir }}
+          CODEGEN_GENERATOR_DIR: ${{ github.workspace }}/elastic-client-generator-js
         run: npm run codegen:cloud
       - name: Regenerate Kibana bindings
         env:
-          CODEGEN_GENERATOR_DIR: ${{ steps.generator.outputs.dir }}
+          CODEGEN_GENERATOR_DIR: ${{ github.workspace }}/elastic-client-generator-js
         run: npm run codegen:kibana
 
       - name: Build

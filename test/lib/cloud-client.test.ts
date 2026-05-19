@@ -8,6 +8,7 @@ import assert from 'node:assert/strict'
 import { getCloudClient, _testResetCloudClient } from '../../src/lib/cloud-client.ts'
 import { setResolvedConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
+import { clientHeaders } from '../../src/lib/meta.ts'
 
 afterEach(() => {
   _testResetCloudClient()
@@ -126,6 +127,22 @@ describe('getCloudClient', () => {
 
     await client.request({ method: 'GET', path: '/test' })
     assert.equal(capturedHeaders['Authorization'], 'ApiKey secret-key')
+  })
+
+  it('includes x-elastic-client-meta and user-agent on every request', async () => {
+    setResolvedConfig({ context: { cloud: { url: 'https://api.elastic-cloud.com', auth: { api_key: 'k' } } } })
+    const client = getCloudClient()
+
+    let capturedHeaders: Record<string, string> = {}
+    client._testSetFetch(((url: string, init: RequestInit) => {
+      capturedHeaders = init.headers as Record<string, string>
+      return Promise.resolve(new Response('{}', { status: 200 }))
+    }) as typeof fetch)
+
+    await client.request({ method: 'GET', path: '/test' })
+    const expected = clientHeaders()
+    assert.equal(capturedHeaders['x-elastic-client-meta'], expected['x-elastic-client-meta'])
+    assert.equal(capturedHeaders['user-agent'], expected['user-agent'])
   })
 
   it('throws missing_config when auth has no api_key', () => {
