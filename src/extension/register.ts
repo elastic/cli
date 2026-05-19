@@ -17,12 +17,13 @@
  *   elastic extension remove <name>         uninstall by name
  *   elastic extension upgrade [name]        upgrade one or all extensions
  *   elastic extension search [query]        discover extensions via GitHub topic
+ *   elastic extension create <name>         scaffold a new local extension
  */
 
 import { defineCommand, defineGroup } from '../factory.ts'
 import type { JsonValue, OpaqueCommandHandle } from '../factory.ts'
 import { readExtensions } from './store.ts'
-import { installExtension, uninstallExtension, upgradeExtension, upgradeAllExtensions } from './installer.ts'
+import { createLocalExtension, installExtension, uninstallExtension, upgradeExtension, upgradeAllExtensions } from './installer.ts'
 import { searchExtensions } from './search.ts'
 
 // ---------------------------------------------------------------------------
@@ -86,6 +87,26 @@ async function handleUpgrade (parsed: { arg?: string }): Promise<JsonValue> {
     return { upgraded: true, extensions: all.map((e) => ({ name: e.name, source: e.source })) } as unknown as JsonValue
   } catch (err) {
     return handlerError('upgrade_failed', err)
+  }
+}
+
+async function handleCreate (parsed: { arg?: string; options: Record<string, string | number | boolean> }): Promise<JsonValue> {
+  const name = parsed.arg?.trim()
+  if (name == null || name.length === 0) {
+    return { error: { code: 'missing_name', message: 'An extension name is required.' } }
+  }
+  const targetPath = typeof parsed.options['path'] === 'string' ? parsed.options['path'] : undefined
+  try {
+    const entry = await createLocalExtension(name, targetPath)
+    return {
+      created: true,
+      name: entry.name,
+      source: entry.source,
+      path: entry.path,
+      entrypoint: entry.entrypoint,
+    } as unknown as JsonValue
+  } catch (err) {
+    return handlerError('create_failed', err)
   }
 }
 
@@ -157,6 +178,24 @@ export function registerExtensionCommands (): OpaqueCommandHandle {
     handler: async (parsed) => handleSearch(parsed),
   })
 
+  const createCmd = defineCommand({
+    name: 'create',
+    description: 'Scaffold a new local extension with a JSON-outputting entrypoint',
+    positionalArg: {
+      name: 'name',
+      description: 'Short extension name (e.g. "demo" → invoked as `elastic demo`)',
+      required: true,
+    },
+    options: [
+      {
+        long: 'path',
+        description: 'Target directory (defaults to ~/.elastic/extensions/elastic-<name>)',
+        type: 'string',
+      },
+    ],
+    handler: async (parsed) => handleCreate(parsed),
+  })
+
   return defineGroup(
     { name: 'extension', description: 'Manage elastic CLI extensions' },
     listCmd,
@@ -164,5 +203,6 @@ export function registerExtensionCommands (): OpaqueCommandHandle {
     removeCmd,
     upgradeCmd,
     searchCmd,
+    createCmd,
   )
 }

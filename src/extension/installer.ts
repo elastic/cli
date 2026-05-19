@@ -22,7 +22,7 @@
  *   The derived entrypoint is validated to sit within the install directory.
  */
 
-import { access, constants, mkdir, readFile, rm } from 'node:fs/promises'
+import { access, chmod, constants, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join, isAbsolute, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -256,6 +256,64 @@ export async function installExtension (source: string): Promise<InstalledExtens
     source,
     path: installDir,
     entrypoint: resolve(entrypoint),
+  }
+  await upsertExtension(entry)
+  return entry
+}
+
+/**
+ * Creates a new local extension scaffold and registers it.
+ *
+ * Writes a `package.json` and an executable `index.js` entrypoint that outputs
+ * JSON showing the context env-vars passed by the CLI. The scaffolded file is
+ * a starting point — edit `index.js` to implement real logic.
+ *
+ * @param name        Short extension name, e.g. `demo` → invoked as `elastic demo`
+ * @param targetPath  Directory to create (defaults to `~/.elastic/extensions/elastic-<name>`)
+ */
+export async function createLocalExtension (name: string, targetPath?: string): Promise<InstalledExtension> {
+  assertSafeName(name)
+
+  const installDir = targetPath != null ? resolve(targetPath) : join(extensionsDir(), `elastic-${name}`)
+  await mkdir(installDir, { recursive: true })
+
+  const pkg = {
+    name: `elastic-${name}`,
+    version: '0.1.0',
+    description: `elastic ${name} extension`,
+    bin: { [`elastic-${name}`]: './index.js' },
+  }
+  await writeFile(join(installDir, 'package.json'), JSON.stringify(pkg, null, 2) + '\n', 'utf-8')
+
+  const entrypoint = join(installDir, 'index.js')
+  const script = [
+    '#!/usr/bin/env node',
+    "'use strict'",
+    '',
+    '// Elastic extension entrypoint. Edit this file to implement your extension.',
+    '// The elastic CLI sets these env vars before spawning this process:',
+    '//   ELASTIC_ES_URL, ELASTIC_ES_API_KEY, ELASTIC_KIBANA_URL, ELASTIC_CLOUD_API_KEY, ...',
+    'const result = {',
+    `  name: '${name}',`,
+    '  esUrl: process.env.ELASTIC_ES_URL ?? null,',
+    '  kibanaUrl: process.env.ELASTIC_KIBANA_URL ?? null,',
+    '  args: process.argv.slice(2),',
+    '}',
+    '',
+    "process.stdout.write(JSON.stringify(result, null, 2) + '\\n')",
+    '',
+  ].join('\n')
+
+  await writeFile(entrypoint, script, { encoding: 'utf-8', mode: 0o755 })
+  if (process.platform !== 'win32') {
+    await chmod(entrypoint, 0o755)
+  }
+
+  const entry: InstalledExtension = {
+    name,
+    source: `local:${installDir}`,
+    path: installDir,
+    entrypoint,
   }
   await upsertExtension(entry)
   return entry

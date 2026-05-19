@@ -60,9 +60,9 @@ const SAFE_NAME_RE = /^[a-z0-9-]+$/
 /**
  * Loose source format check: must start with a known prefix or contain a
  * slash (bare owner/repo). Rejects clearly invalid values while remaining
- * open to future prefixes (e.g. git:).
+ * open to future prefixes.
  */
-const SAFE_SOURCE_RE = /^(github:|npm:|git:)|^[^:]+\//
+const SAFE_SOURCE_RE = /^(github:|npm:|git:|local:)|^[^:]+\//
 
 // ---------------------------------------------------------------------------
 // Test seam
@@ -114,7 +114,7 @@ function validateEntry (value: unknown, index: number): InstalledExtension {
   const source = obj['source'] as string
   if (!SAFE_SOURCE_RE.test(source)) {
     throw new Error(
-      `extensions.json: entry[${index}].source "${source}" does not match a recognised format (github:owner/repo, npm:package, owner/repo)`
+      `extensions.json: entry[${index}].source "${source}" does not match a recognised format (github:owner/repo, npm:package, local:/path, owner/repo)`
     )
   }
 
