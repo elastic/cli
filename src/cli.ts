@@ -122,7 +122,8 @@ if (aliasRewritten.length !== operands.length) {
   
   let idx = 2  // start after 'node' and script name
   while (idx < process.argv.length) {
-    const arg = process.argv[idx]!
+    const arg = process.argv[idx]
+    if (arg == null) break  // defensive: should never happen given loop condition
     if (arg === original) {
       // Found the first operand
       process.argv.splice(idx, 0, 'stack')
