@@ -139,7 +139,7 @@ async function resolveNpmBin (dir: string, binName: string): Promise<string | un
   try {
     const raw = await readFile(pkgPath, 'utf-8')
     const pkg = JSON.parse(raw) as Record<string, unknown>
-    const bin = pkg['bin']
+    const { bin } = pkg
     if (bin == null) return undefined
     let rel: string | undefined
     if (typeof bin === 'string') {
