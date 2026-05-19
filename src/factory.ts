@@ -770,7 +770,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       if (jsonBodyFields.length > 0 && validationSchema instanceof z.ZodObject) {
         const overrides: Record<string, z.ZodType> = {}
         for (const f of jsonBodyFields) {
-          overrides[f.schemaKey] = z.any()
+          overrides[f.schemaKey] = f.required ? z.any() : z.any().optional()
         }
         validationSchema = (validationSchema as z.ZodObject<z.ZodRawShape>).extend(overrides)
       }

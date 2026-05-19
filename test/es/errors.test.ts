@@ -5,26 +5,8 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { errors } from '@elastic/transport'
+import { EsResponseError, EsConnectionError } from '../../src/lib/es-client.ts'
 import { transportError, missingConfigError } from '../../src/es/errors.ts'
-
-function makeDiagnosticMeta (overrides: Record<string, unknown> = {}): Record<string, unknown> {
-  return {
-    body: null,
-    statusCode: 0,
-    headers: {},
-    meta: {
-      context: null,
-      request: { params: {}, options: {}, id: 0 },
-      name: 'test',
-      connection: null,
-      attempts: 0,
-      aborted: false,
-    },
-    warnings: null,
-    ...overrides,
-  }
-}
 
 describe('missingConfigError', () => {
   it('wraps an Error message in the expected shape', () => {
@@ -75,74 +57,40 @@ describe('transportError', () => {
     assert.equal(result.error.message, 'raw string error')
   })
 
-  it('maps ResponseError to a transport_error with status_code and body', () => {
-    const meta = makeDiagnosticMeta({ statusCode: 418, body: { reason: 'teapot' } })
-    const err = new errors.ResponseError(meta)
-    const result = transportError(err) as { error: { code: string; status_code: number | null; body: unknown } }
+  it('maps EsResponseError to a transport_error with status_code and body', () => {
+    const err = new EsResponseError(418, { reason: 'teapot' })
+    const result = transportError(err) as { error: { code: string; status_code: number; body: unknown } }
     assert.equal(result.error.code, 'transport_error')
     assert.equal(result.error.status_code, 418)
     assert.deepEqual(result.error.body, { reason: 'teapot' })
   })
 
-  it('maps ResponseError with missing statusCode/body to null values', () => {
-    const meta = makeDiagnosticMeta({ statusCode: undefined, body: undefined })
-    const err = new errors.ResponseError(meta)
-    const result = transportError(err) as { error: { code: string; status_code: number | null; body: unknown } }
+  it('maps EsResponseError with null body to null', () => {
+    const err = new EsResponseError(500, null)
+    const result = transportError(err) as { error: { code: string; status_code: number; body: unknown } }
     assert.equal(result.error.code, 'transport_error')
-    assert.equal(result.error.status_code, null)
+    assert.equal(result.error.status_code, 500)
     assert.equal(result.error.body, null)
   })
 
-  it('maps ConnectionError to connection_error and appends URL when available', () => {
-    const meta = makeDiagnosticMeta({
-      meta: {
-        context: null,
-        request: { params: {}, options: {}, id: 0 },
-        name: 'test',
-        connection: { url: new URL('http://localhost:9200') },
-        attempts: 0,
-        aborted: false,
-      },
-    })
-    const err = new errors.ConnectionError('getaddrinfo ENOTFOUND', meta)
-    const result = transportError(err) as { error: { code: string; message: string } }
-    assert.equal(result.error.code, 'connection_error')
-    assert.ok(result.error.message.includes('getaddrinfo ENOTFOUND'))
-    assert.ok(result.error.message.includes('http://localhost:9200'))
-  })
-
-  it('maps ConnectionError without URL metadata using just the reason', () => {
-    const err = new errors.ConnectionError('socket hang up')
+  it('maps EsConnectionError to connection_error', () => {
+    const err = new EsConnectionError('socket hang up')
     const result = transportError(err) as { error: { code: string; message: string } }
     assert.equal(result.error.code, 'connection_error')
     assert.equal(result.error.message, 'socket hang up')
   })
 
-  it('appends TLS hint to ConnectionError messages that look like TLS errors', () => {
-    const err = new errors.ConnectionError('write EPROTO')
+  it('appends TLS hint to EsConnectionError messages that look like TLS errors', () => {
+    const err = new EsConnectionError('write EPROTO')
     const result = transportError(err) as { error: { code: string; message: string } }
     assert.equal(result.error.code, 'connection_error')
     assert.ok(result.error.message.includes('Hint: this looks like a TLS/SSL error'))
   })
 
-  it('falls back to "connection failed" when ConnectionError message is empty', () => {
-    const err = new errors.ConnectionError('')
+  it('falls back to "connection failed" when EsConnectionError message is empty', () => {
+    const err = new EsConnectionError('')
     const result = transportError(err) as { error: { code: string; message: string } }
     assert.equal(result.error.code, 'connection_error')
     assert.equal(result.error.message, 'connection failed')
-  })
-
-  it('maps TimeoutError with message', () => {
-    const err = new errors.TimeoutError('took too long', makeDiagnosticMeta())
-    const result = transportError(err) as { error: { code: string; message: string } }
-    assert.equal(result.error.code, 'timeout_error')
-    assert.equal(result.error.message, 'took too long')
-  })
-
-  it('falls back to default message when TimeoutError has an empty message', () => {
-    const err = new errors.TimeoutError('', makeDiagnosticMeta())
-    const result = transportError(err) as { error: { code: string; message: string } }
-    assert.equal(result.error.code, 'timeout_error')
-    assert.equal(result.error.message, 'request timed out')
   })
 })
