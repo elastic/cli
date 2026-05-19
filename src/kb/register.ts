@@ -12,6 +12,7 @@ import { validateKbApiDefinition } from './types.ts'
 import { kbApiManifest, loadKbApi } from './apis.ts'
 import type { KbApiMeta } from './api-manifest.ts'
 import { createKbHandler } from './handler.ts'
+import { registerKbEsqlHelpers } from './helpers/register.ts'
 
 /**
  * Builds the unified flat Zod schema for a Kibana API command.
@@ -170,6 +171,7 @@ export async function registerKbCommandsLazy (
 
   return defineGroup(
     { name: 'kb', description: 'Interact with the Kibana API' },
+    registerKbEsqlHelpers(),
     ...namespaceHandles
   )
 }
@@ -213,6 +215,7 @@ export function registerKbCommands (
 
   return defineGroup(
     { name: 'kb', description: 'Interact with the Kibana API' },
+    registerKbEsqlHelpers(),
     ...namespaceHandles
   )
 }
