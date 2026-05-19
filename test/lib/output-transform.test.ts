@@ -5,7 +5,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { pickFields, parseFieldList, applyTemplate } from '../../src/lib/output-transform.ts'
+import { pickFields, parseFieldList, applyTemplate, TemplateAgainstPrimitiveError } from '../../src/lib/output-transform.ts'
 
 // ---------------------------------------------------------------------------
 // parseFieldList
@@ -248,6 +248,29 @@ describe('applyTemplate — primitives', () => {
 
   it('replaces bare {{}} with the primitive value', () => {
     assert.equal(applyTemplate(42, 'num={{}}'), 'num=42\n')
+  })
+
+  it('throws TemplateAgainstPrimitiveError on named fields against a string (#327)', () => {
+    assert.throws(
+      () => applyTemplate('raw text body', '{{index}} {{docs.count}}'),
+      (err: unknown) => {
+        assert.ok(err instanceof TemplateAgainstPrimitiveError)
+        assert.match(err.message, /"index".*"docs\.count"/)
+        assert.match(err.message, /response is a string/)
+        return true
+      },
+    )
+  })
+
+  it('throws TemplateAgainstPrimitiveError on named fields against null (#327)', () => {
+    assert.throws(
+      () => applyTemplate(null, '{{name}}'),
+      TemplateAgainstPrimitiveError,
+    )
+  })
+
+  it('does not throw when only {{.}} / {{}} are used against a primitive', () => {
+    assert.equal(applyTemplate('hi', '[{{.}}] [{{}}]'), '[hi] [hi]\n')
   })
 })
 
