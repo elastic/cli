@@ -277,22 +277,21 @@ export async function createLocalExtension (name: string, targetPath?: string): 
   const installDir = targetPath != null ? resolve(targetPath) : join(extensionsDir(), `elastic-${name}`)
   await mkdir(installDir, { recursive: true })
 
-  // Only scaffold files that don't already exist — avoids clobbering an existing extension when --path points to a live directory.
-  const pkgPath = join(installDir, 'package.json')
-  const pkgExists = await access(pkgPath).then(() => true).catch(() => false)
-  if (!pkgExists) {
+  // Try to discover an existing entrypoint before scaffolding. This lets --path point at any
+  // language: a Python script, shell script, or compiled binary named elastic-<name> (executable,
+  // in root/bin/dist) or declared in an existing package.json bin field.
+  let entrypoint = await discoverGithubEntrypoint(installDir, `elastic-${name}`).catch(() => undefined)
+
+  if (entrypoint == null) {
+    // Nothing found — scaffold a Node.js starter.
     const pkg = {
       name: `elastic-${name}`,
       version: '0.1.0',
       description: `elastic ${name} extension`,
       bin: { [`elastic-${name}`]: './index.js' },
     }
-    await writeFile(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf-8')
-  }
+    await writeFile(join(installDir, 'package.json'), JSON.stringify(pkg, null, 2) + '\n', 'utf-8')
 
-  const defaultEntrypoint = join(installDir, 'index.js')
-  const entrypointExists = await access(defaultEntrypoint).then(() => true).catch(() => false)
-  if (!entrypointExists) {
     const script = [
       '#!/usr/bin/env node',
       "'use strict'",
@@ -310,14 +309,13 @@ export async function createLocalExtension (name: string, targetPath?: string): 
       "process.stdout.write(JSON.stringify(result, null, 2) + '\\n')",
       '',
     ].join('\n')
+    const defaultEntrypoint = join(installDir, 'index.js')
     await writeFile(defaultEntrypoint, script, { encoding: 'utf-8', mode: 0o755 })
     if (process.platform !== 'win32') {
       await chmod(defaultEntrypoint, 0o755)
     }
+    entrypoint = defaultEntrypoint
   }
-
-  // Resolve entrypoint: prefer the bin field in package.json (respects existing extensions), fall back to index.js.
-  const entrypoint = (await resolveNpmBin(installDir, `elastic-${name}`)) ?? defaultEntrypoint
 
   const entry: InstalledExtension = {
     name,
