@@ -71,6 +71,37 @@ describe('pickFields — dot-notation', () => {
 })
 
 // ---------------------------------------------------------------------------
+// pickFields — literal-dotted keys (cat API style)
+// ---------------------------------------------------------------------------
+
+describe('pickFields — literal-dotted keys', () => {
+  it('matches a literal-dotted key (cat-API case)', () => {
+    const input = { 'docs.count': '5', index: 'x' }
+    assert.deepEqual(pickFields(input, ['docs.count']), { 'docs.count': '5' })
+  })
+
+  it('still descends nested objects when no literal key exists', () => {
+    const input = { docs: { count: '5' } }
+    assert.deepEqual(pickFields(input, ['docs.count']), { docs: { count: '5' } })
+  })
+
+  it('prefers the literal key over a nested path when both exist', () => {
+    const input = { 'docs.count': '10', docs: { count: '5' } }
+    assert.deepEqual(pickFields(input, ['docs.count']), { 'docs.count': '10' })
+  })
+
+  it('preserves all fields on a cat-indices-shaped row', () => {
+    const input = [
+      { health: 'green', index: 'i', 'docs.count': '5', 'store.size': '31kb' },
+    ]
+    assert.deepEqual(
+      pickFields(input, ['index', 'docs.count', 'store.size']),
+      [{ index: 'i', 'docs.count': '5', 'store.size': '31kb' }],
+    )
+  })
+})
+
+// ---------------------------------------------------------------------------
 // pickFields — arrays
 // ---------------------------------------------------------------------------
 
@@ -89,6 +120,58 @@ describe('pickFields — arrays', () => {
   it('returns empty objects for array elements with no matching fields', () => {
     const input = [{ x: 1 }, { x: 2 }]
     assert.deepEqual(pickFields(input, ['z']), [{}, {}])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// pickFields — projection across arrays (mid-path)
+// ---------------------------------------------------------------------------
+
+describe('pickFields — projection across arrays', () => {
+  it('projects a leaf path across an inner array', () => {
+    const input = { hits: { hits: [{ _id: 'x' }, { _id: 'y' }] } }
+    assert.deepEqual(pickFields(input, ['hits.hits._id']), { hits: { hits: { _id: ['x', 'y'] } } })
+  })
+
+  it('projects multiple paths across an inner array', () => {
+    const input = {
+      hits: {
+        hits: [
+          { _id: '1', _source: { title: 'First' } },
+          { _id: '2', _source: { title: 'Second' } },
+        ],
+      },
+    }
+    assert.deepEqual(pickFields(input, ['hits.hits._id', 'hits.hits._source.title']), {
+      hits: {
+        hits: {
+          _id: ['1', '2'],
+          _source: { title: ['First', 'Second'] },
+        },
+      },
+    })
+  })
+
+  it('drops array elements where the projected path is missing', () => {
+    const input = { items: [{ a: 1 }, { b: 2 }, { a: 3 }] }
+    assert.deepEqual(pickFields(input, ['items.a']), { items: { a: [1, 3] } })
+  })
+
+  it('returns an empty array when no element matches the path', () => {
+    const input = { items: [{ a: 1 }, { a: 2 }] }
+    assert.deepEqual(pickFields(input, ['items.b']), { items: { b: [] } })
+  })
+
+  it('handles nested arrays in the middle of a path', () => {
+    const input = {
+      groups: [
+        { items: [{ id: 'a' }, { id: 'b' }] },
+        { items: [{ id: 'c' }] },
+      ],
+    }
+    assert.deepEqual(pickFields(input, ['groups.items.id']), {
+      groups: { items: { id: [['a', 'b'], ['c']] } },
+    })
   })
 })
 

@@ -4,17 +4,30 @@ Interact with the Elastic Stack and Elastic Cloud from the command line.
 
 ## Installation
 
-Install from npm:
+Install globally from npm so the `elastic` binary is available on your `PATH`:
 
 ```bash
-npm install @elastic/cli
-```
-
-Then you should be able to run `elastic` commands:
-
-```bash
+npm install -g @elastic/cli
 elastic --help
 ```
+
+If you don't want a global install, you can run a one-off invocation with
+`npx`, which downloads and runs the CLI without persisting it:
+
+```bash
+npx -y @elastic/cli --help
+```
+
+> If `npm install -g` fails with an `EACCES` permission error on Linux/macOS,
+> either re-run with `sudo` or (recommended) point npm's global prefix at a
+> user-owned directory:
+>
+> ```bash
+> mkdir -p ~/.npm-global
+> npm config set prefix ~/.npm-global
+> echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+> source ~/.bashrc
+> ```
 
 ## Configuration
 

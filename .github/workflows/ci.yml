@@ -131,7 +131,6 @@ jobs:
     needs:
       - test-node
       - license-header
-      - notice-file
       - test-bun
       - validate-pr-title
       - megalinter

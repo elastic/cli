@@ -652,10 +652,14 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       const filePath = cmd.getOptionValue('inputFile') as string | undefined
       if (filePath !== undefined) {
         let fileContent: string
-        try {
-          fileContent = readFileSync(filePath, 'utf-8')
-        } catch {
-          return cmd.error(`--input-file: file not found: ${filePath}`)
+        if (filePath === '-') {
+          fileContent = stdinReader()
+        } else {
+          try {
+            fileContent = readFileSync(filePath, 'utf-8')
+          } catch {
+            return cmd.error(`--input-file: file not found: ${filePath}`)
+          }
         }
         inputValue = parseJsonContent(fileContent, '--input-file', cmd)
       } else if (!process.stdin.isTTY) {
@@ -766,7 +770,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       if (jsonBodyFields.length > 0 && validationSchema instanceof z.ZodObject) {
         const overrides: Record<string, z.ZodType> = {}
         for (const f of jsonBodyFields) {
-          overrides[f.schemaKey] = z.any()
+          overrides[f.schemaKey] = f.required ? z.any() : z.any().optional()
         }
         validationSchema = (validationSchema as z.ZodObject<z.ZodRawShape>).extend(overrides)
       }
