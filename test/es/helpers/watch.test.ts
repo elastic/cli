@@ -5,7 +5,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import type { Transport, TransportRequestParams } from '@elastic/transport'
+import type { EsClient, EsRequestParams } from '../../../src/lib/es-client.ts'
 import { createWatchCommand, applyTemplate } from '../../../src/es/helpers/watch.ts'
 import type { WatchDeps } from '../../../src/es/helpers/watch.ts'
 import { Command } from 'commander'
@@ -25,24 +25,24 @@ interface MockResponse {
 }
 
 /**
- * Builds a mock Transport from a queue of responses.  Each `request()` call
+ * Builds a mock EsClient from a queue of responses.  Each `request()` call
  * dequeues the next item; after the queue is exhausted every call returns an
  * empty hit list so polls stop producing results.
  */
 function mockTransport (responses: MockResponse[]): {
-  transport: Transport
-  requests: Array<{ params: TransportRequestParams }>
+  transport: EsClient
+  requests: Array<{ params: EsRequestParams }>
 } {
-  const requests: Array<{ params: TransportRequestParams }> = []
+  const requests: Array<{ params: EsRequestParams }> = []
   let callIndex = 0
   const transport = {
-    request: async (params: TransportRequestParams) => {
+    request: async (params: EsRequestParams) => {
       requests.push({ params })
       const resp = responses[callIndex] ?? { hits: { hits: [] } }
       callIndex++
       return resp
     },
-  } as unknown as Transport
+  } as unknown as EsClient
   return { transport, requests }
 }
 
@@ -63,7 +63,7 @@ function captureOutput () {
 
 /** Builds a WatchDeps where `sleep` resolves immediately and signals are controllable. */
 function makeDeps (
-  transport: Transport,
+  transport: EsClient,
   io = captureOutput(),
   opts: { stopAfterPolls?: number } = {},
 ): WatchDeps & { io: ReturnType<typeof captureOutput> } {
@@ -73,7 +73,7 @@ function makeDeps (
 
   return {
     io,
-    getTransport: () => transport,
+    getEsClient: () => transport,
     stdout: io.stdout,
     stderr: io.stderr,
     sleep: async () => {
@@ -311,7 +311,7 @@ describe('watch command', () => {
     const signalHandlers = new Map<string, (() => void)[]>()
     const deps: WatchDeps & { io: ReturnType<typeof captureOutput> } = {
       io,
-      getTransport: () => transport,
+      getEsClient: () => transport,
       stdout: io.stdout,
       stderr: io.stderr,
       sleep: async () => {
@@ -372,7 +372,7 @@ describe('watch command', () => {
     const io = captureOutput()
     const transport = {
       request: async () => { throw new Error('connection refused') },
-    } as unknown as Transport
+    } as unknown as EsClient
 
     const deps = makeDeps(transport, io)
     // Command should not throw — it returns a structured error.
@@ -397,7 +397,7 @@ describe('watch command', () => {
     const io = captureOutput()
     const deps: WatchDeps & { io: ReturnType<typeof captureOutput> } = {
       io,
-      getTransport: () => { throw new Error('no ES configured') },
+      getEsClient: () => { throw new Error('no ES configured') },
       stdout: io.stdout,
       stderr: io.stderr,
       sleep: async () => {},

@@ -4,10 +4,10 @@
  */
 
 import { z } from 'zod'
-import type { Transport } from '@elastic/transport'
+import type { EsClient } from '../../lib/es-client.ts'
 import { defineCommand } from '../../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../../factory.ts'
-import { getTransport } from '../../lib/transport.ts'
+import { getEsClient } from '../../lib/es-client.ts'
 import { missingConfigError, transportError } from '../errors.ts'
 import { readRawInput, runWithConcurrency } from './shared.ts'
 
@@ -22,10 +22,10 @@ interface MsearchResponse {
 
 /** Dependencies injectable for testing. */
 export interface MsearchDeps {
-  getTransport: () => Transport
+  getEsClient: () => EsClient
 }
 
-const defaultDeps: MsearchDeps = { getTransport }
+const defaultDeps: MsearchDeps = { getEsClient }
 
 const inputSchema = z.object({
   index: z.string().optional().describe('Default index for searches'),
@@ -73,9 +73,9 @@ function createMsearchHandler (deps: MsearchDeps = defaultDeps) {
   return async (parsed: { input?: z.infer<typeof inputSchema>; options: Record<string, string | number | boolean> }): Promise<JsonValue> => {
     const { index, query_file, batch_size, concurrency } = parsed.input!
 
-    let transport: Transport
+    let transport: EsClient
     try {
-      transport = deps.getTransport()
+      transport = deps.getEsClient()
     } catch (err) {
       return missingConfigError(err)
     }

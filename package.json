@@ -60,7 +60,6 @@
   "dependencies": {
     "@elastic/config-resolver": "*",
     "@elastic/es-schemas": "1.0.1",
-    "@elastic/transport": "^9.3.5",
     "cli-table3": "^0.6.5",
     "commander": "^14.0.3",
     "csv-parse": "^6.2.1",

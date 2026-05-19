@@ -1608,6 +1608,47 @@ describe('defineCommand', () => {
       const input = received[0] as Record<string, unknown>
       assert.deepEqual(input.operations, [{ index: {} }, { name: 'doc' }])
     })
+
+    // Regression: in Zod >=4.4, `.extend({ key: z.any() })` drops `.optional()`
+    // from the replaced field, turning previously-optional JSON body fields
+    // into required keys. The factory must re-apply `.optional()` on its
+    // body-field overrides so omitted optional fields still validate.
+    it('omitting an optional object body field still validates', async () => {
+      const schema = z.object({
+        index: z.string().meta({ found_in: 'path' }),
+        aliases: z.record(z.string(), z.any()).optional().meta({ found_in: 'body' }),
+        mappings: z.object({ properties: z.record(z.string(), z.any()) }).optional().meta({ found_in: 'body' }),
+      })
+      const received: unknown[] = []
+      const cmd = defineCommand({
+        name: 'create',
+        description: 'Create index',
+        input: schema,
+        handler: (parsed) => { received.push(parsed.input); return {} },
+      })
+      await invokeAsync(cmd, ['--index', 'foo'])
+      assert.equal(received.length, 1)
+      const input = received[0] as Record<string, unknown>
+      assert.equal(input.index, 'foo')
+    })
+
+    it('required object body fields remain required after relaxation', async () => {
+      const schema = z.object({
+        service: z.string().meta({ found_in: 'body' }),
+        service_settings: z.object({ api_key: z.string() }).meta({ found_in: 'body' }),
+      })
+      const cmd = defineCommand({
+        name: 'put',
+        description: 'Put inference',
+        input: schema,
+        handler: () => ({}),
+      })
+      // Missing required object body field should still fail validation.
+      await assert.rejects(
+        invokeAsync(cmd, ['--service', 'mistral']),
+        /input validation failed|service_settings/i,
+      )
+    })
   })
 
   describe('commands without input schema', () => {
