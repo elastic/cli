@@ -219,6 +219,23 @@ export interface LoadConfigOptions {
   contextName?: string
   /** Profile name override (`--profile` flag). Overrides any profile set in the config file. */
   profileName?: BuiltInProfile
+  /**
+   * When `true`, bypass the in-process cache and perform a fresh load (caching
+   * the new result for subsequent calls). Defaults to `false`.
+   */
+  refresh?: boolean
+}
+
+// ---------------------------------------------------------------------------
+// In-process result cache — avoids redundant I/O within a single CLI invocation.
+// Tests can call clearConfigCache() between cases to prevent state leakage.
+// ---------------------------------------------------------------------------
+
+let _cachedConfig: LoadConfigResult | undefined
+
+/** Clears the in-process config cache. Intended for test cleanup only. */
+export function clearConfigCache (): void {
+  _cachedConfig = undefined
 }
 
 /** Successful result from {@link loadConfig}. */
@@ -251,7 +268,9 @@ export type LoadConfigResult = LoadConfigOk | LoadConfigErr
  * @returns A `LoadConfigResult` discriminated union.
  */
 export async function loadConfig (options: LoadConfigOptions = {}): Promise<LoadConfigResult> {
-  const { configPath, contextName, profileName } = options
+  const { configPath, contextName, profileName, refresh = false } = options
+
+  if (!refresh && _cachedConfig !== undefined) return _cachedConfig
 
   // Validate profileName early (before any I/O) so the error is immediate and clear
   if (profileName != null && !(BUILT_IN_PROFILES as readonly string[]).includes(profileName)) {
@@ -358,10 +377,13 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     ...(defaultProfile != null && { default_profile: defaultProfile }),
     ...(structural.data.banner != null && { banner: structural.data.banner }),
   }
+  let result: LoadConfigResult
   try {
-    return { ok: true, value: resolveContext(config, resolvedContextName, profileName) }
+    result = { ok: true, value: resolveContext(config, resolvedContextName, profileName) }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    return { ok: false, error: { message } }
+    result = { ok: false, error: { message } }
   }
+  _cachedConfig = result
+  return result
 }

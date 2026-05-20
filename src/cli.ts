@@ -10,7 +10,6 @@ import type { OpaqueCommandHandle } from './factory.js'
 import { loadConfig } from './config/loader.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './config/profiles.ts'
 import { setResolvedConfig } from './config/store.ts'
-import { getCachedConfig, setCachedConfig } from './config/cache.ts'
 import { renderLogo } from './lib/logo.ts'
 
 // x-release-please-start-version
@@ -33,8 +32,8 @@ program
 // On error, print a structured message and exit -- never let a config failure
 // silently propagate into the command handler.
 //
-// When no --config-file or --use-context overrides are specified, the hook
-// reuses the cached earlyConfig to avoid a redundant load+resolve cycle.
+// When no --config-file or --use-context overrides are specified, loadConfig()
+// returns the in-process cached result from the early load, avoiding redundant I/O.
 program.hook('preAction', async (thisCommand, actionCommand) => {
   if (actionCommand.name() === 'version') return
   if (actionCommand.parent?.name() === 'docs') return
@@ -46,17 +45,13 @@ program.hook('preAction', async (thisCommand, actionCommand) => {
   }
   const { configFile: configPath, useContext: contextName, commandProfile: profileName } = thisCommand.opts()
   const typedProfileName = profileName as BuiltInProfile | undefined
-
-  const earlyConfig = getCachedConfig()
-  if (configPath == null && contextName == null && profileName == null && earlyConfig?.ok === true) {
-    setResolvedConfig(earlyConfig.value)
-    return
-  }
+  const hasOverrides = configPath != null || contextName != null || profileName != null
 
   const result = await loadConfig({
     ...(configPath != null && { configPath }),
     ...(contextName != null && { contextName }),
     ...(typedProfileName != null && { profileName: typedProfileName }),
+    refresh: hasOverrides,
   })
   if (result.ok) {
     setResolvedConfig(result.value)
@@ -179,7 +174,7 @@ if (firstArg === 'sanitize') {
 // Load config early so --help can hide blocked commands. Skip for commands
 // that don't need config (e.g. `version`, `sanitize`, or `config` which authors the file)
 // to avoid unnecessary file I/O and a confusing "no config found" path.
-// The result is cached via setCachedConfig() so the preAction hook can reuse it.
+// loadConfig() caches the result in-process; the preAction hook reuses it via the default cache path.
 if (firstArg !== 'version' && firstArg !== 'config' && firstArg !== 'sanitize') {
   // Parse --profile early (before Commander's full parse) so the early config load
   // and hideBlockedCommands can apply the correct profile-based allow-list to --help.
@@ -189,7 +184,6 @@ if (firstArg !== 'version' && firstArg !== 'config' && firstArg !== 'sanitize') 
   const earlyConfig = await loadConfig({
     ...(earlyProfile != null && { profileName: earlyProfile }),
   })
-  setCachedConfig(earlyConfig)
   if (earlyConfig.ok) {
     setResolvedConfig(earlyConfig.value)
     hideBlockedCommands(program, earlyConfig.value.commands)
@@ -197,7 +191,7 @@ if (firstArg !== 'version' && firstArg !== 'config' && firstArg !== 'sanitize') 
 }
 
 if (process.argv.slice(2).length === 0) {
-  const earlyConfig = getCachedConfig()
+  const earlyConfig = await loadConfig()
   if (!earlyConfig?.ok || earlyConfig.value.banner !== false) {
     process.stdout.write(renderLogo(VERSION))
   }
