@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { errors } from '@elastic/transport'
+import { EsResponseError, EsConnectionError } from '../lib/es-client.ts'
 import type { JsonValue } from '../factory.ts'
 
 /** Builds a `missing_config` error payload from a thrown error. */
@@ -35,31 +35,21 @@ function appendTlsHint (message: string): string {
 
 /** Builds a structured error payload from a thrown transport error. */
 export function transportError (err: unknown): JsonValue {
-  if (err instanceof errors.ResponseError) {
+  if (err instanceof EsResponseError) {
     return {
       error: {
         code: 'transport_error',
-        status_code: err.statusCode ?? null,
+        status_code: err.statusCode,
         body: err.body as JsonValue ?? null
       }
     }
   }
 
-  if (err instanceof errors.ConnectionError) {
-    return { error: { code: 'connection_error', message: appendTlsHint(connectionMessage(err)) } }
-  }
-
-  if (err instanceof errors.TimeoutError) {
-    const message = err.message || 'request timed out'
-    return { error: { code: 'timeout_error', message } }
+  if (err instanceof EsConnectionError) {
+    const message = err.message || 'connection failed'
+    return { error: { code: 'connection_error', message: appendTlsHint(message) } }
   }
 
   const message = err instanceof Error ? err.message : String(err)
   return { error: { code: 'transport_error', message: appendTlsHint(message) } }
-}
-
-function connectionMessage (err: errors.ConnectionError): string {
-  const reason = err.message || 'connection failed'
-  const url = err.meta?.meta?.connection?.url?.toString()
-  return url ? `${reason} (${url})` : reason
 }

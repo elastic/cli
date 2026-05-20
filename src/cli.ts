@@ -13,7 +13,7 @@ import { setResolvedConfig } from './config/store.ts'
 import { renderLogo } from './lib/logo.ts'
 
 // x-release-please-start-version
-const VERSION = '0.1.0-alpha.1';
+const VERSION = '0.1.1';
 // x-release-please-end
 
 const program = new Command()
@@ -21,6 +21,7 @@ const program = new Command()
 program
   .name('elastic')
   .description('Interface with the Elastic Stack and Elastic Cloud from the command line.')
+  .version(VERSION, '-V, --version', 'Print the Elastic CLI version')
   .option('--config-file <path>', 'path to a config file (default: ~/.elasticrc.yml)')
   .option('--use-context <name>', 'override the active context from the config file')
   .option(`--command-profile <name>`, `restrict available commands to a deployment profile (${BUILT_IN_PROFILES.join(', ')})`)
@@ -36,6 +37,9 @@ program
 // returns the in-process cached result from the early load, avoiding redundant I/O.
 program.hook('preAction', async (thisCommand, actionCommand) => {
   if (actionCommand.name() === 'version') return
+  // `status` loads the config itself so a partially broken config is reported as
+  // a structured result rather than exiting before any probe runs.
+  if (actionCommand.name() === 'status') return
   if (actionCommand.parent?.name() === 'docs') return
   if (actionCommand.parent?.name() === 'sanitize') return
   // `config` commands author the config file itself — loading it would be
@@ -171,11 +175,25 @@ if (firstArg === 'sanitize') {
   program.addCommand(defineGroup({ name: 'sanitize', description: 'Sanitize values for safe use in Elasticsearch' }))
 }
 
+if (firstArg === 'status') {
+  const { registerStatusCommand } = await import('./status/register.ts')
+  program.addCommand(registerStatusCommand())
+} else {
+  // Stub: a leaf command that appears in --help without paying the import cost.
+  // The lazy branch above fires whenever `status` is the first arg, so the stub
+  // handler is never invoked.
+  program.addCommand(defineCommand({
+    name: 'status',
+    description: 'Verify connectivity and authentication for the active context',
+    handler: () => '',
+  }))
+}
+
 // Load config early so --help can hide blocked commands. Skip for commands
 // that don't need config (e.g. `version`, `sanitize`, or `config` which authors the file)
 // to avoid unnecessary file I/O and a confusing "no config found" path.
 // loadConfig() caches the result in-process; the preAction hook reuses it via the default cache path.
-if (firstArg !== 'version' && firstArg !== 'config' && firstArg !== 'sanitize') {
+if (firstArg !== 'version' && firstArg !== 'config' && firstArg !== 'sanitize' && firstArg !== 'status') {
   // Parse --profile early (before Commander's full parse) so the early config load
   // and hideBlockedCommands can apply the correct profile-based allow-list to --help.
   const profileArgIdx = process.argv.indexOf('--command-profile')

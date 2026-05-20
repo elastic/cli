@@ -2,10 +2,5 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "local>elastic/renovate-config"
-  ],
-  "postUpgradeTasks": {
-    "commands": ["node scripts/generate-notice.mjs"],
-    "fileFilters": ["NOTICE.txt"],
-    "executionMode": "branch"
-  }
+  ]
 }

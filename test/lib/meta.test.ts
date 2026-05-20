@@ -6,12 +6,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { clientHeaders, toMetaVersion } from '../../src/lib/meta.ts'
-import { createRequire } from 'node:module'
 import os from 'node:os'
-
-const require = createRequire(import.meta.url)
-const transportVersion: string = (require('@elastic/transport/package.json') as { version: string }).version
-const undiciVersion: string = (require('undici/package.json') as { version: string }).version
 
 describe('toMetaVersion', () => {
   it('returns a stable version unchanged', () => {
@@ -72,11 +67,18 @@ describe('clientHeaders', () => {
     it('has t= as the third key (transport key)', () => {
       const parts = headers['x-elastic-client-meta'].split(',')
       assert.match(parts[2]!, /^t=/)
-      assert.match(parts[2]!, new RegExp(`t=${transportVersion}`))
     })
 
-    it('includes un= for the undici HTTP client', () => {
-      assert.match(headers['x-elastic-client-meta'], new RegExp(`un=${undiciVersion}`))
+    it('t= equals the CLI version (no separate transport library)', () => {
+      const parts = headers['x-elastic-client-meta'].split(',')
+      const etValue = parts[0]!.split('=')[1]!
+      const tValue = parts[2]!.split('=')[1]!
+      assert.equal(tValue, etValue)
+    })
+
+    it('has exactly 3 key-value pairs (et, js, t)', () => {
+      const parts = headers['x-elastic-client-meta'].split(',')
+      assert.equal(parts.length, 3)
     })
 
     it('uses comma-separated key=value pairs with no spaces', () => {

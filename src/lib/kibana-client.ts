@@ -6,7 +6,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { getResolvedConfig } from '../config/store.ts'
+import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
 import { isLoopbackUrl } from './is-loopback-host.ts'
+import { clientHeaders } from './meta.ts'
 
 export type KibanaHttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD' | 'PATCH'
 
@@ -38,16 +40,9 @@ export class KibanaClient {
   private readonly authHeader: string | undefined
   private _fetch: typeof fetch = globalThis.fetch
 
-  constructor (baseUrl: string, auth?: { api_key: string } | { username: string; password: string }) {
+  constructor (baseUrl: string, auth?: ApiKeyOrBasicAuth) {
     this.baseUrl = baseUrl.replace(/\/+$/, '')
-    if (auth == null) {
-      this.authHeader = undefined
-    } else if ('api_key' in auth) {
-      this.authHeader = `ApiKey ${auth.api_key}`
-    } else {
-      const encoded = Buffer.from(`${auth.username}:${auth.password}`).toString('base64')
-      this.authHeader = `Basic ${encoded}`
-    }
+    this.authHeader = buildAuthHeader(auth)
     if (this.baseUrl.startsWith('http://') && !isLoopbackUrl(this.baseUrl)) {
       process.stderr.write('Warning: using plaintext HTTP. Credentials will be sent unencrypted.\n')
     }
@@ -63,6 +58,7 @@ export class KibanaClient {
 
     if (params.querystring != null && Object.keys(params.querystring).length > 0) {
       const pieces = Object.entries(params.querystring)
+        .filter(([, v]) => v !== undefined)
         .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
         .join('&')
       url += `?${pieces}`
@@ -70,6 +66,7 @@ export class KibanaClient {
 
     const method = params.method.toUpperCase()
     const headers: Record<string, string> = {
+      ...clientHeaders(),
       'Accept': 'application/json',
     }
     if (this.authHeader != null) {

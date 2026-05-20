@@ -239,7 +239,7 @@ export function clearConfigCache (): void {
 }
 
 /** Successful result from {@link loadConfig}. */
-export interface LoadConfigOk { ok: true, value: ResolvedConfig }
+export interface LoadConfigOk { ok: true, value: ResolvedConfig, contextName: string }
 
 /** Failure result from {@link loadConfig}. */
 export interface LoadConfigErr { ok: false, error: { message: string } }
@@ -379,7 +379,7 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
   }
   let result: LoadConfigResult
   try {
-    result = { ok: true, value: resolveContext(config, resolvedContextName, profileName) }
+    result = { ok: true, value: resolveContext(config, resolvedContextName, profileName), contextName: resolvedContextName }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     result = { ok: false, error: { message } }

@@ -8,31 +8,31 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import type { Transport, TransportRequestParams, TransportRequestOptions } from '@elastic/transport'
+import type { EsClient, EsRequestParams } from '../../../src/lib/es-client.ts'
 import { createMsearchCommand } from '../../../src/es/helpers/msearch.ts'
 import type { MsearchDeps } from '../../../src/es/helpers/msearch.ts'
 import { _testSetStdinReader } from '../../../src/factory.ts'
 import { Command } from 'commander'
 
 function mockTransport (responses: Array<{ responses: unknown[] }>): {
-  transport: Transport
-  requests: Array<{ params: TransportRequestParams, opts?: TransportRequestOptions }>
+  transport: EsClient
+  requests: Array<{ params: EsRequestParams, opts?: { headers?: Record<string, string> } }>
 } {
-  const requests: Array<{ params: TransportRequestParams, opts?: TransportRequestOptions }> = []
+  const requests: Array<{ params: EsRequestParams, opts?: { headers?: Record<string, string> } }> = []
   let callIndex = 0
   const transport = {
-    request: async (params: TransportRequestParams, opts?: TransportRequestOptions) => {
+    request: async (params: EsRequestParams, opts?: { headers?: Record<string, string> }) => {
       requests.push({ params, opts })
       const response = responses[callIndex] ?? responses[responses.length - 1]
       callIndex++
       return response
     }
-  } as unknown as Transport
+  } as unknown as EsClient
   return { transport, requests }
 }
 
-function makeDeps (transport: Transport): MsearchDeps {
-  return { getTransport: () => transport }
+function makeDeps (transport: EsClient): MsearchDeps {
+  return { getEsClient: () => transport }
 }
 
 async function runCommand (args: string[], deps: MsearchDeps): Promise<unknown> {
@@ -219,7 +219,7 @@ describe('msearch command', () => {
     writeFileSync(filePath, makeSearchInput([{ body: { query: { match_all: {} } } }]))
 
     const deps: MsearchDeps = {
-      getTransport: () => { throw new Error('missing_config: no ES configured') }
+      getEsClient: () => { throw new Error('missing_config: no ES configured') }
     }
 
     const result = await runCommand(

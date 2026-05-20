@@ -54,6 +54,18 @@ Thanks for your interest in contributing! We love receiving contributions from o
 | `npm run test:lint -- --fix` | Fix linter errors automatically |
 | `npm run test:megalinter` | Run MegaLinter locally (requires Docker) |
 
+## Regenerating API bindings
+
+The files under `src/es/apis/`, `src/es/apis/schemas/`, `src/cloud/apis/` and `src/kb/apis/` are auto-generated from [`elastic/elastic-client-generator-js`](https://github.com/elastic/elastic-client-generator-js) by CI (see `.github/workflows/codegen.yml`, which opens a PR every Monday). The companion manifests at `src/es/api-manifest.ts` and `src/kb/api-manifest.ts` are derived from those generated files. To reproduce locally:
+
+```bash
+npm run codegen:es      # regenerates ES namespaces + Zod schemas + api-manifest
+npm run codegen:cloud   # regenerates Cloud namespaces
+npm run codegen:kibana  # regenerates Kibana namespaces + api-manifest
+```
+
+The scripts clone the generator into a temp directory and run its `npm run zod` / `npm run cli-es` / `npm run cli-cloud` / `npx tsx cli/kibana/index.ts` targets, then invoke `scripts/build-api-manifest.mjs` (ES) and `scripts/build-kb-manifest.mts` (Kibana) to refresh the per-endpoint manifests consumed by the lazy loaders. Set `CODEGEN_GENERATOR_DIR` to point at an existing checkout if you want to iterate on generator changes without cloning each time.
+
 ## Linting
 
 This project uses [MegaLinter](https://megalinter.io/) for comprehensive linting across TypeScript, YAML, GitHub Actions, Dockerfiles, and more. It also scans for secrets, copy-paste, and vulnerabilities.

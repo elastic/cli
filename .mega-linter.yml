@@ -22,13 +22,13 @@ PRE_COMMANDS:
   - command: "NODE_ENV=development npm ci --ignore-scripts"
     cwd: "workspace"
 
-# Use project's ESLint 10 (flat config, --no-eslintrc removed in v9+)
+# Use project's ESLint 10 (flat config). Megalinter v9.5+ EslintLinter strips
+# --no-eslintrc itself; declaring it under TYPESCRIPT_ES_COMMAND_REMOVE_ARGUMENTS
+# now crashes the run (ValueError: x not in list).
 TYPESCRIPT_ES_CLI_EXECUTABLE:
   - "node"
   - "node_modules/.bin/eslint"
 TYPESCRIPT_ES_CONFIG_FILE: eslint.config.js
-TYPESCRIPT_ES_COMMAND_REMOVE_ARGUMENTS:
-  - "--no-eslintrc"
 
 # Global exclusions
 FILTER_REGEX_EXCLUDE: "(node_modules/|dist/|build/|\\.git/)"

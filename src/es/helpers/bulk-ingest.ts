@@ -5,10 +5,10 @@
 
 import { z } from 'zod'
 import { readFileSync } from 'node:fs'
-import type { Transport } from '@elastic/transport'
+import type { EsClient } from '../../lib/es-client.ts'
 import { defineCommand } from '../../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../../factory.ts'
-import { getTransport } from '../../lib/transport.ts'
+import { getEsClient } from '../../lib/es-client.ts'
 import { missingConfigError, transportError } from '../errors.ts'
 import {
   parseInput,
@@ -23,10 +23,10 @@ import {
 
 /** Dependencies injectable for testing. */
 export interface BulkIngestDeps {
-  getTransport: () => Transport
+  getEsClient: () => EsClient
 }
 
-const defaultDeps: BulkIngestDeps = { getTransport }
+const defaultDeps: BulkIngestDeps = { getEsClient }
 
 const SOURCE_FORMATS = ['ndjson', 'json', 'csv'] as const
 type SourceFormat = typeof SOURCE_FORMATS[number]
@@ -139,7 +139,7 @@ function collectDocuments (opts: BulkIngestInput): { docs: unknown[], filesProce
 
 /** Sends a single bulk batch to Elasticsearch. Returns the count of errors. */
 async function sendBatch (
-  transport: Transport,
+  transport: EsClient,
   ndjsonBody: string,
   index: string
 ): Promise<{ errors: number, total: number }> {
@@ -166,9 +166,9 @@ function createBulkIngestHandler (deps: BulkIngestDeps = defaultDeps) {
   return async (parsed: { input?: BulkIngestInput; options: Record<string, string | number | boolean> }): Promise<JsonValue> => {
     const opts = parsed.input!
 
-    let transport: Transport
+    let transport: EsClient
     try {
-      transport = deps.getTransport()
+      transport = deps.getEsClient()
     } catch (err) {
       return missingConfigError(err)
     }
