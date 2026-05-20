@@ -191,14 +191,17 @@ export async function findExtension (name: string): Promise<InstalledExtension |
 
 /**
  * Adds or replaces an entry in the registry (matched by name) and persists.
+ * Returns true when an existing entry was overwritten, false when a new entry was added.
  */
-export async function upsertExtension (entry: InstalledExtension): Promise<void> {
+export async function upsertExtension (entry: InstalledExtension): Promise<boolean> {
   const extensions = await readExtensions()
   const idx = extensions.findIndex((e) => e.name === entry.name)
-  const updated = idx === -1
-    ? [...extensions, entry]
-    : extensions.map((e, i) => (i === idx ? entry : e))
+  const overwriting = idx !== -1
+  const updated = overwriting
+    ? extensions.map((e, i) => (i === idx ? entry : e))
+    : [...extensions, entry]
   await writeExtensions(updated)
+  return overwriting
 }
 
 /**

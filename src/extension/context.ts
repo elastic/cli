@@ -27,7 +27,7 @@
  *   ELASTIC_ES_USERNAME         Elasticsearch username (basic auth)
  *   ELASTIC_ES_PASSWORD         Elasticsearch password (basic auth)
  *   ELASTIC_KIBANA_URL          Kibana URL
- *   ELASTIC_KIBANA_API_KEY      Kibana API key
+ *   ELASTIC_KIBANA_API_KEY      Kibana API key (Kibana REST API supports ApiKey via Authorization header)
  *   ELASTIC_KIBANA_USERNAME     Kibana username (basic auth)
  *   ELASTIC_KIBANA_PASSWORD     Kibana password (basic auth)
  *   ELASTIC_CLOUD_URL           Elastic Cloud URL

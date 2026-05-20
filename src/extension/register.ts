@@ -50,13 +50,14 @@ async function handleInstall (parsed: { arg?: string }): Promise<JsonValue> {
     return { error: { code: 'missing_source', message: 'A source is required. Use github:owner/repo or npm:package-name.' } }
   }
   try {
-    const entry = await installExtension(source)
+    const { entry, overwritten } = await installExtension(source)
     return {
       installed: true,
       name: entry.name,
       source: entry.source,
       path: entry.path,
       entrypoint: entry.entrypoint,
+      ...(overwritten && { warning: `Extension "${entry.name}" was already installed and has been overwritten.` }),
     } as unknown as JsonValue
   } catch (err) {
     return handlerError('install_failed', err)

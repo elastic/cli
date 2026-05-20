@@ -192,7 +192,8 @@ if (firstArg === 'extension') {
 // that don't need config (e.g. `version`, `sanitize`, or `config` which authors the file)
 // to avoid unnecessary file I/O and a confusing "no config found" path.
 // The result is cached in earlyConfig so the preAction hook can reuse it.
-if (firstArg !== 'version' && firstArg !== 'config' && firstArg !== 'sanitize' && firstArg !== 'extension') {
+const EARLY_CONFIG_COMMANDS = new Set(['version', 'config', 'sanitize', 'extension'])
+if (!EARLY_CONFIG_COMMANDS.has(firstArg ?? '')) {
   // Parse --profile early (before Commander's full parse) so the early config load
   // and hideBlockedCommands can apply the correct profile-based allow-list to --help.
   const profileArgIdx = process.argv.indexOf('--command-profile')
@@ -217,11 +218,8 @@ if (process.argv.slice(2).length === 0) {
 
 // If the first argument does not match any built-in command, attempt to
 // dispatch to an installed extension named `elastic-<firstArg>`.
-// This check runs after all built-ins are registered so the set is complete.
-const BUILT_IN_COMMANDS = new Set([
-  'version', 'stack', 'es', 'elasticsearch', 'kb', 'kibana',
-  'cloud', 'docs', 'config', 'sanitize', 'extension',
-])
+// Derived from registered commands so it never goes stale.
+const BUILT_IN_COMMANDS = new Set(program.commands.flatMap(c => [c.name()].concat(c.aliases())))
 
 if (firstArg != null && !BUILT_IN_COMMANDS.has(firstArg)) {
   const { findExtension } = await import('./extension/store.ts')

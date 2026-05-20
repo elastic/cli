@@ -210,7 +210,7 @@ function assertWithinInstallDir (entrypoint: string, installDir: string): void {
  * @param source  One of: `github:owner/repo`, `owner/repo`, `npm:package-name`
  * @returns       The registered `InstalledExtension` entry
  */
-export async function installExtension (source: string): Promise<InstalledExtension> {
+export async function installExtension (source: string): Promise<{ entry: InstalledExtension, overwritten: boolean }> {
   const parsed = parseSource(source)
   const installDir = join(extensionsDir(), `elastic-${parsed.name}`)
 
@@ -257,8 +257,8 @@ export async function installExtension (source: string): Promise<InstalledExtens
     path: installDir,
     entrypoint: resolve(entrypoint),
   }
-  await upsertExtension(entry)
-  return entry
+  const overwritten = await upsertExtension(entry)
+  return { entry, overwritten }
 }
 
 /**

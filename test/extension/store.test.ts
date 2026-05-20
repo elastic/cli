@@ -132,14 +132,16 @@ describe('extension store', () => {
 
   describe('upsertExtension', () => {
     it('adds a new entry when name is not present', async () => {
-      await upsertExtension(ext1)
+      const overwritten = await upsertExtension(ext1)
+      assert.equal(overwritten, false)
       assert.deepEqual(await readExtensions(), [ext1])
     })
 
     it('replaces an existing entry with the same name', async () => {
       await upsertExtension(ext1)
       const updated: InstalledExtension = { ...ext1, source: 'github:elastic/elastic-local-v2' }
-      await upsertExtension(updated)
+      const overwritten = await upsertExtension(updated)
+      assert.equal(overwritten, true)
       const result = await readExtensions()
       assert.equal(result.length, 1)
       assert.deepEqual(result[0], updated)

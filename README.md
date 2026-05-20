@@ -458,9 +458,9 @@ elastic extension remove my-tool
 
 ### Demo extension
 
-The `demo/elastic-demo/` directory in this repo contains a minimal working example. Register it locally with:
+The `examples/extensions/basic/` directory in this repo contains a minimal working example. Register it locally with:
 
 ```bash
-elastic extension create demo --path ./demo/elastic-demo
+elastic extension create demo --path ./examples/extensions/basic
 elastic demo
 ```
