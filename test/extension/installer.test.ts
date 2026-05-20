@@ -109,21 +109,21 @@ describe('installer', () => {
 
   describe('createLocalExtension', () => {
     it('creates the directory and scaffolds package.json', async () => {
-      const entry = await createLocalExtension('demo')
+      const { entry } = await createLocalExtension('demo')
       const pkg = JSON.parse(await readFile(join(entry.path, 'package.json'), 'utf-8'))
       assert.equal(pkg.name, 'elastic-demo')
       assert.equal(pkg.bin['elastic-demo'], './index.js')
     })
 
     it('scaffolds an executable index.js that outputs JSON', async () => {
-      const entry = await createLocalExtension('demo')
+      const { entry } = await createLocalExtension('demo')
       const script = await readFile(entry.entrypoint, 'utf-8')
       assert.ok(script.includes('JSON.stringify'), 'entrypoint should output JSON')
       assert.ok(script.includes('process.env.ELASTIC_ES_URL'), 'entrypoint should reference ELASTIC_ES_URL')
     })
 
     it('registers the extension in the store with local: source', async () => {
-      const entry = await createLocalExtension('demo')
+      const { entry } = await createLocalExtension('demo')
       const extensions = await readExtensions()
       assert.equal(extensions.length, 1)
       assert.equal(extensions[0]!.name, 'demo')
@@ -133,7 +133,7 @@ describe('installer', () => {
 
     it('accepts a custom target path', async () => {
       const customDir = join(tmpDir, 'custom-ext')
-      const entry = await createLocalExtension('custom', customDir)
+      const { entry } = await createLocalExtension('custom', customDir)
       assert.equal(entry.path, customDir)
       await assert.doesNotReject(stat(join(customDir, 'index.js')))
     })
