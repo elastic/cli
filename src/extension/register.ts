@@ -98,13 +98,14 @@ async function handleCreate (parsed: { arg?: string; options: Record<string, str
   }
   const targetPath = typeof parsed.options['path'] === 'string' ? parsed.options['path'] : undefined
   try {
-    const entry = await createLocalExtension(name, targetPath)
+    const { entry, overwritten } = await createLocalExtension(name, targetPath)
     return {
       created: true,
       name: entry.name,
       source: entry.source,
       path: entry.path,
       entrypoint: entry.entrypoint,
+      ...(overwritten && { warning: `Extension "${entry.name}" was already installed and has been overwritten.` }),
     } as unknown as JsonValue
   } catch (err) {
     return handlerError('create_failed', err)

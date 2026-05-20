@@ -271,7 +271,7 @@ export async function installExtension (source: string): Promise<{ entry: Instal
  * @param name        Short extension name, e.g. `demo` → invoked as `elastic demo`
  * @param targetPath  Directory to create (defaults to `~/.elastic/extensions/elastic-<name>`)
  */
-export async function createLocalExtension (name: string, targetPath?: string): Promise<InstalledExtension> {
+export async function createLocalExtension (name: string, targetPath?: string): Promise<{ entry: InstalledExtension, overwritten: boolean }> {
   assertSafeName(name)
 
   const installDir = targetPath != null ? resolve(targetPath) : join(extensionsDir(), `elastic-${name}`)
@@ -323,8 +323,8 @@ export async function createLocalExtension (name: string, targetPath?: string): 
     path: installDir,
     entrypoint: resolve(entrypoint),
   }
-  await upsertExtension(entry)
-  return entry
+  const overwritten = await upsertExtension(entry)
+  return { entry, overwritten }
 }
 
 /**
