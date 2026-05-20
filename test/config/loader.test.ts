@@ -5,10 +5,10 @@
 
 import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises'
+import { chmod, mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { loadConfigFile, discoverConfigFile, resolveContext, resolveEffectiveCommands, loadConfig } from '../../src/config/loader.ts'
+import { loadConfigFile, discoverConfigFile, resolveContext, resolveEffectiveCommands, loadConfig, _testResetLooseInlineSecretWarning } from '../../src/config/loader.ts'
 import type { ConfigFile, ResolvedConfig } from '../../src/config/types.ts'
 
 // ---------------------------------------------------------------------------
@@ -198,6 +198,39 @@ describe('loadConfig -- default current_context', () => {
         kibana: { url: 'http://localhost:5601', auth: { api_key: 'kb-key-123' } },
       },
     } satisfies ResolvedConfig)
+  })
+})
+
+// ---------------------------------------------------------------------------
+
+describe('loadConfig -- inline secret permission warning', () => {
+  it('emits the loose-permission inline-secret warning once per process', { skip: process.platform === 'win32' }, async () => {
+    const tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-warning-'))
+    const configPath = join(tmpDir, '.elasticrc.yml')
+    await writeFile(configPath, VALID_CONFIG_YAML)
+    await chmod(configPath, 0o644)
+
+    const originalWrite = process.stderr.write.bind(process.stderr)
+    const chunks: string[] = []
+    process.stderr.write = ((chunk: string | Uint8Array) => {
+      chunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
+      return true
+    }) as typeof process.stderr.write
+
+    _testResetLooseInlineSecretWarning()
+    try {
+      const first = await loadConfig({ configPath })
+      const second = await loadConfig({ configPath })
+      assert.equal(first.ok, true)
+      assert.equal(second.ok, true)
+    } finally {
+      process.stderr.write = originalWrite
+      _testResetLooseInlineSecretWarning()
+      await rm(tmpDir, { recursive: true })
+    }
+
+    const warnings = chunks.join('').match(/contains inline secrets/g) ?? []
+    assert.equal(warnings.length, 1)
   })
 })
 

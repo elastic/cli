@@ -45,6 +45,13 @@ const CONFIG_FILE_NAMES = ['.elasticrc', '.elasticrc.json', '.elasticrc.yaml', '
 /** Environment variable that overrides config file discovery with an explicit path. */
 const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
 
+let looseInlineSecretWarningEmitted = false
+
+/** @internal test seam */
+export function _testResetLooseInlineSecretWarning (): void {
+  looseInlineSecretWarningEmitted = false
+}
+
 /**
  * Searches a single directory for the first readable config file.
  *
@@ -190,6 +197,7 @@ export function resolveContext (config: ConfigFile, contextName: string, profile
  */
 async function warnOnLoosePermsIfInlineSecrets (path: string, raw: unknown): Promise<void> {
   if (process.platform === 'win32') return
+  if (looseInlineSecretWarningEmitted) return
   try {
     const st = await stat(path)
     const mode = st.mode & 0o777
@@ -199,6 +207,7 @@ async function warnOnLoosePermsIfInlineSecrets (path: string, raw: unknown): Pro
       `Warning: config file "${path}" has permissions ${mode.toString(8).padStart(3, '0')} and contains inline secrets. ` +
       'Run `chmod 0600 ' + path + '` to restrict access, or migrate secrets into the OS keychain via `elastic config context edit`.\n'
     )
+    looseInlineSecretWarningEmitted = true
   } catch {
     // ignore
   }
