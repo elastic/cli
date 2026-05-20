@@ -6,6 +6,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { getResolvedConfig } from '../config/store.ts'
+import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
 import { isLoopbackUrl } from './is-loopback-host.ts'
 import { clientHeaders } from './meta.ts'
 
@@ -39,16 +40,9 @@ export class KibanaClient {
   private readonly authHeader: string | undefined
   private _fetch: typeof fetch = globalThis.fetch
 
-  constructor (baseUrl: string, auth?: { api_key: string } | { username: string; password: string }) {
+  constructor (baseUrl: string, auth?: ApiKeyOrBasicAuth) {
     this.baseUrl = baseUrl.replace(/\/+$/, '')
-    if (auth == null) {
-      this.authHeader = undefined
-    } else if ('api_key' in auth) {
-      this.authHeader = `ApiKey ${auth.api_key}`
-    } else {
-      const encoded = Buffer.from(`${auth.username}:${auth.password}`).toString('base64')
-      this.authHeader = `Basic ${encoded}`
-    }
+    this.authHeader = buildAuthHeader(auth)
     if (this.baseUrl.startsWith('http://') && !isLoopbackUrl(this.baseUrl)) {
       process.stderr.write('Warning: using plaintext HTTP. Credentials will be sent unencrypted.\n')
     }
