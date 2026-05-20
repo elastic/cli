@@ -146,7 +146,9 @@ describe('elastic status -- command', () => {
       assert.ok(out.stdout.includes('green (3 nodes)'), `expected ES summary, got: ${out.stdout}`)
       assert.ok(out.stdout.includes('available (8.18.0)'), `expected Kibana summary, got: ${out.stdout}`)
       assert.ok(out.stdout.includes('✓'), `expected check glyph, got: ${out.stdout}`)
-      assert.equal(out.exitCode, undefined)
+      // Bun defaults process.exitCode to 0 instead of undefined; assert against the
+      // failure value rather than the runtime-specific "no value set" sentinel.
+      assert.notEqual(out.exitCode, 1, `unexpected failure exit code, got: ${out.exitCode}`)
     } finally {
       restore()
     }
