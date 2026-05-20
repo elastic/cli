@@ -222,7 +222,7 @@ export interface LoadConfigOptions {
 }
 
 /** Successful result from {@link loadConfig}. */
-export interface LoadConfigOk { ok: true, value: ResolvedConfig }
+export interface LoadConfigOk { ok: true, value: ResolvedConfig, contextName: string }
 
 /** Failure result from {@link loadConfig}. */
 export interface LoadConfigErr { ok: false, error: { message: string } }
@@ -359,7 +359,7 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     ...(structural.data.banner != null && { banner: structural.data.banner }),
   }
   try {
-    return { ok: true, value: resolveContext(config, resolvedContextName, profileName) }
+    return { ok: true, value: resolveContext(config, resolvedContextName, profileName), contextName: resolvedContextName }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     return { ok: false, error: { message } }

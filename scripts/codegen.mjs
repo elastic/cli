@@ -23,13 +23,15 @@
  *
  * Design rationale:
  *   The upstream generator's targets (`npm run zod`, `npm run cli-es`,
- *   `npm run cli-cloud`, `npx tsx cli/kibana/index.ts`) share a single
- *   `output/` directory. `npm run zod` / `npm run cli-es` wipe it via
- *   `npm run clean`; the kibana entrypoint self-wipes `output/kibana/`;
- *   `npm run cli-cloud` does not clean at all (we wipe before running it).
- *   This script runs them sequentially and copies the relevant files into
- *   `src/es/apis/`, `src/es/apis/schemas/`, `src/cloud/apis/`, and
- *   `src/kb/apis/`.
+ *   `npm run cli-cloud`, `npm run cli-serverless`, `npx tsx cli/kibana/index.ts`)
+ *   share a single `output/` directory. `npm run zod` / `npm run cli-es` wipe
+ *   it via `npm run clean`; the kibana entrypoint self-wipes `output/kibana/`;
+ *   `npm run cli-cloud` and `npm run cli-serverless` each wipe only their own
+ *   subdirectory (`output/cloud/`, `output/serverless/`), so we wipe everything
+ *   before the cloud step but run the two cloud passes back-to-back. This
+ *   script runs them sequentially and copies the relevant files into
+ *   `src/es/apis/`, `src/es/apis/schemas/`, `src/cloud/apis/` (hosted +
+ *   serverless namespace files share this directory), and `src/kb/apis/`.
  *
  *   `src/es/apis.ts` and `src/kb/apis.ts` are hand-written lazy loaders on
  *   `main` (see #266 and the ES equivalent) — they are NOT overwritten by
@@ -134,21 +136,39 @@ function generateEs (generatorDir) {
 
 function generateCloud (generatorDir) {
   const output = join(generatorDir, 'output')
+  const apisDest = join(REPO_ROOT, 'src', 'cloud', 'apis')
 
-  console.log('[codegen] Cloud API namespace files')
-  // `npm run cli-cloud` does not call clean itself, so wipe any leftover
-  // output from a previous step before running the generator.
+  console.log('[codegen] Step 1/2: Cloud (hosted) API namespace files')
+  // Neither `cli-cloud` nor `cli-serverless` invoke `npm run clean`; they only
+  // wipe their own `output/{cloud,serverless}/` subdirectory. Wipe everything
+  // up front so leftovers from a previous target (`zod`, `cli-es`) cannot
+  // shadow the hosted output.
   rmSync(output, { recursive: true, force: true })
   run('npm', ['run', 'cli-cloud'], { cwd: generatorDir, shell: process.platform === 'win32' })
-  const apisDest = join(REPO_ROOT, 'src', 'cloud', 'apis')
   clearDir(apisDest, (entry) => entry.endsWith('.ts'))
   copyTsFiles(join(output, 'cloud', 'apis'), apisDest)
   const barrelSrc = join(output, 'cloud', 'apis.ts')
   const barrelDest = join(REPO_ROOT, 'src', 'cloud', 'apis.ts')
   if (!existsSync(barrelSrc)) throw new Error(`Missing barrel: ${barrelSrc}`)
   cpSync(barrelSrc, barrelDest)
-  console.log(`[codegen]   wrote APIs -> ${apisDest}`)
-  console.log(`[codegen]   wrote barrel -> ${barrelDest}`)
+  console.log(`[codegen]   wrote hosted APIs -> ${apisDest}`)
+  console.log(`[codegen]   wrote hosted barrel -> ${barrelDest}`)
+
+  console.log('[codegen] Step 2/2: Serverless API namespace files')
+  // `cli-serverless` writes to `output/serverless/` and does not touch
+  // `output/cloud/`, so the hosted output above is preserved.
+  run('npm', ['run', 'cli-serverless'], { cwd: generatorDir, shell: process.platform === 'win32' })
+  // Serverless namespace tags do not collide with hosted tags, so the
+  // per-namespace files coexist in `src/cloud/apis/`. The serverless barrel
+  // lands at `src/cloud/serverless-apis.ts` (its `./apis/<ns>.ts` imports
+  // resolve against the same directory the hosted barrel uses).
+  copyTsFiles(join(output, 'serverless', 'apis'), apisDest)
+  const serverlessBarrelSrc = join(output, 'serverless', 'apis.ts')
+  const serverlessBarrelDest = join(REPO_ROOT, 'src', 'cloud', 'serverless-apis.ts')
+  if (!existsSync(serverlessBarrelSrc)) throw new Error(`Missing barrel: ${serverlessBarrelSrc}`)
+  cpSync(serverlessBarrelSrc, serverlessBarrelDest)
+  console.log(`[codegen]   wrote serverless APIs -> ${apisDest}`)
+  console.log(`[codegen]   wrote serverless barrel -> ${serverlessBarrelDest}`)
 }
 
 function generateKibana (generatorDir) {
