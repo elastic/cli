@@ -145,8 +145,7 @@ async function sendBatch (
 ): Promise<{ errors: number, total: number }> {
   const path = index != null ? `/${encodeURIComponent(index)}/_bulk` : '/_bulk'
   const result = await transport.request(
-    { method: 'POST', path, body: ndjsonBody, bulkBody: ndjsonBody },
-    { headers: { 'content-type': 'application/x-ndjson' } }
+    { method: 'POST', path, body: ndjsonBody, bulkBody: ndjsonBody }
   ) as { errors?: boolean, items?: Array<Record<string, { status?: number }>> }
 
   let errorCount = 0
