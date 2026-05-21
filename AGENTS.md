@@ -64,11 +64,13 @@ All requirements below are non-negotiable and enforced at review time.
 All code files MUST start with:
 
 ```
-/**
+/*
  * Copyright Elasticsearch B.V. and contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 ```
+
+Note the single-asterisk `/*` opener — `scripts/check-spdx` rejects the JSDoc-style `/**` form.
 
 ### Standards
 

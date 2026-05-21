@@ -7,7 +7,7 @@
 import { Command } from 'commander'
 import { defineCommand, defineGroup, hideBlockedCommands } from './factory.js'
 import type { OpaqueCommandHandle } from './factory.js'
-import { loadConfig, type LoadConfigResult } from './config/loader.ts'
+import { loadConfig } from './config/loader.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './config/profiles.ts'
 import { setResolvedConfig } from './config/store.ts'
 import { renderLogo } from './lib/logo.ts'
@@ -35,10 +35,8 @@ program
 // On error, print a structured message and exit -- never let a config failure
 // silently propagate into the command handler.
 //
-// When no --config-file or --use-context overrides are specified, the hook
-// reuses the cached earlyConfig to avoid a redundant load+resolve cycle.
-let earlyConfig: LoadConfigResult | undefined
-
+// When no --config-file or --use-context overrides are specified, loadConfig()
+// returns the in-process cached result from the early load, avoiding redundant I/O.
 program.hook('preAction', async (thisCommand, actionCommand) => {
   if (actionCommand.name() === 'version') return
   // Shell completion commands must not depend on a working config: the user
@@ -46,6 +44,9 @@ program.hook('preAction', async (thisCommand, actionCommand) => {
   // never poison the shell. They do their own (best-effort) config loading
   // inside their handlers when they need context names.
   if (COMPLETION_COMMAND_NAMES.includes(actionCommand.name())) return
+  // `status` loads the config itself so a partially broken config is reported as
+  // a structured result rather than exiting before any probe runs.
+  if (actionCommand.name() === 'status') return
   if (actionCommand.parent?.name() === 'docs') return
   if (actionCommand.parent?.name() === 'sanitize') return
   // `config` commands author the config file itself — loading it would be
@@ -53,18 +54,19 @@ program.hook('preAction', async (thisCommand, actionCommand) => {
   for (let c = actionCommand.parent; c != null; c = c.parent) {
     if (c.name() === 'config') return
   }
+  // `extension` commands manage the extension registry, not the Elastic stack
+  for (let c = actionCommand.parent; c != null; c = c.parent) {
+    if (c.name() === 'extension') return
+  }
   const { configFile: configPath, useContext: contextName, commandProfile: profileName } = thisCommand.opts()
   const typedProfileName = profileName as BuiltInProfile | undefined
-
-  if (configPath == null && contextName == null && profileName == null && earlyConfig?.ok === true) {
-    setResolvedConfig(earlyConfig.value)
-    return
-  }
+  const hasOverrides = configPath != null || contextName != null || profileName != null
 
   const result = await loadConfig({
     ...(configPath != null && { configPath }),
     ...(contextName != null && { contextName }),
     ...(typedProfileName != null && { profileName: typedProfileName }),
+    refresh: hasOverrides,
   })
   if (result.ok) {
     setResolvedConfig(result.value)
@@ -223,13 +225,34 @@ if (firstArg === 'sanitize') {
   program.addCommand(defineGroup({ name: 'sanitize', description: 'Sanitize values for safe use in Elasticsearch' }))
 }
 
+if (firstArg === 'extension') {
+  const { registerExtensionCommands } = await import('./extension/register.ts')
+  program.addCommand(registerExtensionCommands())
+} else {
+  program.addCommand(defineGroup({ name: 'extension', description: 'Manage elastic CLI extensions' }))
+}
+
+if (firstArg === 'status') {
+  const { registerStatusCommand } = await import('./status/register.ts')
+  program.addCommand(registerStatusCommand())
+} else {
+  // Stub: a leaf command that appears in --help without paying the import cost.
+  // The lazy branch above fires whenever `status` is the first arg, so the stub
+  // handler is never invoked.
+  program.addCommand(defineCommand({
+    name: 'status',
+    description: 'Verify connectivity and authentication for the active context',
+    handler: () => '',
+  }))
+}
+
 // Load config early so --help can hide blocked commands. Skip for commands
 // that don't need config (e.g. `version`, `sanitize`, `config` which authors
 // the file, and the completion subsystem which runs before any context exists)
 // to avoid unnecessary file I/O and a confusing "no config found" path.
-// The result is cached in earlyConfig so the preAction hook can reuse it.
+// loadConfig() caches the result in-process; the preAction hook reuses it via the default cache path.
 const SKIP_EARLY_CONFIG = new Set<string>([
-  'version', 'config', 'sanitize', ...COMPLETION_COMMAND_NAMES,
+  'version', 'config', 'sanitize', 'extension', 'status', ...COMPLETION_COMMAND_NAMES,
 ])
 if (firstArg == null || !SKIP_EARLY_CONFIG.has(firstArg)) {
   // Parse --profile early (before Commander's full parse) so the early config load
@@ -237,7 +260,7 @@ if (firstArg == null || !SKIP_EARLY_CONFIG.has(firstArg)) {
   const profileArgIdx = process.argv.indexOf('--command-profile')
   const earlyProfile = profileArgIdx !== -1 ? process.argv[profileArgIdx + 1] as BuiltInProfile | undefined : undefined
 
-  earlyConfig = await loadConfig({
+  const earlyConfig = await loadConfig({
     ...(earlyProfile != null && { profileName: earlyProfile }),
   })
   if (earlyConfig.ok) {
@@ -247,11 +270,30 @@ if (firstArg == null || !SKIP_EARLY_CONFIG.has(firstArg)) {
 }
 
 if (process.argv.slice(2).length === 0) {
+  const earlyConfig = await loadConfig()
   if (!earlyConfig?.ok || earlyConfig.value.banner !== false) {
     process.stdout.write(renderLogo(VERSION))
   }
   program.outputHelp()
   process.exit(0)
+}
+
+// If the first argument does not match any built-in command, attempt to
+// dispatch to an installed extension named `elastic-<firstArg>`.
+// Derived from registered commands so it never goes stale.
+const BUILT_IN_COMMANDS = new Set(program.commands.flatMap(c => [c.name()].concat(c.aliases())))
+
+if (firstArg != null && !BUILT_IN_COMMANDS.has(firstArg)) {
+  const { findExtension } = await import('./extension/store.ts')
+  const ext = await findExtension(firstArg)
+  if (ext != null) {
+    const { buildContextEnv } = await import('./extension/context.ts')
+    const { runExtension } = await import('./extension/runner.ts')
+    const cachedConfig = await loadConfig()
+    const contextEnv = cachedConfig?.ok === true ? buildContextEnv(cachedConfig.value) : {}
+    const exitCode = await runExtension(ext, process.argv.slice(3), contextEnv)
+    process.exit(exitCode)
+  }
 }
 
 await program.parseAsync(process.argv)

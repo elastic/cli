@@ -137,6 +137,49 @@ describe('sanitizeIndexName', () => {
     assert.equal(r.sanitized, 'foobar')
     assert.ok(r.changes.some(c => /whitespace/i.test(c)))
   })
+
+  // Tests mirroring MetadataCreateIndexService.validateIndexOrAliasName() in ES server
+  // source: server/src/test/java/.../MetadataCreateIndexServiceTests.java
+  it('strips ? (INVALID_FILENAME_CHARS from Strings.INVALID_CHARS)', () => {
+    const r = sanitizeIndexName('index?name')
+    assert.equal(r.sanitized, 'indexname')
+  })
+
+  it('strips # (explicit check in validateIndexOrAliasName)', () => {
+    const r = sanitizeIndexName('index#name')
+    assert.equal(r.sanitized, 'indexname')
+  })
+
+  it('strips : (explicit check in validateIndexOrAliasName)', () => {
+    const r = sanitizeIndexName('foo:bar')
+    assert.equal(r.sanitized, 'foobar')
+  })
+
+  it('removes leading _ (validateIndexOrAliasName rule)', () => {
+    const r = sanitizeIndexName('_indexname')
+    assert.equal(r.sanitized, 'indexname')
+  })
+
+  it('removes leading - (validateIndexOrAliasName rule)', () => {
+    const r = sanitizeIndexName('-indexname')
+    assert.equal(r.sanitized, 'indexname')
+  })
+
+  it('removes leading + (validateIndexOrAliasName rule)', () => {
+    const r = sanitizeIndexName('+indexname')
+    assert.equal(r.sanitized, 'indexname')
+  })
+
+  it('lowercases (validateIndexName rule, separate from validateIndexOrAliasName)', () => {
+    const r = sanitizeIndexName('INDEXNAME')
+    assert.equal(r.sanitized, 'indexname')
+  })
+
+  it('does not strip ! (ES does not forbid it)', () => {
+    const r = sanitizeIndexName('foobar!')
+    assert.equal(r.sanitized, 'foobar!')
+    assert.deepEqual(r.changes, [])
+  })
 })
 
 // ---------------------------------------------------------------------------
