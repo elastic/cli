@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Command } from 'commander'
 import { registerStatusCommand, runStatusChecks, _testSetFetch } from '../../src/status/register.ts'
+import { clearConfigCache } from '../../src/config/loader.ts'
 import type { ResolvedContext } from '../../src/config/types.ts'
 
 const SAMPLE_HEALTH = JSON.stringify({ status: 'green', number_of_nodes: 3 })
@@ -113,6 +114,7 @@ describe('elastic status -- command', () => {
 
   afterEach(async () => {
     await rm(dir, { recursive: true, force: true })
+    clearConfigCache()
   })
 
   async function writeConfig (yaml: string): Promise<void> {
