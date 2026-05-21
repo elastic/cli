@@ -76,7 +76,7 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/marked-terminal": "6.1.1",
-    "@types/node": "25.6.0",
+    "@types/node": "25.6.1",
     "eslint": "10.3.0",
     "license-checker": "25.0.1",
     "mega-linter-runner": "9.4.0",
