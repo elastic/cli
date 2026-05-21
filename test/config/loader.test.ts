@@ -3,13 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, before, after } from 'node:test'
+import { describe, it, before, after, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { loadConfigFile, discoverConfigFile, resolveContext, resolveEffectiveCommands, loadConfig } from '../../src/config/loader.ts'
+import { loadConfigFile, discoverConfigFile, resolveContext, resolveEffectiveCommands, loadConfig, clearConfigCache } from '../../src/config/loader.ts'
 import type { ConfigFile, ResolvedConfig } from '../../src/config/types.ts'
+
+afterEach(() => clearConfigCache())
 
 // ---------------------------------------------------------------------------
 // Shared fixtures

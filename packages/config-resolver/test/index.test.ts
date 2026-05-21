@@ -8,7 +8,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, writeFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { loadConfig } from '../../../src/config/loader.ts'
+import { loadConfig, clearConfigCache } from '../../../src/config/loader.ts'
 import {
   containsExpression,
   resolveString,
@@ -21,6 +21,7 @@ import {
 
 afterEach(() => {
   _testResetResolvers()
+  clearConfigCache()
 })
 
 // ---------------------------------------------------------------------------
