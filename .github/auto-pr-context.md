@@ -17,3 +17,7 @@ This repo is the Elastic CLI tool. Source code lives under `packages/` with one 
 ## Search hints
 
 Command names, flag names, or error messages in the issue body map to files in `packages/`.
+
+## Post-fix steps
+
+After making any changes that add, remove, or update npm dependencies (i.e. changes to `package.json`), run `node scripts/generate-notice.mjs` to regenerate `NOTICE.txt` and include it in the same commit.

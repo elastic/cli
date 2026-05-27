@@ -1,0 +1,47 @@
+name: Regenerate NOTICE.txt
+# Runs on PRs opened by bots (Renovate, Dependabot) that update dependencies.
+# Re-generates NOTICE.txt so it reflects the updated dependency tree.
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - package.json
+      - package-lock.json
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    if: |
+      startsWith(github.event.pull_request.user.login, 'elastic-renovate') ||
+      startsWith(github.event.pull_request.user.login, 'renovate') ||
+      github.event.pull_request.user.login == 'dependabot[bot]'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Regenerate NOTICE.txt
+        run: node scripts/generate-notice.mjs
+
+      - name: Commit if changed
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          if git diff --quiet NOTICE.txt; then
+            echo "NOTICE.txt is already up to date."
+          else
+            git add NOTICE.txt
+            git commit -m "chore: regenerate NOTICE.txt"
+            git push
+          fi
