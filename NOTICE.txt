@@ -1133,7 +1133,7 @@ THIS SOFTWARE.
 
 
 ------------------------------------------------------------------------
-yaml@2.8.4
+yaml@2.9.0
 License: ISC
 Repository: https://github.com/eemeli/yaml
 Publisher: Eemeli Aro <eemeli@gmail.com>
