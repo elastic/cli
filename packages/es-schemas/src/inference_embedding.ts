@@ -2,6 +2,7 @@
  * Copyright Elasticsearch B.V. and contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 // @ts-nocheck
 
 /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -65,20 +66,24 @@ export type InferenceDenseEmbeddingResult = z.infer<typeof InferenceDenseEmbeddi
 export const InferenceEmbeddingContentFormat = z.enum(['text', 'base64']).meta({ id: 'InferenceEmbeddingContentFormat' })
 export type InferenceEmbeddingContentFormat = z.infer<typeof InferenceEmbeddingContentFormat>
 
-export const InferenceEmbeddingContentType = z.enum(['text', 'image']).meta({ id: 'InferenceEmbeddingContentType' })
+export const InferenceEmbeddingContentType = z.enum(['text', 'image', 'audio', 'video', 'pdf']).meta({ id: 'InferenceEmbeddingContentType' })
 export type InferenceEmbeddingContentType = z.infer<typeof InferenceEmbeddingContentType>
 
-/** An object containing the input data for the model to embed. */
-export const InferenceEmbeddingContentObjectContents = z.object({
-  type: InferenceEmbeddingContentType.describe('The type of input to embed.'),
-  format: InferenceEmbeddingContentFormat.describe('The format of the input. For the `text` type this must be `text`. For the `image` type, this must be `base64`. If not specified, this will default to `text` for the `text` type and `base64` for the `image` type.').optional(),
+/** An object containing the input data for a single item for the model to embed. */
+export const InferenceEmbeddingContentObjectItem = z.object({
+  type: InferenceEmbeddingContentType.describe('The type of input to embed. Not all models support all input types.'),
+  format: InferenceEmbeddingContentFormat.describe('The format of the input. For the `text` type this must be `text`. For all other types, this must be `base64`. If not specified, this will default to `text` for the `text` type and `base64` for all other types.').optional(),
   value: z.string().describe('The value of the input to embed. For images, this must be a base64-encoded data URI, i.e. "data:content/type;base64,..."')
-}).meta({ id: 'InferenceEmbeddingContentObjectContents' })
-export type InferenceEmbeddingContentObjectContents = z.infer<typeof InferenceEmbeddingContentObjectContents>
+}).meta({ id: 'InferenceEmbeddingContentObjectItem' })
+export type InferenceEmbeddingContentObjectItem = z.infer<typeof InferenceEmbeddingContentObjectItem>
+
+/** Allows specifying one or multiple items for the `embedding` task, which should result in a single embedding vector. */
+export const InferenceEmbeddingContentObjectGroup = z.union([InferenceEmbeddingContentObjectItem, z.array(InferenceEmbeddingContentObjectItem)]).meta({ id: 'InferenceEmbeddingContentObjectGroup' })
+export type InferenceEmbeddingContentObjectGroup = z.infer<typeof InferenceEmbeddingContentObjectGroup>
 
 /** A wrapper object which contains the fields required to specify multimodal inputs */
 export const InferenceEmbeddingContentObject = z.object({
-  content: InferenceEmbeddingContentObjectContents.describe('An object containing the input data for the model to embed')
+  content: InferenceEmbeddingContentObjectGroup.describe('An object or an array of objects containing the input data for the model to embed')
 }).meta({ id: 'InferenceEmbeddingContentObject' })
 export type InferenceEmbeddingContentObject = z.infer<typeof InferenceEmbeddingContentObject>
 
@@ -107,7 +112,7 @@ export const InferenceTaskSettings = z.any().meta({ id: 'InferenceTaskSettings' 
 export type InferenceTaskSettings = z.infer<typeof InferenceTaskSettings>
 
 export const InferenceRequestEmbedding = z.object({
-  input: InferenceEmbeddingInput.describe('Inference input. Either a string, an array of strings, a `content` object, or an array of `content` objects. string example: ``` "input": "Some text" ``` string array example: ``` "input": ["Some text", "Some more text"] ``` `content` object example: ``` "input": {     "content": {       "type": "image",       "format": "base64",       "value": "data:image/jpeg;base64,..."     }   } ``` `content` object array example: ``` "input": [   {     "content": {       "type": "text",       "format": "text",       "value": "Some text to generate an embedding"     }   },   {     "content": {       "type": "image",       "format": "base64",       "value": "data:image/jpeg;base64,..."     }   } ] ```'),
+  input: InferenceEmbeddingInput.describe('Inference input. Either a string, an array of strings, a `content` object, or an array of `content` objects. `content` objects may contain a single item or an array of items. Models that support multiple items per `content` object will return a single embedding for each `content` object, regardless of how many items it contains. string example: ``` "input": "Some text" ``` string array example: ``` "input": ["Some text", "Some more text"] ``` `content` object example: ``` "input": {     "content": {       "type": "image",       "format": "base64",       "value": "data:image/jpeg;base64,..."     }   } ``` `content` object array example: ``` "input": [   {     "content": {       "type": "text",       "format": "text",       "value": "Some text to generate an embedding"     }   },   {     "content": {       "type": "image",       "format": "base64",       "value": "data:image/jpeg;base64,..."     }   } ] ``` Multiple items in one `content` object example: ``` "input": [   {     "content": [       {         "type": "image",         "format": "base64",         "value": "data:image/jpeg;base64,..."       },       {         "type": "text",         "value": "Some text to create an embedding"       }     ]   } ] ```'),
   input_type: z.string().describe('The input data type for the embedding model. Possible values include: * `SEARCH` * `INGEST` * `CLASSIFICATION` * `CLUSTERING` Not all models support all values. Unsupported values will trigger a validation exception. Accepted values depend on the configured inference service, refer to the relevant service-specific documentation for more info. > info > The `input_type` parameter specified on the root level of the request body will take precedence over the `input_type` parameter specified in `task_settings`.').optional(),
   task_settings: InferenceTaskSettings.describe('Task settings for the individual inference request. These settings are specific to the <task_type> you specified and override the task settings specified when initializing the service.').optional()
 }).meta({ id: 'InferenceRequestEmbedding' })

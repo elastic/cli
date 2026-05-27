@@ -2,6 +2,7 @@
  * Copyright Elasticsearch B.V. and contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 // @ts-nocheck
 
 /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -39,6 +40,9 @@ export type Service = z.infer<typeof Service>
  *
  * NOTE: Service account tokens never expire.
  * You must actively delete them if they are no longer needed.
+ *
+ * IMPORTANT: On Serverless, non-operator users can create tokens for only `elastic/fleet-server` and `elastic/fleet-server-remote`.
+ * Creating tokens for any other service account requires operator privileges.
  */
 export const SecurityCreateServiceTokenRequest = z.object({
   ...RequestBase.shape,

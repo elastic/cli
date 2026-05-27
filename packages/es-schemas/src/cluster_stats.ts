@@ -2,6 +2,7 @@
  * Copyright Elasticsearch B.V. and contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 // @ts-nocheck
 
 /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -294,6 +295,12 @@ export const ClusterStatsFieldTypes = z.object({
 }).meta({ id: 'ClusterStatsFieldTypes' })
 export type ClusterStatsFieldTypes = z.infer<typeof ClusterStatsFieldTypes>
 
+export const ClusterStatsMultipleSynonymGraphFilter = z.object({
+  analyzer_count: integer.describe('Number of analyzers across the cluster whose filter chain contains more than one synonym_graph filter.').optional(),
+  index_count: integer.describe('Number of indices that contain at least one analyzer with more than one synonym_graph filter.').optional()
+}).meta({ id: 'ClusterStatsMultipleSynonymGraphFilter' })
+export type ClusterStatsMultipleSynonymGraphFilter = z.infer<typeof ClusterStatsMultipleSynonymGraphFilter>
+
 export const ClusterStatsSynonymsStats = z.object({
   count: integer,
   index_count: integer
@@ -307,6 +314,7 @@ export const ClusterStatsCharFilterTypes = z.object({
   built_in_filters: z.array(ClusterStatsFieldTypes).describe('Contains statistics about built-in token filters used in selected nodes.'),
   built_in_tokenizers: z.array(ClusterStatsFieldTypes).describe('Contains statistics about built-in tokenizers used in selected nodes.'),
   char_filter_types: z.array(ClusterStatsFieldTypes).describe('Contains statistics about character filter types used in selected nodes.'),
+  multiple_synonym_graph_filters: ClusterStatsMultipleSynonymGraphFilter.optional(),
   filter_types: z.array(ClusterStatsFieldTypes).describe('Contains statistics about token filter types used in selected nodes.'),
   tokenizer_types: z.array(ClusterStatsFieldTypes).describe('Contains statistics about tokenizer types used in selected nodes.'),
   synonyms: z.record(Name, ClusterStatsSynonymsStats).describe('Contains statistics about synonyms types used in selected nodes.')

@@ -2,6 +2,7 @@
  * Copyright Elasticsearch B.V. and contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 // @ts-nocheck
 
 /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -74,6 +75,7 @@ export const MlTrainedModelDeploymentNodesStats = z.object({
   average_inference_time_ms: DurationValue.describe('The average time for each inference call to complete on this node.').optional(),
   average_inference_time_ms_last_minute: DurationValue.optional(),
   average_inference_time_ms_excluding_cache_hits: DurationValue.describe('The average time for each inference call to complete on this node, excluding cache').optional(),
+  average_inference_process_memory_rss_bytes: ByteSize.optional(),
   error_count: integer.describe('The number of errors when evaluating the trained model.').optional(),
   inference_count: long.describe('The total number of inference calls made against this node for this model.').optional(),
   inference_cache_hit_count: long.optional(),

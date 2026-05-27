@@ -2,6 +2,7 @@
  * Copyright Elasticsearch B.V. and contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 // @ts-nocheck
 
 /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -24,6 +25,9 @@ export type AcknowledgedResponseBase = z.infer<typeof AcknowledgedResponseBase>
 export const Id = z.string().meta({ id: 'Id' })
 export type Id = z.infer<typeof Id>
 
+export const Ids = z.union([Id, z.array(Id)]).meta({ id: 'Ids' })
+export type Ids = z.infer<typeof Ids>
+
 export const RequestBase = z.object({
 }).meta({ id: 'RequestBase' })
 export type RequestBase = z.infer<typeof RequestBase>
@@ -35,7 +39,7 @@ export type RequestBase = z.infer<typeof RequestBase>
  */
 export const EsqlDeleteViewRequest = z.object({
   ...RequestBase.shape,
-  name: Id.describe('The view name to remove.').meta({ found_in: 'path' })
+  name: Ids.describe('The view name to remove.').meta({ found_in: 'path' })
 }).meta({ id: 'EsqlDeleteViewRequest' })
 export type EsqlDeleteViewRequest = z.infer<typeof EsqlDeleteViewRequest>
 

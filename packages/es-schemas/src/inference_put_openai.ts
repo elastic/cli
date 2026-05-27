@@ -2,6 +2,7 @@
  * Copyright Elasticsearch B.V. and contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 // @ts-nocheck
 
 /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -59,7 +60,7 @@ export const InferenceInferenceEndpoint = z.object({
 }).meta({ id: 'InferenceInferenceEndpoint' })
 export type InferenceInferenceEndpoint = z.infer<typeof InferenceInferenceEndpoint>
 
-export const InferenceTaskTypeOpenAI = z.enum(['text_embedding', 'chat_completion', 'completion']).meta({ id: 'InferenceTaskTypeOpenAI' })
+export const InferenceTaskTypeOpenAI = z.enum(['text_embedding', 'chat_completion', 'completion', 'embedding']).meta({ id: 'InferenceTaskTypeOpenAI' })
 export type InferenceTaskTypeOpenAI = z.infer<typeof InferenceTaskTypeOpenAI>
 
 export const InferenceInferenceEndpointInfoOpenAI = z.object({
@@ -80,12 +81,12 @@ export type InferenceOpenAISimilarityType = z.infer<typeof InferenceOpenAISimila
 
 export const InferenceOpenAIServiceSettings = z.object({
   api_key: z.string().describe('A valid API key of your OpenAI account. You can find your OpenAI API keys in your OpenAI account under the API keys section. IMPORTANT: You need to provide the API key only once, during the inference model creation. The get inference endpoint API does not retrieve your API key.'),
-  dimensions: integer.describe('The number of dimensions the resulting output embeddings should have. It is supported only in `text-embedding-3` and later models. If it is not set, the OpenAI defined default for the model is used.').optional(),
+  dimensions: integer.describe('For a `text_embedding` or `embedding` task, the number of dimensions the resulting output embeddings should have. It is supported only in `text-embedding-3` and later models. If it is not set, the OpenAI defined default for the model is used.').optional(),
   model_id: z.string().describe('The name of the model to use for the inference task. Refer to the OpenAI documentation for the list of available text embedding models.'),
   organization_id: z.string().describe('The unique identifier for your organization. You can find the Organization ID in your OpenAI account under *Settings > Organizations*.').optional(),
-  rate_limit: InferenceRateLimitSetting.describe('This setting helps to minimize the number of rate limit errors returned from OpenAI. The `openai` service sets a default number of requests allowed per minute depending on the task type. For `text_embedding`, it is set to `3000`. For `completion`, it is set to `500`.').optional(),
-  similarity: InferenceOpenAISimilarityType.describe('For a `text_embedding` task, the similarity measure. One of cosine, dot_product, l2_norm. Defaults to `dot_product`.').optional(),
-  url: z.string().describe('The URL endpoint to use for the requests. It can be changed for testing purposes.').optional()
+  rate_limit: InferenceRateLimitSetting.describe('This setting helps to minimize the number of rate limit errors returned from OpenAI. The `openai` service sets a default number of requests allowed per minute depending on the task type. For `text_embedding` and `embedding`, it is set to `3000`. For `completion` and `chat_completion`, it is set to `500`.').optional(),
+  similarity: InferenceOpenAISimilarityType.describe('For a `text_embedding` or `embedding` task, the similarity measure. One of `cosine`, `dot_product`, `l2_norm`. Defaults to `dot_product`.').optional(),
+  url: z.string().describe('The URL endpoint to use for the requests. It can be changed for testing purposes. Default value is `https://api.openai.com/v1/embeddings` for a `text_embedding` or `embedding` task, `https://api.openai.com/v1/chat/completions` for a `completion` or `chat_completion` task.').optional()
 }).meta({ id: 'InferenceOpenAIServiceSettings' })
 export type InferenceOpenAIServiceSettings = z.infer<typeof InferenceOpenAIServiceSettings>
 
@@ -98,7 +99,7 @@ export const InferenceOpenAITaskSettings = z.object({
 }).meta({ id: 'InferenceOpenAITaskSettings' })
 export type InferenceOpenAITaskSettings = z.infer<typeof InferenceOpenAITaskSettings>
 
-export const InferenceOpenAITaskType = z.enum(['chat_completion', 'completion', 'text_embedding']).meta({ id: 'InferenceOpenAITaskType' })
+export const InferenceOpenAITaskType = z.enum(['chat_completion', 'completion', 'text_embedding', 'embedding']).meta({ id: 'InferenceOpenAITaskType' })
 export type InferenceOpenAITaskType = z.infer<typeof InferenceOpenAITaskType>
 
 /**
