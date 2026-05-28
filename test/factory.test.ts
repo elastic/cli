@@ -3571,6 +3571,23 @@ describe('JSON schema in help output', () => {
       const nestedProps = props['address']!['properties'] as Record<string, unknown>
       assert.ok('zipCode' in nestedProps)
     })
+
+    it('JSON output is not truncated when the schema exceeds the 64 KB pipe buffer', async () => {
+      // Build a schema large enough to exceed the 64 KB pipe buffer (~65 536 bytes).
+      // Each field contributes ~30 bytes to the serialised JSON schema, so 3000
+      // fields comfortably exceeds the threshold.
+      const fields: Record<string, z.ZodType> = {}
+      for (let i = 0; i < 3000; i++) fields[`field_${i}`] = z.string().optional()
+      const cmd = defineCommand({
+        name: 'bulk',
+        description: 'Large schema command',
+        input: z.object(fields),
+        handler: () => ({}),
+      })
+      const { out } = await captureJsonHelp(cmd)
+      assert.ok(out.length > 65536, `expected output > 64 KB, got ${out.length} bytes`)
+      assert.doesNotThrow(() => JSON.parse(out), 'output must be valid JSON')
+    })
   })
 })
 

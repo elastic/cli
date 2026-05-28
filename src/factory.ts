@@ -5,7 +5,7 @@
 
 import { Command } from 'commander'
 import { z } from 'zod'
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeSync } from 'node:fs'
 import assert from 'node:assert/strict'
 import type { ResolvedConfig, CommandPolicy } from './config/types.ts'
 import { resolveBuiltinProfile } from './config/profiles.ts'
@@ -499,6 +499,25 @@ function configureHelpWithSchema (
       }
       return origHelp.formatHelp(thisCmd, helper)
     }
+  })
+  // The JSON schema for commands like `es search` exceeds 64 KB.  Commander
+  // passes the formatted string to writeOut (process.stdout.write by default),
+  // which is async; process.exit() fires immediately afterwards and discards
+  // the unflushed buffer, truncating the output.
+  //
+  // We override writeOut to write synchronously instead.  Node.js (libuv) puts
+  // pipe file-descriptors into non-blocking mode once process.stdout is
+  // initialised, so a bare writeSync would also stop at the pipe-buffer limit;
+  // setBlocking(true) restores blocking mode first.
+  //
+  // Tests replace writeOut after defineCommand() via cmd.configureOutput(), so
+  // this override is transparent to the test suite.
+  cmd.configureOutput({
+    writeOut: (str) => {
+      ;(process.stdout as NodeJS.WriteStream & { _handle?: { setBlocking?: (b: boolean) => void } })
+        ._handle?.setBlocking?.(true)
+      writeSync(1, str)
+    },
   })
 }
 
