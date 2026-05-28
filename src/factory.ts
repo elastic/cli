@@ -437,36 +437,31 @@ function hasGlobalJsonFlag (cmd: OpaqueCommandHandle): boolean {
  * program (leaf commands with an input schema continue to return that schema).
  */
 function formatHelpAsJson (cmd: OpaqueCommandHandle): string {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const isOptionHidden = (o: any): boolean => o.hidden === true
-  const options = cmd.options.filter(o => !isOptionHidden(o)).map(o => {
-    const entry: Record<string, JsonValue> = {
-      flags: o.flags,
-      description: o.description ?? '',
-    }
+  const options = cmd.options
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const dv = (o as any).defaultValue
-    if (dv !== undefined && (typeof dv === 'string' || typeof dv === 'number' || typeof dv === 'boolean')) {
-      entry['defaultValue'] = dv
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if ((o as any).mandatory === true) entry['mandatory'] = true
-    return entry
-  })
+    .filter(o => (o as any).hidden !== true)
+    .map(o => {
+      const entry: Record<string, JsonValue> = { flags: o.flags, description: o.description }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dv = (o as any).defaultValue
+      if (typeof dv === 'string' || typeof dv === 'number' || typeof dv === 'boolean') {
+        entry['defaultValue'] = dv
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((o as any).mandatory === true) entry['mandatory'] = true
+      return entry
+    })
   const commands = (cmd.commands as OpaqueCommandHandle[])
     .filter(c => !isHidden(c) && c.name() !== 'help')
     .map(c => {
-      const entry: Record<string, JsonValue> = {
-        name: c.name(),
-        description: c.description() ?? '',
-      }
+      const entry: Record<string, JsonValue> = { name: c.name(), description: c.description() }
       const aliases = c.aliases()
       if (aliases.length > 0) entry['aliases'] = aliases
       return entry
     })
   const data: JsonValue = {
     name: cmd.name(),
-    description: cmd.description() ?? '',
+    description: cmd.description(),
     usage: cmd.usage(),
     options,
     commands,
