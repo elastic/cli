@@ -5,7 +5,7 @@
  */
 
 import { Command } from 'commander'
-import { defineCommand, defineGroup, hideBlockedCommands } from './factory.js'
+import { defineCommand, defineGroup, hideBlockedCommands, configureJsonHelp } from './factory.js'
 import type { OpaqueCommandHandle } from './factory.js'
 import { loadConfig } from './config/loader.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './config/profiles.ts'
@@ -30,6 +30,8 @@ program
   .option('--json', 'output as JSON')
   .option('--output-fields <list>', 'comma-separated list of fields to include in output (dot-notation supported)')
   .option('--output-template <string>', 'Mustache-like template for custom text output (e.g. "{{id}}: {{name}}")')
+
+configureJsonHelp(program)
 
 // Before every sub-command action, load and resolve the config file.
 // On error, print a structured message and exit -- never let a config failure

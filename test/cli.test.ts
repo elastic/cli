@@ -323,6 +323,66 @@ describe('elastic CLI -- stack command tree', () => {
   })
 })
 
+describe('elastic CLI -- --help --json', () => {
+  it('`elastic --help --json` emits structured JSON help', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-help-json-'))
+    try {
+      const { code, stdout } = await runCli(['--help', '--json'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      const parsed = JSON.parse(stdout) as {
+        name: string
+        description: string
+        usage: string
+        options: Array<{ flags: string }>
+        commands: Array<{ name: string }>
+      }
+      assert.equal(parsed.name, 'elastic')
+      assert.ok(parsed.options.some((o) => o.flags.includes('--json')), 'expected --json option in JSON help')
+      assert.ok(parsed.commands.some((c) => c.name === 'stack'), 'expected stack command in JSON help')
+      assert.ok(parsed.commands.some((c) => c.name === 'version'), 'expected version command in JSON help')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('`elastic --json --help` works regardless of flag order', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-help-json-order-'))
+    try {
+      const { code, stdout } = await runCli(['--json', '--help'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      const parsed = JSON.parse(stdout) as { name: string }
+      assert.equal(parsed.name, 'elastic')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('`elastic --help` (without --json) still emits plain text', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-help-text-'))
+    try {
+      const { code, stdout } = await runCli(['--help'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      assert.match(stdout, /^Usage: elastic/m, 'expected text help format')
+      assert.throws(() => JSON.parse(stdout), 'text help should not be valid JSON')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('`elastic <group> --help --json` emits JSON help for groups', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-group-help-json-'))
+    try {
+      const { code, stdout } = await runCli(['sanitize', '--help', '--json'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      const parsed = JSON.parse(stdout) as { name: string; commands: Array<{ name: string }> }
+      assert.equal(parsed.name, 'sanitize')
+      assert.ok(parsed.commands.length > 0, 'expected sanitize sub-commands in JSON help')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+})
+
 describe('elastic CLI -- alias rewriting with option values', () => {
   it('correctly rewrites es alias when --command-profile value is also "es"', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-alias-'))

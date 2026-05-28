@@ -420,6 +420,75 @@ export function stripTransportMeta (value: JsonValue): JsonValue {
   return value
 }
 
+/**
+ * Returns true when `--json` is set on the root program. Walks up the parent
+ * chain so it works regardless of whether `cmd` is the root, a group, or a leaf.
+ */
+function hasGlobalJsonFlag (cmd: OpaqueCommandHandle): boolean {
+  let current: OpaqueCommandHandle = cmd
+  while (current.parent != null) current = current.parent
+  return (current.opts() as { json?: boolean }).json === true
+}
+
+/**
+ * Serialises a command's help structure as JSON: name, description, usage,
+ * visible options, and visible sub-commands. Used by {@link configureJsonHelp}
+ * so `--help --json` returns machine-readable output for groups and the root
+ * program (leaf commands with an input schema continue to return that schema).
+ */
+function formatHelpAsJson (cmd: OpaqueCommandHandle): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isOptionHidden = (o: any): boolean => o.hidden === true
+  const options = cmd.options.filter(o => !isOptionHidden(o)).map(o => {
+    const entry: Record<string, JsonValue> = {
+      flags: o.flags,
+      description: o.description ?? '',
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dv = (o as any).defaultValue
+    if (dv !== undefined && (typeof dv === 'string' || typeof dv === 'number' || typeof dv === 'boolean')) {
+      entry['defaultValue'] = dv
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((o as any).mandatory === true) entry['mandatory'] = true
+    return entry
+  })
+  const commands = (cmd.commands as OpaqueCommandHandle[])
+    .filter(c => !isHidden(c) && c.name() !== 'help')
+    .map(c => {
+      const entry: Record<string, JsonValue> = {
+        name: c.name(),
+        description: c.description() ?? '',
+      }
+      const aliases = c.aliases()
+      if (aliases.length > 0) entry['aliases'] = aliases
+      return entry
+    })
+  const data: JsonValue = {
+    name: cmd.name(),
+    description: cmd.description() ?? '',
+    usage: cmd.usage(),
+    options,
+    commands,
+  }
+  return JSON.stringify(data) + '\n'
+}
+
+/**
+ * Hooks into Commander's help formatter so `--help --json` emits structured
+ * JSON describing the command tree (name, description, options, sub-commands)
+ * instead of the text help. Apply to the root program and to command groups.
+ */
+export function configureJsonHelp (cmd: OpaqueCommandHandle): void {
+  const origHelp = cmd.createHelp()
+  cmd.configureHelp({
+    formatHelp: (thisCmd, helper) => {
+      if (hasGlobalJsonFlag(thisCmd)) return formatHelpAsJson(thisCmd)
+      return origHelp.formatHelp(thisCmd, helper)
+    }
+  })
+}
+
 function configureHelpWithSchema (
   cmd: OpaqueCommandHandle,
   inputSchema: z.ZodType | undefined,
@@ -427,8 +496,7 @@ function configureHelpWithSchema (
   const origHelp = cmd.createHelp()
   cmd.configureHelp({
     formatHelp: (thisCmd, helper) => {
-      const globalOpts = thisCmd.parent?.optsWithGlobals()
-      if (globalOpts?.json === true) {
+      if (hasGlobalJsonFlag(thisCmd)) {
         const jsonSchema = inputSchema != null
           ? stripTransportMeta(z.toJSONSchema(inputSchema, { reused: 'ref' }) as JsonValue)
           : undefined
@@ -889,6 +957,7 @@ export function defineGroup (config: GroupConfig, ...commands: OpaqueCommandHand
   group.description(config.description)
   group.allowExcessArguments(true)
   configureErrorOutput(group)
+  configureJsonHelp(group)
   // Mark as a group so hideBlockedCommands can distinguish groups from leaf commands.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(group as unknown as any)._isGroup = true
