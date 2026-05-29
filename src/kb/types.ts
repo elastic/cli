@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { CommandIntent } from '../factory.ts'
+
 /** Valid HTTP methods for Kibana API requests. */
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD'
 
@@ -74,6 +76,8 @@ export interface KbApiDefinition {
   requestType?: 'multipart'
   /** When 'ndjson', the success response is newline-delimited JSON (parsed into an array). */
   responseType?: 'ndjson'
+  /** optional intent override; takes precedence over HTTP-method inference in the CLI schema emitter */
+  intent?: CommandIntent
 }
 
 const VALID_NAME = /^[a-z0-9][a-z0-9-]*$/

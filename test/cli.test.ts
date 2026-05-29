@@ -6,7 +6,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
@@ -317,6 +317,136 @@ describe('elastic CLI -- stack command tree', () => {
       assert.equal(code, 0, `expected exit code 0, got ${code}`)
       assert.doesNotMatch(stderr, /deprecated/i, 'expected no deprecation warning on stderr')
       assert.match(stdout, /es\|elasticsearch/m, 'expected es commands in output')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+})
+
+describe('elastic CLI -- --help --json', () => {
+  it('`elastic --help --json` emits structured JSON help', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-help-json-'))
+    try {
+      const { code, stdout } = await runCli(['--help', '--json'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      const parsed = JSON.parse(stdout) as {
+        name: string
+        description: string
+        usage: string
+        options: Array<{ flags: string }>
+        commands: Array<{ name: string }>
+      }
+      assert.equal(parsed.name, 'elastic')
+      assert.ok(parsed.options.some((o) => o.flags.includes('--json')), 'expected --json option in JSON help')
+      assert.ok(parsed.commands.some((c) => c.name === 'stack'), 'expected stack command in JSON help')
+      assert.ok(parsed.commands.some((c) => c.name === 'version'), 'expected version command in JSON help')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('`elastic --json --help` works regardless of flag order', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-help-json-order-'))
+    try {
+      const { code, stdout } = await runCli(['--json', '--help'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      const parsed = JSON.parse(stdout) as { name: string }
+      assert.equal(parsed.name, 'elastic')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('`elastic --help` (without --json) still emits plain text', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-help-text-'))
+    try {
+      const { code, stdout } = await runCli(['--help'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      assert.match(stdout, /^Usage: elastic/m, 'expected text help format')
+      assert.throws(() => JSON.parse(stdout), 'text help should not be valid JSON')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('`elastic <group> --help --json` emits JSON help for groups', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-group-help-json-'))
+    try {
+      const { code, stdout } = await runCli(['sanitize', '--help', '--json'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      const parsed = JSON.parse(stdout) as { name: string; commands: Array<{ name: string }> }
+      assert.equal(parsed.name, 'sanitize')
+      assert.ok(parsed.commands.length > 0, 'expected sanitize sub-commands in JSON help')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+})
+
+describe('elastic CLI -- alias rewriting with option values', () => {
+  it('correctly rewrites es alias when --command-profile value is also "es"', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-alias-'))
+    const configPath = join(dir, 'config.yml')
+    await writeFile(configPath, [
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '',
+    ].join('\n'))
+
+    try {
+      const result = await new Promise<{ stdout: string; stderr: string; code: number | null }>((resolve) => {
+        const proc = spawn(
+          process.execPath,
+          ['dist/cli.js', '--config-file', configPath, '--command-profile', 'es', 'es', '--help'],
+          { cwd: join(dirname(fileURLToPath(import.meta.url)), '..') }
+        )
+        let stdout = ''
+        let stderr = ''
+        proc.stdout.on('data', (chunk) => { stdout += chunk })
+        proc.stderr.on('data', (chunk) => { stderr += chunk })
+        proc.on('close', (code) => { resolve({ stdout, stderr, code }) })
+      })
+
+      // Should show es help, not error about invalid command
+      assert.match(result.stdout, /Interact with the Elasticsearch API/)
+      assert.equal(result.code, 0)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('correctly rewrites kb alias when --config-file value is "kb"', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-alias-'))
+    const configPath = join(dir, 'kb')  // config file named "kb"
+    await writeFile(configPath, [
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    kibana:',
+      '      url: http://localhost:5601',
+      '',
+    ].join('\n'))
+
+    try {
+      const result = await new Promise<{ stdout: string; stderr: string; code: number | null }>((resolve) => {
+        const proc = spawn(
+          process.execPath,
+          ['dist/cli.js', '--config-file', configPath, 'kb', '--help'],
+          { cwd: join(dirname(fileURLToPath(import.meta.url)), '..') }
+        )
+        let stdout = ''
+        let stderr = ''
+        proc.stdout.on('data', (chunk) => { stdout += chunk })
+        proc.stderr.on('data', (chunk) => { stderr += chunk })
+        proc.on('close', (code) => { resolve({ stdout, stderr, code }) })
+      })
+
+      // Should show kb help, not error about invalid command
+      assert.match(result.stdout, /Interact with the Kibana API/)
+      assert.equal(result.code, 0)
     } finally {
       await rm(dir, { recursive: true })
     }

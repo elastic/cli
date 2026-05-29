@@ -7,6 +7,7 @@ import { Command } from 'commander'
 import { z } from 'zod'
 import { defineCommand, defineGroup } from '../factory.ts'
 import type { OpaqueCommandHandle } from '../factory.ts'
+import { inferIntentFromHttp } from '../cli-schema-intent.ts'
 import type { EsApiDefinition } from './types.ts'
 import { validateApiDefinition, resolveInput } from './types.ts'
 import type { SchemaArgDefinition } from '../lib/schema-args.ts'
@@ -107,6 +108,9 @@ function buildLeafHandle (
     description: def.description,
     input: schema,
     handler: createEsHandler(def, schemaArgs),
+    ...(def.intent != null || inferIntentFromHttp(def.method) != null
+      ? { intent: def.intent ?? inferIntentFromHttp(def.method)! }
+      : {}),
   }
   if (def.responseType === 'text') {
     config.formatOutput = (result) => String(result)
@@ -227,6 +231,17 @@ export async function registerEsCommandsLazy (
   opts: RegisterLazyOptions = {}
 ): Promise<OpaqueCommandHandle> {
   return await buildLazyTree(apiManifest, opts.argv ?? process.argv)
+}
+
+/**
+ * Eager path: loads ALL Elasticsearch API definitions upfront and registers
+ * them as full `defineCommand` commands with all options and `_commandConfig`.
+ * Use this when you need the complete command tree (e.g. schema generation).
+ * Callers that only need CLI startup should prefer {@link registerEsCommandsLazy}.
+ */
+export async function registerEsCommandsEager (): Promise<OpaqueCommandHandle> {
+  const defs = await Promise.all(apiManifest.map((m) => loadEsApi(m)))
+  return buildEagerTree(defs)
 }
 
 /** Eager-tree builder: behaviourally identical to the original pre-lazy implementation. */

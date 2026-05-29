@@ -149,6 +149,7 @@ export function createMsearchCommand (deps?: MsearchDeps): OpaqueCommandHandle {
     name: 'msearch',
     description: 'Batch multiple search requests via _msearch with configurable batch size and concurrency.',
     input: inputSchema,
-    handler: createMsearchHandler(deps)
+    handler: createMsearchHandler(deps),
+    intent: { destructive: false, idempotent: true, scope: 'global' },
   })
 }

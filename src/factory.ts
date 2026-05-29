@@ -5,7 +5,7 @@
 
 import { Command } from 'commander'
 import { z } from 'zod'
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeSync } from 'node:fs'
 import assert from 'node:assert/strict'
 import type { ResolvedConfig, CommandPolicy } from './config/types.ts'
 import { resolveBuiltinProfile } from './config/profiles.ts'
@@ -15,6 +15,18 @@ import type { SchemaArgDefinition } from './lib/schema-args.ts'
 import { simplifyZodIssues, formatIssuesText } from './lib/zod-error.ts'
 import { renderText, formatHandlerError } from './output.ts'
 import { pickFields, parseFieldList, applyTemplate, TemplateAgainstPrimitiveError } from './lib/output-transform.ts'
+
+/**
+ * Declared intent for a command, used by the CLI schema emitter.
+ * All fields are optional — omit any that are unknown or inapplicable.
+ */
+export interface CommandIntent {
+  destructive?: boolean
+  idempotent?: boolean
+  scope?: 'file' | 'directory' | 'global'
+  requiresConfirmation?: boolean
+  requiresAuth?: boolean
+}
 
 /** pre-built schema for coercing string → number, reused per option invocation */
 const numberSchema = z.coerce.number()
@@ -150,6 +162,11 @@ export interface CommandConfig<T extends z.ZodType = z.ZodType> {
    * never called when `--json` is active.
    */
   formatOutput?: (result: JsonValue, parsed: ParsedResult<z.infer<T>>) => string
+  /**
+   * optional intent declaration for the CLI schema emitter.
+   * used to derive destructiveness, idempotency, and auth requirements in emitted schema.
+   */
+  intent?: CommandIntent
 }
 
 /**
@@ -383,13 +400,14 @@ function validateInput (name: string, input: unknown): void {
 
 /**
  * Recursively removes `found_in` keys from a JSON Schema object.
+ * Exported for reuse in cli-schema.ts validation extraction.
  *
  * `found_in` is internal routing metadata used by the request builder to classify
  * parameters as path, query, or body. It is an HTTP transport implementation detail
  * and MUST NOT be exposed in user-facing help text or agent-facing JSON Schema output
  * (Constitution Principle VIII: Transport-Layer Abstraction).
  */
-function stripTransportMeta (value: JsonValue): JsonValue {
+export function stripTransportMeta (value: JsonValue): JsonValue {
   if (Array.isArray(value)) return value.map(stripTransportMeta)
   if (value !== null && typeof value === 'object') {
     const out: Record<string, JsonValue> = {}
@@ -402,6 +420,70 @@ function stripTransportMeta (value: JsonValue): JsonValue {
   return value
 }
 
+/**
+ * Returns true when `--json` is set on the root program. Walks up the parent
+ * chain so it works regardless of whether `cmd` is the root, a group, or a leaf.
+ */
+function hasGlobalJsonFlag (cmd: OpaqueCommandHandle): boolean {
+  let current: OpaqueCommandHandle = cmd
+  while (current.parent != null) current = current.parent
+  return (current.opts() as { json?: boolean }).json === true
+}
+
+/**
+ * Serialises a command's help structure as JSON: name, description, usage,
+ * visible options, and visible sub-commands. Used by {@link configureJsonHelp}
+ * so `--help --json` returns machine-readable output for groups and the root
+ * program (leaf commands with an input schema continue to return that schema).
+ */
+function formatHelpAsJson (cmd: OpaqueCommandHandle): string {
+  const options = cmd.options
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .filter(o => (o as any).hidden !== true)
+    .map(o => {
+      const entry: Record<string, JsonValue> = { flags: o.flags, description: o.description }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dv = (o as any).defaultValue
+      if (typeof dv === 'string' || typeof dv === 'number' || typeof dv === 'boolean') {
+        entry['defaultValue'] = dv
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((o as any).mandatory === true) entry['mandatory'] = true
+      return entry
+    })
+  const commands = (cmd.commands as OpaqueCommandHandle[])
+    .filter(c => !isHidden(c) && c.name() !== 'help')
+    .map(c => {
+      const entry: Record<string, JsonValue> = { name: c.name(), description: c.description() }
+      const aliases = c.aliases()
+      if (aliases.length > 0) entry['aliases'] = aliases
+      return entry
+    })
+  const data: JsonValue = {
+    name: cmd.name(),
+    description: cmd.description(),
+    usage: cmd.usage(),
+    options,
+    commands,
+  }
+  return JSON.stringify(data) + '\n'
+}
+
+/**
+ * Hooks into Commander's help formatter so `--help --json` emits structured
+ * JSON describing the command tree (name, description, options, sub-commands)
+ * instead of the text help. Apply to the root program and to command groups.
+ */
+export function configureJsonHelp (cmd: OpaqueCommandHandle): void {
+  const origHelp = cmd.createHelp()
+  cmd.configureHelp({
+    formatHelp: (thisCmd, helper) => {
+      if (hasGlobalJsonFlag(thisCmd)) return formatHelpAsJson(thisCmd)
+      return origHelp.formatHelp(thisCmd, helper)
+    }
+  })
+}
+
 function configureHelpWithSchema (
   cmd: OpaqueCommandHandle,
   inputSchema: z.ZodType | undefined,
@@ -409,8 +491,7 @@ function configureHelpWithSchema (
   const origHelp = cmd.createHelp()
   cmd.configureHelp({
     formatHelp: (thisCmd, helper) => {
-      const globalOpts = thisCmd.parent?.optsWithGlobals()
-      if (globalOpts?.json === true) {
+      if (hasGlobalJsonFlag(thisCmd)) {
         const jsonSchema = inputSchema != null
           ? stripTransportMeta(z.toJSONSchema(inputSchema, { reused: 'ref' }) as JsonValue)
           : undefined
@@ -418,6 +499,25 @@ function configureHelpWithSchema (
       }
       return origHelp.formatHelp(thisCmd, helper)
     }
+  })
+  // The JSON schema for commands like `es search` exceeds 64 KB.  Commander
+  // passes the formatted string to writeOut (process.stdout.write by default),
+  // which is async; process.exit() fires immediately afterwards and discards
+  // the unflushed buffer, truncating the output.
+  //
+  // We override writeOut to write synchronously instead.  Node.js (libuv) puts
+  // pipe file-descriptors into non-blocking mode once process.stdout is
+  // initialised, so a bare writeSync would also stop at the pipe-buffer limit;
+  // setBlocking(true) restores blocking mode first.
+  //
+  // Tests replace writeOut after defineCommand() via cmd.configureOutput(), so
+  // this override is transparent to the test suite.
+  cmd.configureOutput({
+    writeOut: (str) => {
+      ;(process.stdout as NodeJS.WriteStream & { _handle?: { setBlocking?: (b: boolean) => void } })
+        ._handle?.setBlocking?.(true)
+      writeSync(1, str)
+    },
   })
 }
 
@@ -621,6 +721,14 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     cmd,
     config.input instanceof z.ZodType ? config.input : undefined,
   )
+
+  // Attach typed metadata for tooling (e.g. cli-schema). Non-enumerable so it
+  // doesn't appear in JSON.stringify or Commander's own command inspection.
+  Object.defineProperty(cmd, '_commandConfig', {
+    value: { config, schemaArgs },
+    writable: false,
+    enumerable: false,
+  })
 
   cmd.action(async () => {
     const allRaw = cmd.optsWithGlobals()
@@ -878,6 +986,7 @@ export function defineGroup (config: GroupConfig, ...commands: OpaqueCommandHand
   group.description(config.description)
   group.allowExcessArguments(true)
   configureErrorOutput(group)
+  configureJsonHelp(group)
   // Mark as a group so hideBlockedCommands can distinguish groups from leaf commands.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(group as unknown as any)._isGroup = true

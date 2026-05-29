@@ -592,7 +592,7 @@ export const SearchSourceFilter = z.object({
 export type SearchSourceFilter = z.infer<typeof SearchSourceFilter>
 
 /** Defines how to fetch a source. Fetching can be disabled entirely, or the source can be filtered. */
-export const SearchSourceConfig = z.union([z.boolean(), SearchSourceFilter]).meta({ id: 'SearchSourceConfig' })
+export const SearchSourceConfig = z.union([z.boolean(), Fields, SearchSourceFilter]).meta({ id: 'SearchSourceConfig' })
 export type SearchSourceConfig = z.infer<typeof SearchSourceConfig>
 
 export interface SearchInnerHitsShape {

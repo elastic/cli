@@ -57,6 +57,11 @@ export function createEsHandler (
 
       if (responseType === 'text' && (jsonRequested || structuredOutputRequested)) {
         params.querystring = { ...(params.querystring ?? {}), format: 'json' }
+        return await transport.request<JsonValue>(params)
+      }
+
+      if (responseType === 'text') {
+        return await transport.request<JsonValue>(params, { headers: { 'Accept': 'text/plain' } })
       }
 
       return await transport.request<JsonValue>(params)

@@ -7,6 +7,7 @@ import { Command } from 'commander'
 import { z } from 'zod'
 import { defineCommand, defineGroup } from '../factory.ts'
 import type { OpaqueCommandHandle } from '../factory.ts'
+import { inferIntentFromHttp } from '../cli-schema-intent.ts'
 import type { KbApiDefinition, KbPathParam, KbQueryParam, KbBodyParam } from './types.ts'
 import { validateKbApiDefinition } from './types.ts'
 import { kbApiManifest, loadKbApi } from './apis.ts'
@@ -70,7 +71,10 @@ function buildLeafHandle (def: KbApiDefinition): OpaqueCommandHandle {
     name: def.name,
     description: def.description,
     input: schema,
-    handler: createKbHandler(def)
+    handler: createKbHandler(def),
+    ...(def.intent != null || inferIntentFromHttp(def.method) != null
+      ? { intent: def.intent ?? inferIntentFromHttp(def.method)! }
+      : {}),
   })
 }
 

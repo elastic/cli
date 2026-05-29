@@ -17,3 +17,6 @@ megalinter-reports/
 
 # Generated functional test scripts
 test/functional/es/
+
+# docs-builder local build output
+docs/.artifacts

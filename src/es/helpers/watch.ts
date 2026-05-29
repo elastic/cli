@@ -245,6 +245,7 @@ export function createWatchCommand (deps?: WatchDeps): OpaqueCommandHandle {
     description: 'Watch an index for new documents and stream them to stdout as NDJSON.',
     input: inputSchema,
     handler: createWatchHandler(deps),
+    intent: { destructive: false, idempotent: true, scope: 'global' },
     formatOutput: () => '',
   })
 }

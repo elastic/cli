@@ -1,0 +1,10 @@
+project: elastic-cli
+dev_docs: true
+
+toc:
+  - file: index.md
+  - cli: cli/schema.json
+    folder: cli
+    children:
+      - file: installation.md
+      - file: configuration.md

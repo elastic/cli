@@ -6,6 +6,7 @@
 import type { z } from 'zod'
 import { extractSchemaArgs } from '../lib/schema-args.ts'
 import type { SchemaArgDefinition } from '../lib/schema-args.ts'
+import type { CommandIntent } from '../factory.ts'
 
 /**
  * Valid HTTP methods for Elasticsearch API requests.
@@ -81,6 +82,8 @@ export interface EsApiDefinition {
   responseType?: 'json' | 'text'
   /** how to serialize the request body; defaults to `"json"` */
   bodyFormat?: 'json' | 'ndjson'
+  /** optional intent override; takes precedence over HTTP-method inference in the CLI schema emitter */
+  intent?: CommandIntent
 }
 
 /** valid command/namespace name: lowercase alphanumeric with hyphens (from `defineCommand` rules) */

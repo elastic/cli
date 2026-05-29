@@ -166,6 +166,7 @@ export function createScrollSearchCommand (deps?: ScrollSearchDeps): OpaqueComma
     description: 'Scroll through all search results, streaming documents as NDJSON to stdout, or returning a single JSON object when --json is set.',
     input: inputSchema,
     handler: createScrollSearchHandler(deps),
+    intent: { destructive: false, idempotent: true, scope: 'global' },
     formatOutput: () => ''
   })
 }

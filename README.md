@@ -29,6 +29,64 @@ npx -y @elastic/cli --help
 > source ~/.bashrc
 > ```
 
+## Shell completion
+
+`elastic completion <shell>` prints a wrapper script that hooks the CLI into
+your shell's tab-completion system. Bash, Zsh, and Fish are supported.
+
+The wrapper is dynamic: each `<tab>` shells out to `elastic` to ask which
+candidates apply, so completions stay in sync with the installed CLI version
+and include context names from your config file.
+
+### Bash
+
+```bash
+# System-wide (writable by root):
+elastic completion bash | sudo tee /etc/bash_completion.d/elastic > /dev/null
+
+# Per-user (no sudo required):
+mkdir -p ~/.local/share/bash-completion/completions
+elastic completion bash > ~/.local/share/bash-completion/completions/elastic
+```
+
+Then open a new shell.
+
+### Zsh
+
+```bash
+# Drop the script into the first directory in $fpath:
+elastic completion zsh > "${fpath[1]}/_elastic"
+
+# Make sure compinit is enabled in ~/.zshrc:
+autoload -Uz compinit && compinit
+```
+
+Or, for a one-shot install in the current session:
+
+```bash
+eval "$(elastic completion zsh)"
+```
+
+### Fish
+
+```fish
+elastic completion fish > ~/.config/fish/completions/elastic.fish
+```
+
+Fish picks up new completion files automatically.
+
+### What gets completed
+
+- Top-level commands and groups (`stack`, `cloud`, `docs`, `config`, …)
+- Nested subcommands at every depth
+- Long option flags (`--json`, `--use-context`, command-specific options)
+- Context names for `--use-context` (read from the active config file)
+- The `es` / `kb` aliases work identically to the canonical `stack es` /
+  `stack kb` forms
+
+Completion respects the active `commands.allowed` / `commands.blocked` policy:
+commands you have restricted yourself out of do not appear as candidates.
+
 ## Configuration
 
 The CLI looks for a config file in your home directory. The following file names
@@ -230,7 +288,11 @@ elasticsearch:
 |---|---|
 | `--config-file <path>` | Path to a config file (default: `~/.elasticrc.yml`) |
 | `--use-context <name>` | Override the active context from the config file |
+| `--command-profile <name>` | Restrict available commands to a deployment profile (`full`, `serverless`) |
 | `--json` | Output results as JSON |
+| `--output-fields <list>` | Comma-separated list of fields to include in output (dot-notation supported) |
+| `--output-template <string>` | Mustache-like template for custom text output (e.g. `"{{id}}: {{name}}"`) |
+| `--dry-run` | Validate all inputs and exit without performing any action |
 
 ## Commands
 
@@ -397,3 +459,70 @@ elastic cloud serverless cross-project get-elasticsearch-project-link-candidates
 ```
 
 Run `elastic cloud serverless --help` for all available groups.
+
+## Extensions
+
+Extensions add new top-level subcommands to the CLI. Once installed, an extension named `demo` is invoked as `elastic demo`.
+
+### Installing extensions
+
+```bash
+# from a GitHub repository (github:owner/repo or shorthand owner/repo)
+elastic extension install github:elastic/elastic-demo
+elastic extension install elastic/elastic-demo
+
+# from an npm package
+elastic extension install npm:elastic-demo
+```
+
+The CLI clones or installs the extension into `~/.elastic/extensions/elastic-<name>/`, discovers the entrypoint from the `package.json` bin field, and registers it. If the repository includes a `package.json`, `npm install --production` is run automatically after cloning.
+
+### Creating a local extension
+
+`extension create` scaffolds a new extension and registers it in one step. It is the quickest way to start writing your own extension.
+
+```bash
+# create a fresh extension at ~/.elastic/extensions/elastic-my-tool/
+elastic extension create my-tool
+
+# register an existing directory as a local extension (files are not overwritten)
+elastic extension create demo --path ./path/to/my-extension
+```
+
+The scaffolded `index.js` is a runnable starting point that outputs JSON with the current context. Edit it to implement real logic.
+
+The CLI passes the active context to every extension via environment variables before spawning it:
+
+| Variable | Description |
+|---|---|
+| `ELASTIC_ES_URL` | Elasticsearch URL from the active context |
+| `ELASTIC_ES_API_KEY` | Elasticsearch API key |
+| `ELASTIC_KIBANA_URL` | Kibana URL |
+| `ELASTIC_KIBANA_API_KEY` | Kibana API key |
+| `ELASTIC_CLOUD_URL` | Elastic Cloud API URL |
+| `ELASTIC_CLOUD_API_KEY` | Elastic Cloud API key |
+
+### Managing extensions
+
+```bash
+# list installed extensions
+elastic extension list
+
+# upgrade one extension (github and npm sources only)
+elastic extension upgrade my-tool
+
+# upgrade all extensions
+elastic extension upgrade
+
+# remove an extension
+elastic extension remove my-tool
+```
+
+### Demo extension
+
+The `examples/extensions/basic/` directory in this repo contains a minimal working example. Register it locally with:
+
+```bash
+elastic extension create demo --path ./examples/extensions/basic
+elastic demo
+```

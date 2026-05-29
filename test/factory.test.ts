@@ -15,7 +15,7 @@ import type {
   GroupConfig,
   OpaqueCommandHandle,
 } from '../src/factory.ts'
-import { defineCommand, defineGroup, _testSetStdinReader, isCommandAllowed, hideBlockedCommands } from '../src/factory.ts'
+import { defineCommand, defineGroup, _testSetStdinReader, isCommandAllowed, hideBlockedCommands, configureJsonHelp } from '../src/factory.ts'
 import { setResolvedConfig, _testResetConfig } from '../src/config/store.ts'
 import { Command } from 'commander'
 import { z } from 'zod'
@@ -2791,7 +2791,7 @@ describe('no Commander API leaks', () => {
   it('factory module exports only public API and test seam at runtime', async () => {
     const factory = await import('../src/factory.ts')
     const exported = Object.keys(factory)
-    assert.deepEqual(exported.sort(), ['RawJsonValue', '_testSetStdinReader', 'defineCommand', 'defineGroup', 'hideBlockedCommands', 'isCommandAllowed'])
+    assert.deepEqual(exported.sort(), ['RawJsonValue', '_testSetStdinReader', 'configureJsonHelp', 'defineCommand', 'defineGroup', 'hideBlockedCommands', 'isCommandAllowed', 'stripTransportMeta'])
   })
 
   it('defineCommand return value requires no Commander import to use', () => {
@@ -3571,6 +3571,23 @@ describe('JSON schema in help output', () => {
       const nestedProps = props['address']!['properties'] as Record<string, unknown>
       assert.ok('zipCode' in nestedProps)
     })
+
+    it('JSON output is not truncated when the schema exceeds the 64 KB pipe buffer', async () => {
+      // Build a schema large enough to exceed the 64 KB pipe buffer (~65 536 bytes).
+      // Each field contributes ~30 bytes to the serialised JSON schema, so 3000
+      // fields comfortably exceeds the threshold.
+      const fields: Record<string, z.ZodType> = {}
+      for (let i = 0; i < 3000; i++) fields[`field_${i}`] = z.string().optional()
+      const cmd = defineCommand({
+        name: 'bulk',
+        description: 'Large schema command',
+        input: z.object(fields),
+        handler: () => ({}),
+      })
+      const { out } = await captureJsonHelp(cmd)
+      assert.ok(out.length > 65536, `expected output > 64 KB, got ${out.length} bytes`)
+      assert.doesNotThrow(() => JSON.parse(out), 'output must be valid JSON')
+    })
   })
 })
 
@@ -3812,5 +3829,138 @@ describe('error result detection', () => {
     })
     await invokeCapturingStreams(cmd, [], [])
     assert.equal(formatCalled, false)
+  })
+})
+
+describe('configureJsonHelp', () => {
+  async function captureHelp (prog: InstanceType<typeof Command>, argv: string[]): Promise<string> {
+    prog.exitOverride()
+    let out = ''
+    prog.configureOutput({ writeOut: (s) => { out += s } })
+    try {
+      await prog.parseAsync(argv, { from: 'user' })
+    } catch { /* exitOverride throws on --help */ }
+    return out
+  }
+
+  it('returns JSON when --json is set on the root program', async () => {
+    const prog = new Command('elastic')
+    prog.description('CLI')
+    prog.option('--json', 'output as JSON')
+    configureJsonHelp(prog)
+    const out = await captureHelp(prog, ['--help', '--json'])
+    const parsed = JSON.parse(out) as Record<string, unknown>
+    assert.equal(parsed['name'], 'elastic')
+    assert.equal(parsed['description'], 'CLI')
+  })
+
+  it('returns text help when --json is absent', async () => {
+    const prog = new Command('elastic')
+    prog.description('CLI')
+    prog.option('--json', 'output as JSON')
+    configureJsonHelp(prog)
+    const out = await captureHelp(prog, ['--help'])
+    assert.match(out, /^Usage: elastic/m)
+  })
+
+  it('serialises options including mandatory and primitive defaults', async () => {
+    const prog = new Command('elastic')
+    prog.description('CLI')
+    prog.option('--json', 'output as JSON')
+    prog.option('--retries <n>', 'retry count', '3')
+    prog.requiredOption('--token <value>', 'auth token')
+    configureJsonHelp(prog)
+    const out = await captureHelp(prog, ['--help', '--json', '--token', 'x'])
+    const parsed = JSON.parse(out) as { options: Array<Record<string, unknown>> }
+    const retries = parsed.options.find((o) => (o['flags'] as string).includes('--retries'))
+    assert.ok(retries != null)
+    assert.equal(retries['defaultValue'], '3')
+    const token = parsed.options.find((o) => (o['flags'] as string).includes('--token'))
+    assert.ok(token != null)
+    assert.equal(token['mandatory'], true)
+  })
+
+  it('omits hidden options and hidden commands from JSON help', async () => {
+    const prog = new Command('elastic')
+    prog.description('CLI')
+    prog.option('--json', 'output as JSON')
+    prog.option('--secret <s>', 'hidden')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const secretOpt = prog.options.find((o) => o.long === '--secret') as any
+    secretOpt.hidden = true
+    const visible = defineCommand({ name: 'ping', description: 'Ping', handler: () => ({}) })
+    const hidden = defineCommand({ name: 'internal', description: 'Internal', handler: () => ({}) })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(hidden as unknown as any)._hidden = true
+    prog.addCommand(visible)
+    prog.addCommand(hidden)
+    configureJsonHelp(prog)
+    const out = await captureHelp(prog, ['--help', '--json'])
+    const parsed = JSON.parse(out) as {
+      options: Array<{ flags: string }>
+      commands: Array<{ name: string }>
+    }
+    assert.ok(!parsed.options.some((o) => o.flags.includes('--secret')), 'hidden option leaked')
+    assert.ok(!parsed.commands.some((c) => c.name === 'internal'), 'hidden command leaked')
+    assert.ok(parsed.commands.some((c) => c.name === 'ping'), 'expected visible command')
+  })
+
+  it('includes aliases on sub-commands that have them', async () => {
+    const prog = new Command('elastic')
+    prog.description('CLI')
+    prog.option('--json', 'output as JSON')
+    const child = defineGroup({ name: 'stack', description: 'Stack' })
+    child.alias('es')
+    prog.addCommand(child)
+    configureJsonHelp(prog)
+    const out = await captureHelp(prog, ['--help', '--json'])
+    const parsed = JSON.parse(out) as { commands: Array<{ name: string; aliases?: string[] }> }
+    const stack = parsed.commands.find((c) => c.name === 'stack')
+    assert.deepEqual(stack?.aliases, ['es'])
+  })
+
+  it('preserves numeric and boolean defaults from Commander options', async () => {
+    const prog = new Command('elastic')
+    prog.option('--json', 'output as JSON')
+    prog.option('--count <n>', 'count', 5)
+    prog.option('--enabled', 'enabled flag', false)
+    configureJsonHelp(prog)
+    const out = await captureHelp(prog, ['--help', '--json'])
+    const parsed = JSON.parse(out) as { options: Array<Record<string, unknown>> }
+    const count = parsed.options.find((o) => (o['flags'] as string).includes('--count'))
+    assert.equal(count?.['defaultValue'], 5)
+    const enabled = parsed.options.find((o) => (o['flags'] as string).includes('--enabled'))
+    assert.equal(enabled?.['defaultValue'], false)
+  })
+
+  it('omits the auto-added `help` sub-command from JSON help', async () => {
+    const prog = new Command('elastic')
+    prog.option('--json', 'output as JSON')
+    const child = defineCommand({ name: 'ping', description: 'Ping', handler: () => ({}) })
+    prog.addCommand(child)
+    // Commander adds a synthetic `help` command on commands with sub-commands;
+    // force-add one to mirror that.
+    prog.addCommand(new Command('help'))
+    configureJsonHelp(prog)
+    const out = await captureHelp(prog, ['--help', '--json'])
+    const parsed = JSON.parse(out) as { commands: Array<{ name: string }> }
+    assert.ok(!parsed.commands.some((c) => c.name === 'help'), 'auto-help command leaked')
+    assert.ok(parsed.commands.some((c) => c.name === 'ping'))
+  })
+
+  it('groups respect --json from the root via parent walk', async () => {
+    const prog = new Command('elastic')
+    prog.option('--json', 'output as JSON')
+    const group = defineGroup({ name: 'sanitize', description: 'Sanitize' })
+    prog.addCommand(group)
+    prog.exitOverride()
+    group.exitOverride()
+    let out = ''
+    group.configureOutput({ writeOut: (s) => { out += s } })
+    try {
+      await prog.parseAsync(['--json', 'sanitize', '--help'], { from: 'user' })
+    } catch { /* exitOverride on --help */ }
+    const parsed = JSON.parse(out) as { name: string }
+    assert.equal(parsed.name, 'sanitize')
   })
 })

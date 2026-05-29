@@ -4,6 +4,7 @@
  */
 
 import { getResolvedConfig } from '../config/store.ts'
+import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
 import { clientHeaders } from './meta.ts'
 
 export interface EsRequestParams {
@@ -53,16 +54,9 @@ export class EsClient {
   private readonly authHeader: string | undefined
   private _fetch: typeof fetch = globalThis.fetch
 
-  constructor (url: string, auth?: { api_key: string } | { username: string; password: string }) {
+  constructor (url: string, auth?: ApiKeyOrBasicAuth) {
     this.baseUrl = url.replace(/\/+$/, '')
-    if (auth == null) {
-      this.authHeader = undefined
-    } else if ('api_key' in auth) {
-      this.authHeader = `ApiKey ${auth.api_key}`
-    } else {
-      const encoded = Buffer.from(`${auth.username}:${auth.password}`).toString('base64')
-      this.authHeader = `Basic ${encoded}`
-    }
+    this.authHeader = buildAuthHeader(auth)
     if (this.baseUrl.startsWith('http://') && !/localhost|127\.0\.0\.1/.test(this.baseUrl)) {
       process.stderr.write('Warning: using plaintext HTTP. Credentials will be sent unencrypted.\n')
     }

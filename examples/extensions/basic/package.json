@@ -1,0 +1,8 @@
+{
+  "name": "elastic-demo",
+  "version": "0.1.0",
+  "description": "Demo elastic CLI extension showing JSON output",
+  "bin": {
+    "elastic-demo": "./index.js"
+  }
+}

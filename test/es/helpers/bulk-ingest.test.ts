@@ -255,7 +255,7 @@ describe('bulk-ingest command', () => {
     assert.equal(error.code, 'missing_config')
   })
 
-  it('sends content-type application/x-ndjson header', async () => {
+  it('delegates the NDJSON content-type to EsClient bulkBody handling', async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
     writeFileSync(join(tmpDir, 'data.json'), '[{"a":1}]')
 
@@ -267,9 +267,8 @@ describe('bulk-ingest command', () => {
       '--json'
     ], makeDeps(transport))
 
-    const opts = requests[0]!.opts as Record<string, unknown>
-    const headers = opts.headers as Record<string, string>
-    assert.equal(headers['content-type'], 'application/x-ndjson')
+    assert.equal(requests[0]!.params.bulkBody, requests[0]!.params.body)
+    assert.equal(requests[0]!.opts, undefined)
   })
 
   it('returns empty summary for zero documents', async () => {
