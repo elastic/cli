@@ -2630,7 +2630,9 @@
                   "name": "source",
                   "type": "boolean",
                   "required": false,
-                  "summary": "The source fields that are returned for matching documents. These fields are returned in the `hits._source` property of the search response. If the `stored_fields` property is specified, the `_source` property defaults to `false`. Otherwise, it defaults to `true`."
+                  "summary": "The source fields that are returned for matching documents. These fields are returned in the `hits._source` property of the search response. If the `stored_fields` property is specified, the `_source` property defaults to `false`. Otherwise, it defaults to `true`.",
+                  "repeatable": true,
+                  "separator": ","
                 },
                 {
                   "role": "flag",
@@ -50699,6 +50701,34 @@
                     "hosted",
                     "deployments"
                   ],
+                  "name": "get-deployment-es-resource-tiers",
+                  "parameters": [
+                    {
+                      "role": "flag",
+                      "name": "deployment-id",
+                      "type": "string",
+                      "required": true,
+                      "summary": "Identifier for the Deployment"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "ref-id",
+                      "type": "string",
+                      "required": true,
+                      "summary": "User-specified RefId for the Resource (or '_main' if there is only one)"
+                    }
+                  ],
+                  "summary": "Get Elasticsearch tiers",
+                  "intent": {
+                    "requiresAuth": true
+                  }
+                },
+                {
+                  "path": [
+                    "cloud",
+                    "hosted",
+                    "deployments"
+                  ],
                   "name": "update-deployment-es-resource-tier",
                   "parameters": [
                     {
@@ -51032,6 +51062,27 @@
                     }
                   ],
                   "summary": "Set the tags for a Deployment",
+                  "intent": {
+                    "requiresAuth": true
+                  }
+                },
+                {
+                  "path": [
+                    "cloud",
+                    "hosted",
+                    "deployments"
+                  ],
+                  "name": "upgrade-deployment",
+                  "parameters": [
+                    {
+                      "role": "flag",
+                      "name": "deployment-id",
+                      "type": "string",
+                      "required": true,
+                      "summary": "Identifier for the Deployment"
+                    }
+                  ],
+                  "summary": "Upgrade a Deployment to a new Elastic Stack version",
                   "intent": {
                     "requiresAuth": true
                   }
