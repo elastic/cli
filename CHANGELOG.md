@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.2.0](https://github.com/elastic/cli/compare/v0.1.1...v0.2.0) (2026-05-29)
+
+
+### Features
+
+* **cli:** Add elastic status command to verify connectivity and auth ([#362](https://github.com/elastic/cli/issues/362)) ([0f1a63f](https://github.com/elastic/cli/commit/0f1a63fb9f594c45d6db5275af936279fb071623))
+* **cli:** Add root version flag ([#334](https://github.com/elastic/cli/issues/334)) ([c2557bf](https://github.com/elastic/cli/commit/c2557bf1e50b34ecb0952c10891e38ee994a0b3f))
+* **cli:** Add shell completion for bash, zsh, and fish ([#354](https://github.com/elastic/cli/issues/354)) ([e4afc32](https://github.com/elastic/cli/commit/e4afc32ab8e849bc9a802d49ae584cf583e4b91a))
+* Emit CLI structure as argh-schema JSON via `elastic cli-schema` ([#359](https://github.com/elastic/cli/issues/359)) ([9e0371c](https://github.com/elastic/cli/commit/9e0371c81d19f7e05329d9178592da6554b04ccb))
+* **es:** Replace @elastic/transport with native fetch EsClient ([#281](https://github.com/elastic/cli/issues/281)) ([929ddd4](https://github.com/elastic/cli/commit/929ddd44ad88def8f0d7b5b4b5816befc9fc7f5d))
+* **extension:** Add extension registry store module ([#299](https://github.com/elastic/cli/issues/299)) ([f42593e](https://github.com/elastic/cli/commit/f42593e6bccb8e3f27141e205315cd8bafd693bc))
+
+
+### Bug Fixes
+
+* Cat APIs were casting JSON objects to string instead of printing text ([#358](https://github.com/elastic/cli/issues/358)) ([04edbe7](https://github.com/elastic/cli/commit/04edbe7a00b86c8fafd194040b5f95dce89e00c4))
+* **cli:** Bundle zod to fix `npm install -g` first-run failure ([#340](https://github.com/elastic/cli/issues/340)) ([b8e7280](https://github.com/elastic/cli/commit/b8e728080af7afe888609fb86c9ec2c1d85c0756))
+* **codegen:** Wire upstream cli-serverless into cloud codegen ([#355](https://github.com/elastic/cli/issues/355)) ([afe1c35](https://github.com/elastic/cli/commit/afe1c355da1e9e5af815db7e8307a8981bb79c2e))
+* **config:** Dedupe inline secret warning ([#364](https://github.com/elastic/cli/issues/364)) ([df9fd5d](https://github.com/elastic/cli/commit/df9fd5dd5dec58cb40e21371565a0a7b9fec775b))
+* **deps:** Update dependency yaml to v2.8.4 ([#322](https://github.com/elastic/cli/issues/322)) ([39410e2](https://github.com/elastic/cli/commit/39410e2293e1f8152478e2861aa54608b0cd190f))
+* **deps:** Update dependency yaml to v2.9.0 ([#368](https://github.com/elastic/cli/issues/368)) ([a1f9e18](https://github.com/elastic/cli/commit/a1f9e18cb72aefb5af984a6d88ec520667550403))
+* **deps:** Update dependency zod to v4.4.3 ([#320](https://github.com/elastic/cli/issues/320)) ([f787796](https://github.com/elastic/cli/commit/f787796834473ca56ba8c1f561e245f6aa643113))
+* Duplicate NDJSON content type in bulk ingest ([#363](https://github.com/elastic/cli/issues/363)) ([4cd0970](https://github.com/elastic/cli/commit/4cd09708fa9d4fce170b8007a611f27eba41b903))
+* **es:** Accept array _source in search bodies ([#370](https://github.com/elastic/cli/issues/370)) ([51b4bfe](https://github.com/elastic/cli/commit/51b4bfeba9d082cc3edd5fec4fd4683ae6d852be))
+* **es:** Full support for shortcut properties ([#372](https://github.com/elastic/cli/issues/372)) ([a72d0bb](https://github.com/elastic/cli/commit/a72d0bb071f86466b4ccb4c2778cffcbd008c3db))
+* **es:** Parse --sort &lt;field&gt;:&lt;direction&gt; for body-routed Sort args ([#350](https://github.com/elastic/cli/issues/350)) ([ce0e76a](https://github.com/elastic/cli/commit/ce0e76a042528d565cb71599ad48fd4dcbc385c6)), closes [#330](https://github.com/elastic/cli/issues/330)
+* **factory:** Preserve optionality on JSON body field relaxation ([#349](https://github.com/elastic/cli/issues/349)) ([617e035](https://github.com/elastic/cli/commit/617e035aa089ad3f7ebbe9afa2d7180b13f9b588))
+* **factory:** Support '-' as stdin sentinel for --input-file ([#337](https://github.com/elastic/cli/issues/337)) ([ad970e0](https://github.com/elastic/cli/commit/ad970e0ab75ec6bb145d09352defb9a286c9c948))
+* Flush full JSON schema when stdout is a pipe ([#375](https://github.com/elastic/cli/issues/375)) ([5ac7b5c](https://github.com/elastic/cli/commit/5ac7b5caa8319a09fd67b70be7699e45fb117473))
+* **output:** Allow literal-dotted keys in --output-fields paths ([#336](https://github.com/elastic/cli/issues/336)) ([aecf689](https://github.com/elastic/cli/commit/aecf689de6272f871151b6dd8cbce9d6c7414c0e))
+* **output:** Error on templated primitives, flip cat APIs to JSON ([#327](https://github.com/elastic/cli/issues/327)) ([#353](https://github.com/elastic/cli/issues/353)) ([da808d8](https://github.com/elastic/cli/commit/da808d89a26c36791a2997f1694961b3c9e534f9))
+* **output:** Project --output-fields across array nodes ([#338](https://github.com/elastic/cli/issues/338)) ([28a7a73](https://github.com/elastic/cli/commit/28a7a73f04a1b11e93fdf7a887a9d32d514d7b43))
+* Respect --json flag on --help for root and groups ([#373](https://github.com/elastic/cli/issues/373)) ([2297c98](https://github.com/elastic/cli/commit/2297c98d8d78f6e416230e7bf410998eaa9969d1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @elastic/es-schemas bumped from 1.0.1 to 1.0.2
+
 ## [0.1.1](https://github.com/elastic/cli/compare/v0.1.0...v0.1.1) (2026-05-13)
 
 

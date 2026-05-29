@@ -15,7 +15,7 @@ import { registerCompletionCommands, COMPLETION_COMMAND_NAMES } from './completi
 import { NAMESPACES } from './namespaces.ts'
 
 // x-release-please-start-version
-const VERSION = '0.1.1';
+const VERSION = '0.2.0';
 // x-release-please-end
 
 const program = new Command()
