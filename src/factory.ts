@@ -307,6 +307,32 @@ function camelCase (s: string): string {
 }
 
 /**
+ * Parses an ES `Sort` CLI value into the shape ES expects in a request body.
+ *
+ * The CLI help text advertises the URL-query grammar (`<field>:<direction>` pairs, comma-
+ * separated), but the request body needs explicit objects per pair. Bare field names (no
+ * colon) are kept as strings since ES accepts them directly.
+ *
+ * Examples:
+ *   "views"                       → "views"
+ *   "views:desc"                  → [{ views: "desc" }]
+ *   "views,timestamp"             → ["views", "timestamp"]
+ *   "views:desc,timestamp:asc"    → [{ views: "desc" }, { timestamp: "asc" }]
+ *   "views,timestamp:desc"        → ["views", { timestamp: "desc" }]
+ */
+function parseSortPairs (value: string): string | Array<string | Record<string, string>> {
+  const parts = parseFieldList(value)
+  if (parts.length === 0) return value
+  const transformed = parts.map((part): string | Record<string, string> => {
+    const colonIdx = part.indexOf(':')
+    if (colonIdx === -1) return part
+    return { [part.slice(0, colonIdx).trim()]: part.slice(colonIdx + 1).trim() }
+  })
+  if (transformed.length === 1 && typeof transformed[0] === 'string') return transformed[0]
+  return transformed
+}
+
+/**
  * Creates a parseArg function that accumulates repeated string flag values with comma separation.
  * Uses Commander's option value source tracking: first CLI occurrence replaces any default,
  * subsequent CLI occurrences append with a comma separator.
@@ -800,6 +826,15 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
             cliInput[arg.schemaKey] = raw
           }
         } else if (
+          arg.parseStyle === 'sort-pairs' &&
+          arg.foundIn === 'body' &&
+          typeof raw === 'string'
+        ) {
+          // ES `Sort` body fields: the help text advertises `<field>:<direction>` pairs
+          // (the URL query grammar), but in the request body ES expects
+          // `[{"field": "direction"}, ...]`. Parse the colon syntax into that shape.
+          cliInput[arg.schemaKey] = parseSortPairs(raw)
+        } else if (
           arg.type === 'string' &&
           arg.acceptsArrayForm === true &&
           arg.foundIn === 'body' &&
@@ -872,8 +907,13 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       // JSON (e.g. --query, --mappings) whose full DSL (including shorthand forms)
       // is too complex for client-side Zod schemas. The CLI already validates that the
       // JSON is syntactically correct; Elasticsearch validates the semantics server-side.
+      //
+      // Also relax `sort-pairs` fields: the CLI rewrites `field:direction` strings into
+      // `[{field: 'direction'}]` objects, which the strict `Sort` schema (SortOptions has
+      // a fixed set of reserved keys like `_score`) would otherwise reject.
       const jsonBodyFields = schemaArgs.filter(
-        a => (a.type === 'object' || a.type === 'array') && a.foundIn === 'body'
+        a => a.foundIn === 'body' &&
+             (a.type === 'object' || a.type === 'array' || a.parseStyle === 'sort-pairs')
       )
       if (jsonBodyFields.length > 0 && validationSchema instanceof z.ZodObject) {
         const overrides: Record<string, z.ZodType> = {}

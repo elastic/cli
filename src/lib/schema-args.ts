@@ -36,6 +36,15 @@ export interface SchemaArgDefinition {
    * the destination demands it (e.g. JSON request bodies).
    */
   acceptsArrayForm?: boolean
+
+  /**
+   * Marks args whose CLI string value needs a non-trivial transformation before reaching the wire.
+   *
+   * - `'sort-pairs'`: ES `Sort` fields — the help text advertises `<field>:<direction>` pairs (the URL
+   *   query grammar), but the schema routes them through the request body, where ES expects
+   *   `[{"field": "direction"}, ...]`. The CLI parses the colon syntax into that shape.
+   */
+  parseStyle?: 'sort-pairs'
 }
 
 /** Valid routing destinations for a parameter derived from `found_in` Zod metadata. */
@@ -148,6 +157,7 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
 
     const foundIn = extractFoundIn(fieldSchema as z.ZodType)
     const acceptsArrayForm = type !== 'array' && schemaAcceptsArrayForm(fieldSchema as z.ZodType)
+    const parseStyle = schemaContainsId(fieldSchema as z.ZodType, 'Sort') ? 'sort-pairs' as const : undefined
     return {
       schemaKey: key,
       cliFlag: toKebabCase(key),
@@ -156,8 +166,50 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
       defaultValue,
       description,
       ...(foundIn !== undefined ? { foundIn } : {}),
-      ...(acceptsArrayForm ? { acceptsArrayForm: true } : {})
+      ...(acceptsArrayForm ? { acceptsArrayForm: true } : {}),
+      ...(parseStyle !== undefined ? { parseStyle } : {})
     }
+  })
+}
+
+/**
+ * Walks `field` through `optional`, `default`, `lazy`, and `union` wrappers, returning true
+ * if `predicate` matches any visited node. The `seen` set breaks cycles in self-referential
+ * lazy schemas (e.g. `z.lazy(() => Foo)` where `Foo` references itself).
+ *
+ * Note: evaluating `lazy.getter()` forces lazy-schema evaluation; the schemas this file
+ * inspects make that unavoidable for predicates that depend on a lazy's inner shape.
+ */
+function anyNode (field: z.ZodType, predicate: (node: z.ZodType) => boolean): boolean {
+  const seen = new Set<z.ZodType>()
+  function walk (node: z.ZodType): boolean {
+    if (seen.has(node)) return false
+    seen.add(node)
+    if (predicate(node)) return true
+    const def = node.def as ZodFieldDef
+    if (def.type === 'optional' || def.type === 'default') {
+      return def.innerType != null && walk(def.innerType as unknown as z.ZodType)
+    }
+    if (def.type === 'lazy' && typeof def.getter === 'function') {
+      return walk(def.getter())
+    }
+    if (def.type === 'union' && Array.isArray(def.options)) {
+      return def.options.some((o) => walk(o))
+    }
+    return false
+  }
+  return walk(field)
+}
+
+/**
+ * Returns true when `field`'s schema carries the given `id` in its Zod metadata anywhere
+ * in its wrapper chain. Used to identify named schema shapes like `Sort` that need
+ * destination-specific transformations.
+ */
+function schemaContainsId (field: z.ZodType, id: string): boolean {
+  return anyNode(field, (n) => {
+    const meta = n.meta() as Record<string, unknown> | null | undefined
+    return meta?.id === id
   })
 }
 
@@ -170,18 +222,7 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
  * bodies (only in querystrings and URL paths).
  */
 function schemaAcceptsArrayForm (field: z.ZodType): boolean {
-  const def = field.def as ZodFieldDef
-  if (def.type === 'array') return true
-  if ((def.type === 'optional' || def.type === 'default') && def.innerType != null) {
-    return schemaAcceptsArrayForm(def.innerType as unknown as z.ZodType)
-  }
-  if (def.type === 'lazy' && typeof def.getter === 'function') {
-    return schemaAcceptsArrayForm(def.getter())
-  }
-  if (def.type === 'union' && Array.isArray(def.options)) {
-    return def.options.some((o) => schemaAcceptsArrayForm(o))
-  }
-  return false
+  return anyNode(field, (n) => (n.def as ZodFieldDef).type === 'array')
 }
 
 /**
