@@ -2,5 +2,6 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "local>elastic/renovate-config"
-  ]
+  ],
+  "schedule": ["on monday"]
 }
