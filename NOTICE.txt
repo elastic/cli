@@ -64,7 +64,7 @@ released to the public npm registry; depend on it through the workspace.
 
 
 ------------------------------------------------------------------------
-@elastic/es-schemas@1.0.1
+@elastic/es-schemas@1.0.2
 License: UNLICENSED
 Repository: https://github.com/elastic/cli
 Publisher: Elastic Client Library Maintainers
@@ -1133,7 +1133,7 @@ THIS SOFTWARE.
 
 
 ------------------------------------------------------------------------
-yaml@2.9.0
+yaml@2.8.4
 License: ISC
 Repository: https://github.com/eemeli/yaml
 Publisher: Eemeli Aro <eemeli@gmail.com>
