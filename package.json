@@ -69,11 +69,6 @@
     "yaml": "^2.8.3",
     "zod": "^4.3.6"
   },
-  "bundledDependencies": [
-    "@elastic/config-resolver",
-    "@elastic/es-schemas",
-    "zod"
-  ],
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/marked-terminal": "6.1.1",
@@ -84,5 +79,10 @@
     "tsx": "4.22.4",
     "typescript": "6.0.3",
     "typescript-eslint": "8.60.0"
-  }
+  },
+  "bundleDependencies": [
+    "@elastic/config-resolver",
+    "@elastic/es-schemas",
+    "zod"
+  ]
 }

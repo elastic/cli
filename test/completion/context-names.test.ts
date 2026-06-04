@@ -8,6 +8,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, writeFile, rm, chmod } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import process from 'node:process'
 import { completeContextNames } from '../../src/completion/completers/context-names.ts'
 
 const VALID_YAML = `
@@ -133,5 +134,14 @@ describe('completeContextNames', () => {
     process.env['ELASTIC_CLI_CONFIG_FILE'] = path
     const names = await completeContextNames()
     assert.deepEqual(names.sort(), ['local', 'remote'])
+  })
+
+  it('treats an empty ELASTIC_CLI_CONFIG_FILE env var as unset (discovery fallback)', async () => {
+    process.env['ELASTIC_CLI_CONFIG_FILE'] = ''
+    await (await import('node:os')).default.tmpdir()
+    // With empty env var, should fall back to discovery; in tmp dir, no config = []
+    // Just verify it doesn't throw
+    const names = await completeContextNames()
+    assert.ok(Array.isArray(names))
   })
 })

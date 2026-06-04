@@ -35,14 +35,8 @@ import type { OpaqueCommandHandle } from '../factory.ts'
 import { rewriteTopLevelAliases } from './argv-aliases.ts'
 import { enumerate, DIRECTIVE_NO_FILE_COMP } from './enumerate.ts'
 import { defaultRegistry } from './registry.ts'
-import {
-  discoverConfigFile,
-  loadConfigFile,
-  resolveEffectiveCommands,
-} from '../config/loader.ts'
 import { StructuralConfigSchema, CommandPolicySchema } from '../config/schema.ts'
 import type { CommandPolicy } from '../config/types.ts'
-
 /** Words recognised as the user-facing form of the `stack es` subtree. */
 const ES_ALIASES = new Set(['es', 'elasticsearch'])
 /** Words recognised as the user-facing form of the `stack kb` subtree. */
@@ -59,6 +53,7 @@ const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
  * or invalid policy returns `undefined` so shell completion remains best-effort.
  */
 async function loadCompletionCommandPolicy (): Promise<CommandPolicy | undefined> {
+  const { discoverConfigFile, loadConfigFile, resolveEffectiveCommands } = await import('../config/loader.js')
   const envPath = process.env[ENV_CONFIG_FILE]
   const path = envPath != null && envPath.length > 0
     ? envPath

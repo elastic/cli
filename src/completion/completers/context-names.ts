@@ -13,8 +13,6 @@
  * Completion MUST NOT propagate errors: missing files, malformed YAML,
  * permission errors, or unresolved `$(...)` expressions all return `[]`.
  */
-
-import { discoverConfigFile, loadConfigFile } from '../../config/loader.ts'
 import { StructuralConfigSchema } from '../../config/schema.ts'
 
 const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
@@ -30,6 +28,7 @@ const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
  */
 export async function completeContextNames (): Promise<string[]> {
   try {
+    const { discoverConfigFile, loadConfigFile } = await import('../../config/loader.js')
     const envPath = process.env[ENV_CONFIG_FILE]
     const path = envPath != null && envPath.length > 0
       ? envPath
