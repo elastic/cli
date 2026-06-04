@@ -26,19 +26,19 @@ const testDefs: EsApiDefinition[] = [
 ]
 
 describe('registerEsCommands', () => {
-  it('returns an OpaqueCommandHandle named "es"', () => {
-    const handle = registerEsCommands(testDefs)
+  it('returns an OpaqueCommandHandle named "es"', async () => {
+    const handle = await registerEsCommands(testDefs)
     assert.equal(handle.name(), 'es')
   })
 
-  it('creates one child group per unique namespace', () => {
-    const handle = registerEsCommands(testDefs)
+  it('creates one child group per unique namespace', async () => {
+    const handle = await registerEsCommands(testDefs)
     const groupNames = handle.commands.map((c) => c.name()).sort()
     assert.deepEqual(groupNames, ['cat', 'helpers', 'indices'])
   })
 
-  it('each namespace group has leaf commands matching definition names', () => {
-    const handle = registerEsCommands(testDefs)
+  it('each namespace group has leaf commands matching definition names', async () => {
+    const handle = await registerEsCommands(testDefs)
     const cat = handle.commands.find((c) => c.name() === 'cat')
     assert.ok(cat != null)
     const catCommandNames = cat.commands.map((c) => c.name()).sort()
@@ -50,8 +50,8 @@ describe('registerEsCommands', () => {
     assert.deepEqual(idxCommandNames, ['create', 'delete'])
   })
 
-  it('leaf command descriptions match definitions', () => {
-    const handle = registerEsCommands(testDefs)
+  it('leaf command descriptions match definitions', async () => {
+    const handle = await registerEsCommands(testDefs)
     const cat = handle.commands.find((c) => c.name() === 'cat')
     assert.ok(cat != null)
     const health = cat.commands.find((c) => c.name() === 'health')
@@ -59,9 +59,9 @@ describe('registerEsCommands', () => {
     assert.equal(health.description(), 'health description')
   })
 
-  it('works with a single namespace', () => {
+  it('works with a single namespace', async () => {
     const defs: EsApiDefinition[] = [makeDef('health', 'cat'), makeDef('nodes', 'cat')]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     // 1 namespace group + 1 helpers group
     assert.equal(handle.commands.length, 2)
     const cat = handle.commands.find((c) => c.name() === 'cat')
@@ -69,17 +69,17 @@ describe('registerEsCommands', () => {
     assert.equal(cat.commands.length, 2)
   })
 
-  it('throws on duplicate command names within a namespace', () => {
+  it('throws on duplicate command names within a namespace', async () => {
     const defs: EsApiDefinition[] = [makeDef('health', 'cat'), makeDef('health', 'cat')]
-    assert.throws(() => registerEsCommands(defs), /duplicate.*health|health.*duplicate/i)
+    await assert.rejects(registerEsCommands(defs), /duplicate.*health|health.*duplicate/i)
   })
 
-  it('allows the same command name in different namespaces', () => {
+  it('allows the same command name in different namespaces', async () => {
     const defs: EsApiDefinition[] = [makeDef('get', 'cat'), makeDef('get', 'indices')]
-    assert.doesNotThrow(() => registerEsCommands(defs))
+    await assert.doesNotReject(registerEsCommands(defs))
   })
 
-  it('registers query params as --flags on leaf commands (via input schema)', () => {
+  it('registers query params as --flags on leaf commands (via input schema)', async () => {
     const defs: EsApiDefinition[] = [{
       name: 'health',
       namespace: 'cat',
@@ -91,7 +91,7 @@ describe('registerEsCommands', () => {
         pretty: z.boolean().optional().describe('Pretty').meta({ found_in: 'query' }),
       }),
     }]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     const cmd = handle.commands[0]?.commands[0]
     assert.ok(cmd != null)
     const optionNames = cmd.options.map((o) => o.long)
@@ -99,7 +99,7 @@ describe('registerEsCommands', () => {
     assert.ok(optionNames.includes('--pretty'), `expected --pretty, got: ${optionNames.join(', ')}`)
   })
 
-  it('registers path params as --flags on leaf commands (via input schema)', () => {
+  it('registers path params as --flags on leaf commands (via input schema)', async () => {
     const defs: EsApiDefinition[] = [{
       name: 'create',
       namespace: 'indices',
@@ -110,14 +110,14 @@ describe('registerEsCommands', () => {
         index: z.string().describe('Index name').meta({ found_in: 'path' }),
       }),
     }]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     const cmd = handle.commands[0]?.commands[0]
     assert.ok(cmd != null)
     const optionNames = cmd.options.map((o) => o.long)
     assert.ok(optionNames.includes('--index'), `expected --index flag, got: ${optionNames.join(', ')}`)
   })
 
-  it('registers a --input-file flag when the definition has an input schema', () => {
+  it('registers a --input-file flag when the definition has an input schema', async () => {
     const defs: EsApiDefinition[] = [{
       name: 'create',
       namespace: 'indices',
@@ -129,7 +129,7 @@ describe('registerEsCommands', () => {
         settings: z.record(z.string(), z.unknown()).optional().meta({ found_in: 'body' }),
       }),
     }]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     const cmd = handle.commands[0]?.commands[0]
     assert.ok(cmd != null)
     // the factory registers --input-file whenever an input schema is provided
@@ -139,28 +139,28 @@ describe('registerEsCommands', () => {
 })
 
 describe('registerEsCommands - namespace-less (root) definitions', () => {
-  it('a definition without namespace registers as a direct leaf of `es`', () => {
+  it('a definition without namespace registers as a direct leaf of `es`', async () => {
     const defs: EsApiDefinition[] = [makeRootDef('search')]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     const child = handle.commands.find((c) => c.name() === 'search')
     assert.ok(child != null, 'expected `search` as direct child of `es`')
     assert.equal(child.commands.length, 0, 'search should be a leaf, not a group')
   })
 
-  it('namespace-less definitions do not create an intermediate group', () => {
+  it('namespace-less definitions do not create an intermediate group', async () => {
     const defs: EsApiDefinition[] = [makeRootDef('bulk'), makeRootDef('search')]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     const names = handle.commands.map((c) => c.name()).sort()
     assert.deepEqual(names, ['bulk', 'helpers', 'search'])
   })
 
-  it('namespace-less and namespaced definitions coexist under `es`', () => {
+  it('namespace-less and namespaced definitions coexist under `es`', async () => {
     const defs: EsApiDefinition[] = [
       makeRootDef('search'),
       makeDef('health', 'cat'),
       makeDef('indices', 'cat'),
     ]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     // `cat` group and `search` leaf are both direct children of `es`
     const topNames = handle.commands.map((c) => c.name()).sort()
     assert.deepEqual(topNames, ['cat', 'helpers', 'search'])
@@ -169,49 +169,49 @@ describe('registerEsCommands - namespace-less (root) definitions', () => {
     assert.deepEqual(cat.commands.map((c) => c.name()).sort(), ['health', 'indices'])
   })
 
-  it('description from the definition is used on the leaf command', () => {
+  it('description from the definition is used on the leaf command', async () => {
     const defs: EsApiDefinition[] = [makeRootDef('search', 'Run a search')]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     const cmd = handle.commands.find((c) => c.name() === 'search')
     assert.ok(cmd != null)
     assert.equal(cmd.description(), 'Run a search')
   })
 
-  it('throws on duplicate names among namespace-less definitions', () => {
+  it('throws on duplicate names among namespace-less definitions', async () => {
     const defs: EsApiDefinition[] = [makeRootDef('search'), makeRootDef('search')]
-    assert.throws(() => registerEsCommands(defs), /duplicate.*search|search.*duplicate/i)
+    await assert.rejects(registerEsCommands(defs), /duplicate.*search|search.*duplicate/i)
   })
 
-  it('throws when a namespace-less name collides with a namespace group name', () => {
+  it('throws when a namespace-less name collides with a namespace group name', async () => {
     const defs: EsApiDefinition[] = [
       makeRootDef('cat'),
       makeDef('health', 'cat'),
     ]
-    assert.throws(() => registerEsCommands(defs), /duplicate.*cat|cat.*duplicate/i)
+    await assert.rejects(registerEsCommands(defs), /duplicate.*cat|cat.*duplicate/i)
   })
 })
 
 describe('registerEsCommands - extensibility', () => {
-  it('a definition added to an existing namespace appears in the command tree with no other changes', () => {
+  it('a definition added to an existing namespace appears in the command tree with no other changes', async () => {
     const defs: EsApiDefinition[] = [
       makeDef('health', 'cat'),
       makeDef('nodes', 'cat'),
       makeDef('count', 'cat'),
     ]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     const cat = handle.commands.find((c) => c.name() === 'cat')
     assert.ok(cat != null)
     const names = cat.commands.map((c) => c.name()).sort()
     assert.deepEqual(names, ['count', 'health', 'nodes'])
   })
 
-  it('a new namespace array spread into allApis causes a new group to appear', () => {
+  it('a new namespace array spread into allApis causes a new group to appear', async () => {
     const defs: EsApiDefinition[] = [
       makeDef('health', 'cat'),
       makeDef('stats', 'cluster'),
       makeDef('settings', 'cluster'),
     ]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     const groupNames = handle.commands.map((c) => c.name()).sort()
     assert.deepEqual(groupNames, ['cat', 'cluster', 'helpers'])
     const cluster = handle.commands.find((c) => c.name() === 'cluster')
@@ -219,28 +219,28 @@ describe('registerEsCommands - extensibility', () => {
     assert.equal(cluster.commands.length, 2)
   })
 
-  it('rejects a malformed definition (bad name) at registration time', () => {
+  it('rejects a malformed definition (bad name) at registration time', async () => {
     const defs: EsApiDefinition[] = [{ ...makeDef('health', 'cat'), name: 'Bad_Name' }]
-    assert.throws(() => registerEsCommands(defs), /invalid.*name/i)
+    await assert.rejects(registerEsCommands(defs), /invalid.*name/i)
   })
 
-  it('rejects a malformed definition (path missing leading slash) at registration time', () => {
+  it('rejects a malformed definition (path missing leading slash) at registration time', async () => {
     const defs: EsApiDefinition[] = [{ ...makeDef('health', 'cat'), path: '_cat/health' }]
-    assert.throws(() => registerEsCommands(defs), /path.*must start/i)
+    await assert.rejects(registerEsCommands(defs), /path.*must start/i)
   })
 
-  it('rejects a malformed definition (path token with no found_in: "path" field) at registration time', () => {
+  it('rejects a malformed definition (path token with no found_in: "path" field) at registration time', async () => {
     const defs: EsApiDefinition[] = [{
       ...makeDef('get', 'indices'),
       path: '/{index}',
       input: z.looseObject({}),  // {index} token in path but no found_in: "path" field
     }]
-    assert.throws(() => registerEsCommands(defs), /path.*param.*index/i)
+    await assert.rejects(registerEsCommands(defs), /path.*param.*index/i)
   })
 })
 
 describe('registerEsCommands - body field flattening', () => {
-  it('registers body fields as individual --flags, not a --body flag', () => {
+  it('registers body fields as individual --flags, not a --body flag', async () => {
     const defs: EsApiDefinition[] = [{
       name: 'create',
       namespace: 'indices',
@@ -253,7 +253,7 @@ describe('registerEsCommands - body field flattening', () => {
         mappings: z.record(z.string(), z.unknown()).optional().describe('Index mappings').meta({ found_in: 'body' }),
       }),
     }]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     const cmd = handle.commands[0]?.commands[0]
     assert.ok(cmd != null)
     const optionNames = cmd.options.map((o) => o.long)
@@ -264,7 +264,7 @@ describe('registerEsCommands - body field flattening', () => {
 })
 
 describe('registerEsCommands - unified input schema', () => {
-  it('registers a command with a unified input schema: flags, help text, and validation all work', () => {
+  it('registers a command with a unified input schema: flags, help text, and validation all work', async () => {
     const input = z.looseObject({
       index: z.string().describe('Target index').meta({ found_in: 'path' }),
       pretty: z.boolean().optional().describe('Pretty-print response').meta({ found_in: 'query' }),
@@ -278,7 +278,7 @@ describe('registerEsCommands - unified input schema', () => {
       path: '/{index}',
       input,
     }]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     const cmd = handle.commands[0]?.commands[0]
     assert.ok(cmd != null)
     const optionNames = cmd.options.map((o) => o.long)
@@ -297,7 +297,7 @@ describe('registerEsCommands - external schema consumption', () => {
     mappings: z.record(z.string(), z.unknown()).optional().describe('Index mappings').meta({ found_in: 'body' }),
   })
 
-  it('registers a command using an externally defined input schema', () => {
+  it('registers a command using an externally defined input schema', async () => {
     const defs: EsApiDefinition[] = [{
       name: 'create',
       namespace: 'indices',
@@ -306,7 +306,7 @@ describe('registerEsCommands - external schema consumption', () => {
       path: '/{index}',
       input: externalCreateSchema,
     }]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     const cmd = handle.commands[0]?.commands[0]
     assert.ok(cmd != null)
     const optionNames = cmd.options.map((o) => o.long)
@@ -316,7 +316,7 @@ describe('registerEsCommands - external schema consumption', () => {
     assert.ok(optionNames.includes('--mappings'), `expected --mappings, got: ${optionNames.join(', ')}`)
   })
 
-  it('validates an externally sourced schema paired with a local manifest without throwing', () => {
+  it('validates an externally sourced schema paired with a local manifest without throwing', async () => {
     const defs: EsApiDefinition[] = [{
       name: 'create',
       namespace: 'indices',
@@ -325,10 +325,10 @@ describe('registerEsCommands - external schema consumption', () => {
       path: '/{index}',
       input: externalCreateSchema,
     }]
-    assert.doesNotThrow(() => registerEsCommands(defs))
+    await assert.doesNotReject(registerEsCommands(defs))
   })
 
-  it('--input-file flag is registered (external schema enables file/stdin merging)', () => {
+  it('--input-file flag is registered (external schema enables file/stdin merging)', async () => {
     const defs: EsApiDefinition[] = [{
       name: 'create',
       namespace: 'indices',
@@ -337,7 +337,7 @@ describe('registerEsCommands - external schema consumption', () => {
       path: '/{index}',
       input: externalCreateSchema,
     }]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     const cmd = handle.commands[0]?.commands[0]
     assert.ok(cmd != null)
     const optionNames = cmd.options.map((o) => o.long)
@@ -346,9 +346,9 @@ describe('registerEsCommands - external schema consumption', () => {
 })
 
 describe('registerEsCommands - help groups', () => {
-  it('namespace commands belong to the "API namespaces" group', () => {
+  it('namespace commands belong to the "API namespaces" group', async () => {
     const defs: EsApiDefinition[] = [makeDef('health', 'cat'), makeDef('create', 'indices')]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     const cat = handle.commands.find((c) => c.name() === 'cat')
     assert.ok(cat != null)
     assert.equal(cat.helpGroup(), 'API namespaces')
@@ -357,14 +357,14 @@ describe('registerEsCommands - help groups', () => {
     assert.equal(idx.helpGroup(), 'API namespaces')
   })
 
-  it('helpers group belongs to the "Helpers" group', () => {
-    const handle = registerEsCommands([])
+  it('helpers group belongs to the "Helpers" group', async () => {
+    const handle = await registerEsCommands([])
     const helpers = handle.commands.find((c) => c.name() === 'helpers')
     assert.ok(helpers != null)
     assert.equal(helpers.helpGroup(), 'Helpers')
   })
 
-  it('known root-level commands are assigned to their domain group', () => {
+  it('known root-level commands are assigned to their domain group', async () => {
     const defs: EsApiDefinition[] = [
       makeRootDef('search'),
       makeRootDef('get'),
@@ -373,7 +373,7 @@ describe('registerEsCommands - help groups', () => {
       makeRootDef('ping'),
       makeRootDef('reindex-rethrottle'),
     ]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     const groupOf = (name: string) => handle.commands.find((c) => c.name() === name)?.helpGroup()
     assert.equal(groupOf('search'), 'Search')
     assert.equal(groupOf('get'), 'Documents')
@@ -383,21 +383,21 @@ describe('registerEsCommands - help groups', () => {
     assert.equal(groupOf('reindex-rethrottle'), 'Advanced')
   })
 
-  it('unknown root-level commands fall back to "Other commands"', () => {
+  it('unknown root-level commands fall back to "Other commands"', async () => {
     const defs: EsApiDefinition[] = [makeRootDef('some-new-command')]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     const cmd = handle.commands.find((c) => c.name() === 'some-new-command')
     assert.ok(cmd != null)
     assert.equal(cmd.helpGroup(), 'Other commands')
   })
 
-  it('root-level commands appear in section order: Documents before Search before Analysis', () => {
+  it('root-level commands appear in section order: Documents before Search before Analysis', async () => {
     const defs: EsApiDefinition[] = [
       makeRootDef('search'),
       makeRootDef('count'),
       makeRootDef('get'),
     ]
-    const handle = registerEsCommands(defs)
+    const handle = await registerEsCommands(defs)
     const rootCmds = handle.commands.filter((c) => c.name() !== 'helpers')
     const names = rootCmds.map((c) => c.name())
     assert.ok(names.indexOf('get') < names.indexOf('search'), 'Documents (get) should precede Search (search)')
@@ -428,7 +428,7 @@ describe('registerEsCommands - built-in API surface', () => {
     assert.strictEqual(result.status, 0, `Schema validation failed:\n${result.stderr}`)
   })
 
-  it('throws at registration time when a schema contains z.date()', () => {
+  it('throws at registration time when a schema contains z.date()', async () => {
     const defs: EsApiDefinition[] = [{
       name: 'search',
       description: 'Search',
@@ -438,9 +438,6 @@ describe('registerEsCommands - built-in API surface', () => {
         timestamp: z.date().optional().describe('A JS Date - not valid in a REST API schema').meta({ found_in: 'query' }),
       }),
     }]
-    assert.throws(
-      () => registerEsCommands(defs),
-      /Date cannot be represented in JSON Schema/,
-    )
+    await assert.rejects(registerEsCommands(defs), /Date cannot be represented in JSON Schema/)
   })
 })

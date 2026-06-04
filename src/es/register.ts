@@ -4,91 +4,60 @@
  */
 
 import { Command } from 'commander'
-import { z } from 'zod'
-import { defineCommand, defineGroup } from '../factory.ts'
-import type { OpaqueCommandHandle } from '../factory.ts'
+import type { z } from 'zod'
+import { createRequire } from 'node:module'
+import type { defineCommand as _DefCmd } from '../factory.ts'
+import { defineGroup } from '../factory-core.ts'
+import type { OpaqueCommandHandle } from '../factory-core.ts'
 import { inferIntentFromHttp } from '../cli-schema-intent.ts'
 import type { EsApiDefinition } from './types.ts'
-import { validateApiDefinition, resolveInput } from './types.ts'
 import type { SchemaArgDefinition } from '../lib/schema-args.ts'
-import { apiManifest, loadEsApi } from './apis.ts'
+import { apiManifest } from './api-manifest.ts'
 import type { EsApiMeta } from './api-manifest.ts'
-import { createEsHandler } from './handler.ts'
-import { registerHelperCommands } from './helpers/register.ts'
 
-/**
- * Maps root-level (no-namespace) command names to the help section they belong to.
- * Commands not listed here fall into the catch-all "Other commands" group.
- * Order within each group reflects usage frequency — most-common first.
- */
-const ROOT_COMMAND_GROUPS: Record<string, string> = {
-  // Documents
-  get: 'Documents',
-  index: 'Documents',
-  create: 'Documents',
-  update: 'Documents',
-  delete: 'Documents',
-  bulk: 'Documents',
-  mget: 'Documents',
-  exists: 'Documents',
-  'exists-source': 'Documents',
-  'get-source': 'Documents',
-  'delete-by-query': 'Documents',
-  'update-by-query': 'Documents',
-  reindex: 'Documents',
-  // Search
-  search: 'Search',
-  msearch: 'Search',
-  'search-template': 'Search',
-  'msearch-template': 'Search',
-  scroll: 'Search',
-  'clear-scroll': 'Search',
-  'open-point-in-time': 'Search',
-  'close-point-in-time': 'Search',
-  'search-mvt': 'Search',
-  'search-shards': 'Search',
-  'render-search-template': 'Search',
-  // Analysis
-  count: 'Analysis',
-  explain: 'Analysis',
-  'field-caps': 'Analysis',
-  termvectors: 'Analysis',
-  mtermvectors: 'Analysis',
-  'rank-eval': 'Analysis',
-  'terms-enum': 'Analysis',
-  // Scripts
-  'get-script': 'Scripts',
-  'put-script': 'Scripts',
-  'delete-script': 'Scripts',
-  'scripts-painless-execute': 'Scripts',
-  'get-script-context': 'Scripts',
-  'get-script-languages': 'Scripts',
-  // Cluster
-  ping: 'Cluster',
-  info: 'Cluster',
-  'health-report': 'Cluster',
-  // Throttle / admin — shown but deprioritised
-  'delete-by-query-rethrottle': 'Advanced',
-  'update-by-query-rethrottle': 'Advanced',
-  'reindex-rethrottle': 'Advanced',
+// Lazy-loaded modules (deferred to keep `es --help` fast)
+const _reqEs = createRequire(import.meta.url)
+
+function getZEs (): typeof z {
+  return (_reqEs('zod') as { z: typeof z }).z
+}
+
+let _dc: typeof _DefCmd | null = null
+async function getDefineCommand (): Promise<typeof _DefCmd> {
+  if (_dc == null) _dc = (await import('../factory.js')).defineCommand
+  return _dc!
+}
+
+// try .js first (compiled dist), fall back to .ts (dev/test with tsx)
+let _typesMod: typeof import('./types.ts') | null = null
+function getTypes (): typeof import('./types.ts') {
+  if (_typesMod == null) {
+    try { _typesMod = _reqEs('./types.js') as typeof import('./types.ts') }
+    catch { _typesMod = _reqEs('./types.ts') as typeof import('./types.ts') }
+  }
+  return _typesMod
+}
+
+// Help grouping configuration
+const ROOT_COMMAND_GROUPS: Readonly<Record<string, string>> = {
+  ...group('Documents', ['get', 'index', 'create', 'update', 'delete', 'bulk', 'mget', 'exists', 'exists-source', 'get-source', 'delete-by-query', 'update-by-query', 'reindex']),
+  ...group('Search', ['search', 'msearch', 'search-template', 'msearch-template', 'scroll', 'clear-scroll', 'open-point-in-time', 'close-point-in-time', 'search-mvt', 'search-shards', 'render-search-template']),
+  ...group('Analysis', ['count', 'explain', 'field-caps', 'termvectors', 'mtermvectors', 'rank-eval', 'terms-enum']),
+  ...group('Scripts', ['get-script', 'put-script', 'delete-script', 'scripts-painless-execute', 'get-script-context', 'get-script-languages']),
+  ...group('Cluster', ['ping', 'info', 'health-report']),
+  ...group('Advanced', ['delete-by-query-rethrottle', 'update-by-query-rethrottle', 'reindex-rethrottle']),
+}
+
+function group (label: string, cmds: string[]): Record<string, string> {
+  return Object.fromEntries(cmds.map(cmd => [cmd, label]))
 }
 
 /** Group label applied to every namespace sub-tree (cat, cluster, indices, …). */
 const NAMESPACE_GROUP = 'API namespaces'
 
-/**
- * Controls the display order of root-level sections in help output.
- * Lower numbers appear first. Sections not listed here sort after all listed ones.
- */
-const GROUP_PRIORITY: Record<string, number> = {
-  Documents: 0,
-  Search: 1,
-  Analysis: 2,
-  Scripts: 3,
-  Cluster: 4,
-  Advanced: 5,
-  'Other commands': 6,
-}
+const GROUP_PRIORITY: Readonly<Record<string, number>> = Object.fromEntries(
+  ['Documents', 'Search', 'Analysis', 'Scripts', 'Cluster', 'Advanced', 'Other commands'].map((k, i) => [k, i])
+)
 
 /** Applies a help-section heading to a command handle (no-op if already set). */
 function applyHelpGroup (handle: OpaqueCommandHandle, group: string): OpaqueCommandHandle {
@@ -99,15 +68,19 @@ function applyHelpGroup (handle: OpaqueCommandHandle, group: string): OpaqueComm
 /** Builds a leaf command handle from an eagerly-available definition and its pre-computed schema args. */
 function buildLeafHandle (
   def: EsApiDefinition,
-  defSchemaArgs: Map<EsApiDefinition, SchemaArgDefinition[]>
+  defSchemaArgs: Map<EsApiDefinition, SchemaArgDefinition[]>,
+  defineCommand: typeof _DefCmd
 ): OpaqueCommandHandle {
-  const schema = def.input != null ? resolveInput(def.input) : z.looseObject({})
+  const schema = def.input != null ? getTypes().resolveInput(def.input) : getZEs().looseObject({})
   const schemaArgs = defSchemaArgs.get(def) ?? []
-  const config: Parameters<typeof defineCommand>[0] = {
+  const config: Parameters<typeof _DefCmd>[0] = {
     name: def.name,
     description: def.description,
     input: schema,
-    handler: createEsHandler(def, schemaArgs),
+    handler: async (parsed) => {
+      const { createEsHandler } = await import('./handler.js')
+      return createEsHandler(def, schemaArgs)(parsed)
+    },
     ...(def.intent != null || inferIntentFromHttp(def.method) != null
       ? { intent: def.intent ?? inferIntentFromHttp(def.method)! }
       : {}),
@@ -134,11 +107,13 @@ function buildStubLeaf (meta: EsApiMeta): OpaqueCommandHandle {
     // sniffer covers every direct-leaf and namespaced-leaf form). Fall back to
     // loading the definition on demand, swapping the stub for the real leaf,
     // and re-entering Commander parse so options dispatch correctly.
+    const { loadEsApi } = await import("./apis.js")
     const def = await loadEsApi(meta)
-    const schemaArgs = validateApiDefinition(def)
+    const schemaArgs = getTypes().validateApiDefinition(def)
     const defSchemaArgs = new Map<EsApiDefinition, SchemaArgDefinition[]>()
     defSchemaArgs.set(def, schemaArgs)
-    const real = buildLeafHandle(def, defSchemaArgs)
+    const dc = await getDefineCommand()
+    const real = buildLeafHandle(def, defSchemaArgs, dc)
     const parent = cmd.parent
     if (parent != null) {
       // Commander's `commands` array is typed readonly but mutated internally;
@@ -212,9 +187,9 @@ interface RegisterLazyOptions {
  *
  * @throws {Error} if any definition fails validation or there are duplicate names at any level
  */
-export function registerEsCommands (
+export async function registerEsCommands (
   definitions: EsApiDefinition[]
-): OpaqueCommandHandle {
+): Promise<OpaqueCommandHandle> {
   return buildEagerTree(definitions)
 }
 
@@ -240,15 +215,17 @@ export async function registerEsCommandsLazy (
  * Callers that only need CLI startup should prefer {@link registerEsCommandsLazy}.
  */
 export async function registerEsCommandsEager (): Promise<OpaqueCommandHandle> {
-  const defs = await Promise.all(apiManifest.map((m) => loadEsApi(m)))
+  const { loadEsApi: _loadEsApi } = await import("./apis.js")
+  const defs = await Promise.all(apiManifest.map((m) => _loadEsApi(m)))
   return buildEagerTree(defs)
 }
 
 /** Eager-tree builder: behaviourally identical to the original pre-lazy implementation. */
-function buildEagerTree (definitions: EsApiDefinition[]): OpaqueCommandHandle {
+async function buildEagerTree (definitions: EsApiDefinition[]): Promise<OpaqueCommandHandle> {
+  const defineCommand = await getDefineCommand()
   const defSchemaArgs = new Map<EsApiDefinition, SchemaArgDefinition[]>()
   for (const def of definitions) {
-    defSchemaArgs.set(def, validateApiDefinition(def))
+    defSchemaArgs.set(def, getTypes().validateApiDefinition(def))
   }
 
   const byNamespace = new Map<string, EsApiDefinition[]>()
@@ -283,7 +260,7 @@ function buildEagerTree (definitions: EsApiDefinition[]): OpaqueCommandHandle {
       seen.add(def.name)
     }
 
-    const leafHandles = defs.map((def) => buildLeafHandle(def, defSchemaArgs))
+    const leafHandles = defs.map((def) => buildLeafHandle(def, defSchemaArgs, defineCommand))
     const nsHandle = defineGroup({ name: namespace, description: `Elasticsearch ${namespace} API commands` }, ...leafHandles)
     applyHelpGroup(nsHandle, NAMESPACE_GROUP)
     namespaceHandles.push(nsHandle)
@@ -301,12 +278,13 @@ function buildEagerTree (definitions: EsApiDefinition[]): OpaqueCommandHandle {
       throw new Error(`duplicate command name "${def.name}" at the top level of es`)
     }
     topLevelNames.add(def.name)
-    const h = buildLeafHandle(def, defSchemaArgs)
+    const h = buildLeafHandle(def, defSchemaArgs, defineCommand)
     applyHelpGroup(h, ROOT_COMMAND_GROUPS[def.name] ?? 'Other commands')
     rootHandles.push(h)
   }
 
-  const helpersGroup = registerHelperCommands()
+  // Stub for helpers; actual helpers sub-commands are loaded on demand via stub-swap.
+  const helpersGroup = defineGroup({ name: 'helpers', description: 'High-level helper commands for common Elasticsearch workflows' })
   applyHelpGroup(helpersGroup, 'Helpers')
 
   return defineGroup({ name: 'es', description: 'Interact with the Elasticsearch API' }, ...namespaceHandles, ...rootHandles, helpersGroup)
@@ -330,12 +308,13 @@ async function buildLazyTree (manifest: readonly EsApiMeta[], argv: readonly str
   // stays a stub.
   let invokedDef: EsApiDefinition | null = null
   if (invoked != null) {
-    invokedDef = await loadEsApi(invoked)
+    const { loadEsApi: _leafLoader } = await import("./apis.js")
+    invokedDef = await _leafLoader(invoked)
   }
 
   const invokedSchemaArgs = new Map<EsApiDefinition, SchemaArgDefinition[]>()
   if (invokedDef != null) {
-    invokedSchemaArgs.set(invokedDef, validateApiDefinition(invokedDef))
+    invokedSchemaArgs.set(invokedDef, getTypes().validateApiDefinition(invokedDef))
   }
 
   const byNamespace = new Map<string, EsApiMeta[]>()
@@ -353,9 +332,11 @@ async function buildLazyTree (manifest: readonly EsApiMeta[], argv: readonly str
     }
   }
 
-  function leafHandleFor (m: EsApiMeta): OpaqueCommandHandle {
+  async function leafHandleFor (m: EsApiMeta): Promise<OpaqueCommandHandle> {
     if (invoked != null && invokedDef != null && m === invoked) {
-      return buildLeafHandle(invokedDef, invokedSchemaArgs)
+      // Only load factory.ts (defineCommand) when a specific leaf is actually invoked.
+      const dc = await getDefineCommand()
+      return buildLeafHandle(invokedDef, invokedSchemaArgs, dc)
     }
     return buildStubLeaf(m)
   }
@@ -389,7 +370,7 @@ async function buildLazyTree (manifest: readonly EsApiMeta[], argv: readonly str
       seen.add(m.name)
     }
 
-    const leafHandles = metas.map(leafHandleFor)
+    const leafHandles = await Promise.all(metas.map(leafHandleFor))
     const nsHandle = defineGroup({ name: namespace, description: `Elasticsearch ${namespace} API commands` }, ...leafHandles)
     applyHelpGroup(nsHandle, NAMESPACE_GROUP)
     namespaceHandles.push(nsHandle)
@@ -404,18 +385,30 @@ async function buildLazyTree (manifest: readonly EsApiMeta[], argv: readonly str
       const pb = GROUP_PRIORITY[ROOT_COMMAND_GROUPS[b.name] ?? 'Other commands'] ?? 99
       return pa - pb || a.name.localeCompare(b.name)
     })
+    // Check for duplicate names before parallel construction:
     for (const m of rootMetas) {
       if (topLevelNames.has(m.name)) {
         throw new Error(`duplicate command name "${m.name}" at the top level of es`)
       }
       topLevelNames.add(m.name)
-      const h = leafHandleFor(m)
-      applyHelpGroup(h, ROOT_COMMAND_GROUPS[m.name] ?? 'Other commands')
-      rootHandles.push(h)
     }
+    // Build root leaf stubs in parallel (all become buildStubLeaf → Commander Command):
+    const rootStubs = await Promise.all(rootMetas.map(async m => {
+      const h = await leafHandleFor(m)
+      applyHelpGroup(h, ROOT_COMMAND_GROUPS[m.name] ?? 'Other commands')
+      return h
+    }))
+    rootHandles.push(...rootStubs)
   }
 
-  const helpersGroup = registerHelperCommands()
+  // Use the real helpers group only when the user is targeting helpers; otherwise a
+  // lightweight stub suffices (sub-commands load on demand via stub-swap in buildStubLeaf).
+  const tokens = argv.slice(2).filter((t) => !t.startsWith('-'))
+  const esIdx = tokens.indexOf('es')
+  const isHelpersInvoked = esIdx >= 0 && tokens[esIdx + 1] === 'helpers'
+  const helpersGroup = isHelpersInvoked
+    ? (await import('./helpers/register.js')).registerHelperCommands()
+    : defineGroup({ name: 'helpers', description: 'High-level helper commands for common Elasticsearch workflows' })
   applyHelpGroup(helpersGroup, 'Helpers')
 
   return defineGroup({ name: 'es', description: 'Interact with the Elasticsearch API' }, ...namespaceHandles, ...rootHandles, helpersGroup)

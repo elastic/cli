@@ -4,9 +4,20 @@
  */
 
 import type { z } from 'zod'
-import { extractSchemaArgs } from '../lib/schema-args.ts'
+import { createRequire } from 'node:module'
 import type { SchemaArgDefinition } from '../lib/schema-args.ts'
 import type { CommandIntent } from '../factory.ts'
+
+// lazy-loaded to avoid pulling in schema-args eagerly
+const _treq = createRequire(import.meta.url)
+let _schemaArgsMod: typeof import('../lib/schema-args.ts') | null = null
+function getExtractSchemaArgs (): typeof import('../lib/schema-args.ts').extractSchemaArgs {
+  if (_schemaArgsMod == null) {
+    try { _schemaArgsMod = _treq('../lib/schema-args.js') as typeof import('../lib/schema-args.ts') }
+    catch { _schemaArgsMod = _treq('../lib/schema-args.ts') as typeof import('../lib/schema-args.ts') }
+  }
+  return _schemaArgsMod.extractSchemaArgs
+}
 
 /**
  * Valid HTTP methods for Elasticsearch API requests.
@@ -132,7 +143,7 @@ export function validateApiDefinition (def: EsApiDefinition): SchemaArgDefinitio
   if (def.input == null) return []
 
   const tokens = new Set(extractPathTokens(def.path))
-  const args = extractSchemaArgs(resolveInput(def.input))
+  const args = getExtractSchemaArgs()(resolveInput(def.input))
   const pathFields = new Set(args.filter((a) => a.foundIn === 'path').map((a) => a.schemaKey))
 
   for (const token of tokens) {
