@@ -11,6 +11,7 @@ import type { CloudApiDefinition, CloudPathParam, CloudQueryParam } from './type
 import { validateCloudApiDefinition } from './types.ts'
 import { allCloudApis } from './apis.ts'
 import { allServerlessApis } from './serverless-apis.ts'
+
 import { createCloudHandler, isCreateProjectCommand } from './handler.ts'
 import {
   applyCredentialPolicy,
@@ -83,13 +84,9 @@ const PROJECT_NAMESPACES: Record<string, string> = {
  * apply to both Hosted deployments and Serverless projects.
  * Values are the display names shown in the CLI tree.
  */
-const PROMOTED_NAMESPACES = new Map<string, string>([
-  ['accounts',              'trust'],
-  ['authentication',        'auth'],
-  ['organizations',         'orgs'],
-  ['user-role-assignments', 'users'],
-  ['billing-costs-analysis','billing'],
-])
+// PROMOTED_NAMESPACES is defined in ./constants.ts to allow the lazy register
+// to import it without pulling in allCloudApis / Zod schemas.
+import { PROMOTED_NAMESPACES } from './constants.ts'
 
 /**
  * Serverless namespaces whose commands are merged into a single `cross-project`
@@ -398,3 +395,16 @@ export function registerCloudCommands(
     serverlessGroup,
   )
 }
+
+/**
+ * Lazy-registration path for the cloud namespace.
+ *
+ * Builds lightweight stub groups for the top-level cloud sub-trees
+ * (promoted namespaces + hosted + serverless) without loading any API
+ * definitions or building any Zod schemas.  Each stub swaps itself for the
+ * real command tree on first invocation.
+ *
+ * Keeps startup heap bounded for invocations that only need cloud --help.
+ *
+ * @returns an OpaqueCommandHandle for the top-level cloud group.
+ */

@@ -92,9 +92,16 @@ export const NAMESPACES: NamespaceEntry[] = [
   {
     name: 'cloud',
     description: 'Manage Elastic Cloud (hosted deployments and serverless projects)',
-    load: async () => {
-      const { registerCloudCommands } = await import('./cloud/register.ts')
-      return registerCloudCommands()
+    load: async (opts) => {
+      // For eager mode (cli-schema generation) load the full tree.
+      // For normal startup, use the lightweight lazy path that avoids loading
+      // all API definition files and Zod schemas.
+      if (opts?.eager === true) {
+        const { registerCloudCommands } = await import('./cloud/register.ts')
+        return registerCloudCommands()
+      }
+      const { registerCloudCommandsLazy } = await import('./cloud/register-lazy.ts')
+      return registerCloudCommandsLazy()
     },
   },
   {
