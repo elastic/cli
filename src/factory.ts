@@ -7,194 +7,46 @@ import { Command } from 'commander'
 import { z } from 'zod'
 import { readFileSync, writeSync } from 'node:fs'
 import assert from 'node:assert/strict'
-import type { ResolvedConfig, CommandPolicy } from './config/types.ts'
-import { resolveBuiltinProfile } from './config/profiles.ts'
+import type { CommandPolicy } from './config/types.ts'
 import { getResolvedConfig } from './config/store.ts'
 import { extractSchemaArgs, validateSchemaArgs } from './lib/schema-args.ts'
 import type { SchemaArgDefinition } from './lib/schema-args.ts'
 import { simplifyZodIssues, formatIssuesText } from './lib/zod-error.ts'
 import { renderText, formatHandlerError } from './output.ts'
 import { pickFields, parseFieldList, applyTemplate, TemplateAgainstPrimitiveError } from './lib/output-transform.ts'
+import { validateName, isHidden, hasGlobalJsonFlag, configureErrorOutput, commandPath, isCommandAllowed, stripTransportMeta } from './factory-core.ts'
+import type { OpaqueCommandHandle, JsonValue, CommandConfig, ParsedResult } from './factory-core.ts'
+import { RawJsonValue } from './factory-core.ts'
 
-/**
- * Declared intent for a command, used by the CLI schema emitter.
- * All fields are optional — omit any that are unknown or inapplicable.
- */
-export interface CommandIntent {
-  destructive?: boolean
-  idempotent?: boolean
-  scope?: 'file' | 'directory' | 'global'
-  requiresConfirmation?: boolean
-  requiresAuth?: boolean
-}
+// Re-export everything from factory-core so existing consumers of factory.ts
+// continue to work without changing their imports.
+export {
+  type CommandIntent,
+  type OptionDefinition,
+  type JsonValue,
+  RawJsonValue,
+  type ParsedResult,
+  type CommandConfig,
+  type GroupConfig,
+  type OpaqueCommandHandle,
+  isCommandAllowed,
+  hideBlockedCommands,
+  stripTransportMeta,
+  configureJsonHelp,
+  defineGroup,
+  setHidden,
+  isHidden,
+  validateName,
+  commandPath,
+  configureErrorOutput,
+} from './factory-core.ts'
+
+// ---------------------------------------------------------------------------
+// Private helpers (only needed by defineCommand)
+// ---------------------------------------------------------------------------
 
 /** pre-built schema for coercing string → number, reused per option invocation */
 const numberSchema = z.coerce.number()
-
-/**
- * Declarative definition of a named option or boolean flag for a command.
- *
- * @example
- * ```ts
- * const opt: OptionDefinition = {
- *   long: 'timeout',
- *   short: 't',
- *   type: 'number',
- *   description: 'Request timeout in seconds',
- *   defaultValue: 30,
- * }
- * ```
- */
-export interface OptionDefinition {
-  /** long option name without `--` prefix (e.g. `'timeout'`, `'output-dir'`) */
-  long: string
-  /** single-character short alias without `-` prefix (e.g. `'t'`) */
-  short?: string
-  /** human-readable description shown in help text */
-  description: string
-  /**
-   * declared value type; governs parsing, coercion, and help text placeholder.
-   * defaults to `'string'` when omitted.
-   */
-  type?: 'string' | 'number' | 'boolean'
-  /** when `true`, the command will not invoke the handler if this option is absent */
-  required?: boolean
-  /**
-   * default value used when the option is not provided.
-   * type must match the declared `type` field.
-   */
-  defaultValue?: string | number | boolean
-}
-
-/**
- * Any value that can be round-tripped through `JSON.stringify` / `JSON.parse` without loss.
- * All command handlers must return a `JsonValue`; the factory serializes it for output.
- */
-export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
-
-/**
- * Wraps a JSON-parsed value alongside its original string representation.
- * Used by body args so the request builder can emit the original JSON
- * (preserving number formatting like `100.0`) instead of re-serializing.
- */
-export class RawJsonValue {
-  constructor (public readonly raw: string, public readonly parsed: unknown) {}
-}
-
-/**
- * Typed output of option parsing passed to the command handler.
- * Options are keyed by their `long` name and coerced to their declared types.
- *
- * The generic parameter `T` carries the validated input type when a Zod schema is provided
- * via {@link CommandConfig.input}. Defaults to `unknown` when no schema is used.
- *
- * @example
- * ```ts
- * const schema = z.object({ index: z.string(), size: z.number().default(10) })
- * defineCommand({
- *   name: 'search',
- *   input: schema,
- *   handler: (parsed: ParsedResult<z.infer<typeof schema>>) => {
- *     // parsed.input is { index: string; size: number } -- fully typed
- *   },
- * })
- * ```
- */
-export interface ParsedResult<T = unknown> {
-  /** parsed and type-coerced options, keyed by long option name */
-  options: Record<string, string | number | boolean>
-  /** resolved configuration from the active context, injected by the preAction hook */
-  config?: ResolvedConfig
-  /** parsed JSON content when `input` is enabled and data is provided via --input-file or stdin */
-  input?: T
-  /** value of the positional argument, if `positionalArg` was declared in the command config */
-  arg?: string
-  /**
-   * Raw JSON strings for body args, preserving original formatting (e.g. float `100.0`).
-   * @internal used by the request builder — handlers should read `input` instead.
-   */
-  rawBodyValues?: Record<string, RawJsonValue>
-}
-
-/**
- * Declarative configuration for a leaf command (a command that has a handler and accepts options).
- *
- * When `input` is a Zod schema of type `T`, `CommandConfig` is generic over `T` and the handler
- * receives a strongly-typed `ParsedResult<z.infer<T>>`. When `input` is omitted, the handler
- * receives `ParsedResult` with `input` typed as `unknown`.
- *
- * @example
- * ```ts
- * const inputSchema = z.object({ index: z.string(), size: z.number().default(10) })
- * const searchCmd: CommandConfig<typeof inputSchema> = {
- *   name: 'search',
- *   description: 'Search an index',
- *   input: inputSchema,
- *   handler: (parsed) => {
- *     // parsed.input is { index: string; size: number }
- *   },
- * }
- * ```
- */
-export interface CommandConfig<T extends z.ZodType = z.ZodType> {
-  /** command name (lowercase alphanumeric and hyphens only, e.g. `'health'`, `'dry-run'`) */
-  name: string
-  /** human-readable description shown in help text */
-  description: string
-  /** option and flag definitions */
-  options?: OptionDefinition[]
-  /** optional single positional argument; appears in usage as `<name>` (required) or `[name]` (optional) */
-  positionalArg?: { name: string; description: string; required?: boolean }
-  /**
-   * invoked after successful parsing and type coercion.
-   * errors thrown here propagate to the caller; the factory does not catch handler errors.
-   */
-  handler: (parsed: ParsedResult<z.infer<T>>) => JsonValue | Promise<JsonValue>
-  /**
-   * optional input schema. when a Zod schema is provided, registers `--input-file` and reads JSON from
-   * stdin or file, validates against the schema, then passes the typed result to the handler.
-   */
-  input?: T
-  /**
-   * optional text renderer for non-JSON output mode.
-   * when provided, called with the handler result and the full parsed result to produce a string
-   * written to stdout. when omitted, the factory auto-renders via {@link renderText}.
-   * never called when `--json` is active.
-   */
-  formatOutput?: (result: JsonValue, parsed: ParsedResult<z.infer<T>>) => string
-  /**
-   * optional intent declaration for the CLI schema emitter.
-   * used to derive destructiveness, idempotency, and auth requirements in emitted schema.
-   */
-  intent?: CommandIntent
-}
-
-/**
- * Declarative configuration for a command group (a non-leaf command that contains child commands).
- *
- * @example
- * ```ts
- * const config: GroupConfig = {
- *   name: 'cluster',
- *   description: 'Manage Elasticsearch clusters',
- * }
- * ```
- */
-export interface GroupConfig {
-  /** group name (lowercase alphanumeric and hyphens only) */
-  name: string
-  /** human-readable description shown in help text */
-  description: string
-}
-
-/**
- * Opaque handle returned by {@link defineCommand} and {@link defineGroup}.
- *
- * Callers may pass this handle to {@link defineGroup} or register it with the CLI program
- * via `program.addCommand(handle)`. Do not depend on the internal structure of this type --
- * the underlying implementation may change without notice.
- */
-export type OpaqueCommandHandle = import('commander').Command
 
 /**
  * Module-level stdin reader - swappable in tests via {@link _testSetStdinReader}.
@@ -213,92 +65,6 @@ export function _testSetStdinReader (fn: () => string): () => void {
   const prev = stdinReader
   stdinReader = fn
   return () => { stdinReader = prev }
-}
-
-/**
- * Returns true if `commandDotPath` is permitted under the given policy.
- *
- * Matching rules:
- * - No policy (or empty policy) → always allowed
- * - `allowed` list → command must match at least one entry
- * - `blocked` list → command must NOT match any entry
- * - Entries ending with `.*` match any command whose dot-path starts with the prefix and a `.`
- *   (e.g. `elasticsearch.*` matches `elasticsearch.search` and `elasticsearch.indices.get`
- *    but NOT `elasticsearch` itself)
- * - All other entries are exact matches
- */
-export function isCommandAllowed(commandDotPath: string, policy: CommandPolicy | undefined): boolean {
-  if (policy == null) return true
-
-  function matches(pattern: string): boolean {
-    if (pattern.endsWith('.*')) {
-      const prefix = pattern.slice(0, -2)
-      return commandDotPath === prefix + '.' + commandDotPath.slice(prefix.length + 1) &&
-        commandDotPath.startsWith(prefix + '.')
-    }
-    return commandDotPath === pattern
-  }
-
-  // Profile-based filtering: resolve the named profile to its allow-list and
-  // check against it first, then apply any additional `blocked` restriction.
-  if (policy.profile != null) {
-    const profilePolicy = resolveBuiltinProfile(policy.profile)
-    if (profilePolicy != null) {
-      // Profile acts as an allow-list; if the command is not in it, deny.
-      if (!profilePolicy.allowed.some(matches)) return false
-    }
-    // `blocked` further restricts on top of the profile (always allowed to restrict more).
-    if (policy.blocked != null) return !policy.blocked.some(matches)
-    return true
-  }
-
-  if (policy.allowed != null) return policy.allowed.some(matches)
-  if (policy.blocked != null) return !policy.blocked.some(matches)
-  return true
-}
-
-// Commander checks `_hidden` to exclude commands from --help, but the
-// property isn't in the public typings —
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function setHidden(cmd: OpaqueCommandHandle, value: boolean): void { (cmd as unknown as any)._hidden = value }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function isHidden(cmd: OpaqueCommandHandle): boolean { return (cmd as unknown as any)._hidden === true }
-
-/**
- * Returns true if `cmd` is a stub group — a group with no children that was
- * registered in cli.ts as a lazy-loading placeholder.
- *
- * Stub groups should never be hidden by policy because their children have not
- * been loaded yet; we cannot determine whether any child would be allowed.
- * When the user navigates into the group its children are loaded and filtered
- * correctly at that level.
- */
-function isStubGroup (cmd: OpaqueCommandHandle): boolean {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const c = cmd as unknown as any
-  return c._isGroup === true && (c.commands == null || c.commands.length === 0)
-}
-
-/**
- * Walk the command tree and hide any commands the policy blocks.
- * Groups where every child is hidden are hidden too.
- * Stub groups (unloaded lazy namespaces) are never hidden.
- * Call on the root program so dot-paths like `es.cat.health` are built correctly.
- */
-export function hideBlockedCommands(root: OpaqueCommandHandle, policy: CommandPolicy | undefined, prefix = ''): void {
-  if (policy == null) return
-  for (const child of root.commands as OpaqueCommandHandle[]) {
-    const path = prefix ? `${prefix}.${child.name()}` : child.name()
-    const subs = child.commands as OpaqueCommandHandle[]
-    if (subs.length > 0) {
-      hideBlockedCommands(child, policy, path)
-      if (subs.every(isHidden)) setHidden(child, true)
-    } else if (isStubGroup(child)) {
-      // Unloaded lazy namespace: leave visible. Children are filtered when loaded.
-    } else {
-      setHidden(child, !isCommandAllowed(path, policy))
-    }
-  }
 }
 
 /** converts a kebab-case option name to camelCase to match Commander's opts() keys */
@@ -360,27 +126,11 @@ function singleValueGuard<T> (
   }
 }
 
-/** valid command/group name: non-empty, lowercase alphanumeric characters and hyphens only */
-const VALID_NAME = /^[a-z0-9][a-z0-9-]*$/
-
-/**
- * Validates a command or group name against the data-model rules.
- * @throws {Error} if the name is empty or contains invalid characters
- */
-function validateName (name: string, kind: 'command' | 'group'): void {
-  if (!VALID_NAME.test(name)) {
-    throw new Error(
-      `invalid ${kind} name ${JSON.stringify(name)}: ` +
-      'names must be non-empty and contain only lowercase letters, digits, and hyphens'
-    )
-  }
-}
-
 /**
  * Validates all option definitions for a command.
  * @throws {Error} on short alias length, long name length, or duplicate name violations
  */
-function validateOptions (options: OptionDefinition[]): void {
+function validateOptions (options: import('./factory-core.ts').OptionDefinition[]): void {
   const seenLong = new Set<string>()
   const seenShort = new Set<string>()
 
@@ -425,91 +175,10 @@ function validateInput (name: string, input: unknown): void {
 }
 
 /**
- * Recursively removes `found_in` keys from a JSON Schema object.
- * Exported for reuse in cli-schema.ts validation extraction.
- *
- * `found_in` is internal routing metadata used by the request builder to classify
- * parameters as path, query, or body. It is an HTTP transport implementation detail
- * and MUST NOT be exposed in user-facing help text or agent-facing JSON Schema output
- * (Constitution Principle VIII: Transport-Layer Abstraction).
+ * Configures `--help --json` on a leaf command to emit the JSON Schema derived
+ * from the command's input Zod schema. Uses synchronous blocking write to prevent
+ * truncation when stdout is piped.
  */
-export function stripTransportMeta (value: JsonValue): JsonValue {
-  if (Array.isArray(value)) return value.map(stripTransportMeta)
-  if (value !== null && typeof value === 'object') {
-    const out: Record<string, JsonValue> = {}
-    for (const [k, v] of Object.entries(value)) {
-      if (k === 'found_in') continue
-      out[k] = stripTransportMeta(v)
-    }
-    return out
-  }
-  return value
-}
-
-/**
- * Returns true when `--json` is set on the root program. Walks up the parent
- * chain so it works regardless of whether `cmd` is the root, a group, or a leaf.
- */
-function hasGlobalJsonFlag (cmd: OpaqueCommandHandle): boolean {
-  let current: OpaqueCommandHandle = cmd
-  while (current.parent != null) current = current.parent
-  return (current.opts() as { json?: boolean }).json === true
-}
-
-/**
- * Serialises a command's help structure as JSON: name, description, usage,
- * visible options, and visible sub-commands. Used by {@link configureJsonHelp}
- * so `--help --json` returns machine-readable output for groups and the root
- * program (leaf commands with an input schema continue to return that schema).
- */
-function formatHelpAsJson (cmd: OpaqueCommandHandle): string {
-  const options = cmd.options
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .filter(o => (o as any).hidden !== true)
-    .map(o => {
-      const entry: Record<string, JsonValue> = { flags: o.flags, description: o.description }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const dv = (o as any).defaultValue
-      if (typeof dv === 'string' || typeof dv === 'number' || typeof dv === 'boolean') {
-        entry['defaultValue'] = dv
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((o as any).mandatory === true) entry['mandatory'] = true
-      return entry
-    })
-  const commands = (cmd.commands as OpaqueCommandHandle[])
-    .filter(c => !isHidden(c) && c.name() !== 'help')
-    .map(c => {
-      const entry: Record<string, JsonValue> = { name: c.name(), description: c.description() }
-      const aliases = c.aliases()
-      if (aliases.length > 0) entry['aliases'] = aliases
-      return entry
-    })
-  const data: JsonValue = {
-    name: cmd.name(),
-    description: cmd.description(),
-    usage: cmd.usage(),
-    options,
-    commands,
-  }
-  return JSON.stringify(data) + '\n'
-}
-
-/**
- * Hooks into Commander's help formatter so `--help --json` emits structured
- * JSON describing the command tree (name, description, options, sub-commands)
- * instead of the text help. Apply to the root program and to command groups.
- */
-export function configureJsonHelp (cmd: OpaqueCommandHandle): void {
-  const origHelp = cmd.createHelp()
-  cmd.configureHelp({
-    formatHelp: (thisCmd, helper) => {
-      if (hasGlobalJsonFlag(thisCmd)) return formatHelpAsJson(thisCmd)
-      return origHelp.formatHelp(thisCmd, helper)
-    }
-  })
-}
-
 function configureHelpWithSchema (
   cmd: OpaqueCommandHandle,
   inputSchema: z.ZodType | undefined,
@@ -535,50 +204,12 @@ function configureHelpWithSchema (
   // pipe file-descriptors into non-blocking mode once process.stdout is
   // initialised, so a bare writeSync would also stop at the pipe-buffer limit;
   // setBlocking(true) restores blocking mode first.
-  //
-  // Tests replace writeOut after defineCommand() via cmd.configureOutput(), so
-  // this override is transparent to the test suite.
   cmd.configureOutput({
     writeOut: (str) => {
       ;(process.stdout as NodeJS.WriteStream & { _handle?: { setBlocking?: (b: boolean) => void } })
         ._handle?.setBlocking?.(true)
       writeSync(1, str)
     },
-  })
-}
-
-/** builds the full command path by walking the parent chain (e.g. `"elastic cluster health"`) */
-function commandPath (cmd: OpaqueCommandHandle): string {
-  const parts: string[] = []
-  let current: OpaqueCommandHandle | null = cmd
-  while (current != null) {
-    if (current.name()) parts.unshift(current.name())
-    current = current.parent
-  }
-  return parts.join(' ')
-}
-
-/**
- * Configures a command's error output to match the factory error contract:
- *
- * ```
- * Error: <message>
- *
- * Usage: <command-path> <usage-suffix>
- *
- * Run "<command-path> --help" for more information.
- * ```
- *
- * Using `outputError` (rather than `writeErr`) ensures the formatting persists
- * even when callers subsequently override `writeErr` for output capture.
- */
-function configureErrorOutput (cmd: OpaqueCommandHandle): void {
-  cmd.configureOutput({
-    outputError: (str, write) => {
-      const msg = str.replace(/^error:\s*/i, '').trimEnd()
-      const path = commandPath(cmd)
-      write(`Error: ${msg}\n\nUsage: ${path} ${cmd.usage()}\n\nRun "${path} --help" for more information.\n`)
-    }
   })
 }
 
@@ -611,6 +242,10 @@ function isErrorResult (value: JsonValue): boolean {
     typeof value.error.code === 'string'
   )
 }
+
+// ---------------------------------------------------------------------------
+// defineCommand
+// ---------------------------------------------------------------------------
 
 /**
  * Creates a leaf command from a declarative config and returns an opaque handle.
@@ -663,10 +298,6 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       : `[${config.positionalArg.name}]`
     cmd.argument(placeholder, config.positionalArg.description)
   }
-
-  // EXTENSION POINT: output formatting (Principle II)
-  // Future: inspect config for a `format?: 'text' | 'json'` field and configure
-  // a global output serialiser here, before any option registration.
 
   const optDefs = config.options ?? []
 
@@ -997,50 +628,4 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
   })
 
   return cmd
-}
-
-/**
- * Creates a command group from a declarative config, attaching child command handles.
- * Returns an opaque handle registerable with the CLI program or a parent group.
- *
- * **Behaviour**:
- * - When invoked without a sub-command: displays group-level help and exits cleanly (code 0)
- * - When invoked with an unrecognised sub-command: emits a structured error message
- * - When invoked with a known sub-command: dispatches to that command's handler
- *
- * @example
- * ```ts
- * const healthCmd = defineCommand({ name: 'health', ... })
- * const statsCmd  = defineCommand({ name: 'stats',  ... })
- *
- * const clusterGroup = defineGroup(
- *   { name: 'cluster', description: 'Manage Elasticsearch clusters' },
- *   healthCmd,
- *   statsCmd,
- * )
- * ```
- */
-export function defineGroup (config: GroupConfig, ...commands: OpaqueCommandHandle[]): OpaqueCommandHandle {
-  validateName(config.name, 'group')
-  const group = new Command(config.name)
-  group.description(config.description)
-  group.allowExcessArguments(true)
-  configureErrorOutput(group)
-  configureJsonHelp(group)
-  // Mark as a group so hideBlockedCommands can distinguish groups from leaf commands.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ;(group as unknown as any)._isGroup = true
-  for (const cmd of commands) {
-    group.addCommand(cmd)
-  }
-  // when invoked without a sub-command: show help (exit 0);
-  // when invoked with an unrecognised sub-command: emit a clear error
-  group.action(function (this: OpaqueCommandHandle) {
-    if (this.args.length > 0) {
-      group.error(`unknown command: ${this.args[0]}`)
-    } else {
-      group.help()
-    }
-  })
-  return group
 }

@@ -395,16 +395,3 @@ export function registerCloudCommands(
     serverlessGroup,
   )
 }
-
-/**
- * Lazy-registration path for the cloud namespace.
- *
- * Builds lightweight stub groups for the top-level cloud sub-trees
- * (promoted namespaces + hosted + serverless) without loading any API
- * definitions or building any Zod schemas.  Each stub swaps itself for the
- * real command tree on first invocation.
- *
- * Keeps startup heap bounded for invocations that only need cloud --help.
- *
- * @returns an OpaqueCommandHandle for the top-level cloud group.
- */

@@ -4,8 +4,8 @@
  */
 
 import type { Command } from 'commander'
-import { defineGroup } from './factory.ts'
-import type { OpaqueCommandHandle } from './factory.ts'
+import { defineGroup } from './factory-core.ts'
+import type { OpaqueCommandHandle } from './factory-core.ts'
 
 export interface LoadOptions {
   /**
@@ -101,7 +101,7 @@ export const NAMESPACES: NamespaceEntry[] = [
         return registerCloudCommands()
       }
       const { registerCloudCommandsLazy } = await import('./cloud/register-lazy.ts')
-      return registerCloudCommandsLazy()
+      return registerCloudCommandsLazy(opts?.targetSubNamespace)
     },
   },
   {

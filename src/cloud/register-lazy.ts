@@ -17,8 +17,8 @@
  */
 
 import { Command } from 'commander'
-import { defineGroup } from '../factory.ts'
-import type { OpaqueCommandHandle } from '../factory.ts'
+import { defineGroup } from '../factory-core.ts'
+import type { OpaqueCommandHandle } from '../factory-core.ts'
 import { PROMOTED_NAMESPACES } from './constants.ts'
 
 /**
@@ -26,18 +26,11 @@ import { PROMOTED_NAMESPACES } from './constants.ts'
  * `Command` objects.  Stubs swap themselves for the real tree on first
  * invocation (any action or option processing).
  *
- * When the user requests help for a sub-group (e.g. `cloud hosted --help`),
- * the full tree is loaded eagerly so sub-command names appear correctly.
+ * When `targetSubNamespace` is set (forwarded from `cli.ts` via `LoadOptions`),
+ * the full tree is loaded eagerly so help shows real sub-commands.
  */
-export async function registerCloudCommandsLazy (): Promise<OpaqueCommandHandle> {
-  // Sniff if the user is requesting a sub-group (e.g. `cloud hosted --help`).
-  // If so, load the full command tree eagerly so help shows real sub-commands.
-  // If the user only wants top-level cloud help, build lightweight stubs.
-  /* c8 ignore next 7 */
-  const tokens = process.argv.slice(2).filter(t => !t.startsWith('-'))
-  const cloudArgIdx = tokens.indexOf('cloud')
-  const subGroupRequested = cloudArgIdx >= 0 && tokens[cloudArgIdx + 1] != null
-  if (subGroupRequested) {
+export async function registerCloudCommandsLazy (targetSubNamespace?: string): Promise<OpaqueCommandHandle> {
+  if (targetSubNamespace != null) {
     const { registerCloudCommands } = await import('./register.js')
     return registerCloudCommands()
   }
@@ -60,21 +53,6 @@ export async function registerCloudCommandsLazy (): Promise<OpaqueCommandHandle>
     const cmd = new Command(stub.name)
     cmd.description(stub.description)
     cmd.allowUnknownOption(true)
-    /* c8 ignore start */
-    cmd.action(async () => {
-      // Swap in the real cloud tree on first invocation of any stub.
-      const { registerCloudCommands } = await import('./register.js')
-      const realCloud = registerCloudCommands()
-      const parent = cmd.parent
-      if (parent != null) {
-        const list = parent.commands as Command[]
-        const cloudIdx = list.findIndex(c => c.name() === 'cloud')
-        if (cloudIdx >= 0) list.splice(cloudIdx, 1)
-        parent.addCommand(realCloud)
-        await parent.parseAsync(process.argv)
-      }
-    })
-    /* c8 ignore stop */
     ;(cloudGroup as Command).addCommand(cmd)
   }
 
