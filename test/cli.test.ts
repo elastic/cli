@@ -235,6 +235,17 @@ describe('elastic CLI -- config-free commands', () => {
       await rm(dir, { recursive: true })
     }
   })
+
+  it('`elastic version` without --json outputs plain text', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-'))
+    try {
+      const { code, stdout } = await runCli(['version'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      assert.match(stdout.trim(), /^Elastic CLI v\d+\.\d+\.\d+$/)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
 })
 
 describe('elastic CLI -- stack command tree', () => {
