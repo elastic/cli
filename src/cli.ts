@@ -59,6 +59,9 @@ if (!wantsHelp) {
   program.hook('preAction', async (thisCommand, actionCommand) => {
     const skipActionNames: ReadonlySet<string> = new Set(['version', 'completion', '__complete', 'status'])
     if (skipActionNames.has(actionCommand.name())) return
+    // Groups with no sub-command will just call group.help() — no real action fires.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((actionCommand as any)._isGroup === true && actionCommand.args.length === 0) return
 
     const skipConfigNames: ReadonlySet<string> = new Set(['docs', 'config', 'sanitize', 'cli-schema'])
     for (let c: Command | null = actionCommand; c != null; c = c.parent) {
@@ -234,7 +237,11 @@ if (firstArg === 'status') {
 // Early config load (for --command-profile filtering in help output)
 let earlyConfig: LoadConfigResult | undefined
 const hasProfileFlag = argv.includes('--command-profile')
-if (firstArg != null && (!wantsHelp || hasProfileFlag)) {
+const CONTEXT_NAMESPACES = new Set(['stack', 'cloud'])
+// skip early config when Commander will just print help — no action will fire.
+// operands = [namespace, subcommand?, ...rest]; a sub-subcommand is at operands[2].
+const willJustPrintHelp = CONTEXT_NAMESPACES.has(firstArg ?? '') && operands.length < 3
+if (firstArg != null && (!willJustPrintHelp || hasProfileFlag)) {
   const SKIP_EARLY_CONFIG: ReadonlySet<string> = new Set([
     'version', 'extension', 'status', 'completion', '__complete',
     'docs', 'config', 'sanitize', 'cli-schema',
