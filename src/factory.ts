@@ -4,22 +4,20 @@
  */
 
 import { Command } from 'commander'
-import { z } from 'zod'
+import type { z } from 'zod'
+import { createRequire } from 'node:module'
 import { readFileSync, writeSync } from 'node:fs'
 import assert from 'node:assert/strict'
-import type { CommandPolicy } from './config/types.ts'
 import { getResolvedConfig } from './config/store.ts'
 import { extractSchemaArgs, validateSchemaArgs } from './lib/schema-args.ts'
 import type { SchemaArgDefinition } from './lib/schema-args.ts'
-import { simplifyZodIssues, formatIssuesText } from './lib/zod-error.ts'
-import { renderText, formatHandlerError } from './output.ts'
+import type { renderText as _RT, formatHandlerError as _FHE } from './output.ts'
 import { pickFields, parseFieldList, applyTemplate, TemplateAgainstPrimitiveError } from './lib/output-transform.ts'
-import { validateName, isHidden, hasGlobalJsonFlag, configureErrorOutput, commandPath, isCommandAllowed, stripTransportMeta } from './factory-core.ts'
+import { validateName, hasGlobalJsonFlag, configureErrorOutput, commandPath, isCommandAllowed, stripTransportMeta } from './factory-core.ts'
 import type { OpaqueCommandHandle, JsonValue, CommandConfig, ParsedResult } from './factory-core.ts'
 import { RawJsonValue } from './factory-core.ts'
 
-// Re-export everything from factory-core so existing consumers of factory.ts
-// continue to work without changing their imports.
+// Re-export from factory-core for backward compatibility
 export {
   type CommandIntent,
   type OptionDefinition,
@@ -41,12 +39,25 @@ export {
   configureErrorOutput,
 } from './factory-core.ts'
 
-// ---------------------------------------------------------------------------
-// Private helpers (only needed by defineCommand)
-// ---------------------------------------------------------------------------
+// Lazy-loaded modules; deferred to improve performance of --help calls
+const _require = createRequire(import.meta.url)
+let _zMod: (typeof import('zod')) | null = null
+function getZ (): typeof import('zod').z {
+  if (_zMod == null) _zMod = _require('zod') as typeof import('zod')
+  return _zMod.z
+}
 
-/** pre-built schema for coercing string → number, reused per option invocation */
-const numberSchema = z.coerce.number()
+let _outputMod: Promise<{ renderText: typeof _RT; formatHandlerError: typeof _FHE }> | null = null
+function getOutput () {
+  if (_outputMod == null) _outputMod = import('./output.js') as unknown as typeof _outputMod
+  return _outputMod!
+}
+
+let _numberSchema: ReturnType<typeof import('zod').z.coerce.number> | null = null
+function numberSchema () {
+  if (_numberSchema == null) _numberSchema = getZ().coerce.number()
+  return _numberSchema
+}
 
 /**
  * Module-level stdin reader - swappable in tests via {@link _testSetStdinReader}.
@@ -169,7 +180,7 @@ function validateOptions (options: import('./factory-core.ts').OptionDefinition[
  * @throws {Error} if `input` is defined but is not a `z.ZodType` instance
  */
 function validateInput (name: string, input: unknown): void {
-  if (input !== undefined && !(input instanceof z.ZodType)) {
+  if (input !== undefined && !(input instanceof getZ().ZodType)) {
     throw new Error(`command ${JSON.stringify(name)}: input must be a Zod schema`)
   }
 }
@@ -188,7 +199,7 @@ function configureHelpWithSchema (
     formatHelp: (thisCmd, helper) => {
       if (hasGlobalJsonFlag(thisCmd)) {
         const jsonSchema = inputSchema != null
-          ? stripTransportMeta(z.toJSONSchema(inputSchema, { reused: 'ref' }) as JsonValue)
+          ? stripTransportMeta(getZ().toJSONSchema(inputSchema, { reused: 'ref' }) as JsonValue)
           : undefined
         return jsonSchema != null ? JSON.stringify(jsonSchema) + '\n' : ''
       }
@@ -243,10 +254,6 @@ function isErrorResult (value: JsonValue): boolean {
   )
 }
 
-// ---------------------------------------------------------------------------
-// defineCommand
-// ---------------------------------------------------------------------------
-
 /**
  * Creates a leaf command from a declarative config and returns an opaque handle.
  *
@@ -283,7 +290,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
   validateOptions(config.options ?? [])
   validateInput(config.name, config.input)
   // --input-file is reserved when input is a schema; catch collision at definition time
-  if (config.input instanceof z.ZodType && config.options?.some((o) => o.long === 'input-file')) {
+  if (config.input instanceof getZ().ZodType && config.options?.some((o) => o.long === 'input-file')) {
     throw new Error(
       `command ${JSON.stringify(config.name)}: option --input-file is reserved when input is enabled`
     )
@@ -315,7 +322,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       const flagWithArg = `${flag} <number>`
       const attrName = camelCase(opt.long)
       const parseNum = (val: string): number => {
-        const result = numberSchema.safeParse(val)
+        const result = numberSchema().safeParse(val)
         if (!result.success) {
           cmd.error(`option --${opt.long}: expected a number, got: ${val}`)
         }
@@ -331,7 +338,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
 
   // schema-derived CLI options (registered before --input-file so help text order is correct)
   let schemaArgs: SchemaArgDefinition[] = []
-  if (config.input instanceof z.ZodType) {
+  if (config.input instanceof getZ().ZodType) {
     schemaArgs = extractSchemaArgs(config.input)
     validateSchemaArgs(schemaArgs)
     for (const arg of schemaArgs) {
@@ -348,7 +355,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       } else if (arg.type === 'number') {
         const attrName = camelCase(arg.cliFlag)
         const parseNum = (val: string): number => {
-          const r = numberSchema.safeParse(val)
+          const r = numberSchema().safeParse(val)
           if (!r.success) cmd.error(`option --${arg.cliFlag}: expected a number, got: ${val}`)
           return r.data!
         }
@@ -366,7 +373,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       }
     }
   }
-  if (config.input instanceof z.ZodType) {
+  if (config.input instanceof getZ().ZodType) {
     cmd.option('--input-file <path>', 'path to a JSON file to use as command input')
   }
   const schemaClaimsDryRun = schemaArgs.some((a) => a.cliFlag === 'dry-run')
@@ -376,7 +383,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
 
   configureHelpWithSchema(
     cmd,
-    config.input instanceof z.ZodType ? config.input : undefined,
+    config.input instanceof getZ().ZodType ? config.input : undefined,
   )
 
   // Attach typed metadata for tooling (e.g. cli-schema). Non-enumerable so it
@@ -413,7 +420,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     const jsonFormat = allRaw.json
     let inputValue: unknown
     const rawBodyValues: Record<string, RawJsonValue> = {}
-    if (config.input instanceof z.ZodType) {
+    if (config.input instanceof getZ().ZodType) {
       const filePath = cmd.getOptionValue('inputFile') as string | undefined
       if (filePath !== undefined) {
         let fileContent: string
@@ -524,11 +531,11 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       ...(positionalValue !== undefined ? { arg: positionalValue } : {})
     }
     if (inputValue !== undefined) {
-      assert(config.input instanceof z.ZodType, `command ${JSON.stringify(config.name)}: input must be a Zod schema`)
+      assert(config.input instanceof getZ().ZodType, `command ${JSON.stringify(config.name)}: input must be a Zod schema`)
       // Use passthrough so unknown fields (plugin-specific, newer ES versions) flow
       // through to the server instead of being rejected client-side (#170).
       let validationSchema: z.ZodType = (
-        config.input instanceof z.ZodObject &&
+        config.input instanceof getZ().ZodObject &&
         (config.input.def as unknown as { catchall?: { type: string } }).catchall?.type !== 'unknown'
       )
         ? config.input.passthrough()
@@ -546,10 +553,10 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
         a => a.foundIn === 'body' &&
              (a.type === 'object' || a.type === 'array' || a.parseStyle === 'sort-pairs')
       )
-      if (jsonBodyFields.length > 0 && validationSchema instanceof z.ZodObject) {
+      if (jsonBodyFields.length > 0 && validationSchema instanceof getZ().ZodObject) {
         const overrides: Record<string, z.ZodType> = {}
         for (const f of jsonBodyFields) {
-          overrides[f.schemaKey] = f.required ? z.any() : z.any().optional()
+          overrides[f.schemaKey] = f.required ? getZ().any() : getZ().any().optional()
         }
         validationSchema = (validationSchema as z.ZodObject<z.ZodRawShape>).extend(overrides)
       }
@@ -561,6 +568,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
           parsed.rawBodyValues = rawBodyValues
         }
       } else {
+        const { simplifyZodIssues, formatIssuesText } = await import('./lib/zod-error.js')
         const issues = simplifyZodIssues(result.error.issues)
         if (jsonFormat === true) {
           process.stderr.write(JSON.stringify({
@@ -585,6 +593,8 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       return
     }
     const handlerResult = await config.handler(parsed)
+
+    const { renderText, formatHandlerError } = await getOutput()
     assert(handlerResult !== undefined, `command ${JSON.stringify(config.name)}: handler must return a JsonValue`)
     if (isErrorResult(handlerResult)) {
       if (jsonFormat === true) {

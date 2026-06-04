@@ -259,9 +259,10 @@ export function commandPath (cmd: OpaqueCommandHandle): string {
  * program (leaf commands with an input schema return the JSON Schema instead).
  */
 function formatHelpAsJson (cmd: OpaqueCommandHandle): string {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const options = cmd.options
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .filter((o: any) => !o.hidden)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .map((o: any) => {
       const entry: Record<string, JsonValue> = { flags: o.flags, description: o.description }
       if (typeof o.defaultValue === 'string' || typeof o.defaultValue === 'number' || typeof o.defaultValue === 'boolean') {
