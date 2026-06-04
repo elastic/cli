@@ -18,6 +18,8 @@ export interface LoadOptions {
   version?: string
   /** Root Commander program; forwarded to namespaces that introspect global options. */
   rootProgram?: Command
+  /** Sub-namespace hint; skips loading unrelated modules when set. Ignored when `eager` is true. */
+  targetSubNamespace?: string | undefined
 }
 
 /**
@@ -66,16 +68,23 @@ export const NAMESPACES: NamespaceEntry[] = [
     ],
     load: async (opts) => {
       const eager = opts?.eager === true
+      const target = opts?.targetSubNamespace
+      const needEs = eager || target !== 'kb'
+      const needKb = eager || target !== 'es'
       const [esModule, kbModule] = await Promise.all([
-        import('./es/register.ts'),
-        import('./kb/register.ts'),
+        needEs ? import('./es/register.ts') : null,
+        needKb ? import('./kb/register.ts') : null,
       ])
-      const esGroup = eager
-        ? await esModule.registerEsCommandsEager()
-        : await esModule.registerEsCommandsLazy()
+      const esGroup = esModule == null
+        ? defineGroup({ name: 'es', description: 'Elasticsearch APIs' })
+        : eager
+          ? await esModule.registerEsCommandsEager()
+          : await esModule.registerEsCommandsLazy()
       esGroup.alias('elasticsearch')
       let kbGroup: OpaqueCommandHandle
-      if (eager) {
+      if (kbModule == null) {
+        kbGroup = defineGroup({ name: 'kb', description: 'Kibana APIs' })
+      } else if (eager) {
         const { loadAllKbApis } = await import('./kb/apis.ts')
         kbGroup = kbModule.registerKbCommands(await loadAllKbApis())
       } else {
