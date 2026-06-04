@@ -13,7 +13,7 @@ const APIS_DIR = join(ROOT, 'src', 'es', 'apis')
 const OUT = join(ROOT, 'src', 'es', 'api-manifest.ts')
 
 const DEF_RE = /^\s*\{\s*$([\s\S]*?)^\s*\},/gm
-const FIELD_RE = /^\s*(name|namespace|description|method|path|responseType|bodyFormat):\s*("(?:[^"\\]|\\.)*"|'[^']*'),?\s*$/gm
+const FIELD_RE = /^\s*(name|namespace|description):\s*("(?:[^"\\]|\\.)*"|'[^']*'),?\s*$/gm
 
 const entries = []
 const files = (await readdir(APIS_DIR)).filter(f => f.endsWith('.ts') && f !== 'types.ts')
@@ -27,17 +27,12 @@ for (const file of files.sort()) {
       fields[fm[1]] = JSON.parse(fm[2].replace(/^'(.*)'$/, '"$1"'))
     }
     if (!fields.name) continue
-    const entry = {
+    entries.push({
       name: fields.name,
       namespace: fields.namespace ?? null,
       description: fields.description ?? '',
-      method: fields.method,
-      path: fields.path,
       namespaceFile: fileStem,
-    }
-    if (fields.responseType) entry.responseType = fields.responseType
-    if (fields.bodyFormat) entry.bodyFormat = fields.bodyFormat
-    entries.push(entry)
+    })
   }
 }
 
@@ -58,10 +53,6 @@ export interface EsApiMeta {
   readonly name: string
   readonly namespace: string | null
   readonly description: string
-  readonly method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD'
-  readonly path: string
-  readonly responseType?: 'json' | 'text'
-  readonly bodyFormat?: 'json' | 'ndjson'
   /** File stem under src/es/apis/ that holds the full EsApiDefinition. */
   readonly namespaceFile: string
 }

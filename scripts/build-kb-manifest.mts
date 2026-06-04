@@ -11,8 +11,10 @@ function toCamelCase (stem: string): string {
 }
 
 interface Entry {
-  def: KbApiDefinition
-  file: string
+  name: string
+  namespace: string
+  description: string
+  namespaceFile: string
 }
 
 const entries: Entry[] = []
@@ -25,18 +27,14 @@ for (const file of files) {
     throw new Error(`src/kb/apis/${file} did not export ${exportName}`)
   }
   for (const def of defs) {
-    entries.push({ def, file: stem })
+    entries.push({
+      name: def.name,
+      namespace: def.namespace,
+      description: def.description,
+      namespaceFile: stem,
+    })
   }
 }
-
-const manifest = entries.map(({ def, file }) => ({
-  name: def.name,
-  namespace: def.namespace,
-  description: def.description,
-  method: def.method,
-  path: def.path,
-  namespaceFile: file,
-}))
 
 const lines = [
   '/*',
@@ -49,22 +47,18 @@ const lines = [
   ' * DO NOT EDIT BY HAND. Regenerate after running the code generator.',
   ' */',
   '',
-  "import type { HttpMethod } from './types.ts'",
-  '',
   '/** Cheap metadata for every Kibana API command. No Zod schemas built. */',
   'export interface KbApiMeta {',
   '  readonly name: string',
   '  readonly namespace: string',
   '  readonly description: string',
-  '  readonly method: HttpMethod',
-  '  readonly path: string',
   '  /** File stem under src/kb/apis/ that holds the full KbApiDefinition. */',
   '  readonly namespaceFile: string',
   '}',
   '',
-  'export const kbApiManifest: readonly KbApiMeta[] = ' + JSON.stringify(manifest, null, 2),
+  `export const kbApiManifest: readonly KbApiMeta[] = ${JSON.stringify(entries, null, 2)} as const`,
   '',
 ]
 
 fs.writeFileSync('./src/kb/api-manifest.ts', lines.join('\n'))
-console.log(`Wrote manifest with ${manifest.length} entries`)
+console.log(`Wrote manifest with ${entries.length} entries`)
