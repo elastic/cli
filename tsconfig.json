@@ -21,13 +21,18 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "removeComments": true
   },
   "include": [
     "src/**/*"
   ],
   "references": [
-    { "path": "./packages/config-resolver" },
-    { "path": "./packages/es-schemas" }
+    {
+      "path": "./packages/config-resolver"
+    },
+    {
+      "path": "./packages/es-schemas"
+    }
   ]
 }
