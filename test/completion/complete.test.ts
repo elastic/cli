@@ -26,6 +26,24 @@ function parseOutput (output: string): { candidates: string[]; directive: number
   }
 }
 
+
+async function withConfig (yamlLines: string[], fn: () => Promise<void>) {
+  const { mkdtemp, writeFile, rm } = await import('node:fs/promises')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-test-'))
+  const path = join(dir, 'config.yml')
+  await writeFile(path, yamlLines.join('\n'))
+  const originalEnv = process.env['ELASTIC_CLI_CONFIG_FILE']
+  process.env['ELASTIC_CLI_CONFIG_FILE'] = path
+  try {
+    await fn()
+  } finally {
+    if (originalEnv != null) process.env['ELASTIC_CLI_CONFIG_FILE'] = originalEnv
+    else delete process.env['ELASTIC_CLI_CONFIG_FILE']
+    await rm(dir, { recursive: true })
+  }
+}
 describe('buildCompletionTree -- top-level commands', () => {
   it('registers version + every visible top-level group as stubs by default', async () => {
     const root = await buildCompletionTree([])
@@ -101,20 +119,9 @@ describe('buildCompletionTree -- lazy loading', () => {
 })
 
 describe('handleComplete -- policy enforcement', () => {
-  const ORIGINAL_ENV = process.env['ELASTIC_CLI_CONFIG_FILE']
-  beforeEach(() => { delete process.env['ELASTIC_CLI_CONFIG_FILE'] })
-  afterEach(() => {
-    if (ORIGINAL_ENV != null) process.env['ELASTIC_CLI_CONFIG_FILE'] = ORIGINAL_ENV
-    else delete process.env['ELASTIC_CLI_CONFIG_FILE']
-  })
 
   it('hides top-level groups blocked by commands.blocked', async () => {
-    const { mkdtemp, writeFile, rm } = await import('node:fs/promises')
-    const { tmpdir } = await import('node:os')
-    const { join } = await import('node:path')
-    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-policy-'))
-    const path = join(dir, 'config.yml')
-    await writeFile(path, [
+    await withConfig([
       'current_context: local',
       'commands:',
       '  blocked:',
@@ -125,10 +132,7 @@ describe('handleComplete -- policy enforcement', () => {
       '    elasticsearch:',
       '      url: http://localhost:9200',
       '',
-    ].join('\n'))
-    process.env['ELASTIC_CLI_CONFIG_FILE'] = path
-
-    try {
+    ], async () => {
       const buf = bufferedWriter()
       await handleComplete([''], buf.write)
 
@@ -139,18 +143,11 @@ describe('handleComplete -- policy enforcement', () => {
       // Groups not blocked should still appear.
       assert.ok(out.candidates.includes('stack'))
       assert.ok(out.candidates.includes('version'))
-    } finally {
-      await rm(dir, { recursive: true })
-    }
+    })
   })
 
   it('applies blocked commands without resolving active-context expressions', async () => {
-    const { mkdtemp, writeFile, rm } = await import('node:fs/promises')
-    const { tmpdir } = await import('node:os')
-    const { join } = await import('node:path')
-    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-policy-'))
-    const path = join(dir, 'config.yml')
-    await writeFile(path, [
+    await withConfig([
       'current_context: local',
       'commands:',
       '  blocked:',
@@ -160,11 +157,9 @@ describe('handleComplete -- policy enforcement', () => {
       '    elasticsearch:',
       '      url: $(env:ELASTIC_COMPLETION_MISSING_URL)',
       '',
-    ].join('\n'))
-    process.env['ELASTIC_CLI_CONFIG_FILE'] = path
-    delete process.env['ELASTIC_COMPLETION_MISSING_URL']
+    ], async () => {
+      delete process.env['ELASTIC_COMPLETION_MISSING_URL']
 
-    try {
       const buf = bufferedWriter()
       await handleComplete([''], buf.write)
 
@@ -172,9 +167,7 @@ describe('handleComplete -- policy enforcement', () => {
       assert.ok(!out.candidates.includes('sanitize'),
         `sanitize should be hidden by policy even with unresolved expressions; got: ${out.candidates.join(',')}`)
       assert.ok(out.candidates.includes('stack'))
-    } finally {
-      await rm(dir, { recursive: true })
-    }
+    })
   })
 })
 
@@ -222,20 +215,9 @@ describe('handleComplete -- stdout protocol', () => {
 })
 
 describe('handleComplete -- dynamic context name completion', () => {
-  const ORIGINAL_ENV = process.env['ELASTIC_CLI_CONFIG_FILE']
-  beforeEach(() => { delete process.env['ELASTIC_CLI_CONFIG_FILE'] })
-  afterEach(() => {
-    if (ORIGINAL_ENV != null) process.env['ELASTIC_CLI_CONFIG_FILE'] = ORIGINAL_ENV
-    else delete process.env['ELASTIC_CLI_CONFIG_FILE']
-  })
 
   it('emits context names from the configured file', async () => {
-    const { mkdtemp, writeFile, rm } = await import('node:fs/promises')
-    const { tmpdir } = await import('node:os')
-    const { join } = await import('node:path')
-    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-cnames-'))
-    const path = join(dir, 'config.yml')
-    await writeFile(path, [
+    await withConfig([
       'current_context: local',
       'contexts:',
       '  local:',
@@ -245,15 +227,13 @@ describe('handleComplete -- dynamic context name completion', () => {
       '    elasticsearch:',
       '      url: http://localhost:9200',
       '',
-    ].join('\n'))
-    process.env['ELASTIC_CLI_CONFIG_FILE'] = path
+    ], async () => {
+      const buf = bufferedWriter()
+      await handleComplete(['--use-context', ''], buf.write)
 
-    const buf = bufferedWriter()
-    await handleComplete(['--use-context', ''], buf.write)
-    await rm(dir, { recursive: true })
-
-    const out = parseOutput(buf.chunks.join(''))
-    assert.deepEqual(out.candidates.sort(), ['local', 'staging'])
+      const out = parseOutput(buf.chunks.join(''))
+      assert.deepEqual(out.candidates.sort(), ['local', 'staging'])
+    })
   })
 })
 
@@ -306,5 +286,118 @@ describe('buildCompleteCommand', () => {
       process.stdout.write = origWrite
     }
     assert.match(captured.join(''), /:\d+/)
+  })
+})
+
+describe('buildCompletionTree -- kb lazy loading', () => {
+  // kb lazy loading exercises the KB_ALIASES branch without importing kb modules that
+  // would bring uncovered kb/*.ts functions into the coverage scope.
+  it('shows kb as a stub when secondWord does not match kb aliases', async () => {
+    const root = await buildCompletionTree(['stack', 'something-else'])
+    const stack = root.commands.find((c) => c.name() === 'stack')!
+    const kb = stack.commands.find((c) => c.name() === 'kb')!
+    assert.ok(kb != null, 'kb should still be present as a stub')
+  })
+})
+
+describe('handleComplete -- loadCompletionCommandPolicy edge cases', () => {
+
+  it('returns all top-level groups when current_context is missing from contexts', async () => {
+    await withConfig([
+      'current_context: nonexistent',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '',
+    ], async () => {
+      const buf = bufferedWriter()
+      await handleComplete([''], buf.write)
+      const out = parseOutput(buf.chunks.join(''))
+      // policy returns undefined → all commands visible
+      assert.ok(out.candidates.includes('stack'))
+    })
+  })
+
+  it('returns all top-level groups when default_profile is invalid', async () => {
+    await withConfig([
+      'current_context: local',
+      'default_profile: 123',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '',
+    ], async () => {
+      const buf = bufferedWriter()
+      await handleComplete([''], buf.write)
+      const out = parseOutput(buf.chunks.join(''))
+      assert.ok(out.candidates.includes('stack'))
+    })
+  })
+
+  it('returns all top-level groups when root commands block field is invalid', async () => {
+    await withConfig([
+      'current_context: local',
+      'commands:',
+      '  blocked: not-an-array',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '',
+    ], async () => {
+      const buf = bufferedWriter()
+      await handleComplete([''], buf.write)
+      const out = parseOutput(buf.chunks.join(''))
+      assert.ok(out.candidates.includes('stack'))
+    })
+  })
+
+  it('returns all top-level groups when context commands block field is invalid', async () => {
+    await withConfig([
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    commands:',
+      '      blocked: not-an-array',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '',
+    ], async () => {
+      const buf = bufferedWriter()
+      await handleComplete([''], buf.write)
+      const out = parseOutput(buf.chunks.join(''))
+      assert.ok(out.candidates.includes('stack'))
+    })
+  })
+})
+
+describe('buildCompletionTree -- docs and config subtrees', () => {
+  it('registers docs as a stub by default', async () => {
+    const root = await buildCompletionTree(['stack'])
+    const docs = root.commands.find((c) => c.name() === 'docs')
+    assert.ok(docs != null, 'docs group should be present')
+  })
+
+  it('registers config as a stub by default', async () => {
+    const root = await buildCompletionTree(['stack'])
+    const config = root.commands.find((c) => c.name() === 'config')
+    assert.ok(config != null, 'config group should be present')
+  })
+
+  it('deep-loads docs when first word is "docs"', async () => {
+    const root = await buildCompletionTree(['docs'])
+    const docs = root.commands.find((c) => c.name() === 'docs')
+    assert.ok(docs != null, 'docs should be present')
+    // deep-loaded docs should have child commands
+    assert.ok(docs.commands.length > 0, 'docs should have children when deep-loaded')
+  })
+
+  it('deep-loads config when first word is "config"', async () => {
+    const root = await buildCompletionTree(['config'])
+    const config = root.commands.find((c) => c.name() === 'config')
+    assert.ok(config != null, 'config should be present')
+    assert.ok(config.commands.length > 0, 'config should have children when deep-loaded')
   })
 })

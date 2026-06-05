@@ -59,6 +59,8 @@ async function runCommand (args: string[], deps: MsearchDeps): Promise<unknown> 
   const restoreStdin = _testSetStdinReader(() => '')
   try {
     await program.parseAsync(['node', 'test', 'msearch', ...args])
+  } catch {
+    // Commander exitOverride throws on errors; output is already captured in stderr
   } finally {
     restoreStdin()
     process.stdout.write = origStdoutWrite
@@ -66,13 +68,21 @@ async function runCommand (args: string[], deps: MsearchDeps): Promise<unknown> 
     process.exitCode = 0
   }
 
-  // Prefer stderr (error results) over stdout; parse whichever has content
+  // The test runner may inject internal protocol bytes into stdout.
+  // Try each chunk individually (last-to-first) to find valid JSON.
   const errOutput = stderrChunks.join('')
-  const stdOutput = stdoutChunks.join('')
-  const output = errOutput.trim().length > 0 ? errOutput : stdOutput
-  if (output.trim().length > 0) {
-    try { return JSON.parse(output.trim()) } catch { return output.trim() }
+  if (errOutput.trim().length > 0) {
+    try { return JSON.parse(errOutput.trim()) } catch { return errOutput.trim() }
   }
+  // Search stdout chunks in reverse for a parseable JSON chunk
+  for (let i = stdoutChunks.length - 1; i >= 0; i--) {
+    const chunk = stdoutChunks[i]!.trim()
+    if (chunk.length > 0 && (chunk[0] === '{' || chunk[0] === '[')) {
+      try { return JSON.parse(chunk) } catch { /* continue */ }
+    }
+  }
+  const stdOutput = stdoutChunks.join('')
+  if (stdOutput.trim().length > 0) return stdOutput.trim()
   return undefined
 }
 
@@ -105,7 +115,9 @@ describe('msearch command', () => {
     ) as Record<string, unknown>
 
     assert.equal(requests.length, 1)
-    const responses = result.responses as unknown[]
+    assert.ok(result != null && typeof result === 'object', `Expected object result, got: ${JSON.stringify(result)}`)
+    assert.ok('responses' in (result as Record<string, unknown>), `Expected responses key in result, got: ${JSON.stringify(result)}`)
+    const responses = (result as Record<string, unknown>).responses as unknown[]
     assert.equal(responses.length, 2)
   })
 
@@ -129,7 +141,9 @@ describe('msearch command', () => {
     ) as Record<string, unknown>
 
     assert.equal(requests.length, 3, 'Expected 3 batches of 2')
-    assert.equal((result.responses as unknown[]).length, 6)
+    assert.ok(result != null && typeof result === 'object', `Expected object result, got: ${JSON.stringify(result)}`)
+    assert.ok('responses' in (result as Record<string, unknown>), `Expected responses key in result, got: ${JSON.stringify(result)}`)
+    assert.equal(((result as Record<string, unknown>).responses as unknown[]).length, 6)
   })
 
   it('applies default index from --index to items without header.index', async () => {

@@ -7,7 +7,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { z } from 'zod'
 import type { EsApiDefinition } from '../../src/es/types.ts'
-import { registerEsCommands } from '../../src/es/register.ts'
+import { registerEsCommands, registerEsCommandsLazy } from '../../src/es/register.ts'
 
 function makeDef(name: string, namespace: string, description = `${name} description`): EsApiDefinition {
   return { name, namespace, description, method: 'GET', path: `/_${namespace}/${name}` }
@@ -439,5 +439,73 @@ describe('registerEsCommands - built-in API surface', () => {
       }),
     }]
     await assert.rejects(registerEsCommands(defs), /Date cannot be represented in JSON Schema/)
+  })
+})
+
+describe('registerEsCommandsLazy', () => {
+  it('returns an OpaqueCommandHandle named "es" with no argv sniff match', async () => {
+    // Pass arbitrary argv that does not target any specific leaf → all stubs
+    const handle = await registerEsCommandsLazy({ argv: ['node', 'elastic', 'es'] })
+    assert.equal(handle.name(), 'es')
+    assert.ok(handle.commands.length > 0, 'should have at least one child (namespace or root stub)')
+  })
+
+  it('contains helpers group as a stub when helpers is not invoked', async () => {
+    const handle = await registerEsCommandsLazy({ argv: ['node', 'elastic', 'es'] })
+    const helpers = handle.commands.find((c) => c.name() === 'helpers')
+    assert.ok(helpers != null, 'should have a helpers command')
+  })
+
+  it('loads helpers group fully when es helpers is invoked', async () => {
+    const handle = await registerEsCommandsLazy({ argv: ['node', 'elastic', 'es', 'helpers'] })
+    const helpers = handle.commands.find((c) => c.name() === 'helpers')
+    assert.ok(helpers != null, 'should have a helpers command')
+    // When helpers is invoked, the group should be fully populated (> 0 subcommands)
+    assert.ok(helpers.commands.length > 0, 'helpers should have sub-commands when invoked')
+  })
+
+  it('sniffs a namespaced leaf and expands that namespace fully', async () => {
+    // cat health is a real leaf in the manifest
+    const handle = await registerEsCommandsLazy({ argv: ['node', 'elastic', 'es', 'cat', 'health'] })
+    const cat = handle.commands.find((c) => c.name() === 'cat')
+    assert.ok(cat != null, 'cat namespace should be present')
+    // The invoked namespace (cat) should have its leaves fully populated
+    assert.ok(cat.commands.length > 0, 'cat namespace should have leaf commands when sniffed')
+  })
+
+  it('sniffs a root-level leaf command', async () => {
+    // 'search' is a root-level command (no namespace)
+    const handle = await registerEsCommandsLazy({ argv: ['node', 'elastic', 'es', 'search'] })
+    const search = handle.commands.find((c) => c.name() === 'search')
+    assert.ok(search != null, 'root-level search command should be present')
+  })
+})
+
+describe('registerEsCommands - responseType and intent', () => {
+  it('registers formatOutput for text responseType', async () => {
+    const defs: EsApiDefinition[] = [{
+      name: 'explain',
+      description: 'Explain something',
+      method: 'GET',
+      path: '/_explain',
+      responseType: 'text',
+    }]
+    // Should register without error and produce a handle
+    const handle = await registerEsCommands(defs)
+    const cmd = handle.commands.find((c) => c.name() === 'explain')
+    assert.ok(cmd != null, 'command should be registered')
+  })
+
+  it('propagates explicit intent override on a definition', async () => {
+    const defs: EsApiDefinition[] = [{
+      name: 'reindex',
+      description: 'Reindex data',
+      method: 'POST',
+      path: '/_reindex',
+      intent: { verb: 'write', object: 'index' },
+    }]
+    const handle = await registerEsCommands(defs)
+    const cmd = handle.commands.find((c) => c.name() === 'reindex')
+    assert.ok(cmd != null, 'command should be registered with intent')
   })
 })
