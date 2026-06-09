@@ -1,4 +1,20 @@
-# Configuration
+---
+description: Configure the Elastic CLI by creating a config file with connection contexts for Elasticsearch, Kibana, and Elastic Cloud.
+applies_to:
+  stack: preview
+  serverless: preview
+type: how-to
+---
+
+# Configure the Elastic CLI
+
+This guide covers the configuration file format, managing connection contexts with `elastic config`, and using external credential resolvers to keep secrets out of your config file.
+
+## Before you begin
+
+[Install the Elastic CLI](./installation.md) before continuing.
+
+## Set up the config file
 
 The CLI looks for a config file in your home directory. The following file names are checked in order:
 
@@ -35,7 +51,7 @@ contexts:
 
 Multiple contexts are supported. Override `current_context` for a single command with `--use-context <name>`.
 
-Each context can have any combination of service blocks (`elasticsearch`, `kibana`, `cloud`). Authentication supports `api_key` or `username` + `password`.
+Each context can have any combination of service blocks (`elasticsearch`, `kibana`, and `cloud`). Authentication supports `api_key` or `username` + `password`.
 
 ## Authoring the config from the CLI
 
@@ -63,7 +79,17 @@ elastic config context edit local
 elastic config context remove old-lab
 ```
 
-If no OS keychain is available or you pass `--inline-secrets`, the secret is written inline and the file is `chmod 0600`. A warning is emitted when a loaded config has inline secrets at looser-than-0600 permissions.
+If no OS keychain is available or you pass `--inline-secrets`, the secret is written inline and the file is `chmod 0600`. The CLI emits a warning when a loaded config has inline secrets at looser-than-0600 permissions.
+
+## Verify your configuration
+
+Run `elastic status` to check connectivity and authentication for all services in the active context:
+
+```bash
+elastic status
+```
+
+The command reports the result for each configured service (`elasticsearch`, `kibana`, `cloud`). Services not present in the active context are skipped, not treated as failures.
 
 ## Credential-safe project creation
 
@@ -82,14 +108,14 @@ elastic cloud serverless es projects reset-credentials --id <id> \
   --save-as scratch --force
 ```
 
-`--credentials-file <path>` writes a standalone YAML config fragment (0600) at `<path>` instead of mutating the main config. Either flag makes stdout safe to capture into an LLM transcript.
+`--credentials-file <path>` writes a standalone YAML config fragment (0600) at `<path>` instead of mutating the main config. Both flags make stdout safe to capture into an LLM transcript.
 
 ## External credentials
 
 Any string value in the config file can use `$(resolver:params)` expressions to fetch secrets from external sources at runtime.
 
 :::{warning}
-Review config files before using them if you didn't write them yourself. The `$(cmd:...)` and `$(file:...)` resolvers execute programs and read files on your behalf. This applies especially to CI/CD environments where a repo-checked-in config (e.g. via `ELASTIC_CLI_CONFIG_FILE`) can run arbitrary commands on the runner.
+Review config files before using them if you didn't write them yourself. The `$(cmd:...)` and `$(file:...)` resolvers run programs and read files on your behalf. This applies especially to CI/CD environments where a repo-checked-in config (for example, via `ELASTIC_CLI_CONFIG_FILE`) can run arbitrary commands on the runner.
 :::
 
 `file`
@@ -164,3 +190,9 @@ elasticsearch:
   auth:
     api_key: $(keychain:elastic-cli/api-key)
 ```
+
+## Next steps
+
+- Run `elastic --help` to explore available commands.
+- Use `elastic cloud serverless` or `elastic cloud hosted` to manage Elastic Cloud resources.
+- See the [CLI command reference](./index.md) for the full list of available commands.
