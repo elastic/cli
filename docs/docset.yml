@@ -8,3 +8,5 @@ toc:
     children:
       - file: installation.md
       - file: configuration.md
+      - file: stack/es/index.md
+      - file: stack/kb/index.md
