@@ -1,0 +1,113 @@
+#!/usr/bin/env node
+
+/*
+ * Copyright Elasticsearch B.V. and contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+// Benchmark CLI startup time against recorded baselines from PR #400.
+// Fails if any command's mean runtime exceeds its baseline by more than 20%.
+//
+// Usage: scripts/perf-check
+// Override warmup/runs for local profiling:
+//   PERF_WARMUP=5 PERF_RUNS=30 scripts/perf-check
+
+import { execFileSync } from "node:child_process"
+import { mkdtempSync, readFileSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join, dirname } from "node:path"
+import { fileURLToPath } from "node:url"
+
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
+const CLI = join(REPO_ROOT, "dist", "cli.js")
+
+// Tuned for CI: fast enough to finish in ~60 s on a shared runner while still
+// producing a stable mean. Override with env vars for local profiling.
+const WARMUP = Number(process.env.PERF_WARMUP ?? 3)
+const MIN_RUNS = Number(process.env.PERF_RUNS ?? 15)
+
+// Baselines (mean ms) recorded after the optimisations in PR #400.
+// Measured with: hyperfine -w 10 -m 100 <command>
+// Hardware: Lenovo ThinkPad X1 Carbon, i7-1365U, 16 GB RAM, Arch Linux
+const BASELINES_MS = {
+  "elastic":              99.0,
+  "elastic --help":       99.4,
+  "elastic es --help":    93.3,
+  "elastic es":           54.0,
+  "elastic cloud --help": 59.4,
+  "elastic cloud":        42.4,
+  "elastic kb --help":    83.7,
+  "elastic kb":           76.9,
+}
+
+
+
+const THRESHOLD = 1.40 // fail if mean performance is 40% slower than baseline
+
+// build the list of full commands to benchmark, one entry per baseline key
+const commands = Object.keys(BASELINES_MS).map((label) => {
+  const args = label.slice("elastic".length).trim()
+  return args.length > 0 ? `node ${CLI} ${args}` : `node ${CLI}`
+})
+
+const tmpDir = mkdtempSync(join(tmpdir(), "elastic-cli-bench-"))
+const jsonOut = join(tmpDir, "results.json")
+
+try {
+  execFileSync(
+    "hyperfine",
+    [
+      "--warmup", String(WARMUP),
+      "--min-runs", String(MIN_RUNS),
+      "--export-json", jsonOut,
+      "--shell=none",
+      ...commands,
+    ],
+    { stdio: "inherit" },
+  )
+
+  const raw = JSON.parse(readFileSync(jsonOut, "utf8"))
+
+  // hyperfine stores mean in seconds; convert to ms
+  // normalise the command string back to a BASELINES_MS key by stripping the
+  // absolute path prefix and collapsing any extra whitespace
+  const results = raw.results.map((r) => ({
+    command: r.command
+      .replace(/^node\s+.*?dist[/\\]cli\.js/, "elastic")
+      .replace(/\s+/g, " ")
+      .trim(),
+    meanMs: r.mean * 1000,
+  }))
+
+  let failed = false
+
+  for (const { command, meanMs } of results) {
+    const baseline = BASELINES_MS[command]
+    if (baseline == null) {
+      console.warn(`⚠  No baseline for "${command}" — skipping`)
+      continue
+    }
+    const limit = baseline * THRESHOLD
+    const pct = ((meanMs / baseline - 1) * 100).toFixed(1)
+    const sign = meanMs > baseline ? "+" : ""
+    const ok = meanMs <= limit
+    const icon = ok ? "✓" : "✗"
+    console.log(
+      `${icon}  ${command.padEnd(24)}  mean ${meanMs.toFixed(1)} ms  ` +
+      `(baseline ${baseline} ms, ${sign}${pct}%, limit ${limit.toFixed(1)} ms)`,
+    )
+    if (!ok) failed = true
+  }
+
+  if (failed) {
+    console.error(
+      "\nPerformance regression detected. " +
+      "One or more commands exceeded their baseline by more than 20%.",
+    )
+    process.exit(1)
+  }
+
+  console.log("\nAll commands within the 20% regression threshold.")
+} finally {
+  rmSync(tmpDir, { recursive: true, force: true })
+}
