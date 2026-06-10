@@ -73,6 +73,58 @@ describe('createSearchCommand', () => {
     assert.ok(parseResult !== undefined)
   })
 
+  it('formats results without product metadata', async () => {
+    const output: string[] = []
+    const response = makeResp({
+      results: [
+        {
+          type: 'page',
+          url: '/reference/no-product',
+          title: '<em>No product</em>',
+          description: '<p>Fallback description</p>',
+          score: 1,
+          navigationSection: 'Reference',
+          lastUpdated: '2024-01-01',
+          relatedProducts: [],
+        } as DocsSearchResponse['results'][number],
+      ],
+    })
+    const cmd = createSearchCommand({
+      docsSearch: async () => response,
+      stderr: { write: () => true },
+    })
+
+    cmd.exitOverride()
+    cmd.configureOutput({ writeOut: (s) => { output.push(s) }, writeErr: () => {} })
+
+    const restoreStdin = _testSetStdinReader(() => '')
+    try {
+      await cmd.parseAsync(['--query', 'no product'], { from: 'user' })
+    } finally { restoreStdin() }
+
+    assert.equal(process.exitCode ?? 0, 0)
+    assert.equal(output.length, 0)
+  })
+
+  it('formats an empty result set', async () => {
+    const output: string[] = []
+    const cmd = createSearchCommand({
+      docsSearch: async () => makeResp({ results: [], totalResults: 0, pageCount: 0 }),
+      stderr: { write: () => true },
+    })
+
+    cmd.exitOverride()
+    cmd.configureOutput({ writeOut: (s) => { output.push(s) }, writeErr: () => {} })
+
+    const restoreStdin = _testSetStdinReader(() => '')
+    try {
+      await cmd.parseAsync(['--query', 'missing'], { from: 'user' })
+    } finally { restoreStdin() }
+
+    assert.equal(process.exitCode ?? 0, 0)
+    assert.equal(output.length, 0)
+  })
+
   it('returns error object when docsSearch throws', async () => {
     const stderrOutput: string[] = []
     const cmd = createSearchCommand({

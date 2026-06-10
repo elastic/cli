@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "elastic",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "reservedMetaCommands": [
     "cli-schema"
   ],
@@ -1565,7 +1565,9 @@
                   "name": "source",
                   "type": "boolean",
                   "required": false,
-                  "summary": "If `false`, turn off source retrieval. You can also specify a comma-separated list of the fields you want to retrieve."
+                  "summary": "If `false`, turn off source retrieval. You can also specify a comma-separated list of the fields you want to retrieve.",
+                  "repeatable": true,
+                  "separator": ","
                 },
                 {
                   "role": "flag",
@@ -2630,7 +2632,9 @@
                   "name": "source",
                   "type": "boolean",
                   "required": false,
-                  "summary": "The source fields that are returned for matching documents. These fields are returned in the `hits._source` property of the search response. If the `stored_fields` property is specified, the `_source` property defaults to `false`. Otherwise, it defaults to `true`."
+                  "summary": "The source fields that are returned for matching documents. These fields are returned in the `hits._source` property of the search response. If the `stored_fields` property is specified, the `_source` property defaults to `false`. Otherwise, it defaults to `true`.",
+                  "repeatable": true,
+                  "separator": ","
                 },
                 {
                   "role": "flag",
@@ -4646,7 +4650,9 @@
                       "name": "source",
                       "type": "boolean",
                       "required": false,
-                      "summary": "Indicates which source fields are returned for matching documents. These fields are returned in the hits._source property of the search response."
+                      "summary": "Indicates which source fields are returned for matching documents. These fields are returned in the hits._source property of the search response.",
+                      "repeatable": true,
+                      "separator": ","
                     },
                     {
                       "role": "flag",
@@ -9507,7 +9513,8 @@
                       "name": "name",
                       "type": "string",
                       "required": true,
-                      "summary": "The view name to remove."
+                      "summary": "The view name to remove.",
+                      "repeatable": true
                     }
                   ],
                   "summary": "Delete an ES|QL view.",
@@ -10296,7 +10303,9 @@
                       "name": "source",
                       "type": "boolean",
                       "required": false,
-                      "summary": "Indicates which source fields are returned for matching documents. These fields are returned in the hits._source property of the search response."
+                      "summary": "Indicates which source fields are returned for matching documents. These fields are returned in the hits._source property of the search response.",
+                      "repeatable": true,
+                      "separator": ","
                     },
                     {
                       "role": "flag",
@@ -16714,7 +16723,8 @@
                       "enumValues": [
                         "chat_completion",
                         "completion",
-                        "text_embedding"
+                        "text_embedding",
+                        "embedding"
                       ]
                     },
                     {
@@ -18683,7 +18693,9 @@
                       "name": "analyzed-fields",
                       "type": "string",
                       "required": false,
-                      "summary": "Specify includes and/or excludes patterns to select which fields will be included in the analysis. The patterns specified in excludes are applied last, therefore excludes takes precedence. In other words, if the same field is specified in both includes and excludes, then the field will not be included in the analysis."
+                      "summary": "Specify includes and/or excludes patterns to select which fields will be included in the analysis. The patterns specified in excludes are applied last, therefore excludes takes precedence. In other words, if the same field is specified in both includes and excludes, then the field will not be included in the analysis.",
+                      "repeatable": true,
+                      "separator": ","
                     },
                     {
                       "role": "flag",
@@ -20210,7 +20222,9 @@
                       "name": "analyzed-fields",
                       "type": "string",
                       "required": false,
-                      "summary": "Specifies `includes` and/or `excludes` patterns to select which fields will be included in the analysis. The patterns specified in `excludes` are applied last, therefore `excludes` takes precedence. In other words, if the same field is specified in both `includes` and `excludes`, then the field will not be included in the analysis. If `analyzed_fields` is not set, only the relevant fields will be included. For example, all the numeric fields for outlier detection. The supported fields vary for each type of analysis. Outlier detection requires numeric or `boolean` data to analyze. The algorithms don’t support missing values therefore fields that have data types other than numeric or boolean are ignored. Documents where included fields contain missing values, null values, or an array are also ignored. Therefore the `dest` index may contain documents that don’t have an outlier score. Regression supports fields that are numeric, `boolean`, `text`, `keyword`, and `ip` data types. It is also tolerant of missing values. Fields that are supported are included in the analysis, other fields are ignored. Documents where included fields contain an array with two or more values are also ignored. Documents in the `dest` index that don’t contain a results field are not included in the regression analysis. Classification supports fields that are numeric, `boolean`, `text`, `keyword`, and `ip` data types. It is also tolerant of missing values. Fields that are supported are included in the analysis, other fields are ignored. Documents where included fields contain an array with two or more values are also ignored. Documents in the `dest` index that don’t contain a results field are not included in the classification analysis. Classification analysis can be improved by mapping ordinal variable values to a single number. For example, in case of age ranges, you can model the values as `0-14 = 0`, `15-24 = 1`, `25-34 = 2`, and so on."
+                      "summary": "Specifies `includes` and/or `excludes` patterns to select which fields will be included in the analysis. The patterns specified in `excludes` are applied last, therefore `excludes` takes precedence. In other words, if the same field is specified in both `includes` and `excludes`, then the field will not be included in the analysis. If `analyzed_fields` is not set, only the relevant fields will be included. For example, all the numeric fields for outlier detection. The supported fields vary for each type of analysis. Outlier detection requires numeric or `boolean` data to analyze. The algorithms don’t support missing values therefore fields that have data types other than numeric or boolean are ignored. Documents where included fields contain missing values, null values, or an array are also ignored. Therefore the `dest` index may contain documents that don’t have an outlier score. Regression supports fields that are numeric, `boolean`, `text`, `keyword`, and `ip` data types. It is also tolerant of missing values. Fields that are supported are included in the analysis, other fields are ignored. Documents where included fields contain an array with two or more values are also ignored. Documents in the `dest` index that don’t contain a results field are not included in the regression analysis. Classification supports fields that are numeric, `boolean`, `text`, `keyword`, and `ip` data types. It is also tolerant of missing values. Fields that are supported are included in the analysis, other fields are ignored. Documents where included fields contain an array with two or more values are also ignored. Documents in the `dest` index that don’t contain a results field are not included in the classification analysis. Classification analysis can be improved by mapping ordinal variable values to a single number. For example, in case of age ranges, you can model the values as `0-14 = 0`, `15-24 = 1`, `25-34 = 2`, and so on.",
+                      "repeatable": true,
+                      "separator": ","
                     },
                     {
                       "role": "flag",
@@ -24365,6 +24379,13 @@
                       "required": false,
                       "summary": "The name of the role. You can specify multiple roles as a comma-separated list. If you do not specify this parameter, the API returns information about all roles.",
                       "repeatable": true
+                    },
+                    {
+                      "role": "flag",
+                      "name": "include-implicit",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "If `true`, include privileges that are implicitly granted by registered `ImplicitPrivilegesProviders` alongside the explicitly configured privileges. Each implicit entry in the response is annotated with `implicitly_granted: true`."
                     }
                   ],
                   "summary": "Get roles.",
@@ -50699,6 +50720,34 @@
                     "hosted",
                     "deployments"
                   ],
+                  "name": "get-deployment-es-resource-tiers",
+                  "parameters": [
+                    {
+                      "role": "flag",
+                      "name": "deployment-id",
+                      "type": "string",
+                      "required": true,
+                      "summary": "Identifier for the Deployment"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "ref-id",
+                      "type": "string",
+                      "required": true,
+                      "summary": "User-specified RefId for the Resource (or '_main' if there is only one)"
+                    }
+                  ],
+                  "summary": "Get Elasticsearch tiers",
+                  "intent": {
+                    "requiresAuth": true
+                  }
+                },
+                {
+                  "path": [
+                    "cloud",
+                    "hosted",
+                    "deployments"
+                  ],
                   "name": "update-deployment-es-resource-tier",
                   "parameters": [
                     {
@@ -51032,6 +51081,27 @@
                     }
                   ],
                   "summary": "Set the tags for a Deployment",
+                  "intent": {
+                    "requiresAuth": true
+                  }
+                },
+                {
+                  "path": [
+                    "cloud",
+                    "hosted",
+                    "deployments"
+                  ],
+                  "name": "upgrade-deployment",
+                  "parameters": [
+                    {
+                      "role": "flag",
+                      "name": "deployment-id",
+                      "type": "string",
+                      "required": true,
+                      "summary": "Identifier for the Deployment"
+                    }
+                  ],
+                  "summary": "Upgrade a Deployment to a new Elastic Stack version",
                   "intent": {
                     "requiresAuth": true
                   }
@@ -53952,36 +54022,6 @@
       ],
       "namespaces": [],
       "summary": "Sanitize values for safe use in Elasticsearch"
-    }
-  ],
-  "shortcuts": [
-    {
-      "from": "es",
-      "to": [
-        "stack",
-        "es"
-      ]
-    },
-    {
-      "from": "elasticsearch",
-      "to": [
-        "stack",
-        "es"
-      ]
-    },
-    {
-      "from": "kb",
-      "to": [
-        "stack",
-        "kb"
-      ]
-    },
-    {
-      "from": "kibana",
-      "to": [
-        "stack",
-        "kb"
-      ]
     }
   ],
   "description": "Interface with the Elastic Stack and Elastic Cloud from the command line."
