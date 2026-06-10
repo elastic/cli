@@ -1,12 +1,4 @@
----
-description: Use the Elastic CLI to call Elasticsearch REST APIs from the command line.
-applies_to:
-  stack: preview
-  serverless: preview
-type: overview
----
-
-# Elasticsearch commands
+## Description
 
 The `elastic stack es` command group exposes Elasticsearch REST APIs as CLI commands.
 
