@@ -10,6 +10,3 @@ toc:
     folder: cli
     title: Elastic CLI command reference
     navigation_title: Command reference
-    children:
-      - hidden: stack/es.md
-      - hidden: stack/kb.md
