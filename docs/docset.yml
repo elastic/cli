@@ -11,5 +11,5 @@ toc:
     title: Elastic CLI command reference
     navigation_title: Command reference
     children:
-      - file: stack/es.md
-      - file: stack/kb.md
+      - hidden: stack/es.md
+      - hidden: stack/kb.md
