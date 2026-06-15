@@ -13,13 +13,13 @@ import { resolve } from 'node:path'
  * failure where the binary crashed with `Cannot find package 'zod'` because
  * the global install left `node_modules/zod/` empty.
  *
- * Root cause: `@elastic/es-schemas` is shipped via `bundledDependencies`
+ * Root cause: `@elastic/es-schemas` is shipped via `bundleDependencies`
  * and declares `zod` as a peer dependency. During a global install npm
  * cannot hoist `zod` to a parent `node_modules`, and the bundled-dep +
  * peer-dep interaction makes its dependency resolver create an empty
  * placeholder directory for `zod` without populating it. The simplest
  * deterministic fix is to ship `zod` inside the published tarball by
- * adding it to `bundledDependencies` as well.
+ * adding it to `bundleDependencies` as well.
  *
  * These invariants make sure nobody silently removes `zod` from the
  * bundle or lets the version drift out of sync with the peer dep
@@ -28,7 +28,7 @@ import { resolve } from 'node:path'
 
 interface PackageJsonShape {
   dependencies?: Record<string, string>
-  bundledDependencies?: string[]
+  bundleDependencies?: string[]
   peerDependencies?: Record<string, string>
 }
 
@@ -50,12 +50,12 @@ describe('package.json -- npm install invariants', () => {
 
   it('bundles zod into the published tarball', () => {
     assert.ok(
-      Array.isArray(root.bundledDependencies),
-      '"bundledDependencies" must be an array'
+      Array.isArray(root.bundleDependencies),
+      '"bundleDependencies" must be an array'
     )
     assert.ok(
-      root.bundledDependencies?.includes('zod') ?? false,
-      'zod must appear in "bundledDependencies" so `npm install -g` does not leave node_modules/zod/ empty'
+      root.bundleDependencies?.includes('zod') ?? false,
+      'zod must appear in "bundleDependencies" so `npm install -g` does not leave node_modules/zod/ empty'
     )
   })
 
@@ -65,7 +65,7 @@ describe('package.json -- npm install invariants', () => {
     // time and trips the empty-placeholder bug.
     if (esSchemas.peerDependencies?.['zod'] != null) {
       assert.ok(
-        root.bundledDependencies?.includes('zod') ?? false,
+        root.bundleDependencies?.includes('zod') ?? false,
         '@elastic/es-schemas declares a peer dep on zod, so the top-level zod must be bundled'
       )
     }
