@@ -33,5 +33,5 @@ where
   isActionHandler(actionHandler) and
   printCall.getEnclosingFunction+() = actionHandler and
   (isConsoleCall(printCall) or isProcessStreamWrite(printCall)) and
-  not printCall.getFile().getBaseName() = ["factory.ts", "factory-core.ts"]
+  not printCall.getFile().getBaseName() = ["factory.ts", "factory-core.ts", "cli.ts"]
 select printCall, "Direct printing should not be used inside a Command .action() handler."
