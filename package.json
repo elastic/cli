@@ -78,7 +78,7 @@
     "@eslint/js": "10.0.1",
     "@types/marked-terminal": "6.1.1",
     "@types/node": "25.9.0",
-    "eslint": "10.4.0",
+    "eslint": "10.4.1",
     "license-checker": "25.0.1",
     "mega-linter-runner": "9.4.0",
     "tsx": "4.22.2",
