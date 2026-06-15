@@ -404,8 +404,8 @@ function renderMatchValue (path: string, expected: unknown, lines: string[], ind
     return
   }
 
-  // Safe label for error messages: escape $ to avoid unintended variable expansion
-  const safeLabel = path.replace(/\$/g, '\\$')
+  // Safe label for error messages: escape all shell metacharacters to prevent injection
+  const safeLabel = path.replace(/[\\$`"'!#&|;(){}[\]<>?*~]/g, '\\$&')
 
   // Detect YAML regex pattern /.../ — use bash =~ operator
   if (typeof expected === 'string' && expected.startsWith('/') && expected.endsWith('/')) {

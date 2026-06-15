@@ -62,8 +62,11 @@ function getNestedValue (obj: JsonValue, path: string): JsonValue | undefined {
   return getNestedValue(next, rest)
 }
 
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
+
 function setNestedValue (obj: Record<string, JsonValue>, path: string, value: JsonValue): void {
   const parts = path.split('.')
+  if (parts.some((p) => DANGEROUS_KEYS.has(p))) return
   let current: Record<string, JsonValue> = obj
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i]!

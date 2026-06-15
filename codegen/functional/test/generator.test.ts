@@ -252,3 +252,38 @@ describe('generateRunner', () => {
     assert.ok(runner.includes('exit 1'))
   })
 })
+
+describe('shell injection prevention in match assertions', () => {
+  it('escapes shell metacharacters in assertion path labels', () => {
+    const testFile = {
+      sourceFile: 'injection.yml',
+      requires: { serverless: true, stack: true },
+      setup: [],
+      teardown: [],
+      tests: [{
+        name: 'injection test',
+        steps: [
+          { kind: 'do' as const, action: 'get', params: { index: 'x', id: '1' }, body: undefined },
+          { kind: 'match' as const, assertions: { '$(whoami)': 'safe' } },
+          { kind: 'match' as const, assertions: { '`rm -rf /`': 'safe' } },
+          { kind: 'match' as const, assertions: { 'field"$(id)': 'safe' } },
+        ]
+      }]
+    }
+    const result = generateScript(testFile, testDefs)
+    assert.ok(
+      result.script.includes('expected \\$\\(whoami\\)'),
+      'should contain escaped \\$\\(whoami\\) in FAIL message label'
+    )
+
+    assert.ok(
+      result.script.includes('expected \\`rm'),
+      'should contain escaped backtick in FAIL message label'
+    )
+
+    assert.ok(
+      result.script.includes('expected field\\"\\$\\(id\\)'),
+      'should contain escaped double quote and $ in FAIL message label'
+    )
+  })
+})

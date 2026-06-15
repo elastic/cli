@@ -57,6 +57,18 @@ describe('docs client utilities', () => {
     it('handles empty string', () => {
       assert.equal(stripHtmlTags(''), '')
     })
+
+    it('strips nested/obfuscated tags that could reassemble after one pass', () => {
+      const result = stripHtmlTags('<scr<script>ipt>alert(1)</scr</script>ipt>')
+      assert.ok(!result.includes('<'), 'no < should remain in output')
+      assert.ok(!result.includes('>'), 'no > should remain in output')
+    })
+
+    it('strips all angle brackets from malformed markup', () => {
+      const result = stripHtmlTags('<a<b>c>text</a</b>c>')
+      assert.ok(!result.includes('<'), 'no < should remain in output')
+      assert.ok(!result.includes('>'), 'no > should remain in output')
+    })
   })
 
   describe('newUuid', () => {
