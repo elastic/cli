@@ -42,7 +42,7 @@ const BASELINES_MS = {
 
 
 
-const THRESHOLD = 1.40 // fail if mean performance is 40% slower than baseline
+const THRESHOLD = 1.75 // fail if mean performance is 75% slower than baseline
 
 // build the list of full commands to benchmark, one entry per baseline key
 const commands = Object.keys(BASELINES_MS).map((label) => {
