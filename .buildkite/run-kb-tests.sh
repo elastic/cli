@@ -31,13 +31,19 @@ NODE_RUNNER_IMAGE="node:${NODE_VERSION}-bookworm-slim"
 
 cleanup() {
   echo "--- ES logs (last 50 lines)"
-  docker logs "$ES_CONTAINER_NAME" 2>&1 | tail -50 || true
+  if docker inspect "$ES_CONTAINER_NAME" >/dev/null 2>&1; then
+    docker logs "$ES_CONTAINER_NAME" 2>&1 | tail -50 || true
+  else
+    echo "(container never started)"
+  fi
   echo "--- Kibana logs (last 50 lines)"
-  docker logs "$KB_CONTAINER_NAME" 2>&1 | tail -50 || true
+  if docker inspect "$KB_CONTAINER_NAME" >/dev/null 2>&1; then
+    docker logs "$KB_CONTAINER_NAME" 2>&1 | tail -50 || true
+  else
+    echo "(container never started)"
+  fi
   echo "--- Cleaning up"
-  docker rm -f "$TEST_RUNNER_NAME" 2>/dev/null || true
-  docker rm -f "$KB_CONTAINER_NAME" 2>/dev/null || true
-  docker rm -f "$ES_CONTAINER_NAME" 2>/dev/null || true
+  docker rm -f "$TEST_RUNNER_NAME" "$KB_CONTAINER_NAME" "$ES_CONTAINER_NAME" 2>/dev/null || true
   docker network rm "$NETWORK_NAME" 2>/dev/null || true
 }
 trap cleanup EXIT
