@@ -68,7 +68,8 @@ echo "--- Loading Elasticsearch image"
 ES_CACHE_DIR="${ES_CACHE_DIR:-}"
 if [[ -n "$ES_CACHE_DIR" ]] && compgen -G "$ES_CACHE_DIR/elasticsearch-$STACK_VERSION*.tar.gz" > /dev/null 2>&1; then
   echo "  Loading from agent cache: $ES_CACHE_DIR"
-  docker load < "$(ls "$ES_CACHE_DIR/elasticsearch-$STACK_VERSION"*.tar.gz | head -1)"
+  ES_TARBALLS=("$ES_CACHE_DIR/elasticsearch-$STACK_VERSION"*.tar.gz)
+  docker load < "${ES_TARBALLS[0]}"
 else
   docker pull "$ES_IMAGE"
 fi
