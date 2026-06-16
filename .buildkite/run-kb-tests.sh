@@ -31,13 +31,19 @@ NODE_RUNNER_IMAGE="node:${NODE_VERSION}-bookworm-slim"
 
 cleanup() {
   echo "--- ES logs (last 50 lines)"
-  docker logs "$ES_CONTAINER_NAME" 2>&1 | tail -50 || true
+  if docker inspect "$ES_CONTAINER_NAME" >/dev/null 2>&1; then
+    docker logs "$ES_CONTAINER_NAME" 2>&1 | tail -50 || true
+  else
+    echo "(container never started)"
+  fi
   echo "--- Kibana logs (last 50 lines)"
-  docker logs "$KB_CONTAINER_NAME" 2>&1 | tail -50 || true
+  if docker inspect "$KB_CONTAINER_NAME" >/dev/null 2>&1; then
+    docker logs "$KB_CONTAINER_NAME" 2>&1 | tail -50 || true
+  else
+    echo "(container never started)"
+  fi
   echo "--- Cleaning up"
-  docker rm -f "$TEST_RUNNER_NAME" 2>/dev/null || true
-  docker rm -f "$KB_CONTAINER_NAME" 2>/dev/null || true
-  docker rm -f "$ES_CONTAINER_NAME" 2>/dev/null || true
+  docker rm -f "$TEST_RUNNER_NAME" "$KB_CONTAINER_NAME" "$ES_CONTAINER_NAME" 2>/dev/null || true
   docker network rm "$NETWORK_NAME" 2>/dev/null || true
 }
 trap cleanup EXIT
@@ -62,7 +68,8 @@ echo "--- Loading Elasticsearch image"
 ES_CACHE_DIR="${ES_CACHE_DIR:-}"
 if [[ -n "$ES_CACHE_DIR" ]] && compgen -G "$ES_CACHE_DIR/elasticsearch-$STACK_VERSION*.tar.gz" > /dev/null 2>&1; then
   echo "  Loading from agent cache: $ES_CACHE_DIR"
-  docker load < "$(ls "$ES_CACHE_DIR/elasticsearch-$STACK_VERSION"*.tar.gz | head -1)"
+  ES_TARBALLS=("$ES_CACHE_DIR/elasticsearch-$STACK_VERSION"*.tar.gz)
+  docker load < "${ES_TARBALLS[0]}"
 else
   docker pull "$ES_IMAGE"
 fi
@@ -78,6 +85,7 @@ docker run \
   --env "ELASTIC_PASSWORD=${ES_PASSWORD}" \
   --env "xpack.security.http.ssl.enabled=false" \
   --env "xpack.security.transport.ssl.enabled=false" \
+  --env "cluster.routing.allocation.disk.threshold_enabled=false" \
   --env "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
   --detach \
   --rm \

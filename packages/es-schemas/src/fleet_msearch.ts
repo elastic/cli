@@ -2,6 +2,7 @@
  * Copyright Elasticsearch B.V. and contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 // @ts-nocheck
 
 /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -572,168 +573,6 @@ export const SearchShardProfile = z.object({
 }).meta({ id: 'SearchShardProfile' })
 export type SearchShardProfile = z.infer<typeof SearchShardProfile>
 
-export const SearchProfile = z.object({
-  shards: z.array(SearchShardProfile)
-}).meta({ id: 'SearchProfile' })
-export type SearchProfile = z.infer<typeof SearchProfile>
-
-export const ScrollId = z.string().meta({ id: 'ScrollId' })
-export type ScrollId = z.infer<typeof ScrollId>
-
-/**
- * The suggestion name as returned from the server. Depending whether typed_keys is specified this could come back
- * in the form of `name#type` instead of simply `name`
- */
-export const SuggestionName = z.string().meta({ id: 'SuggestionName' })
-export type SuggestionName = z.infer<typeof SuggestionName>
-
-export const SearchSuggestBase = z.object({
-  length: integer,
-  offset: integer,
-  text: z.string()
-}).meta({ id: 'SearchSuggestBase' })
-export type SearchSuggestBase = z.infer<typeof SearchSuggestBase>
-
-export const LatLonGeoLocation = z.object({
-  lat: double.describe('Latitude'),
-  lon: double.describe('Longitude')
-}).meta({ id: 'LatLonGeoLocation' })
-export type LatLonGeoLocation = z.infer<typeof LatLonGeoLocation>
-
-export const GeoHash = z.string().meta({ id: 'GeoHash' })
-export type GeoHash = z.infer<typeof GeoHash>
-
-export const GeoHashLocation = z.object({
-  geohash: GeoHash
-}).meta({ id: 'GeoHashLocation' })
-export type GeoHashLocation = z.infer<typeof GeoHashLocation>
-
-/**
- * A latitude/longitude as a 2 dimensional point. It can be represented in various ways:
- * - as a `{lat, long}` object
- * - as a geo hash value
- * - as a `[lon, lat]` array
- * - as a string in `"<lat>, <lon>"` or WKT point formats
- */
-export const GeoLocation = z.union([LatLonGeoLocation, GeoHashLocation, z.array(double), z.string()]).meta({ id: 'GeoLocation' })
-export type GeoLocation = z.infer<typeof GeoLocation>
-
-/** Text or location that we want similar documents for or a lookup to a document's field for the text. */
-export const SearchContext = z.union([z.string(), GeoLocation]).meta({ id: 'SearchContext' })
-export type SearchContext = z.infer<typeof SearchContext>
-
-export const SearchCompletionSuggestOption = z.object({
-  collate_match: z.boolean().optional(),
-  contexts: z.record(z.string(), z.array(SearchContext)).optional(),
-  fields: z.record(z.string(), z.any()).optional(),
-  _id: z.string().optional(),
-  _index: IndexName.optional(),
-  _routing: z.string().optional(),
-  _score: double.optional(),
-  _source: z.any().optional(),
-  text: z.string(),
-  score: double.optional()
-}).meta({ id: 'SearchCompletionSuggestOption' })
-export type SearchCompletionSuggestOption = z.infer<typeof SearchCompletionSuggestOption>
-
-export const SearchCompletionSuggest = z.object({
-  ...SearchSuggestBase.shape,
-  options: z.union([SearchCompletionSuggestOption, z.array(SearchCompletionSuggestOption)])
-}).meta({ id: 'SearchCompletionSuggest' })
-export type SearchCompletionSuggest = z.infer<typeof SearchCompletionSuggest>
-
-export const SearchPhraseSuggestOption = z.object({
-  text: z.string(),
-  score: double,
-  highlighted: z.string().optional(),
-  collate_match: z.boolean().optional()
-}).meta({ id: 'SearchPhraseSuggestOption' })
-export type SearchPhraseSuggestOption = z.infer<typeof SearchPhraseSuggestOption>
-
-export const SearchPhraseSuggest = z.object({
-  ...SearchSuggestBase.shape,
-  options: z.union([SearchPhraseSuggestOption, z.array(SearchPhraseSuggestOption)])
-}).meta({ id: 'SearchPhraseSuggest' })
-export type SearchPhraseSuggest = z.infer<typeof SearchPhraseSuggest>
-
-export const SearchTermSuggestOption = z.object({
-  text: z.string(),
-  score: double,
-  freq: long,
-  highlighted: z.string().optional(),
-  collate_match: z.boolean().optional()
-}).meta({ id: 'SearchTermSuggestOption' })
-export type SearchTermSuggestOption = z.infer<typeof SearchTermSuggestOption>
-
-export const SearchTermSuggest = z.object({
-  ...SearchSuggestBase.shape,
-  options: z.union([SearchTermSuggestOption, z.array(SearchTermSuggestOption)])
-}).meta({ id: 'SearchTermSuggest' })
-export type SearchTermSuggest = z.infer<typeof SearchTermSuggest>
-
-export const SearchSuggest = z.union([SearchCompletionSuggest, SearchPhraseSuggest, SearchTermSuggest]).meta({ id: 'SearchSuggest' })
-export type SearchSuggest = z.infer<typeof SearchSuggest>
-
-export const SearchResponseBody = z.object({
-  took: long.describe('The number of milliseconds it took Elasticsearch to run the request. This value is calculated by measuring the time elapsed between receipt of a request on the coordinating node and the time at which the coordinating node is ready to send the response. It includes: * Communication time between the coordinating node and data nodes * Time the request spends in the search thread pool, queued for execution * Actual run time It does not include: * Time needed to send the request to Elasticsearch * Time needed to serialize the JSON response * Time needed to send the response to a client'),
-  timed_out: z.boolean().describe('If `true`, the request timed out before completion; returned results may be partial or empty.'),
-  _shards: ShardStatistics.describe('A count of shards used for the request.'),
-  hits: z.lazy(() => SearchHitsMetadata).describe('The returned documents and metadata.'),
-  aggregations: z.any().optional(),
-  _clusters: ClusterStatistics.optional(),
-  fields: z.record(z.string(), z.any()).optional(),
-  max_score: double.optional(),
-  num_reduce_phases: long.optional(),
-  profile: SearchProfile.optional(),
-  pit_id: Id.optional(),
-  _scroll_id: ScrollId.describe('The identifier for the search and its search context. You can use this scroll ID with the scroll API to retrieve the next batch of search results for the request. This property is returned only if the `scroll` query parameter is specified in the request.').optional(),
-  suggest: z.record(SuggestionName, z.array(SearchSuggest)).optional(),
-  terminated_early: z.boolean().optional()
-}).meta({ id: 'SearchResponseBody' })
-export type SearchResponseBody = z.infer<typeof SearchResponseBody>
-
-export const MsearchMultiSearchItem = z.object({
-  ...SearchResponseBody.shape,
-  status: integer.optional()
-}).meta({ id: 'MsearchMultiSearchItem' })
-export type MsearchMultiSearchItem = z.infer<typeof MsearchMultiSearchItem>
-
-export const ExpandWildcard = z.enum(['all', 'open', 'closed', 'hidden', 'none']).meta({ id: 'ExpandWildcard' })
-export type ExpandWildcard = z.infer<typeof ExpandWildcard>
-
-export const ExpandWildcards = z.union([ExpandWildcard, z.array(ExpandWildcard)]).meta({ id: 'ExpandWildcards' })
-export type ExpandWildcards = z.infer<typeof ExpandWildcards>
-
-export const Indices = z.union([IndexName, z.array(IndexName)]).meta({ id: 'Indices' })
-export type Indices = z.infer<typeof Indices>
-
-export const ProjectRouting = z.string().meta({ id: 'ProjectRouting' })
-export type ProjectRouting = z.infer<typeof ProjectRouting>
-
-/** Only to be used in query and path parameters, as the array form is actually a csv */
-export const Routing = z.union([z.string(), z.array(z.string())]).meta({ id: 'Routing' })
-export type Routing = z.infer<typeof Routing>
-
-export const SearchType = z.enum(['query_then_fetch', 'dfs_query_then_fetch']).meta({ id: 'SearchType' })
-export type SearchType = z.infer<typeof SearchType>
-
-/** Contains parameters used to limit or change the subsequent search body request. */
-export const MsearchMultisearchHeader = z.object({
-  allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional(),
-  expand_wildcards: ExpandWildcards.optional(),
-  ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional(),
-  index: Indices.optional(),
-  preference: z.string().optional(),
-  project_routing: ProjectRouting.optional(),
-  request_cache: z.boolean().optional(),
-  routing: Routing.optional(),
-  search_type: SearchType.optional(),
-  ccs_minimize_roundtrips: z.boolean().optional(),
-  allow_partial_search_results: z.boolean().optional(),
-  ignore_throttled: z.boolean().optional()
-}).meta({ id: 'MsearchMultisearchHeader' })
-export type MsearchMultisearchHeader = z.infer<typeof MsearchMultisearchHeader>
-
 export const Metadata = z.record(z.string(), z.any()).meta({ id: 'Metadata' })
 export type Metadata = z.infer<typeof Metadata>
 
@@ -959,7 +798,7 @@ export interface QueryDslScriptScoreFunctionShape {
   script: ScriptShape
 }
 export const QueryDslScriptScoreFunction = z.object({
-  get script () { return Script.describe('A script that computes a score.') }
+  get script () { return z.union([Script, ScriptSource]).describe('A script that computes a score.') }
 }).meta({ id: 'QueryDslScriptScoreFunction' })
 export type QueryDslScriptScoreFunction = z.infer<typeof QueryDslScriptScoreFunction>
 
@@ -1059,6 +898,9 @@ export type QueryDslGeoDistanceQuery = z.infer<typeof QueryDslGeoDistanceQuery>
 /** A map tile reference, represented as `{zoom}/{x}/{y}` */
 export const GeoTile = z.string().meta({ id: 'GeoTile' })
 export type GeoTile = z.infer<typeof GeoTile>
+
+export const GeoHash = z.string().meta({ id: 'GeoHash' })
+export type GeoHash = z.infer<typeof GeoHash>
 
 /** A map hex cell (H3) reference */
 export const GeoHexCell = z.string().meta({ id: 'GeoHexCell' })
@@ -1287,7 +1129,7 @@ export interface ScriptFieldShape {
   ignore_failure?: boolean | undefined
 }
 export const ScriptField = z.object({
-  get script () { return Script },
+  get script () { return z.union([Script, ScriptSource]) },
   ignore_failure: z.boolean().optional()
 }).meta({ id: 'ScriptField' })
 export type ScriptField = z.infer<typeof ScriptField>
@@ -1350,7 +1192,7 @@ export interface ScriptSortShape {
 }
 export const ScriptSort = z.object({
   order: SortOrder.optional(),
-  get script () { return Script },
+  get script () { return z.union([Script, ScriptSource]) },
   type: ScriptSortType.optional(),
   mode: SortMode.optional(),
   get nested () { return NestedSortValue.optional() }
@@ -1389,7 +1231,7 @@ export const SearchSourceFilter = z.object({
 export type SearchSourceFilter = z.infer<typeof SearchSourceFilter>
 
 /** Defines how to fetch a source. Fetching can be disabled entirely, or the source can be filtered. */
-export const SearchSourceConfig = z.union([z.boolean(), SearchSourceFilter]).meta({ id: 'SearchSourceConfig' })
+export const SearchSourceConfig = z.union([z.boolean(), z.union([SearchSourceFilter, Fields])]).meta({ id: 'SearchSourceConfig' })
 export type SearchSourceConfig = z.infer<typeof SearchSourceConfig>
 
 export interface SearchInnerHitsShape {
@@ -1403,7 +1245,8 @@ export interface SearchInnerHitsShape {
   ignore_unmapped?: boolean | undefined
   script_fields?: Record<Field, ScriptFieldShape> | undefined
   seq_no_primary_term?: boolean | undefined
-  fields?: Field[] | undefined
+  field?: Field[] | undefined
+  fields?: QueryDslFieldAndFormat[] | undefined
   sort?: SortShape | undefined
   _source?: SearchSourceConfig | undefined
   stored_fields?: Fields | undefined
@@ -1415,13 +1258,14 @@ export const SearchInnerHits = z.object({
   size: integer.describe('The maximum number of hits to return per `inner_hits`.').optional(),
   from: integer.describe('Inner hit starting document offset.').optional(),
   get collapse () { return SearchFieldCollapse.optional() },
-  docvalue_fields: z.array(QueryDslFieldAndFormat).optional(),
+  docvalue_fields: z.array(z.union([QueryDslFieldAndFormat, Field])).optional(),
   explain: z.boolean().optional(),
   get highlight () { return SearchHighlight.optional() },
   ignore_unmapped: z.boolean().optional(),
   get script_fields (): z.ZodOptional<z.ZodRecord<typeof Field, typeof ScriptField>> { return z.record(Field, ScriptField).optional() },
   seq_no_primary_term: z.boolean().optional(),
-  fields: z.array(Field).optional(),
+  field: z.array(Field).optional(),
+  fields: z.array(z.union([QueryDslFieldAndFormat, Field])).optional(),
   get sort () { return Sort.describe('How the inner hits should be sorted per `inner_hits`. By default, inner hits are sorted by score.').optional() },
   _source: SearchSourceConfig.optional(),
   stored_fields: Fields.optional(),
@@ -1489,7 +1333,7 @@ export const QueryDslIdsQuery = z.object({
 }).meta({ id: 'QueryDslIdsQuery' })
 export type QueryDslIdsQuery = z.infer<typeof QueryDslIdsQuery>
 
-const QueryDslIntervalsFilterExclusiveProps = z.union([z.object({ after: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ before: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ contained_by: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ containing: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ not_contained_by: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ not_containing: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ not_overlapping: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ overlapping: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ script: z.lazy(() => Script) })])
+const QueryDslIntervalsFilterExclusiveProps = z.union([z.object({ after: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ before: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ contained_by: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ containing: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ not_contained_by: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ not_containing: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ not_overlapping: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ overlapping: z.lazy(() => QueryDslIntervalsContainer) }), z.object({ script: z.union([z.lazy(() => Script), z.lazy(() => ScriptSource)]) })])
 
 export interface QueryDslIntervalsFilterShape {
   after?: QueryDslIntervalsContainer | undefined
@@ -1621,6 +1465,36 @@ export type QueryDslIntervalsQuery = z.infer<typeof QueryDslIntervalsQuery>
 export const QueryVector = z.array(float).meta({ id: 'QueryVector' })
 export type QueryVector = z.infer<typeof QueryVector>
 
+export const InferenceEmbeddingContentType = z.enum(['text', 'image', 'audio', 'video', 'pdf']).meta({ id: 'InferenceEmbeddingContentType' })
+export type InferenceEmbeddingContentType = z.infer<typeof InferenceEmbeddingContentType>
+
+export const InferenceEmbeddingContentFormat = z.enum(['text', 'base64']).meta({ id: 'InferenceEmbeddingContentFormat' })
+export type InferenceEmbeddingContentFormat = z.infer<typeof InferenceEmbeddingContentFormat>
+
+export const InferenceString = z.object({
+  type: InferenceEmbeddingContentType.describe('The type of data that the value represents.'),
+  format: z.union([InferenceEmbeddingContentFormat, z.null()]).describe('The format of the data. If null, the default data format for the given type is used.').optional(),
+  value: z.string().describe('String which may be raw text, or the string representation of some other data such as an image in base64.')
+}).meta({ id: 'InferenceString' })
+export type InferenceString = z.infer<typeof InferenceString>
+
+export const InferenceStringGroup = z.union([InferenceString, z.array(InferenceString)]).meta({ id: 'InferenceStringGroup' })
+export type InferenceStringGroup = z.infer<typeof InferenceStringGroup>
+
+/**
+ * Knn embedding input.
+ * Either a string, an object or array of objects
+ */
+export const KnnEmbeddingInput = z.union([z.string(), InferenceStringGroup]).meta({ id: 'KnnEmbeddingInput' })
+export type KnnEmbeddingInput = z.infer<typeof KnnEmbeddingInput>
+
+export const Embedding = z.object({
+  inference_id: z.string().optional(),
+  input: KnnEmbeddingInput,
+  timeout: Duration.optional()
+}).meta({ id: 'Embedding' })
+export type Embedding = z.infer<typeof Embedding>
+
 export const TextEmbedding = z.object({
   model_id: z.string().describe('Model ID is required for all dense_vector fields but may be inferred for semantic_text fields').optional(),
   model_text: z.string().describe('The text to be converted into a vector by the specified model')
@@ -1635,7 +1509,7 @@ export const LookupQueryVectorBuilder = z.object({
 }).meta({ id: 'LookupQueryVectorBuilder' })
 export type LookupQueryVectorBuilder = z.infer<typeof LookupQueryVectorBuilder>
 
-const QueryVectorBuilderExclusiveProps = z.union([z.object({ text_embedding: TextEmbedding }), z.object({ lookup: LookupQueryVectorBuilder })])
+const QueryVectorBuilderExclusiveProps = z.union([z.object({ embedding: Embedding }), z.object({ text_embedding: TextEmbedding }), z.object({ lookup: LookupQueryVectorBuilder })])
 
 export const QueryVectorBuilder = QueryVectorBuilderExclusiveProps.meta({ id: 'QueryVectorBuilder' })
 export type QueryVectorBuilder = z.infer<typeof QueryVectorBuilder>
@@ -1736,6 +1610,10 @@ export const QueryDslMatchPhrasePrefixQuery = z.object({
   zero_terms_query: QueryDslZeroTermsQuery.describe('Indicates whether no documents are returned if the analyzer removes all tokens, such as when using a `stop` filter.').optional()
 }).meta({ id: 'QueryDslMatchPhrasePrefixQuery' })
 export type QueryDslMatchPhrasePrefixQuery = z.infer<typeof QueryDslMatchPhrasePrefixQuery>
+
+/** Only to be used in query and path parameters, as the array form is actually a csv */
+export const Routing = z.union([z.string(), z.array(z.string())]).meta({ id: 'Routing' })
+export type Routing = z.infer<typeof Routing>
 
 export const VersionType = z.enum(['internal', 'external', 'external_gte']).meta({ id: 'VersionType' })
 export type VersionType = z.infer<typeof VersionType>
@@ -2036,7 +1914,7 @@ export interface QueryDslScriptQueryShape {
 export const QueryDslScriptQuery = z.object({
   boost: float.describe('Floating point number used to decrease or increase the relevance scores of the query. Boost values are relative to the default value of 1.0. A boost value between 0 and 1.0 decreases the relevance score. A value greater than 1.0 increases the relevance score.').optional(),
   query_name: z.string().optional(),
-  get script () { return Script.describe('Contains a script to run as a query. This script must return a boolean value, `true` or `false`.') }
+  get script () { return z.union([Script, ScriptSource]).describe('Contains a script to run as a query. This script must return a boolean value, `true` or `false`.') }
 }).meta({ id: 'QueryDslScriptQuery' })
 export type QueryDslScriptQuery = z.infer<typeof QueryDslScriptQuery>
 
@@ -2052,7 +1930,7 @@ export const QueryDslScriptScoreQuery = z.object({
   query_name: z.string().optional(),
   min_score: float.describe('Documents with a score lower than this floating point number are excluded from the search results.').optional(),
   get query () { return QueryDslQueryContainer.describe('Query used to return documents.') },
-  get script () { return Script.describe('Script used to compute the score of documents returned by the query. Important: final relevance scores from the `script_score` query cannot be negative.') }
+  get script () { return z.union([Script, ScriptSource]).describe('Script used to compute the score of documents returned by the query. Important: final relevance scores from the `script_score` query cannot be negative.') }
 }).meta({ id: 'QueryDslScriptScoreQuery' })
 export type QueryDslScriptScoreQuery = z.infer<typeof QueryDslScriptScoreQuery>
 
@@ -2215,7 +2093,7 @@ export const QueryDslSpanWithinQuery = z.object({
 }).meta({ id: 'QueryDslSpanWithinQuery' })
 export type QueryDslSpanWithinQuery = z.infer<typeof QueryDslSpanWithinQuery>
 
-const QueryDslSpanQueryExclusiveProps = z.union([z.object({ span_containing: z.lazy(() => QueryDslSpanContainingQuery) }), z.object({ span_field_masking: z.lazy(() => QueryDslSpanFieldMaskingQuery) }), z.object({ span_first: z.lazy(() => QueryDslSpanFirstQuery) }), z.object({ span_gap: QueryDslSpanGapQuery }), z.object({ span_multi: z.lazy(() => QueryDslSpanMultiTermQuery) }), z.object({ span_near: z.lazy(() => QueryDslSpanNearQuery) }), z.object({ span_not: z.lazy(() => QueryDslSpanNotQuery) }), z.object({ span_or: z.lazy(() => QueryDslSpanOrQuery) }), z.object({ span_term: z.record(Field, QueryDslSpanTermQuery) }), z.object({ span_within: z.lazy(() => QueryDslSpanWithinQuery) })])
+const QueryDslSpanQueryExclusiveProps = z.union([z.object({ span_containing: z.lazy(() => QueryDslSpanContainingQuery) }), z.object({ span_field_masking: z.lazy(() => QueryDslSpanFieldMaskingQuery) }), z.object({ span_first: z.lazy(() => QueryDslSpanFirstQuery) }), z.object({ span_gap: QueryDslSpanGapQuery }), z.object({ span_multi: z.lazy(() => QueryDslSpanMultiTermQuery) }), z.object({ span_near: z.lazy(() => QueryDslSpanNearQuery) }), z.object({ span_not: z.lazy(() => QueryDslSpanNotQuery) }), z.object({ span_or: z.lazy(() => QueryDslSpanOrQuery) }), z.object({ span_term: z.record(Field, z.union([QueryDslSpanTermQuery, FieldValue])) }), z.object({ span_within: z.lazy(() => QueryDslSpanWithinQuery) })])
 
 export interface QueryDslSpanQueryShape {
   span_containing?: QueryDslSpanContainingQuery | undefined
@@ -2291,7 +2169,7 @@ export const QueryDslTermsSetQuery = z.object({
   query_name: z.string().optional(),
   minimum_should_match: MinimumShouldMatch.describe('Specification describing number of matching terms required to return a document.').optional(),
   minimum_should_match_field: Field.describe('Numeric field containing the number of matching terms required to return a document.').optional(),
-  get minimum_should_match_script () { return Script.describe('Custom script containing the number of matching terms required to return a document.').optional() },
+  get minimum_should_match_script () { return z.union([Script, ScriptSource]).describe('Custom script containing the number of matching terms required to return a document.').optional() },
   terms: z.array(FieldValue).describe('Array of terms you wish to find in the provided field.')
 }).meta({ id: 'QueryDslTermsSetQuery' })
 export type QueryDslTermsSetQuery = z.infer<typeof QueryDslTermsSetQuery>
@@ -2332,7 +2210,7 @@ export const QueryDslTypeQuery = z.object({
 }).meta({ id: 'QueryDslTypeQuery' })
 export type QueryDslTypeQuery = z.infer<typeof QueryDslTypeQuery>
 
-const QueryDslQueryContainerExclusiveProps = z.union([z.object({ bool: z.lazy(() => QueryDslBoolQuery) }), z.object({ boosting: z.lazy(() => QueryDslBoostingQuery) }), z.object({ common: z.record(Field, QueryDslCommonTermsQuery) }), z.object({ combined_fields: QueryDslCombinedFieldsQuery }), z.object({ constant_score: z.lazy(() => QueryDslConstantScoreQuery) }), z.object({ dis_max: z.lazy(() => QueryDslDisMaxQuery) }), z.object({ distance_feature: QueryDslDistanceFeatureQuery }), z.object({ exists: QueryDslExistsQuery }), z.object({ function_score: z.lazy(() => QueryDslFunctionScoreQuery) }), z.object({ fuzzy: z.record(Field, QueryDslFuzzyQuery) }), z.object({ geo_bounding_box: QueryDslGeoBoundingBoxQuery }), z.object({ geo_distance: QueryDslGeoDistanceQuery }), z.object({ geo_grid: z.record(Field, QueryDslGeoGridQuery) }), z.object({ geo_polygon: QueryDslGeoPolygonQuery }), z.object({ geo_shape: QueryDslGeoShapeQuery }), z.object({ has_child: z.lazy(() => QueryDslHasChildQuery) }), z.object({ has_parent: z.lazy(() => QueryDslHasParentQuery) }), z.object({ ids: QueryDslIdsQuery }), z.object({ intervals: z.record(Field, z.lazy(() => QueryDslIntervalsQuery)) }), z.object({ knn: z.lazy(() => KnnQuery) }), z.object({ match: z.record(Field, QueryDslMatchQuery) }), z.object({ match_all: QueryDslMatchAllQuery }), z.object({ match_bool_prefix: z.record(Field, QueryDslMatchBoolPrefixQuery) }), z.object({ match_none: QueryDslMatchNoneQuery }), z.object({ match_phrase: z.record(Field, QueryDslMatchPhraseQuery) }), z.object({ match_phrase_prefix: z.record(Field, QueryDslMatchPhrasePrefixQuery) }), z.object({ more_like_this: QueryDslMoreLikeThisQuery }), z.object({ multi_match: QueryDslMultiMatchQuery }), z.object({ nested: z.lazy(() => QueryDslNestedQuery) }), z.object({ parent_id: QueryDslParentIdQuery }), z.object({ percolate: QueryDslPercolateQuery }), z.object({ pinned: z.lazy(() => QueryDslPinnedQuery) }), z.object({ prefix: z.record(Field, QueryDslPrefixQuery) }), z.object({ query_string: QueryDslQueryStringQuery }), z.object({ range: z.record(Field, QueryDslRangeQuery) }), z.object({ rank_feature: QueryDslRankFeatureQuery }), z.object({ regexp: z.record(Field, QueryDslRegexpQuery) }), z.object({ rule: z.lazy(() => QueryDslRuleQuery) }), z.object({ script: z.lazy(() => QueryDslScriptQuery) }), z.object({ script_score: z.lazy(() => QueryDslScriptScoreQuery) }), z.object({ semantic: QueryDslSemanticQuery }), z.object({ shape: QueryDslShapeQuery }), z.object({ simple_query_string: QueryDslSimpleQueryStringQuery }), z.object({ span_containing: z.lazy(() => QueryDslSpanContainingQuery) }), z.object({ span_field_masking: z.lazy(() => QueryDslSpanFieldMaskingQuery) }), z.object({ span_first: z.lazy(() => QueryDslSpanFirstQuery) }), z.object({ span_multi: z.lazy(() => QueryDslSpanMultiTermQuery) }), z.object({ span_near: z.lazy(() => QueryDslSpanNearQuery) }), z.object({ span_not: z.lazy(() => QueryDslSpanNotQuery) }), z.object({ span_or: z.lazy(() => QueryDslSpanOrQuery) }), z.object({ span_term: z.record(Field, QueryDslSpanTermQuery) }), z.object({ span_within: z.lazy(() => QueryDslSpanWithinQuery) }), z.object({ sparse_vector: QueryDslSparseVectorQuery }), z.object({ term: z.record(Field, QueryDslTermQuery) }), z.object({ terms: QueryDslTermsQuery }), z.object({ terms_set: z.record(Field, z.lazy(() => QueryDslTermsSetQuery)) }), z.object({ text_expansion: z.record(Field, QueryDslTextExpansionQuery) }), z.object({ weighted_tokens: z.record(Field, QueryDslWeightedTokensQuery) }), z.object({ wildcard: z.record(Field, QueryDslWildcardQuery) }), z.object({ wrapper: QueryDslWrapperQuery }), z.object({ type: QueryDslTypeQuery })])
+const QueryDslQueryContainerExclusiveProps = z.union([z.object({ bool: z.lazy(() => QueryDslBoolQuery) }), z.object({ boosting: z.lazy(() => QueryDslBoostingQuery) }), z.object({ common: z.record(Field, z.union([QueryDslCommonTermsQuery, z.string()])) }), z.object({ combined_fields: QueryDslCombinedFieldsQuery }), z.object({ constant_score: z.lazy(() => QueryDslConstantScoreQuery) }), z.object({ dis_max: z.lazy(() => QueryDslDisMaxQuery) }), z.object({ distance_feature: QueryDslDistanceFeatureQuery }), z.object({ exists: QueryDslExistsQuery }), z.object({ function_score: z.union([z.lazy(() => QueryDslFunctionScoreQuery), z.array(z.lazy(() => QueryDslFunctionScoreContainer))]) }), z.object({ fuzzy: z.record(Field, z.union([QueryDslFuzzyQuery, z.union([z.string(), double, z.boolean()])])) }), z.object({ geo_bounding_box: QueryDslGeoBoundingBoxQuery }), z.object({ geo_distance: QueryDslGeoDistanceQuery }), z.object({ geo_grid: z.record(Field, QueryDslGeoGridQuery) }), z.object({ geo_polygon: QueryDslGeoPolygonQuery }), z.object({ geo_shape: QueryDslGeoShapeQuery }), z.object({ has_child: z.lazy(() => QueryDslHasChildQuery) }), z.object({ has_parent: z.lazy(() => QueryDslHasParentQuery) }), z.object({ ids: QueryDslIdsQuery }), z.object({ intervals: z.record(Field, z.lazy(() => QueryDslIntervalsQuery)) }), z.object({ knn: z.lazy(() => KnnQuery) }), z.object({ match: z.record(Field, z.union([QueryDslMatchQuery, z.union([z.string(), float, z.boolean()])])) }), z.object({ match_all: QueryDslMatchAllQuery }), z.object({ match_bool_prefix: z.record(Field, z.union([QueryDslMatchBoolPrefixQuery, z.string()])) }), z.object({ match_none: QueryDslMatchNoneQuery }), z.object({ match_phrase: z.record(Field, z.union([QueryDslMatchPhraseQuery, z.string()])) }), z.object({ match_phrase_prefix: z.record(Field, z.union([QueryDslMatchPhrasePrefixQuery, z.string()])) }), z.object({ more_like_this: QueryDslMoreLikeThisQuery }), z.object({ multi_match: QueryDslMultiMatchQuery }), z.object({ nested: z.lazy(() => QueryDslNestedQuery) }), z.object({ parent_id: QueryDslParentIdQuery }), z.object({ percolate: QueryDslPercolateQuery }), z.object({ pinned: z.lazy(() => QueryDslPinnedQuery) }), z.object({ prefix: z.record(Field, z.union([QueryDslPrefixQuery, z.string()])) }), z.object({ query_string: QueryDslQueryStringQuery }), z.object({ range: z.record(Field, QueryDslRangeQuery) }), z.object({ rank_feature: QueryDslRankFeatureQuery }), z.object({ regexp: z.record(Field, z.union([QueryDslRegexpQuery, z.string()])) }), z.object({ rule: z.lazy(() => QueryDslRuleQuery) }), z.object({ script: z.lazy(() => QueryDslScriptQuery) }), z.object({ script_score: z.lazy(() => QueryDslScriptScoreQuery) }), z.object({ semantic: QueryDslSemanticQuery }), z.object({ shape: QueryDslShapeQuery }), z.object({ simple_query_string: QueryDslSimpleQueryStringQuery }), z.object({ span_containing: z.lazy(() => QueryDslSpanContainingQuery) }), z.object({ span_field_masking: z.lazy(() => QueryDslSpanFieldMaskingQuery) }), z.object({ span_first: z.lazy(() => QueryDslSpanFirstQuery) }), z.object({ span_multi: z.lazy(() => QueryDslSpanMultiTermQuery) }), z.object({ span_near: z.lazy(() => QueryDslSpanNearQuery) }), z.object({ span_not: z.lazy(() => QueryDslSpanNotQuery) }), z.object({ span_or: z.lazy(() => QueryDslSpanOrQuery) }), z.object({ span_term: z.record(Field, z.union([QueryDslSpanTermQuery, FieldValue])) }), z.object({ span_within: z.lazy(() => QueryDslSpanWithinQuery) }), z.object({ sparse_vector: QueryDslSparseVectorQuery }), z.object({ term: z.record(Field, z.union([QueryDslTermQuery, FieldValue])) }), z.object({ terms: QueryDslTermsQuery }), z.object({ terms_set: z.record(Field, z.lazy(() => QueryDslTermsSetQuery)) }), z.object({ text_expansion: z.record(Field, QueryDslTextExpansionQuery) }), z.object({ weighted_tokens: z.record(Field, QueryDslWeightedTokensQuery) }), z.object({ wildcard: z.record(Field, z.union([QueryDslWildcardQuery, z.string()])) }), z.object({ wrapper: QueryDslWrapperQuery }), z.object({ type: QueryDslTypeQuery })])
 
 export interface QueryDslQueryContainerShape {
   bool?: QueryDslBoolQuery | undefined
@@ -2429,7 +2307,7 @@ export interface AggregationsAutoDateHistogramAggregationShape {
   buckets?: integer | undefined
   field?: Field | undefined
   format?: string | undefined
-  minimum_interval?: AggregationsMinimumInterval | undefined
+  minimum_interval?: AggregationsMinimumInterval | null | undefined
   missing?: DateTime | undefined
   offset?: string | undefined
   params?: Record<string, unknown> | undefined
@@ -2440,11 +2318,11 @@ export const AggregationsAutoDateHistogramAggregation = z.object({
   buckets: integer.describe('The target number of buckets.').optional(),
   field: Field.describe('The field on which to run the aggregation.').optional(),
   format: z.string().describe('The date format used to format `key_as_string` in the response. If no `format` is specified, the first date format specified in the field mapping is used.').optional(),
-  minimum_interval: AggregationsMinimumInterval.describe('The minimum rounding interval. This can make the collection process more efficient, as the aggregation will not attempt to round at any interval lower than `minimum_interval`.').optional(),
+  minimum_interval: z.union([AggregationsMinimumInterval, z.null()]).describe('The minimum rounding interval. This can make the collection process more efficient, as the aggregation will not attempt to round at any interval lower than `minimum_interval`.').optional(),
   missing: DateTime.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
   offset: z.string().describe('Time zone specified as a ISO 8601 UTC offset.').optional(),
   params: z.record(z.string(), z.any()).optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   time_zone: TimeZone.describe('Time zone ID.').optional()
 }).meta({ id: 'AggregationsAutoDateHistogramAggregation' })
 export type AggregationsAutoDateHistogramAggregation = z.infer<typeof AggregationsAutoDateHistogramAggregation>
@@ -2460,7 +2338,7 @@ export interface AggregationsMetricAggregationBaseShape {
 export const AggregationsMetricAggregationBase = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() }
+  get script () { return z.union([Script, ScriptSource]).optional() }
 }).meta({ id: 'AggregationsMetricAggregationBase' })
 export type AggregationsMetricAggregationBase = z.infer<typeof AggregationsMetricAggregationBase>
 
@@ -2473,7 +2351,7 @@ export interface AggregationsFormatMetricAggregationBaseShape {
 export const AggregationsFormatMetricAggregationBase = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   format: z.string().optional()
 }).meta({ id: 'AggregationsFormatMetricAggregationBase' })
 export type AggregationsFormatMetricAggregationBase = z.infer<typeof AggregationsFormatMetricAggregationBase>
@@ -2487,7 +2365,7 @@ export interface AggregationsAverageAggregationShape {
 export const AggregationsAverageAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   format: z.string().optional()
 }).meta({ id: 'AggregationsAverageAggregation' })
 export type AggregationsAverageAggregation = z.infer<typeof AggregationsAverageAggregation>
@@ -2533,7 +2411,7 @@ export interface AggregationsBoxplotAggregationShape {
 export const AggregationsBoxplotAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   compression: double.describe('Limits the maximum number of nodes used by the underlying TDigest algorithm to `20 * compression`, enabling control of memory usage and approximation error.').optional(),
   execution_hint: AggregationsTDigestExecutionHint.describe('The default implementation of TDigest is optimized for performance, scaling to millions or even billions of sample values while maintaining acceptable accuracy levels (close to 1% relative error for millions of samples in some cases). To use an implementation optimized for accuracy, set this parameter to high_accuracy instead.').optional()
 }).meta({ id: 'AggregationsBoxplotAggregation' })
@@ -2549,7 +2427,7 @@ export const AggregationsBucketScriptAggregation = z.object({
   buckets_path: AggregationsBucketsPath.describe('Path to the buckets that contain one set of values to correlate.').optional(),
   format: z.string().describe('`DecimalFormat` pattern for the output value. If specified, the formatted value is returned in the aggregation’s `value_as_string` property.').optional(),
   gap_policy: AggregationsGapPolicy.describe('Policy to apply when gaps are found in the data.').optional(),
-  get script () { return Script.describe('The script to run for this aggregation.').optional() }
+  get script () { return z.union([Script, ScriptSource]).describe('The script to run for this aggregation.').optional() }
 }).meta({ id: 'AggregationsBucketScriptAggregation' })
 export type AggregationsBucketScriptAggregation = z.infer<typeof AggregationsBucketScriptAggregation>
 
@@ -2563,7 +2441,7 @@ export const AggregationsBucketSelectorAggregation = z.object({
   buckets_path: AggregationsBucketsPath.describe('Path to the buckets that contain one set of values to correlate.').optional(),
   format: z.string().describe('`DecimalFormat` pattern for the output value. If specified, the formatted value is returned in the aggregation’s `value_as_string` property.').optional(),
   gap_policy: AggregationsGapPolicy.describe('Policy to apply when gaps are found in the data.').optional(),
-  get script () { return Script.describe('The script to run for this aggregation.').optional() }
+  get script () { return z.union([Script, ScriptSource]).describe('The script to run for this aggregation.').optional() }
 }).meta({ id: 'AggregationsBucketSelectorAggregation' })
 export type AggregationsBucketSelectorAggregation = z.infer<typeof AggregationsBucketSelectorAggregation>
 
@@ -2638,7 +2516,7 @@ export interface AggregationsCardinalityAggregationShape {
 export const AggregationsCardinalityAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   precision_threshold: integer.describe('A unique count below which counts are expected to be close to accurate. This allows to trade memory for accuracy.').optional(),
   rehash: z.boolean().optional(),
   execution_hint: AggregationsCardinalityExecutionMode.describe('Mechanism by which cardinality aggregations is run.').optional()
@@ -2653,7 +2531,7 @@ export interface AggregationsCartesianBoundsAggregationShape {
 export const AggregationsCartesianBoundsAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() }
+  get script () { return z.union([Script, ScriptSource]).optional() }
 }).meta({ id: 'AggregationsCartesianBoundsAggregation' })
 export type AggregationsCartesianBoundsAggregation = z.infer<typeof AggregationsCartesianBoundsAggregation>
 
@@ -2665,7 +2543,7 @@ export interface AggregationsCartesianCentroidAggregationShape {
 export const AggregationsCartesianCentroidAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() }
+  get script () { return z.union([Script, ScriptSource]).optional() }
 }).meta({ id: 'AggregationsCartesianCentroidAggregation' })
 export type AggregationsCartesianCentroidAggregation = z.infer<typeof AggregationsCartesianCentroidAggregation>
 
@@ -2731,7 +2609,7 @@ export const AggregationsCompositeAggregationBase = z.object({
   field: Field.describe('Either `field` or `script` must be present').optional(),
   missing_bucket: z.boolean().optional(),
   missing_order: AggregationsMissingOrder.optional(),
-  get script () { return Script.describe('Either `field` or `script` must be present').optional() },
+  get script () { return z.union([Script, ScriptSource]).describe('Either `field` or `script` must be present').optional() },
   value_type: AggregationsValueType.optional(),
   order: SortOrder.optional()
 }).meta({ id: 'AggregationsCompositeAggregationBase' })
@@ -2749,7 +2627,7 @@ export const AggregationsCompositeTermsAggregation = z.object({
   field: Field.describe('Either `field` or `script` must be present').optional(),
   missing_bucket: z.boolean().optional(),
   missing_order: AggregationsMissingOrder.optional(),
-  get script () { return Script.describe('Either `field` or `script` must be present').optional() },
+  get script () { return z.union([Script, ScriptSource]).describe('Either `field` or `script` must be present').optional() },
   value_type: AggregationsValueType.optional(),
   order: SortOrder.optional()
 }).meta({ id: 'AggregationsCompositeTermsAggregation' })
@@ -2768,7 +2646,7 @@ export const AggregationsCompositeHistogramAggregation = z.object({
   field: Field.describe('Either `field` or `script` must be present').optional(),
   missing_bucket: z.boolean().optional(),
   missing_order: AggregationsMissingOrder.optional(),
-  get script () { return Script.describe('Either `field` or `script` must be present').optional() },
+  get script () { return z.union([Script, ScriptSource]).describe('Either `field` or `script` must be present').optional() },
   value_type: AggregationsValueType.optional(),
   order: SortOrder.optional(),
   interval: double
@@ -2799,7 +2677,7 @@ export const AggregationsCompositeDateHistogramAggregation = z.object({
   field: Field.describe('Either `field` or `script` must be present').optional(),
   missing_bucket: z.boolean().optional(),
   missing_order: AggregationsMissingOrder.optional(),
-  get script () { return Script.describe('Either `field` or `script` must be present').optional() },
+  get script () { return z.union([Script, ScriptSource]).describe('Either `field` or `script` must be present').optional() },
   value_type: AggregationsValueType.optional(),
   order: SortOrder.optional(),
   format: z.string().optional(),
@@ -2817,6 +2695,27 @@ export const CoordsGeoBounds = z.object({
   right: double
 }).meta({ id: 'CoordsGeoBounds' })
 export type CoordsGeoBounds = z.infer<typeof CoordsGeoBounds>
+
+export const LatLonGeoLocation = z.object({
+  lat: double.describe('Latitude'),
+  lon: double.describe('Longitude')
+}).meta({ id: 'LatLonGeoLocation' })
+export type LatLonGeoLocation = z.infer<typeof LatLonGeoLocation>
+
+export const GeoHashLocation = z.object({
+  geohash: GeoHash
+}).meta({ id: 'GeoHashLocation' })
+export type GeoHashLocation = z.infer<typeof GeoHashLocation>
+
+/**
+ * A latitude/longitude as a 2 dimensional point. It can be represented in various ways:
+ * - as a `{lat, long}` object
+ * - as a geo hash value
+ * - as a `[lon, lat]` array
+ * - as a string in `"<lat>, <lon>"` or WKT point formats
+ */
+export const GeoLocation = z.union([LatLonGeoLocation, GeoHashLocation, z.array(double), z.string()]).meta({ id: 'GeoLocation' })
+export type GeoLocation = z.infer<typeof GeoLocation>
 
 export const TopLeftBottomRightGeoBounds = z.object({
   top_left: GeoLocation,
@@ -2859,7 +2758,7 @@ export const AggregationsCompositeGeoTileGridAggregation = z.object({
   field: Field.describe('Either `field` or `script` must be present').optional(),
   missing_bucket: z.boolean().optional(),
   missing_order: AggregationsMissingOrder.optional(),
-  get script () { return Script.describe('Either `field` or `script` must be present').optional() },
+  get script () { return z.union([Script, ScriptSource]).describe('Either `field` or `script` must be present').optional() },
   value_type: AggregationsValueType.optional(),
   order: SortOrder.optional(),
   precision: integer.optional(),
@@ -2942,7 +2841,7 @@ export const AggregationsDateHistogramAggregation = z.object({
   offset: Duration.describe('Changes the start value of each bucket by the specified positive (`+`) or negative offset (`-`) duration.').optional(),
   order: AggregationsAggregateOrder.describe('The sort order of the returned buckets.').optional(),
   params: z.record(z.string(), z.any()).optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   time_zone: TimeZone.describe('Time zone used for bucketing and rounding. Defaults to Coordinated Universal Time (UTC).').optional(),
   keyed: z.boolean().describe('Set to `true` to associate a unique string key with each bucket and return the ranges as a hash rather than an array.').optional()
 }).meta({ id: 'AggregationsDateHistogramAggregation' })
@@ -2994,7 +2893,7 @@ export interface AggregationsDiversifiedSamplerAggregationShape {
 export const AggregationsDiversifiedSamplerAggregation = z.object({
   execution_hint: AggregationsSamplerAggregationExecutionHint.describe('The type of value used for de-duplication.').optional(),
   max_docs_per_value: integer.describe('Limits how many documents are permitted per choice of de-duplicating value.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   shard_size: integer.describe('Limits how many top-scoring documents are collected in the sample processed on each shard.').optional(),
   field: Field.describe('The field used to provide values used for de-duplication.').optional()
 }).meta({ id: 'AggregationsDiversifiedSamplerAggregation' })
@@ -3010,7 +2909,7 @@ export interface AggregationsExtendedStatsAggregationShape {
 export const AggregationsExtendedStatsAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   format: z.string().optional(),
   sigma: double.describe('The number of standard deviations above/below the mean to display.').optional()
 }).meta({ id: 'AggregationsExtendedStatsAggregation' })
@@ -3082,7 +2981,7 @@ export interface AggregationsGeoBoundsAggregationShape {
 export const AggregationsGeoBoundsAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   wrap_longitude: z.boolean().describe('Specifies whether the bounding box should be allowed to overlap the international date line.').optional()
 }).meta({ id: 'AggregationsGeoBoundsAggregation' })
 export type AggregationsGeoBoundsAggregation = z.infer<typeof AggregationsGeoBoundsAggregation>
@@ -3097,7 +2996,7 @@ export interface AggregationsGeoCentroidAggregationShape {
 export const AggregationsGeoCentroidAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   count: long.optional(),
   location: GeoLocation.optional()
 }).meta({ id: 'AggregationsGeoCentroidAggregation' })
@@ -3203,7 +3102,7 @@ export const AggregationsHistogramAggregation = z.object({
   missing: double.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
   offset: double.describe('By default, the bucket keys start with 0 and then continue in even spaced steps of `interval`. The bucket boundaries can be shifted by using the `offset` option.').optional(),
   order: AggregationsAggregateOrder.describe('The sort order of the returned buckets. By default, the returned buckets are sorted by their key ascending.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   format: z.string().optional(),
   keyed: z.boolean().describe('If `true`, returns buckets as a hash instead of an array, keyed by the bucket keys.').optional()
 }).meta({ id: 'AggregationsHistogramAggregation' })
@@ -3282,7 +3181,7 @@ export interface AggregationsMaxAggregationShape {
 export const AggregationsMaxAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   format: z.string().optional()
 }).meta({ id: 'AggregationsMaxAggregation' })
 export type AggregationsMaxAggregation = z.infer<typeof AggregationsMaxAggregation>
@@ -3303,7 +3202,7 @@ export interface AggregationsMedianAbsoluteDeviationAggregationShape {
 export const AggregationsMedianAbsoluteDeviationAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   format: z.string().optional(),
   compression: double.describe('Limits the maximum number of nodes used by the underlying TDigest algorithm to `20 * compression`, enabling control of memory usage and approximation error.').optional(),
   execution_hint: AggregationsTDigestExecutionHint.describe('The default implementation of TDigest is optimized for performance, scaling to millions or even billions of sample values while maintaining acceptable accuracy levels (close to 1% relative error for millions of samples in some cases). To use an implementation optimized for accuracy, set this parameter to high_accuracy instead.').optional()
@@ -3319,7 +3218,7 @@ export interface AggregationsMinAggregationShape {
 export const AggregationsMinAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   format: z.string().optional()
 }).meta({ id: 'AggregationsMinAggregation' })
 export type AggregationsMinAggregation = z.infer<typeof AggregationsMinAggregation>
@@ -3434,7 +3333,7 @@ const AggregationsMultiTermLookupCommonProps = z.object({
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional()
 })
 
-const AggregationsMultiTermLookupExclusiveProps = z.union([z.object({ field: Field }), z.object({ script: z.lazy(() => Script) })])
+const AggregationsMultiTermLookupExclusiveProps = z.union([z.object({ field: Field }), z.object({ script: z.union([z.lazy(() => Script), z.lazy(() => ScriptSource)]) })])
 
 export interface AggregationsMultiTermLookupShape {
   missing?: AggregationsMissing | undefined
@@ -3511,7 +3410,7 @@ export interface AggregationsPercentileRanksAggregationShape {
 export const AggregationsPercentileRanksAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   format: z.string().optional(),
   keyed: z.boolean().describe('By default, the aggregation associates a unique string key with each bucket and returns the ranges as a hash rather than an array. Set to `false` to disable this behavior.').optional(),
   values: z.union([z.array(double), z.null()]).describe('An array of values for which to calculate the percentile ranks.').optional(),
@@ -3533,7 +3432,7 @@ export interface AggregationsPercentilesAggregationShape {
 export const AggregationsPercentilesAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   format: z.string().optional(),
   keyed: z.boolean().describe('By default, the aggregation associates a unique string key with each bucket and returns the ranges as a hash rather than an array. Set to `false` to disable this behavior.').optional(),
   percents: z.union([double, z.array(double)]).describe('The percentiles to calculate.').optional(),
@@ -3560,7 +3459,7 @@ export const AggregationsRangeAggregation = z.object({
   field: Field.describe('The date field whose values are use to build ranges.').optional(),
   missing: integer.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
   ranges: z.array(AggregationsAggregationRange).describe('An array of ranges used to bucket documents.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   keyed: z.boolean().describe('Set to `true` to associate a unique string key with each bucket and return the ranges as a hash rather than an array.').optional(),
   format: z.string().optional()
 }).meta({ id: 'AggregationsRangeAggregation' })
@@ -3592,7 +3491,7 @@ export interface AggregationsRateAggregationShape {
 export const AggregationsRateAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   format: z.string().optional(),
   unit: AggregationsCalendarInterval.describe('The interval used to calculate the rate. By default, the interval of the `date_histogram` is used.').optional(),
   mode: AggregationsRateMode.describe('How the rate is calculated.').optional()
@@ -3624,12 +3523,12 @@ export interface AggregationsScriptedMetricAggregationShape {
 export const AggregationsScriptedMetricAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
-  get combine_script () { return Script.describe('Runs once on each shard after document collection is complete. Allows the aggregation to consolidate the state returned from each shard.').optional() },
-  get init_script () { return Script.describe('Runs prior to any collection of documents. Allows the aggregation to set up any initial state.').optional() },
-  get map_script () { return Script.describe('Run once per document collected. If no `combine_script` is specified, the resulting state needs to be stored in the `state` object.').optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
+  get combine_script () { return z.union([Script, ScriptSource]).describe('Runs once on each shard after document collection is complete. Allows the aggregation to consolidate the state returned from each shard.').optional() },
+  get init_script () { return z.union([Script, ScriptSource]).describe('Runs prior to any collection of documents. Allows the aggregation to set up any initial state.').optional() },
+  get map_script () { return z.union([Script, ScriptSource]).describe('Run once per document collected. If no `combine_script` is specified, the resulting state needs to be stored in the `state` object.').optional() },
   params: z.record(z.string(), z.any()).describe('A global object with script parameters for `init`, `map` and `combine` scripts. It is shared between the scripts.').optional(),
-  get reduce_script () { return Script.describe('Runs once on the coordinating node after all shards have returned their results. The script is provided with access to a variable `states`, which is an array of the result of the `combine_script` on each shard.').optional() }
+  get reduce_script () { return z.union([Script, ScriptSource]).describe('Runs once on the coordinating node after all shards have returned their results. The script is provided with access to a variable `states`, which is an array of the result of the `combine_script` on each shard.').optional() }
 }).meta({ id: 'AggregationsScriptedMetricAggregation' })
 export type AggregationsScriptedMetricAggregation = z.infer<typeof AggregationsScriptedMetricAggregation>
 
@@ -3667,7 +3566,7 @@ export interface AggregationsScriptedHeuristicShape {
   script: ScriptShape
 }
 export const AggregationsScriptedHeuristic = z.object({
-  get script () { return Script }
+  get script () { return z.union([Script, ScriptSource]) }
 }).meta({ id: 'AggregationsScriptedHeuristic' })
 export type AggregationsScriptedHeuristic = z.infer<typeof AggregationsScriptedHeuristic>
 
@@ -3764,7 +3663,7 @@ export interface AggregationsStatsAggregationShape {
 export const AggregationsStatsAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   format: z.string().optional()
 }).meta({ id: 'AggregationsStatsAggregation' })
 export type AggregationsStatsAggregation = z.infer<typeof AggregationsStatsAggregation>
@@ -3783,7 +3682,7 @@ export interface AggregationsStringStatsAggregationShape {
 export const AggregationsStringStatsAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   show_distribution: z.boolean().describe('Shows the probability distribution for all characters.').optional()
 }).meta({ id: 'AggregationsStringStatsAggregation' })
 export type AggregationsStringStatsAggregation = z.infer<typeof AggregationsStringStatsAggregation>
@@ -3797,7 +3696,7 @@ export interface AggregationsSumAggregationShape {
 export const AggregationsSumAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   format: z.string().optional()
 }).meta({ id: 'AggregationsSumAggregation' })
 export type AggregationsSumAggregation = z.infer<typeof AggregationsSumAggregation>
@@ -3838,7 +3737,7 @@ export const AggregationsTermsAggregation = z.object({
   missing_bucket: z.boolean().optional(),
   value_type: z.string().describe('Coerced unmapped fields into the specified type.').optional(),
   order: AggregationsAggregateOrder.describe('Specifies the sort order of the buckets. Defaults to sorting by descending document count.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   shard_min_doc_count: long.describe('Regulates the certainty a shard has if the term should actually be added to the candidate list or not with respect to the `min_doc_count`. Terms will only be considered if their local shard frequency within the set is higher than the `shard_min_doc_count`.').optional(),
   shard_size: integer.describe('The number of candidate terms produced by each shard. By default, `shard_size` will be automatically estimated based on the number of shards and the `size` parameter.').optional(),
   show_term_doc_count_error: z.boolean().describe('Set to `true` to return the `doc_count_error_upper_bound`, which is an upper bound to the error on the `doc_count` returned by each shard.').optional(),
@@ -3875,10 +3774,10 @@ export interface AggregationsTopHitsAggregationShape {
 export const AggregationsTopHitsAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
-  docvalue_fields: z.array(QueryDslFieldAndFormat).describe('Fields for which to return doc values.').optional(),
+  get script () { return z.union([Script, ScriptSource]).optional() },
+  docvalue_fields: z.array(z.union([QueryDslFieldAndFormat, Field])).describe('Fields for which to return doc values.').optional(),
   explain: z.boolean().describe('If `true`, returns detailed information about score computation as part of a hit.').optional(),
-  fields: z.array(QueryDslFieldAndFormat).describe('Array of wildcard (*) patterns. The request returns values for field names matching these patterns in the hits.fields property of the response.').optional(),
+  fields: z.array(z.union([QueryDslFieldAndFormat, Field])).describe('Array of wildcard (*) patterns. The request returns values for field names matching these patterns in the hits.fields property of the response.').optional(),
   from: integer.describe('Starting document offset.').optional(),
   get highlight () { return SearchHighlight.describe('Specifies the highlighter to use for retrieving highlighted snippets from one or more fields in the search results.').optional() },
   get script_fields (): z.ZodOptional<z.ZodRecord<z.ZodString, typeof ScriptField>> { return z.record(z.string(), ScriptField).describe('Returns the result of one or more script evaluations for each hit.').optional() },
@@ -3899,7 +3798,7 @@ export interface AggregationsTestPopulationShape {
 }
 export const AggregationsTestPopulation = z.object({
   field: Field.describe('The field to aggregate.'),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   get filter () { return QueryDslQueryContainer.describe('A filter used to define a set of records to run unpaired t-test on.').optional() }
 }).meta({ id: 'AggregationsTestPopulation' })
 export type AggregationsTestPopulation = z.infer<typeof AggregationsTestPopulation>
@@ -3935,7 +3834,7 @@ export interface AggregationsTopMetricsAggregationShape {
 export const AggregationsTopMetricsAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   metrics: z.union([AggregationsTopMetricsValue, z.array(AggregationsTopMetricsValue)]).describe('The fields of the top document to return.').optional(),
   size: integer.describe('The number of top documents from which to return metrics.').optional(),
   get sort () { return Sort.describe('The sort order of the documents.').optional() }
@@ -3951,7 +3850,7 @@ export interface AggregationsFormattableMetricAggregationShape {
 export const AggregationsFormattableMetricAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   format: z.string().optional()
 }).meta({ id: 'AggregationsFormattableMetricAggregation' })
 export type AggregationsFormattableMetricAggregation = z.infer<typeof AggregationsFormattableMetricAggregation>
@@ -3965,7 +3864,7 @@ export interface AggregationsValueCountAggregationShape {
 export const AggregationsValueCountAggregation = z.object({
   field: Field.describe('The field on which to run the aggregation.').optional(),
   missing: AggregationsMissing.describe('The value to apply to documents that do not have a value. By default, documents without a value are ignored.').optional(),
-  get script () { return Script.optional() },
+  get script () { return z.union([Script, ScriptSource]).optional() },
   format: z.string().optional()
 }).meta({ id: 'AggregationsValueCountAggregation' })
 export type AggregationsValueCountAggregation = z.infer<typeof AggregationsValueCountAggregation>
@@ -3978,7 +3877,7 @@ export interface AggregationsWeightedAverageValueShape {
 export const AggregationsWeightedAverageValue = z.object({
   field: Field.describe('The field from which to extract the values or weights.').optional(),
   missing: double.describe('A value or weight to use if the field is missing.').optional(),
-  get script () { return Script.optional() }
+  get script () { return z.union([Script, ScriptSource]).optional() }
 }).meta({ id: 'AggregationsWeightedAverageValue' })
 export type AggregationsWeightedAverageValue = z.infer<typeof AggregationsWeightedAverageValue>
 
@@ -4008,7 +3907,7 @@ export const AggregationsVariableWidthHistogramAggregation = z.object({
   buckets: integer.describe('The target number of buckets.').optional(),
   shard_size: integer.describe('The number of buckets that the coordinating node will request from each shard. Defaults to `buckets * 50`.').optional(),
   initial_buffer: integer.describe('Specifies the number of individual documents that will be stored in memory on a shard before the initial bucketing algorithm is run. Defaults to `min(10 * shard_size, 50000)`.').optional(),
-  get script () { return Script.optional() }
+  get script () { return z.union([Script, ScriptSource]).optional() }
 }).meta({ id: 'AggregationsVariableWidthHistogramAggregation' })
 export type AggregationsVariableWidthHistogramAggregation = z.infer<typeof AggregationsVariableWidthHistogramAggregation>
 
@@ -4173,7 +4072,7 @@ export interface SearchScriptRescoreShape {
   script: ScriptShape
 }
 export const SearchScriptRescore = z.object({
-  get script () { return Script }
+  get script () { return z.union([Script, ScriptSource]) }
 }).meta({ id: 'SearchScriptRescore' })
 export type SearchScriptRescore = z.infer<typeof SearchScriptRescore>
 
@@ -4522,12 +4421,12 @@ export interface MappingRuntimeFieldShape {
 }
 export const MappingRuntimeField = z.object({
   fields: z.record(z.string(), MappingCompositeSubField).describe('For type `composite`').optional(),
-  fetch_fields: z.array(MappingRuntimeFieldFetchFields).describe('For type `lookup`').optional(),
+  fetch_fields: z.array(z.union([MappingRuntimeFieldFetchFields, Field])).describe('For type `lookup`').optional(),
   format: z.string().describe('A custom format for `date` type runtime fields.').optional(),
   input_field: Field.describe('For type `lookup`').optional(),
   target_field: Field.describe('For type `lookup`').optional(),
   target_index: IndexName.describe('For type `lookup`').optional(),
-  get script () { return Script.describe('Painless script executed at query time.').optional() },
+  get script () { return z.union([Script, ScriptSource]).describe('Painless script executed at query time.').optional() },
   type: MappingRuntimeFieldType.describe('Field type, which can be: `boolean`, `composite`, `date`, `double`, `geo_point`, `ip`,`keyword`, `long`, or `lookup`.')
 }).meta({ id: 'MappingRuntimeField' })
 export type MappingRuntimeField = z.infer<typeof MappingRuntimeField>
@@ -4580,7 +4479,7 @@ export const SearchSearchRequestBody = z.object({
   get highlight () { return SearchHighlight.describe('Specifies the highlighter to use for retrieving highlighted snippets from one or more fields in your search results.').optional() },
   track_total_hits: SearchTrackHits.describe('Number of hits matching the query to count accurately. If `true`, the exact number of hits is returned at the cost of some performance. If `false`, the  response does not include the total number of hits matching the query.').optional(),
   indices_boost: z.array(z.record(IndexName, double)).describe('Boost the `_score` of documents from specified indices. The boost value is the factor by which scores are multiplied. A boost value greater than `1.0` increases the score. A boost value between `0` and `1.0` decreases the score.').optional(),
-  docvalue_fields: z.array(QueryDslFieldAndFormat).describe('An array of wildcard (`*`) field patterns. The request returns doc values for field names matching these patterns in the `hits.fields` property of the response.').optional(),
+  docvalue_fields: z.array(z.union([QueryDslFieldAndFormat, Field])).describe('An array of wildcard (`*`) field patterns. The request returns doc values for field names matching these patterns in the `hits.fields` property of the response.').optional(),
   get knn (): z.ZodOptional<z.ZodUnion<readonly [typeof KnnSearch, z.ZodArray<typeof KnnSearch>]>> { return z.union([KnnSearch, KnnSearch.array()]).describe('The approximate kNN search to run.').optional() },
   min_score: double.describe('The minimum `_score` for matching documents. Documents with a lower `_score` are not included in search results or results collected by aggregations.').optional(),
   get post_filter () { return QueryDslQueryContainer.describe('Use the `post_filter` parameter to filter search results. The search hits are filtered after the aggregations are calculated. A post filter has no impact on the aggregation results.').optional() },
@@ -4594,7 +4493,7 @@ export const SearchSearchRequestBody = z.object({
   slice: SlicedScroll.describe('Split a scrolled search into multiple slices that can be consumed independently.').optional(),
   get sort () { return Sort.describe('A comma-separated list of <field>:<direction> pairs.').optional() },
   _source: SearchSourceConfig.describe('The source fields that are returned for matching documents. These fields are returned in the `hits._source` property of the search response. If the `stored_fields` property is specified, the `_source` property defaults to `false`. Otherwise, it defaults to `true`.').optional(),
-  fields: z.array(QueryDslFieldAndFormat).describe('An array of wildcard (`*`) field patterns. The request returns values for field names matching these patterns in the `hits.fields` property of the response.').optional(),
+  fields: z.array(z.union([QueryDslFieldAndFormat, Field])).describe('An array of wildcard (`*`) field patterns. The request returns values for field names matching these patterns in the `hits.fields` property of the response.').optional(),
   suggest: SearchSuggester.describe('Defines a suggester that provides similar looking terms based on a provided text.').optional(),
   terminate_after: long.describe('The maximum number of documents to collect for each shard. If a query reaches this limit, Elasticsearch terminates the query early. Elasticsearch collects documents before sorting. IMPORTANT: Use with caution. Elasticsearch applies this property to each shard handling the request. When possible, let Elasticsearch perform early termination automatically. Avoid specifying this property for requests that target data streams with backing indices across multiple data tiers. If set to `0` (default), the query does not terminate early.').optional(),
   timeout: z.string().describe('The period of time to wait for a response from each shard. If no response is received before the timeout expires, the request fails and returns an error. Defaults to no timeout.').optional(),
@@ -4607,6 +4506,151 @@ export const SearchSearchRequestBody = z.object({
   stats: z.array(z.string()).describe('The stats groups to associate with the search. Each group maintains a statistics aggregation for its associated searches. You can retrieve these stats using the indices stats API.').optional()
 }).meta({ id: 'SearchSearchRequestBody' })
 export type SearchSearchRequestBody = z.infer<typeof SearchSearchRequestBody>
+
+/**
+ * Coordinator snapshot of the original search request, serialized under `profile.request` when profiling is enabled.
+ * Introduced in Elasticsearch 9.5; omitted when the cluster contains mixed-version nodes that do not serialize this metadata.
+ */
+export const SearchSearchRequestCoordinatorMetadata = z.object({
+  source: z.lazy(() => SearchSearchRequestBody).describe('Original query source from the search request (`SearchSourceBuilder` as JSON).').optional(),
+  indices: z.array(IndexName).describe('Target index expressions from the request (before index resolution).').optional()
+}).meta({ id: 'SearchSearchRequestCoordinatorMetadata' })
+export type SearchSearchRequestCoordinatorMetadata = z.infer<typeof SearchSearchRequestCoordinatorMetadata>
+
+export const SearchProfile = z.object({
+  shards: z.array(SearchShardProfile),
+  request: SearchSearchRequestCoordinatorMetadata.describe('When profiling is enabled, the original query source and target indices from the coordinating request.').optional()
+}).meta({ id: 'SearchProfile' })
+export type SearchProfile = z.infer<typeof SearchProfile>
+
+export const ScrollId = z.string().meta({ id: 'ScrollId' })
+export type ScrollId = z.infer<typeof ScrollId>
+
+/**
+ * The suggestion name as returned from the server. Depending whether typed_keys is specified this could come back
+ * in the form of `name#type` instead of simply `name`
+ */
+export const SuggestionName = z.string().meta({ id: 'SuggestionName' })
+export type SuggestionName = z.infer<typeof SuggestionName>
+
+export const SearchSuggestBase = z.object({
+  length: integer,
+  offset: integer,
+  text: z.string()
+}).meta({ id: 'SearchSuggestBase' })
+export type SearchSuggestBase = z.infer<typeof SearchSuggestBase>
+
+/** Text or location that we want similar documents for or a lookup to a document's field for the text. */
+export const SearchContext = z.union([z.string(), GeoLocation]).meta({ id: 'SearchContext' })
+export type SearchContext = z.infer<typeof SearchContext>
+
+export const SearchCompletionSuggestOption = z.object({
+  collate_match: z.boolean().optional(),
+  contexts: z.record(z.string(), z.array(SearchContext)).optional(),
+  fields: z.record(z.string(), z.any()).optional(),
+  _id: z.string().optional(),
+  _index: IndexName.optional(),
+  _routing: z.string().optional(),
+  _score: double.optional(),
+  _source: z.any().optional(),
+  text: z.string(),
+  score: double.optional()
+}).meta({ id: 'SearchCompletionSuggestOption' })
+export type SearchCompletionSuggestOption = z.infer<typeof SearchCompletionSuggestOption>
+
+export const SearchCompletionSuggest = z.object({
+  ...SearchSuggestBase.shape,
+  options: z.union([SearchCompletionSuggestOption, z.array(SearchCompletionSuggestOption)])
+}).meta({ id: 'SearchCompletionSuggest' })
+export type SearchCompletionSuggest = z.infer<typeof SearchCompletionSuggest>
+
+export const SearchPhraseSuggestOption = z.object({
+  text: z.string(),
+  score: double,
+  highlighted: z.string().optional(),
+  collate_match: z.boolean().optional()
+}).meta({ id: 'SearchPhraseSuggestOption' })
+export type SearchPhraseSuggestOption = z.infer<typeof SearchPhraseSuggestOption>
+
+export const SearchPhraseSuggest = z.object({
+  ...SearchSuggestBase.shape,
+  options: z.union([SearchPhraseSuggestOption, z.array(SearchPhraseSuggestOption)])
+}).meta({ id: 'SearchPhraseSuggest' })
+export type SearchPhraseSuggest = z.infer<typeof SearchPhraseSuggest>
+
+export const SearchTermSuggestOption = z.object({
+  text: z.string(),
+  score: double,
+  freq: long,
+  highlighted: z.string().optional(),
+  collate_match: z.boolean().optional()
+}).meta({ id: 'SearchTermSuggestOption' })
+export type SearchTermSuggestOption = z.infer<typeof SearchTermSuggestOption>
+
+export const SearchTermSuggest = z.object({
+  ...SearchSuggestBase.shape,
+  options: z.union([SearchTermSuggestOption, z.array(SearchTermSuggestOption)])
+}).meta({ id: 'SearchTermSuggest' })
+export type SearchTermSuggest = z.infer<typeof SearchTermSuggest>
+
+export const SearchSuggest = z.union([SearchCompletionSuggest, SearchPhraseSuggest, SearchTermSuggest]).meta({ id: 'SearchSuggest' })
+export type SearchSuggest = z.infer<typeof SearchSuggest>
+
+export const SearchResponseBody = z.object({
+  took: long.describe('The number of milliseconds it took Elasticsearch to run the request. This value is calculated by measuring the time elapsed between receipt of a request on the coordinating node and the time at which the coordinating node is ready to send the response. It includes: * Communication time between the coordinating node and data nodes * Time the request spends in the search thread pool, queued for execution * Actual run time It does not include: * Time needed to send the request to Elasticsearch * Time needed to serialize the JSON response * Time needed to send the response to a client'),
+  timed_out: z.boolean().describe('If `true`, the request timed out before completion; returned results may be partial or empty.'),
+  _shards: ShardStatistics.describe('A count of shards used for the request.'),
+  hits: z.lazy(() => SearchHitsMetadata).describe('The returned documents and metadata.'),
+  aggregations: z.any().optional(),
+  _clusters: ClusterStatistics.optional(),
+  fields: z.record(z.string(), z.any()).optional(),
+  max_score: double.optional(),
+  num_reduce_phases: long.optional(),
+  profile: SearchProfile.optional(),
+  pit_id: Id.optional(),
+  _scroll_id: ScrollId.describe('The identifier for the search and its search context. You can use this scroll ID with the scroll API to retrieve the next batch of search results for the request. This property is returned only if the `scroll` query parameter is specified in the request.').optional(),
+  suggest: z.record(SuggestionName, z.array(SearchSuggest)).optional(),
+  terminated_early: z.boolean().optional()
+}).meta({ id: 'SearchResponseBody' })
+export type SearchResponseBody = z.infer<typeof SearchResponseBody>
+
+export const MsearchMultiSearchItem = z.object({
+  ...SearchResponseBody.shape,
+  status: integer.optional()
+}).meta({ id: 'MsearchMultiSearchItem' })
+export type MsearchMultiSearchItem = z.infer<typeof MsearchMultiSearchItem>
+
+export const ExpandWildcard = z.enum(['all', 'open', 'closed', 'hidden', 'none']).meta({ id: 'ExpandWildcard' })
+export type ExpandWildcard = z.infer<typeof ExpandWildcard>
+
+export const ExpandWildcards = z.union([ExpandWildcard, z.array(ExpandWildcard)]).meta({ id: 'ExpandWildcards' })
+export type ExpandWildcards = z.infer<typeof ExpandWildcards>
+
+export const Indices = z.union([IndexName, z.array(IndexName)]).meta({ id: 'Indices' })
+export type Indices = z.infer<typeof Indices>
+
+export const ProjectRouting = z.string().meta({ id: 'ProjectRouting' })
+export type ProjectRouting = z.infer<typeof ProjectRouting>
+
+export const SearchType = z.enum(['query_then_fetch', 'dfs_query_then_fetch']).meta({ id: 'SearchType' })
+export type SearchType = z.infer<typeof SearchType>
+
+/** Contains parameters used to limit or change the subsequent search body request. */
+export const MsearchMultisearchHeader = z.object({
+  allow_no_indices: z.boolean().describe('A setting that does two separate checks on the index expression. If `false`, the request returns an error (1) if any wildcard expression (including `_all` and `*`) resolves to zero matching indices or (2) if the complete set of resolved indices, aliases or data streams is empty after all expressions are evaluated. If `true`, index expressions that resolve to no indices are allowed and the request returns an empty result.').optional(),
+  expand_wildcards: ExpandWildcards.optional(),
+  ignore_unavailable: z.boolean().describe('If `false`, the request returns an error if it targets a concrete (non-wildcarded) index, alias, or data stream that is missing, closed, or otherwise unavailable. If `true`, unavailable concrete targets are silently ignored.').optional(),
+  index: Indices.optional(),
+  preference: z.string().optional(),
+  project_routing: ProjectRouting.optional(),
+  request_cache: z.boolean().optional(),
+  routing: Routing.optional(),
+  search_type: SearchType.optional(),
+  ccs_minimize_roundtrips: z.boolean().optional(),
+  allow_partial_search_results: z.boolean().optional(),
+  ignore_throttled: z.boolean().optional()
+}).meta({ id: 'MsearchMultisearchHeader' })
+export type MsearchMultisearchHeader = z.infer<typeof MsearchMultisearchHeader>
 
 export const MsearchRequestItem = z.union([MsearchMultisearchHeader, z.lazy(() => SearchSearchRequestBody)]).meta({ id: 'MsearchRequestItem' })
 export type MsearchRequestItem = z.infer<typeof MsearchRequestItem>

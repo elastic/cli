@@ -46,8 +46,16 @@ export function createEsHandler (
     try {
       const responseType = def.responseType ?? 'json'
       const jsonRequested = parsed.options.json === true
+      // `--output-template` and `--output-fields` are documented as Mustache-like
+      // templating / field projection. Both only make sense against structured
+      // data, so on text-default endpoints (cat APIs, etc.) we transparently flip
+      // the response to JSON. Without this, the template renders against a raw
+      // text body and silently emits literal `{{...}}` placeholders (#327).
+      const structuredOutputRequested =
+        parsed.options['output-template'] !== undefined ||
+        parsed.options['output-fields'] !== undefined
 
-      if (responseType === 'text' && jsonRequested) {
+      if (responseType === 'text' && (jsonRequested || structuredOutputRequested)) {
         params.querystring = { ...(params.querystring ?? {}), format: 'json' }
         return await transport.request<JsonValue>(params)
       }

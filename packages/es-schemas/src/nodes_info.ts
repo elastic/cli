@@ -2,6 +2,7 @@
  * Copyright Elasticsearch B.V. and contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 // @ts-nocheck
 
 /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -309,7 +310,7 @@ export const NodesInfoNodeInfoSettingsHttpType = z.object({
 export type NodesInfoNodeInfoSettingsHttpType = z.infer<typeof NodesInfoNodeInfoSettingsHttpType>
 
 export const NodesInfoNodeInfoSettingsHttp = z.object({
-  type: NodesInfoNodeInfoSettingsHttpType,
+  type: z.union([NodesInfoNodeInfoSettingsHttpType, z.string()]),
   'type.default': z.string().optional(),
   compression: z.union([z.boolean(), z.string()]).optional(),
   port: z.union([integer, z.string()]).optional()
@@ -332,7 +333,7 @@ export const NodesInfoNodeInfoSettingsTransportFeatures = z.object({
 export type NodesInfoNodeInfoSettingsTransportFeatures = z.infer<typeof NodesInfoNodeInfoSettingsTransportFeatures>
 
 export const NodesInfoNodeInfoSettingsTransport = z.object({
-  type: NodesInfoNodeInfoSettingsTransportType,
+  type: z.union([NodesInfoNodeInfoSettingsTransportType, z.string()]),
   'type.default': z.string().optional(),
   features: NodesInfoNodeInfoSettingsTransportFeatures.optional()
 }).meta({ id: 'NodesInfoNodeInfoSettingsTransport' })

@@ -1,6 +1,6 @@
 {
   "name": "@elastic/es-schemas",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Zod schemas for Elasticsearch API request validation.",
   "type": "module",
   "main": "dist/index.js",

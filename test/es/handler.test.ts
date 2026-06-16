@@ -234,6 +234,46 @@ describe('createEsHandler', () => {
     assert.equal(capturedOpts[0]?.headers?.['Accept'], 'text/plain')
   })
 
+  it('injects format=json when --output-template is set with responseType: text (#327)', async () => {
+    const capturedParams: EsRequestParams[] = []
+    const jsonBody = [{ index: 'a', 'docs.count': '1' }]
+    const deps = makeDeps({
+      getEsClient: () => ({
+        request: async (params: EsRequestParams) => {
+          capturedParams.push(params)
+          return jsonBody
+        },
+      } as unknown as EsClient),
+      buildRequestParams: () => ({ method: 'GET', path: '/_cat/indices' }),
+    })
+
+    const handler = createEsHandler(makeDef({ responseType: 'text' }), [], deps)
+    const result = await handler(parsedInput({}, { 'output-template': '{{index}} {{docs.count}}' }))
+
+    assert.deepEqual(result, jsonBody)
+    assert.equal((capturedParams[0]?.querystring as Record<string, unknown>)?.format, 'json')
+  })
+
+  it('injects format=json when --output-fields is set with responseType: text (#327)', async () => {
+    const capturedParams: EsRequestParams[] = []
+    const jsonBody = [{ index: 'a', 'docs.count': '1' }]
+    const deps = makeDeps({
+      getEsClient: () => ({
+        request: async (params: EsRequestParams) => {
+          capturedParams.push(params)
+          return jsonBody
+        },
+      } as unknown as EsClient),
+      buildRequestParams: () => ({ method: 'GET', path: '/_cat/indices' }),
+    })
+
+    const handler = createEsHandler(makeDef({ responseType: 'text' }), [], deps)
+    const result = await handler(parsedInput({}, { 'output-fields': 'index,docs.count' }))
+
+    assert.deepEqual(result, jsonBody)
+    assert.equal((capturedParams[0]?.querystring as Record<string, unknown>)?.format, 'json')
+  })
+
   it('does not inject format=json for responseType: json even with --json', async () => {
     const capturedParams: EsRequestParams[] = []
     const jsonBody = { status: 'green' }

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2](https://github.com/elastic/cli/compare/es-schemas-v1.0.1...es-schemas-v1.0.2) (2026-05-29)
+
+
+### Bug Fixes
+
+* **es:** Accept array _source in search bodies ([#370](https://github.com/elastic/cli/issues/370)) ([51b4bfe](https://github.com/elastic/cli/commit/51b4bfeba9d082cc3edd5fec4fd4683ae6d852be))
+* **es:** Full support for shortcut properties ([#372](https://github.com/elastic/cli/issues/372)) ([a72d0bb](https://github.com/elastic/cli/commit/a72d0bb071f86466b4ccb4c2778cffcbd008c3db))
+
 ## [1.0.1](https://github.com/elastic/cli/compare/es-schemas-v1.0.0...es-schemas-v1.0.1) (2026-05-13)
 
 

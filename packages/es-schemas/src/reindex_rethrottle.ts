@@ -2,6 +2,7 @@
  * Copyright Elasticsearch B.V. and contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 // @ts-nocheck
 
 /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -16,20 +17,11 @@ import { z } from 'zod'
 export const TODO = z.record(z.string(), z.any())
 export type TODO = z.infer<typeof TODO>
 
-export const long = z.number().meta({ id: 'long' })
-export type long = z.infer<typeof long>
-
-export const Name = z.string().meta({ id: 'Name' })
-export type Name = z.infer<typeof Name>
-
-export const DurationValue = z.any().meta({ id: 'DurationValue' })
-export type DurationValue = z.infer<typeof DurationValue>
-
-export const EpochTime = z.any().meta({ id: 'EpochTime' })
-export type EpochTime = z.infer<typeof EpochTime>
-
 export const integer = z.number().meta({ id: 'integer' })
 export type integer = z.infer<typeof integer>
+
+export const long = z.number().meta({ id: 'long' })
+export type long = z.infer<typeof long>
 
 export const float = z.number().meta({ id: 'float' })
 export type float = z.infer<typeof float>
@@ -46,6 +38,9 @@ export type Retries = z.infer<typeof Retries>
  */
 export const Duration = z.union([z.string(), z.literal(-1), z.literal(0)]).meta({ id: 'Duration' })
 export type Duration = z.infer<typeof Duration>
+
+export const DurationValue = z.any().meta({ id: 'DurationValue' })
+export type DurationValue = z.infer<typeof DurationValue>
 
 export const ReindexStatus = z.object({
   slice_id: integer.describe('The slice ID').optional(),
@@ -66,6 +61,32 @@ export const ReindexStatus = z.object({
 }).meta({ id: 'ReindexStatus' })
 export type ReindexStatus = z.infer<typeof ReindexStatus>
 
+export const ReindexRethrottleParentReindexStatus = z.object({
+  slices: z.array(ReindexStatus).optional(),
+  slice_id: integer.describe('The slice ID').optional(),
+  batches: long.describe('The number of scroll responses pulled back by the reindex.'),
+  created: long.describe('The number of documents that were successfully created.').optional(),
+  deleted: long.describe('The number of documents that were successfully deleted.'),
+  noops: long.describe('The number of documents that were ignored because the script used for the reindex returned a `noop` value for `ctx.op`.'),
+  requests_per_second: float.describe('The number of requests per second effectively executed during the reindex.'),
+  retries: Retries.describe('The number of retries attempted by reindex. `bulk` is the number of bulk actions retried and `search` is the number of search actions retried.'),
+  throttled: Duration.optional(),
+  throttled_millis: DurationValue.describe('Number of milliseconds the request slept to conform to `requests_per_second`.'),
+  throttled_until: Duration.optional(),
+  throttled_until_millis: DurationValue.describe('This field should always be equal to zero in a `_reindex` response. It only has meaning when using the Task API, where it indicates the next time (in milliseconds since epoch) a throttled request will be executed again in order to conform to `requests_per_second`.'),
+  total: long.describe('The number of documents that were successfully processed.'),
+  updated: long.describe('The number of documents that were successfully updated, for example, a document with same ID already existed prior to reindex updating it.').optional(),
+  version_conflicts: long.describe('The number of version conflicts that reindex hits.'),
+  cancelled: z.string().describe('The reason for cancellation if the slice was canceled').optional()
+}).meta({ id: 'ReindexRethrottleParentReindexStatus' })
+export type ReindexRethrottleParentReindexStatus = z.infer<typeof ReindexRethrottleParentReindexStatus>
+
+export const Name = z.string().meta({ id: 'Name' })
+export type Name = z.infer<typeof Name>
+
+export const EpochTime = z.any().meta({ id: 'EpochTime' })
+export type EpochTime = z.infer<typeof EpochTime>
+
 export const HttpHeaders = z.record(z.string(), z.union([z.string(), z.array(z.string())])).meta({ id: 'HttpHeaders' })
 export type HttpHeaders = z.infer<typeof HttpHeaders>
 
@@ -78,7 +99,7 @@ export const ReindexRethrottleReindexTask = z.object({
   node: Name,
   running_time_in_nanos: DurationValue,
   start_time_in_millis: EpochTime,
-  status: ReindexStatus,
+  status: ReindexRethrottleParentReindexStatus,
   type: z.string(),
   headers: HttpHeaders
 }).meta({ id: 'ReindexRethrottleReindexTask' })

@@ -15,7 +15,7 @@ import { registerCompletionCommands, COMPLETION_COMMAND_NAMES } from './completi
 import { NAMESPACES } from './namespaces.ts'
 
 // x-release-please-start-version
-const VERSION = '0.1.1';
+const VERSION = '0.2.0';
 // x-release-please-end
 
 const program = new Command()
@@ -184,13 +184,14 @@ if (firstArg === 'status') {
 const SKIP_EARLY_CONFIG = new Set<string>([
   'version', 'extension', 'status', ...COMPLETION_COMMAND_NAMES, ...skipConfigNames,
 ])
+let earlyConfig: Awaited<ReturnType<typeof loadConfig>> | undefined
 if (firstArg == null || !SKIP_EARLY_CONFIG.has(firstArg)) {
   // Parse --profile early (before Commander's full parse) so the early config load
   // and hideBlockedCommands can apply the correct profile-based allow-list to --help.
   const profileArgIdx = process.argv.indexOf('--command-profile')
   const earlyProfile = profileArgIdx !== -1 ? process.argv[profileArgIdx + 1] as BuiltInProfile | undefined : undefined
 
-  const earlyConfig = await loadConfig({
+  earlyConfig = await loadConfig({
     ...(earlyProfile != null && { profileName: earlyProfile }),
   })
   if (earlyConfig.ok) {
@@ -199,11 +200,13 @@ if (firstArg == null || !SKIP_EARLY_CONFIG.has(firstArg)) {
   }
 }
 
+// Render the banner before --help output too, not just for bare `elastic` (#390).
+program.addHelpText('before', () =>
+  process.argv.includes('--json') || (earlyConfig?.ok === true && earlyConfig.value.banner === false)
+    ? '' : renderLogo(VERSION).replace(/\n$/, '')
+)
+
 if (process.argv.slice(2).length === 0) {
-  const earlyConfig = await loadConfig()
-  if (!earlyConfig?.ok || earlyConfig.value.banner !== false) {
-    process.stdout.write(renderLogo(VERSION))
-  }
   program.outputHelp()
   process.exit(0)
 }

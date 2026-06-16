@@ -64,7 +64,7 @@ released to the public npm registry; depend on it through the workspace.
 
 
 ------------------------------------------------------------------------
-@elastic/es-schemas@1.0.1
+@elastic/es-schemas@1.0.2
 License: UNLICENSED
 Repository: https://github.com/elastic/cli
 Publisher: Elastic Client Library Maintainers
@@ -377,7 +377,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 
 ------------------------------------------------------------------------
-commander@14.0.3
+commander@15.0.0
 License: MIT
 Repository: https://github.com/tj/commander.js
 Publisher: TJ Holowaychuk <tj@vision-media.ca>

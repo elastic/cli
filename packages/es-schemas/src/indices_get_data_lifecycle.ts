@@ -2,6 +2,7 @@
  * Copyright Elasticsearch B.V. and contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 // @ts-nocheck
 
 /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -52,6 +53,9 @@ export const RequestBase = z.object({
 }).meta({ id: 'RequestBase' })
 export type RequestBase = z.infer<typeof RequestBase>
 
+export const IndicesRetentionSource = z.enum(['data_stream_configuration', 'default_global_retention', 'max_global_retention', 'default_failures_retention']).meta({ id: 'IndicesRetentionSource' })
+export type IndicesRetentionSource = z.infer<typeof IndicesRetentionSource>
+
 export const IndicesDownsamplingRound = z.object({
   after: Duration.describe('The duration since rollover when this downsampling round should execute'),
   fixed_interval: DurationLarge.describe('The downsample interval.')
@@ -64,6 +68,8 @@ export type IndicesSamplingMethod = z.infer<typeof IndicesSamplingMethod>
 /** Data stream lifecycle denotes that a data stream is managed by the data stream lifecycle and contains the configuration. */
 export const IndicesDataStreamLifecycle = z.object({
   data_retention: Duration.describe('If defined, every document added to this data stream will be stored at least for this time frame. Any time after this duration the document could be deleted. When empty, every document in this data stream will be stored indefinitely.').optional(),
+  effective_retention: Duration.describe('The least amount of time data should be kept by elasticsearch.').optional(),
+  retention_determined_by: IndicesRetentionSource.describe('Configuration source that can influence the retention of a data stream.').optional(),
   downsampling: z.array(IndicesDownsamplingRound).describe('The list of downsampling rounds to execute as part of this downsampling configuration').optional(),
   downsampling_method: IndicesSamplingMethod.describe('The method used to downsample the data. There are two options `aggregate` and `last_value`. It requires `downsampling` to be defined. Defaults to `aggregate`.').optional(),
   enabled: z.boolean().describe('If defined, it turns data stream lifecycle on/off (`true`/`false`) for this data stream. A data stream lifecycle that\'s disabled (enabled: `false`) will have no effect on the data stream.').optional(),
@@ -115,7 +121,14 @@ export const IndicesGetDataLifecycleRequest = z.object({
 }).meta({ id: 'IndicesGetDataLifecycleRequest' })
 export type IndicesGetDataLifecycleRequest = z.infer<typeof IndicesGetDataLifecycleRequest>
 
+export const IndicesGetDataLifecycleGlobalRetention = z.object({
+  max_retention: Duration.optional(),
+  default_retention: Duration.optional()
+}).meta({ id: 'IndicesGetDataLifecycleGlobalRetention' })
+export type IndicesGetDataLifecycleGlobalRetention = z.infer<typeof IndicesGetDataLifecycleGlobalRetention>
+
 export const IndicesGetDataLifecycleResponse = z.object({
-  data_streams: z.array(IndicesGetDataLifecycleDataStreamWithLifecycle)
+  data_streams: z.array(IndicesGetDataLifecycleDataStreamWithLifecycle),
+  global_retention: IndicesGetDataLifecycleGlobalRetention
 }).meta({ id: 'IndicesGetDataLifecycleResponse' })
 export type IndicesGetDataLifecycleResponse = z.infer<typeof IndicesGetDataLifecycleResponse>

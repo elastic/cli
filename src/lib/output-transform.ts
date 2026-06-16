@@ -83,19 +83,41 @@ export function parseFieldList (raw: string): string[] {
   return raw.split(',').map((f) => f.trim()).filter((f) => f.length > 0)
 }
 
+/** Thrown when {@link applyTemplate} receives a primitive but the template references named fields (#327). */
+export class TemplateAgainstPrimitiveError extends Error {
+  constructor (value: JsonValue, fields: string[]) {
+    super(
+      `--output-template references field(s) ${fields.map((f) => `"${f}"`).join(', ')} but the response is a ${value === null ? 'null' : typeof value}, not an object or array. ` +
+      `Use \`{{.}}\` to render the raw value, or omit --output-template.`,
+    )
+    this.name = 'TemplateAgainstPrimitiveError'
+  }
+}
+
 /**
  * Renders a value using a Mustache-like template string.
  *
  * Supported syntax:
  * - `{{field}}` — replaced with the field value (dot-notation supported)
  * - `{{field}}` on missing fields — replaced with empty string
+ * - `{{.}}` / `{{}}` — replaced with the current value (useful for primitives)
  *
  * For arrays: renders one line per element.
- * For primitives: returns the template with `{{.}}` replaced by the value.
+ * For primitives: returns the template with `{{.}}` / `{{}}` replaced by the value.
+ * @throws {TemplateAgainstPrimitiveError} when the template references named fields against a primitive.
  */
 export function applyTemplate (value: JsonValue, template: string): string {
   if (value === null || typeof value !== 'object') {
-    return template.replace(/\{\{\s*\.?\s*\}\}/g, String(value)) + '\n'
+    const namedFields: string[] = []
+    const rendered = template.replace(/\{\{\s*([^}]*?)\s*\}\}/g, (_match, field: string) => {
+      if (field === '' || field === '.') return String(value)
+      namedFields.push(field)
+      return ''
+    })
+    if (namedFields.length > 0) {
+      throw new TemplateAgainstPrimitiveError(value, namedFields)
+    }
+    return rendered + '\n'
   }
 
   if (Array.isArray(value)) {

@@ -9,7 +9,7 @@ import { defineCommand } from './factory.ts'
 import { stripTransportMeta } from './factory.ts'
 import type { OpaqueCommandHandle, CommandConfig, CommandIntent, JsonValue } from './factory.ts'
 import type { SchemaArgDefinition } from './lib/schema-args.ts'
-import type { NamespaceEntry, NamespaceShortcut } from './namespaces.ts'
+import type { NamespaceEntry } from './namespaces.ts'
 
 // ---------------------------------------------------------------------------
 // CLI schema types
@@ -75,11 +75,6 @@ interface CliEnvironment {
   configFiles: CliConfigFile[]
 }
 
-interface CliShortcut {
-  from: string
-  to: string[]
-}
-
 interface CliSchema {
   schemaVersion: number
   name: string
@@ -89,7 +84,6 @@ interface CliSchema {
   environment: CliEnvironment
   commands: CliCommand[]
   namespaces: CliNamespace[]
-  shortcuts?: CliShortcut[]
   description?: string
 }
 
@@ -524,7 +518,6 @@ export function buildCliSchema (
   globalOptions: CliParameter[],
   version: string,
   noContextNames: ReadonlySet<string> = new Set(),
-  shortcuts: NamespaceShortcut[] = [],
 ): CliSchema {
   const allCommands: CliCommand[] = []
   const namespaces: CliNamespace[] = []
@@ -548,8 +541,6 @@ export function buildCliSchema (
   }
   const promoted = promoteToGlobalOptions(namespaces, allCommands)
 
-  const cliShortcuts: CliShortcut[] = shortcuts.map(s => ({ from: s.from, to: s.to }))
-
   return {
     schemaVersion: 1,
     name: root.name() || 'elastic',
@@ -559,7 +550,6 @@ export function buildCliSchema (
     environment: ENVIRONMENT,
     commands: allCommands,
     namespaces,
-    ...(cliShortcuts.length > 0 && { shortcuts: cliShortcuts }),
     ...(root.description() && { description: root.description() }),
   }
 }
@@ -597,8 +587,7 @@ export async function registerCliSchemaCommand (
         'version', // root-level version command needs no auth
       ])
 
-      const allShortcuts = namespaces.flatMap(ns => ns.shortcuts ?? [])
-      return buildCliSchema(schemaRoot, globalOptions, version, noContextNames, allShortcuts) as unknown as JsonValue
+      return buildCliSchema(schemaRoot, globalOptions, version, noContextNames) as unknown as JsonValue
     },
     formatOutput: (result) => JSON.stringify(result, null, 2) + '\n',
   })
