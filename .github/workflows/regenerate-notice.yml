@@ -1,9 +1,16 @@
 name: Regenerate NOTICE.txt
-# Runs on PRs opened by bots (Renovate, Dependabot) that update dependencies.
-# Re-generates NOTICE.txt so it reflects the updated dependency tree.
+# Runs on any PR that updates package.json / package-lock.json (human or bot)
+# and on direct pushes to main, so NOTICE.txt is always kept in sync with the
+# dependency tree and the notice-file CI check never fails spuriously.
 on:
   pull_request:
     types: [opened, synchronize]
+    paths:
+      - package.json
+      - package-lock.json
+  push:
+    branches:
+      - main
     paths:
       - package.json
       - package-lock.json
@@ -11,16 +18,18 @@ on:
 jobs:
   regenerate:
     runs-on: ubuntu-latest
-    if: |
-      startsWith(github.event.pull_request.user.login, 'elastic-renovate') ||
-      startsWith(github.event.pull_request.user.login, 'renovate') ||
-      github.event.pull_request.user.login == 'dependabot[bot]'
+    # Skip fork PRs — GITHUB_TOKEN can't push to a fork's branch.
+    if: >
+      github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
+          # For PRs, check out the head branch so we can push back to it.
+          # For pushes to main, this defaults to the pushed commit.
+          ref: ${{ github.head_ref || github.ref }}
           token: ${{ github.token }}
 
       - uses: actions/setup-node@v4
