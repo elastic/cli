@@ -3,6 +3,11 @@ on:
   issues:
     types: [labeled]
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+
 jobs:
   auto-pr:
     if: startsWith(github.event.label.name, 'auto-pr')

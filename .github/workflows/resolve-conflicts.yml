@@ -3,6 +3,11 @@ on:
   issue_comment:
     types: [created]
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+
 jobs:
   resolve:
     uses: elastic/clients-team-automations/.github/workflows/ai-backport-resolver.yml@main
