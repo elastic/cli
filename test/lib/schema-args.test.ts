@@ -316,3 +316,37 @@ describe('extractSchemaArgs acceptsArrayForm detection (#167)', () => {
     assert.notEqual(args[0]?.acceptsArrayForm, true)
   })
 })
+
+describe('extractSchemaArgs -- enumValues', () => {
+  it('populates enumValues for a plain z.enum field', () => {
+    const schema = z.object({ col: z.enum(['cpu', 'ram', 'name']) })
+    const args = extractSchemaArgs(schema)
+    assert.deepEqual(args[0]?.enumValues, ['cpu', 'ram', 'name'])
+  })
+
+  it('populates enumValues through optional wrapper', () => {
+    const schema = z.object({ col: z.enum(['cpu', 'ram']).optional() })
+    const args = extractSchemaArgs(schema)
+    assert.deepEqual(args[0]?.enumValues, ['cpu', 'ram'])
+  })
+
+  it('populates enumValues from union(enum, string) — ES cat column pattern', () => {
+    const CatColumn = z.union([z.enum(['cpu', 'ram', 'name']), z.string()])
+    const schema = z.object({ h: CatColumn.optional() })
+    const args = extractSchemaArgs(schema)
+    assert.deepEqual(args[0]?.enumValues, ['cpu', 'ram', 'name'])
+    assert.equal(args[0]?.type, 'enum')
+  })
+
+  it('leaves enumValues undefined for plain string fields', () => {
+    const schema = z.object({ name: z.string() })
+    const args = extractSchemaArgs(schema)
+    assert.equal(args[0]?.enumValues, undefined)
+  })
+
+  it('leaves enumValues undefined for number fields', () => {
+    const schema = z.object({ count: z.number() })
+    const args = extractSchemaArgs(schema)
+    assert.equal(args[0]?.enumValues, undefined)
+  })
+})

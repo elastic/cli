@@ -38,6 +38,12 @@ export interface SchemaArgDefinition {
   acceptsArrayForm?: boolean
 
   /**
+   * Valid enum values extracted from the Zod schema, present when `type === 'enum'`.
+   * Used by the completion engine to offer candidates for this flag without a live cluster.
+   */
+  enumValues?: readonly string[]
+
+  /**
    * Marks args whose CLI string value needs a non-trivial transformation before reaching the wire.
    *
    * - `'sort-pairs'`: ES `Sort` fields — the help text advertises `<field>:<direction>` pairs (the URL
@@ -87,6 +93,8 @@ interface ZodFieldDef {
   defaultValue?: unknown
   getter?: () => z.ZodType
   options?: z.ZodType[]
+  /** Present on `z.enum(...)` nodes — maps each value to itself. */
+  entries?: Record<string, string>
 }
 
 /**
@@ -124,6 +132,32 @@ function unwrapField (field: z.ZodType): { typeName: string, isOptional: boolean
   return { typeName: def.type, isOptional: false }
 }
 
+/**
+ * Walks a Zod field through wrapper types (`optional`, `default`, `lazy`, `union`) and
+ * returns the enum values if any branch resolves to a `z.enum(...)` node.
+ *
+ * Returns `undefined` for non-enum fields. Never throws.
+ */
+function extractEnumValues (field: z.ZodType): readonly string[] | undefined {
+  const def = field.def as ZodFieldDef
+  if (def.type === 'enum' && def.entries != null) {
+    return Object.values(def.entries)
+  }
+  if ((def.type === 'optional' || def.type === 'default') && def.innerType != null) {
+    return extractEnumValues(def.innerType as z.ZodType)
+  }
+  if (def.type === 'lazy' && typeof def.getter === 'function') {
+    return extractEnumValues(def.getter())
+  }
+  if (def.type === 'union' && Array.isArray(def.options)) {
+    for (const opt of def.options) {
+      const vals = extractEnumValues(opt)
+      if (vals != null) return vals
+    }
+  }
+  return undefined
+}
+
 const CLI_TYPES = new Set(['string', 'number', 'boolean', 'object', 'array', 'enum'])
 
 /**
@@ -158,6 +192,7 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
     const foundIn = extractFoundIn(fieldSchema as z.ZodType)
     const acceptsArrayForm = type !== 'array' && schemaAcceptsArrayForm(fieldSchema as z.ZodType)
     const parseStyle = schemaContainsId(fieldSchema as z.ZodType, 'Sort') ? 'sort-pairs' as const : undefined
+    const enumValues = type === 'enum' ? extractEnumValues(fieldSchema as z.ZodType) : undefined
     return {
       schemaKey: key,
       cliFlag: toKebabCase(key),
@@ -167,7 +202,8 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
       description,
       ...(foundIn !== undefined ? { foundIn } : {}),
       ...(acceptsArrayForm ? { acceptsArrayForm: true } : {}),
-      ...(parseStyle !== undefined ? { parseStyle } : {})
+      ...(parseStyle !== undefined ? { parseStyle } : {}),
+      ...(enumValues !== undefined ? { enumValues } : {})
     }
   })
 }

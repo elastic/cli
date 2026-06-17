@@ -261,3 +261,47 @@ describe('enumerate -- edge cases', () => {
     assert.deepEqual(result.candidates, ['stack'])
   })
 })
+
+describe('enumerate -- command-level enum completers (_enumCompleters)', () => {
+  function buildProgramWithEnumFlag (): Command {
+    const program = buildSampleProgram()
+    const catNodes = defineCommand({
+      name: 'nodes',
+      description: 'Cat nodes',
+      handler: () => ({}),
+    })
+    // Simulate what factory attaches for enum flags
+    const completers = new Map<string, () => string[]>([
+      ['--h', () => ['cpu', 'ram', 'name']],
+    ])
+    Object.defineProperty(catNodes, '_enumCompleters', { value: completers, enumerable: false })
+    const cat = defineGroup({ name: 'cat', description: 'Cat APIs' }, catNodes)
+    const es = defineGroup({ name: 'es', description: 'ES' }, cat)
+    program.addCommand(es)
+    return program
+  }
+
+  it('returns enum values when previous word is a flag with a command-level completer', async () => {
+    const result = await enumerate(buildProgramWithEnumFlag(), ['es', 'cat', 'nodes', '--h', ''])
+    assert.deepEqual(result.candidates, ['cpu', 'ram', 'name'])
+  })
+
+  it('prefix-filters enum candidates', async () => {
+    const result = await enumerate(buildProgramWithEnumFlag(), ['es', 'cat', 'nodes', '--h', 'c'])
+    assert.deepEqual(result.candidates, ['cpu'])
+  })
+
+  it('supports --flag=partial form for command-level enum completers', async () => {
+    const result = await enumerate(buildProgramWithEnumFlag(), ['es', 'cat', 'nodes', '--h=ra'])
+    assert.deepEqual(result.candidates, ['ram'])
+    assert.equal(result.directive & DIRECTIVE_NO_SPACE, DIRECTIVE_NO_SPACE)
+  })
+
+  it('global registry completer takes priority over command-level enum completer', async () => {
+    const registry: DynamicCompleterRegistry = {
+      get: (flag) => flag === '--h' ? () => ['override'] : undefined,
+    }
+    const result = await enumerate(buildProgramWithEnumFlag(), ['es', 'cat', 'nodes', '--h', ''], registry)
+    assert.deepEqual(result.candidates, ['override'])
+  })
+})

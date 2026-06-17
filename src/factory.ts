@@ -366,6 +366,17 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       } else if (arg.type === 'enum') {
         const attrName = camelCase(arg.cliFlag)
         cmd.option(`--${arg.cliFlag} <value>`, desc, singleValueGuard<string>(cmd, attrName, `--${arg.cliFlag}`))
+        if (arg.enumValues != null && arg.enumValues.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          let completers = (cmd as any)._enumCompleters as Map<string, () => string[]> | undefined
+          if (completers == null) {
+            completers = new Map()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            Object.defineProperty(cmd as any, '_enumCompleters', { value: completers, enumerable: false })
+          }
+          const vals = arg.enumValues
+          completers.set(`--${arg.cliFlag}`, () => Array.from(vals))
+        }
       } else {
         // string: accumulate repeated values with comma separation
         const attrName = camelCase(arg.cliFlag)

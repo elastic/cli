@@ -186,7 +186,8 @@ export async function enumerate (
     const eqIdx = incomplete.indexOf('=')
     const flag = incomplete.slice(0, eqIdx)
     const partial = incomplete.slice(eqIdx + 1)
-    const completer = registry?.get(flag)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const completer = registry?.get(flag) ?? (current as any)._enumCompleters?.get(flag) as DynamicCompleter | undefined
     if (completer != null) {
       const cands = await safeRun(completer)
       return {
@@ -206,7 +207,8 @@ export async function enumerate (
   }
 
   if (previous != null && previous.startsWith('--')) {
-    const completer = registry?.get(previous)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const completer = registry?.get(previous) ?? (current as any)._enumCompleters?.get(previous) as DynamicCompleter | undefined
     if (completer != null) {
       const cands = await safeRun(completer)
       return {
