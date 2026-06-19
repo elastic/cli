@@ -383,8 +383,8 @@ elastic --use-context local es helpers bulk-ingest \
   --source-format bulk-ndjson --index local-copy --data-file dump.ndjson
 ```
 
-See [the dump-and-restore guide](docs/cli/stack/es/helpers/dump-and-restore.md)
-for flags, consistency semantics, and a deeper walkthrough.
+See [the dump-and-restore guide](docs/dump-and-restore.md) for flags,
+consistency semantics, and a deeper walkthrough.
 
 #### `kb` - Kibana API
 
