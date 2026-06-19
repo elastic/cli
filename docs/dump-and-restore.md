@@ -16,7 +16,7 @@ The output is shaped so it can be piped or passed directly into
 
 Typical use case: capture a remote index for local debugging.
 
-## Example: remote → local round trip
+## Example: Remote → local round trip
 
 ```bash
 # Export from the remote cluster, omit _index so the dump can be re-targeted,
@@ -70,7 +70,7 @@ sequence — they are not snapshotted as a group.
 ## `bulk-ingest --source-format bulk-ndjson`
 
 The companion mode streams pre-formatted action+doc line pairs verbatim into
-the `_bulk` API. Behaviour differs from the default `ndjson` mode:
+the `_bulk` API. Behavior differs from the default `ndjson` mode:
 
 - `--index` is **optional**. When omitted, requests go to `/_bulk` and the
   action lines must carry `_index`. When provided, requests go to
