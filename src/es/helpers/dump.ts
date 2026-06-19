@@ -58,7 +58,9 @@ function resolveQuery (input: DumpInput): unknown {
     return JSON.parse(input.query)
   }
   if (input.query_file != null) {
-    const raw = readRawInput(input.query_file)
+    // `-` is the conventional shorthand for "read from stdin"; readRawInput()
+    // with no argument falls back to stdin.
+    const raw = input.query_file === '-' ? readRawInput() : readRawInput(input.query_file)
     if (raw == null || raw.trim().length === 0) {
       throw new Error('--query-file is empty')
     }
@@ -148,12 +150,19 @@ async function dumpOneIndex (transport: EsClient, params: DumpIndexParams): Prom
       const hits = result.hits?.hits ?? []
       if (hits.length === 0) break
 
+      // Build one buffer per page so we issue a single `write` (and therefore
+      // a single `writeSync`/`process.stdout.write`) per `size` documents
+      // instead of one per hit. Cuts syscalls from O(docs) to O(pages) on the
+      // hot path; on a multi-million-doc dump this is the difference between
+      // syscall-bound and network-bound.
+      const parts: string[] = []
       for (const hit of hits) {
         const actionLine = addId
           ? actionPrefix + JSON.stringify(hit._id) + actionSuffix
           : actionPrefix
-        write(`${actionLine}\n${JSON.stringify(hit._source)}\n`)
+        parts.push(actionLine, '\n', JSON.stringify(hit._source), '\n')
       }
+      write(parts.join(''))
       total += hits.length
 
       if (result.pit_id != null) {

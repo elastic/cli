@@ -104,11 +104,18 @@ function defaultGlob (format: SourceFormat): string {
   return '**/*.{json,ndjson,jsonl}'
 }
 
-const BULK_ACTIONS = new Set(['index', 'create', 'update', 'delete'])
+// Only `index` and `create` are supported. The pair parser assumes every action
+// is followed by a document line, which holds for both. `delete` actions carry
+// no document line, and `update` actions require a `{"doc": ...}` envelope —
+// neither shape is emitted by `dump` (the producer this format is designed for),
+// so rejecting them keeps the parser simple and avoids silently corrupting input
+// that does not match the expected pair structure.
+const BULK_ACTIONS = new Set(['index', 'create'])
 
 /**
  * Parses raw text containing pre-formatted bulk action+doc line pairs.
  * Each pair is returned as an `"action\ndoc"` string ready to be joined into a `_bulk` body.
+ * Only `index` and `create` actions are supported (see `BULK_ACTIONS`).
  */
 export function parseBulkNdjsonPairs (raw: string): string[] {
   const pairs: string[] = []
@@ -134,7 +141,7 @@ export function parseBulkNdjsonPairs (raw: string): string[] {
       }
       const keys = Object.keys(parsed as Record<string, unknown>)
       if (keys.length !== 1 || !BULK_ACTIONS.has(keys[0]!)) {
-        throw new Error(`bulk-ndjson: invalid action line at line ${lineNum}: expected {"index"|"create"|"update"|"delete": ...}, got: ${trimmed.slice(0, 80)}`)
+        throw new Error(`bulk-ndjson: invalid action line at line ${lineNum}: expected {"index"|"create": ...}, got: ${trimmed.slice(0, 80)} (delete/update are not supported in pre-formatted bulk-ndjson because their doc shape differs)`)
       }
       action = trimmed
     } else {
@@ -201,11 +208,21 @@ function collectDocuments (opts: BulkIngestInput): { docs: unknown[], filesProce
 async function sendBatch (
   transport: EsClient,
   ndjsonBody: string,
-  index: string | undefined
+  index: string | undefined,
+  qs?: { pipeline?: string | undefined, routing?: string | undefined }
 ): Promise<{ errors: number, total: number }> {
   const path = index != null ? `/${encodeURIComponent(index)}/_bulk` : '/_bulk'
+  const querystring: Record<string, string> = {}
+  if (qs?.pipeline != null) querystring.pipeline = qs.pipeline
+  if (qs?.routing != null) querystring.routing = qs.routing
   const result = await transport.request(
-    { method: 'POST', path, body: ndjsonBody, bulkBody: ndjsonBody }
+    {
+      method: 'POST',
+      path,
+      body: ndjsonBody,
+      bulkBody: ndjsonBody,
+      ...(Object.keys(querystring).length > 0 && { querystring }),
+    }
   ) as { errors?: boolean, items?: Array<Record<string, { status?: number }>> }
 
   let errorCount = 0
@@ -326,7 +343,10 @@ async function runBulkNdjson (opts: BulkIngestInput, transport: EsClient): Promi
       const body = batch.join('\n') + '\n'
       const result = await retryWithBackoff(
         async () => {
-          const res = await sendBatch(transport, body, opts.index)
+          // Apply pipeline/routing as URL query params so they affect every
+          // action in the batch (the action lines are pre-formatted and we do
+          // not rewrite them).
+          const res = await sendBatch(transport, body, opts.index, { pipeline: opts.pipeline, routing: opts.routing })
           if (res.errors > 0 && res.errors === res.total) {
             throw new Error(`Bulk batch failed: ${res.errors}/${res.total} errors`)
           }

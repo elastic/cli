@@ -506,7 +506,7 @@ describe('bulk-ingest command', () => {
       assert.match(err.message as string, /even number/i)
     })
 
-    it('errors when action line is not {"index|create|update|delete": ...}', async () => {
+    it('errors when action line is not {"index|create": ...}', async () => {
       const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-ndjson-'))
       const filePath = join(tmpDir, 'data.ndjson')
       writeFileSync(filePath, '{"foo":{}}\n{"v":1}\n')
@@ -521,6 +521,47 @@ describe('bulk-ingest command', () => {
 
       const err = result.error as Record<string, unknown>
       assert.equal(err.code, 'input_error')
+    })
+
+    it('passes --pipeline and --routing as URL query params on _bulk', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-ndjson-'))
+      const filePath = join(tmpDir, 'data.ndjson')
+      writeFileSync(filePath, '{"index":{}}\n{"v":1}\n')
+
+      const { transport, requests } = mockTransport([successResponse(1)])
+
+      await runCommand([
+        '--index', 'target',
+        '--data-file', filePath,
+        '--source-format', 'bulk-ndjson',
+        '--pipeline', 'my-pipe',
+        '--routing', 'shard-1',
+        '--json'
+      ], makeDeps(transport))
+
+      const qs = requests[0]!.params.querystring as Record<string, string>
+      assert.equal(qs.pipeline, 'my-pipe')
+      assert.equal(qs.routing, 'shard-1')
+    })
+
+    it('rejects update and delete actions (only index/create are paired with a doc line)', async () => {
+      for (const bad of ['{"update":{"_id":"a"}}\n{"doc":{"v":1}}\n', '{"delete":{"_id":"a"}}\n{"v":1}\n']) {
+        const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-ndjson-'))
+        const filePath = join(tmpDir, 'data.ndjson')
+        writeFileSync(filePath, bad)
+
+        const { transport } = mockTransport([])
+
+        const result = await runCommand([
+          '--data-file', filePath,
+          '--source-format', 'bulk-ndjson',
+          '--json'
+        ], makeDeps(transport)) as Record<string, unknown>
+
+        const err = result.error as Record<string, unknown>
+        assert.equal(err.code, 'input_error', `expected error for ${bad}`)
+        assert.match(err.message as string, /index"\|"create/i)
+      }
     })
 
     it('reads bulk-ndjson from --data-dir with multiple files', async () => {
