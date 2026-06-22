@@ -73,6 +73,12 @@ describe('buildCompletionTree -- top-level commands', () => {
     assert.ok(opt != null, 'expected --use-context global option')
   })
 
+  it('exposes global --debug option on the root program', async () => {
+    const root = await buildCompletionTree([])
+    const opt = root.options.find(o => o.long === '--debug')
+    assert.ok(opt != null, 'expected --debug global option')
+  })
+
   it('does not load the es subtree when the first word is unrelated', async () => {
     const root = await buildCompletionTree(['cloud'])
     const stack = root.commands.find(c => c.name() === 'stack')!

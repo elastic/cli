@@ -64,6 +64,22 @@ describe('KibanaClient.request', () => {
     return new KibanaClient('http://localhost:5601', auth)
   }
 
+  async function captureDebugOutput (fn: () => Promise<unknown>): Promise<string> {
+    const chunks: string[] = []
+    const origWrite = process.stderr.write
+    const previousDebug = process.env['ELASTIC_DEBUG']
+    process.env['ELASTIC_DEBUG'] = '1'
+    process.stderr.write = ((chunk: string) => { chunks.push(chunk); return true }) as typeof process.stderr.write
+    try {
+      await fn()
+    } finally {
+      process.stderr.write = origWrite
+      if (previousDebug === undefined) delete process.env['ELASTIC_DEBUG']
+      else process.env['ELASTIC_DEBUG'] = previousDebug
+    }
+    return chunks.join('')
+  }
+
   it('includes x-elastic-client-meta and user-agent on every request', async () => {
     const client = makeClient()
     let capturedHeaders: Record<string, string> = {}
@@ -176,6 +192,25 @@ describe('KibanaClient.request', () => {
 
     const result = await client.request({ method: 'DELETE', path: '/api/saved_objects/dashboard/id' })
     assert.deepEqual(result, {})
+  })
+
+  it('logs sanitized debug output when ELASTIC_DEBUG=1', async () => {
+    const client = makeClient({ username: 'elastic', password: 'changeme' })
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('{"id":"1"}', { status: 200 }))
+    ) as typeof fetch)
+
+    const stderr = await captureDebugOutput(() =>
+      client.request({ method: 'POST', path: '/api/saved_objects', body: { attributes: { title: 'Dashboard' } } })
+    )
+
+    assert.match(stderr, /POST http:\/\/localhost:5601\/api\/saved_objects/)
+    assert.match(stderr, /Authorization: \(redacted\)/)
+    assert.match(stderr, /kbn-xsrf: true/)
+    assert.match(stderr, /\{"attributes":\{"title":"Dashboard"\}\}/)
+    assert.match(stderr, /Response: 200/)
+    assert.match(stderr, /\{"id":"1"\}/)
+    assert.doesNotMatch(stderr, /changeme/)
   })
 
   it('sets redirect to error', async () => {

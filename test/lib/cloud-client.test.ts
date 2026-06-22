@@ -10,6 +10,22 @@ import { setResolvedConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
 import { clientHeaders } from '../../src/lib/meta.ts'
 
+async function captureDebugOutput (fn: () => Promise<unknown>): Promise<string> {
+  const chunks: string[] = []
+  const origWrite = process.stderr.write
+  const previousDebug = process.env['ELASTIC_DEBUG']
+  process.env['ELASTIC_DEBUG'] = '1'
+  process.stderr.write = ((chunk: string) => { chunks.push(chunk); return true }) as typeof process.stderr.write
+  try {
+    await fn()
+  } finally {
+    process.stderr.write = origWrite
+    if (previousDebug === undefined) delete process.env['ELASTIC_DEBUG']
+    else process.env['ELASTIC_DEBUG'] = previousDebug
+  }
+  return chunks.join('')
+}
+
 afterEach(() => {
   _testResetCloudClient()
   setResolvedConfig(undefined as unknown as ResolvedConfig)
@@ -160,6 +176,25 @@ describe('getCloudClient', () => {
 
     const result = await client.request({ method: 'DELETE', path: '/api/v1/something' })
     assert.deepEqual(result, {})
+  })
+
+  it('logs sanitized debug output when ELASTIC_DEBUG=1', async () => {
+    setResolvedConfig({ context: { cloud: { url: 'https://api.elastic-cloud.com', auth: { api_key: 'secret-key' } } } })
+    const client = getCloudClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('{"id":"deployment-1"}', { status: 200 }))
+    ) as typeof fetch)
+
+    const stderr = await captureDebugOutput(() =>
+      client.request({ method: 'POST', path: '/api/v1/deployments', body: { name: 'test' } })
+    )
+
+    assert.match(stderr, /POST https:\/\/api\.elastic-cloud\.com\/api\/v1\/deployments/)
+    assert.match(stderr, /Authorization: \(redacted\)/)
+    assert.match(stderr, /\{"name":"test"\}/)
+    assert.match(stderr, /Response: 200/)
+    assert.match(stderr, /\{"id":"deployment-1"\}/)
+    assert.doesNotMatch(stderr, /secret-key/)
   })
 
   it('warns on plaintext HTTP for non-localhost URLs (#107)', () => {

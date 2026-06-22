@@ -73,6 +73,26 @@ describe('EsClient.request', () => {
     return new EsClient('http://localhost:9200', auth ?? { api_key: 'test-key' })
   }
 
+  async function captureDebugOutput (fn: () => Promise<unknown>): Promise<{ stdout: string; stderr: string }> {
+    const stdoutChunks: string[] = []
+    const stderrChunks: string[] = []
+    const origStdout = process.stdout.write
+    const origStderr = process.stderr.write
+    const previousDebug = process.env['ELASTIC_DEBUG']
+    process.env['ELASTIC_DEBUG'] = '1'
+    process.stdout.write = ((chunk: string) => { stdoutChunks.push(chunk); return true }) as typeof process.stdout.write
+    process.stderr.write = ((chunk: string) => { stderrChunks.push(chunk); return true }) as typeof process.stderr.write
+    try {
+      await fn()
+    } finally {
+      process.stdout.write = origStdout
+      process.stderr.write = origStderr
+      if (previousDebug === undefined) delete process.env['ELASTIC_DEBUG']
+      else process.env['ELASTIC_DEBUG'] = previousDebug
+    }
+    return { stdout: stdoutChunks.join(''), stderr: stderrChunks.join('') }
+  }
+
   it('sends x-elastic-client-meta on every request', async () => {
     const client = makeClient()
     let capturedHeaders: Record<string, string> = {}
@@ -213,6 +233,25 @@ describe('EsClient.request', () => {
 
     const result = await client.request({ method: 'GET', path: '/_search' })
     assert.deepEqual(result, { hits: { total: 1 } })
+  })
+
+  it('logs sanitized debug output to stderr without writing stdout', async () => {
+    const client = makeClient({ api_key: 'secret-key' })
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('{"acknowledged":true}', { status: 202, headers: { 'content-type': 'application/json' } }))
+    ) as typeof fetch)
+
+    const { stdout, stderr } = await captureDebugOutput(() =>
+      client.request({ method: 'POST', path: '/_search', body: { query: { match_all: {} } } })
+    )
+
+    assert.equal(stdout, '')
+    assert.match(stderr, /POST http:\/\/localhost:9200\/_search/)
+    assert.match(stderr, /Authorization: \(redacted\)/)
+    assert.match(stderr, /\{"query":\{"match_all":\{\}\}\}/)
+    assert.match(stderr, /Response: 202/)
+    assert.match(stderr, /\{"acknowledged":true\}/)
+    assert.doesNotMatch(stderr, /secret-key/)
   })
 
   it('returns raw string when response content-type is text', async () => {

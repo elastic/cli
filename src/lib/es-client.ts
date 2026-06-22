@@ -5,6 +5,7 @@
 
 import { getResolvedConfig } from '../config/store.ts'
 import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
+import { logHttpDebug } from './debug-http.ts'
 import { clientHeaders } from './meta.ts'
 
 export interface EsRequestParams {
@@ -99,10 +100,10 @@ export class EsClient {
     }
 
     const isHead = params.method.toUpperCase() === 'HEAD'
+    const method = fetchBody !== undefined && params.method.toUpperCase() === 'GET' ? 'POST' : params.method
 
     let response: Response
     try {
-      const method = fetchBody !== undefined && params.method.toUpperCase() === 'GET' ? 'POST' : params.method
       response = await this._fetch(url, {
         method,
         headers,
@@ -112,6 +113,8 @@ export class EsClient {
     } catch (err) {
       throw new EsConnectionError(err instanceof Error ? err.message : String(err))
     }
+
+    await logHttpDebug({ method, url, headers, ...(fetchBody !== undefined && { body: fetchBody }), response })
 
     if (isHead) {
       if (response.ok) return true as T

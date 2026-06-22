@@ -31,6 +31,7 @@ function makeProgram(): InstanceType<typeof Command> {
   prog.option('--config-file <path>', 'path to a config file (default: ~/.elasticrc.yml)')
   prog.option('--use-context <name>', 'override the active context from the config file')
   prog.option('--json', 'output as JSON')
+  prog.option('--debug', 'print HTTP request and response details to stderr')
   return prog
 }
 
@@ -52,6 +53,13 @@ describe('elastic CLI -- global flags', () => {
     const opt = prog.options.find((o) => o.long === '--json')
     assert.ok(opt != null, 'expected --json option')
     assert.ok(!opt.required, '--json should be a boolean flag (no required value)')
+  })
+
+  it('registers --debug as a boolean flag', () => {
+    const prog = makeProgram()
+    const opt = prog.options.find((o) => o.long === '--debug')
+    assert.ok(opt != null, 'expected --debug option')
+    assert.ok(!opt.required, '--debug should be a boolean flag (no required value)')
   })
 
   it('registers --version as a boolean flag', () => {
@@ -84,6 +92,12 @@ describe('elastic CLI -- global flags', () => {
     const prog = makeProgram()
     prog.parse(['--json'], { from: 'user' })
     assert.equal(prog.opts()['json'], true)
+  })
+
+  it('parses --debug as true when provided', () => {
+    const prog = makeProgram()
+    prog.parse(['--debug'], { from: 'user' })
+    assert.equal(prog.opts()['debug'], true)
   })
 
   it('parses --config-file value correctly', () => {
@@ -374,6 +388,7 @@ describe('elastic CLI -- --help --json', () => {
       const { code, stdout } = await runCli(['--help'], { cwd: dir, env: { HOME: dir } })
       assert.equal(code, 0, `expected exit code 0, got ${code}`)
       assert.match(stdout, /^Usage: elastic/m, 'expected text help format')
+      assert.match(stdout, /--debug/, 'expected --debug in root help')
       assert.throws(() => JSON.parse(stdout), 'text help should not be valid JSON')
     } finally {
       await rm(dir, { recursive: true })

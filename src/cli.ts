@@ -53,6 +53,13 @@ if (hasGlobalFlags) {
     .option('--output-template <string>', 'Mustache-like template for custom text output (e.g. "{{id}}: {{name}}")')
 }
 program.option('--json', 'output as JSON')
+program.option('--debug', 'print HTTP request and response details to stderr')
+program.hook('preAction', async (thisCommand) => {
+  if ((thisCommand.opts() as { debug?: boolean }).debug === true) {
+    const { setHttpDebugEnabled } = await import('./lib/debug-http.js')
+    setHttpDebugEnabled(true)
+  }
+})
 
 // preAction hook (skipped for --help paths since the hook never fires)
 if (!wantsHelp) {

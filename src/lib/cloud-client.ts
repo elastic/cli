@@ -5,6 +5,7 @@
 
 import type { HttpMethod } from '../cloud/types.ts'
 import { getResolvedConfig } from '../config/store.ts'
+import { logHttpDebug } from './debug-http.ts'
 import { isLoopbackUrl } from './is-loopback-host.ts'
 import { clientHeaders } from './meta.ts'
 
@@ -70,6 +71,13 @@ export class CloudClient {
     }
 
     const response = await this._fetch(url, init)
+    await logHttpDebug({
+      method: params.method,
+      url,
+      headers,
+      ...(typeof init.body === 'string' && { body: init.body }),
+      response,
+    })
 
     if (!response.ok) {
       const text = await response.text()
