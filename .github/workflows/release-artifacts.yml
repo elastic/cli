@@ -1,0 +1,61 @@
+name: Release Artifacts
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }} binary
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            runner: ubuntu-latest
+            target: node20-linux-x64
+            artifact: elastic-linux-x64
+          - os: macos
+            runner: macos-latest
+            target: node20-macos-x64
+            artifact: elastic-macos-x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Bundle to CJS (required for pkg + ESM)
+        run: |
+          npx esbuild dist/cli.js \
+            --bundle \
+            --platform=node \
+            --format=cjs \
+            --outfile=dist/cli.cjs
+
+      - name: Package binary with pkg
+        run: |
+          npx @yao-pkg/pkg dist/cli.cjs \
+            --targets ${{ matrix.target }} \
+            --output ${{ matrix.artifact }}
+
+      - name: Upload binary to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.artifact }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
