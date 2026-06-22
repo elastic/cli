@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Fetch ephemeral Github token
         id: fetch-token
-        uses: elastic/ci-gh-actions/fetch-github-token@2feb1c6f5086cf8e06f61ef35e275abed3456f7b # v1.5.0
+        uses: elastic/ci-gh-actions/fetch-github-token@2feb1c6f5086cf8e06f61ef35e275abed3456f7b # v1.5.3
         with:
           vault-instance: "ci-prod"
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
