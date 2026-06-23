@@ -14,9 +14,9 @@ describe('createReadCommand', () => {
     assert.equal(cmd.name(), 'read')
   })
 
-  it('has a required --path option', () => {
+  it('accepts path as a positional argument or --path option', () => {
     const cmd = createReadCommand()
-    assert.equal(cmd.registeredArguments.length, 0)
+    assert.equal(cmd.registeredArguments.length, 1)
     const optNames = cmd.options.map((o) => o.long)
     assert.ok(optNames.includes('--path'))
   })

@@ -23,17 +23,36 @@ const defaultDeps: AskDeps = {
 }
 
 const inputSchema = z.object({
-  question: z.string().describe('Question to ask'),
+  question: z.string().optional().describe('Question to ask'),
 })
+
+function experimentalBanner (isTTY: boolean): string {
+  const text =
+    'Warning: "docs ask" is experimental and in active development.\n' +
+    '         Not yet suited for scripts or automation. Pass --accept-experimental to suppress this warning.\n\n'
+  return isTTY ? `\x1b[33m${text}\x1b[0m` : text
+}
 
 export function createAskCommand (deps: AskDeps = defaultDeps): OpaqueCommandHandle {
   return defineCommand({
     name: 'ask',
     description: 'Ask a question about Elastic documentation using AI (single answer)',
     input: inputSchema,
+    positionalArg: { name: 'question', description: 'Question to ask', required: false },
+    options: [
+      {
+        long: 'accept-experimental',
+        type: 'boolean',
+        description: 'Acknowledge that this command is experimental and may be removed; suppresses the warning',
+      },
+    ],
     handler: async (parsed): Promise<JsonValue> => {
-      const question = parsed.input!.question.trim()
+      const question = (parsed.arg ?? parsed.input?.question ?? '').trim()
       if (question === '') return { error: { code: 'missing_input', message: 'question is required' } }
+
+      if (parsed.options['accept-experimental'] !== true && parsed.options['json'] !== true) {
+        deps.stderr.write(experimentalBanner(process.stderr.isTTY === true))
+      }
 
       const conversationId = newUuid()
       const interactive = process.stderr.isTTY === true && parsed.options['json'] !== true

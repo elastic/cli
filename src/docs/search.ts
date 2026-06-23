@@ -21,18 +21,38 @@ export interface SearchDeps {
 const defaultDeps: SearchDeps = { docsSearch, stderr: process.stderr }
 
 const inputSchema = z.object({
-  query: z.string().describe('Search terms'),
+  query: z.string().optional().describe('Search terms'),
   page: z.number().default(1).describe('Page number'),
   size: z.number().default(5).describe('Results per page'),
 })
+
+function experimentalBanner (command: string, isTTY: boolean): string {
+  const text =
+    `Warning: "${command}" is experimental and in active development.\n` +
+    `         Not yet suited for scripts or automation. Pass --accept-experimental to suppress this warning.\n\n`
+  return isTTY ? `\x1b[33m${text}\x1b[0m` : text
+}
 
 export function createSearchCommand (deps: SearchDeps = defaultDeps): OpaqueCommandHandle {
   return defineCommand({
     name: 'search',
     description: 'Search Elastic documentation',
     input: inputSchema,
+    positionalArg: { name: 'query', description: 'Search terms', required: false },
+    options: [
+      {
+        long: 'accept-experimental',
+        type: 'boolean',
+        description: 'Acknowledge that this command is experimental and may be removed; suppresses the warning',
+      },
+    ],
     handler: async (parsed) => {
-      const { query, page, size } = parsed.input!
+      if (parsed.options['accept-experimental'] !== true && parsed.options['json'] !== true) {
+        deps.stderr.write(experimentalBanner('docs search', process.stderr.isTTY === true))
+      }
+      const query = (parsed.arg ?? parsed.input?.query ?? '').trim()
+      if (query === '') return { error: { code: 'missing_input', message: 'query is required' } }
+      const { page, size } = parsed.input!
 
       try {
         const resp = await deps.docsSearch(query, page, size)
