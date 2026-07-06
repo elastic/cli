@@ -408,7 +408,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 ------------------------------------------------------------------------
-csv-parse@6.2.1
+csv-parse@7.0.1
 License: MIT
 Repository: https://github.com/adaltas/node-csv
 Publisher: David Worms <david@adaltas.com> (https://www.adaltas.com)
