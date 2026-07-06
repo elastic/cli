@@ -15,6 +15,6 @@ permissions:
 
 jobs:
   build:
-    uses: elastic/docs-actions/.github/workflows/docs-build.yml@72ba1080f7dd27a87a322ce3806d7f8a5fce1b09 # v1
+    uses: elastic/docs-actions/.github/workflows/docs-build.yml@625eaa9d2ddc51e6400eba7145c9ba697087e5fa # v1
     with:
       enable-vale-linting: true
