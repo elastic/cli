@@ -64,7 +64,7 @@
     "cli-table3": "^0.6.5",
     "commander": "^15.0.0",
     "csv-parse": "^7.0.0",
-    "marked": "^14.1.4",
+    "marked": "^18.0.0",
     "marked-terminal": "^7.3.0",
     "yaml": "^2.8.3",
     "zod": "^4.3.6"
