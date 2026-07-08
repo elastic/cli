@@ -5,7 +5,6 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { z } from 'zod'
 import { buildCloudRequestParams } from '../../src/cloud/request-builder.ts'
 import type { CloudApiDefinition } from '../../src/cloud/types.ts'
 import type { ParsedResult } from '../../src/factory.ts'
@@ -109,7 +108,10 @@ describe('buildCloudRequestParams', () => {
       description: 'Create deployment',
       method: 'POST',
       path: '/api/v1/deployments',
-      body: z.object({ name: z.string(), region: z.string() }),
+      bodyParams: [
+        { name: 'name', type: 'string', description: 'Name', required: true },
+        { name: 'region', type: 'string', description: 'Region', required: true },
+      ],
     }
     const result = buildCloudRequestParams(def, parsed({ name: 'my-deploy', region: 'us-east-1' }))
     assert.deepEqual(result.body, { name: 'my-deploy', region: 'us-east-1' })
@@ -122,7 +124,9 @@ describe('buildCloudRequestParams', () => {
       description: 'Create',
       method: 'POST',
       path: '/api/v1/deployments',
-      body: z.object({ name: z.string() }),
+      bodyParams: [
+        { name: 'name', type: 'string', description: 'Name' },
+      ],
     }
     const result = buildCloudRequestParams(def, parsed())
     assert.equal(result.body, undefined)
@@ -137,7 +141,9 @@ describe('buildCloudRequestParams', () => {
       path: '/api/v1/deployments/{deployment_id}',
       pathParams: [{ name: 'deployment_id', description: 'ID', required: true }],
       queryParams: [{ name: 'validate_only', type: 'boolean', description: 'Dry run' }],
-      body: z.object({ name: z.string() }),
+      bodyParams: [
+        { name: 'name', type: 'string', description: 'Name' },
+      ],
     }
     const result = buildCloudRequestParams(def, parsed({
       deployment_id: 'abc',

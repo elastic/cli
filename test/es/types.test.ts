@@ -5,9 +5,16 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { z } from 'zod'
 import type { EsApiDefinition, HttpMethod } from '../../src/es/types.ts'
 import { validateApiDefinition } from '../../src/es/types.ts'
+
+/** Convenience: build a JSON Schema with the given properties and required keys. */
+function schema (
+  properties: Record<string, Record<string, unknown>>,
+  required: string[] = []
+): Record<string, unknown> {
+  return { type: 'object', properties, ...(required.length > 0 ? { required } : {}) }
+}
 
 describe('EsApiDefinition types', () => {
   it('accepts a minimal valid definition', () => {
@@ -33,18 +40,20 @@ describe('EsApiDefinition types', () => {
       description: 'Creates an index',
       method: 'PUT',
       path: '/{index}',
-      input: z.looseObject({
-        index: z.string().describe('Index name').meta({ found_in: 'path' }),
-        wait_for_active_shards: z.string().optional().describe('Wait for shards').meta({ found_in: 'query' }),
-        settings: z.record(z.string(), z.unknown()).optional().meta({ found_in: 'body' }),
-      }),
+      input: schema(
+        {
+          index: { type: 'string', description: 'Index name', 'x-found-in': 'path' },
+          wait_for_active_shards: { type: 'string', description: 'Wait for shards', 'x-found-in': 'query' },
+          settings: { type: 'object', description: 'Index settings', 'x-found-in': 'body' },
+        },
+        ['index']
+      ),
       responseType: 'json',
     }
     assert.equal(def.name, 'create')
     assert.ok(def.input != null)
     assert.equal(def.responseType, 'json')
   })
-})
 
   it('accepts a definition without namespace (flat command, no group nesting)', () => {
     const def: EsApiDefinition = {
@@ -56,6 +65,8 @@ describe('EsApiDefinition types', () => {
     assert.equal(def.name, 'search')
     assert.equal(def.namespace, undefined)
   })
+})
+
 describe('HttpMethod', () => {
   it('is a union of the five valid HTTP methods', () => {
     const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD']
@@ -64,7 +75,7 @@ describe('HttpMethod', () => {
 })
 
 describe('validateApiDefinition', () => {
-  function validBase(): EsApiDefinition {
+  function validBase (): EsApiDefinition {
     return {
       name: 'health',
       namespace: 'cat',
@@ -82,9 +93,7 @@ describe('validateApiDefinition', () => {
     const def: EsApiDefinition = {
       ...validBase(),
       path: '/{index}/_cat/health',
-      input: z.looseObject({
-        index: z.string().describe('Index').meta({ found_in: 'path' }),
-      }),
+      input: schema({ index: { type: 'string', description: 'Index', 'x-found-in': 'path' } }, ['index']),
     }
     assert.doesNotThrow(() => validateApiDefinition(def))
   })
@@ -113,18 +122,17 @@ describe('validateApiDefinition', () => {
     const def = { ...validBase(), name: '-health' }
     assert.throws(() => validateApiDefinition(def), /invalid.*name/i)
   })
+
   it('rejects a path that does not start with /', () => {
     const def = { ...validBase(), path: '_cat/health' }
     assert.throws(() => validateApiDefinition(def), /path.*must start/i)
   })
 
-  it('rejects a path token with no corresponding found_in: "path" field in input', () => {
+  it('rejects a path token with no corresponding x-found-in: "path" field in input', () => {
     const def: EsApiDefinition = {
       ...validBase(),
       path: '/{index}/_cat/health',
-      input: z.looseObject({
-        index: z.string().meta({ found_in: 'query' }),
-      }),
+      input: schema({ index: { type: 'string', 'x-found-in': 'query' } }),
     }
     assert.throws(() => validateApiDefinition(def), /path.*param.*index|index.*found_in.*path/i)
   })
@@ -133,36 +141,32 @@ describe('validateApiDefinition', () => {
     const def: EsApiDefinition = {
       ...validBase(),
       path: '/{index}',
-      input: z.looseObject({}),
+      input: { type: 'object', properties: {} },
     }
     assert.throws(() => validateApiDefinition(def), /path.*param.*index/i)
   })
 
-  it('rejects a found_in: "path" field with no matching {token} in path', () => {
+  it('rejects a x-found-in: "path" field with no matching {token} in path', () => {
     const def: EsApiDefinition = {
       ...validBase(),
       path: '/_cat/health',
-      input: z.looseObject({
-        index: z.string().meta({ found_in: 'path' }),
-      }),
+      input: schema({ index: { type: 'string', 'x-found-in': 'path' } }),
     }
-    assert.throws(() => validateApiDefinition(def), /path.*param.*index|found_in.*path.*no.*token/i)
+    assert.throws(() => validateApiDefinition(def), /x-found-in.*path|path.*template.*index/i)
   })
 
-  it('allows an optional found_in: "path" field if it has a {token} in path', () => {
+  it('allows an optional x-found-in: "path" field if it has a {token} in path', () => {
     const def: EsApiDefinition = {
       ...validBase(),
       path: '/_cat/shards/{index}',
-      input: z.looseObject({
-        index: z.string().optional().meta({ found_in: 'path' }),
-      }),
+      input: schema({ index: { type: 'string', 'x-found-in': 'path' } }),
     }
     assert.doesNotThrow(() => validateApiDefinition(def))
   })
 })
 
 describe('validateApiDefinition -- unified input schema', () => {
-  function validBase(): EsApiDefinition {
+  function validBase (): EsApiDefinition {
     return {
       name: 'health',
       namespace: 'cat',
@@ -176,33 +180,32 @@ describe('validateApiDefinition -- unified input schema', () => {
     const def: EsApiDefinition = {
       ...validBase(),
       path: '/{index}',
-      input: z.looseObject({
-        index: z.string().describe('Target index').meta({ found_in: 'path' }),
-        pretty: z.boolean().optional().meta({ found_in: 'query' }),
-      }),
+      input: schema(
+        {
+          index: { type: 'string', description: 'Target index', 'x-found-in': 'path' },
+          pretty: { type: 'boolean', 'x-found-in': 'query' },
+        },
+        ['index']
+      ),
     }
     assert.doesNotThrow(() => validateApiDefinition(def))
   })
 
-  it('rejects a definition where {param} token in path has no found_in: "path" field', () => {
+  it('rejects a definition where {param} token in path has no x-found-in: "path" field', () => {
     const def: EsApiDefinition = {
       ...validBase(),
       path: '/{index}',
-      input: z.looseObject({
-        index: z.string().meta({ found_in: 'query' }),
-      }),
+      input: schema({ index: { type: 'string', 'x-found-in': 'query' } }),
     }
     assert.throws(() => validateApiDefinition(def), /path.*param.*index|index.*found_in.*path/i)
   })
 
-  it('rejects a definition where a found_in: "path" field has no matching {param} in path', () => {
+  it('rejects a definition where a x-found-in: "path" field has no matching {param} in path', () => {
     const def: EsApiDefinition = {
       ...validBase(),
       path: '/_cat/health',
-      input: z.looseObject({
-        index: z.string().meta({ found_in: 'path' }),
-      }),
+      input: schema({ index: { type: 'string', 'x-found-in': 'path' } }),
     }
-    assert.throws(() => validateApiDefinition(def), /path.*param.*index|found_in.*path.*no.*token/i)
+    assert.throws(() => validateApiDefinition(def), /x-found-in.*path|path.*template.*index/i)
   })
 })

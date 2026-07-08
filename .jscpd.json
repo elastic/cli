@@ -1,6 +1,8 @@
 {
   "threshold": 5,
-  "reporters": ["console"],
+  "reporters": [
+    "console"
+  ],
   "ignore": [
     "node_modules/**",
     "dist/**",
@@ -8,7 +10,6 @@
     "src/es/apis/schemas/**",
     "src/es/apis/**",
     "src/cloud/apis/**",
-    "packages/es-schemas/src/**",
     "test/**",
     "codegen/**",
     "specs/**",

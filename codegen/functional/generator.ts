@@ -12,7 +12,7 @@ import {
 } from './types.ts'
 import { buildActionMap, mapAction } from './mapper.ts'
 import type { MappedAction } from './mapper.ts'
-import type { SchemaArgDefinition } from '../../src/lib/schema-args.ts'
+import type { SchemaArgDefinition } from '../../src/lib/json-schema-args.ts'
 
 export interface GenerateResult {
   /** bash script content */

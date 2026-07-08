@@ -5,10 +5,18 @@
 
 import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { z } from 'zod'
 import type { EsApiDefinition } from '../../src/es/types.ts'
 import { registerEsCommands, registerEsCommandsLazy } from '../../src/es/register.ts'
 import { _testSetStdinReader } from '../../src/factory.ts'
+
+/** Build a JSON Schema for test use. */
+function jsonSchema(
+  properties: Record<string, Record<string, unknown>>,
+  required: string[] = []
+): Record<string, unknown> {
+  return { type: 'object', properties, ...(required.length > 0 ? { required } : {}) }
+}
+
 
 function makeDef(name: string, namespace: string, description = `${name} description`): EsApiDefinition {
   return { name, namespace, description, method: 'GET', path: `/_${namespace}/${name}` }
@@ -87,9 +95,9 @@ describe('registerEsCommands', () => {
       description: 'Health',
       method: 'GET',
       path: '/_cat/health',
-      input: z.looseObject({
-        v: z.boolean().optional().describe('Verbose').meta({ found_in: 'query' }),
-        pretty: z.boolean().optional().describe('Pretty').meta({ found_in: 'query' }),
+      input: jsonSchema({
+        v: { type: 'boolean', description: 'Verbose', 'x-found-in': 'query' },
+        pretty: { type: 'boolean', description: 'Pretty', 'x-found-in': 'query' },
       }),
     }]
     const handle = await registerEsCommands(defs)
@@ -107,9 +115,9 @@ describe('registerEsCommands', () => {
       description: 'Create',
       method: 'PUT',
       path: '/{index}',
-      input: z.looseObject({
-        index: z.string().describe('Index name').meta({ found_in: 'path' }),
-      }),
+      input: jsonSchema({
+        index: { type: 'string', description: 'Index name', 'x-found-in': 'path' },
+      }, ['index']),
     }]
     const handle = await registerEsCommands(defs)
     const cmd = handle.commands[0]?.commands[0]
@@ -125,10 +133,10 @@ describe('registerEsCommands', () => {
       description: 'Create',
       method: 'PUT',
       path: '/{index}',
-      input: z.looseObject({
-        index: z.string().describe('Index name').meta({ found_in: 'path' }),
-        settings: z.record(z.string(), z.unknown()).optional().meta({ found_in: 'body' }),
-      }),
+      input: jsonSchema({
+        index: { type: 'string', description: 'Index name', 'x-found-in': 'path' },
+        settings: { type: 'object', 'x-found-in': 'body' },
+      }, ['index']),
     }]
     const handle = await registerEsCommands(defs)
     const cmd = handle.commands[0]?.commands[0]
@@ -234,7 +242,7 @@ describe('registerEsCommands - extensibility', () => {
     const defs: EsApiDefinition[] = [{
       ...makeDef('get', 'indices'),
       path: '/{index}',
-      input: z.looseObject({}),  // {index} token in path but no found_in: "path" field
+      input: jsonSchema({}),  // {index} token in path but no found_in: "path" field
     }]
     await assert.rejects(registerEsCommands(defs), /path.*param.*index/i)
   })
@@ -248,11 +256,11 @@ describe('registerEsCommands - body field flattening', () => {
       description: 'Create',
       method: 'PUT',
       path: '/{index}',
-      input: z.looseObject({
-        index: z.string().describe('Index name').meta({ found_in: 'path' }),
-        settings: z.record(z.string(), z.unknown()).optional().describe('Index settings').meta({ found_in: 'body' }),
-        mappings: z.record(z.string(), z.unknown()).optional().describe('Index mappings').meta({ found_in: 'body' }),
-      }),
+      input: jsonSchema({
+        index: { type: 'string', description: 'Index name', 'x-found-in': 'path' },
+        settings: { type: 'object', description: 'Index settings', 'x-found-in': 'body' },
+        mappings: { type: 'object', description: 'Index mappings', 'x-found-in': 'body' },
+      }, ['index']),
     }]
     const handle = await registerEsCommands(defs)
     const cmd = handle.commands[0]?.commands[0]
@@ -266,11 +274,11 @@ describe('registerEsCommands - body field flattening', () => {
 
 describe('registerEsCommands - unified input schema', () => {
   it('registers a command with a unified input schema: flags, help text, and validation all work', async () => {
-    const input = z.looseObject({
-      index: z.string().describe('Target index').meta({ found_in: 'path' }),
-      pretty: z.boolean().optional().describe('Pretty-print response').meta({ found_in: 'query' }),
-      settings: z.record(z.string(), z.unknown()).optional().describe('Index settings').meta({ found_in: 'body' }),
-    })
+    const input = jsonSchema({
+      index: { type: 'string', description: 'Target index', 'x-found-in': 'path' },
+      pretty: { type: 'boolean', description: 'Pretty-print response', 'x-found-in': 'query' },
+      settings: { type: 'object', description: 'Index settings', 'x-found-in': 'body' },
+    }, ['index'])
     const defs: EsApiDefinition[] = [{
       name: 'create',
       namespace: 'indices',
@@ -290,13 +298,13 @@ describe('registerEsCommands - unified input schema', () => {
 })
 
 describe('registerEsCommands - external schema consumption', () => {
-  // simulates a schema imported from @elastic/zod/indices - defined outside the manifest
-  const externalCreateSchema = z.looseObject({
-    index: z.string().describe('Target index').meta({ found_in: 'path' }),
-    wait_for_active_shards: z.string().optional().describe('Number of active shards to wait for').meta({ found_in: 'query' }),
-    settings: z.record(z.string(), z.unknown()).optional().describe('Index settings').meta({ found_in: 'body' }),
-    mappings: z.record(z.string(), z.unknown()).optional().describe('Index mappings').meta({ found_in: 'body' }),
-  })
+  // simulates a schema imported from @elastic/schemas - defined outside the manifest
+  const externalCreateSchema = jsonSchema({
+    index: { type: 'string', description: 'Target index', 'x-found-in': 'path' },
+    wait_for_active_shards: { type: 'string', description: 'Number of active shards to wait for', 'x-found-in': 'query' },
+    settings: { type: 'object', description: 'Index settings', 'x-found-in': 'body' },
+    mappings: { type: 'object', description: 'Index mappings', 'x-found-in': 'body' },
+  }, ['index'])
 
   it('registers a command using an externally defined input schema', async () => {
     const defs: EsApiDefinition[] = [{
@@ -407,39 +415,35 @@ describe('registerEsCommands - help groups', () => {
 })
 
 describe('registerEsCommands - built-in API surface', () => {
-  it('all built-in API schemas are JSON-Schema-serializable', async () => {
-    // Loading all 560 Zod schema modules simultaneously occupies ~5 GB of heap.
-    // V8 can dynamically lower the effective heap limit under memory pressure even
-    // when --max-old-space-size is set, causing OOM in the shared test-runner process.
-    // Spawning a dedicated child process gives the validation a clean 6 GB V8 isolate
-    // with no competing allocations from the test runner or other test modules.
-    const { spawnSync } = await import('node:child_process')
-    const { fileURLToPath } = await import('node:url')
-    // fileURLToPath handles Windows paths correctly (URL.pathname gives /C:/... on Windows)
-    const script = fileURLToPath(new URL('../../scripts/validate-es-schemas.mts', import.meta.url))
-    // Bun runs this test suite in CI and understands TypeScript natively — no tsx
-    // loader or --max-old-space-size flag needed. Under Node, both are required.
-    // Always use process.execPath (guaranteed correct binary) rather than a bare
-    // 'bun' or 'node' string that depends on PATH resolution in the child env.
-    const isBun = 'bun' in process.versions
-    const args = isBun
-      ? [script]
-      : ['--max-old-space-size=6144', '--import', 'tsx/esm', script]
-    const result = spawnSync(process.execPath, args, { encoding: 'utf-8', timeout: 120_000 })
-    assert.strictEqual(result.status, 0, `Schema validation failed:\n${result.stderr}`)
-  })
-
-  it('throws at registration time when a schema contains z.date()', async () => {
+  it('accepts schemas with date-format string fields', async () => {
+    // With JSON Schema, dates are represented as string with format: date-time
     const defs: EsApiDefinition[] = [{
       name: 'search',
       description: 'Search',
       method: 'GET',
       path: '/_search',
-      input: z.looseObject({
-        timestamp: z.date().optional().describe('A JS Date - not valid in a REST API schema').meta({ found_in: 'query' }),
+      input: jsonSchema({
+        timestamp: { type: 'string', format: 'date-time', description: 'A timestamp', 'x-found-in': 'query' },
       }),
     }]
-    await assert.rejects(registerEsCommands(defs), /Date cannot be represented in JSON Schema/)
+    // Should not throw
+    await assert.doesNotReject(registerEsCommands(defs))
+  })
+
+  it('all real @elastic/schemas definitions pass validateApiDefinition and resolve from the manifest', async () => {
+    // Replaces the old Zod-era 'JSON-Schema-serializable' test.
+    // Catches: manifest/file mismatches, broken path-param coverage, bad names.
+    const { loadAllEsApis } = await import('../../src/es/apis.ts')
+    const all = await loadAllEsApis()
+    assert.ok(all.length > 500, `expected 500+ definitions, got ${all.length}`)
+    const { validateApiDefinition } = await import('../../src/es/types.ts')
+    const failures: string[] = []
+    for (const d of all) {
+      try { validateApiDefinition(d) } catch (e) {
+        failures.push(`${d.namespace ?? '(root)'}.${d.name}: ${(e as Error).message}`)
+      }
+    }
+    assert.deepEqual(failures, [], `validateApiDefinition failed on real schemas:\n${failures.join('\n')}`)
   })
 })
 
@@ -526,11 +530,11 @@ describe('registerEsCommands - REST-style body (#360)', () => {
     description: 'Index a document',
     method: 'PUT',
     path: '/{index}/_doc/{id}',
-    input: z.object({
-      index: z.string().meta({ found_in: 'path' }),
-      id: z.string().meta({ found_in: 'path' }),
-      document: z.any().meta({ found_in: 'body' }),
-    }),
+    input: jsonSchema({
+      index: { type: 'string', 'x-found-in': 'path' },
+      id: { type: 'string', 'x-found-in': 'path' },
+      document: { 'x-found-in': 'body' },
+    }, ['index', 'id']),
   }
 
   async function getErr(defs: EsApiDefinition[], stdinJson: string, argv: string[]): Promise<string> {

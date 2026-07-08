@@ -165,13 +165,10 @@ export function getEsClient (): EsClient {
   }
 
   const { url, auth } = es
-  const authRecord = auth != null ? auth as Record<string, unknown> : undefined
 
   let typedAuth: { api_key: string } | { username: string; password: string } | undefined
-  if (typeof authRecord?.['api_key'] === 'string') {
-    typedAuth = { api_key: authRecord['api_key'] as string }
-  } else if (typeof authRecord?.['username'] === 'string' && typeof authRecord?.['password'] === 'string') {
-    typedAuth = { username: authRecord['username'] as string, password: authRecord['password'] as string }
+  if (auth != null) {
+    typedAuth = 'api_key' in auth ? { api_key: auth.api_key } : { username: auth.username, password: auth.password }
   }
 
   _client = new EsClient(url, typedAuth)

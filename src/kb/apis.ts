@@ -3,48 +3,39 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/*
+/**
  * Lazy barrel for Kibana API definitions.
- *
- * Importing this file is cheap: only `kbApiManifest` (metadata-only) is loaded.
- * The per-namespace files under ./apis/ are NOT pulled in transitively.
- * Callers that need the full `KbApiDefinition` for a single endpoint must go
- * through `loadKbApi()` or `loadKbApisInFile()`, which dynamic-import exactly
- * one namespace file.
- *
- * See elastic/cli#251 for the memory context.
+ * Loads from @elastic/schemas/kibana/tools/apis/ subpath imports.
  */
 
 import type { KbApiDefinition } from './types.ts'
-import { kbApiManifest } from './api-manifest.ts'
 import type { KbApiMeta } from './api-manifest.ts'
-
 export { kbApiManifest } from './api-manifest.ts'
 export type { KbApiMeta } from './api-manifest.ts'
 
-/** Memoised module cache so repeated calls do not re-import the same namespace file. */
-const moduleCache = new Map<string, Promise<KbApiDefinition[]>>()
-
-/** Converts a kebab-case file stem to the camelCase export name used in namespace files. */
+/** Converts a kebab-case stem to camelCase export name, e.g. "data-views" → "dataViews" */
 function toCamelCase (stem: string): string {
   return stem.replace(/-([a-z0-9])/g, (_, c: string) => c.toUpperCase())
 }
 
+const moduleCache = new Map<string, Promise<KbApiDefinition[]>>()
+
 /**
- * Dynamic-imports the namespace file identified by `namespaceFile` and returns
- * all `KbApiDefinition`s it exports.
+ * Dynamic-imports the namespace file from @elastic/schemas.
  */
 export async function loadKbApisInFile (namespaceFile: string): Promise<KbApiDefinition[]> {
   let cached = moduleCache.get(namespaceFile)
   if (cached != null) return cached
   cached = (async (): Promise<KbApiDefinition[]> => {
-    const mod = await import(`./apis/${namespaceFile}.ts`) as Record<string, KbApiDefinition[]>
-    const exportName = `${toCamelCase(namespaceFile)}Apis`
-    const arr = mod[exportName]
+    // Use import.meta.resolve to get a file URL so dynamic import works under tsx and native Node alike.
+    const fileUrl = import.meta.resolve(`@elastic/schemas/kibana/tools/apis/${namespaceFile}.js`)
+    const mod = await import(fileUrl) as Record<string, unknown>
+    const exportKey = `${toCamelCase(namespaceFile)}Definitions`
+    const arr = mod[exportKey]
     if (!Array.isArray(arr)) {
-      throw new Error(`internal error: ./apis/${namespaceFile}.ts did not export ${exportName}`)
+      throw new Error(`internal error: ${namespaceFile}.js did not export ${exportKey}`)
     }
-    return arr
+    return arr as KbApiDefinition[]
   })()
   moduleCache.set(namespaceFile, cached)
   return cached
@@ -57,18 +48,18 @@ export async function loadKbApi (meta: KbApiMeta): Promise<KbApiDefinition> {
     (d) => d.name === meta.name && d.namespace === meta.namespace
   )
   if (found == null) {
-    throw new Error(`internal error: manifest entry "${meta.namespace} ${meta.name}" has no match in ./apis/${meta.namespaceFile}.ts`)
+    throw new Error(`internal error: manifest entry "${meta.namespace} ${meta.name}" has no match in ${meta.namespaceFile}.js`)
   }
   return found
 }
 
 /** Loads all KB API definitions eagerly (for tests and scripts). */
 export async function loadAllKbApis (): Promise<KbApiDefinition[]> {
-  const files = new Set(kbApiManifest.map(m => m.namespaceFile))
-  const all: KbApiDefinition[] = []
+  const { kbApiManifest } = await import('./api-manifest.ts')
+  const files = [...new Set(kbApiManifest.map((m) => m.namespaceFile))]
+  const results: KbApiDefinition[][] = []
   for (const file of files) {
-    const defs = await loadKbApisInFile(file)
-    all.push(...defs)
+    results.push(await loadKbApisInFile(file))
   }
-  return all
+  return results.flat()
 }

@@ -5,7 +5,7 @@
 
 import type { EsRequestParams } from '../lib/es-client.ts'
 import type { EsApiDefinition } from './types.ts'
-import type { SchemaArgDefinition } from '../lib/schema-args.ts'
+import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
 import type { RawJsonValue, ParsedResult } from '../factory.ts'
 
 /**
@@ -14,16 +14,8 @@ import type { RawJsonValue, ParsedResult } from '../factory.ts'
  *
  * Each `SchemaArgDefinition` carries a `foundIn` field that determines routing:
  * - `"path"` → value is interpolated into the URL path template
- * - `"query"` → value is added to the querystring (key = `schemaKey`, the snake_case ES name)
+ * - `"query"` → value is added to the querystring
  * - `"body"` or `undefined` → value is collected into the request body object
- *
- * All user input arrives in `parsed.input` keyed by `schemaKey` (the snake_case schema
- * key), so no key translation is needed between CLI flags and destination param names.
- *
- * @param def - the API definition describing the endpoint
- * @param parsed - the CLI-parsed result; all API params live in `parsed.input`
- * @param schemaArgs - arg definitions extracted from `def.input` at registration time
- * @returns `EsRequestParams` ready to pass to `EsClient.request()`
  */
 export function buildRequestParams (
   def: EsApiDefinition,
@@ -38,7 +30,6 @@ export function buildRequestParams (
   const body = collectBody(schemaArgs, input, rawBody, def.path, def.bodyFormat)
 
   // The index API uses PUT with {id} but POST without (auto-ID generation).
-  // Only switch PUT→POST for paths containing /{id} when id is omitted.
   let method = def.method
   if (method === 'PUT' && def.path.includes('/{id}')) {
     const idArg = schemaArgs.find(
@@ -63,16 +54,8 @@ export function buildRequestParams (
 }
 
 /**
- * Interpolates `{param}` tokens in the path template using values from the unified input object.
- *
- * Only `SchemaArgDefinition` entries with `foundIn === "path"` are processed.
- * The schema key is both the `{token}` name in the template and the lookup key in `input`.
- * For optional params that are absent, trailing `/{param}` segments are stripped.
- */
-/**
- * Encodes a single path parameter value. Splits on commas so ES multi-target
- * syntax (e.g. "idx1,idx2") is preserved, while special characters like `/`,
- * `?`, and `#` are percent-encoded to prevent path traversal (#106).
+ * Encodes a single path parameter value. Splits on commas to preserve ES
+ * multi-target syntax (e.g. "idx1,idx2") while encoding special characters.
  */
 function encodePathParam (value: string): string {
   return value.split(',').map((s) => encodeURIComponent(s.trim())).join(',')
@@ -88,10 +71,6 @@ function interpolatePath (
     if (value !== undefined) {
       path = path.replace(`{${arg.schemaKey}}`, encodePathParam(String(value)))
     } else if (!arg.required) {
-      // Strip the optional segment with its leading slash so the rest of the
-      // path remains valid. E.g.:
-      //   "/_inference/{task_type}/{inference_id}" (task_type absent)
-      //   → "/_inference/{inference_id}"   (not "/_inference{inference_id}")
       path = path.replace(new RegExp(`/\\{${arg.schemaKey}\\}`), '')
       path = path.replace(/\/$/, '') || '/'
     }
@@ -99,10 +78,6 @@ function interpolatePath (
   return path
 }
 
-/**
- * Builds the querystring record from `SchemaArgDefinition` entries with `foundIn === "query"`.
- * The schema key is used as the ES-native querystring param name.
- */
 function buildQuerystring (
   schemaArgs: SchemaArgDefinition[],
   input: Record<string, unknown>
@@ -115,14 +90,6 @@ function buildQuerystring (
   return qs
 }
 
-/**
- * Serializes a body object into NDJSON format for bulk/msearch APIs.
- *
- * Finds the first array-valued field in the body and emits each element as
- * a separate JSON line. If no array field is found, the body itself is
- * serialized as a single JSON line. The result always ends with a trailing
- * newline as required by Elasticsearch.
- */
 function toNdjson (body: Record<string, unknown>): string {
   for (const value of Object.values(body)) {
     if (Array.isArray(value)) {
@@ -133,7 +100,6 @@ function toNdjson (body: Record<string, unknown>): string {
 }
 
 // Fields whose value should replace the entire request body (not nested under the key).
-// Mapped per-field to the set of API paths where unwrapping applies, or '*' for all.
 const BODY_ROOT_FIELDS: Record<string, Set<string> | '*'> = {
   document: '*',
   inference_config: '*',
@@ -184,9 +150,6 @@ function collectBody (
     }
   }
 
-  // If any body value has a raw JSON string, build a pre-serialized JSON body
-  // so the transport sends it as-is (preserving number formatting like 100.0).
-  // Skip for NDJSON bodies which must go through toNdjson().
   const hasRaw = bodyFormat !== 'ndjson' &&
     bodyArgs.some((a) => a.schemaKey in rawBody)
   if (hasRaw) {

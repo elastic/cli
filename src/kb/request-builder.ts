@@ -8,122 +8,82 @@ import type { ParsedResult } from '../factory.ts'
 import type { KibanaRequestParams } from '../lib/kibana-client.ts'
 
 /**
- * Builds a `KibanaRequestParams` object from an API definition and parsed CLI input.
+ * Builds a `KibanaRequestParams` from an API definition and parsed CLI input.
  *
- * Routing:
- * - `pathParams` → interpolated into the URL path template
- * - `queryParams` → sent as querystring params
- * - `bodyParams` → collected into the JSON request body
- *
- * @param def - the API definition describing the Kibana endpoint
- * @param parsed - the CLI-parsed result; all API params live in `parsed.input`
- * @returns `KibanaRequestParams` ready to pass to `KibanaClient.request()`
+ * Routing is derived from `x-found-in` in the JSON Schema properties:
+ * - `"path"` → interpolated into URL path
+ * - `"query"` → sent as querystring
+ * - `"body"` (or absent) → collected into request body
  */
 export function buildKibanaRequestParams (
   def: KbApiDefinition,
   parsed: ParsedResult
 ): KibanaRequestParams {
   const input = (parsed.input ?? {}) as Record<string, unknown>
+  const props = ((def.input?.['properties'] ?? {}) as Record<string, Record<string, unknown>>)
 
-  const path = interpolatePath(def, input)
-  const querystring = buildQuerystring(def, input)
+  const path = interpolatePath(def.path, props, input)
+  const querystring = buildQuerystring(props, input)
 
   const params: KibanaRequestParams = { method: def.method, path }
   if (Object.keys(querystring).length > 0) params.querystring = querystring
 
-  if (def.requestType === 'multipart') {
-    const fields = collectMultipartFields(def, input)
-    if (fields != null) params.multipartFields = fields
-  } else {
-    const body = collectBody(def, input)
-    if (body !== undefined) params.body = body
-  }
+  const body = collectBody(props, input)
+  if (body !== undefined) params.body = body
 
   return params
 }
 
-/**
- * Interpolates `{param}` tokens in the path template.
- */
+function encodePathParam (value: string): string {
+  return encodeURIComponent(value)
+}
+
 function interpolatePath (
-  def: KbApiDefinition,
+  path: string,
+  props: Record<string, Record<string, unknown>>,
   input: Record<string, unknown>
 ): string {
-  let path = def.path
-  for (const param of def.pathParams ?? []) {
-    const value = input[param.name]
+  for (const [key, prop] of Object.entries(props)) {
+    if (prop['x-found-in'] !== 'path') continue
+    const value = input[key]
+    const required = prop['required'] !== false
     if (value !== undefined) {
-      path = path.replace(`{${param.name}}`, encodeURIComponent(String(value)))
-    } else if (!param.required) {
-      path = path.replace(new RegExp(`/?\\{${param.name}\\}/?`), '')
+      path = path.replace(`{${key}}`, encodePathParam(String(value)))
+    } else if (!required) {
+      path = path.replace(new RegExp(`/?\\{${key}\\}/?`), '')
       path = path.replace(/\/$/, '') || '/'
     }
   }
   return path
 }
 
-/**
- * Builds the querystring record from query params.
- */
 function buildQuerystring (
-  def: KbApiDefinition,
+  props: Record<string, Record<string, unknown>>,
   input: Record<string, unknown>
-): Record<string, unknown> {
-  const qs: Record<string, unknown> = {}
-  for (const param of def.queryParams ?? []) {
-    const key = param.cliFlag ?? param.name
+): Record<string, string> {
+  const qs: Record<string, string> = {}
+  for (const [key, prop] of Object.entries(props)) {
+    if (prop['x-found-in'] !== 'query') continue
     const value = input[key]
-    if (value !== undefined) qs[param.name] = value
+    if (value !== undefined) qs[key] = String(value)
   }
   return qs
 }
 
-/**
- * Collects multipart form fields from body params.
- * Each body param value is treated as a string (file path or literal value).
- * Returns `undefined` when no fields are present.
- */
-function collectMultipartFields (
-  def: KbApiDefinition,
-  input: Record<string, unknown>
-): Record<string, string> | undefined {
-  const fields: Record<string, string> = {}
-  for (const param of def.bodyParams ?? []) {
-    const key = param.cliFlag ?? param.name
-    const value = input[key]
-    if (value !== undefined) fields[param.name] = String(value)
-  }
-  return Object.keys(fields).length === 0 ? undefined : fields
-}
-
-/**
- * Collects request body fields from body params.
- * Returns `undefined` when no body fields are present.
- */
 function collectBody (
-  def: KbApiDefinition,
+  props: Record<string, Record<string, unknown>>,
   input: Record<string, unknown>
 ): Record<string, unknown> | undefined {
-  const bodyParamNames = (def.bodyParams ?? []).map((p) => p.name)
-  if (bodyParamNames.length === 0) {
-    // No explicit body params — check for any remaining input keys
-    // not consumed by path/query params (freeform body).
-    const pathKeys = new Set((def.pathParams ?? []).map((p) => p.name))
-    const queryKeys = new Set((def.queryParams ?? []).map((p) => p.cliFlag ?? p.name))
-    const body: Record<string, unknown> = {}
-    for (const [key, value] of Object.entries(input)) {
-      if (!pathKeys.has(key) && !queryKeys.has(key) && value !== undefined) {
-        body[key] = value
-      }
-    }
-    return Object.keys(body).length === 0 ? undefined : body
-  }
-
   const body: Record<string, unknown> = {}
-  for (const param of def.bodyParams!) {
-    const key = param.cliFlag ?? param.name
+  for (const [key, prop] of Object.entries(props)) {
+    const foundIn = prop['x-found-in'] as string | undefined
+    if (foundIn === 'path' || foundIn === 'query') continue
     const value = input[key]
-    if (value !== undefined) body[param.name] = value
+    if (value !== undefined) body[key] = value
   }
-  return Object.keys(body).length === 0 ? undefined : body
+  // Also include any input keys that have no corresponding property definition
+  for (const [key, value] of Object.entries(input)) {
+    if (!(key in props) && value !== undefined) body[key] = value
+  }
+  return Object.keys(body).length > 0 ? body : undefined
 }

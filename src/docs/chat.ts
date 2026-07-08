@@ -3,10 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { z } from 'zod'
 import { createInterface } from 'node:readline'
 import { defineCommand } from '../factory.ts'
-import type { OpaqueCommandHandle, JsonValue } from '../factory.ts'
+import type { OpaqueCommandHandle, JsonValue, ParsedResult } from '../factory.ts'
 import { docsAskStream, newUuid, type AskStreamEvent } from './client.ts'
 import { startSpinner, streamAnswer, type SpinnerHandle } from './stream.ts'
 import { renderMarkdown } from './renderer.ts'
@@ -41,23 +40,25 @@ async function askQuestion (
   }
 }
 
-const inputSchema = z.object({
-  question: z.string().describe('Opening question'),
-})
+const inputSchema: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    question: { type: 'string', description: 'Opening question' },
+  },
+  required: ['question'],
+}
 
 export function createChatCommand (deps: ChatDeps = defaultDeps): OpaqueCommandHandle {
   return defineCommand({
     name: 'chat',
     description: 'Ask a question about Elastic documentation using AI, with follow-up conversation',
     input: inputSchema,
-    handler: async (parsed): Promise<JsonValue> => {
-      const question = parsed.input!.question.trim()
+    handler: async (parsed: ParsedResult): Promise<JsonValue> => {
+      const inp = parsed.input as { question: string }
+      const question = inp.question.trim()
       if (question === '') return { error: { code: 'missing_input', message: 'question is required' } }
 
-      // Spinner and interactive loop are disabled when stderr is not a TTY (piped/redirected)
-      // or when --json is requested, so agents and scripts get clean output.
       const interactive = process.stderr.isTTY === true && parsed.options['json'] !== true
-
       const conversationId = newUuid()
 
       if (parsed.options['json'] === true) {

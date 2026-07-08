@@ -4,19 +4,17 @@
  */
 
 import { Command } from 'commander'
-import type { z } from 'zod'
 import { createRequire } from 'node:module'
 import { readFileSync, writeSync } from 'node:fs'
 import assert from 'node:assert/strict'
 import { getResolvedConfig } from './config/store.ts'
-import { extractSchemaArgs, validateSchemaArgs } from './lib/schema-args.ts'
-import type { SchemaArgDefinition } from './lib/schema-args.ts'
+import { extractSchemaArgs, validateSchemaArgs } from './lib/json-schema-args.ts'
+import type { SchemaArgDefinition } from './lib/json-schema-args.ts'
 import type { renderText as _RT, formatHandlerError as _FHE } from './output.ts'
 import { pickFields, parseFieldList, applyTemplate, TemplateAgainstPrimitiveError } from './lib/output-transform.ts'
 import { validateName, hasGlobalJsonFlag, configureErrorOutput, commandPath, isCommandAllowed, stripTransportMeta } from './factory-core.ts'
 import type { OpaqueCommandHandle, JsonValue, CommandConfig, ParsedResult } from './factory-core.ts'
 import { RawJsonValue } from './factory-core.ts'
-import { attachInput, attachIntent } from '@cli-schema/commander'
 
 // Re-export from factory-core for backward compatibility
 export {
@@ -40,13 +38,7 @@ export {
   configureErrorOutput,
 } from './factory-core.ts'
 
-// Lazy-loaded modules; deferred to improve performance of --help calls
 const _require = createRequire(import.meta.url)
-let _zMod: (typeof import('zod')) | null = null
-function getZ (): typeof import('zod').z {
-  if (_zMod == null) _zMod = _require('zod') as typeof import('zod')
-  return _zMod.z
-}
 
 let _outputMod: Promise<{ renderText: typeof _RT; formatHandlerError: typeof _FHE }> | null = null
 function getOutput () {
@@ -54,24 +46,14 @@ function getOutput () {
   return _outputMod!
 }
 
-let _numberSchema: ReturnType<typeof import('zod').z.coerce.number> | null = null
-function numberSchema () {
-  if (_numberSchema == null) _numberSchema = getZ().coerce.number()
-  return _numberSchema
-}
-
 /**
  * Module-level stdin reader - swappable in tests via {@link _testSetStdinReader}.
- * Production default reads all of stdin synchronously using file descriptor 0,
- * which works cross-platform (Windows, Linux, macOS).
  */
 let stdinReader: () => string = () => readFileSync(0, 'utf-8')
 
 /**
  * Test-only seam: replaces the stdin reader with `fn` and returns a restore callback.
- * Always call the returned function in a `finally` block to avoid test pollution.
- *
- * @internal not part of the public API
+ * @internal
  */
 export function _testSetStdinReader (fn: () => string): () => void {
   const prev = stdinReader
@@ -86,17 +68,7 @@ function camelCase (s: string): string {
 
 /**
  * Parses an ES `Sort` CLI value into the shape ES expects in a request body.
- *
- * The CLI help text advertises the URL-query grammar (`<field>:<direction>` pairs, comma-
- * separated), but the request body needs explicit objects per pair. Bare field names (no
- * colon) are kept as strings since ES accepts them directly.
- *
- * Examples:
- *   "views"                       → "views"
- *   "views:desc"                  → [{ views: "desc" }]
- *   "views,timestamp"             → ["views", "timestamp"]
- *   "views:desc,timestamp:asc"    → [{ views: "desc" }, { timestamp: "asc" }]
- *   "views,timestamp:desc"        → ["views", { timestamp: "desc" }]
+ * "views:desc,timestamp:asc" → [{ views: "desc" }, { timestamp: "asc" }]
  */
 function parseSortPairs (value: string): string | Array<string | Record<string, string>> {
   const parts = parseFieldList(value)
@@ -110,11 +82,6 @@ function parseSortPairs (value: string): string | Array<string | Record<string, 
   return transformed
 }
 
-/**
- * Creates a parseArg function that accumulates repeated string flag values with comma separation.
- * Uses Commander's option value source tracking: first CLI occurrence replaces any default,
- * subsequent CLI occurrences append with a comma separator.
- */
 function stringAccumulator (cmd: Command, attrName: string): (value: string, previous: string | undefined) => string {
   return (value: string, previous: string | undefined): string => {
     if (cmd.getOptionValueSource(attrName) === 'cli') return `${previous},${value}`
@@ -122,11 +89,6 @@ function stringAccumulator (cmd: Command, attrName: string): (value: string, pre
   }
 }
 
-/**
- * Creates a parseArg function that rejects repeated flag occurrences for singular-value options.
- * Wraps an optional inner parser (e.g. number coercion) and errors via Commander
- * if the option has already been set from the CLI.
- */
 function singleValueGuard<T> (
   cmd: Command, attrName: string, flagDisplay: string, innerParse?: (val: string) => T,
 ): (value: string, previous: T | undefined) => T {
@@ -138,84 +100,68 @@ function singleValueGuard<T> (
   }
 }
 
-/**
- * Validates all option definitions for a command.
- * @throws {Error} on short alias length, long name length, or duplicate name violations
- */
 function validateOptions (options: import('./factory-core.ts').OptionDefinition[]): void {
   const seenLong = new Set<string>()
   const seenShort = new Set<string>()
 
   for (const opt of options) {
     if (opt.long.length < 2) {
-      throw new Error(
-        `invalid option long name ${JSON.stringify(opt.long)}: long names must be at least 2 characters`
-      )
+      throw new Error(`invalid option long name ${JSON.stringify(opt.long)}: long names must be at least 2 characters`)
     }
     if (opt.short !== undefined && opt.short.length !== 1) {
-      throw new Error(
-        `invalid short alias ${JSON.stringify(opt.short)} for --${opt.long}: ` +
-        'short aliases must be exactly one character'
-      )
+      throw new Error(`invalid short alias ${JSON.stringify(opt.short)} for --${opt.long}: short aliases must be exactly one character`)
     }
-    if (seenLong.has(opt.long)) {
-      throw new Error(`duplicate option long name: --${opt.long}`)
-    }
+    if (seenLong.has(opt.long)) throw new Error(`duplicate option long name: --${opt.long}`)
     seenLong.add(opt.long)
-
-    if (opt.long === 'dry-run') {
-      throw new Error('option --dry-run is reserved')
-    }
-
+    if (opt.long === 'dry-run') throw new Error('option --dry-run is reserved')
     if (opt.short !== undefined) {
-      if (seenShort.has(opt.short)) {
-        throw new Error(`duplicate option short alias: -${opt.short}`)
-      }
+      if (seenShort.has(opt.short)) throw new Error(`duplicate option short alias: -${opt.short}`)
       seenShort.add(opt.short)
     }
   }
 }
 
 /**
- * Validates the `input` field of a {@link CommandConfig} at definition time.
- * @throws {Error} if `input` is defined but is not a `z.ZodType` instance
+ * Validates the `input` field at definition time.
+ * `input` must be a plain object with a `properties` key (JSON Schema), or undefined.
  */
 function validateInput (name: string, input: unknown): void {
-  if (input !== undefined && !(input instanceof getZ().ZodType)) {
-    throw new Error(`command ${JSON.stringify(name)}: input must be a Zod schema`)
+  if (input === undefined) return
+  if (input === null || typeof input !== 'object' || Array.isArray(input)) {
+    throw new Error(`command ${JSON.stringify(name)}: input must be a JSON Schema object`)
+  }
+  const obj = input as Record<string, unknown>
+  // Must look like a JSON Schema object: either type:'object' or a properties key.
+  // This catches accidental plain objects like { index: 'my-index' } which would silently validate everything.
+  if (obj['type'] !== 'object' && obj['properties'] == null) {
+    throw new Error(`command ${JSON.stringify(name)}: input must be a JSON Schema object with type: 'object' or a properties key`)
   }
 }
 
+function isJsonSchemaInput (input: unknown): input is Record<string, unknown> {
+  return input !== undefined && input !== null && typeof input === 'object' && !Array.isArray(input)
+}
+
 /**
- * Configures `--help --json` on a leaf command to emit the JSON Schema derived
- * from the command's input Zod schema. Uses synchronous blocking write to prevent
- * truncation when stdout is piped.
+ * Configures `--help --json` on a leaf command to emit the JSON Schema.
+ * Uses synchronous writes to prevent truncation on large schemas.
  */
 function configureHelpWithSchema (
   cmd: OpaqueCommandHandle,
-  inputSchema: z.ZodType | undefined,
+  inputSchema: Record<string, unknown> | undefined,
 ): void {
   const origHelp = cmd.createHelp()
   cmd.configureHelp({
     formatHelp: (thisCmd, helper) => {
       if (hasGlobalJsonFlag(thisCmd)) {
         const jsonSchema = inputSchema != null
-          ? stripTransportMeta(getZ().toJSONSchema(inputSchema, { reused: 'ref' }) as JsonValue)
+          ? stripTransportMeta(inputSchema as JsonValue)
           : undefined
         return jsonSchema != null ? JSON.stringify(jsonSchema) + '\n' : ''
       }
       return origHelp.formatHelp(thisCmd, helper)
     }
   })
-  // The JSON schema for commands like `es search` exceeds 64 KB.  Commander
-  // passes the formatted string to writeOut (process.stdout.write by default),
-  // which is async; process.exit() fires immediately afterwards and discards
-  // the unflushed buffer, truncating the output.
-  //
-  // We override writeOut to write synchronously instead.  Node.js (libuv) puts
-  // pipe file-descriptors into non-blocking mode once process.stdout is
-  // initialised, so a bare writeSync would also stop at the pipe-buffer limit;
-  // setBlocking(true) restores blocking mode first.
   cmd.configureOutput({
     writeOut: (str) => {
       ;(process.stdout as NodeJS.WriteStream & { _handle?: { setBlocking?: (b: boolean) => void } })
@@ -225,11 +171,6 @@ function configureHelpWithSchema (
   })
 }
 
-/**
- * Parses `raw` as JSON, routing errors through Commander's error handler.
- * `source` is the error prefix shown to the user (e.g. `'--input-file'` or `'stdin'`).
- * Returns `never` on any error path via `cmd.error()`.
- */
 function parseJsonContent (raw: string, source: string, cmd: OpaqueCommandHandle): unknown {
   if (raw.trim().length === 0) {
     return cmd.error(`${source}: invalid JSON: empty content`)
@@ -256,46 +197,30 @@ function isErrorResult (value: JsonValue): boolean {
 }
 
 /**
+ * Coerces a string to a number, returning undefined if not a valid number.
+ */
+function coerceNumber (val: string): number | undefined {
+  if (val.trim() === '') return undefined
+  const n = Number(val)
+  return isNaN(n) ? undefined : n
+}
+
+/**
  * Creates a leaf command from a declarative config and returns an opaque handle.
  *
- * The returned handle can be:
- * - registered with the CLI program via `program.addCommand(handle)`
- * - added to a command group via {@link defineGroup}
- *
- * **Lifecycle** (on invocation):
- * 1. Commander parses raw argv into typed option values
- * 2. Number options are coerced and validated via Zod; errors exit before the handler
- * 3. Required option absence is detected by Commander; exits with a structured error
- * 4. If `input` is a Zod schema and JSON data is provided, it is validated via `safeParse`;
- *    on failure, an error is emitted and the handler is never invoked
- * 5. Handler is invoked with a {@link ParsedResult} containing coerced options and typed input
- *
- * @example
- * ```ts
- * const healthCmd = defineCommand({
- *   name: 'health',
- *   description: 'Check cluster health status',
- *   options: [
- *     { long: 'verbose', short: 'v', type: 'boolean', description: 'Show detailed output' },
- *     { long: 'timeout', type: 'number', description: 'Timeout in seconds', defaultValue: 30 },
- *   ],
- *   handler: (parsed) => {
- *     // parsed.options['verbose'] is boolean
- *     // parsed.options['timeout'] is number (default: 30)
- *   },
- * })
- * ```
+ * When `config.input` is a JSON Schema object, the factory:
+ * 1. Extracts CLI flags from `input.properties` via `extractSchemaArgs`
+ * 2. Registers each property as a Commander option
+ * 3. Validates input with AJV (lazy-loaded) before calling the handler
  */
-export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): OpaqueCommandHandle {
+export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
   validateName(config.name, 'command')
   validateOptions(config.options ?? [])
   validateInput(config.name, config.input)
-  // --input-file is reserved when input is a schema; catch collision at definition time
-  if (config.input instanceof getZ().ZodType && config.options?.some((o) => o.long === 'input-file')) {
-    throw new Error(
-      `command ${JSON.stringify(config.name)}: option --input-file is reserved when input is enabled`
-    )
+  if (isJsonSchemaInput(config.input) && config.options?.some((o) => o.long === 'input-file')) {
+    throw new Error(`command ${JSON.stringify(config.name)}: option --input-file is reserved when input is enabled`)
   }
+
   const cmd = new Command(config.name)
   cmd.description(config.description)
   configureErrorOutput(cmd)
@@ -310,36 +235,29 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
   const optDefs = config.options ?? []
 
   for (const opt of optDefs) {
-    const flag = opt.short != null
-      ? `-${opt.short}, --${opt.long}`
-      : `--${opt.long}`
-
+    const flag = opt.short != null ? `-${opt.short}, --${opt.long}` : `--${opt.long}`
     const register = opt.required === true ? cmd.requiredOption.bind(cmd) : cmd.option.bind(cmd)
 
     if (opt.type === 'boolean') {
       register(flag, opt.description)
     } else if (opt.type === 'number') {
-      // <number> placeholder communicates type in help text; parseArg coerces and validates inline
       const flagWithArg = `${flag} <number>`
       const attrName = camelCase(opt.long)
       const parseNum = (val: string): number => {
-        const result = numberSchema().safeParse(val)
-        if (!result.success) {
-          cmd.error(`option --${opt.long}: expected a number, got: ${val}`)
-        }
-        return result.data!
+        const n = coerceNumber(val)
+        if (n === undefined) cmd.error(`option --${opt.long}: expected a number, got: ${val}`)
+        return n!
       }
       register(flagWithArg, opt.description, singleValueGuard(cmd, attrName, `--${opt.long}`, parseNum), opt.defaultValue as number | undefined)
     } else {
-      // string options: accumulate repeated values with comma separation
       const attrName = camelCase(opt.long)
       register(`${flag} <string>`, opt.description, stringAccumulator(cmd, attrName), opt.defaultValue !== undefined ? String(opt.defaultValue) : undefined)
     }
   }
 
-  // schema-derived CLI options (registered before --input-file so help text order is correct)
+  // schema-derived CLI options
   let schemaArgs: SchemaArgDefinition[] = []
-  if (config.input instanceof getZ().ZodType) {
+  if (isJsonSchemaInput(config.input)) {
     schemaArgs = extractSchemaArgs(config.input)
     validateSchemaArgs(schemaArgs)
     for (const arg of schemaArgs) {
@@ -351,14 +269,13 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
         : undefined
       const desc = [arg.description, csvNote, suffix].filter(Boolean).join(' ')
       if (arg.type === 'boolean') {
-        // booleans omit the suffix; flag-style convention makes it clear
         cmd.option(`--${arg.cliFlag} [value]`, arg.description)
       } else if (arg.type === 'number') {
         const attrName = camelCase(arg.cliFlag)
         const parseNum = (val: string): number => {
-          const r = numberSchema().safeParse(val)
-          if (!r.success) cmd.error(`option --${arg.cliFlag}: expected a number, got: ${val}`)
-          return r.data!
+          const n = coerceNumber(val)
+          if (n === undefined) cmd.error(`option --${arg.cliFlag}: expected a number, got: ${val}`)
+          return n!
         }
         cmd.option(`--${arg.cliFlag} <number>`, desc, singleValueGuard(cmd, attrName, `--${arg.cliFlag}`, parseNum))
       } else if (arg.type === 'object' || arg.type === 'array') {
@@ -368,36 +285,35 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
         const attrName = camelCase(arg.cliFlag)
         cmd.option(`--${arg.cliFlag} <value>`, desc, singleValueGuard<string>(cmd, attrName, `--${arg.cliFlag}`))
       } else {
-        // string: accumulate repeated values with comma separation
         const attrName = camelCase(arg.cliFlag)
         cmd.option(`--${arg.cliFlag} <string>`, desc, stringAccumulator(cmd, attrName))
       }
     }
+
   }
   // Read-only (GET/HEAD) commands with an empty input schema (e.g. `es info`)
   // take no input at all, so --input-file and --dry-run would be no-ops; hide
   // them (#378). Write commands keep --input-file even with an empty schema
   // because loose schemas pass the whole file through as the request body.
-  const inputIsEmptyObject = config.input instanceof getZ().ZodObject &&
-    Object.keys(config.input.shape).length === 0
+  const inputIsEmptyObject = isJsonSchemaInput(config.input) &&
+    Object.keys((config.input as { properties?: Record<string, unknown> }).properties ?? {}).length === 0
   const hideNoInputFlags = config.readOnly === true && inputIsEmptyObject
-  if (config.input instanceof getZ().ZodType && !hideNoInputFlags) {
+  if (isJsonSchemaInput(config.input) && !hideNoInputFlags) {
     cmd.option('--input-file <path>', 'path to a JSON file to use as command input')
   }
+
   const schemaClaimsDryRun = schemaArgs.some((a) => a.cliFlag === 'dry-run')
   if (!schemaClaimsDryRun && !hideNoInputFlags) {
     cmd.option('--dry-run', 'validate all inputs and exit without performing any action')
   }
 
-  configureHelpWithSchema(
-    cmd,
-    config.input instanceof getZ().ZodType ? config.input : undefined,
-  )
+  configureHelpWithSchema(cmd, isJsonSchemaInput(config.input) ? config.input : undefined)
 
-  // Attach typed metadata for tooling (cli-schema). Non-enumerable storage, same as before —
-  // @cli-schema/commander's attach functions use a private symbol under the hood.
-  if (config.input instanceof getZ().ZodType) attachInput(cmd, config.input)
-  if (config.intent != null) attachIntent(cmd, config.intent)
+  Object.defineProperty(cmd, '_commandConfig', {
+    value: { config, schemaArgs },
+    writable: false,
+    enumerable: false,
+  })
 
   cmd.action(async () => {
     const allRaw = cmd.optsWithGlobals()
@@ -409,7 +325,6 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       if (opt.type === 'boolean') {
         options[opt.long] = rawVal === true
       } else if (rawVal !== undefined) {
-        // number coercion already done by parseArg; string values passed through as-is
         options[opt.long] = rawVal as string | number
       }
     }
@@ -425,7 +340,9 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     const jsonFormat = allRaw.json
     let inputValue: unknown
     const rawBodyValues: Record<string, RawJsonValue> = {}
-    if (config.input instanceof getZ().ZodType) {
+    const sortParsedKeys = new Set<string>()
+
+    if (isJsonSchemaInput(config.input)) {
       const filePath = cmd.getOptionValue('inputFile') as string | undefined
       if (filePath !== undefined) {
         let fileContent: string
@@ -463,14 +380,12 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
         inputValue = config.inputTransform(inputValue)
       }
 
-      // collect explicitly-provided schema-derived CLI arguments and merge over JSON input
+      // collect CLI arg values and merge over JSON input
       const cliInput: Record<string, unknown> = {}
       for (const arg of schemaArgs) {
-        // Commander stores kebab-case flags as camelCase keys in opts()
         const camelKey = camelCase(arg.cliFlag)
         const raw = allRaw[camelKey]
         if (raw === undefined) continue
-        // boolean coercion: --flag (no value) -> true, --flag false -> false
         if (arg.type === 'boolean') {
           cliInput[arg.schemaKey] = raw !== 'false'
         } else if (arg.type === 'object' || arg.type === 'array') {
@@ -481,8 +396,6 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
               rawBodyValues[arg.schemaKey] = new RawJsonValue(raw as string, parsed)
             }
           } catch {
-            // If JSON parse fails, pass the raw value — handles z.any() fields
-            // that accept plain strings (e.g. connector update-error --error)
             cliInput[arg.schemaKey] = raw
           }
         } else if (
@@ -490,10 +403,8 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
           arg.foundIn === 'body' &&
           typeof raw === 'string'
         ) {
-          // ES `Sort` body fields: the help text advertises `<field>:<direction>` pairs
-          // (the URL query grammar), but in the request body ES expects
-          // `[{"field": "direction"}, ...]`. Parse the colon syntax into that shape.
           cliInput[arg.schemaKey] = parseSortPairs(raw)
+          sortParsedKeys.add(arg.schemaKey)
         } else if (
           arg.type === 'string' &&
           arg.acceptsArrayForm === true &&
@@ -501,24 +412,17 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
           typeof raw === 'string' &&
           raw.includes(',')
         ) {
-          // JSON bodies need an array for union(T, array(T)) fields like `fields`; ES
-          // does not split CSV strings inside bodies (it only does so in path and query).
-          // Users whose individual field values contain literal commas can pass a
-          // pre-built JSON array via `--input-file` instead.
           cliInput[arg.schemaKey] = raw.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
         } else {
-          // string, number (already coerced by parseArg), enum
           cliInput[arg.schemaKey] = raw
         }
       }
+
       if (Object.keys(cliInput).length > 0) {
         inputValue = { ...(inputValue as Record<string, unknown> ?? {}), ...cliInput }
       }
-      // always validate against the schema, even when no input was provided,
-      // so that missing required fields are caught by Zod
-      if (inputValue === undefined) {
-        inputValue = {}
-      }
+
+      if (inputValue === undefined) inputValue = {}
     }
 
     const positionalValue = config.positionalArg != null
@@ -527,19 +431,13 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
 
     const resolvedConfig = getResolvedConfig()
 
-    // enforce command policy before any other work
     if (resolvedConfig?.commands != null) {
-      // commandPath returns e.g. "elastic elasticsearch search"; strip root program name and dot-join
       const parts = commandPath(cmd).split(' ')
-      // if mounted under a root program (e.g. "elastic"), strip that first segment
       const dotPath = (parts.length > 1 ? parts.slice(1) : parts).join('.')
       if (!isCommandAllowed(dotPath, resolvedConfig.commands)) {
         if (jsonFormat === true) {
           process.stderr.write(JSON.stringify({
-            error: {
-              code: 'command_blocked',
-              message: `command "${dotPath}" is not allowed by the current policy`,
-            },
+            error: { code: 'command_blocked', message: `command "${dotPath}" is not allowed by the current policy` },
           }) + '\n')
           throw Object.assign(new Error('command_blocked'), { exitCode: 1 })
         }
@@ -547,66 +445,62 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       }
     }
 
-    const parsed: ParsedResult<z.infer<T>> = {
+    const parsed: ParsedResult = {
       options,
       ...(resolvedConfig != null ? { config: resolvedConfig } : {}),
       ...(positionalValue !== undefined ? { arg: positionalValue } : {})
     }
-    if (inputValue !== undefined) {
-      assert(config.input instanceof getZ().ZodType, `command ${JSON.stringify(config.name)}: input must be a Zod schema`)
-      // Use passthrough so unknown fields (plugin-specific, newer ES versions) flow
-      // through to the server instead of being rejected client-side (#170).
-      let validationSchema: z.ZodType = (
-        config.input instanceof getZ().ZodObject &&
-        (config.input.def as unknown as { catchall?: { type: string } }).catchall?.type !== 'unknown'
-      )
-        ? config.input.passthrough()
-        : config.input
 
-      // Relax validation for object/array body fields. These contain user-provided
-      // JSON (e.g. --query, --mappings) whose full DSL (including shorthand forms)
-      // is too complex for client-side Zod schemas. The CLI already validates that the
-      // JSON is syntactically correct; Elasticsearch validates the semantics server-side.
-      //
-      // Also relax `sort-pairs` fields: the CLI rewrites `field:direction` strings into
-      // `[{field: 'direction'}]` objects, which the strict `Sort` schema (SortOptions has
-      // a fixed set of reserved keys like `_score`) would otherwise reject.
-      const jsonBodyFields = schemaArgs.filter(
-        a => a.foundIn === 'body' &&
-             (a.type === 'object' || a.type === 'array' || a.parseStyle === 'sort-pairs')
+    if (inputValue !== undefined) {
+      assert(isJsonSchemaInput(config.input), `command ${JSON.stringify(config.name)}: input must be a JSON Schema object`)
+
+      const { validateWithJsonSchema, formatValidationErrors } = await import('./lib/ajv-validate.js')
+
+      // Relax schema for sort-pairs and CLI-provided body JSON fields:
+      // - sort-pairs: CLI value is parsed to [{field: dir}] which won't match string schema
+      // - body object/array fields from CLI --flag <json>: full DSL may not match strict schema
+      // Files/stdin input is validated strictly.
+      let validationSchema: Record<string, unknown> = config.input
+      const relaxFields = schemaArgs.filter(
+        (a) =>
+          sortParsedKeys.has(a.schemaKey) ||
+          ((a.type === 'object' || a.type === 'array') && (a.foundIn === 'body' || a.foundIn === undefined) && a.schemaKey in rawBodyValues)
       )
-      if (jsonBodyFields.length > 0 && validationSchema instanceof getZ().ZodObject) {
-        const overrides: Record<string, z.ZodType> = {}
-        for (const f of jsonBodyFields) {
-          overrides[f.schemaKey] = f.required ? getZ().any() : getZ().any().optional()
+      if (relaxFields.length > 0 && typeof config.input['properties'] === 'object') {
+        const props = { ...(config.input['properties'] as Record<string, unknown>) }
+        for (const f of relaxFields) {
+          if (f.schemaKey in props) {
+            // Accept any value for these relaxed fields
+            props[f.schemaKey] = {}
+          }
         }
-        validationSchema = (validationSchema as z.ZodObject<z.ZodRawShape>).extend(overrides)
+        validationSchema = { ...config.input, properties: props }
       }
 
-      const result = validationSchema.safeParse(inputValue)
+      const result = validateWithJsonSchema(validationSchema, inputValue)
+
       if (result.success) {
-        parsed.input = result.data as z.infer<T>
+        parsed.input = result.data
         if (Object.keys(rawBodyValues).length > 0) {
           parsed.rawBodyValues = rawBodyValues
         }
       } else {
-        const { simplifyZodIssues, formatIssuesText } = await import('./lib/zod-error.js')
-        const issues = simplifyZodIssues(result.error.issues)
         if (jsonFormat === true) {
           const writeErr = cmd.configureOutput().writeErr ?? ((s: string) => process.stderr.write(s))
           writeErr(JSON.stringify({
             error: {
               code: 'input_validation_failed',
-              message: `Input validation failed with ${issues.length} issue(s)`,
-              issues
+              message: `Input validation failed with ${result.errors.length} issue(s)`,
+              // Emit path as array (like Zod) for API compatibility
+              issues: result.errors.map(e => ({ path: e.path_array, message: e.message }))
             }
           }) + '\n')
-          // throw to prevent handler execution - mirrors cmd.error() behaviour
           throw Object.assign(new Error('input_validation_failed'), { exitCode: 1 })
         }
-        return cmd.error(`input validation failed:\n${formatIssuesText(issues)}`)
+        return cmd.error(`input validation failed:\n${formatValidationErrors(result.errors)}`)
       }
     }
+
     if (allRaw['dryRun'] === true) {
       if (jsonFormat) {
         process.stdout.write(JSON.stringify({ success: true }) + '\n')
@@ -615,10 +509,12 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       }
       return
     }
+
     const handlerResult = await config.handler(parsed)
 
     const { renderText, formatHandlerError } = await getOutput()
     assert(handlerResult !== undefined, `command ${JSON.stringify(config.name)}: handler must return a JsonValue`)
+
     if (isErrorResult(handlerResult)) {
       if (jsonFormat === true) {
         process.stderr.write(JSON.stringify(handlerResult) + '\n')

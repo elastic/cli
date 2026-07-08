@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { z } from 'zod'
 import type { CloudApiDefinition } from './types.ts'
 import type { CloudRequestParams } from '../lib/cloud-client.ts'
 import type { ParsedResult } from '../factory.ts'
@@ -12,14 +11,12 @@ import type { ParsedResult } from '../factory.ts'
  * Builds a `CloudRequestParams` object from an API definition and parsed CLI input.
  *
  * All path params, query params, and body fields arrive in `parsed.input` as a
- * single flat object. The definition's param arrays act as a routing manifest
- * to classify each key back to its destination:
- *
+ * single flat object. The definition's param arrays act as a routing manifest:
  * - `pathParams` → interpolated into the URL path
  * - `queryParams` → added to the querystring (stringified for fetch)
- * - `body` shape keys → collected into the request body object
+ * - `bodyParams` → collected into the request body object
  */
-export function buildCloudRequestParams(
+export function buildCloudRequestParams (
   def: CloudApiDefinition,
   parsed: ParsedResult,
 ): CloudRequestParams {
@@ -35,20 +32,15 @@ export function buildCloudRequestParams(
   return params
 }
 
-/**
- * Encodes a single path parameter value, percent-encoding special characters
- * like `/`, `?`, and `#` to prevent path traversal (#106).
- */
-function encodePathParam(value: string): string {
+function encodePathParam (value: string): string {
   return encodeURIComponent(value)
 }
 
-function interpolatePath(
+function interpolatePath (
   def: CloudApiDefinition,
   input: Record<string, unknown>,
 ): string {
   let path = def.path
-
   for (const param of def.pathParams ?? []) {
     const value = input[param.name]
     if (value !== undefined) {
@@ -58,43 +50,40 @@ function interpolatePath(
       path = path.replace(/\/$/, '') || '/'
     }
   }
-
   return path
 }
 
-function buildQuerystring(
+function buildQuerystring (
   def: CloudApiDefinition,
   input: Record<string, unknown>,
 ): Record<string, string> {
   const qs: Record<string, string> = {}
-
   for (const qp of def.queryParams ?? []) {
     const inputKey = qp.cliFlag ?? qp.name
     const value = input[inputKey]
-    if (value !== undefined) {
-      qs[qp.name] = String(value)
-    }
+    if (value !== undefined) qs[qp.name] = String(value)
   }
-
   return qs
 }
 
 const BODY_METHODS: ReadonlySet<string> = new Set(['POST', 'PUT', 'PATCH'])
 
-function collectBody(
+function collectBody (
   def: CloudApiDefinition,
   input: Record<string, unknown>,
 ): Record<string, unknown> | undefined {
-  if (def.body instanceof z.ZodObject) {
+  // Collect from explicit bodyParams (new pattern)
+  if (def.bodyParams != null && def.bodyParams.length > 0) {
     const body: Record<string, unknown> = {}
-    for (const fieldName of Object.keys(def.body.shape as Record<string, unknown>)) {
-      if (input[fieldName] !== undefined) {
-        body[fieldName] = input[fieldName]
-      }
+    for (const bp of def.bodyParams) {
+      const key = bp.cliFlag ?? bp.name
+      if (input[key] !== undefined) body[bp.name] = input[key]
     }
     return Object.keys(body).length > 0 ? body : undefined
   }
 
+  // Fallback: for POST/PUT/PATCH with no explicit bodyParams,
+  // treat any non-path/non-query fields as body fields.
   if (!BODY_METHODS.has(def.method)) return undefined
 
   const reserved = new Set([
@@ -103,9 +92,7 @@ function collectBody(
   ])
   const body: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(input)) {
-    if (!reserved.has(key) && value !== undefined) {
-      body[key] = value
-    }
+    if (!reserved.has(key) && value !== undefined) body[key] = value
   }
   return Object.keys(body).length > 0 ? body : undefined
 }

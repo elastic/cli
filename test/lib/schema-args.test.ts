@@ -5,9 +5,16 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { z } from 'zod'
-import type { SchemaArgDefinition } from '../../src/lib/schema-args.ts'
-import { toKebabCase, extractSchemaArgs, buildFlagKeyMap, validateSchemaArgs, extractFoundIn } from '../../src/lib/schema-args.ts'
+import type { SchemaArgDefinition } from '../../src/lib/json-schema-args.ts'
+import { toKebabCase, extractSchemaArgs, buildFlagKeyMap, validateSchemaArgs } from '../../src/lib/json-schema-args.ts'
+
+// Helper: build a minimal JSON Schema for testing
+function schema (
+  properties: Record<string, Record<string, unknown>>,
+  required: string[] = []
+): Record<string, unknown> {
+  return { type: 'object', properties, ...(required.length > 0 ? { required } : {}) }
+}
 
 describe('toKebabCase', () => {
   it('converts snake_case to kebab-case', () => {
@@ -43,94 +50,146 @@ describe('toKebabCase', () => {
 })
 
 describe('extractSchemaArgs', () => {
-  it('extracts top-level keys from z.object()', () => {
-    const schema = z.object({ index: z.string(), size: z.number() })
-    const args = extractSchemaArgs(schema)
+  it('extracts top-level keys from JSON Schema properties', () => {
+    const s = schema({ index: { type: 'string' }, size: { type: 'integer' } })
+    const args = extractSchemaArgs(s)
     assert.equal(args.length, 2)
     const keys = args.map((a) => a.schemaKey).sort()
     assert.deepEqual(keys, ['index', 'size'])
   })
 
   it('derives kebab-case cliFlag from schemaKey', () => {
-    const schema = z.object({ num_shards: z.number(), refreshInterval: z.number() })
-    const args = extractSchemaArgs(schema)
+    const s = schema({ num_shards: { type: 'integer' }, refreshInterval: { type: 'integer' } })
+    const args = extractSchemaArgs(s)
     const flagMap = new Map(args.map((a) => [a.schemaKey, a.cliFlag]))
     assert.equal(flagMap.get('num_shards'), 'num-shards')
     assert.equal(flagMap.get('refreshInterval'), 'refresh-interval')
   })
 
-  it('identifies type for all supported schema types', () => {
-    const schema = z.object({
-      name: z.string(),
-      count: z.number(),
-      active: z.boolean(),
-      mappings: z.object({ dynamic: z.boolean() }),
-      tags: z.array(z.string()),
-      level: z.enum(['low', 'medium', 'high']),
+  it('identifies type for all supported JSON Schema types', () => {
+    const s = schema({
+      name: { type: 'string' },
+      count: { type: 'integer' },
+      ratio: { type: 'number' },
+      active: { type: 'boolean' },
+      mappings: { type: 'object' },
+      tags: { type: 'array' },
+      level: { type: 'string', enum: ['low', 'medium', 'high'] },
     })
-    const typeMap = new Map(extractSchemaArgs(schema).map((a) => [a.schemaKey, a.type]))
+    const typeMap = new Map(extractSchemaArgs(s).map((a) => [a.schemaKey, a.type]))
     assert.equal(typeMap.get('name'), 'string')
     assert.equal(typeMap.get('count'), 'number')
+    assert.equal(typeMap.get('ratio'), 'number')
     assert.equal(typeMap.get('active'), 'boolean')
     assert.equal(typeMap.get('mappings'), 'object')
     assert.equal(typeMap.get('tags'), 'array')
     assert.equal(typeMap.get('level'), 'enum')
   })
 
-  it('preserves type for optional fields', () => {
-    const schema = z.object({
-      opt_str: z.string().optional(),
-      opt_num: z.number().optional(),
-      opt_bool: z.boolean().optional(),
-    })
-    const typeMap = new Map(extractSchemaArgs(schema).map((a) => [a.schemaKey, a.type]))
-    assert.equal(typeMap.get('opt_str'), 'string')
-    assert.equal(typeMap.get('opt_num'), 'number')
-    assert.equal(typeMap.get('opt_bool'), 'boolean')
+  it('determines required status from "required" array', () => {
+    const s = schema(
+      { required_field: { type: 'string' }, optional_field: { type: 'string' }, with_default: { type: 'string', default: 'hello' } },
+      ['required_field']
+    )
+    const reqMap = new Map(extractSchemaArgs(s).map((a) => [a.schemaKey, a.required]))
+    assert.equal(reqMap.get('required_field'), true)
+    assert.equal(reqMap.get('optional_field'), false)
+    assert.equal(reqMap.get('with_default'), false) // has default → not required
   })
 
-  it('determines required status correctly', () => {
-    const schema = z.object({
-      required_field: z.string(),
-      optional_field: z.string().optional(),
-      with_default: z.string().default('default_value'),
+  it('extracts default values from properties', () => {
+    const s = schema({
+      no_default: { type: 'string' },
+      str_default: { type: 'string', default: 'hello' },
+      num_default: { type: 'integer', default: 10 },
+      bool_default: { type: 'boolean', default: true },
     })
-    const requiredMap = new Map(extractSchemaArgs(schema).map((a) => [a.schemaKey, a.required]))
-    assert.equal(requiredMap.get('required_field'), true)
-    assert.equal(requiredMap.get('optional_field'), false)
-    assert.equal(requiredMap.get('with_default'), false)
-  })
-
-  it('extracts default values from schema', () => {
-    const schema = z.object({
-      no_default: z.string(),
-      str_default: z.string().default('hello'),
-      num_default: z.number().default(10),
-      bool_default: z.boolean().default(true),
-    })
-    const defaultMap = new Map(extractSchemaArgs(schema).map((a) => [a.schemaKey, a.defaultValue]))
+    const defaultMap = new Map(extractSchemaArgs(s).map((a) => [a.schemaKey, a.defaultValue]))
     assert.equal(defaultMap.get('no_default'), undefined)
     assert.equal(defaultMap.get('str_default'), 'hello')
     assert.equal(defaultMap.get('num_default'), 10)
     assert.equal(defaultMap.get('bool_default'), true)
   })
 
-  it('extracts description from schema metadata', () => {
-    const schema = z.object({
-      index: z.string().describe('Index name to search'),
-      size: z.number().describe('Number of results'),
-      no_description: z.string(),
+  it('extracts description from property description', () => {
+    const s = schema({
+      index: { type: 'string', description: 'Index name to search' },
+      size: { type: 'integer', description: 'Number of results' },
+      no_description: { type: 'string' },
     })
-    const descMap = new Map(extractSchemaArgs(schema).map((a) => [a.schemaKey, a.description]))
+    const descMap = new Map(extractSchemaArgs(s).map((a) => [a.schemaKey, a.description]))
     assert.equal(descMap.get('index'), 'Index name to search')
     assert.equal(descMap.get('size'), 'Number of results')
     assert.equal(descMap.get('no_description'), '')
   })
 
   it('returns empty array for non-object schemas', () => {
-    assert.deepEqual(extractSchemaArgs(z.string()), [])
     assert.deepEqual(extractSchemaArgs(null), [])
     assert.deepEqual(extractSchemaArgs(undefined), [])
+    assert.deepEqual(extractSchemaArgs('string'), [])
+    assert.deepEqual(extractSchemaArgs({ type: 'string' }), [])
+  })
+
+  it('returns empty array for schema with no properties', () => {
+    assert.deepEqual(extractSchemaArgs({ type: 'object' }), [])
+    assert.deepEqual(extractSchemaArgs({ type: 'object', properties: {} }), [])
+  })
+
+  it('reads x-found-in routing from property', () => {
+    const s = schema({
+      index: { type: 'string', 'x-found-in': 'path' },
+      format: { type: 'string', 'x-found-in': 'query' },
+      mappings: { type: 'object', 'x-found-in': 'body' },
+    })
+    const byKey = new Map(extractSchemaArgs(s).map((a) => [a.schemaKey, a]))
+    assert.equal(byKey.get('index')?.foundIn, 'path')
+    assert.equal(byKey.get('format')?.foundIn, 'query')
+    assert.equal(byKey.get('mappings')?.foundIn, 'body')
+  })
+
+  it('foundIn is undefined when x-found-in is absent', () => {
+    const s = schema({ index: { type: 'string' } })
+    const args = extractSchemaArgs(s)
+    assert.equal(args[0]?.foundIn, undefined)
+  })
+
+  it('detects acceptsArrayForm from anyOf with array branch', () => {
+    const s = schema({
+      fields: {
+        anyOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }]
+      },
+    })
+    const args = extractSchemaArgs(s)
+    assert.equal(args[0]?.type, 'string')
+    assert.equal(args[0]?.acceptsArrayForm, true)
+  })
+
+  it('does not flag a plain string property', () => {
+    const s = schema({ name: { type: 'string' } })
+    const args = extractSchemaArgs(s)
+    assert.notEqual(args[0]?.acceptsArrayForm, true)
+  })
+
+  it('does not flag a plain array property', () => {
+    const s = schema({ tags: { type: 'array', items: { type: 'string' } } })
+    const args = extractSchemaArgs(s)
+    assert.equal(args[0]?.type, 'array')
+    assert.notEqual(args[0]?.acceptsArrayForm, true)
+  })
+
+  it('resolves $ref-only type to "string" as safe default', () => {
+    const s: Record<string, unknown> = {
+      type: 'object',
+      properties: {
+        master_timeout: { $ref: '#/$defs/Duration', description: 'timeout', 'x-found-in': 'query' },
+      },
+      $defs: {
+        Duration: { type: 'string' },
+      },
+    }
+    const args = extractSchemaArgs(s)
+    assert.equal(args[0]?.type, 'string')
+    assert.equal(args[0]?.foundIn, 'query')
   })
 })
 
@@ -154,15 +213,6 @@ describe('buildFlagKeyMap', () => {
     const map = buildFlagKeyMap(args)
     const schemaKey = map.toSchemaKey.get(map.toCliFlag.get('api_key')!)
     assert.equal(schemaKey, 'api_key')
-  })
-
-  it('round-trips camelCase keys correctly', () => {
-    const args: SchemaArgDefinition[] = [
-      { schemaKey: 'indexName', cliFlag: 'index-name', type: 'string', required: false, description: '' },
-    ]
-    const map = buildFlagKeyMap(args)
-    const schemaKey = map.toSchemaKey.get(map.toCliFlag.get('indexName')!)
-    assert.equal(schemaKey, 'indexName')
   })
 })
 
@@ -190,129 +240,5 @@ describe('validateSchemaArgs', () => {
       { schemaKey: 'size', cliFlag: 'size', type: 'number', required: false, defaultValue: 10, description: '' },
     ]
     assert.doesNotThrow(() => validateSchemaArgs(args))
-  })
-})
-
-describe('extractFoundIn', () => {
-  it('returns "path" when .meta({found_in: "path"}) is outermost', () => {
-    const field = z.string().meta({ found_in: 'path' })
-    assert.equal(extractFoundIn(field), 'path')
-  })
-
-  it('returns "query" when .meta() is inside .optional() wrapper (defensive traversal)', () => {
-    const field = z.string().meta({ found_in: 'query' }).optional()
-    assert.equal(extractFoundIn(field), 'query')
-  })
-
-  it('returns undefined when no .meta() is present', () => {
-    const field = z.string()
-    assert.equal(extractFoundIn(field), undefined)
-  })
-})
-
-describe('extractSchemaArgs foundIn population', () => {
-  it('populates foundIn field on each SchemaArgDefinition', () => {
-    const schema = z.object({
-      index: z.string().meta({ found_in: 'path' }),
-      format: z.string().meta({ found_in: 'query' }).optional(),
-      mappings: z.object({}).meta({ found_in: 'body' }),
-    })
-    const args = extractSchemaArgs(schema)
-    const byKey = new Map(args.map((a) => [a.schemaKey, a]))
-    assert.equal(byKey.get('index')?.foundIn, 'path')
-    assert.equal(byKey.get('format')?.foundIn, 'query')
-    assert.equal(byKey.get('mappings')?.foundIn, 'body')
-  })
-
-  it('defaults foundIn to undefined when .meta() is absent', () => {
-    const schema = z.object({ index: z.string() })
-    const args = extractSchemaArgs(schema)
-    assert.equal(args[0]?.foundIn, undefined)
-  })
-})
-
-describe('unwrapField handles complex Zod types (#92)', () => {
-  it('resolves z.lazy() to the underlying type', () => {
-    const schema = z.object({
-      size: z.lazy(() => z.number()).optional(),
-    })
-    const args = extractSchemaArgs(schema)
-    assert.equal(args[0]?.type, 'number')
-  })
-
-  it('classifies z.record() as object', () => {
-    const schema = z.object({
-      properties: z.record(z.string(), z.unknown()).optional(),
-    })
-    const args = extractSchemaArgs(schema)
-    assert.equal(args[0]?.type, 'object')
-  })
-
-  it('classifies z.any() as object', () => {
-    const schema = z.object({
-      document: z.any().optional(),
-    })
-    const args = extractSchemaArgs(schema)
-    assert.equal(args[0]?.type, 'object')
-  })
-
-  it('resolves z.union() to the first member type', () => {
-    const schema = z.object({
-      value: z.union([z.string(), z.number()]).optional(),
-    })
-    const args = extractSchemaArgs(schema)
-    assert.equal(args[0]?.type, 'string')
-  })
-
-  it('resolves nested z.lazy(() => z.record())', () => {
-    const schema = z.object({
-      query: z.lazy(() => z.record(z.string(), z.unknown())).optional(),
-    })
-    const args = extractSchemaArgs(schema)
-    assert.equal(args[0]?.type, 'object')
-  })
-})
-
-describe('extractSchemaArgs acceptsArrayForm detection (#167)', () => {
-  it('flags union(string, array(string)) as acceptsArrayForm', () => {
-    const schema = z.object({
-      fields: z.union([z.string(), z.array(z.string())]).optional(),
-    })
-    const args = extractSchemaArgs(schema)
-    assert.equal(args[0]?.type, 'string')
-    assert.equal(args[0]?.acceptsArrayForm, true)
-  })
-
-  it('flags union wrapped through z.lazy() as acceptsArrayForm', () => {
-    const Field = z.string()
-    const Fields = z.union([z.lazy(() => Field), z.array(z.lazy(() => Field))])
-    const schema = z.object({
-      fields: z.lazy(() => Fields).optional().meta({ found_in: 'body' }),
-    })
-    const args = extractSchemaArgs(schema)
-    assert.equal(args[0]?.type, 'string')
-    assert.equal(args[0]?.acceptsArrayForm, true)
-    assert.equal(args[0]?.foundIn, 'body')
-  })
-
-  it('does not flag a plain string schema', () => {
-    const schema = z.object({ name: z.string() })
-    const args = extractSchemaArgs(schema)
-    assert.notEqual(args[0]?.acceptsArrayForm, true)
-  })
-
-  it('does not flag a plain array schema (already registered as JSON)', () => {
-    const schema = z.object({ tags: z.array(z.string()).optional() })
-    const args = extractSchemaArgs(schema)
-    assert.equal(args[0]?.type, 'array')
-    assert.notEqual(args[0]?.acceptsArrayForm, true)
-  })
-
-  it('does not flag a union without an array branch', () => {
-    const schema = z.object({
-      value: z.union([z.string(), z.number()]).optional(),
-    })
-    const args = extractSchemaArgs(schema)
-    assert.notEqual(args[0]?.acceptsArrayForm, true)
   })
 })

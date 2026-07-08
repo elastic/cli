@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { z } from 'zod'
 import type { EsClient } from '../../lib/es-client.ts'
 import { defineCommand } from '../../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../../factory.ts'
@@ -27,12 +26,22 @@ export interface MsearchDeps {
 
 const defaultDeps: MsearchDeps = { getEsClient }
 
-const inputSchema = z.object({
-  index: z.string().optional().describe('Default index for searches'),
-  query_file: z.string().optional().describe('Path to JSON file with search array'),
-  batch_size: z.number().default(5).describe('Searches per _msearch request'),
-  concurrency: z.number().default(5).describe('Parallel _msearch requests'),
-})
+const inputSchema: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    index: { type: 'string', description: 'Default index for searches' },
+    query_file: { type: 'string', description: 'Path to JSON file with search array' },
+    batch_size: { type: 'integer', description: 'Searches per _msearch request', default: 5 },
+    concurrency: { type: 'integer', description: 'Parallel _msearch requests', default: 5 },
+  },
+}
+
+interface MsearchInput {
+  index?: string
+  query_file?: string
+  batch_size: number
+  concurrency: number
+}
 
 /** Builds the NDJSON body for _msearch: alternating header/body lines. */
 function buildMsearchNdjsonBody (items: SearchItem[], defaultIndex?: string | undefined): string {
@@ -48,7 +57,6 @@ function buildMsearchNdjsonBody (items: SearchItem[], defaultIndex?: string | un
   return lines.join('\n') + '\n'
 }
 
-/** Parses raw input into an array of search items. */
 function parseSearchItems (raw: string): SearchItem[] {
   const parsed = JSON.parse(raw)
   if (!Array.isArray(parsed)) {
@@ -70,8 +78,8 @@ function parseSearchItems (raw: string): SearchItem[] {
 }
 
 function createMsearchHandler (deps: MsearchDeps = defaultDeps) {
-  return async (parsed: { input?: z.infer<typeof inputSchema>; options: Record<string, string | number | boolean> }): Promise<JsonValue> => {
-    const { index, query_file, batch_size, concurrency } = parsed.input!
+  return async (parsed: import("../../factory.ts").ParsedResult): Promise<JsonValue> => {
+    const { index, query_file, batch_size, concurrency } = (parsed.input as MsearchInput)
 
     let transport: EsClient
     try {
@@ -80,7 +88,6 @@ function createMsearchHandler (deps: MsearchDeps = defaultDeps) {
       return missingConfigError(err)
     }
 
-    // Read and parse input
     let items: SearchItem[]
     try {
       let raw: string | undefined
@@ -90,53 +97,35 @@ function createMsearchHandler (deps: MsearchDeps = defaultDeps) {
         raw = readRawInput()
       }
       if (raw == null || raw.trim().length === 0) {
-        return {
-          error: {
-            code: 'input_error',
-            message: 'No input provided. Use --query-file or pipe data to stdin'
-          }
-        }
+        return { error: { code: 'input_error', message: 'No input provided. Use --query-file or pipe data to stdin' } }
       }
       items = parseSearchItems(raw)
     } catch (err) {
-      return {
-        error: {
-          code: 'input_error',
-          message: err instanceof Error ? err.message : String(err)
-        }
-      }
+      return { error: { code: 'input_error', message: err instanceof Error ? err.message : String(err) } }
     }
 
-    if (items.length === 0) {
-      return { responses: [] }
-    }
+    if (items.length === 0) return { responses: [] }
 
-    // Split into batches
     const batches: SearchItem[][] = []
     for (let i = 0; i < items.length; i += batch_size) {
       batches.push(items.slice(i, i + batch_size))
     }
 
-    // Build path
     const path = index != null
       ? `/${encodeURIComponent(index)}/_msearch`
       : '/_msearch'
 
     try {
       const allResponses: JsonValue[] = []
-
       await runWithConcurrency(batches, concurrency, async (batch) => {
         const ndjsonBody = buildMsearchNdjsonBody(batch, index)
         const result = await transport.request<MsearchResponse>(
           { method: 'POST', path, body: ndjsonBody },
           { headers: { 'content-type': 'application/x-ndjson' } }
         )
-        if (result.responses != null) {
-          allResponses.push(...result.responses)
-        }
+        if (result.responses != null) allResponses.push(...result.responses)
         return result
       })
-
       return { responses: allResponses }
     } catch (err) {
       return transportError(err)

@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { z } from 'zod'
-
 /**
  * Valid HTTP methods for Cloud control plane API requests.
  */
@@ -12,11 +10,6 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
 
 /**
  * Describes a path parameter that gets interpolated into the URL template.
- *
- * @example
- * ```ts
- * const param: CloudPathParam = { name: 'deployment_id', description: 'Deployment ID', required: true }
- * ```
  */
 export interface CloudPathParam {
   name: string
@@ -26,9 +19,6 @@ export interface CloudPathParam {
 
 /**
  * Describes a query string parameter for a Cloud API request.
- *
- * The `name` field (snake_case) is used in the query string;
- * the `cliFlag` (kebab-case) is what users type on the command line.
  */
 export interface CloudQueryParam {
   name: string
@@ -40,22 +30,18 @@ export interface CloudQueryParam {
 }
 
 /**
+ * Describes a body parameter for a Cloud API request.
+ */
+export interface CloudBodyParam {
+  name: string
+  cliFlag?: string
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array'
+  description: string
+  required?: boolean
+}
+
+/**
  * Declarative description of a single Cloud control plane API endpoint.
- *
- * Covers both Elastic Cloud Hosted (deployments) and Serverless (projects)
- * APIs. Definitions are grouped by namespace and collected by the barrel
- * module (`src/cloud/apis/index.ts`).
- *
- * @example
- * ```ts
- * const listDef: CloudApiDefinition = {
- *   name: 'list',
- *   namespace: 'deployments',
- *   description: 'List all deployments',
- *   method: 'GET',
- *   path: '/api/v1/deployments',
- * }
- * ```
  */
 export interface CloudApiDefinition {
   name: string
@@ -65,13 +51,14 @@ export interface CloudApiDefinition {
   path: string
   pathParams?: CloudPathParam[]
   queryParams?: CloudQueryParam[]
-  body?: z.ZodObject<z.ZodRawShape>
+  /** Body parameters. For a passthrough body (stdin/--input-file), use an empty bodyParams array. */
+  bodyParams?: CloudBodyParam[]
 }
 
 const VALID_NAME = /^[a-z0-9][a-z0-9-]*$/
 const VALID_NAMESPACE = /^[a-z][a-z-]*$/
 
-function extractPathTokens(path: string): string[] {
+function extractPathTokens (path: string): string[] {
   return [...path.matchAll(/\{([^}]+)\}/g)].map((m) => m[1] as string)
 }
 
@@ -80,7 +67,7 @@ function extractPathTokens(path: string): string[] {
  *
  * @throws {Error} if any validation rule is violated
  */
-export function validateCloudApiDefinition(def: CloudApiDefinition): void {
+export function validateCloudApiDefinition (def: CloudApiDefinition): void {
   if (!VALID_NAME.test(def.name)) {
     throw new Error(
       `invalid name ${JSON.stringify(def.name)}: ` +
@@ -133,11 +120,10 @@ export function validateCloudApiDefinition(def: CloudApiDefinition): void {
     schemaKeys.add(key)
   }
 
-  if (def.body != null) {
-    for (const fieldName of Object.keys(def.body.shape as Record<string, unknown>)) {
-      if (schemaKeys.has(fieldName)) collisions.push(fieldName)
-      schemaKeys.add(fieldName)
-    }
+  for (const b of def.bodyParams ?? []) {
+    const key = b.cliFlag ?? b.name
+    if (schemaKeys.has(key)) collisions.push(key)
+    schemaKeys.add(key)
   }
 
   if (collisions.length > 0) {
@@ -146,4 +132,55 @@ export function validateCloudApiDefinition(def: CloudApiDefinition): void {
       'Use cliFlag to rename the conflicting query param, or restructure the definition to avoid the conflict.'
     )
   }
+}
+
+/**
+ * Builds a JSON Schema object from a CloudApiDefinition's params.
+ * Used by register.ts to pass to defineCommand as the input schema.
+ */
+export function buildCloudJsonSchema (def: CloudApiDefinition): Record<string, unknown> {
+  const properties: Record<string, unknown> = {}
+  const required: string[] = []
+
+  for (const p of def.pathParams ?? []) {
+    const key = p.name
+    properties[key] = {
+      type: 'string',
+      description: p.description,
+      'x-found-in': 'path',
+    }
+    if (p.required) required.push(key)
+  }
+
+  for (const q of def.queryParams ?? []) {
+    const key = q.cliFlag ?? q.name
+    const jsonType = q.type === 'number' ? 'number' : q.type === 'boolean' ? 'boolean' : 'string'
+    const prop: Record<string, unknown> = {
+      type: jsonType,
+      description: q.description,
+      'x-found-in': 'query',
+    }
+    if (q.defaultValue !== undefined) prop['default'] = q.defaultValue
+    properties[key] = prop
+    if (q.required === true) required.push(key)
+  }
+
+  for (const b of def.bodyParams ?? []) {
+    const key = b.cliFlag ?? b.name
+    const jsonType = b.type === 'number' ? 'number' : b.type === 'boolean' ? 'boolean' :
+      b.type === 'array' ? 'array' : b.type === 'object' ? 'object' : 'string'
+    properties[key] = {
+      type: jsonType,
+      description: b.description,
+      'x-found-in': 'body',
+    }
+    if (b.required === true) required.push(key)
+  }
+
+  const schema: Record<string, unknown> = {
+    type: 'object',
+    properties,
+  }
+  if (required.length > 0) schema['required'] = required
+  return schema
 }

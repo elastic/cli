@@ -9,27 +9,19 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 /**
- * Guards against a recurrence of the broken-`npm install -g @elastic/cli`
- * failure where the binary crashed with `Cannot find package 'zod'` because
- * the global install left `node_modules/zod/` empty.
+ * Guards against broken `npm install -g @elastic/cli` failures where
+ * dependencies are missing because the global install left their node_modules/
+ * directories empty. The fix is to ship bundled dependencies inside the
+ * published tarball via `bundleDependencies`.
  *
- * Root cause: `@elastic/es-schemas` is shipped via `bundleDependencies`
- * and declares `zod` as a peer dependency. During a global install npm
- * cannot hoist `zod` to a parent `node_modules`, and the bundled-dep +
- * peer-dep interaction makes its dependency resolver create an empty
- * placeholder directory for `zod` without populating it. The simplest
- * deterministic fix is to ship `zod` inside the published tarball by
- * adding it to `bundleDependencies` as well.
- *
- * These invariants make sure nobody silently removes `zod` from the
- * bundle or lets the version drift out of sync with the peer dep
- * required by the bundled `@elastic/es-schemas` workspace package.
+ * Only private workspace packages (not published to npm) need bundling.
+ * Public npm packages like @elastic/schemas are resolved normally by the
+ * installer and must NOT appear here.
  */
 
 interface PackageJsonShape {
   dependencies?: Record<string, string>
   bundleDependencies?: string[]
-  peerDependencies?: Record<string, string>
 }
 
 function readJson (relPath: string): PackageJsonShape {
@@ -39,35 +31,18 @@ function readJson (relPath: string): PackageJsonShape {
 
 describe('package.json -- npm install invariants', () => {
   const root = readJson('package.json')
-  const esSchemas = readJson('packages/es-schemas/package.json')
 
-  it('declares zod as a regular dependency', () => {
+  it('bundles @elastic/config-resolver (private workspace package) into the published tarball', () => {
     assert.ok(
-      root.dependencies?.['zod'] != null,
-      'zod must be listed under "dependencies" so it is recorded as a production dep'
+      root.bundleDependencies?.includes('@elastic/config-resolver') ?? false,
+      '@elastic/config-resolver must appear in "bundleDependencies" (it is a private workspace package not on npm)'
     )
   })
 
-  it('bundles zod into the published tarball', () => {
+  it('does not bundle @elastic/schemas (public npm package)', () => {
     assert.ok(
-      Array.isArray(root.bundleDependencies),
-      '"bundleDependencies" must be an array'
+      !(root.bundleDependencies?.includes('@elastic/schemas') ?? false),
+      '@elastic/schemas must not appear in "bundleDependencies" (it is a public npm package)'
     )
-    assert.ok(
-      root.bundleDependencies?.includes('zod') ?? false,
-      'zod must appear in "bundleDependencies" so `npm install -g` does not leave node_modules/zod/ empty'
-    )
-  })
-
-  it('bundles every workspace package that declares zod as a peer dependency', () => {
-    // If a bundled workspace package needs zod, the top-level zod must be
-    // bundled too -- otherwise npm tries to resolve the peer dep at install
-    // time and trips the empty-placeholder bug.
-    if (esSchemas.peerDependencies?.['zod'] != null) {
-      assert.ok(
-        root.bundleDependencies?.includes('zod') ?? false,
-        '@elastic/es-schemas declares a peer dep on zod, so the top-level zod must be bundled'
-      )
-    }
   })
 })

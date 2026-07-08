@@ -3,42 +3,56 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { z } from 'zod'
-import type {
-  AuthSchema,
-  ServiceBlockSchema,
-  ContextSchema,
-  ConfigFileSchema,
-  CommandPolicySchema,
-} from './schema.ts'
+import type { BuiltInProfile } from './profiles.ts'
 export type { BuiltInProfile } from './profiles.ts'
 
 /**
- * TypeScript types exported from Zod schemas for the configuration system.
- *
- * These types are derived from their corresponding Zod schemas:
- * - Auth: Inferred union of authentication methods (api_key | basic)
- * - ServiceBlock: A service endpoint with auth (url + auth)
- * - Context: A collection of optional service blocks (elasticsearch, kibana, cloud)
- * - ConfigFile: The root config file structure (current_context + contexts map)
- * - ResolvedContext: The active context with only its configured service blocks
- * - ResolvedConfig: Typed config passed to command handlers, wrapping ResolvedContext
+ * TypeScript types for the configuration system.
  */
 
-/** Union of all supported authentication variants -- inferred from present fields. */
-export type Auth = z.infer<typeof AuthSchema>
+/** API key authentication credentials. */
+export interface ApiKeyAuth {
+  api_key: string
+}
+
+/** Basic (username + password) authentication credentials. */
+export interface BasicAuth {
+  username: string
+  password: string
+}
+
+/** Union of all supported authentication variants. */
+export type Auth = ApiKeyAuth | BasicAuth
 
 /** Endpoint URL and authentication credentials for a single service. */
-export type ServiceBlock = z.infer<typeof ServiceBlockSchema>
-
-/** A context value: optional service blocks with at least one present. */
-export type Context = z.infer<typeof ContextSchema>
-
-/** The root configuration file structure. */
-export type ConfigFile = z.infer<typeof ConfigFileSchema>
+export interface ServiceBlock {
+  url: string
+  auth?: Auth
+}
 
 /** Policy controlling which commands are permitted to run. */
-export type CommandPolicy = z.infer<typeof CommandPolicySchema>
+export interface CommandPolicy {
+  profile?: BuiltInProfile
+  allowed?: string[]
+  blocked?: string[]
+}
+
+/** A context value: optional service blocks with at least one present. */
+export interface Context {
+  elasticsearch?: ServiceBlock
+  kibana?: ServiceBlock
+  cloud?: ServiceBlock
+  commands?: CommandPolicy
+}
+
+/** The root configuration file structure. */
+export interface ConfigFile {
+  current_context: string
+  contexts: Record<string, Context>
+  commands?: CommandPolicy
+  default_profile?: BuiltInProfile
+  banner?: boolean
+}
 
 /** The active context after resolution — only its configured service blocks, no extras. */
 export interface ResolvedContext {

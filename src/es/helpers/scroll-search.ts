@@ -3,10 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { z } from 'zod'
 import type { EsClient } from '../../lib/es-client.ts'
 import { defineCommand } from '../../factory.ts'
-import type { OpaqueCommandHandle, JsonValue } from '../../factory.ts'
+import type { OpaqueCommandHandle, JsonValue, ParsedResult } from '../../factory.ts'
 import { getEsClient } from '../../lib/es-client.ts'
 import { missingConfigError, transportError } from '../errors.ts'
 import { readRawInput } from './shared.ts'
@@ -39,18 +38,32 @@ const defaultDeps: ScrollSearchDeps = {
   env: process.env,
 }
 
-const inputSchema = z.object({
-  index: z.string().describe('Target index'),
-  query: z.string().optional().describe('Query DSL clause as JSON (wrapped under "query"), e.g. \'{"match_all":{}}\''),
-  query_file: z.string().optional().describe('Path to a file containing the full search body JSON (may include query, sort, aggs, ...)'),
-  scroll: z.string().default('1m').describe('Scroll keep-alive duration'),
-  size: z.number().default(1000).describe('Documents per scroll batch'),
-  max_docs: z.number().optional().describe('Maximum total documents to fetch (default: unlimited)'),
-})
+const inputSchema: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    index: { type: 'string', description: 'Target index' },
+    query: { type: 'string', description: 'Query DSL clause as JSON (wrapped under "query"), e.g. \'{"match_all":{}}\'' },
+    query_file: { type: 'string', description: 'Path to a file containing the full search body JSON (may include query, sort, aggs, ...)' },
+    scroll: { type: 'string', description: 'Scroll keep-alive duration', default: '1m' },
+    size: { type: 'integer', description: 'Documents per scroll batch', default: 1000 },
+    max_docs: { type: 'integer', description: 'Maximum total documents to fetch (default: unlimited)' },
+  },
+  required: ['index'],
+}
+
+interface ScrollSearchInput {
+  index: string
+  query?: string
+  query_file?: string
+  scroll: string
+  size: number
+  max_docs?: number
+}
 
 function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
-  return async (parsed: { input?: z.infer<typeof inputSchema>; options: Record<string, string | number | boolean> }): Promise<JsonValue> => {
-    const { index, query, query_file, scroll, size, max_docs } = parsed.input!
+  return async (parsed: ParsedResult): Promise<JsonValue> => {
+    const inp = parsed.input as ScrollSearchInput
+    const { index, query, query_file, scroll, size, max_docs } = inp
     const maxDocs = max_docs ?? Infinity
 
     let transport: EsClient
@@ -60,14 +73,10 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
       return missingConfigError(err)
     }
 
-    // Build the search request body:
-    //   --query      → a Query DSL clause, wrapped as { query: <parsed> }
-    //   --query-file → a full search body (may contain query, sort, aggs, ...)
     let queryBody: Record<string, unknown> = {}
     try {
       if (query != null) {
-        const parsed = JSON.parse(query) as Record<string, unknown>
-        queryBody = { query: parsed }
+        queryBody = { query: JSON.parse(query) as Record<string, unknown> }
       } else if (query_file != null) {
         const raw = readRawInput(query_file)
         if (raw != null && raw.trim().length > 0) {
@@ -75,12 +84,7 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
         }
       }
     } catch (err) {
-      return {
-        error: {
-          code: 'input_error',
-          message: `Failed to parse query: ${err instanceof Error ? err.message : String(err)}`
-        }
-      }
+      return { error: { code: 'input_error', message: `Failed to parse query: ${err instanceof Error ? err.message : String(err)}` } }
     }
 
     const jsonMode = parsed.options['json'] === true
@@ -94,26 +98,23 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
     }
 
     try {
-      // Initial search with scroll
       const encodedIndex = encodeURIComponent(index)
-      const initialResult = await transport.request<SearchResponse>(
-        {
-          method: 'POST',
-          path: `/${encodedIndex}/_search`,
-          querystring: { scroll, size },
-          body: queryBody
-        }
-      )
+      const initialResult = await transport.request<SearchResponse>({
+        method: 'POST',
+        path: `/${encodedIndex}/_search`,
+        querystring: { scroll, size },
+        body: queryBody
+      })
 
-      scrollId = initialResult._scroll_id
+      let scrollId2 = initialResult._scroll_id
+      // Save initial scroll ID immediately for cleanup even if loop fails
+      if (scrollId2 != null) scrollId = scrollId2
       let hits = initialResult.hits?.hits ?? []
 
-      // Process pages
       while (hits.length > 0 && totalDocs < maxDocs) {
         for (const hit of hits) {
           if (totalDocs >= maxDocs) break
           if (jsonMode) {
-            // _source is user-defined JSON — always a valid JsonValue at runtime
             documents.push(hit._source as JsonValue)
           } else {
             deps.stdout.write(JSON.stringify(hit._source) + '\n')
@@ -121,41 +122,33 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
           totalDocs++
         }
 
-        if (totalDocs >= maxDocs || scrollId == null) break
+        if (totalDocs >= maxDocs || scrollId2 == null) break
 
-        // Fetch next page
         const scrollResult = await transport.request<SearchResponse>({
           method: 'POST',
           path: '/_search/scroll',
-          body: { scroll, scroll_id: scrollId }
+          body: { scroll, scroll_id: scrollId2 }
         })
 
-        scrollId = scrollResult._scroll_id
+        scrollId2 = scrollResult._scroll_id
+        scrollId = scrollId2
         hits = scrollResult.hits?.hits ?? []
       }
+      scrollId = scrollId2
     } catch (err) {
       return transportError(err)
     } finally {
-      // Always clean up the scroll context
       if (scrollId != null) {
         try {
-          await transport.request({
-            method: 'DELETE',
-            path: '/_search/scroll',
-            body: { scroll_id: scrollId }
-          })
-        } catch {
-          // Best-effort cleanup — scroll will expire naturally
-        }
+          await transport.request({ method: 'DELETE', path: '/_search/scroll', body: { scroll_id: scrollId } })
+        } catch { /* best-effort */ }
       }
     }
 
     const elapsed_ms = Date.now() - startTime
     deps.stderr.write(`Fetched ${totalDocs} documents in ${elapsed_ms}ms\n`)
 
-    if (jsonMode) {
-      return { documents, total_docs: totalDocs, elapsed_ms }
-    }
+    if (jsonMode) return { documents, total_docs: totalDocs, elapsed_ms }
     return { total_docs: totalDocs, elapsed_ms }
   }
 }

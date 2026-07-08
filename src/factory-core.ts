@@ -8,7 +8,7 @@
  * to build command groups and render `--help` output.
  *
  * This module is separated from factory.ts to avoid pulling in heavy transitive
- * dependencies (Zod, schema-args, output formatters, config store) when all the
+ * dependencies (schema-args, output formatters, config store) when all the
  * caller needs is to define group structure for lazy namespace loading.
  *
  * factory.ts re-exports everything from this module, so consumers that already
@@ -16,7 +16,6 @@
  */
 
 import { Command } from 'commander'
-import type { z } from 'zod'
 import type { ResolvedConfig, CommandPolicy } from './config/types.ts'
 import { resolveBuiltinProfile } from './config/profiles.ts'
 
@@ -63,15 +62,22 @@ export interface ParsedResult<T = unknown> {
   rawBodyValues?: Record<string, RawJsonValue>
 }
 
-/** Full configuration for a leaf command (requires Zod for the input schema type). */
-export interface CommandConfig<T extends z.ZodType = z.ZodType> {
+/**
+ * Full configuration for a leaf command.
+ *
+ * `input` is an optional JSON Schema object. When provided, the factory
+ * extracts CLI flags from `input.properties`, validates user input with AJV,
+ * and delivers the parsed value to the handler as `parsed.input`.
+ */
+export interface CommandConfig {
   name: string
   description: string
   options?: OptionDefinition[]
   positionalArg?: { name: string; description: string; required?: boolean }
-  handler: (parsed: ParsedResult<z.infer<T>>) => JsonValue | Promise<JsonValue>
-  input?: T
-  formatOutput?: (result: JsonValue, parsed: ParsedResult<z.infer<T>>) => string
+  handler: (parsed: ParsedResult) => JsonValue | Promise<JsonValue>
+  /** JSON Schema object for structured input (properties carry `x-found-in` routing). */
+  input?: Record<string, unknown>
+  formatOutput?: (result: JsonValue, parsed: ParsedResult) => string
   intent?: CommandIntent
   /**
    * Marks a command as read-only (GET/HEAD). When the input schema is also
@@ -137,11 +143,6 @@ export function isHidden (cmd: OpaqueCommandHandle): boolean {
 /**
  * Returns true if `cmd` is a stub group — a group with no children that was
  * registered as a lazy-loading placeholder.
- *
- * Stub groups should never be hidden by policy because their children have not
- * been loaded yet; we cannot determine whether any child would be allowed.
- * When the user navigates into the group its children are loaded and filtered
- * correctly at that level.
  */
 export function isStubGroup (cmd: OpaqueCommandHandle): boolean {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -155,14 +156,6 @@ export function isStubGroup (cmd: OpaqueCommandHandle): boolean {
 
 /**
  * Returns true if `commandDotPath` is permitted under the given policy.
- *
- * Matching rules:
- * - No policy (or empty policy) → always allowed
- * - `allowed` list → command must match at least one entry
- * - `blocked` list → command must NOT match any entry
- * - Entries ending with `.*` match any command whose dot-path starts with the prefix
- *   (e.g. `elasticsearch.*` matches `elasticsearch.search` but NOT `elasticsearch` itself)
- * - All other entries are exact matches
  */
 export function isCommandAllowed (commandDotPath: string, policy: CommandPolicy | undefined): boolean {
   if (policy == null) return true
@@ -193,9 +186,6 @@ export function isCommandAllowed (commandDotPath: string, policy: CommandPolicy 
 
 /**
  * Walk the command tree and hide any commands the policy blocks.
- * Groups where every child is hidden are hidden too.
- * Stub groups (unloaded lazy namespaces) are never hidden.
- * Call on the root program so dot-paths like `es.cat.health` are built correctly.
  */
 export function hideBlockedCommands (root: OpaqueCommandHandle, policy: CommandPolicy | undefined, prefix = ''): void {
   if (policy == null) return
@@ -216,18 +206,17 @@ export function hideBlockedCommands (root: OpaqueCommandHandle, policy: CommandP
 // ---------------------------------------------------------------------------
 
 /**
- * Recursively removes `found_in` keys from a JSON value tree.
+ * Recursively removes `found_in` and `x-found-in` routing keys from a JSON value.
  *
- * `found_in` is internal routing metadata used by the request builder to classify
- * parameters as path, query, or body. It is an HTTP transport implementation detail
- * and MUST NOT be exposed in user-facing help text or agent-facing JSON Schema output.
+ * These are internal routing metadata used by the request builder and MUST NOT be
+ * exposed in user-facing help text or agent-facing JSON Schema output.
  */
 export function stripTransportMeta (value: JsonValue): JsonValue {
   if (Array.isArray(value)) return value.map(stripTransportMeta)
   if (value !== null && typeof value === 'object') {
     const out: Record<string, JsonValue> = {}
     for (const [k, v] of Object.entries(value)) {
-      if (k === 'found_in') continue
+      if (k === 'found_in' || k === 'x-found-in') continue
       out[k] = stripTransportMeta(v)
     }
     return out
@@ -240,8 +229,7 @@ export function stripTransportMeta (value: JsonValue): JsonValue {
 // ---------------------------------------------------------------------------
 
 /**
- * Returns true when `--json` is set on the root program. Walks up the parent
- * chain so it works regardless of whether `cmd` is the root, a group, or a leaf.
+ * Returns true when `--json` is set on the root program.
  */
 export function hasGlobalJsonFlag (cmd: OpaqueCommandHandle): boolean {
   let current: OpaqueCommandHandle = cmd
@@ -249,7 +237,7 @@ export function hasGlobalJsonFlag (cmd: OpaqueCommandHandle): boolean {
   return (current.opts() as { json?: boolean }).json === true
 }
 
-/** Builds the full command path by walking the parent chain (e.g. `"elastic cluster health"`). */
+/** Builds the full command path by walking the parent chain. */
 export function commandPath (cmd: OpaqueCommandHandle): string {
   const parts: string[] = []
   let current: OpaqueCommandHandle | null = cmd
@@ -260,12 +248,6 @@ export function commandPath (cmd: OpaqueCommandHandle): string {
   return parts.join(' ')
 }
 
-/**
- * Serialises a command's help structure as JSON: name, description, usage,
- * visible options, and visible sub-commands. Used by {@link configureJsonHelp}
- * so `--help --json` returns machine-readable output for groups and the root
- * program (leaf commands with an input schema return the JSON Schema instead).
- */
 function formatHelpAsJson (cmd: OpaqueCommandHandle): string {
   const options = cmd.options
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -291,9 +273,7 @@ function formatHelpAsJson (cmd: OpaqueCommandHandle): string {
 }
 
 /**
- * Hooks into Commander's help formatter so `--help --json` emits structured
- * JSON describing the command tree (name, description, options, sub-commands)
- * instead of the text help. Apply to the root program and to command groups.
+ * Hooks into Commander's help formatter so `--help --json` emits structured JSON.
  */
 export function configureJsonHelp (cmd: OpaqueCommandHandle): void {
   const origHelp = cmd.createHelp()
@@ -306,15 +286,7 @@ export function configureJsonHelp (cmd: OpaqueCommandHandle): void {
 }
 
 /**
- * Configures a command's error output to match the factory error contract:
- *
- * ```
- * Error: <message>
- *
- * Usage: <command-path> <usage-suffix>
- *
- * Run "<command-path> --help" for more information.
- * ```
+ * Configures a command's error output to match the factory error contract.
  */
 export function configureErrorOutput (cmd: OpaqueCommandHandle): void {
   cmd.configureOutput({
@@ -332,18 +304,6 @@ export function configureErrorOutput (cmd: OpaqueCommandHandle): void {
 
 /**
  * Creates a new command group (namespace) that contains sub-commands.
- *
- * Groups are non-leaf nodes in the command tree. They display `--help` listing
- * their children and error on unknown sub-commands.
- *
- * @example
- * ```ts
- * const esGroup = defineGroup(
- *   { name: 'es', description: 'Elasticsearch APIs' },
- *   searchCmd,
- *   indexCmd,
- * )
- * ```
  */
 export function defineGroup (config: GroupConfig, ...commands: OpaqueCommandHandle[]): OpaqueCommandHandle {
   validateName(config.name, 'group')
@@ -353,7 +313,6 @@ export function defineGroup (config: GroupConfig, ...commands: OpaqueCommandHand
   configureErrorOutput(group)
   configureJsonHelp(group)
 
-  // Mark as a group so isStubGroup can identify lazy placeholders
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(group as unknown as any)._isGroup = true
 
@@ -361,7 +320,6 @@ export function defineGroup (config: GroupConfig, ...commands: OpaqueCommandHand
     group.addCommand(cmd)
   }
 
-  // Default action: error on unknown sub-command, show help otherwise
   group.action(function (this: OpaqueCommandHandle) {
     if (this.args.length > 0) {
       group.error(`unknown command: ${this.args[0]}`)

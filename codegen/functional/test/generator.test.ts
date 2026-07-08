@@ -5,7 +5,6 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { z } from 'zod'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseTestFile } from '../parser.ts'
@@ -21,9 +20,7 @@ const testDefs: EsApiDefinition[] = [
     description: 'Create an index',
     method: 'PUT',
     path: '/{index}',
-    input: z.object({
-      index: z.string().meta({ found_in: 'path' })
-    })
+    input: { type: 'object', properties: { index: { type: 'string', 'x-found-in': 'path' } }, required: ['index'] }
   },
   {
     name: 'delete',
@@ -31,46 +28,35 @@ const testDefs: EsApiDefinition[] = [
     description: 'Delete an index',
     method: 'DELETE',
     path: '/{index}',
-    input: z.object({
-      index: z.string().meta({ found_in: 'path' })
-    })
+    input: { type: 'object', properties: { index: { type: 'string', 'x-found-in': 'path' } }, required: ['index'] }
   },
   {
     name: 'get',
     description: 'Get a document',
     method: 'GET',
     path: '/{index}/_doc/{id}',
-    input: z.object({
-      id: z.string().meta({ found_in: 'path' }),
-      index: z.string().meta({ found_in: 'path' })
-    })
+    input: { type: 'object', properties: { id: { type: 'string', 'x-found-in': 'path' }, index: { type: 'string', 'x-found-in': 'path' } }, required: ['id', 'index'] }
   },
   {
     name: 'index',
     description: 'Index a document',
     method: 'POST',
     path: '/{index}/_doc',
-    input: z.object({
-      index: z.string().meta({ found_in: 'path' })
-    })
+    input: { type: 'object', properties: { index: { type: 'string', 'x-found-in': 'path' } }, required: ['index'] }
   },
   {
     name: 'count',
     description: 'Count documents',
     method: 'GET',
     path: '/{index}/_count',
-    input: z.object({
-      index: z.string().meta({ found_in: 'path' })
-    })
+    input: { type: 'object', properties: { index: { type: 'string', 'x-found-in': 'path' } }, required: ['index'] }
   },
   {
     name: 'bulk',
     description: 'Bulk operations',
     method: 'POST',
     path: '/_bulk',
-    input: z.object({
-      refresh: z.boolean().optional().meta({ found_in: 'query' })
-    })
+    input: { type: 'object', properties: { refresh: { type: 'boolean', 'x-found-in': 'query' } } }
   }
 ]
 
