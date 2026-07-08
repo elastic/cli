@@ -63,7 +63,7 @@
     "@elastic/es-schemas": "1.0.2",
     "cli-table3": "^0.6.5",
     "commander": "^15.0.0",
-    "csv-parse": "^6.2.1",
+    "csv-parse": "^7.0.0",
     "marked": "^14.1.4",
     "marked-terminal": "^7.3.0",
     "yaml": "^2.8.3",
@@ -72,13 +72,13 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/marked-terminal": "6.1.1",
-    "@types/node": "25.9.1",
-    "eslint": "10.4.1",
+    "@types/node": "25.9.4",
+    "eslint": "10.6.0",
     "license-checker": "25.0.1",
     "mega-linter-runner": "9.5.0",
-    "tsx": "4.22.4",
+    "tsx": "4.23.0",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.60.1"
+    "typescript-eslint": "8.62.1"
   },
   "bundleDependencies": [
     "@elastic/config-resolver",
