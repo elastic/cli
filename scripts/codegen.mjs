@@ -23,7 +23,7 @@
  *
  * Design rationale:
  *   The upstream generator's targets (`npm run zod`, `npm run cli-es`,
- *   `npm run cli-cloud`, `npm run cli-serverless`, `npx tsx cli/kibana/index.ts`)
+ *   `npm run cli-cloud`, `npm run cli-kibana`, `npm run cli-serverless`)
  *   share a single `output/` directory. `npm run zod` / `npm run cli-es` wipe
  *   it via `npm run clean`; the kibana entrypoint self-wipes `output/kibana/`;
  *   `npm run cli-cloud` and `npm run cli-serverless` each wipe only their own
@@ -33,11 +33,15 @@
  *   `src/es/apis/`, `src/es/apis/schemas/`, `src/cloud/apis/` (hosted +
  *   serverless namespace files share this directory), and `src/kb/apis/`.
  *
- *   `src/es/apis.ts` and `src/kb/apis.ts` are hand-written lazy loaders on
- *   `main` (see #266 and the ES equivalent) — they are NOT overwritten by
- *   the generator output. Instead, after each codegen run for those targets
- *   we invoke `scripts/build-api-manifest.mjs` / `scripts/build-kb-manifest.mts`
- *   to refresh the per-endpoint manifest the lazy loader consumes.
+ *   `src/es/apis.ts` and `src/kb/apis.ts` are hand-written lazy loaders —
+ *   they are NOT overwritten by the generator output. Instead, the generator
+ *   emits `output/es/manifest.ts` and `output/kibana/manifest.ts` directly,
+ *   which this script copies to `src/es/api-manifest.ts` and
+ *   `src/kb/api-manifest.ts` respectively.
+ *
+ *   Cloud also has a hand-written lazy loader at `src/cloud/apis.ts` (see #232).
+ *   The generator produces `output/cloud/apis.ts` and `output/serverless/apis.ts`
+ *   as barrels but those are intentionally NOT copied.
  */
 
 import { spawnSync } from 'node:child_process'
@@ -126,11 +130,12 @@ function generateEs (generatorDir) {
   console.log(`[codegen]   wrote APIs -> ${apisDest}`)
   // The generator also emits `output/es/index.ts` as a flat barrel re-exporting
   // every namespace, but `src/es/apis.ts` is a hand-written lazy loader on
-  // `main` (see #218). We deliberately skip copying the barrel; the manifest
-  // step below produces the metadata the lazy loader consumes.
+  // `main` (see #218). We deliberately skip copying the barrel.
 
-  console.log('[codegen] Step 3/3: Rebuild src/es/api-manifest.ts')
-  run('node', ['scripts/build-api-manifest.mjs'], { cwd: REPO_ROOT, shell: process.platform === 'win32' })
+  console.log('[codegen] Step 3/3: Copy src/es/api-manifest.ts from generator output')
+  const manifestSrc = join(output, 'es', 'manifest.ts')
+  if (!existsSync(manifestSrc)) throw new Error(`Missing manifest: ${manifestSrc}`)
+  cpSync(manifestSrc, join(REPO_ROOT, 'src', 'es', 'api-manifest.ts'))
   console.log(`[codegen]   wrote manifest -> ${join(REPO_ROOT, 'src', 'es', 'api-manifest.ts')}`)
 }
 
@@ -146,29 +151,19 @@ function generateCloud (generatorDir) {
   rmSync(output, { recursive: true, force: true })
   run('npm', ['run', 'cli-cloud'], { cwd: generatorDir, shell: process.platform === 'win32' })
   clearDir(apisDest, (entry) => entry.endsWith('.ts'))
-  copyTsFiles(join(output, 'cloud', 'apis'), apisDest)
-  const barrelSrc = join(output, 'cloud', 'apis.ts')
-  const barrelDest = join(REPO_ROOT, 'src', 'cloud', 'apis.ts')
-  if (!existsSync(barrelSrc)) throw new Error(`Missing barrel: ${barrelSrc}`)
-  cpSync(barrelSrc, barrelDest)
+  copyTsFiles(join(output, 'cloud'), apisDest)
   console.log(`[codegen]   wrote hosted APIs -> ${apisDest}`)
-  console.log(`[codegen]   wrote hosted barrel -> ${barrelDest}`)
 
   console.log('[codegen] Step 2/2: Serverless API namespace files')
   // `cli-serverless` writes to `output/serverless/` and does not touch
   // `output/cloud/`, so the hosted output above is preserved.
   run('npm', ['run', 'cli-serverless'], { cwd: generatorDir, shell: process.platform === 'win32' })
   // Serverless namespace tags do not collide with hosted tags, so the
-  // per-namespace files coexist in `src/cloud/apis/`. The serverless barrel
-  // lands at `src/cloud/serverless-apis.ts` (its `./apis/<ns>.ts` imports
-  // resolve against the same directory the hosted barrel uses).
+  // per-namespace files coexist in `src/cloud/`. The serverless barrel is
+  // copied to `src/cloud/serverless-apis.ts`.
   copyTsFiles(join(output, 'serverless', 'apis'), apisDest)
-  const serverlessBarrelSrc = join(output, 'serverless', 'apis.ts')
-  const serverlessBarrelDest = join(REPO_ROOT, 'src', 'cloud', 'serverless-apis.ts')
-  if (!existsSync(serverlessBarrelSrc)) throw new Error(`Missing barrel: ${serverlessBarrelSrc}`)
-  cpSync(serverlessBarrelSrc, serverlessBarrelDest)
+  cpSync(join(output, 'serverless', 'apis.ts'), join(REPO_ROOT, 'src', 'cloud', 'serverless-apis.ts'))
   console.log(`[codegen]   wrote serverless APIs -> ${apisDest}`)
-  console.log(`[codegen]   wrote serverless barrel -> ${serverlessBarrelDest}`)
 }
 
 function generateKibana (generatorDir) {
@@ -176,20 +171,19 @@ function generateKibana (generatorDir) {
 
   console.log('[codegen] Step 1/2: Kibana API namespace files')
   // The kibana entrypoint self-wipes `output/kibana/` before writing, so we
-  // don't need to clean anything ourselves. There is no `cli-kibana` npm
-  // script in the generator yet — invoke the ts source directly via tsx,
-  // matching the pattern the generator uses for `cli-cloud`.
-  run('npx', ['tsx', 'cli/kibana/index.ts'], { cwd: generatorDir, shell: process.platform === 'win32' })
+  // don't need to clean anything ourselves.
+  run('npm', ['run', 'cli-kibana'], { cwd: generatorDir, shell: process.platform === 'win32' })
   const apisDest = join(REPO_ROOT, 'src', 'kb', 'apis')
   clearDir(apisDest, (entry) => entry.endsWith('.ts'))
   copyTsFiles(join(output, 'kibana', 'apis'), apisDest)
   console.log(`[codegen]   wrote APIs -> ${apisDest}`)
   // `output/kibana/apis.ts` (a flat barrel) is intentionally NOT copied —
-  // `src/kb/apis.ts` is the hand-written lazy loader added by #266. The
-  // manifest step below produces the metadata the loader consumes.
+  // `src/kb/apis.ts` is the hand-written lazy loader added by #266.
 
-  console.log('[codegen] Step 2/2: Rebuild src/kb/api-manifest.ts')
-  run('npx', ['tsx', 'scripts/build-kb-manifest.mts'], { cwd: REPO_ROOT, shell: process.platform === 'win32' })
+  console.log('[codegen] Step 2/2: Copy src/kb/api-manifest.ts from generator output')
+  const kbManifestSrc = join(output, 'kibana', 'manifest.ts')
+  if (!existsSync(kbManifestSrc)) throw new Error(`Missing manifest: ${kbManifestSrc}`)
+  cpSync(kbManifestSrc, join(REPO_ROOT, 'src', 'kb', 'api-manifest.ts'))
   console.log(`[codegen]   wrote manifest -> ${join(REPO_ROOT, 'src', 'kb', 'api-manifest.ts')}`)
 }
 
