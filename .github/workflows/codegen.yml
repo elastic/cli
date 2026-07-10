@@ -107,10 +107,10 @@ jobs:
 
             - `src/es/apis/**` — produced by `npm run cli-es`
             - `src/es/apis/schemas/**` — produced by `npm run zod`
-            - `src/es/api-manifest.ts` — produced by `scripts/build-api-manifest.mjs`
+            - `src/es/api-manifest.ts` — copied from `output/es/manifest.ts` (generator)
             - `src/cloud/apis/**` and `src/cloud/apis.ts` — produced by `npm run cli-cloud`
             - `src/kb/apis/**` — produced by `npx tsx cli/kibana/index.ts`
-            - `src/kb/api-manifest.ts` — produced by `scripts/build-kb-manifest.mts`
+            - `src/kb/api-manifest.ts` — copied from `output/kibana/manifest.ts` (generator)
 
             Run locally with `npm run codegen:es` / `npm run codegen:cloud` /
             `npm run codegen:kibana`.
