@@ -172,6 +172,30 @@ describe('resolveExpressions', () => {
       }
     )
   })
+
+  it('resolves object values concurrently, not sequentially', async () => {
+    registerResolver('slow', async () => {
+      await new Promise(resolve => setTimeout(resolve, 50))
+      return 'done'
+    })
+
+    // Calibrate: measure average single-resolver run over 10 iterations
+    let totalSingle = 0
+    for (let i = 0; i < 10; i++) {
+      const s = performance.now()
+      await resolveExpressions({ x: '$(slow:1)' })
+      totalSingle += performance.now() - s
+    }
+    const avgSingle = totalSingle / 10
+
+    // Now resolve 3 concurrently -- should take ~1x avgSingle, not 3x
+    const start = performance.now()
+    const result = await resolveExpressions({ a: '$(slow:1)', b: '$(slow:2)', c: '$(slow:3)' })
+    const elapsed = performance.now() - start
+    assert.deepEqual(result, { a: 'done', b: 'done', c: 'done' })
+    const limit = avgSingle * 1.5
+    assert.ok(elapsed < limit, `expected parallel <${limit.toFixed(0)}ms (1.5x avg single), took ${elapsed.toFixed(0)}ms`)
+  })
 })
 
 // ---------------------------------------------------------------------------

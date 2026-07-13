@@ -30,16 +30,16 @@ const MIN_RUNS = Number(process.env.PERF_RUNS ?? 15)
 // Measured with: hyperfine -w 10 -m 100 <command>
 // Hardware: Lenovo ThinkPad X1 Carbon, i7-1365U, 16 GB RAM, Arch Linux
 const BASELINES_MS = {
-  "elastic":              99.0,
-  "elastic --help":       99.4,
-  "elastic es --help":    93.3,
-  "elastic es":           54.0,
-  "elastic cloud --help": 59.4,
+  "elastic":              51.1,
+  "elastic --help":       48.5,
+  "elastic es --help":    59.0,
+  "elastic es":           58.2,
+  "elastic cloud --help": 62.3,
   "elastic cloud":        42.4,
   "elastic kb --help":    83.7,
   "elastic kb":           76.9,
-  "elastic es indices --help": 384.1,
-  "elastic es indices update-aliases --help": 525.8,
+  "elastic es indices --help": 102.4,
+  "elastic es indices update-aliases --help": 273.0,
 }
 
 
