@@ -9,6 +9,7 @@ import { createScrollSearchCommand } from './scroll-search.ts'
 import { createBulkIngestCommand } from './bulk-ingest.ts'
 import { createMsearchCommand } from './msearch.ts'
 import { createWatchCommand } from './watch.ts'
+import { createDumpCommand } from './dump.ts'
 
 /**
  * Registers all high-level helper commands under a `helpers` group.
@@ -23,6 +24,7 @@ export function registerHelperCommands (): OpaqueCommandHandle {
     createScrollSearchCommand(),
     createBulkIngestCommand(),
     createMsearchCommand(),
-    createWatchCommand()
+    createWatchCommand(),
+    createDumpCommand()
   )
 }

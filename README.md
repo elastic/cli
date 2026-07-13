@@ -369,6 +369,23 @@ elastic es update --index my-index --id abc123
 
 Run `elastic es <command> --help` for all available options on any command.
 
+##### Helpers: dump and restore
+
+`elastic es helpers dump` exports indices as bulk-format NDJSON using a
+Point-in-Time + `search_after`, and `elastic es helpers bulk-ingest
+--source-format bulk-ndjson` re-ingests that output verbatim. Typical use
+case: capture a remote index for local debugging.
+
+```bash
+elastic --use-context remote es helpers dump --indices my-prod-idx \
+  --skip-index-name --output dump.ndjson
+elastic --use-context local es helpers bulk-ingest \
+  --source-format bulk-ndjson --index local-copy --data-file dump.ndjson
+```
+
+See [the dump-and-restore guide](docs/dump-and-restore.md) for flags,
+consistency semantics, and a deeper walkthrough.
+
 #### `kb` - Kibana API
 
 Run Kibana API calls. Commands are organised by namespace (e.g. `data-views`,

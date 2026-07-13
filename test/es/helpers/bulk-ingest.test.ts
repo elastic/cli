@@ -421,4 +421,236 @@ describe('bulk-ingest command', () => {
       assert.strictEqual(doc.score, 3.14)
     })
   })
+
+  describe('pre-formatted bulk-ndjson ingestion', () => {
+    it('streams action+doc pairs verbatim to /_bulk without --index', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-ndjson-'))
+      const filePath = join(tmpDir, 'data.ndjson')
+      writeFileSync(filePath,
+        '{"index":{"_index":"src-idx"}}\n{"v":1}\n{"index":{"_index":"src-idx"}}\n{"v":2}\n')
+
+      const { transport, requests } = mockTransport([successResponse(2)])
+
+      await runCommand([
+        '--data-file', filePath,
+        '--source-format', 'bulk-ndjson',
+        '--json'
+      ], makeDeps(transport))
+
+      assert.equal(requests.length, 1)
+      assert.equal(requests[0]!.params.path, '/_bulk')
+      const body = requests[0]!.params.body as string
+      const lines = body.split('\n').filter((l) => l.length > 0)
+      assert.equal(lines.length, 4)
+      assert.deepStrictEqual(JSON.parse(lines[0]!), { index: { _index: 'src-idx' } })
+      assert.deepStrictEqual(JSON.parse(lines[1]!), { v: 1 })
+      assert.deepStrictEqual(JSON.parse(lines[3]!), { v: 2 })
+    })
+
+    it('routes through /{index}/_bulk when --index is provided', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-ndjson-'))
+      const filePath = join(tmpDir, 'data.ndjson')
+      writeFileSync(filePath, '{"index":{}}\n{"v":1}\n')
+
+      const { transport, requests } = mockTransport([successResponse(1)])
+
+      await runCommand([
+        '--index', 'target',
+        '--data-file', filePath,
+        '--source-format', 'bulk-ndjson',
+        '--json'
+      ], makeDeps(transport))
+
+      assert.equal(requests[0]!.params.path, '/target/_bulk')
+    })
+
+    it('splits pre-formatted pairs into batches by byte size', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-ndjson-'))
+      const filePath = join(tmpDir, 'data.ndjson')
+      const lines: string[] = []
+      for (let i = 0; i < 100; i++) {
+        lines.push('{"index":{"_index":"src"}}')
+        lines.push(JSON.stringify({ id: i, data: 'x'.repeat(100) }))
+      }
+      writeFileSync(filePath, lines.join('\n') + '\n')
+
+      const { transport, requests } = mockTransport(
+        Array.from({ length: 100 }, () => successResponse(1))
+      )
+
+      await runCommand([
+        '--data-file', filePath,
+        '--source-format', 'bulk-ndjson',
+        '--flush-bytes', '500',
+        '--json'
+      ], makeDeps(transport))
+
+      assert.ok(requests.length > 1, `expected multiple batches, got ${requests.length}`)
+    })
+
+    it('errors on an odd number of non-empty lines', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-ndjson-'))
+      const filePath = join(tmpDir, 'data.ndjson')
+      writeFileSync(filePath, '{"index":{}}\n{"v":1}\n{"index":{}}\n')
+
+      const { transport } = mockTransport([])
+
+      const result = await runCommand([
+        '--data-file', filePath,
+        '--source-format', 'bulk-ndjson',
+        '--json'
+      ], makeDeps(transport)) as Record<string, unknown>
+
+      const err = result.error as Record<string, unknown>
+      assert.equal(err.code, 'input_error')
+      assert.match(err.message as string, /even number/i)
+    })
+
+    it('errors when action line is not {"index|create": ...}', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-ndjson-'))
+      const filePath = join(tmpDir, 'data.ndjson')
+      writeFileSync(filePath, '{"foo":{}}\n{"v":1}\n')
+
+      const { transport } = mockTransport([])
+
+      const result = await runCommand([
+        '--data-file', filePath,
+        '--source-format', 'bulk-ndjson',
+        '--json'
+      ], makeDeps(transport)) as Record<string, unknown>
+
+      const err = result.error as Record<string, unknown>
+      assert.equal(err.code, 'input_error')
+    })
+
+    it('passes --pipeline and --routing as URL query params on _bulk', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-ndjson-'))
+      const filePath = join(tmpDir, 'data.ndjson')
+      writeFileSync(filePath, '{"index":{}}\n{"v":1}\n')
+
+      const { transport, requests } = mockTransport([successResponse(1)])
+
+      await runCommand([
+        '--index', 'target',
+        '--data-file', filePath,
+        '--source-format', 'bulk-ndjson',
+        '--pipeline', 'my-pipe',
+        '--routing', 'shard-1',
+        '--json'
+      ], makeDeps(transport))
+
+      const qs = requests[0]!.params.querystring as Record<string, string>
+      assert.equal(qs.pipeline, 'my-pipe')
+      assert.equal(qs.routing, 'shard-1')
+    })
+
+    it('rejects update and delete actions (only index/create are paired with a doc line)', async () => {
+      for (const bad of ['{"update":{"_id":"a"}}\n{"doc":{"v":1}}\n', '{"delete":{"_id":"a"}}\n{"v":1}\n']) {
+        const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-ndjson-'))
+        const filePath = join(tmpDir, 'data.ndjson')
+        writeFileSync(filePath, bad)
+
+        const { transport } = mockTransport([])
+
+        const result = await runCommand([
+          '--data-file', filePath,
+          '--source-format', 'bulk-ndjson',
+          '--json'
+        ], makeDeps(transport)) as Record<string, unknown>
+
+        const err = result.error as Record<string, unknown>
+        assert.equal(err.code, 'input_error', `expected error for ${bad}`)
+        assert.match(err.message as string, /index"\|"create/i)
+      }
+    })
+
+    it('reads bulk-ndjson from --data-dir with multiple files', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-ndjson-dir-'))
+      writeFileSync(join(tmpDir, 'a.ndjson'), '{"index":{}}\n{"v":1}\n')
+      writeFileSync(join(tmpDir, 'b.ndjson'), '{"index":{}}\n{"v":2}\n')
+
+      const { transport, requests } = mockTransport([successResponse(2)])
+
+      await runCommand([
+        '--index', 'target',
+        '--data-dir', tmpDir,
+        '--source-format', 'bulk-ndjson',
+        '--json'
+      ], makeDeps(transport))
+
+      assert.equal(requests.length, 1)
+      const body = requests[0]!.params.body as string
+      assert.match(body, /"v":1/)
+      assert.match(body, /"v":2/)
+    })
+
+    it('errors when --data-file and --data-dir are both provided', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-ndjson-'))
+      writeFileSync(join(tmpDir, 'a.ndjson'), '{"index":{}}\n{"v":1}\n')
+
+      const { transport } = mockTransport([])
+
+      const result = await runCommand([
+        '--index', 'target',
+        '--data-file', join(tmpDir, 'a.ndjson'),
+        '--data-dir', tmpDir,
+        '--source-format', 'bulk-ndjson',
+        '--json'
+      ], makeDeps(transport)) as Record<string, unknown>
+
+      const err = result.error as Record<string, unknown>
+      assert.equal(err.code, 'input_error')
+      assert.match(err.message as string, /only one input source/i)
+    })
+
+    it('errors when --data-dir matches no files', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-ndjson-empty-'))
+
+      const { transport } = mockTransport([])
+
+      const result = await runCommand([
+        '--data-dir', tmpDir,
+        '--source-format', 'bulk-ndjson',
+        '--json'
+      ], makeDeps(transport)) as Record<string, unknown>
+
+      const err = result.error as Record<string, unknown>
+      assert.equal(err.code, 'input_error')
+      assert.match(err.message as string, /No files matched/)
+    })
+
+    it('returns empty summary when --data-file has no content', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-ndjson-empty-'))
+      const filePath = join(tmpDir, 'empty.ndjson')
+      writeFileSync(filePath, '')
+
+      const { transport } = mockTransport([])
+
+      const result = await runCommand([
+        '--data-file', filePath,
+        '--source-format', 'bulk-ndjson',
+        '--json'
+      ], makeDeps(transport)) as Record<string, unknown>
+
+      const err = result.error as Record<string, unknown>
+      assert.equal(err.code, 'input_error')
+    })
+
+    it('still requires --index for non-bulk-ndjson source formats', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-ndjson-'))
+      const filePath = join(tmpDir, 'data.json')
+      writeFileSync(filePath, '[{"v":1}]')
+
+      const { transport } = mockTransport([successResponse(1)])
+
+      const result = await runCommand([
+        '--data-file', filePath,
+        '--json'
+      ], makeDeps(transport)) as Record<string, unknown>
+
+      const err = result.error as Record<string, unknown>
+      assert.equal(err.code, 'input_error')
+      assert.match(err.message as string, /--index is required/)
+    })
+  })
 })

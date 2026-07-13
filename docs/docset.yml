@@ -6,6 +6,7 @@ toc:
     children:
       - file: cli/installation.md
       - file: cli/configuration.md
+      - file: dump-and-restore.md
   - cli: cli/schema.json
     folder: cli
     title: Elastic CLI command reference
