@@ -59,9 +59,9 @@
     "test": "test"
   },
   "dependencies": {
-    "@cli-schema/commander": "^0.1.1",
-    "@cli-schema/spec": "^0.1.1",
-    "@cli-schema/zod": "^0.1.1",
+    "@cli-schema/commander": "^0.2.0",
+    "@cli-schema/spec": "^0.2.0",
+    "@cli-schema/zod": "^0.2.0",
     "@elastic/config-resolver": "*",
     "@elastic/es-schemas": "1.0.2",
     "cli-table3": "^0.6.5",

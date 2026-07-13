@@ -9,7 +9,6 @@ import {
   toKebabCase,
   buildFlagKeyMap,
   validateSchemaArgs as baseValidateSchemaArgs,
-  walkWrapperChain,
   readMetaField,
   type SchemaArgDefinition as BaseSchemaArgDefinition,
   type FlagKeyMap,
@@ -60,10 +59,7 @@ export function extractFoundIn (field: z.ZodType): FoundIn | undefined {
  * destination-specific transformations.
  */
 function schemaContainsId (field: z.ZodType, id: string): boolean {
-  return walkWrapperChain(field, (n) => {
-    const meta = n.meta() as Record<string, unknown> | null | undefined
-    return meta?.id === id
-  })
+  return readMetaField<string>(field, 'id') === id
 }
 
 /** Enriches a base schema arg with Elastic's routing (`foundIn`) and parse-style metadata. */

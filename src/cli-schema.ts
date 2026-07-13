@@ -81,9 +81,6 @@ export async function registerCliSchemaCommand (
     handler: async () => {
       const schemaRoot = new Command(rootProgram?.name() ?? 'elastic')
       schemaRoot.description(rootProgram?.description() ?? '')
-      // Copy the real program's options so buildCliSchema derives globalOptions from them
-      // dynamically, same as it does for every other command in the tree.
-      for (const opt of rootProgram?.options ?? []) schemaRoot.addOption(opt)
 
       schemaRoot.addCommand(defineCommand({
         name: 'version',
@@ -108,6 +105,9 @@ export async function registerCliSchemaCommand (
         reservedMetaCommands: ['cli-schema'],
         noContextNames,
         classifyRole,
+        // schemaRoot is a synthetic tree-discovery root with no options of its own — the real
+        // global flags (--json, etc.) live on the actual running program.
+        ...(rootProgram != null && { globalOptionsSource: rootProgram.options }),
         enrichSchemaArg: enrichEsArg,
         postProcessInputParameter: (param, arg) => postProcessInputParameter(param, arg as SchemaArgDefinition),
       }) as unknown as JsonValue

@@ -9,7 +9,7 @@ Third-party software notices and licenses
 ========================================================================
 
 ------------------------------------------------------------------------
-@cli-schema/commander@0.1.1
+@cli-schema/commander@0.2.0
 License: MIT
 Repository: https://github.com/cli-schema/cli-schema-js
 ------------------------------------------------------------------------
@@ -264,6 +264,29 @@ buildCliSchema(program, {
 })
 ```
 
+### When the tree you're walking isn't the program with your real global options
+
+If your CLI lazy-loads its command tree for startup performance — only building the invoked
+subtree, leaving everything else as empty stub commands — you can't hand `buildCliSchema` the
+real `program` directly; it would see mostly stubs. The usual fix is to assemble a synthetic root
+purely for schema generation, eager-loading every command onto it. That synthetic root has no
+options of its own, even though your real program's global flags (`--json`, etc.) should still
+show up in `globalOptions`. Point `globalOptionsSource` at wherever those really live instead of
+copying them onto the synthetic root by hand:
+
+```ts
+const schemaRoot = new Command('mytool')
+// ... eager-load every namespace onto schemaRoot ...
+
+buildCliSchema(schemaRoot, {
+  name: 'mytool',
+  version: '1.0.0',
+  globalOptionsSource: program.options, // the real, lazily-populated program
+})
+```
+
+Defaults to `root.options` — most callers (a CLI that isn't lazy-loading) never need this.
+
 ## Related packages
 
 - [`@cli-schema/spec`](https://www.npmjs.com/package/@cli-schema/spec) — the `CliSchema`/`Intent`/`Parameter` types this package produces, plus a validator to check the result
@@ -275,7 +298,7 @@ MIT
 
 
 ------------------------------------------------------------------------
-@cli-schema/spec@0.1.1
+@cli-schema/spec@0.2.0
 License: MIT
 Repository: https://github.com/cli-schema/cli-schema-js
 ------------------------------------------------------------------------
@@ -432,7 +455,7 @@ MIT
 
 
 ------------------------------------------------------------------------
-@cli-schema/zod@0.1.1
+@cli-schema/zod@0.2.0
 License: MIT
 Repository: https://github.com/cli-schema/cli-schema-js
 ------------------------------------------------------------------------
