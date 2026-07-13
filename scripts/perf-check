@@ -38,6 +38,8 @@ const BASELINES_MS = {
   "elastic cloud":        42.4,
   "elastic kb --help":    83.7,
   "elastic kb":           76.9,
+  "elastic es indices --help": 384.1,
+  "elastic es indices update-aliases --help": 525.8,
 }
 
 
