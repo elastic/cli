@@ -46,83 +46,52 @@ const BASELINES_MS = {
 
 const THRESHOLD = 1.75 // fail if mean performance is 75% slower than baseline
 
-// build the list of full commands to benchmark, one entry per baseline key
-const commands = Object.keys(BASELINES_MS).map((label) => {
-  const args = label.slice("elastic".length).trim()
-  return args.length > 0 ? `node ${CLI} ${args}` : `node ${CLI}`
-})
-
 const tmpDir = mkdtempSync(join(tmpdir(), "elastic-cli-bench-"))
-const jsonOut = join(tmpDir, "results.json")
-
-// Use a minimal static config so benchmarks measure CLI startup, not secret-store latency.
-const staticConfig = join(tmpDir, ".elasticrc.yml")
-writeFileSync(staticConfig, [
-  'current_context: bench',
-  'contexts:',
-  '  bench:',
-  '    elasticsearch:',
-  '      url: http://localhost:9200',
-  '      auth:',
-  '        api_key: static-key',
-  '',
-].join('\n'))
-
 try {
-  execFileSync(
-    "hyperfine",
-    [
-      "--warmup", String(WARMUP),
-      "--min-runs", String(MIN_RUNS),
-      "--export-json", jsonOut,
-      "--shell=none",
-      ...commands,
-    ],
-    { stdio: "inherit", env: { ...process.env, ELASTIC_CLI_CONFIG_FILE: staticConfig } },
-  )
-
-  const raw = JSON.parse(readFileSync(jsonOut, "utf8"))
-
-  // hyperfine stores mean in seconds; convert to ms
-  // normalise the command string back to a BASELINES_MS key by stripping the
-  // absolute path prefix and collapsing any extra whitespace
-  const results = raw.results.map((r) => ({
-    command: r.command
-      .replace(/^node\s+.*?dist[/\\]cli\.js/, "elastic")
-      .replace(/\s+/g, " ")
-      .trim(),
-    meanMs: r.mean * 1000,
-  }))
+  // Use a minimal static config so benchmarks measure CLI startup, not secret-store latency.
+  const staticConfig = join(tmpDir, ".elasticrc.yml")
+  writeFileSync(staticConfig, [
+    'current_context: bench',
+    'contexts:',
+    '  bench:',
+    '    elasticsearch:',
+    '      url: http://localhost:9200',
+    '      auth:',
+    '        api_key: static-key',
+    '',
+  ].join('\n'))
 
   let failed = false
 
-  for (const { command, meanMs } of results) {
-    const baseline = BASELINES_MS[command]
-    if (baseline == null) {
-      console.warn(`⚠  No baseline for "${command}" — skipping`)
-      continue
-    }
+  for (const [label, baseline] of Object.entries(BASELINES_MS)) {
+    const args = label.slice("elastic".length).trim()
+    const cmd = args.length > 0 ? `node ${CLI} ${args}` : `node ${CLI}`
+    const jsonOut = join(tmpDir, `result-${encodeURIComponent(label)}.json`)
+
+    execFileSync(
+      "hyperfine",
+      ["--warmup", String(WARMUP), "--min-runs", String(MIN_RUNS), "--export-json", jsonOut, "--shell=none", cmd],
+      { stdio: "inherit", env: { ...process.env, ELASTIC_CLI_CONFIG_FILE: staticConfig } },
+    )
+
+    const meanMs = JSON.parse(readFileSync(jsonOut, "utf8")).results[0].mean * 1000
     const limit = baseline * THRESHOLD
     const pct = ((meanMs / baseline - 1) * 100).toFixed(1)
     const sign = meanMs > baseline ? "+" : ""
     const ok = meanMs <= limit
-    const icon = ok ? "✓" : "✗"
     console.log(
-      `${icon}  ${command.padEnd(24)}  mean ${meanMs.toFixed(1)} ms  ` +
+      `${ok ? "✓" : "✗"}  ${label.padEnd(24)}  mean ${meanMs.toFixed(1)} ms  ` +
       `(baseline ${baseline} ms, ${sign}${pct}%, limit ${limit.toFixed(1)} ms)`,
     )
     if (!ok) failed = true
   }
 
   if (failed) {
-    console.error(
-      "\nPerformance regression detected. " +
-      "One or more commands exceeded their baseline by more than 20%.",
-    )
+    console.error("\nPerformance regression detected. One or more commands exceeded their baseline by more than 75%.")
     process.exit(1)
   }
 
-  console.log("\nAll commands within the 20% regression threshold.")
+  console.log("\nAll commands within the 75% regression threshold.")
 } finally {
   rmSync(tmpDir, { recursive: true, force: true })
 }
