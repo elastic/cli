@@ -25,10 +25,7 @@ export const BUILT_IN_PROFILES = ['serverless', 'stack', 'default'] as const
 /** Union of valid built-in profile name strings. */
 export type BuiltInProfile = typeof BUILT_IN_PROFILES[number]
 
-/**
- * ES namespaces unavailable on Elasticsearch Serverless.
- * ponytail: namespace-level only; per-endpoint granularity tracked in #283
- */
+/** ES namespaces unavailable on Elasticsearch Serverless. */
 const STACK_ONLY_ES_NAMESPACES = [
   'ccr',
   'dangling-indices',
