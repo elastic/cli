@@ -16,7 +16,10 @@ Avoid adding new third-party dependencies to reduce supply-chain attack surface.
 
 ## Architecture
 
+
 Commands are defined via shared config structures (see `factory.ts`). Custom logic is only permitted for behaviors that cannot be expressed in config.
+
+**Read [`ARCHITECTURE.md`](./ARCHITECTURE.md) before proposing structural changes.** It documents performance-critical design decisions (factory core split, per-endpoint API files, lazy loading, manifest format) that must not be refactored unless benchmarks prove the change is neutral.
 
 ## Command Authoring Requirements
 
