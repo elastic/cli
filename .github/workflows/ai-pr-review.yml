@@ -1,0 +1,67 @@
+name: AI PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false
+    name: AI review
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Get diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr diff "$PR_NUMBER" | head -c 32000 > /tmp/diff.txt
+
+      - name: Review
+        env:
+          LITELLM_API_KEY: ${{ secrets.LITELLM_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+
+          DIFF=$(cat /tmp/diff.txt)
+
+          jq -n --arg title "$PR_TITLE" --arg diff "$DIFF" '{
+            model: "llm-gateway/claude-sonnet-4-6",
+            max_tokens: 1024,
+            messages: [{
+              role: "user",
+              content: ("Review this PR for the elastic/cli TypeScript CLI project.\n\nPR: " + $title + "\n\nDiff:\n" + $diff + "\n\nGive a short, direct review. Focus only on real bugs, missing error handling, logic errors, or security issues. Skip style nits. If nothing is wrong, say so in one line. No summaries of what the code does.")
+            }]
+          }' > /tmp/payload.json
+
+          RESPONSE=$(curl -sf \
+            -H "Authorization: Bearer ${LITELLM_API_KEY}" \
+            -H "Content-Type: application/json" \
+            "https://elastic.litellm-prod.ai/v1/chat/completions" \
+            -d @/tmp/payload.json)
+
+          CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty')
+
+          if [ -z "$CONTENT" ]; then
+            echo "Empty response from model, skipping comment"
+            exit 0
+          fi
+
+          # Delete previous bot review comments on this PR, then post fresh one
+          gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            --jq '.[] | select(.user.login == "github-actions[bot]") | .id' \
+            | xargs -I{} gh api --method DELETE \
+              "repos/${{ github.repository }}/issues/comments/{}" 2>/dev/null || true
+
+          gh pr comment "$PR_NUMBER" --body "$CONTENT"
