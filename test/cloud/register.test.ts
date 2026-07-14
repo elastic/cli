@@ -5,6 +5,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
+import { z } from 'zod'
 import { registerCloudCommands, simplifyProjectCommandName } from '../../src/cloud/register.ts'
 import type { CloudApiDefinition } from '../../src/cloud/types.ts'
 
@@ -217,6 +218,21 @@ describe('registerCloudCommands', () => {
       const regions = group.commands.find((c) => c.name() === 'serverless')!
         .commands.find((c) => c.name() === 'regions')!
       assert.deepEqual(regions.commands.map((c) => c.name()), ['list-regions', 'get-region'])
+    })
+
+    it('exposes --name and --region-id flags on create project commands', () => {
+      const defs: CloudApiDefinition[] = [
+        { name: 'create-elasticsearch-project', namespace: 'elasticsearch-projects', description: 'Create', method: 'POST', path: '/api/v1/serverless/projects/elasticsearch',
+          body: z.object({ name: z.string(), region_id: z.string() }) },
+      ]
+      const group = registerCloudCommands(defs)
+      const createCmd = group.commands.find((c) => c.name() === 'serverless')!
+        .commands.find((c) => c.name() === 'projects')!
+        .commands.find((c) => c.name() === 'search')!
+        .commands.find((c) => c.name() === 'create')!
+      const flags = createCmd.options.map((o) => o.long)
+      assert.ok(flags.includes('--name'), '--name flag should be registered')
+      assert.ok(flags.includes('--region-id'), '--region-id flag should be registered')
     })
 
     it('adds --wait flag to create project commands only', () => {

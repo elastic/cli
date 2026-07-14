@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { z } from 'zod'
 import type { CloudApiDefinition } from '../types.ts'
 
 export const observabilityProjectsApis: CloudApiDefinition[] = [
@@ -29,6 +30,10 @@ export const observabilityProjectsApis: CloudApiDefinition[] = [
     description: "Create an observability project",
     method: "POST",
     path: "/api/v1/serverless/projects/observability",
+    body: z.object({
+      name: z.string().describe('Project name'),
+      region_id: z.string().describe('Region for the project (e.g. aws-us-east-1)'),
+    }),
   },
   {
     name: "get-observability-project",
