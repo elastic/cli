@@ -13,7 +13,7 @@
 //   PERF_WARMUP=5 PERF_RUNS=30 scripts/perf-check
 
 import { execFileSync } from "node:child_process"
-import { mkdtempSync, readFileSync, rmSync } from "node:fs"
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, dirname } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -55,6 +55,19 @@ const commands = Object.keys(BASELINES_MS).map((label) => {
 const tmpDir = mkdtempSync(join(tmpdir(), "elastic-cli-bench-"))
 const jsonOut = join(tmpDir, "results.json")
 
+// Use a minimal static config so benchmarks measure CLI startup, not secret-store latency.
+const staticConfig = join(tmpDir, ".elasticrc.yml")
+writeFileSync(staticConfig, [
+  'current_context: bench',
+  'contexts:',
+  '  bench:',
+  '    elasticsearch:',
+  '      url: http://localhost:9200',
+  '      auth:',
+  '        api_key: static-key',
+  '',
+].join('\n'))
+
 try {
   execFileSync(
     "hyperfine",
@@ -65,7 +78,7 @@ try {
       "--shell=none",
       ...commands,
     ],
-    { stdio: "inherit" },
+    { stdio: "inherit", env: { ...process.env, ELASTIC_CLI_CONFIG_FILE: staticConfig } },
   )
 
   const raw = JSON.parse(readFileSync(jsonOut, "utf8"))
