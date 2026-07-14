@@ -48,9 +48,6 @@ export function resolveBuiltinProfile (name: BuiltInProfile): { allowed: readonl
       'kb',
 
       // All stack commands (Elasticsearch + Kibana)
-      // Individual serverless-incompatible ES endpoints will be filtered in a
-      // future iteration once per-command availability metadata is added to the
-      // API manifest (see issue #283 for tracking).
       'stack.*',
 
       // Cloud cross-cutting namespaces (apply to both Hosted and Serverless)
