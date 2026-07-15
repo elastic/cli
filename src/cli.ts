@@ -238,9 +238,10 @@ if (firstArg === 'status') {
 let earlyConfig: LoadConfigResult | undefined
 const hasProfileFlag = argv.includes('--command-profile')
 const CONTEXT_NAMESPACES = new Set(['stack', 'cloud'])
-// skip early config when Commander will just print help — no action will fire.
-// operands = [namespace, subcommand?, ...rest]; a sub-subcommand is at operands[2].
-const willJustPrintHelp = CONTEXT_NAMESPACES.has(firstArg ?? '') && operands.length < 3
+// skip early config when Commander will just print help -- no action will fire.
+// Also skip for any --help invocation (wantsHelp) unless --command-profile is set,
+// since help text never needs credentials or context resolution.
+const willJustPrintHelp = wantsHelp || (CONTEXT_NAMESPACES.has(firstArg ?? '') && operands.length < 3)
 if (firstArg != null && (!willJustPrintHelp || hasProfileFlag)) {
   const SKIP_EARLY_CONFIG: ReadonlySet<string> = new Set([
     'version', 'extension', 'status', 'completion', '__complete',

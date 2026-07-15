@@ -19,6 +19,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "test": "tsx --test test/index.test.ts"
   }
 }
