@@ -68060,10 +68060,24 @@
           "name": "search",
           "parameters": [
             {
+              "role": "positional",
+              "name": "query",
+              "type": "string",
+              "required": false,
+              "summary": "Search terms"
+            },
+            {
+              "role": "flag",
+              "name": "accept-experimental",
+              "type": "boolean",
+              "required": false,
+              "summary": "Acknowledge that this command is experimental and may be removed; suppresses the warning"
+            },
+            {
               "role": "flag",
               "name": "query",
               "type": "string",
-              "required": true,
+              "required": false,
               "summary": "Search terms"
             },
             {
@@ -68095,10 +68109,24 @@
           "name": "ask",
           "parameters": [
             {
+              "role": "positional",
+              "name": "question",
+              "type": "string",
+              "required": false,
+              "summary": "Question to ask"
+            },
+            {
+              "role": "flag",
+              "name": "accept-experimental",
+              "type": "boolean",
+              "required": false,
+              "summary": "Acknowledge that this command is experimental and may be removed; suppresses the warning"
+            },
+            {
               "role": "flag",
               "name": "question",
               "type": "string",
-              "required": true,
+              "required": false,
               "summary": "Question to ask"
             }
           ],
@@ -68111,32 +68139,20 @@
           "path": [
             "docs"
           ],
-          "name": "chat",
-          "parameters": [
-            {
-              "role": "flag",
-              "name": "question",
-              "type": "string",
-              "required": true,
-              "summary": "Opening question"
-            }
-          ],
-          "summary": "Ask a question about Elastic documentation using AI, with follow-up conversation",
-          "intent": {
-            "requiresAuth": false
-          }
-        },
-        {
-          "path": [
-            "docs"
-          ],
           "name": "read",
           "parameters": [
+            {
+              "role": "positional",
+              "name": "path",
+              "type": "string",
+              "required": false,
+              "summary": "Docs path, full elastic.co URL, or search query"
+            },
             {
               "role": "flag",
               "name": "path",
               "type": "string",
-              "required": true,
+              "required": false,
               "summary": "Docs path, full elastic.co URL, or search query"
             },
             {

@@ -21,9 +21,9 @@ describe('createAskCommand', () => {
     assert.equal(cmd.name(), 'ask')
   })
 
-  it('has a required --question option', () => {
+  it('accepts question as a positional argument or --question option', () => {
     const cmd = createAskCommand()
-    assert.equal(cmd.registeredArguments.length, 0)
+    assert.equal(cmd.registeredArguments.length, 1)
     const optNames = cmd.options.map((o) => o.long)
     assert.ok(optNames.includes('--question'))
   })

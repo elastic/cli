@@ -22,7 +22,7 @@ const defaultDeps: ReadDeps = {
 }
 
 const inputSchema = z.object({
-  path: z.string().describe('Docs path, full elastic.co URL, or search query'),
+  path: z.string().optional().describe('Docs path, full elastic.co URL, or search query'),
   raw: z.boolean().optional().describe('Output unrendered markdown instead of formatted output'),
 })
 
@@ -31,8 +31,9 @@ export function createReadCommand (deps: ReadDeps = defaultDeps): OpaqueCommandH
     name: 'read',
     description: 'Read an Elastic documentation page',
     input: inputSchema,
+    positionalArg: { name: 'path', description: 'Docs path, full elastic.co URL, or search query', required: false },
     handler: async (parsed): Promise<JsonValue> => {
-      const input = parsed.input!.path.trim()
+      const input = (parsed.arg ?? parsed.input?.path ?? '').trim()
       if (input === '') return { error: { code: 'missing_input', message: 'path is required' } }
 
       const raw = parsed.input!.raw === true
