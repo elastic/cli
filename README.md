@@ -4,7 +4,7 @@ Interact with the Elastic Stack and Elastic Cloud from the command line.
 
 ## :warning: Tech preview
 
-This CLI tool is a **technical preview**. It is still under active development, and does not support all features and APIs available in every supported version of the Elastic stack.
+This CLI tool is a **technical preview** and is still under active development. It does not yet support all features and APIs available in every version of the Elastic stack.
 
 ## Installation
 
