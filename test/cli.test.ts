@@ -463,3 +463,37 @@ describe('elastic CLI -- alias rewriting with option values', () => {
     }
   })
 })
+
+describe('elastic CLI -- JSON mode error hygiene', () => {
+  it('emits only JSON to stderr (no stack trace) when --json and input validation fails', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-json-err-'))
+    const configPath = join(dir, 'config.yml')
+    await writeFile(configPath, [
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '',
+    ].join('\n'))
+    try {
+      // Pass an invalid --size (string instead of number) so validation fails
+      const { code, stderr } = await runCli(
+        ['--json', '--config-file', configPath, 'es', 'search', '--index', 'test', '--size', 'not-a-number'],
+      )
+      assert.equal(code, 1, `expected exit code 1, got ${code}`)
+      // stderr must be valid JSON — no stack trace mixed in
+      let parsed: unknown
+      try {
+        parsed = JSON.parse(stderr.trim())
+      } catch {
+        assert.fail(`stderr is not valid JSON. Got:\n${stderr}`)
+      }
+      const err = (parsed as Record<string, unknown>)['error'] as Record<string, unknown>
+      assert.ok(err != null, 'expected { error: ... } shape')
+      assert.equal(err['code'], 'input_validation_failed')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+})

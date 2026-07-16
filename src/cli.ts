@@ -292,4 +292,13 @@ if (!wantsHelp && firstArg != null && !program.commands.some(c => c.name() === f
   }
 }
 
-await program.parseAsync(process.argv)
+try {
+  await program.parseAsync(process.argv)
+} catch (err) {
+  // The factory already wrote a JSON error to stderr; suppress the raw stack trace.
+  // For unhandled errors without an exitCode marker, re-throw so Node prints the stack.
+  if (err != null && typeof err === 'object' && 'exitCode' in err) {
+    process.exit((err as { exitCode: number }).exitCode)
+  }
+  throw err
+}
