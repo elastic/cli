@@ -1,6 +1,6 @@
 # Architecture Decisions
 
-Read this before proposing structural changes. Each section documents a deliberate choice made for startup performance or memory efficiency, validated by `scripts/perf-check`. Do not refactor these unless benchmarks prove the change is neutral.
+Read this before proposing structural changes. Each section documents a deliberate choice made for startup performance or memory efficiency, validated by `scripts/perf-check` (startup latency) and `scripts/heap-check` (heap allocation). Do not refactor these unless benchmarks prove the change is neutral.
 
 ## Factory Core Split (`factory-core.ts` / `factory.ts`)
 

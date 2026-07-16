@@ -1,0 +1,81 @@
+#!/usr/bin/env node
+
+/*
+ * Copyright Elasticsearch B.V. and contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+// Measure heap allocated by importing each API module and validate against
+// recorded baselines. Fails if any module's heap delta exceeds its baseline
+// by more than 20% (override: HEAP_THRESHOLD=1.5 scripts/heap-check).
+//
+// Baselines were measured on Node v25.9.0, Linux x64 after lazy-loading
+// refactor. Method: --expose-gc, gc() before/after dynamic import, heapUsed.
+//
+// Usage:
+//   npm run build && scripts/heap-check
+//   HEAP_THRESHOLD=1.5 scripts/heap-check   # stricter/looser threshold
+
+import { execFileSync } from "node:child_process"
+import { join, dirname } from "node:path"
+import { fileURLToPath } from "node:url"
+
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
+const THRESHOLD = Number(process.env.HEAP_THRESHOLD ?? 1.20)
+
+// [relPath, apiCountExpr, baselineMB]
+// apiCountExpr is inlined into the probe JS with `mod` in scope.
+// baselineMB=0 → record-only, never fails.
+const MODULES = [
+  ["dist/es/apis.js",    "Array.isArray(mod.apiManifest) ? mod.apiManifest.length : null", 0.5],
+  ["dist/kb/apis.js",    "Array.isArray(mod.kbApiManifest) ? mod.kbApiManifest.length : null", 0.5],
+  ["dist/cloud/apis.js", "mod.allCloudApis?.length ?? null",      0.5],
+]
+
+function probe(absPath, countExpr) {
+  const script = `
+gc();
+const before = process.memoryUsage().heapUsed;
+import(${JSON.stringify(absPath)}).then(mod => {
+  gc();
+  const after = process.memoryUsage().heapUsed;
+  process.stdout.write(JSON.stringify({
+    deltaMB: (after - before) / 1024 / 1024,
+    apiCount: ${countExpr},
+  }) + "\\n");
+});
+`
+  const out = execFileSync(process.execPath, ["--expose-gc", "-e", script], {
+    encoding: "utf8",
+    cwd: REPO_ROOT,
+  })
+  return JSON.parse(out.trim())
+}
+
+let failed = false
+
+for (const [relPath, countExpr, baseline] of MODULES) {
+  const { deltaMB, apiCount } = probe(join(REPO_ROOT, relPath), countExpr)
+  const ok = baseline === 0 || deltaMB <= baseline * THRESHOLD
+  const pctStr =
+    baseline > 0
+      ? `${deltaMB > baseline ? "+" : ""}${((deltaMB / baseline - 1) * 100).toFixed(1)}%`
+      : "record-only"
+  const limitStr = baseline > 0 ? `, limit ${(baseline * THRESHOLD).toFixed(1)} MB` : ""
+  const countStr = apiCount != null ? `  (${apiCount} APIs)` : ""
+  console.log(
+    `${ok ? "✓" : "✗"}  ${relPath.padEnd(26)}  ${deltaMB.toFixed(1)} MB` +
+    `  (baseline ${baseline} MB, ${pctStr}${limitStr})${countStr}`,
+  )
+  if (!ok) failed = true
+}
+
+if (failed) {
+  console.error(
+    `\nHeap regression detected. One or more modules exceeded their baseline ` +
+    `by more than ${((THRESHOLD - 1) * 100).toFixed(0)}%.`,
+  )
+  process.exit(1)
+}
+
+console.log(`\nAll modules within the ${((THRESHOLD - 1) * 100).toFixed(0)}% regression threshold.`)
