@@ -4,6 +4,7 @@
     "console"
   ],
   "ignore": [
+    "NOTICE.txt",
     "node_modules/**",
     "dist/**",
     "build/**",

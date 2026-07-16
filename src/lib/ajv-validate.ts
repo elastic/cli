@@ -48,7 +48,7 @@ interface AjvError {
 
 function getAjv (): AjvInstance {
   if (_ajv == null) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const Ajv = _req('ajv') as new (opts: Record<string, unknown>) => AjvInstance
     _ajv = new Ajv({ allErrors: true, strict: false, logger: false, useDefaults: true })
   }

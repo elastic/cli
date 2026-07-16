@@ -156,7 +156,7 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
   )
 
   const seenFlags = new Map<string, string>() // cliFlag -> first schemaKey seen
-  return Object.entries(properties).filter(([key, _prop]) => {
+  return Object.entries(properties).filter(([key]) => {
     const flag = toKebabCase(key)
     // ponytail: skip reserved flags and duplicates from upstream schemas
     if (RESERVED_FLAGS.has(flag)) return false

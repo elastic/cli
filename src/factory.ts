@@ -4,7 +4,6 @@
  */
 
 import { Command } from 'commander'
-import { createRequire } from 'node:module'
 import { readFileSync, writeSync } from 'node:fs'
 import assert from 'node:assert/strict'
 import { getResolvedConfig } from './config/store.ts'
@@ -37,8 +36,6 @@ export {
   commandPath,
   configureErrorOutput,
 } from './factory-core.ts'
-
-const _require = createRequire(import.meta.url)
 
 let _outputMod: Promise<{ renderText: typeof _RT; formatHandlerError: typeof _FHE }> | null = null
 function getOutput () {

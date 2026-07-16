@@ -26,7 +26,7 @@ let _ajv: AjvInstance | undefined
 function getAjv (): AjvInstance {
   if (_ajv == null) {
     const req = createRequire(import.meta.url)
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+     
     const Ajv = req('ajv') as new (opts: Record<string, unknown>) => AjvInstance
     // No removeAdditional — we strip unknown fields explicitly after validation.
     _ajv = new Ajv({ allErrors: true, strict: false, logger: false, useDefaults: true })

@@ -109,7 +109,8 @@ export function registerKbCommands (definitions: KbApiDefinition[]): OpaqueComma
   // ponytail: soft validation - upstream schemas may have path/x-found-in mismatches
   const valid = definitions.filter(def => {
     try { validateKbApiDefinition(def); return true }
-    catch (e) { /* skip invalid defs from upstream */ return false }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    catch (_e) { /* skip invalid defs from upstream */ return false }
   })
   // Use valid filtered list
   definitions = valid
