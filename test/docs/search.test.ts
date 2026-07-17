@@ -38,9 +38,9 @@ describe('createSearchCommand', () => {
     assert.equal(cmd.name(), 'search')
   })
 
-  it('has a required --query option', () => {
+  it('accepts query as a positional argument or --query option', () => {
     const cmd = createSearchCommand()
-    assert.equal(cmd.registeredArguments.length, 0)
+    assert.equal(cmd.registeredArguments.length, 1)
     const optNames = cmd.options.map((o) => o.long)
     assert.ok(optNames.includes('--query'))
   })

@@ -109,11 +109,16 @@ export async function resolveExpressions (
     return Promise.all(obj.map((item, i) => resolveExpressions(item, `${path}[${i}]`)))
   }
   if (obj !== null && typeof obj === 'object') {
+    const entries = Object.entries(obj).filter(([key]) => key !== '__proto__' && key !== 'constructor')
+    const resolved = await Promise.all(
+      entries.map(([key, value]) => {
+        const fieldPath = path ? `${path}.${key}` : key
+        return resolveExpressions(value, fieldPath)
+      })
+    )
     const result: Record<string, unknown> = {}
-    for (const [key, value] of Object.entries(obj)) {
-      if (key === '__proto__' || key === 'constructor') continue
-      const fieldPath = path ? `${path}.${key}` : key
-      result[key] = await resolveExpressions(value, fieldPath)
+    for (let i = 0; i < entries.length; i++) {
+      result[entries[i]![0]] = resolved[i]
     }
     return result
   }
