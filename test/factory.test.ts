@@ -1705,19 +1705,12 @@ describe('defineCommand', () => {
       prog.exitOverride()
       cmd.exitOverride()
       let out = ''
-      const origOut = process.stdout.write.bind(process.stdout)
-      const origErr = process.stderr.write.bind(process.stderr)
-      process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
-      process.stderr.write = (chunk: unknown) => { out += String(chunk); return true }
       prog.configureOutput({ writeOut: (s) => { out += s }, writeErr: (s) => { out += s } })
       cmd.configureOutput({ writeOut: (s) => { out += s }, writeErr: (s) => { out += s } })
       try {
         await prog.parseAsync(['--json', cmd.name(), ...argv], { from: 'user' })
       } catch {
         // exitOverride throws on cmd.error(); that's expected
-      } finally {
-        process.stdout.write = origOut
-        process.stderr.write = origErr
       }
       let parsed: unknown = null
       try { parsed = JSON.parse(out) } catch { /* not JSON - test will fail on assertion */ }

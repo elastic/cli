@@ -571,7 +571,8 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
         const { simplifyZodIssues, formatIssuesText } = await import('./lib/zod-error.js')
         const issues = simplifyZodIssues(result.error.issues)
         if (jsonFormat === true) {
-          process.stderr.write(JSON.stringify({
+          const writeErr = cmd.configureOutput().writeErr ?? ((s: string) => process.stderr.write(s))
+          writeErr(JSON.stringify({
             error: {
               code: 'input_validation_failed',
               message: `Input validation failed with ${issues.length} issue(s)`,
