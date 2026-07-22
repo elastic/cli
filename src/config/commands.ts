@@ -504,6 +504,13 @@ function fieldOptions (): Array<{ long: string; type: 'string'; description: str
   ]
 }
 
+/** Appends any warnings from a handler result as `Warning: <msg>` lines. */
+function appendWarnings (base: string, result: JsonValue): string {
+  const warnings = (result as Record<string, JsonValue>).warnings
+  if (!Array.isArray(warnings)) return base
+  return base + warnings.map((w) => `Warning: ${w}\n`).join('')
+}
+
 function buildContextGroup (): OpaqueCommandHandle {
   const addCmd = defineCommand({
     name: 'add',
@@ -516,6 +523,7 @@ function buildContextGroup (): OpaqueCommandHandle {
       ...fieldOptions(),
     ],
     handler: async (parsed) => handleContextAdd(parsed),
+    formatOutput: (result) => appendWarnings(`Context '${(result as unknown as CommandSummary).context}' added.\n`, result),
   })
 
   const removeCmd = defineCommand({
@@ -527,6 +535,7 @@ function buildContextGroup (): OpaqueCommandHandle {
       { long: 'force', type: 'boolean', description: 'allow removing the current context' },
     ],
     handler: async (parsed) => handleContextRemove(parsed),
+    formatOutput: (result) => appendWarnings(`Context '${(result as unknown as CommandSummary).context}' removed.\n`, result),
   })
 
   const editCmd = defineCommand({
@@ -539,6 +548,7 @@ function buildContextGroup (): OpaqueCommandHandle {
       ...fieldOptions(),
     ],
     handler: async (parsed) => handleContextEdit(parsed),
+    formatOutput: (result) => appendWarnings(`Context '${(result as unknown as CommandSummary).context}' updated.\n`, result),
   })
 
   const listCmd = defineCommand({
@@ -546,6 +556,11 @@ function buildContextGroup (): OpaqueCommandHandle {
     description: 'List all contexts defined in the config file',
     options: [CONFIG_FILE_OPT],
     handler: async (parsed) => handleContextList(parsed.options),
+    formatOutput: (result) => {
+      const r = result as { contexts: Array<{ name: string; current: boolean }> }
+      if (r.contexts.length === 0) return 'No contexts configured.\n'
+      return r.contexts.map((c) => (c.current ? `* ${c.name}` : `  ${c.name}`)).join('\n') + '\n'
+    },
   })
 
   return defineGroup({ name: 'context', description: 'Manage contexts in the elastic config file' }, listCmd, addCmd, editCmd, removeCmd)
@@ -558,6 +573,9 @@ function buildCurrentContextGroup (): OpaqueCommandHandle {
     positionalArg: { name: 'name', description: 'context name', required: true },
     options: [CONFIG_FILE_OPT],
     handler: async (parsed) => handleCurrentContextSet(parsed),
+    formatOutput: (result) => appendWarnings(
+      `Switched to context '${(result as { current: string }).current}'.\n`, result
+    ),
   })
 
   const getCmd = defineCommand({
@@ -565,6 +583,7 @@ function buildCurrentContextGroup (): OpaqueCommandHandle {
     description: 'Print the current context name',
     options: [CONFIG_FILE_OPT],
     handler: async (parsed) => handleCurrentContextGet(parsed.options),
+    formatOutput: (result) => (result as { current: string }).current + '\n',
   })
 
   return defineGroup(
