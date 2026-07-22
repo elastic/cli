@@ -7,7 +7,12 @@ on:
 jobs:
   fix:
     name: Regenerate and commit schema
-    if: github.event.issue.pull_request != null && contains(github.event.comment.body, '/fix-schema')
+    # Only run for maintainer comments: this job checks out and builds the PR
+    # branch with a write token, so it must never be triggerable by outsiders.
+    if: |
+      github.event.issue.pull_request != null &&
+      contains(github.event.comment.body, '/fix-schema') &&
+      contains(fromJSON('["MEMBER", "OWNER", "COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -21,7 +26,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.issue.number }}
         run: |
-          BRANCH=$(gh pr view "$PR_NUMBER" --json headRefName -q .headRefName)
+          BRANCH=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json headRefName -q .headRefName)
+          FORK=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json isCrossRepository -q .isCrossRepository)
+          if [ "$FORK" = "true" ]; then
+            echo "Refusing to run against a fork branch." >&2
+            exit 1
+          fi
           echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
