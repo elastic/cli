@@ -66828,6 +66828,13 @@
                           "type": "string",
                           "required": false,
                           "summary": "Contains a project ID. If specified, the result will be filtered to only those origin projects that are linked to the specified project ID in a cross-project search configuration."
+                        },
+                        {
+                          "role": "flag",
+                          "name": "tags",
+                          "type": "string",
+                          "required": false,
+                          "summary": "If specified, the result will be filtered to only those projects that have the specified tags and corresponding values."
                         }
                       ],
                       "summary": "Get Elasticsearch projects",
@@ -66844,6 +66851,20 @@
                       ],
                       "name": "create",
                       "parameters": [
+                        {
+                          "role": "flag",
+                          "name": "name",
+                          "type": "string",
+                          "required": true,
+                          "summary": "Descriptive name for a project."
+                        },
+                        {
+                          "role": "flag",
+                          "name": "region-id",
+                          "type": "string",
+                          "required": true,
+                          "summary": "Unique human-readable identifier for a region in Elastic Cloud."
+                        },
                         {
                           "role": "flag",
                           "name": "wait",
@@ -67096,6 +67117,13 @@
                           "type": "string",
                           "required": false,
                           "summary": "Contains a project ID. If specified, the result will be filtered to only those origin projects that are linked to the specified project ID in a cross-project search configuration."
+                        },
+                        {
+                          "role": "flag",
+                          "name": "tags",
+                          "type": "string",
+                          "required": false,
+                          "summary": "If specified, the result will be filtered to only those projects that have the specified tags and corresponding values."
                         }
                       ],
                       "summary": "Get Observability projects",
@@ -67112,6 +67140,20 @@
                       ],
                       "name": "create",
                       "parameters": [
+                        {
+                          "role": "flag",
+                          "name": "name",
+                          "type": "string",
+                          "required": true,
+                          "summary": "Descriptive name for a project."
+                        },
+                        {
+                          "role": "flag",
+                          "name": "region-id",
+                          "type": "string",
+                          "required": true,
+                          "summary": "Unique human-readable identifier for a region in Elastic Cloud."
+                        },
                         {
                           "role": "flag",
                           "name": "wait",
@@ -67364,6 +67406,13 @@
                           "type": "string",
                           "required": false,
                           "summary": "Contains a project ID. If specified, the result will be filtered to only those origin projects that are linked to the specified project ID in a cross-project search configuration."
+                        },
+                        {
+                          "role": "flag",
+                          "name": "tags",
+                          "type": "string",
+                          "required": false,
+                          "summary": "If specified, the result will be filtered to only those projects that have the specified tags and corresponding values."
                         }
                       ],
                       "summary": "Get Security projects",
@@ -67380,6 +67429,20 @@
                       ],
                       "name": "create",
                       "parameters": [
+                        {
+                          "role": "flag",
+                          "name": "name",
+                          "type": "string",
+                          "required": true,
+                          "summary": "Descriptive name for a project."
+                        },
+                        {
+                          "role": "flag",
+                          "name": "region-id",
+                          "type": "string",
+                          "required": true,
+                          "summary": "Unique human-readable identifier for a region in Elastic Cloud."
+                        },
                         {
                           "role": "flag",
                           "name": "wait",
@@ -67662,6 +67725,13 @@
                       "type": "string",
                       "required": false,
                       "summary": "The project alias to filter the link candidates by."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "tags",
+                      "type": "string",
+                      "required": false,
+                      "summary": "If specified, the result will be filtered to only those projects that have the specified tags and corresponding values."
                     }
                   ],
                   "summary": "Get Elasticsearch project link candidates",
@@ -67718,6 +67788,13 @@
                       "type": "string",
                       "required": false,
                       "summary": "The project alias to filter the link candidates by."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "tags",
+                      "type": "string",
+                      "required": false,
+                      "summary": "If specified, the result will be filtered to only those projects that have the specified tags and corresponding values."
                     }
                   ],
                   "summary": "Get Observability project link candidates",
@@ -67774,6 +67851,13 @@
                       "type": "string",
                       "required": false,
                       "summary": "The project alias to filter the link candidates by."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "tags",
+                      "type": "string",
+                      "required": false,
+                      "summary": "If specified, the result will be filtered to only those projects that have the specified tags and corresponding values."
                     }
                   ],
                   "summary": "Get Security project link candidates",
@@ -67927,7 +68011,29 @@
                     "traffic-filters"
                   ],
                   "name": "create-traffic-filter",
-                  "parameters": [],
+                  "parameters": [
+                    {
+                      "role": "flag",
+                      "name": "name",
+                      "type": "string",
+                      "required": true,
+                      "summary": "Name of the traffic filter"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "type",
+                      "type": "string",
+                      "required": true,
+                      "summary": "Type of the traffic filter"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "region",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The traffic filter can be attached only to projects in the specific region"
+                    }
+                  ],
                   "summary": "Create a traffic filter",
                   "intent": {
                     "requiresAuth": true

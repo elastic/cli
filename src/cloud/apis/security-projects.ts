@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { z } from 'zod'
 import type { CloudApiDefinition } from '../types.ts'
 
 export const securityProjectsApis: CloudApiDefinition[] = [
@@ -21,6 +22,7 @@ export const securityProjectsApis: CloudApiDefinition[] = [
     queryParams: [
     { name: "traffic_filter", type: "string", description: "traffic filters associated with this project" },
     { name: "linked", type: "string", description: "Contains a project ID. If specified, the result will be filtered to only those origin projects that are linked to the specified project ID in a cross-project search configuration." },
+    { name: "tags", type: "string", description: "If specified, the result will be filtered to only those projects that have the specified tags and corresponding values." },
     ],
   },
   {
@@ -29,6 +31,10 @@ export const securityProjectsApis: CloudApiDefinition[] = [
     description: "Create a security project",
     method: "POST",
     path: "/api/v1/serverless/projects/security",
+    body: z.object({
+      name: z.string().describe("Descriptive name for a project."),
+      region_id: z.string().describe("Unique human-readable identifier for a region in Elastic Cloud."),
+    }),
   },
   {
     name: "get-security-project",
