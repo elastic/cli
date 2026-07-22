@@ -9,6 +9,7 @@
  * and elastic/elastic-client-generator-js to regenerate this file again.
  */
 
+import { z } from 'zod'
 import type { CloudApiDefinition } from '../types.ts'
 
 export const trafficFiltersApis: CloudApiDefinition[] = [
@@ -29,6 +30,11 @@ export const trafficFiltersApis: CloudApiDefinition[] = [
     description: "Create a traffic filter",
     method: "POST",
     path: "/api/v1/serverless/traffic-filters",
+    body: z.object({
+      name: z.string().describe("Name of the traffic filter"),
+      type: z.string().describe("Type of the traffic filter"),
+      region: z.string().describe("The traffic filter can be attached only to projects in the specific region"),
+    }),
   },
   {
     name: "get-traffic-filter-metadata",
