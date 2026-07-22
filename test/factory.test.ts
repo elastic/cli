@@ -1938,7 +1938,7 @@ describe('defineCommand', () => {
     async function captureOutput(fn: () => Promise<void>): Promise<string> {
       let out = ''
       const orig = process.stdout.write.bind(process.stdout)
-      process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
+      process.stdout.write = (chunk: unknown) => { if (typeof chunk === 'string') out += chunk; return true }
       try { await fn() } finally { process.stdout.write = orig }
       return out
     }
@@ -2125,7 +2125,7 @@ describe('text output rendering', () => {
   async function captureOutput(fn: () => Promise<unknown>): Promise<string> {
     let out = ''
     const orig = process.stdout.write.bind(process.stdout)
-    process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
+    process.stdout.write = (chunk: unknown) => { if (typeof chunk === 'string') out += chunk; return true }
     try { await fn() } finally { process.stdout.write = orig }
     return out
   }
@@ -3858,7 +3858,7 @@ async function captureErrAsync(handle: OpaqueCommandHandle, argv: string[]): Pro
 async function captureStdout(fn: () => Promise<unknown>): Promise<string> {
   let out = ''
   const orig = process.stdout.write.bind(process.stdout)
-  process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
+  process.stdout.write = (chunk: unknown) => { if (typeof chunk === 'string') out += chunk; return true }
   try { await fn() } catch { /* swallow — caller inspects captured output */ } finally { process.stdout.write = orig }
   return out
 }
@@ -3883,8 +3883,8 @@ async function captureStreams(fn: () => Promise<void>): Promise<{ stdout: string
   const origErr = process.stderr.write.bind(process.stderr)
   const origExitCode = process.exitCode
   process.exitCode = 0
-  process.stdout.write = (chunk: unknown) => { stdout += String(chunk); return true }
-  process.stderr.write = (chunk: unknown) => { stderr += String(chunk); return true }
+  process.stdout.write = (chunk: unknown) => { if (typeof chunk === 'string') stdout += chunk; return true }
+  process.stderr.write = (chunk: unknown) => { if (typeof chunk === 'string') stderr += chunk; return true }
   try {
     await fn()
   } catch {

@@ -17,8 +17,8 @@ async function captureWith (
   const stderrChunks: string[] = []
   const origStdout = process.stdout.write.bind(process.stdout)
   const origStderr = process.stderr.write.bind(process.stderr)
-  process.stdout.write = ((c: string) => { stdoutChunks.push(String(c)); return true }) as typeof process.stdout.write
-  process.stderr.write = ((c: string) => { stderrChunks.push(String(c)); return true }) as typeof process.stderr.write
+  process.stdout.write = ((c: unknown) => { if (typeof c === 'string') stdoutChunks.push(c); return true }) as typeof process.stdout.write
+  process.stderr.write = ((c: unknown) => { if (typeof c === 'string') stderrChunks.push(c); return true }) as typeof process.stderr.write
   // Reset the global exit code so we can read what this command sets.
   const priorExitCode = process.exitCode
   process.exitCode = undefined

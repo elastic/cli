@@ -92,6 +92,7 @@ interface JsonSchemaProp {
   $ref?: string
   properties?: Record<string, JsonSchemaProp>
   additionalProperties?: unknown
+  const?: unknown
 }
 
 /**
@@ -99,27 +100,40 @@ interface JsonSchemaProp {
  * Returns `{ type, acceptsArrayForm }`.
  */
 function resolveType (
-  prop: JsonSchemaProp
+  prop: JsonSchemaProp,
+  defs: Record<string, JsonSchemaProp> = {}
 ): { type: SchemaArgDefinition['type']; acceptsArrayForm: boolean } {
   // enum values
   if (Array.isArray(prop.enum) && prop.enum.length > 0) {
     return { type: 'enum', acceptsArrayForm: false }
   }
 
-  // anyOf / oneOf: check if any branch is array (acceptsArrayForm) and resolve first concrete type
+  // anyOf / oneOf: resolve all non-array branches; prefer string over number-with-const (e.g. Duration | -1 | 0)
   const variants = prop.anyOf ?? prop.oneOf
   if (variants != null && variants.length > 0) {
     let hasArray = false
     let resolvedType: SchemaArgDefinition['type'] = 'string'
+    let hasExplicitString = false
     for (const v of variants) {
-      const { type: t } = resolveType(v)
+      const { type: t } = resolveType(v, defs)
       if (t === 'array') {
         hasArray = true
-      } else if (resolvedType === 'string') {
+      } else if (t === 'string') {
+        resolvedType = 'string'
+        hasExplicitString = true
+      } else if (!hasExplicitString && (resolvedType === 'string' || v.const === undefined)) {
         resolvedType = t
       }
     }
     return { type: resolvedType, acceptsArrayForm: hasArray }
+  }
+
+  // Dereference $ref using top-level $defs
+  if (prop.$ref != null) {
+    const refName = prop.$ref.replace(/^#\/\$defs\//, '')
+    const deferred = defs[refName]
+    if (deferred != null) return resolveType(deferred, defs)
+    return { type: 'string', acceptsArrayForm: false } // unknown ref → safe default
   }
 
   const rawType = Array.isArray(prop.type) ? prop.type[0] : prop.type
@@ -129,9 +143,6 @@ function resolveType (
   if (rawType === 'integer' || rawType === 'number') return { type: 'number', acceptsArrayForm: false }
   if (rawType === 'object') return { type: 'object', acceptsArrayForm: false }
   if (rawType === 'string') return { type: 'string', acceptsArrayForm: false }
-
-  // $ref with no type → treat as string (path params, etc.)
-  if (prop.$ref != null) return { type: 'string', acceptsArrayForm: false }
 
   // fallback
   return { type: 'string', acceptsArrayForm: false }
@@ -150,6 +161,7 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
   const s = schema as Record<string, unknown>
   const properties = s['properties'] as Record<string, JsonSchemaProp> | undefined
   if (properties == null) return []
+  const defs = (s['$defs'] ?? {}) as Record<string, JsonSchemaProp>
 
   const requiredKeys = new Set<string>(
     Array.isArray(s['required']) ? s['required'] as string[] : []
@@ -164,7 +176,7 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
     seenFlags.set(flag, key)
     return true
   }).map(([key, prop]) => {
-    const { type, acceptsArrayForm } = resolveType(prop)
+    const { type, acceptsArrayForm } = resolveType(prop, defs)
     const defaultValue = prop.default
     const isRequired = requiredKeys.has(key) && defaultValue === undefined
     const description = prop.description ?? ''

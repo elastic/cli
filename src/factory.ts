@@ -221,6 +221,18 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
   const cmd = new Command(config.name)
   cmd.description(config.description)
   configureErrorOutput(cmd)
+  cmd.configureOutput({
+    outputError: (str, write) => {
+      const msg = str.replace(/^error:\s*/i, '').trimEnd()
+      if (hasGlobalJsonFlag(cmd)) {
+        process.stderr.write(JSON.stringify({ error: { code: 'input_validation_failed', message: msg } }) + '\n')
+        process.exitCode = 1
+        return
+      }
+      const path = commandPath(cmd)
+      write(`Error: ${msg}\n\nUsage: ${path} ${cmd.usage()}\n\nRun "${path} --help" for more information.\n`)
+    },
+  })
 
   if (config.positionalArg != null) {
     const placeholder = config.positionalArg.required !== false

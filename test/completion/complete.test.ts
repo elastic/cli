@@ -254,7 +254,7 @@ describe('buildCompleteCommand', () => {
     const origWrite = process.stdout.write.bind(process.stdout)
     const captured: string[] = []
     process.stdout.write = ((c: string | Uint8Array, ...rest: unknown[]) => {
-      captured.push(typeof c === 'string' ? c : Buffer.from(c).toString('utf-8'))
+      if (typeof c === 'string') captured.push(c)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (origWrite as any)(c, ...rest)
     }) as typeof process.stdout.write
@@ -274,7 +274,7 @@ describe('buildCompleteCommand', () => {
     const origWrite = process.stdout.write.bind(process.stdout)
     const captured: string[] = []
     process.stdout.write = ((c: string | Uint8Array, ...rest: unknown[]) => {
-      captured.push(typeof c === 'string' ? c : Buffer.from(c).toString('utf-8'))
+      if (typeof c === 'string') captured.push(c)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (origWrite as any)(c, ...rest)
     }) as typeof process.stdout.write

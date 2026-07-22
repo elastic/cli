@@ -193,6 +193,70 @@ describe('extractSchemaArgs', () => {
   })
 })
 
+describe('resolveType via $defs dereferencing', () => {
+  it('resolves $ref-only body field to object type when $defs defines it as object', () => {
+    const s: Record<string, unknown> = {
+      type: 'object',
+      properties: {
+        mappings: { $ref: '#/$defs/MappingTypeMapping', description: 'Index mappings', 'x-found-in': 'body' },
+      },
+      $defs: {
+        MappingTypeMapping: { type: 'object', properties: { dynamic: { type: 'string' } } },
+      },
+    }
+    const args = extractSchemaArgs(s)
+    assert.equal(args[0]?.type, 'object')
+  })
+
+  it('resolves $ref-only query field to number type when $defs defines it as number', () => {
+    const s: Record<string, unknown> = {
+      type: 'object',
+      properties: {
+        from: { $ref: '#/$defs/integer', description: 'skip N docs', 'x-found-in': 'query' },
+      },
+      $defs: {
+        integer: { type: 'number' },
+      },
+    }
+    const args = extractSchemaArgs(s)
+    assert.equal(args[0]?.type, 'number')
+  })
+
+  it('resolves anyOf with only $ref variants by dereferencing each', () => {
+    const s: Record<string, unknown> = {
+      type: 'object',
+      properties: {
+        doc: { anyOf: [{ $ref: '#/$defs/DocA' }, { $ref: '#/$defs/DocB' }], 'x-found-in': 'body' },
+      },
+      $defs: {
+        DocA: { type: 'object' },
+        DocB: { type: 'object' },
+      },
+    }
+    const args = extractSchemaArgs(s)
+    assert.equal(args[0]?.type, 'object')
+  })
+
+  it('keeps string type for duration-like anyOf that includes a string branch alongside number consts', () => {
+    // keep_alive: anyOf [string, {number,const:-1}, {number,const:0}] → should be 'string'
+    const s: Record<string, unknown> = {
+      type: 'object',
+      properties: {
+        keep_alive: {
+          anyOf: [
+            { type: 'string' },
+            { type: 'number', const: -1 },
+            { type: 'number', const: 0 },
+          ],
+          'x-found-in': 'query',
+        },
+      },
+    }
+    const args = extractSchemaArgs(s)
+    assert.equal(args[0]?.type, 'string')
+  })
+})
+
 describe('buildFlagKeyMap', () => {
   it('creates bidirectional mapping between cliFlag and schemaKey', () => {
     const args: SchemaArgDefinition[] = [
