@@ -27,6 +27,7 @@ export const linkedCandidateProjectsApis: CloudApiDefinition[] = [
     { name: "region", type: "string", description: "The region to filter the link candidate projects by." },
     { name: "name", type: "string", description: "The project name to filter the link candidates by." },
     { name: "alias", type: "string", description: "The project alias to filter the link candidates by." },
+    { name: "tags", type: "string", description: "If specified, the result will be filtered to only those projects that have the specified tags and corresponding values." },
     ],
   },
   {
@@ -44,6 +45,7 @@ export const linkedCandidateProjectsApis: CloudApiDefinition[] = [
     { name: "region", type: "string", description: "The region to filter the link candidate projects by." },
     { name: "name", type: "string", description: "The project name to filter the link candidates by." },
     { name: "alias", type: "string", description: "The project alias to filter the link candidates by." },
+    { name: "tags", type: "string", description: "If specified, the result will be filtered to only those projects that have the specified tags and corresponding values." },
     ],
   },
   {
@@ -61,6 +63,7 @@ export const linkedCandidateProjectsApis: CloudApiDefinition[] = [
     { name: "region", type: "string", description: "The region to filter the link candidate projects by." },
     { name: "name", type: "string", description: "The project name to filter the link candidates by." },
     { name: "alias", type: "string", description: "The project alias to filter the link candidates by." },
+    { name: "tags", type: "string", description: "If specified, the result will be filtered to only those projects that have the specified tags and corresponding values." },
     ],
   },
 ]
