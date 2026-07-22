@@ -81,11 +81,11 @@ export function createChatCommand (deps: ChatDeps = defaultDeps): OpaqueCommandH
       await askQuestion(question, conversationId, deps, interactive ? startSpinner(deps.stderr, 'Thinking…') : undefined)
 
       if (interactive) {
-        const rl = createInterface({ input: deps.getStdin(), output: process.stderr, terminal: false })
+        const rl = createInterface({ input: deps.getStdin(), terminal: false })
 
         await new Promise<void>((resolve) => {
           const prompt = (): void => {
-            process.stderr.write('\nAsk a follow-up (or press Enter to quit): ')
+            deps.stderr.write('\nAsk a follow-up (or press Enter to quit): ')
             rl.once('line', async (answer) => {
               const followUp = answer.trim()
               if (followUp === '') {

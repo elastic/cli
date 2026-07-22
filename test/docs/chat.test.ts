@@ -115,6 +115,34 @@ describe('createChatCommand', () => {
     }
   })
 
+  it('interactive follow-up loop never writes to the real process.stderr', async () => {
+    const prevIsTTY = process.stderr.isTTY
+    Object.defineProperty(process.stderr, 'isTTY', { value: true, configurable: true })
+    const origErrWrite = process.stderr.write
+    const realWrites: string[] = []
+    process.stderr.write = ((s: string) => { realWrites.push(s); return true }) as typeof process.stderr.write
+    try {
+      const stdinStream = Readable.from(['follow up?\n', '\n'])
+      const cmd = createChatCommand({
+        docsAskStream: streamFrom(['answer']),
+        stdout: { write: () => true },
+        stderr: { write: () => true },
+        getStdin: () => stdinStream,
+      })
+      cmd.exitOverride()
+      cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
+      const restoreStdin = _testSetStdinReader(() => '')
+      try {
+        await cmd.parseAsync(['--question', 'opening'], { from: 'user' })
+      } finally { restoreStdin() }
+
+      assert.deepEqual(realWrites, [])
+    } finally {
+      process.stderr.write = origErrWrite
+      Object.defineProperty(process.stderr, 'isTTY', { value: prevIsTTY, configurable: true })
+    }
+  })
+
   it('returns structured JSON with buffered answer when --json is active', async () => {
     const captured: string[] = []
     const origWrite = process.stdout.write
