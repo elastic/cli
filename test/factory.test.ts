@@ -2628,6 +2628,18 @@ describe('isCommandAllowed', () => {
     assert.equal(isCommandAllowed('cloud.hosted.traffic-filters.list', { profile: 'serverless' }), false)
   })
 
+  it('profile serverless: blocks stack-only ES namespaces', () => {
+    for (const ns of ['ilm', 'watcher', 'snapshot', 'slm', 'ccr', 'rollup', 'license', 'logstash', 'searchable-snapshots', 'dangling-indices', 'ssl']) {
+      assert.equal(isCommandAllowed(`stack.es.${ns}.get`, { profile: 'serverless' }), false, `expected stack.es.${ns}.* to be blocked under serverless`)
+    }
+  })
+
+  it('profile serverless: still allows non-stack-only ES namespaces', () => {
+    assert.equal(isCommandAllowed('stack.es.indices.create', { profile: 'serverless' }), true)
+    assert.equal(isCommandAllowed('stack.es.ml.get-records', { profile: 'serverless' }), true)
+    assert.equal(isCommandAllowed('stack.es.search', { profile: 'serverless' }), true)
+  })
+
   it('profile serverless: allows version and config commands', () => {
     assert.equal(isCommandAllowed('version', { profile: 'serverless' }), true)
     assert.equal(isCommandAllowed('config.context.list', { profile: 'serverless' }), true)
