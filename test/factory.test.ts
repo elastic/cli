@@ -1881,14 +1881,14 @@ describe('defineCommand', () => {
       assert.deepEqual(JSON.parse(out), { ok: true, count: 3 })
     })
 
-    it('factory writes handler return value as pretty-printed JSON in text mode', async () => {
+    it('factory writes flat object handler result as key:value lines in text mode', async () => {
       const cmd = defineCommand({
         name: 'status',
         description: 'Get status',
         handler: () => ({ ok: true }),
       })
       const out = await invokeUnderRoot(cmd, [], [])
-      assert.equal(out, JSON.stringify({ ok: true }, null, 2) + '\n')
+      assert.equal(out, 'ok: true\n')
     })
 
     it('factory handles async handler return value', async () => {
@@ -2144,14 +2144,14 @@ describe('text output rendering', () => {
       assert.match(out, /[─├┤┼]/)
     })
 
-    it('falls back to pretty-printed JSON for a plain object', async () => {
+    it('renders a flat object as key:value lines', async () => {
       const cmd = defineCommand({
         name: 'status',
         description: 'Status',
         handler: () => ({ ok: true, count: 3 }),
       })
       const out = await invokeText(cmd)
-      assert.equal(out, JSON.stringify({ ok: true, count: 3 }, null, 2) + '\n')
+      assert.equal(out, 'ok: true\ncount: 3\n')
     })
 
     it('falls back to pretty-printed JSON for nested arrays', async () => {

@@ -125,8 +125,22 @@ describe('renderText', () => {
     })
   })
 
+  describe('flat objects — key: value pairs', () => {
+    it('renders a flat object as key: value lines', () => {
+      assert.equal(renderText({ status: 'ok', count: 3 }), 'status: ok\ncount: 3\n')
+    })
+
+    it('renders null values as empty string', () => {
+      assert.equal(renderText({ name: 'foo', value: null }), 'name: foo\nvalue: \n')
+    })
+
+    it('renders a single-key flat object', () => {
+      assert.equal(renderText({ version: '1.2.3' }), 'version: 1.2.3\n')
+    })
+  })
+
   describe('complex types — fall back to pretty JSON', () => {
-    it('renders a plain object as pretty-printed JSON', () => {
+    it('renders a nested object as pretty-printed JSON', () => {
       const val = { key: 'value', nested: { x: 1 } }
       assert.equal(renderText(val), JSON.stringify(val, null, 2) + '\n')
     })
@@ -139,11 +153,6 @@ describe('renderText', () => {
     it('renders a mixed array (primitives and objects) as pretty-printed JSON', () => {
       const val = ['hello', { key: 1 }]
       assert.equal(renderText(val as never), JSON.stringify(val, null, 2) + '\n')
-    })
-
-    it('renders a flat object (not an array) as pretty-printed JSON', () => {
-      const val = { status: 'ok', count: 3 }
-      assert.equal(renderText(val), JSON.stringify(val, null, 2) + '\n')
     })
   })
 })
