@@ -9,6 +9,7 @@ import { EsClient, EsResponseError, EsConnectionError, getEsClient, _testResetEs
 import { setResolvedConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
 import { clientHeaders } from '../../src/lib/meta.ts'
+import { captureProcessOutput } from '../support/capture-output.ts'
 
 function makeApiKeyConfig (url: string, apiKey: string): ResolvedConfig {
   return { context: { elasticsearch: { url, auth: { api_key: apiKey } } } }
@@ -301,6 +302,33 @@ describe('EsClient.request', () => {
         return true
       }
     )
+  })
+
+  it('honours ELASTIC_DEBUG without writing to stdout or exposing credentials', async () => {
+    const previousDebug = process.env['ELASTIC_DEBUG']
+    process.env['ELASTIC_DEBUG'] = '1'
+    const client = makeClient({ api_key: 'es-secret' })
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('{"hits":[]}', {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }))
+    ) as typeof fetch)
+
+    try {
+      const output = await captureProcessOutput(() =>
+        client.request({ method: 'POST', path: '/_search', body: { query: { match_all: {} } } })
+      )
+      assert.equal(output.stdout, '')
+      assert.match(output.stderr, /> POST http:\/\/localhost:9200\/_search/)
+      assert.match(output.stderr, /> authorization: \(redacted\)/)
+      assert.match(output.stderr, /\{"query":\{"match_all":\{\}\}\}/)
+      assert.match(output.stderr, /< 200/)
+      assert.doesNotMatch(output.stderr, /es-secret/)
+    } finally {
+      if (previousDebug === undefined) delete process.env['ELASTIC_DEBUG']
+      else process.env['ELASTIC_DEBUG'] = previousDebug
+    }
   })
 
   it('sets redirect to error', async () => {

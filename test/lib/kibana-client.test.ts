@@ -9,6 +9,7 @@ import { KibanaClient, getKibanaClient, _testResetKibanaClient } from '../../src
 import { setResolvedConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
 import { clientHeaders } from '../../src/lib/meta.ts'
+import { captureProcessOutput } from '../support/capture-output.ts'
 
 afterEach(() => {
   _testResetKibanaClient()
@@ -166,6 +167,36 @@ describe('KibanaClient.request', () => {
         return true
       }
     )
+  })
+
+  it('honours ELASTIC_DEBUG and redacts basic authentication', async () => {
+    const previousDebug = process.env['ELASTIC_DEBUG']
+    process.env['ELASTIC_DEBUG'] = '1'
+    const client = makeClient({ username: 'elastic', password: 'kb-secret' })
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('{"id":"dashboard-1"}', {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }))
+    ) as typeof fetch)
+
+    try {
+      const { stderr } = await captureProcessOutput(() =>
+        client.request({
+          method: 'POST',
+          path: '/api/saved_objects',
+          body: { attributes: { title: 'Dashboard' } },
+        })
+      )
+      assert.match(stderr, /> POST http:\/\/localhost:5601\/api\/saved_objects/)
+      assert.match(stderr, /> authorization: \(redacted\)/)
+      assert.match(stderr, /\{"attributes":\{"title":"Dashboard"\}\}/)
+      assert.match(stderr, /< 200/)
+      assert.doesNotMatch(stderr, /kb-secret/)
+    } finally {
+      if (previousDebug === undefined) delete process.env['ELASTIC_DEBUG']
+      else process.env['ELASTIC_DEBUG'] = previousDebug
+    }
   })
 
   it('returns empty object for empty response body', async () => {

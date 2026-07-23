@@ -33,4 +33,16 @@ describe('cli schema', () => {
     assert.ok(Array.isArray(schema['namespaces']))
     assert.ok((schema['namespaces'] as Array<{ segment?: string }>).some(ns => ns.segment === 'stack'))
   })
+
+  it('documents the HTTP debug flag and environment variable', async () => {
+    const { code, stdout, stderr } = await runCliSchema()
+    assert.equal(code, 0, stderr)
+
+    const schema = JSON.parse(stdout) as {
+      globalOptions: Array<{ name: string }>
+      environment: { variables: Array<{ name: string }> }
+    }
+    assert.ok(schema.globalOptions.some(option => option.name === 'debug'))
+    assert.ok(schema.environment.variables.some(variable => variable.name === 'ELASTIC_DEBUG'))
+  })
 })

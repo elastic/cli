@@ -52,11 +52,18 @@ if (hasGlobalFlags) {
     .option('--output-fields <list>', 'comma-separated list of fields to include in output (dot-notation supported)')
     .option('--output-template <string>', 'Mustache-like template for custom text output (e.g. "{{id}}: {{name}}")')
 }
-program.option('--json', 'output as JSON')
+program
+  .option('--json', 'output as JSON')
+  .option('--debug', 'print HTTP request and response details to stderr')
 
 // preAction hook (skipped for --help paths since the hook never fires)
 if (!wantsHelp) {
   program.hook('preAction', async (thisCommand, actionCommand) => {
+    if (thisCommand.opts().debug === true) {
+      const { setHttpDebugEnabled } = await import('./lib/http-debug.js')
+      setHttpDebugEnabled(true)
+    }
+
     const skipActionNames: ReadonlySet<string> = new Set(['version', 'completion', '__complete', 'status'])
     if (skipActionNames.has(actionCommand.name())) return
     // Groups with no sub-command will just call group.help() — no real action fires.

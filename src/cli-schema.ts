@@ -109,6 +109,11 @@ const ENVIRONMENT: CliEnvironment = {
       required: false,
       description: 'Override the Elastic Cloud admin API base URL',
     },
+    {
+      name: 'ELASTIC_DEBUG',
+      required: false,
+      description: 'Set to 1 to print HTTP request and response details to stderr',
+    },
   ],
   configFiles: [
     { path: '~/.elasticrc.yml',  required: false, description: 'Primary config file (recommended)' },

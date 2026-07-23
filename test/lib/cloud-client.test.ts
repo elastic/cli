@@ -9,6 +9,7 @@ import { getCloudClient, _testResetCloudClient } from '../../src/lib/cloud-clien
 import { setResolvedConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
 import { clientHeaders } from '../../src/lib/meta.ts'
+import { captureProcessOutput } from '../support/capture-output.ts'
 
 afterEach(() => {
   _testResetCloudClient()
@@ -113,6 +114,45 @@ describe('getCloudClient', () => {
       assert.match(err.message, /404/)
       return true
     })
+  })
+
+  it('honours ELASTIC_DEBUG and redacts the Cloud API key', async () => {
+    const previousDebug = process.env['ELASTIC_DEBUG']
+    process.env['ELASTIC_DEBUG'] = '1'
+    setResolvedConfig({
+      context: {
+        cloud: {
+          url: 'https://api.elastic-cloud.com',
+          auth: { api_key: 'cloud-secret' },
+        },
+      },
+    })
+    const client = getCloudClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('{"id":"deployment-1"}', {
+        status: 201,
+        statusText: 'Created',
+        headers: { 'content-type': 'application/json' },
+      }))
+    ) as typeof fetch)
+
+    try {
+      const { stderr } = await captureProcessOutput(() =>
+        client.request({
+          method: 'POST',
+          path: '/api/v1/deployments',
+          body: { name: 'example' },
+        })
+      )
+      assert.match(stderr, /> POST https:\/\/api\.elastic-cloud\.com\/api\/v1\/deployments/)
+      assert.match(stderr, /> authorization: \(redacted\)/)
+      assert.match(stderr, /\{"name":"example"\}/)
+      assert.match(stderr, /< 201 Created/)
+      assert.doesNotMatch(stderr, /cloud-secret/)
+    } finally {
+      if (previousDebug === undefined) delete process.env['ELASTIC_DEBUG']
+      else process.env['ELASTIC_DEBUG'] = previousDebug
+    }
   })
 
   it('sends ApiKey authorization header', async () => {
