@@ -374,11 +374,18 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       }
     }
   }
-  if (config.input instanceof getZ().ZodType) {
+  // Read-only (GET/HEAD) commands with an empty input schema (e.g. `es info`)
+  // take no input at all, so --input-file and --dry-run would be no-ops; hide
+  // them (#378). Write commands keep --input-file even with an empty schema
+  // because loose schemas pass the whole file through as the request body.
+  const inputIsEmptyObject = config.input instanceof getZ().ZodObject &&
+    Object.keys(config.input.shape).length === 0
+  const hideNoInputFlags = config.readOnly === true && inputIsEmptyObject
+  if (config.input instanceof getZ().ZodType && !hideNoInputFlags) {
     cmd.option('--input-file <path>', 'path to a JSON file to use as command input')
   }
   const schemaClaimsDryRun = schemaArgs.some((a) => a.cliFlag === 'dry-run')
-  if (!schemaClaimsDryRun) {
+  if (!schemaClaimsDryRun && !hideNoInputFlags) {
     cmd.option('--dry-run', 'validate all inputs and exit without performing any action')
   }
 

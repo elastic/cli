@@ -73,6 +73,11 @@ export interface CommandConfig<T extends z.ZodType = z.ZodType> {
   input?: T
   formatOutput?: (result: JsonValue, parsed: ParsedResult<z.infer<T>>) => string
   intent?: CommandIntent
+  /**
+   * Marks a command as read-only (GET/HEAD). When the input schema is also
+   * empty, --input-file and --dry-run are hidden from help (#378).
+   */
+  readOnly?: boolean
 }
 
 /** Configuration for a command group (namespace). */

@@ -77,6 +77,7 @@ function buildLeafHandle (
     name: def.name,
     description: def.description,
     input: schema,
+    readOnly: def.method === 'GET' || def.method === 'HEAD',
     handler: async (parsed) => {
       const { createEsHandler } = await import('./handler.js')
       return createEsHandler(def, schemaArgs)(parsed)
