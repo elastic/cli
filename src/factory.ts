@@ -435,7 +435,21 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
         }
         inputValue = parseJsonContent(fileContent, '--input-file', cmd)
       } else if (!process.stdin.isTTY) {
-        const raw = stdinReader()
+        // EAGAIN / EBADF can occur in IDE terminals (Cursor, VS Code integrated
+        // terminal) and some CI environments where stdin is set to non-blocking
+        // mode but no data is piped. Treat these as "no stdin data" rather than
+        // crashing with an unhandled exception.
+        let raw: string
+        try {
+          raw = stdinReader()
+        } catch (err: unknown) {
+          const code = (err as NodeJS.ErrnoException).code
+          if (code === 'EAGAIN' || code === 'EBADF') {
+            raw = ''
+          } else {
+            throw err
+          }
+        }
         if (raw.trim().length > 0) {
           inputValue = parseJsonContent(raw, 'stdin', cmd)
         }
