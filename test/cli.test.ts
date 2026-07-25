@@ -7,6 +7,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { createServer } from 'node:http'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
@@ -31,7 +32,8 @@ function makeProgram(): InstanceType<typeof Command> {
   prog.option('--config-file <path>', 'path to a config file (default: ~/.elasticrc.yml)')
   prog.option('--use-context <name>', 'override the active context from the config file')
   prog.option('--json', 'output as JSON')
-  prog.option('--debug', 'print HTTP request and response details to stderr')
+  prog.option('--debug', 'print HTTP request and response details')
+  prog.option('-v, --verbose', 'print HTTP request and response details')
   return prog
 }
 
@@ -60,6 +62,14 @@ describe('elastic CLI -- global flags', () => {
     const opt = prog.options.find((o) => o.long === '--debug')
     assert.ok(opt != null, 'expected --debug option')
     assert.ok(!opt.required, '--debug should be a boolean flag (no required value)')
+  })
+
+  it('registers --verbose with the -v alias', () => {
+    const prog = makeProgram()
+    const opt = prog.options.find((o) => o.long === '--verbose')
+    assert.ok(opt != null, 'expected --verbose option')
+    assert.equal(opt.short, '-v')
+    assert.ok(!opt.required, '--verbose should be a boolean flag (no required value)')
   })
 
   it('registers --version as a boolean flag', () => {
@@ -98,6 +108,12 @@ describe('elastic CLI -- global flags', () => {
     const prog = makeProgram()
     prog.parse(['--debug'], { from: 'user' })
     assert.equal(prog.opts()['debug'], true)
+  })
+
+  it('parses -v as verbose mode', () => {
+    const prog = makeProgram()
+    prog.parse(['-v'], { from: 'user' })
+    assert.equal(prog.opts()['verbose'], true)
   })
 
   it('parses --config-file value correctly', () => {
@@ -210,6 +226,52 @@ describe('elastic CLI -- config caching (preAction reuse)', () => {
       const invocations = content.trim().split('\n').length
       assert.equal(invocations, 2, `expected resolver to run twice (early + override), but ran ${invocations} times`)
     } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+})
+
+describe('elastic CLI -- HTTP diagnostics', () => {
+  it('includes verbose HTTP diagnostics in one JSON result', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-http-debug-'))
+    const server = createServer((_req, res) => {
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end('{"name":"test-cluster"}')
+    })
+    await new Promise<void>((resolve, reject) => {
+      server.once('error', reject)
+      server.listen(0, '127.0.0.1', resolve)
+    })
+
+    try {
+      const address = server.address()
+      assert.ok(address != null && typeof address === 'object')
+      const configPath = join(dir, '.elasticrc.yml')
+      await writeFile(configPath, [
+        'current_context: local',
+        'contexts:',
+        '  local:',
+        '    elasticsearch:',
+        `      url: http://127.0.0.1:${address.port}`,
+      ].join('\n'))
+
+      const { code, stdout, stderr } = await runCli([
+        '--config-file', configPath,
+        '--json',
+        '--verbose',
+        'stack', 'es', 'info',
+      ], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } })
+
+      assert.equal(code, 0, stderr)
+      assert.equal(stderr, '')
+      const parsed = JSON.parse(stdout) as { name: string, debug: string[] }
+      assert.equal(parsed.name, 'test-cluster')
+      assert.ok(parsed.debug.some(statement => statement.startsWith('> GET http://127.0.0.1:')))
+      assert.ok(parsed.debug.some(statement => statement === '< 200 OK'))
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close(error => error != null ? reject(error) : resolve())
+      })
       await rm(dir, { recursive: true })
     }
   })

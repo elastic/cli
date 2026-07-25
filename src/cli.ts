@@ -54,14 +54,18 @@ if (hasGlobalFlags) {
 }
 program
   .option('--json', 'output as JSON')
-  .option('--debug', 'print HTTP request and response details to stderr')
+  .option('--debug', 'print HTTP request and response details')
+  .option('-v, --verbose', 'print HTTP request and response details')
 
 // preAction hook (skipped for --help paths since the hook never fires)
 if (!wantsHelp) {
   program.hook('preAction', async (thisCommand, actionCommand) => {
-    if (thisCommand.opts().debug === true) {
-      const { setHttpDebugEnabled } = await import('./lib/http-debug.js')
-      setHttpDebugEnabled(true)
+    const { debug, verbose, json } = thisCommand.opts()
+    const cliDebugEnabled = debug === true || verbose === true
+    if (cliDebugEnabled || process.env['ELASTIC_DEBUG'] === '1') {
+      const { setHttpDebugEnabled, setHttpDebugJsonMode } = await import('./lib/http.js')
+      setHttpDebugEnabled(cliDebugEnabled)
+      setHttpDebugJsonMode(json === true)
     }
 
     const skipActionNames: ReadonlySet<string> = new Set(['version', 'completion', '__complete', 'status'])

@@ -7,7 +7,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { getResolvedConfig } from '../config/store.ts'
 import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
-import { fetchWithHttpDebug } from './http-debug.ts'
+import { apiFetch, isHttpDebugEnabled } from './http.ts'
 import { isLoopbackUrl } from './is-loopback-host.ts'
 import { clientHeaders } from './meta.ts'
 
@@ -99,7 +99,7 @@ export class KibanaClient {
       init.body = JSON.stringify(params.body)
     }
 
-    const response = await fetchWithHttpDebug(this._fetch, url, init)
+    const response = await apiFetch(this._fetch, url, init, { debug: isHttpDebugEnabled() })
 
     if (!response.ok) {
       const text = await response.text()

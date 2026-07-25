@@ -79,6 +79,13 @@ describe('buildCompletionTree -- top-level commands', () => {
     assert.ok(opt != null, 'expected --debug global option')
   })
 
+  it('exposes global --verbose option with the -v alias', async () => {
+    const root = await buildCompletionTree([])
+    const opt = root.options.find(o => o.long === '--verbose')
+    assert.ok(opt != null, 'expected --verbose global option')
+    assert.equal(opt.short, '-v')
+  })
+
   it('does not load the es subtree when the first word is unrelated', async () => {
     const root = await buildCompletionTree(['cloud'])
     const stack = root.commands.find(c => c.name() === 'stack')!

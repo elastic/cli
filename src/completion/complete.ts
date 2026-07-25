@@ -158,7 +158,8 @@ export async function buildCompletionTree (rewrittenWords: readonly string[]): P
   root.option('--use-context <name>', 'override the active context from the config file')
   root.option('--command-profile <name>', 'restrict available commands to a deployment profile')
   root.option('--json', 'output as JSON')
-  root.option('--debug', 'print HTTP request and response details to stderr')
+  root.option('--debug', 'print HTTP request and response details')
+  root.option('-v, --verbose', 'print HTTP request and response details')
   root.option('--output-fields <list>', 'comma-separated list of fields to include in output')
   root.option('--output-template <string>', 'Mustache-like template for custom text output')
 

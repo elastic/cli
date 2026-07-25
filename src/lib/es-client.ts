@@ -5,7 +5,7 @@
 
 import { getResolvedConfig } from '../config/store.ts'
 import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
-import { fetchWithHttpDebug } from './http-debug.ts'
+import { apiFetch, isHttpDebugEnabled } from './http.ts'
 import { clientHeaders } from './meta.ts'
 
 export interface EsRequestParams {
@@ -104,12 +104,17 @@ export class EsClient {
 
     let response: Response
     try {
-      response = await fetchWithHttpDebug(this._fetch, url, {
-        method,
-        headers,
-        ...(fetchBody !== undefined && { body: fetchBody }),
-        redirect: 'error',
-      })
+      response = await apiFetch(
+        this._fetch,
+        url,
+        {
+          method,
+          headers,
+          ...(fetchBody !== undefined && { body: fetchBody }),
+          redirect: 'error',
+        },
+        { debug: isHttpDebugEnabled() }
+      )
     } catch (err) {
       throw new EsConnectionError(err instanceof Error ? err.message : String(err))
     }

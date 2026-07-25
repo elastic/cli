@@ -112,7 +112,7 @@ const ENVIRONMENT: CliEnvironment = {
     {
       name: 'ELASTIC_DEBUG',
       required: false,
-      description: 'Set to 1 to print HTTP request and response details to stderr',
+      description: 'Set to 1 to include HTTP request and response details',
     },
   ],
   configFiles: [

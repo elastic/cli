@@ -13,6 +13,7 @@ import { extractSchemaArgs, validateSchemaArgs } from './lib/schema-args.ts'
 import type { SchemaArgDefinition } from './lib/schema-args.ts'
 import type { renderText as _RT, formatHandlerError as _FHE } from './output.ts'
 import { pickFields, parseFieldList, applyTemplate, TemplateAgainstPrimitiveError } from './lib/output-transform.ts'
+import { attachHttpDebug } from './lib/http.ts'
 import { validateName, hasGlobalJsonFlag, configureErrorOutput, commandPath, isCommandAllowed, stripTransportMeta } from './factory-core.ts'
 import type { OpaqueCommandHandle, JsonValue, CommandConfig, ParsedResult } from './factory-core.ts'
 import { RawJsonValue } from './factory-core.ts'
@@ -613,7 +614,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     assert(handlerResult !== undefined, `command ${JSON.stringify(config.name)}: handler must return a JsonValue`)
     if (isErrorResult(handlerResult)) {
       if (jsonFormat === true) {
-        process.stderr.write(JSON.stringify(handlerResult) + '\n')
+        process.stderr.write(JSON.stringify(attachHttpDebug(handlerResult)) + '\n')
       } else {
         process.stderr.write(`Error: ${formatHandlerError(handlerResult)}\n`)
       }
@@ -643,7 +644,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
           }
         }
       } else if (jsonFormat === true) {
-        process.stdout.write(JSON.stringify(output) + '\n')
+        process.stdout.write(JSON.stringify(attachHttpDebug(output)) + '\n')
       } else if (config.formatOutput !== undefined) {
         process.stdout.write(config.formatOutput(output, parsed))
       } else {

@@ -17,6 +17,7 @@ import type {
 } from '../src/factory.ts'
 import { defineCommand, defineGroup, _testSetStdinReader, isCommandAllowed, hideBlockedCommands, configureJsonHelp } from '../src/factory.ts'
 import { setResolvedConfig, _testResetConfig } from '../src/config/store.ts'
+import { apiFetch, setHttpDebugJsonMode } from '../src/lib/http.ts'
 import { Command } from 'commander'
 import { z } from 'zod'
 describe('factory types', () => {
@@ -3850,6 +3851,67 @@ async function invokeCapturingStreams(
 }
 
 describe('error result detection', () => {
+  afterEach(() => {
+    setHttpDebugJsonMode(false)
+  })
+
+  it('includes buffered HTTP debug statements in one valid JSON result', async () => {
+    setHttpDebugJsonMode(true)
+    const cmd = defineCommand({
+      name: 'request',
+      description: 'Send a request',
+      handler: async () => {
+        const response = await apiFetch(
+          (() => Promise.resolve(new Response('{"ok":true}', { status: 200 }))) as typeof fetch,
+          'https://example.test/data',
+          { method: 'GET' },
+          { debug: true }
+        )
+        return JSON.parse(await response.text())
+      },
+    })
+
+    const { stdout, stderr, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    const parsed = JSON.parse(stdout) as { ok: boolean, debug: string[] }
+    assert.equal(parsed.ok, true)
+    assert.deepEqual(parsed.debug, [
+      '> GET https://example.test/data',
+      '< 200',
+      '< content-type: text/plain;charset=UTF-8',
+      '{"ok":true}',
+    ])
+    assert.equal(stderr, '')
+    assert.equal(exitCode, 0)
+  })
+
+  it('includes buffered HTTP debug statements in one valid JSON error', async () => {
+    setHttpDebugJsonMode(true)
+    const cmd = defineCommand({
+      name: 'request',
+      description: 'Send a request',
+      handler: async () => {
+        await apiFetch(
+          (() => Promise.resolve(new Response('denied', { status: 401 }))) as typeof fetch,
+          'https://example.test/private',
+          { method: 'GET' },
+          { debug: true }
+        )
+        return { error: { code: 'transport_error', message: 'request denied' } }
+      },
+    })
+
+    const { stdout, stderr, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    const parsed = JSON.parse(stderr) as {
+      error: { code: string, message: string }
+      debug: string[]
+    }
+    assert.equal(stdout, '')
+    assert.deepEqual(parsed.error, { code: 'transport_error', message: 'request denied' })
+    assert.ok(parsed.debug.includes('> GET https://example.test/private'))
+    assert.ok(parsed.debug.includes('< 401'))
+    assert.equal(exitCode, 1)
+  })
+
   it('error result in JSON mode goes to stderr with non-zero exit', async () => {
     const cmd = defineCommand({
       name: 'fail',
