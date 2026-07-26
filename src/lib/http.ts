@@ -17,6 +17,39 @@ const REDACTED_HEADERS = new Set([
   'x-api-key',
 ])
 
+const REDACTED_VALUE = '(redacted)'
+
+// Credential fields exposed by the Elasticsearch, Kibana, and Cloud APIs.
+const REDACTED_JSON_FIELDS = new Set([
+  'accesstoken',
+  'apikey',
+  'apikeys',
+  'authorization',
+  'clientsecret',
+  'clustercredentials',
+  'credential',
+  'credentials',
+  'encoded',
+  'enrollmenttoken',
+  'invitationtoken',
+  'invitationtokens',
+  'kerberosauthenticationresponsetoken',
+  'kerberosticket',
+  'password',
+  'passwordhash',
+  'privatekey',
+  'refreshtoken',
+  'secret',
+  'secrets',
+  'secrettoken',
+  'serviceaccounttoken',
+  'servicetoken',
+  'uninstalltoken',
+])
+
+const GENERIC_TOKEN_FIELDS = new Set(['token', 'tokens'])
+const REDACTED_URL_FIELDS = new Set([...REDACTED_JSON_FIELDS, ...GENERIC_TOKEN_FIELDS, 'code'])
+
 /**
  * Per-request behavior for {@link apiFetch}.
  */
@@ -60,8 +93,105 @@ function writeDebugStatement (statement: string): void {
 
 function writeHeaders (prefix: string, headers: RequestInit['headers']): void {
   for (const [name, value] of new Headers(headers)) {
-    const printableValue = REDACTED_HEADERS.has(name.toLowerCase()) ? '(redacted)' : value
+    const printableValue = REDACTED_HEADERS.has(name.toLowerCase()) ? REDACTED_VALUE : value
     writeDebugStatement(`${prefix} ${name}: ${printableValue}`)
+  }
+}
+
+function normalizedFieldName (name: string): string {
+  return name.replace(/[^a-z0-9]/gi, '').toLowerCase()
+}
+
+function redactJsonValue (value: unknown, redactGenericTokens: boolean): unknown {
+  if (Array.isArray(value)) {
+    return value.map(item => redactJsonValue(item, redactGenericTokens))
+  }
+  if (value === null || typeof value !== 'object') {
+    return value
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([name, fieldValue]) => {
+      const normalizedName = normalizedFieldName(name)
+      const isSensitive = REDACTED_JSON_FIELDS.has(normalizedName) ||
+        (redactGenericTokens && GENERIC_TOKEN_FIELDS.has(normalizedName))
+      return [
+        name,
+        isSensitive ? REDACTED_VALUE : redactJsonValue(fieldValue, redactGenericTokens),
+      ]
+    })
+  )
+}
+
+function urlCarriesCredentialTokens (url: string): boolean {
+  let normalizedUrl: string
+  try {
+    normalizedUrl = new URL(url).pathname.toLowerCase()
+  } catch {
+    normalizedUrl = url.toLowerCase()
+  }
+  return [
+    '/credential',
+    '/enroll',
+    '/oauth',
+    '/oidc',
+    '/saml',
+    '/token',
+    '/tokens',
+  ].some(pathPart => normalizedUrl.includes(pathPart))
+}
+
+function redactBody (body: string, url: string): string {
+  const redactGenericTokens = urlCarriesCredentialTokens(url)
+  try {
+    return JSON.stringify(redactJsonValue(JSON.parse(body), redactGenericTokens))
+  } catch {
+    const lines = body.split('\n')
+    if (lines.length === 1) return body
+
+    try {
+      return lines
+        .map(line => line.trim().length === 0
+          ? line
+          : JSON.stringify(redactJsonValue(JSON.parse(line), redactGenericTokens)))
+        .join('\n')
+    } catch {
+      return body
+    }
+  }
+}
+
+function redactUrl (url: string): string {
+  try {
+    const parsed = new URL(url)
+    let changed = false
+
+    if (parsed.username.length > 0 || parsed.password.length > 0) {
+      parsed.username = REDACTED_VALUE
+      parsed.password = REDACTED_VALUE
+      changed = true
+    }
+
+    const segments = parsed.pathname.split('/')
+    for (let index = 0; index < segments.length - 1; index += 1) {
+      if (segments[index]?.toLowerCase() === 'invitations') {
+        segments[index + 1] = REDACTED_VALUE
+        changed = true
+      }
+    }
+    parsed.pathname = segments.join('/')
+
+    for (const name of parsed.searchParams.keys()) {
+      if (REDACTED_URL_FIELDS.has(normalizedFieldName(name))) {
+        parsed.searchParams.set(name, REDACTED_VALUE)
+        changed = true
+      }
+    }
+
+    if (!changed) return url
+    return parsed.toString().replaceAll('%28redacted%29', REDACTED_VALUE)
+  } catch {
+    return url
   }
 }
 
@@ -99,10 +229,10 @@ export async function apiFetch (
     return fetchImplementation(url, init)
   }
 
-  writeDebugStatement(`> ${init.method ?? 'GET'} ${url}`)
+  writeDebugStatement(`> ${init.method ?? 'GET'} ${redactUrl(url)}`)
   writeHeaders('>', init.headers)
   if (typeof init.body === 'string') {
-    writeDebugStatement(init.body)
+    writeDebugStatement(redactBody(init.body, url))
   }
 
   let response: Response
@@ -120,7 +250,7 @@ export async function apiFetch (
   try {
     const body = await response.clone().text()
     if (body.length > 0) {
-      writeDebugStatement(body)
+      writeDebugStatement(redactBody(body, url))
     }
   } catch (error) {
     writeDebugStatement(`< Response body unavailable: ${String(error)}`)

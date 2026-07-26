@@ -121,6 +121,64 @@ describe('apiFetch', () => {
     assert.equal(returnedBody, '{"ok":true}', 'debug logging must not consume the caller response')
   })
 
+  it('redacts credentials in JSON bodies and sensitive URL values', async () => {
+    const responseBody = JSON.stringify({
+      credentials: { username: 'elastic', password: 'response-secret' },
+      access_token: 'access-secret',
+      encoded: 'encoded-api-key',
+      status: 'ready',
+    })
+    const response = new Response(responseBody, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })
+
+    let returnedBody = ''
+    const { stderr } = await captureProcessOutput(async () => {
+      const result = await apiFetch(
+        (() => Promise.resolve(response)) as typeof fetch,
+        'https://user:user-secret@api.elastic-cloud.com/api/v1/organizations/invitations/invite-secret?trace=true&access_token=query-secret',
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            name: 'example',
+            password: 'request-secret',
+            nested: { api_key: 'nested-secret' },
+            secrets: { client_secret: 'client-secret' },
+          }),
+        },
+        { debug: true }
+      )
+      returnedBody = await result.text()
+    })
+
+    assert.match(stderr, /> POST https:\/\/\(redacted\):\(redacted\)@api\.elastic-cloud\.com\/api\/v1\/organizations\/invitations\/\(redacted\)\?trace=true&access_token=\(redacted\)/)
+    assert.match(stderr, /\{"name":"example","password":"\(redacted\)","nested":\{"api_key":"\(redacted\)"\},"secrets":"\(redacted\)"\}/)
+    assert.match(stderr, /\{"credentials":"\(redacted\)","access_token":"\(redacted\)","encoded":"\(redacted\)","status":"ready"\}/)
+    assert.doesNotMatch(stderr, /user-secret|invite-secret|query-secret|request-secret|nested-secret|client-secret|response-secret|access-secret|encoded-api-key/)
+    assert.equal(returnedBody, responseBody, 'debug redaction must not alter the caller response')
+  })
+
+  it('preserves non-credential token fields in ordinary API responses', async () => {
+    const responseBody = '{"tokens":[{"token":"quick","position":0}]}'
+    const response = new Response(responseBody, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })
+
+    const { stderr } = await captureProcessOutput(() =>
+      apiFetch(
+        (() => Promise.resolve(response)) as typeof fetch,
+        'https://example.test/_analyze',
+        { method: 'POST' },
+        { debug: true }
+      )
+    )
+
+    assert.match(stderr, /\{"tokens":\[\{"token":"quick","position":0\}\]\}/)
+  })
+
   it('logs requests without bodies and responses with empty bodies', async () => {
     setHttpDebugEnabled(true)
     const fakeFetch = (() => Promise.resolve(new Response(null, { status: 204 }))) as typeof fetch
