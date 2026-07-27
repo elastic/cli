@@ -21,6 +21,7 @@ const REDACTED_VALUE = '(redacted)'
 
 // Credential fields exposed by the Elasticsearch, Kibana, and Cloud APIs.
 const REDACTED_JSON_FIELDS = new Set([
+  'accesskey',
   'accesstoken',
   'apikey',
   'apikeys',
@@ -30,25 +31,35 @@ const REDACTED_JSON_FIELDS = new Set([
   'credential',
   'credentials',
   'encoded',
+  'enroltoken',
   'enrollmenttoken',
+  'httpcakey',
   'invitationtoken',
   'invitationtokens',
   'kerberosauthenticationresponsetoken',
   'kerberosticket',
+  'langsmithapikey',
+  'nodescredentials',
   'password',
   'passwordhash',
   'privatekey',
   'refreshtoken',
+  'relaystate',
   'secret',
+  'secretkey',
+  'secretparameters',
   'secrets',
   'secrettoken',
+  'securesettingspassword',
+  'sessionstate',
   'serviceaccounttoken',
   'servicetoken',
+  'transportkey',
   'uninstalltoken',
 ])
 
 const GENERIC_TOKEN_FIELDS = new Set(['token', 'tokens'])
-const REDACTED_URL_FIELDS = new Set([...REDACTED_JSON_FIELDS, ...GENERIC_TOKEN_FIELDS, 'code'])
+const REDACTED_URL_FIELDS = new Set([...REDACTED_JSON_FIELDS, ...GENERIC_TOKEN_FIELDS, 'code', 'state'])
 
 /**
  * Per-request behavior for {@link apiFetch}.

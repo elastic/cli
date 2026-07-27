@@ -126,6 +126,12 @@ describe('apiFetch', () => {
       credentials: { username: 'elastic', password: 'response-secret' },
       access_token: 'access-secret',
       encoded: 'encoded-api-key',
+      http_ca_key: 'ca-private-key',
+      nodes_credentials: { token: 'node-secret' },
+      secret_key: 'signing-secret',
+      secret_parameters: { value: 'parameter-secret' },
+      secure_settings_password: 'keystore-secret',
+      transport_key: 'transport-private-key',
       status: 'ready',
     })
     const response = new Response(responseBody, {
@@ -137,15 +143,19 @@ describe('apiFetch', () => {
     const { stderr } = await captureProcessOutput(async () => {
       const result = await apiFetch(
         (() => Promise.resolve(response)) as typeof fetch,
-        'https://user:user-secret@api.elastic-cloud.com/api/v1/organizations/invitations/invite-secret?trace=true&access_token=query-secret',
+        'https://user:user-secret@api.elastic-cloud.com/api/v1/organizations/invitations/invite-secret?trace=true&access_token=query-secret&enrolToken=enrol-secret&state=state-secret&session_state=session-secret',
         {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
+            access_key: 'aws-access-key',
             name: 'example',
             password: 'request-secret',
             nested: { api_key: 'nested-secret' },
             secrets: { client_secret: 'client-secret' },
+            enrolToken: 'body-enrol-secret',
+            langSmithApiKey: 'langsmith-secret',
+            relay_state: 'relay-secret',
           }),
         },
         { debug: true }
@@ -153,10 +163,10 @@ describe('apiFetch', () => {
       returnedBody = await result.text()
     })
 
-    assert.match(stderr, /> POST https:\/\/\(redacted\):\(redacted\)@api\.elastic-cloud\.com\/api\/v1\/organizations\/invitations\/\(redacted\)\?trace=true&access_token=\(redacted\)/)
-    assert.match(stderr, /\{"name":"example","password":"\(redacted\)","nested":\{"api_key":"\(redacted\)"\},"secrets":"\(redacted\)"\}/)
-    assert.match(stderr, /\{"credentials":"\(redacted\)","access_token":"\(redacted\)","encoded":"\(redacted\)","status":"ready"\}/)
-    assert.doesNotMatch(stderr, /user-secret|invite-secret|query-secret|request-secret|nested-secret|client-secret|response-secret|access-secret|encoded-api-key/)
+    assert.match(stderr, /> POST https:\/\/\(redacted\):\(redacted\)@api\.elastic-cloud\.com\/api\/v1\/organizations\/invitations\/\(redacted\)\?trace=true&access_token=\(redacted\)&enrolToken=\(redacted\)&state=\(redacted\)&session_state=\(redacted\)/)
+    assert.match(stderr, /\{"access_key":"\(redacted\)","name":"example","password":"\(redacted\)","nested":\{"api_key":"\(redacted\)"\},"secrets":"\(redacted\)","enrolToken":"\(redacted\)","langSmithApiKey":"\(redacted\)","relay_state":"\(redacted\)"\}/)
+    assert.match(stderr, /\{"credentials":"\(redacted\)","access_token":"\(redacted\)","encoded":"\(redacted\)","http_ca_key":"\(redacted\)","nodes_credentials":"\(redacted\)","secret_key":"\(redacted\)","secret_parameters":"\(redacted\)","secure_settings_password":"\(redacted\)","transport_key":"\(redacted\)","status":"ready"\}/)
+    assert.doesNotMatch(stderr, /user-secret|invite-secret|query-secret|enrol-secret|state-secret|session-secret|aws-access-key|request-secret|nested-secret|client-secret|body-enrol-secret|langsmith-secret|relay-secret|response-secret|access-secret|encoded-api-key|ca-private-key|node-secret|signing-secret|parameter-secret|keystore-secret|transport-private-key/)
     assert.equal(returnedBody, responseBody, 'debug redaction must not alter the caller response')
   })
 
