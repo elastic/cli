@@ -21,6 +21,7 @@ describe('buildCloudRequestParams', () => {
       description: 'List deployments',
       method: 'GET',
       path: '/api/v1/deployments',
+      destructive: false,
     }
     const result = buildCloudRequestParams(def, parsed())
     assert.equal(result.method, 'GET')
@@ -36,7 +37,12 @@ describe('buildCloudRequestParams', () => {
       description: 'Get deployment',
       method: 'GET',
       path: '/api/v1/deployments/{deployment_id}',
-      pathParams: [{ name: 'deployment_id', description: 'ID', required: true }],
+      destructive: false,
+      input: {
+        type: 'object',
+        properties: { deployment_id: { type: 'string', description: 'ID', 'x-found-in': 'path' } },
+        required: ['deployment_id'],
+      },
     }
     const result = buildCloudRequestParams(def, parsed({ deployment_id: 'abc-123' }))
     assert.equal(result.path, '/api/v1/deployments/abc-123')
@@ -49,7 +55,11 @@ describe('buildCloudRequestParams', () => {
       description: 'Get deployment',
       method: 'GET',
       path: '/api/v1/deployments/{deployment_id}',
-      pathParams: [{ name: 'deployment_id', description: 'ID', required: false }],
+      destructive: false,
+      input: {
+        type: 'object',
+        properties: { deployment_id: { type: 'string', description: 'ID', 'x-found-in': 'path' } },
+      },
     }
     const result = buildCloudRequestParams(def, parsed())
     assert.equal(result.path, '/api/v1/deployments')
@@ -62,10 +72,14 @@ describe('buildCloudRequestParams', () => {
       description: 'List deployments',
       method: 'GET',
       path: '/api/v1/deployments',
-      queryParams: [
-        { name: 'show_metadata', type: 'boolean', description: 'Include metadata' },
-        { name: 'limit', type: 'number', description: 'Max results' },
-      ],
+      destructive: false,
+      input: {
+        type: 'object',
+        properties: {
+          show_metadata: { type: 'boolean', description: 'Include metadata', 'x-found-in': 'query' },
+          limit: { type: 'number', description: 'Max results', 'x-found-in': 'query' },
+        },
+      },
     }
     const result = buildCloudRequestParams(def, parsed({ show_metadata: true, limit: 10 }))
     assert.deepEqual(result.querystring, { show_metadata: 'true', limit: '10' })
@@ -78,27 +92,16 @@ describe('buildCloudRequestParams', () => {
       description: 'List',
       method: 'GET',
       path: '/api/v1/deployments',
-      queryParams: [
-        { name: 'show_metadata', type: 'boolean', description: 'Include metadata' },
-      ],
+      destructive: false,
+      input: {
+        type: 'object',
+        properties: {
+          show_metadata: { type: 'boolean', description: 'Include metadata', 'x-found-in': 'query' },
+        },
+      },
     }
     const result = buildCloudRequestParams(def, parsed())
     assert.equal(result.querystring, undefined)
-  })
-
-  it('uses cliFlag as input key when provided on query param', () => {
-    const def: CloudApiDefinition = {
-      name: 'list',
-      namespace: 'deployments',
-      description: 'List',
-      method: 'GET',
-      path: '/api/v1/deployments',
-      queryParams: [
-        { name: 'show_metadata', cliFlag: 'show-metadata', type: 'boolean', description: 'Meta' },
-      ],
-    }
-    const result = buildCloudRequestParams(def, parsed({ 'show-metadata': true }))
-    assert.deepEqual(result.querystring, { show_metadata: 'true' })
   })
 
   it('collects body fields from input', () => {
@@ -108,10 +111,15 @@ describe('buildCloudRequestParams', () => {
       description: 'Create deployment',
       method: 'POST',
       path: '/api/v1/deployments',
-      bodyParams: [
-        { name: 'name', type: 'string', description: 'Name', required: true },
-        { name: 'region', type: 'string', description: 'Region', required: true },
-      ],
+      destructive: false,
+      input: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Name', 'x-found-in': 'body' },
+          region: { type: 'string', description: 'Region', 'x-found-in': 'body' },
+        },
+        required: ['name', 'region'],
+      },
     }
     const result = buildCloudRequestParams(def, parsed({ name: 'my-deploy', region: 'us-east-1' }))
     assert.deepEqual(result.body, { name: 'my-deploy', region: 'us-east-1' })
@@ -124,9 +132,13 @@ describe('buildCloudRequestParams', () => {
       description: 'Create',
       method: 'POST',
       path: '/api/v1/deployments',
-      bodyParams: [
-        { name: 'name', type: 'string', description: 'Name' },
-      ],
+      destructive: false,
+      input: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Name', 'x-found-in': 'body' },
+        },
+      },
     }
     const result = buildCloudRequestParams(def, parsed())
     assert.equal(result.body, undefined)
@@ -139,11 +151,16 @@ describe('buildCloudRequestParams', () => {
       description: 'Update deployment',
       method: 'PUT',
       path: '/api/v1/deployments/{deployment_id}',
-      pathParams: [{ name: 'deployment_id', description: 'ID', required: true }],
-      queryParams: [{ name: 'validate_only', type: 'boolean', description: 'Dry run' }],
-      bodyParams: [
-        { name: 'name', type: 'string', description: 'Name' },
-      ],
+      destructive: true,
+      input: {
+        type: 'object',
+        properties: {
+          deployment_id: { type: 'string', description: 'ID', 'x-found-in': 'path' },
+          validate_only: { type: 'boolean', description: 'Dry run', 'x-found-in': 'query' },
+          name: { type: 'string', description: 'Name', 'x-found-in': 'body' },
+        },
+        required: ['deployment_id'],
+      },
     }
     const result = buildCloudRequestParams(def, parsed({
       deployment_id: 'abc',
@@ -162,7 +179,12 @@ describe('buildCloudRequestParams', () => {
       description: 'Get deployment',
       method: 'GET',
       path: '/api/v1/deployments/{deployment_id}',
-      pathParams: [{ name: 'deployment_id', description: 'ID', required: true }],
+      destructive: false,
+      input: {
+        type: 'object',
+        properties: { deployment_id: { type: 'string', description: 'ID', 'x-found-in': 'path' } },
+        required: ['deployment_id'],
+      },
     }
     const result = buildCloudRequestParams(def, parsed({ deployment_id: '../../../secret?#' }))
     assert.ok(!result.path.includes('../'), 'dot-dot-slash must be encoded')
@@ -178,6 +200,7 @@ describe('buildCloudRequestParams', () => {
       description: 'Create',
       method: 'POST',
       path: '/api/v1/serverless/projects/elasticsearch',
+      destructive: false,
     }
     const result = buildCloudRequestParams(def, parsed({ name: 'demo', region_id: 'aws-us-east-1' }))
     assert.deepEqual(result.body, { name: 'demo', region_id: 'aws-us-east-1' })
@@ -190,8 +213,16 @@ describe('buildCloudRequestParams', () => {
       description: 'Patch',
       method: 'PATCH',
       path: '/api/v1/serverless/projects/elasticsearch/{id}',
-      pathParams: [{ name: 'id', description: 'ID', required: true }],
-      queryParams: [{ name: 'dry_run', type: 'boolean', description: 'Dry run' }],
+      destructive: true,
+      input: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'ID', 'x-found-in': 'path' },
+          dry_run: { type: 'boolean', description: 'Dry run', 'x-found-in': 'query' },
+          name: { type: 'string', description: 'Name', 'x-found-in': 'body' },
+        },
+        required: ['id'],
+      },
     }
     const result = buildCloudRequestParams(def, parsed({ id: 'abc', dry_run: true, name: 'new-name' }))
     assert.deepEqual(result.body, { name: 'new-name' }, 'path and query params should not be in body')
@@ -206,6 +237,7 @@ describe('buildCloudRequestParams', () => {
       description: 'List',
       method: 'GET',
       path: '/api/v1/deployments',
+      destructive: false,
     }
     const result = buildCloudRequestParams(def, parsed({ extra: 'value' }))
     assert.equal(result.body, undefined)
@@ -218,7 +250,12 @@ describe('buildCloudRequestParams', () => {
       description: 'Delete',
       method: 'DELETE',
       path: '/api/v1/deployments/{id}',
-      pathParams: [{ name: 'id', description: 'ID', required: true }],
+      destructive: true,
+      input: {
+        type: 'object',
+        properties: { id: { type: 'string', description: 'ID', 'x-found-in': 'path' } },
+        required: ['id'],
+      },
     }
     const result = buildCloudRequestParams(def, parsed({ id: 'abc', extra: 'value' }))
     assert.equal(result.body, undefined)

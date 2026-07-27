@@ -3,57 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * Valid HTTP methods for Cloud control plane API requests.
- */
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
-
-/**
- * Describes a path parameter that gets interpolated into the URL template.
- */
-export interface CloudPathParam {
-  name: string
-  description: string
-  required: boolean
-}
-
-/**
- * Describes a query string parameter for a Cloud API request.
- */
-export interface CloudQueryParam {
-  name: string
-  cliFlag?: string
-  type: 'string' | 'number' | 'boolean'
-  description: string
-  required?: boolean
-  defaultValue?: string | number | boolean
-}
-
-/**
- * Describes a body parameter for a Cloud API request.
- */
-export interface CloudBodyParam {
-  name: string
-  cliFlag?: string
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array'
-  description: string
-  required?: boolean
-}
-
-/**
- * Declarative description of a single Cloud control plane API endpoint.
- */
-export interface CloudApiDefinition {
-  name: string
-  namespace: string
-  description: string
-  method: HttpMethod
-  path: string
-  pathParams?: CloudPathParam[]
-  queryParams?: CloudQueryParam[]
-  /** Body parameters. For a passthrough body (stdin/--input-file), use an empty bodyParams array. */
-  bodyParams?: CloudBodyParam[]
-}
+export type { CloudApiDefinition, HttpMethod } from '@elastic/schemas/cloud/tools/types.js'
+import type { CloudApiDefinition } from '@elastic/schemas/cloud/tools/types.js'
 
 const VALID_NAME = /^[a-z0-9][a-z0-9-]*$/
 const VALID_NAMESPACE = /^[a-z][a-z-]*$/
@@ -87,100 +38,53 @@ export function validateCloudApiDefinition (def: CloudApiDefinition): void {
   }
 
   const tokens = extractPathTokens(def.path)
-  const paramNames = new Set((def.pathParams ?? []).map((p) => p.name))
+  const props = (def.input?.properties ?? {}) as Record<string, Record<string, unknown>>
+  const pathParamNames = new Set(
+    Object.entries(props)
+      .filter(([, v]) => v['x-found-in'] === 'path')
+      .map(([k]) => k)
+  )
 
   for (const token of tokens) {
-    if (!paramNames.has(token)) {
+    if (!pathParamNames.has(token)) {
       throw new Error(
-        `path param {${token}} is not defined in pathParams for definition ${JSON.stringify(def.name)}`
+        `path param {${token}} is not defined in input.properties for definition ${JSON.stringify(def.name)}`
       )
     }
   }
 
   const pathSet = new Set(tokens)
-  for (const param of def.pathParams ?? []) {
-    if (param.required && !pathSet.has(param.name)) {
-      throw new Error(
-        `required pathParam "${param.name}" is not in path template for definition ${JSON.stringify(def.name)}`
-      )
+  for (const [key, prop] of Object.entries(props)) {
+    if (prop['x-found-in'] === 'path' && (prop['required'] === true || (def.input?.required as string[] | undefined)?.includes(key))) {
+      if (!pathSet.has(key)) {
+        throw new Error(
+          `required pathParam "${key}" is not in path template for definition ${JSON.stringify(def.name)}`
+        )
+      }
     }
   }
 
-  const schemaKeys = new Set<string>()
-  const collisions: string[] = []
-
-  for (const p of def.pathParams ?? []) {
-    if (schemaKeys.has(p.name)) collisions.push(p.name)
-    schemaKeys.add(p.name)
-  }
-
-  for (const q of def.queryParams ?? []) {
-    const key = q.cliFlag ?? q.name
-    if (schemaKeys.has(key)) collisions.push(key)
-    schemaKeys.add(key)
-  }
-
-  for (const b of def.bodyParams ?? []) {
-    const key = b.cliFlag ?? b.name
-    if (schemaKeys.has(key)) collisions.push(key)
-    schemaKeys.add(key)
-  }
-
-  if (collisions.length > 0) {
-    throw new Error(
-      `schema key collision(s) in definition "${def.name}": ${collisions.join(', ')}. ` +
-      'Use cliFlag to rename the conflicting query param, or restructure the definition to avoid the conflict.'
-    )
-  }
+  // Detect key collisions (each property key must be unique — they always are in a JSON object, so this is satisfied structurally)
 }
 
 /**
- * Builds a JSON Schema object from a CloudApiDefinition's params.
- * Used by register.ts to pass to defineCommand as the input schema.
+ * Builds a JSON Schema object from a CloudApiDefinition's `input`.
+ * Strips `x-found-in` from the returned schema since it is an internal
+ * routing annotation and must not appear in help text or error messages.
  */
 export function buildCloudJsonSchema (def: CloudApiDefinition): Record<string, unknown> {
-  const properties: Record<string, unknown> = {}
-  const required: string[] = []
+  if (def.input == null) return { type: 'object', properties: {} }
 
-  for (const p of def.pathParams ?? []) {
-    const key = p.name
-    properties[key] = {
-      type: 'string',
-      description: p.description,
-      'x-found-in': 'path',
-    }
-    if (p.required) required.push(key)
+  const props = (def.input.properties ?? {}) as Record<string, Record<string, unknown>>
+  const cleaned: Record<string, unknown> = {}
+  for (const [key, prop] of Object.entries(props)) {
+    const { 'x-found-in': _routing, ...rest } = prop
+    cleaned[key] = rest
   }
 
-  for (const q of def.queryParams ?? []) {
-    const key = q.cliFlag ?? q.name
-    const jsonType = q.type === 'number' ? 'number' : q.type === 'boolean' ? 'boolean' : 'string'
-    const prop: Record<string, unknown> = {
-      type: jsonType,
-      description: q.description,
-      'x-found-in': 'query',
-    }
-    if (q.defaultValue !== undefined) prop['default'] = q.defaultValue
-    properties[key] = prop
-    if (q.required === true) required.push(key)
+  const schema: Record<string, unknown> = { type: 'object', properties: cleaned }
+  if (Array.isArray(def.input.required) && (def.input.required as unknown[]).length > 0) {
+    schema['required'] = def.input.required
   }
-
-  for (const b of def.bodyParams ?? []) {
-    const key = b.cliFlag ?? b.name
-    const jsonType = b.type === 'number' ? 'number' : b.type === 'boolean' ? 'boolean' :
-      b.type === 'array' ? 'array' : b.type === 'object' ? 'object' : 'string'
-    properties[key] = {
-      type: jsonType,
-      description: b.description,
-      'x-found-in': 'body',
-    }
-    if (b.required === true) required.push(key)
-  }
-
-  const schema: Record<string, unknown> = {
-    type: 'object',
-    properties,
-  }
-  if (required.length > 0) schema['required'] = required
   return schema
 }

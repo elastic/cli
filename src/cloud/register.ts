@@ -8,7 +8,7 @@ import { defineCommand, defineGroup } from '../factory.ts'
 import type { OpaqueCommandHandle } from '../factory.ts'
 import type { CloudApiDefinition } from './types.ts'
 import { validateCloudApiDefinition, buildCloudJsonSchema } from './types.ts'
-import { allCloudApis } from './apis.ts'
+import { loadCloudApis } from './apis.ts'
 import { allServerlessApis } from './serverless-apis.ts'
 
 import { createCloudHandler, isCreateProjectCommand } from './handler.ts'
@@ -242,14 +242,18 @@ async function wrapWithCredentialPolicy (
 /**
  * Registers the unified Cloud command tree.
  */
-export function registerCloudCommands (
-  definitions: CloudApiDefinition[] = [...allCloudApis, ...allServerlessApis],
-): OpaqueCommandHandle {
-  for (const def of definitions) {
+/**
+ * Registers the unified Cloud command tree.
+ */
+export async function registerCloudCommands (
+  definitions?: CloudApiDefinition[],
+): Promise<OpaqueCommandHandle> {
+  const allDefs = definitions ?? [...(await loadCloudApis()), ...allServerlessApis]
+  for (const def of allDefs) {
     validateCloudApiDefinition(def)
   }
 
-  const { promoted, hosted, serverless } = partitionDefinitions(definitions)
+  const { promoted, hosted, serverless } = partitionDefinitions(allDefs)
   const promotedGroups = buildFlatNamespaceGroups(promoted, 'Cloud', PROMOTED_NAMESPACES)
   const hostedGroup = buildHostedGroup(hosted)
   const serverlessGroup = buildServerlessGroup(serverless)

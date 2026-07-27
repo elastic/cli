@@ -5,13 +5,15 @@
  */
 
 /**
- * Orchestrates regeneration of the ES, Cloud and Kibana API bindings against
+ * Orchestrates regeneration of the ES and Kibana API bindings against
  * the upstream elastic/elastic-client-generator-js repo.
  *
  * Usage (from package.json scripts):
  *   node scripts/codegen.mjs es
- *   node scripts/codegen.mjs cloud
  *   node scripts/codegen.mjs kibana
+ *
+ * Cloud API bindings are imported directly from @elastic/schemas; no
+ * code generation is required for the cloud command tree.
  *
  * Environment:
  *   CODEGEN_GENERATOR_DIR    Reuse an existing generator checkout (absolute
@@ -22,26 +24,11 @@
  *   CODEGEN_ES_VERSION       Elasticsearch schema version (default: main).
  *
  * Design rationale:
- *   The upstream generator's targets (`npm run zod`, `npm run cli-es`,
- *   `npm run cli-cloud`, `npm run cli-kibana`, `npm run cli-serverless`)
- *   share a single `output/` directory. `npm run zod` / `npm run cli-es` wipe
- *   it via `npm run clean`; the kibana entrypoint self-wipes `output/kibana/`;
- *   `npm run cli-cloud` and `npm run cli-serverless` each wipe only their own
- *   subdirectory (`output/cloud/`, `output/serverless/`), so we wipe everything
- *   before the cloud step but run the two cloud passes back-to-back. This
- *   script runs them sequentially and copies the relevant files into
- *   `src/es/apis/`, `src/es/apis/schemas/`, `src/cloud/apis/` (hosted +
- *   serverless namespace files share this directory), and `src/kb/apis/`.
- *
- *   `src/es/apis.ts` and `src/kb/apis.ts` are hand-written lazy loaders —
- *   they are NOT overwritten by the generator output. Instead, the generator
- *   emits `output/es/manifest.ts` and `output/kibana/manifest.ts` directly,
- *   which this script copies to `src/es/api-manifest.ts` and
- *   `src/kb/api-manifest.ts` respectively.
- *
- *   Cloud also has a hand-written lazy loader at `src/cloud/apis.ts` (see #232).
- *   The generator produces `output/cloud/apis.ts` and `output/serverless/apis.ts`
- *   as barrels but those are intentionally NOT copied.
+ *   The upstream generator emits `output/es/manifest.ts` and
+ *   `output/kibana/manifest.ts` which this script copies to
+ *   `src/es/api-manifest.ts` and `src/kb/api-manifest.ts` respectively.
+ *   Per-namespace schema files are lazy-loaded from @elastic/schemas at
+ *   runtime.
  */
 
 import { spawnSync } from 'node:child_process'
@@ -139,32 +126,6 @@ function generateEs (generatorDir) {
   console.log(`[codegen]   wrote manifest -> ${join(REPO_ROOT, 'src', 'es', 'api-manifest.ts')}`)
 }
 
-function generateCloud (generatorDir) {
-  const output = join(generatorDir, 'output')
-  const apisDest = join(REPO_ROOT, 'src', 'cloud', 'apis')
-
-  console.log('[codegen] Step 1/2: Cloud (hosted) API namespace files')
-  // Neither `cli-cloud` nor `cli-serverless` invoke `npm run clean`; they only
-  // wipe their own `output/{cloud,serverless}/` subdirectory. Wipe everything
-  // up front so leftovers from a previous target (`zod`, `cli-es`) cannot
-  // shadow the hosted output.
-  rmSync(output, { recursive: true, force: true })
-  run('npm', ['run', 'cli-cloud'], { cwd: generatorDir, shell: process.platform === 'win32' })
-  clearDir(apisDest, (entry) => entry.endsWith('.ts'))
-  copyTsFiles(join(output, 'cloud'), apisDest)
-  console.log(`[codegen]   wrote hosted APIs -> ${apisDest}`)
-
-  console.log('[codegen] Step 2/2: Serverless API namespace files')
-  // `cli-serverless` writes to `output/serverless/` and does not touch
-  // `output/cloud/`, so the hosted output above is preserved.
-  run('npm', ['run', 'cli-serverless'], { cwd: generatorDir, shell: process.platform === 'win32' })
-  // Serverless namespace tags do not collide with hosted tags, so the
-  // per-namespace files coexist in `src/cloud/`. The serverless barrel is
-  // copied to `src/cloud/serverless-apis.ts`.
-  copyTsFiles(join(output, 'serverless', 'apis'), apisDest)
-  cpSync(join(output, 'serverless', 'apis.ts'), join(REPO_ROOT, 'src', 'cloud', 'serverless-apis.ts'))
-  console.log(`[codegen]   wrote serverless APIs -> ${apisDest}`)
-}
 
 function generateKibana (generatorDir) {
   const output = join(generatorDir, 'output')
@@ -188,7 +149,7 @@ function generateKibana (generatorDir) {
 }
 
 const target = process.argv[2]
-if (target !== 'es' && target !== 'cloud' && target !== 'kibana') {
+if (target !== 'es' && target !== 'kibana') {
   console.error('Usage: node scripts/codegen.mjs <es|cloud|kibana>')
   process.exit(1)
 }
@@ -196,7 +157,6 @@ if (target !== 'es' && target !== 'cloud' && target !== 'kibana') {
 try {
   const generatorDir = ensureGenerator()
   if (target === 'es') generateEs(generatorDir)
-  else if (target === 'cloud') generateCloud(generatorDir)
   else generateKibana(generatorDir)
   console.log(`[codegen] Done (${target}).`)
 } catch (err) {

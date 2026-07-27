@@ -32,7 +32,7 @@ import { PROMOTED_NAMESPACES } from './constants.ts'
 export async function registerCloudCommandsLazy (targetSubNamespace?: string): Promise<OpaqueCommandHandle> {
   if (targetSubNamespace != null) {
     const { registerCloudCommands } = await import('./register.js')
-    return registerCloudCommands()
+    return await registerCloudCommands()
   }
 
   // Top-level `cloud --help` path: build minimal stubs for the top-level groups.

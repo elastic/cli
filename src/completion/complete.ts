@@ -186,7 +186,7 @@ export async function buildCompletionTree (rewrittenWords: readonly string[]): P
   // `cloud` — deep-load on exact match, stub otherwise.
   if (firstWord === 'cloud') {
     const { registerCloudCommands } = await import('../cloud/register.ts')
-    root.addCommand(registerCloudCommands())
+    root.addCommand(await registerCloudCommands())
   } else {
     root.addCommand(defineGroup({ name: 'cloud', description: 'Manage Elastic Cloud (hosted deployments and serverless projects)' }))
   }

@@ -18,6 +18,7 @@ import type {
 import { defineCommand, defineGroup, _testSetStdinReader, isCommandAllowed, hideBlockedCommands, configureJsonHelp } from '../src/factory.ts'
 import { setResolvedConfig, _testResetConfig } from '../src/config/store.ts'
 import { Command } from 'commander'
+import { z } from 'zod'
 
 /** Build a JSON Schema for test use. */
 function jsonSchema(
