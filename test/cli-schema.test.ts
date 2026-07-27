@@ -23,6 +23,36 @@ function runCliSchema (): Promise<{ code: number | null, stdout: string, stderr:
   })
 }
 
+interface CliParameter {
+  name: string
+  repeatable?: boolean
+  separator?: string
+}
+
+interface CliCommand {
+  name: string
+  parameters: CliParameter[]
+}
+
+interface CliNamespace {
+  segment: string
+  commands?: CliCommand[]
+  namespaces?: CliNamespace[]
+}
+
+function findCommand (namespaces: CliNamespace[], path: string[], name: string): CliCommand | undefined {
+  let level = namespaces
+  for (const segment of path) {
+    const ns = level.find((n) => n.segment === segment)
+    if (ns == null) return undefined
+    if (segment === path[path.length - 1]) {
+      return ns.commands?.find((c) => c.name === name)
+    }
+    level = ns.namespaces ?? []
+  }
+  return undefined
+}
+
 describe('cli schema', () => {
   it('does not emit runtime shortcuts into the docs-builder schema', async () => {
     const { code, stdout, stderr } = await runCliSchema()
@@ -32,5 +62,26 @@ describe('cli schema', () => {
     assert.equal(Object.hasOwn(schema, 'shortcuts'), false)
     assert.ok(Array.isArray(schema['namespaces']))
     assert.ok((schema['namespaces'] as Array<{ segment?: string }>).some(ns => ns.segment === 'stack'))
+  })
+
+  it('emits repeatable+separator for a body-routed array-accepting field, and no separator for a query-routed one', async () => {
+    const { code, stdout, stderr } = await runCliSchema()
+    assert.equal(code, 0, stderr)
+
+    const schema = JSON.parse(stdout) as { namespaces: CliNamespace[] }
+
+    // `mget`'s `ids` is routed to the request body -- ES doesn't split comma-separated
+    // values inside JSON bodies, so the emitted parameter must advertise a separator.
+    const mget = findCommand(schema.namespaces, ['stack', 'es'], 'mget')
+    const ids = mget?.parameters.find((p) => p.name === 'ids')
+    assert.equal(ids?.repeatable, true)
+    assert.equal(ids?.separator, ',')
+
+    // `bulk`'s `routing` is routed to the querystring -- CSV splitting happens there
+    // naturally, so no separator should be emitted even though it's repeatable.
+    const bulk = findCommand(schema.namespaces, ['stack', 'es'], 'bulk')
+    const routing = bulk?.parameters.find((p) => p.name === 'routing')
+    assert.equal(routing?.repeatable, true)
+    assert.equal(routing?.separator, undefined)
   })
 })
