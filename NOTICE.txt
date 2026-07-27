@@ -1230,7 +1230,7 @@ SOFTWARE.
 
 
 ------------------------------------------------------------------------
-fast-uri@3.1.3
+fast-uri@3.1.4
 License: BSD-3-Clause
 Repository: https://github.com/fastify/fast-uri
 Publisher: Vincent Le Goff <vince.legoff@gmail.com> (https://github.com/zekth)
@@ -1974,7 +1974,7 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
 ------------------------------------------------------------------------
-yargs@16.2.0
+yargs@16.2.2
 License: MIT
 Repository: https://github.com/yargs/yargs
 ------------------------------------------------------------------------
