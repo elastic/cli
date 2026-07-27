@@ -71,6 +71,7 @@ function buildLeafHandle (def: KbApiDefinition): OpaqueCommandHandle {
     name: def.name,
     description: def.description,
     input: schema,
+    readOnly: def.method === 'GET' || def.method === 'HEAD',
     handler: createKbHandler(def),
     ...(def.intent != null || inferIntentFromHttp(def.method) != null
       ? { intent: def.intent ?? inferIntentFromHttp(def.method)! }

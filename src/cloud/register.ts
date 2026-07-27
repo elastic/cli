@@ -165,6 +165,7 @@ function buildFlatLeaf (def: CloudApiDefinition): OpaqueCommandHandle {
     name: def.name,
     description: def.description,
     input: schema,
+    readOnly: def.method === 'GET',
     handler: createCloudHandler(def),
   })
 }
@@ -213,6 +214,7 @@ function buildServerlessTypeGroup (
       name: shortName,
       description: def.description,
       input: schema,
+      readOnly: def.method === 'GET',
       handler,
     })
     if (isCreateProjectCommand(def.name)) {

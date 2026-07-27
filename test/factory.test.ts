@@ -1955,13 +1955,51 @@ describe('defineCommand', () => {
   })
 
   describe('--dry-run', () => {
-    it('appears in help text for every command', () => {
+    it('appears in help text for commands without an input schema', () => {
       const cmd = defineCommand({
         name: 'ping',
         description: 'Ping',
         handler: () => ({}),
       })
       assert.match(cmd.helpInformation(), /--dry-run/)
+    })
+
+    it('is hidden together with --input-file for read-only commands with an empty input schema (#378)', () => {
+      const cmd = defineCommand({
+        name: 'info',
+        description: 'Get cluster info',
+        input: z.looseObject({}),
+        readOnly: true,
+        handler: () => ({}),
+      })
+      const help = cmd.helpInformation()
+      assert.doesNotMatch(help, /--dry-run/)
+      assert.doesNotMatch(help, /--input-file/)
+    })
+
+    it('stays visible for read-only commands whose input schema has fields', () => {
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: z.object({ index: z.string() }),
+        readOnly: true,
+        handler: () => ({}),
+      })
+      const help = cmd.helpInformation()
+      assert.match(help, /--dry-run/)
+      assert.match(help, /--input-file/)
+    })
+
+    it('stays visible for write commands with an empty input schema (body via --input-file)', () => {
+      const cmd = defineCommand({
+        name: 'create',
+        description: 'Create a thing',
+        input: z.looseObject({}),
+        handler: () => ({}),
+      })
+      const help = cmd.helpInformation()
+      assert.match(help, /--dry-run/)
+      assert.match(help, /--input-file/)
     })
 
     it('outputs {"success":true} when --json and skips the handler', async () => {

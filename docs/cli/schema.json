@@ -4318,22 +4318,7 @@
                 "stack",
                 "es"
               ],
-              "parameters": [
-                {
-                  "role": "flag",
-                  "name": "input-file",
-                  "type": "string",
-                  "required": false,
-                  "summary": "path to a JSON file to use as command input"
-                },
-                {
-                  "role": "dryRun",
-                  "name": "dry-run",
-                  "type": "boolean",
-                  "required": false,
-                  "summary": "validate all inputs and exit without performing any action"
-                }
-              ],
+              "parameters": [],
               "summary": "Get script contexts.",
               "intent": {
                 "destructive": false,
@@ -4348,22 +4333,7 @@
                 "stack",
                 "es"
               ],
-              "parameters": [
-                {
-                  "role": "flag",
-                  "name": "input-file",
-                  "type": "string",
-                  "required": false,
-                  "summary": "path to a JSON file to use as command input"
-                },
-                {
-                  "role": "dryRun",
-                  "name": "dry-run",
-                  "type": "boolean",
-                  "required": false,
-                  "summary": "validate all inputs and exit without performing any action"
-                }
-              ],
+              "parameters": [],
               "summary": "Get script languages.",
               "intent": {
                 "destructive": false,
@@ -4553,22 +4523,7 @@
                 "stack",
                 "es"
               ],
-              "parameters": [
-                {
-                  "role": "flag",
-                  "name": "input-file",
-                  "type": "string",
-                  "required": false,
-                  "summary": "path to a JSON file to use as command input"
-                },
-                {
-                  "role": "dryRun",
-                  "name": "dry-run",
-                  "type": "boolean",
-                  "required": false,
-                  "summary": "validate all inputs and exit without performing any action"
-                }
-              ],
+              "parameters": [],
               "summary": "Get cluster info.",
               "intent": {
                 "destructive": false,
@@ -4583,22 +4538,7 @@
                 "stack",
                 "es"
               ],
-              "parameters": [
-                {
-                  "role": "flag",
-                  "name": "input-file",
-                  "type": "string",
-                  "required": false,
-                  "summary": "path to a JSON file to use as command input"
-                },
-                {
-                  "role": "dryRun",
-                  "name": "dry-run",
-                  "type": "boolean",
-                  "required": false,
-                  "summary": "validate all inputs and exit without performing any action"
-                }
-              ],
+              "parameters": [],
               "summary": "Ping the cluster.",
               "intent": {
                 "destructive": false,
@@ -5819,22 +5759,7 @@
                     "es",
                     "cat"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get CAT help.",
                   "intent": {
                     "destructive": false,
@@ -8843,22 +8768,7 @@
                     "es",
                     "cluster"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get remote cluster information.",
                   "intent": {
                     "destructive": false,
@@ -9049,22 +8959,7 @@
                     "es",
                     "cluster"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get cluster statistics.",
                   "intent": {
                     "destructive": false,
@@ -10646,22 +10541,7 @@
                     "es",
                     "dangling-indices"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get the dangling indices.",
                   "intent": {
                     "destructive": false,
@@ -11663,22 +11543,7 @@
                     "es",
                     "esql"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get running ES|QL queries information.",
                   "intent": {
                     "destructive": false,
@@ -12779,22 +12644,7 @@
                     "es",
                     "ilm"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get lifecycle policies.",
                   "intent": {
                     "destructive": false,
@@ -12810,22 +12660,7 @@
                     "es",
                     "ilm"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get the ILM status.",
                   "intent": {
                     "destructive": false,
@@ -15159,22 +14994,7 @@
                     "es",
                     "indices"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get data stream lifecycle stats.",
                   "intent": {
                     "destructive": false,
@@ -21297,22 +21117,7 @@
                     "es",
                     "ingest"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get GeoIP statistics.",
                   "intent": {
                     "destructive": false,
@@ -21458,22 +21263,7 @@
                     "es",
                     "ingest"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Run a grok processor.",
                   "intent": {
                     "destructive": false,
@@ -21876,22 +21666,7 @@
                     "es",
                     "license"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get the basic license status.",
                   "intent": {
                     "destructive": false,
@@ -21907,22 +21682,7 @@
                     "es",
                     "license"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get the trial status.",
                   "intent": {
                     "destructive": false,
@@ -22272,22 +22032,7 @@
                     "es",
                     "migration"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get feature migration information.",
                   "intent": {
                     "destructive": false,
@@ -24715,22 +24460,7 @@
                     "es",
                     "ml"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get machine learning information.",
                   "intent": {
                     "destructive": false,
@@ -27592,22 +27322,7 @@
                     "es",
                     "project"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get project routing expressions.",
                   "intent": {
                     "destructive": false,
@@ -27661,22 +27376,7 @@
                     "es",
                     "project"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get tags.",
                   "intent": {
                     "destructive": false,
@@ -29250,22 +28950,7 @@
                     "es",
                     "security"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Authenticate a user.",
                   "intent": {
                     "destructive": false,
@@ -30401,22 +30086,7 @@
                     "es",
                     "security"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Enroll Kibana.",
                   "intent": {
                     "destructive": false,
@@ -30432,22 +30102,7 @@
                     "es",
                     "security"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Enroll a node.",
                   "intent": {
                     "destructive": false,
@@ -30550,22 +30205,7 @@
                     "es",
                     "security"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get builtin privileges.",
                   "intent": {
                     "destructive": false,
@@ -30840,22 +30480,7 @@
                     "es",
                     "security"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get security stats.",
                   "intent": {
                     "destructive": false,
@@ -30987,22 +30612,7 @@
                     "es",
                     "security"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get user privileges.",
                   "intent": {
                     "destructive": false,
@@ -33754,22 +33364,7 @@
                     "es",
                     "snapshot"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get snapshot repository information.",
                   "intent": {
                     "destructive": false,
@@ -34456,22 +34051,7 @@
                     "es",
                     "ssl"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get SSL certificates.",
                   "intent": {
                     "destructive": false,
@@ -35705,22 +35285,7 @@
                     "es",
                     "transform"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get node stats.",
                   "intent": {
                     "destructive": false,
@@ -37378,22 +36943,7 @@
                     "kb",
                     "agent-builder"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "List agents",
                   "intent": {
                     "destructive": false,
@@ -38511,22 +38061,7 @@
                     "kb",
                     "agent-builder"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "List plugins",
                   "intent": {
                     "destructive": false,
@@ -38929,22 +38464,7 @@
                     "kb",
                     "agent-builder"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "List tools",
                   "intent": {
                     "destructive": false,
@@ -40222,22 +39742,7 @@
                     "kb",
                     "apm-agent-configuration"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get a list of agent configurations",
                   "intent": {
                     "destructive": false,
@@ -41163,22 +40668,7 @@
                     "kb",
                     "connectors"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get all connectors",
                   "intent": {
                     "destructive": false,
@@ -41200,22 +40690,7 @@
                     "kb",
                     "data-streams"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get data streams",
                   "intent": {
                     "destructive": false,
@@ -41292,22 +40767,7 @@
                     "kb",
                     "data-views"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get all data views",
                   "intent": {
                     "destructive": false,
@@ -41772,22 +41232,7 @@
                     "kb",
                     "data-views"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get the default data view",
                   "intent": {
                     "destructive": false,
@@ -42702,22 +42147,7 @@
                     "kb",
                     "elastic-agent-binary-download-sources"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get agent binary download sources",
                   "intent": {
                     "destructive": false,
@@ -44601,22 +44031,7 @@
                     "kb",
                     "elastic-agents"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get available agent versions",
                   "intent": {
                     "destructive": false,
@@ -44819,22 +44234,7 @@
                     "kb",
                     "elastic-agents"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get agent setup info",
                   "intent": {
                     "destructive": false,
@@ -46445,22 +45845,7 @@
                     "kb",
                     "elastic-package-manager-epm"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get a limited package list",
                   "intent": {
                     "destructive": false,
@@ -46539,22 +45924,7 @@
                     "kb",
                     "elastic-package-manager-epm"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get a package signature verification key ID",
                   "intent": {
                     "destructive": false,
@@ -47298,22 +46668,7 @@
                     "kb",
                     "fleet-internals"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get settings",
                   "intent": {
                     "destructive": false,
@@ -47464,22 +46819,7 @@
                     "kb",
                     "fleet-outputs"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get outputs",
                   "intent": {
                     "destructive": false,
@@ -48093,22 +47433,7 @@
                     "kb",
                     "fleet-proxies"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get proxies",
                   "intent": {
                     "destructive": false,
@@ -48356,22 +47681,7 @@
                     "kb",
                     "fleet-server-hosts"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get Fleet Server hosts",
                   "intent": {
                     "destructive": false,
@@ -49105,22 +48415,7 @@
                     "kb",
                     "misc"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "intent": {
                     "destructive": false,
                     "idempotent": true,
@@ -49135,22 +48430,7 @@
                     "kb",
                     "misc"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get space settings",
                   "intent": {
                     "destructive": false,
@@ -49267,22 +48547,7 @@
                     "kb",
                     "ml"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Sync saved objects in the default space",
                   "intent": {
                     "destructive": false,
@@ -50461,22 +49726,7 @@
                     "kb",
                     "security-ai-assistant-api"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Read a KnowledgeBase",
                   "intent": {
                     "destructive": false,
@@ -51765,22 +51015,7 @@
                     "kb",
                     "security-detections-api"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Returns user privileges for the Kibana space",
                   "intent": {
                     "destructive": false,
@@ -52435,22 +51670,7 @@
                     "kb",
                     "security-detections-api"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "List all detection rule tags",
                   "intent": {
                     "destructive": false,
@@ -53730,22 +52950,7 @@
                     "kb",
                     "security-endpoint-management-api"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get actions state",
                   "intent": {
                     "destructive": false,
@@ -54509,22 +53714,7 @@
                     "kb",
                     "security-entity-analytics-api"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Health check on Privilege Monitoring",
                   "intent": {
                     "destructive": false,
@@ -54540,22 +53730,7 @@
                     "kb",
                     "security-entity-analytics-api"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Run a privileges check on Privilege Monitoring",
                   "intent": {
                     "destructive": false,
@@ -54806,22 +53981,7 @@
                     "kb",
                     "security-entity-analytics-api"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Gets the status of the privileged access detection package for the Entity Analytics privileged user monitoring experience",
                   "intent": {
                     "destructive": false,
@@ -55004,22 +54164,7 @@
                     "kb",
                     "security-entity-analytics-api"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "List all watchlists",
                   "intent": {
                     "destructive": false,
@@ -55189,22 +54334,7 @@
                     "kb",
                     "security-entity-analytics-api"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "List the Entity Engines",
                   "intent": {
                     "destructive": false,
@@ -57193,22 +56323,7 @@
                     "kb",
                     "security-lists-api"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get status of value list data streams",
                   "intent": {
                     "destructive": false,
@@ -57710,22 +56825,7 @@
                     "kb",
                     "security-lists-api"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get value list privileges",
                   "intent": {
                     "destructive": false,
@@ -60634,22 +59734,7 @@
                     "kb",
                     "streams"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get stream list",
                   "intent": {
                     "destructive": false,
@@ -61832,22 +60917,7 @@
                     "kb",
                     "task-manager"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get the task manager health",
                   "intent": {
                     "destructive": false,
@@ -62066,22 +61136,7 @@
                     "kb",
                     "workflows"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get available connectors",
                   "intent": {
                     "destructive": false,
@@ -62497,22 +61552,7 @@
                     "kb",
                     "workflows"
                   ],
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
+                  "parameters": [],
                   "summary": "Get workflow statistics",
                   "intent": {
                     "destructive": false,
@@ -63094,7 +62134,22 @@
                 "cloud",
                 "trust"
               ],
-              "parameters": [],
+              "parameters": [
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
+                }
+              ],
               "summary": "Updates the current account",
               "intent": {
                 "requiresAuth": true
@@ -63106,7 +62161,22 @@
                 "cloud",
                 "trust"
               ],
-              "parameters": [],
+              "parameters": [
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
+                }
+              ],
               "summary": "Updates the current account",
               "intent": {
                 "requiresAuth": true
@@ -63131,6 +62201,20 @@
                   "type": "string",
                   "required": false,
                   "summary": "Pagination cursor to get the next page of records"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Get all API keys",
@@ -63144,7 +62228,22 @@
                 "cloud",
                 "auth"
               ],
-              "parameters": [],
+              "parameters": [
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
+                }
+              ],
               "summary": "Create API key",
               "intent": {
                 "requiresAuth": true
@@ -63156,7 +62255,22 @@
                 "cloud",
                 "auth"
               ],
-              "parameters": [],
+              "parameters": [
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
+                }
+              ],
               "summary": "Delete API keys",
               "intent": {
                 "requiresAuth": true
@@ -63175,6 +62289,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "The API Key ID."
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Get API key",
@@ -63195,6 +62323,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "The API Key ID."
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Delete API key",
@@ -63235,6 +62377,20 @@
                   "type": "string",
                   "required": false,
                   "summary": "A datetime for the end of the desired range for which to fetch costs. Defaults to the current date."
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Get costs overview for the organization. Currently unavailable in self-hosted ECE.",
@@ -63276,6 +62432,20 @@
                   "type": "string",
                   "required": false,
                   "summary": "The desired bucketing strategy for the charts. Defaults to `daily`."
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Get charts for the organization. Currently unavailable in self-hosted ECE.",
@@ -63310,6 +62480,20 @@
                   "type": "string",
                   "required": false,
                   "summary": "A datetime for the end of the desired range for which to fetch activity. Defaults to the current date."
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Get deployments costs for the organization. Currently unavailable in self-hosted ECE.",
@@ -63358,6 +62542,20 @@
                   "type": "string",
                   "required": false,
                   "summary": "The desired bucketing strategy for the charts. Defaults to `daily`."
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Get charts by deployment. Currently unavailable in self-hosted ECE.",
@@ -63399,6 +62597,20 @@
                   "type": "string",
                   "required": false,
                   "summary": "A datetime for the end of the desired range for which to fetch costs. Defaults to the current date."
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Get itemized costs by deployments. Currently unavailable in self-hosted ECE.",
@@ -63433,6 +62645,20 @@
                   "type": "string",
                   "required": false,
                   "summary": "A datetime for the end of the desired range for which to fetch costs. Defaults to the current date."
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Get itemized costs for the organization. Currently unavailable in self-hosted ECE.",
@@ -63471,6 +62697,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Organization invitation token"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Get organization invitation",
@@ -63491,6 +62731,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Organization invitation token"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Accept an organization invitation",
@@ -63511,6 +62765,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the Organization"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Fetch organization information",
@@ -63531,6 +62799,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the Organization"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Update organization",
@@ -63551,6 +62833,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the Organization"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Get domain claims",
@@ -63571,6 +62867,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the Organization"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Delete domain claim",
@@ -63591,6 +62901,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the Organization"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Generate verification code",
@@ -63611,6 +62935,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the Organization"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Verify domain claim",
@@ -63631,6 +62969,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the Organization"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Get organization IdP",
@@ -63651,6 +63003,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the Organization"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Setup organization IdP",
@@ -63671,6 +63037,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the Organization"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Tear down organization IdP",
@@ -63691,6 +63071,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the Organization"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Get organization service provider SAML2 metadata.xml for configuring the identity provider",
@@ -63711,6 +63105,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the Organization"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "List organization invitations",
@@ -63731,6 +63139,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the Organization"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Create organization invitations",
@@ -63758,6 +63180,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "CSV list of Invitation tokens"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Delete organization invitations",
@@ -63778,6 +63214,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the Organization"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "List organization members",
@@ -63812,6 +63262,20 @@
                   "type": "boolean",
                   "required": false,
                   "summary": "Whether or not to force the removal of Org memberships (effective only for Platform Admins)"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Delete organization memberships",
@@ -63832,6 +63296,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the Organization"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Get role mappings",
@@ -63852,6 +63330,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the Organization"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Updates role mappings",
@@ -63872,6 +63364,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the Organization"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Delete role mappings",
@@ -63898,6 +63404,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the user; include realm name and id if required"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Add Role Assignments",
@@ -63918,6 +63438,20 @@
                   "type": "string",
                   "required": true,
                   "summary": "Identifier for the user; include realm name and id if required"
+                },
+                {
+                  "role": "flag",
+                  "name": "input-file",
+                  "type": "string",
+                  "required": false,
+                  "summary": "path to a JSON file to use as command input"
+                },
+                {
+                  "role": "dryRun",
+                  "name": "dry-run",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "validate all inputs and exit without performing any action"
                 }
               ],
               "summary": "Remove Role Assignments",
@@ -63983,6 +63517,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "Region of the deployment templates"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get deployment templates",
@@ -64032,6 +63580,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "Region of the deployment template"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get deployment template",
@@ -64086,6 +63648,20 @@
                       "type": "string",
                       "required": false,
                       "summary": "An optional template id - if present, the referenced template will be used to fill in the resources field of the deployment creation request. If any resources are present in the request together with the template, the ones coming in the request will prevail and no merging with the template will be performed."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Create Deployment",
@@ -64107,6 +63683,20 @@
                       "type": "string",
                       "required": false,
                       "summary": "Comma separated list of attributes to include in response for deployments found. Useful for reducing response size when retrieving many deployments. Use of this parameter moves the result to the minimal_metadata section of the response."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Search Deployments",
@@ -64128,6 +63718,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "The version of the Elasticsearch cluster cluster that will potentially be configured to have remote clusters."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get eligible remote clusters",
@@ -64247,6 +63851,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "If set (defaults to false) then removes the transient section from all child resources, making it safe to reapply via an update"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get Deployment",
@@ -64296,6 +63914,20 @@
                       "type": "string",
                       "required": false,
                       "summary": "If specified then checks for conflicts against the version stored in the persistent store (returned in 'x-cloud-resource-version' of the GET request)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Update Deployment",
@@ -64324,6 +63956,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "Whether or not to restore a snapshot for those resources that allow it."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Restores a shutdown Deployment",
@@ -64359,6 +64005,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "Whether or not to skip snapshots before shutting down the resources"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Shuts down Deployment",
@@ -64436,6 +64096,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "If set (defaults to false) then removes the transient section from all child resources, making it safe to reapply via an update"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get Deployment APM Resource Info",
@@ -64464,6 +64138,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "User-specified RefId for the Resource (or '_main' if there is only one)."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Reset the secret token for an APM resource.",
@@ -64541,6 +64229,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "If set (defaults to false) then removes the transient section from all child resources, making it safe to reapply via an update"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get Deployment App Search Resource Info",
@@ -64569,6 +64271,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "User-specified RefId for the Resource (or '_main' if there is only one)."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Set AppSearch read-only status",
@@ -64597,6 +64313,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "User-specified RefId for the Resource (or '_main' if there is only one)."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Set AppSearch read-only status",
@@ -64618,6 +64348,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "Identifier for the Deployment."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get certificate authority",
@@ -64723,6 +64467,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "If set (defaults to false) then removes the transient section from all child resources, making it safe to reapply via an update"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get Deployment Elasticsearch Resource Info",
@@ -64758,6 +64516,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "When `true`, will not enable CCR but returns warnings if any elements may lose availability during CCR enablement"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Migrate Elasticsearch and associated Kibana resources to enable CCR",
@@ -64793,6 +64565,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "When `true`, does not enable ILM but returns warnings if any applications may lose availability during ILM migration."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Migrate Elasticsearch resource to use ILM",
@@ -64828,6 +64614,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "When `true`, does not enable SLM but returns warnings if any applications may lose availability during SLM migration."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Migrate Elasticsearch resource to use SLM",
@@ -64863,6 +64663,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "If true, will not reset elastic user password and instead will return a status code signaling whether or not the current credentials are ready to use (eg from creation or the last call to _reset_password)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Reset 'elastic' user password",
@@ -64926,6 +64740,20 @@
                       "type": "number",
                       "required": false,
                       "summary": "The time, in seconds, to wait for shards that show no progress of initializing, before rolling the next group (default: 10 minutes)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Restart Deployment Elasticsearch Resource",
@@ -64968,6 +64796,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "If true, will skip taking a snapshot of the cluster before shutting the cluster down (if even possible)."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Shutdown Deployment Elasticsearch Resource",
@@ -64996,6 +64838,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "User-specified RefId for the Resource (or '_main' if there is only one)."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get eligible remote clusters",
@@ -65024,6 +64880,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "User-specified RefId for the Resource (or '_main' if there is only one)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get the items in the Elasticsearch resource keystore",
@@ -65059,6 +64929,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "When `true`, does nothing except return the entries' allowlist and reloadability statuses."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Add or remove items from the Elasticsearch resource keystore",
@@ -65087,6 +64971,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "User-specified RefId for the Resource (or '_main' if there is only one)."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get certificate based remote clusters",
@@ -65115,6 +65013,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "User-specified RefId for the Resource (or '_main' if there is only one)."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Set certificate based remote clusters",
@@ -65143,6 +65055,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "User-specified RefId for the Resource (or '_main' if there is only one)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "List the attached snapshot repositories",
@@ -65171,6 +65097,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "User-specified RefId for the Resource (or '_main' if there is only one)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Create a snapshot repository for Elasticsearch resource",
@@ -65206,6 +65146,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "The name of the snapshot repository to remove (e.g. _clone_abcd1234)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Remove the attached snapshot repository",
@@ -65234,6 +65188,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "User-specified RefId for the Resource (or '_main' if there is only one)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get Elasticsearch tiers",
@@ -65262,6 +65230,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "User-specified RefId for the Resource (or '_main' if there is only one)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Update Elasticsearch tiers",
@@ -65339,6 +65321,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "If set (defaults to false) then removes the transient section from all child resources, making it safe to reapply via an update"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get Deployment Enterprise Search Resource Info",
@@ -65416,6 +65412,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "If set (defaults to false) then removes the transient section from all child resources, making it safe to reapply via an update"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get Deployment Integrations Server Resource Info",
@@ -65500,6 +65510,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "If set (defaults to false) then removes the transient section from all child resources, making it safe to reapply via an update"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get Deployment Kibana Resource Info",
@@ -65535,6 +65559,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "If true, will skip the instance metrics check for memory and disk usage calculations"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Build request to migrate deployment to a different template",
@@ -65556,6 +65594,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "Identifier for the Deployment"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get the tags for a Deployment",
@@ -65577,6 +65629,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "Identifier for the Deployment"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Set the tags for a Deployment",
@@ -65598,6 +65664,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "Identifier for the Deployment"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Upgrade a Deployment to a new Elastic Stack version",
@@ -65626,6 +65706,20 @@
                       "type": "string",
                       "required": false,
                       "summary": "If present, value is included in resource request to provide additional context (only supported for Kibana)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get Deployment upgrade assistant status",
@@ -65668,6 +65762,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "Whether or not to restore a snapshot for those resources that allow it."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Restores a shutdown resource",
@@ -65703,6 +65811,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "User-specified RefId for the Resource (or '_main' if there is only one)."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Start all instances",
@@ -65738,6 +65860,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "User-specified RefId for the Resource (or '_main' if there is only one)."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Stop all instances",
@@ -65773,6 +65909,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "User-specified RefId for the Resource (or '_main' if there is only one)."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Start maintenance mode (all instances)",
@@ -65808,6 +65958,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "User-specified RefId for the Resource (or '_main' if there is only one)."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Stop maintenance mode (all instances)",
@@ -65857,6 +66021,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "If true and the instance does not exist then quietly proceed to the next instance, otherwise treated as an error"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Start instances",
@@ -65906,6 +66084,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "If true and the instance does not exist then quietly proceed to the next instance, otherwise treated as an error."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Stop instances",
@@ -65955,6 +66147,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "If true and the instance does not exist then quietly proceed to the next instance, otherwise treated as an error."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Start maintenance mode",
@@ -66004,6 +66210,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "If true and the instance does not exist then quietly proceed to the next instance, otherwise treated as an error."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Stop maintenance mode",
@@ -66053,6 +66273,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "When `true`, returns successfully, even when plans are missing. The default is `false`."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Cancel resource pending plan",
@@ -66088,6 +66322,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "User-specified RefId for the Resource (or '_main' if there is only one)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get the user settings of a Deployment resource",
@@ -66123,6 +66371,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "User-specified RefId for the Resource (or '_main' if there is only one)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Update user settings for a deployment resource",
@@ -66165,6 +66427,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "If true, cancels any pending plans before restarting. If false and there are pending plans, returns an error."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Restart Deployment Stateless Resource",
@@ -66214,6 +66490,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "If true, will skip taking a snapshot of the cluster before shutting the cluster down (if even possible)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Shutdown Deployment Stateless Resource",
@@ -66248,6 +66538,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "Associated entity ID"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get associated rulesets",
@@ -66276,6 +66580,20 @@
                       "type": "string",
                       "required": false,
                       "summary": "Retrieves a list of resources that are associated to the specified organization ID. It only takes effect if the user is an admin."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "List traffic filter claimed link id",
@@ -66290,7 +66608,22 @@
                     "hosted",
                     "traffic-filters"
                   ],
-                  "parameters": [],
+                  "parameters": [
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
+                    }
+                  ],
                   "summary": "Claim a link id",
                   "intent": {
                     "requiresAuth": true
@@ -66303,7 +66636,22 @@
                     "hosted",
                     "traffic-filters"
                   ],
-                  "parameters": [],
+                  "parameters": [
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
+                    }
+                  ],
                   "summary": "Unclaims a link id",
                   "intent": {
                     "requiresAuth": true
@@ -66337,6 +66685,20 @@
                       "type": "string",
                       "required": false,
                       "summary": "Retrieves a list of resources that are associated to the specified organization ID. It only takes effect if the user is an admin."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "List traffic filter rulesets",
@@ -66351,7 +66713,22 @@
                     "hosted",
                     "traffic-filters"
                   ],
-                  "parameters": [],
+                  "parameters": [
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
+                    }
+                  ],
                   "summary": "Create a ruleset",
                   "intent": {
                     "requiresAuth": true
@@ -66378,6 +66755,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "Retrieves a list of resources that are associated to the specified ruleset."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Retrieves the ruleset by ID.",
@@ -66399,6 +66790,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "The mandatory ruleset ID."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Updates a ruleset",
@@ -66427,6 +66832,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "When true, ignores the associations and deletes the ruleset. When false, recognizes the associations, which prevents the deletion of the rule set."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Delete a ruleset",
@@ -66448,6 +66867,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "The mandatory ruleset ID."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get associated deployments",
@@ -66469,6 +66902,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "The mandatory ruleset ID."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Create ruleset association",
@@ -66504,6 +66951,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "Associated entity ID"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Delete ruleset association",
@@ -66537,7 +66998,22 @@
                     "hosted",
                     "extensions"
                   ],
-                  "parameters": [],
+                  "parameters": [
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
+                    }
+                  ],
                   "summary": "Create an extension",
                   "intent": {
                     "requiresAuth": true
@@ -66564,6 +67040,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "Include deployments referencing this extension. Up to only 10000 deployments will be included."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get Extension",
@@ -66585,6 +67075,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "Id of an extension"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Update Extension",
@@ -66606,6 +67110,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "Id of an extension"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Uploads the Extension",
@@ -66627,6 +67145,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "Id of an extension"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Delete Extension",
@@ -66661,6 +67193,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "Whether to show versions that are unusable by the authenticated user"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get stack versions",
@@ -66731,6 +67277,20 @@
                           "type": "string",
                           "required": false,
                           "summary": "If specified, the result will be filtered to only those projects that have the specified tags and corresponding values."
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Get Elasticsearch projects",
@@ -66760,6 +67320,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "Unique human-readable identifier for a region in Elastic Cloud."
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         },
                         {
                           "role": "flag",
@@ -66817,6 +67391,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Get an Elasticsearch project",
@@ -66839,6 +67427,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Delete an Elasticsearch project",
@@ -66861,6 +67463,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Update an Elasticsearch project",
@@ -66883,6 +67499,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         },
                         {
                           "role": "flag",
@@ -66933,6 +67563,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Resume Elasticsearch project",
@@ -66955,6 +67599,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Get roles for an Elasticsearch project",
@@ -66977,6 +67635,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Get the status of an Elasticsearch project",
@@ -67019,6 +67691,20 @@
                           "type": "string",
                           "required": false,
                           "summary": "If specified, the result will be filtered to only those projects that have the specified tags and corresponding values."
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Get Observability projects",
@@ -67048,6 +67734,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "Unique human-readable identifier for a region in Elastic Cloud."
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         },
                         {
                           "role": "flag",
@@ -67105,6 +67805,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Get an Observability project",
@@ -67127,6 +67841,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Delete an Observability project",
@@ -67149,6 +67877,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Update an Observability project",
@@ -67171,6 +67913,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         },
                         {
                           "role": "flag",
@@ -67221,6 +67977,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Resume Observability project",
@@ -67243,6 +68013,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Get roles for an Observability project",
@@ -67265,6 +68049,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Get the status of an Observability project",
@@ -67307,6 +68105,20 @@
                           "type": "string",
                           "required": false,
                           "summary": "If specified, the result will be filtered to only those projects that have the specified tags and corresponding values."
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Get Security projects",
@@ -67336,6 +68148,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "Unique human-readable identifier for a region in Elastic Cloud."
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         },
                         {
                           "role": "flag",
@@ -67393,6 +68219,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Get a Security project",
@@ -67415,6 +68255,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Delete a Security project",
@@ -67437,6 +68291,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Update a Security project",
@@ -67459,6 +68327,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         },
                         {
                           "role": "flag",
@@ -67509,6 +68391,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Resume Security project",
@@ -67531,6 +68427,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Get roles for a Security project",
@@ -67553,6 +68463,20 @@
                           "type": "string",
                           "required": true,
                           "summary": "The ID of the project"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "input-file",
+                          "type": "string",
+                          "required": false,
+                          "summary": "path to a JSON file to use as command input"
+                        },
+                        {
+                          "role": "dryRun",
+                          "name": "dry-run",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "validate all inputs and exit without performing any action"
                         }
                       ],
                       "summary": "Get the status of a Security project",
@@ -67625,6 +68549,20 @@
                       "type": "string",
                       "required": false,
                       "summary": "If specified, the result will be filtered to only those projects that have the specified tags and corresponding values."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get Elasticsearch project link candidates",
@@ -67688,6 +68626,20 @@
                       "type": "string",
                       "required": false,
                       "summary": "If specified, the result will be filtered to only those projects that have the specified tags and corresponding values."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get Observability project link candidates",
@@ -67751,6 +68703,20 @@
                       "type": "string",
                       "required": false,
                       "summary": "If specified, the result will be filtered to only those projects that have the specified tags and corresponding values."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get Security project link candidates",
@@ -67772,6 +68738,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "The ID of the project"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get Elasticsearch project delete status",
@@ -67793,6 +68773,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "The ID of the project"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get Observability project delete status",
@@ -67814,6 +68808,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "The ID of the project"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get Security project delete status",
@@ -67854,6 +68862,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "ID of the region"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Get a region",
@@ -67888,6 +68910,20 @@
                       "type": "string",
                       "required": false,
                       "summary": "If provided limits the traffic filters to that region only."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "List traffic filters",
@@ -67923,6 +68959,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "The traffic filter can be attached only to projects in the specific region"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Create a traffic filter",
@@ -67951,6 +69001,20 @@
                       "type": "string",
                       "required": false,
                       "summary": "Filter metadata to a specific cloud service provider (aws, azure, gcp)."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "List PrivateLink region metadata",
@@ -67972,6 +69036,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "The traffic filter ID."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Retrieves the traffic filter by ID.",
@@ -67993,6 +69071,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "The traffic filter ID."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Delete a traffic filter",
@@ -68014,6 +69106,20 @@
                       "type": "string",
                       "required": true,
                       "summary": "The traffic filter ID."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
                     }
                   ],
                   "summary": "Updates a traffic filter",
@@ -68028,23 +69134,7 @@
           "summary": "Manage Elastic Serverless projects and resources"
         }
       ],
-      "summary": "Manage Elastic Cloud (hosted deployments and serverless projects)",
-      "options": [
-        {
-          "role": "flag",
-          "name": "input-file",
-          "type": "string",
-          "required": false,
-          "summary": "path to a JSON file to use as command input"
-        },
-        {
-          "role": "dryRun",
-          "name": "dry-run",
-          "type": "boolean",
-          "required": false,
-          "summary": "validate all inputs and exit without performing any action"
-        }
-      ]
+      "summary": "Manage Elastic Cloud (hosted deployments and serverless projects)"
     },
     {
       "segment": "docs",
