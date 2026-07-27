@@ -59,6 +59,9 @@
     "test": "test"
   },
   "dependencies": {
+    "@cli-schema/commander": "^0.2.0",
+    "@cli-schema/spec": "^0.2.0",
+    "@cli-schema/zod": "^0.2.0",
     "@elastic/config-resolver": "*",
     "@elastic/es-schemas": "1.0.2",
     "cli-table3": "^0.6.5",
@@ -80,7 +83,13 @@
     "typescript": "6.0.3",
     "typescript-eslint": "8.62.1"
   },
+  "overrides": {
+    "fast-uri": "^3.1.4"
+  },
   "bundleDependencies": [
+    "@cli-schema/commander",
+    "@cli-schema/spec",
+    "@cli-schema/zod",
     "@elastic/config-resolver",
     "@elastic/es-schemas",
     "zod"

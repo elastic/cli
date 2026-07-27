@@ -142,6 +142,42 @@ describe('createChatCommand', () => {
     }
   })
 
+  it('returns structured error JSON when --json stream throws', async () => {
+    const captured: string[] = []
+    const origStdout = process.stdout.write
+    const origStderr = process.stderr.write
+    process.stdout.write = ((s: string) => { captured.push(s); return true }) as typeof process.stdout.write
+    process.stderr.write = ((s: string) => { captured.push(s); return true }) as typeof process.stderr.write
+    try {
+      const cmd = createChatCommand({
+        docsAskStream: async function* () {
+          throw new Error('network down')
+          yield { kind: 'chunk', text: '' }
+        },
+        stdout: { write: (s) => { captured.push(s); return true } },
+        stderr: { write: (s) => { captured.push(s); return true } },
+        getStdin: () => Readable.from([]),
+      })
+      cmd.option('--json', 'output as JSON')
+      cmd.exitOverride()
+      cmd.configureOutput({ writeOut: (s) => { captured.push(s) }, writeErr: (s) => { captured.push(s) } })
+      const restoreStdin = _testSetStdinReader(() => '')
+      try {
+        await cmd.parseAsync(['--question', 'test', '--json'], { from: 'user' })
+      } finally { restoreStdin() }
+
+      const jsonChunk = captured.find(s => s.includes('"docs_error"'))
+      assert.ok(jsonChunk != null, `Expected JSON error output, got: ${captured.join('')}`)
+      const parsed = JSON.parse(jsonChunk)
+      assert.equal(parsed.error.code, 'docs_error')
+      assert.equal(parsed.error.message, 'network down')
+    } finally {
+      process.stdout.write = origStdout
+      process.stderr.write = origStderr
+      process.exitCode = 0
+    }
+  })
+
   it('stringifies non-Error thrown values into the stderr message', async () => {
     const stderrWrites: string[] = []
     const cmd = createChatCommand({

@@ -16,6 +16,7 @@ import { pickFields, parseFieldList, applyTemplate, TemplateAgainstPrimitiveErro
 import { validateName, hasGlobalJsonFlag, configureErrorOutput, commandPath, isCommandAllowed, stripTransportMeta } from './factory-core.ts'
 import type { OpaqueCommandHandle, JsonValue, CommandConfig, ParsedResult } from './factory-core.ts'
 import { RawJsonValue } from './factory-core.ts'
+import { attachInput, attachIntent } from '@cli-schema/commander'
 
 // Re-export from factory-core for backward compatibility
 export {
@@ -386,13 +387,10 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     config.input instanceof getZ().ZodType ? config.input : undefined,
   )
 
-  // Attach typed metadata for tooling (e.g. cli-schema). Non-enumerable so it
-  // doesn't appear in JSON.stringify or Commander's own command inspection.
-  Object.defineProperty(cmd, '_commandConfig', {
-    value: { config, schemaArgs },
-    writable: false,
-    enumerable: false,
-  })
+  // Attach typed metadata for tooling (cli-schema). Non-enumerable storage, same as before —
+  // @cli-schema/commander's attach functions use a private symbol under the hood.
+  if (config.input instanceof getZ().ZodType) attachInput(cmd, config.input)
+  if (config.intent != null) attachIntent(cmd, config.intent)
 
   cmd.action(async () => {
     const allRaw = cmd.optsWithGlobals()
@@ -435,7 +433,21 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
         }
         inputValue = parseJsonContent(fileContent, '--input-file', cmd)
       } else if (!process.stdin.isTTY) {
-        const raw = stdinReader()
+        // EAGAIN / EBADF can occur in IDE terminals (Cursor, VS Code integrated
+        // terminal) and some CI environments where stdin is set to non-blocking
+        // mode but no data is piped. Treat these as "no stdin data" rather than
+        // crashing with an unhandled exception.
+        let raw: string
+        try {
+          raw = stdinReader()
+        } catch (err: unknown) {
+          const code = (err as NodeJS.ErrnoException).code
+          if (code === 'EAGAIN' || code === 'EBADF') {
+            raw = ''
+          } else {
+            throw err
+          }
+        }
         if (raw.trim().length > 0) {
           inputValue = parseJsonContent(raw, 'stdin', cmd)
         }
