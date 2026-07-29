@@ -530,3 +530,4 @@ The `examples/extensions/basic/` directory in this repo contains a minimal worki
 elastic extension create demo --path ./examples/extensions/basic
 elastic demo
 ```
+
