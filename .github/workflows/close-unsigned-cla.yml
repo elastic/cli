@@ -15,17 +15,17 @@ jobs:
       - name: Close PRs without CLA after 48h
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           CUTOFF=$(date -d '48 hours ago' --iso-8601=seconds)
-          gh pr list --repo ${{ github.repository }} --state open \
-            --json number,createdAt \
-            --jq --arg cutoff "$CUTOFF" '.[] | select(.createdAt < $cutoff) | .number' \
-          | while read pr; do
-            SHA=$(gh pr view "$pr" --repo ${{ github.repository }} --json headRefOid --jq .headRefOid)
-            CLA=$(gh api "repos/${{ github.repository }}/commits/$SHA/statuses" \
+          gh pr list --repo "$GH_REPO" --state open --json number,createdAt |
+            jq -r --arg cutoff "$CUTOFF" '.[] | select(.createdAt < $cutoff) | .number' |
+          while read -r pr; do
+            SHA=$(gh pr view "$pr" --repo "$GH_REPO" --json headRefOid --jq .headRefOid)
+            CLA=$(gh api "repos/$GH_REPO/commits/$SHA/statuses" \
               --jq '[.[] | select(.context == "CLA")] | first | .state')
             if [ "$CLA" = "failure" ]; then
-              gh pr close "$pr" --repo ${{ github.repository }} \
+              gh pr close "$pr" --repo "$GH_REPO" \
                 --comment "Closing this PR as the CLA was not signed within 48 hours. Please sign the [Contributor Agreement](https://www.elastic.co/contributor-agreement) and reopen to contribute."
             fi
           done
