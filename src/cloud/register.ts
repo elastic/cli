@@ -9,7 +9,7 @@ import type { OpaqueCommandHandle } from '../factory.ts'
 import type { CloudApiDefinition } from './types.ts'
 import { validateCloudApiDefinition, buildCloudJsonSchema } from './types.ts'
 import { loadCloudApis } from './apis.ts'
-import { allServerlessApis } from './serverless-apis.ts'
+import { loadServerlessApis } from './serverless-apis.ts'
 
 import { createCloudHandler, isCreateProjectCommand } from './handler.ts'
 import {
@@ -248,7 +248,7 @@ async function wrapWithCredentialPolicy (
 export async function registerCloudCommands (
   definitions?: CloudApiDefinition[],
 ): Promise<OpaqueCommandHandle> {
-  const allDefs = definitions ?? [...(await loadCloudApis()), ...allServerlessApis]
+  const allDefs = definitions ?? [...(await loadCloudApis()), ...(await loadServerlessApis())]
   for (const def of allDefs) {
     validateCloudApiDefinition(def)
   }

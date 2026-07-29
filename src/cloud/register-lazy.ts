@@ -9,7 +9,7 @@
  * Imports only the minimal set of modules needed to display `elastic cloud
  * --help`: commander, the factory group builder, and the lightweight
  * PROMOTED_NAMESPACES constant.  The full API definition files (allCloudApis,
- * allServerlessApis) and Zod schema builders are NOT imported at module
+ * loadServerlessApis) and Zod schema builders are NOT imported at module
  * evaluation time, keeping startup heap bounded.
  *
  * When the user invokes any actual cloud sub-command, the stub-swap mechanism
