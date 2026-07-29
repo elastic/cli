@@ -4,6 +4,8 @@ Thanks for your interest in contributing! We love receiving contributions from o
 
 ## The one rule
 
+Adapted from [pi's contributing philosophy](https://github.com/earendil-works/pi/blob/main/CONTRIBUTING.md#the-one-rule).
+
 **You must understand your code.** If you cannot explain what your changes do and how they interact with the rest of the codebase, the PR will be closed.
 
 Using AI to write code is fine. Submitting AI-generated code without understanding it is not.
