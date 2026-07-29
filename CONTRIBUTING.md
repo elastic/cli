@@ -2,6 +2,12 @@
 
 Thanks for your interest in contributing! We love receiving contributions from our community. Whether you're fixing bugs, adding features, improving documentation, or sharing ideas, we'd love to have your help.
 
+## Contribution gate
+
+All PRs require a signed [Elastic Contributor License Agreement](https://www.elastic.co/contributor-agreement/) (one-time). A bot checks every PR automatically and posts a sign-off link if the CLA is missing.
+
+**PRs without a signed CLA are automatically closed after 48 hours.** Sign the agreement and reopen the PR to continue.
+
 ## Ways to contribute
 
 - **Report bugs**: Open an issue describing what you found
@@ -121,8 +127,6 @@ In your PR description:
 - Describe your approach
 - Note any breaking changes
 - Reference related issues (e.g., "Closes #123")
-
-4. **Sign the CLA**: [Elastic Contributor License Agreement](https://www.elastic.co/contributor-agreement/) (one-time only)
 
 ## What to expect
 
