@@ -58,7 +58,8 @@ export async function runStatusChecks (
   const tasks: Array<Promise<['elasticsearch', EsCheck] | ['kibana', KbCheck] | ['cloud', CloudCheck]>> = []
   if (context.elasticsearch != null) {
     const block = context.elasticsearch
-    tasks.push(checkElasticsearch(block, fetchFn).then((r): ['elasticsearch', EsCheck] => ['elasticsearch', r]))
+    // The Kibana block is passed too: a `via: kibana` context is probed through it.
+    tasks.push(checkElasticsearch(block, fetchFn, context.kibana).then((r): ['elasticsearch', EsCheck] => ['elasticsearch', r]))
   }
   if (context.kibana != null) {
     const block = context.kibana

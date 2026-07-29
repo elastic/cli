@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod'
-import type { EsClient } from '../../lib/es-client.ts'
+import type { EsTransport } from '../../lib/es-client.ts'
 import { defineCommand } from '../../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../../factory.ts'
 import { getEsClient } from '../../lib/es-client.ts'
@@ -22,7 +22,7 @@ interface MsearchResponse {
 
 /** Dependencies injectable for testing. */
 export interface MsearchDeps {
-  getEsClient: () => EsClient
+  getEsClient: () => EsTransport
 }
 
 const defaultDeps: MsearchDeps = { getEsClient }
@@ -73,7 +73,7 @@ function createMsearchHandler (deps: MsearchDeps = defaultDeps) {
   return async (parsed: { input?: z.infer<typeof inputSchema>; options: Record<string, string | number | boolean> }): Promise<JsonValue> => {
     const { index, query_file, batch_size, concurrency } = parsed.input!
 
-    let transport: EsClient
+    let transport: EsTransport
     try {
       transport = deps.getEsClient()
     } catch (err) {

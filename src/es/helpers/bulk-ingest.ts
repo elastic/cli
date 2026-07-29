@@ -5,7 +5,7 @@
 
 import { z } from 'zod'
 import { readFileSync } from 'node:fs'
-import type { EsClient } from '../../lib/es-client.ts'
+import type { EsTransport } from '../../lib/es-client.ts'
 import { defineCommand } from '../../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../../factory.ts'
 import { getEsClient } from '../../lib/es-client.ts'
@@ -23,7 +23,7 @@ import {
 
 /** Dependencies injectable for testing. */
 export interface BulkIngestDeps {
-  getEsClient: () => EsClient
+  getEsClient: () => EsTransport
 }
 
 const defaultDeps: BulkIngestDeps = { getEsClient }
@@ -139,7 +139,7 @@ function collectDocuments (opts: BulkIngestInput): { docs: unknown[], filesProce
 
 /** Sends a single bulk batch to Elasticsearch. Returns the count of errors. */
 async function sendBatch (
-  transport: EsClient,
+  transport: EsTransport,
   ndjsonBody: string,
   index: string
 ): Promise<{ errors: number, total: number }> {
@@ -165,7 +165,7 @@ function createBulkIngestHandler (deps: BulkIngestDeps = defaultDeps) {
   return async (parsed: { input?: BulkIngestInput; options: Record<string, string | number | boolean> }): Promise<JsonValue> => {
     const opts = parsed.input!
 
-    let transport: EsClient
+    let transport: EsTransport
     try {
       transport = deps.getEsClient()
     } catch (err) {

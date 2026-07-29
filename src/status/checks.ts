@@ -12,8 +12,14 @@
  * surface every service's state independently.
  */
 
-import type { ServiceBlock } from '../config/types.ts'
-import { buildAuthHeader } from '../lib/auth.ts'
+import type { EsServiceBlock, ServiceBlock } from '../config/types.ts'
+import { isEsViaKibana } from '../config/types.ts'
+import { buildAuthHeader, narrowAuth } from '../lib/auth.ts'
+import {
+  CONSOLE_PROXY_HEADERS,
+  consoleProxyUrl,
+  proxiedEsStatus,
+} from '../lib/es-console-proxy-client.ts'
 import { clientHeaders } from '../lib/meta.ts'
 
 /** Successful Elasticsearch probe. */
@@ -45,7 +51,15 @@ export interface CheckErr {
   error: string
 }
 
-export type EsCheck = EsCheckOk | CheckErr
+/**
+ * Marks how the Elasticsearch probe reached the cluster. Present only when the request
+ * was forwarded by Kibana, so a direct connection reports exactly as before.
+ */
+export interface EsRouting {
+  via?: 'kibana'
+}
+
+export type EsCheck = (EsCheckOk | CheckErr) & EsRouting
 export type KbCheck = KbCheckOk | CheckErr
 export type CloudCheck = CloudCheckOk | CheckErr
 
@@ -104,22 +118,79 @@ async function pingService (
  * or response shape is invalid.
  */
 export async function checkElasticsearch (
-  block: ServiceBlock,
+  block: EsServiceBlock,
   fetchFn: typeof fetch = globalThis.fetch,
+  kibana?: ServiceBlock,
 ): Promise<EsCheck> {
-  const result = await pingService(block.url, '/_cluster/health', block.auth, fetchFn)
-  if (!result.ok) return { ok: false, url: block.url, error: result.error }
+  if (isEsViaKibana(block)) {
+    if (kibana == null) {
+      return { ok: false, url: '', error: 'via: kibana requires a kibana block', via: 'kibana' }
+    }
+    const proxied = await pingViaConsoleProxy(kibana, fetchFn)
+    return { ...interpretHealth(proxied, kibana.url), via: 'kibana' }
+  }
+  // The schema guarantees a url when `via` is absent.
+  const url = block.url as string
+  const result = await pingService(url, '/_cluster/health', block.auth, fetchFn)
+  return interpretHealth(result, url)
+}
+
+/** Extracts cluster status and node count from a `_cluster/health` probe result. */
+function interpretHealth (
+  result: { ok: true, body: unknown } | { ok: false, error: string },
+  url: string,
+): EsCheckOk | CheckErr {
+  if (!result.ok) return { ok: false, url, error: result.error }
   const body = result.body
   if (body == null || typeof body !== 'object') {
-    return { ok: false, url: block.url, error: 'unexpected response' }
+    return { ok: false, url, error: 'unexpected response' }
   }
   const rec = body as Record<string, unknown>
   const status = rec['status']
   const nodes = rec['number_of_nodes']
   if (typeof status !== 'string' || typeof nodes !== 'number') {
-    return { ok: false, url: block.url, error: 'unexpected response' }
+    return { ok: false, url, error: 'unexpected response' }
   }
-  return { ok: true, url: block.url, status, nodes }
+  return { ok: true, url, status, nodes }
+}
+
+/**
+ * Probes `GET /_cluster/health` through Kibana's Console proxy.
+ *
+ * Mirrors how requests travel for a `via: kibana` context: the outer call is a POST to
+ * Kibana and the real Elasticsearch status arrives in a response header.
+ */
+async function pingViaConsoleProxy (
+  kibana: ServiceBlock,
+  fetchFn: typeof fetch,
+): Promise<{ ok: true, body: unknown } | { ok: false, error: string }> {
+  const headers: Record<string, string> = {
+    ...clientHeaders(),
+    'Accept': 'application/json',
+    ...CONSOLE_PROXY_HEADERS,
+  }
+  const h = buildAuthHeader(narrowAuth(kibana.auth))
+  if (h != null) headers['Authorization'] = h
+
+  const url = consoleProxyUrl(kibana.url, '/_cluster/health', 'GET')
+  let response: Response
+  try {
+    response = await fetchFn(url, { method: 'POST', headers, redirect: 'error' })
+  } catch (err) {
+    return { ok: false, error: classifyNetwork(err) }
+  }
+  if (!response.ok) return { ok: false, error: classifyHttp(response.status) }
+
+  const esStatus = proxiedEsStatus(response)
+  if (esStatus >= 400) return { ok: false, error: classifyHttp(esStatus) }
+
+  const text = await response.text()
+  if (text.length === 0) return { ok: true, body: {} }
+  try {
+    return { ok: true, body: JSON.parse(text) }
+  } catch {
+    return { ok: false, error: 'unexpected response' }
+  }
 }
 
 /**

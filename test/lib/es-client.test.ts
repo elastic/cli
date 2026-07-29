@@ -6,6 +6,7 @@
 import { describe, it, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { EsClient, EsResponseError, EsConnectionError, getEsClient, _testResetEsClient } from '../../src/lib/es-client.ts'
+import { EsConsoleProxyClient } from '../../src/lib/es-console-proxy-client.ts'
 import { setResolvedConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
 import { clientHeaders } from '../../src/lib/meta.ts'
@@ -64,7 +65,47 @@ describe('getEsClient', () => {
   it('strips trailing slash from baseUrl', () => {
     setResolvedConfig(makeApiKeyConfig('http://localhost:9200/', 'key'))
     const client = getEsClient()
+    assert.ok(client instanceof EsClient)
     assert.equal(client.baseUrl, 'http://localhost:9200')
+  })
+
+  it('returns a Console proxy transport for a via-kibana context', () => {
+    setResolvedConfig({
+      context: {
+        elasticsearch: { via: 'kibana' },
+        kibana: { url: 'https://kibana.example/', auth: { api_key: 'kb-key' } },
+      },
+    } as ResolvedConfig)
+
+    const client = getEsClient()
+    assert.ok(client instanceof EsConsoleProxyClient)
+    // Requests are addressed to Kibana, since there is no Elasticsearch endpoint.
+    assert.equal(client.kibanaUrl, 'https://kibana.example')
+  })
+
+  it('routes via Kibana without credentials when the kibana block has no auth', () => {
+    setResolvedConfig({
+      context: { elasticsearch: { via: 'kibana' }, kibana: { url: 'https://kibana.example' } },
+    } as ResolvedConfig)
+
+    assert.ok(getEsClient() instanceof EsConsoleProxyClient)
+  })
+
+  it('throws when via-kibana is set without a kibana block', () => {
+    setResolvedConfig({ context: { elasticsearch: { via: 'kibana' } } } as ResolvedConfig)
+    assert.throws(() => getEsClient(), /missing_config.*no kibana block/is)
+  })
+
+  it('throws when the elasticsearch block has neither url nor via', () => {
+    setResolvedConfig({ context: { elasticsearch: {} } } as ResolvedConfig)
+    assert.throws(() => getEsClient(), /missing_config.*no url/is)
+  })
+
+  it('caches the Console proxy transport too', () => {
+    setResolvedConfig({
+      context: { elasticsearch: { via: 'kibana' }, kibana: { url: 'https://kibana.example' } },
+    } as ResolvedConfig)
+    assert.strictEqual(getEsClient(), getEsClient())
   })
 })
 

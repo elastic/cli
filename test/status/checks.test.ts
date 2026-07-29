@@ -47,6 +47,69 @@ describe('checkElasticsearch', () => {
     assert.equal(calls[0]!.init.method, 'GET')
   })
 
+  it('probes through the Console proxy for a via-kibana block', async () => {
+    const { fetch: fetchFn, calls } = recordingFetch(() =>
+      new Response(JSON.stringify({ status: 'green', number_of_nodes: 5 }), {
+        status: 200,
+        headers: { 'content-type': 'application/json', 'x-console-proxy-status-code': '200' },
+      })
+    )
+    const result = await checkElasticsearch(
+      { via: 'kibana' },
+      fetchFn,
+      { url: 'https://kibana.example', auth: { api_key: 'kb' } },
+    )
+
+    // The url reported is Kibana's, and `via` records how the cluster was reached.
+    assert.deepEqual(result, { ok: true, url: 'https://kibana.example', status: 'green', nodes: 5, via: 'kibana' })
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0]!.url, 'https://kibana.example/api/console/proxy?path=%2F_cluster%2Fhealth&method=GET')
+    const headers = calls[0]!.init.headers as Record<string, string>
+    assert.equal(headers['Authorization'], 'ApiKey kb')
+    assert.equal(headers['kbn-xsrf'], 'true')
+    assert.equal(headers['x-elastic-internal-origin'], 'Kibana')
+    assert.equal(calls[0]!.init.method, 'POST')
+    assert.equal(calls[0]!.init.redirect, 'error')
+  })
+
+  it('reports the Elasticsearch status when the proxy forwards a failure', async () => {
+    const { fetch: fetchFn } = recordingFetch(() =>
+      new Response('{}', {
+        status: 200,
+        headers: { 'x-console-proxy-status-code': '403' },
+      })
+    )
+    const result = await checkElasticsearch({ via: 'kibana' }, fetchFn, { url: 'https://kibana.example' })
+
+    assert.deepEqual(result, { ok: false, url: 'https://kibana.example', error: 'auth failed (403)', via: 'kibana' })
+  })
+
+  it('reports a network failure reaching Kibana', async () => {
+    const { fetch: fetchFn } = recordingFetch(() => new Error('ECONNREFUSED'))
+    const result = await checkElasticsearch({ via: 'kibana' }, fetchFn, { url: 'https://kibana.example' })
+
+    assert.equal(result.ok, false)
+    if (!result.ok) assert.match(result.error, /network error: ECONNREFUSED/)
+  })
+
+  it('reports a via-kibana block with no kibana block as a failure', async () => {
+    const { fetch: fetchFn, calls } = recordingFetch(() => new Response('{}', { status: 200 }))
+    const result = await checkElasticsearch({ via: 'kibana' }, fetchFn)
+
+    assert.deepEqual(result, { ok: false, url: '', error: 'via: kibana requires a kibana block', via: 'kibana' })
+    assert.equal(calls.length, 0, 'no request is attempted without a route')
+  })
+
+  it('reports an unexpected body from the proxy', async () => {
+    const { fetch: fetchFn } = recordingFetch(() =>
+      new Response('not json', { status: 200, headers: { 'x-console-proxy-status-code': '200' } })
+    )
+    const result = await checkElasticsearch({ via: 'kibana' }, fetchFn, { url: 'https://kibana.example' })
+
+    assert.equal(result.ok, false)
+    if (!result.ok) assert.equal(result.error, 'unexpected response')
+  })
+
   it('strips trailing slashes from the URL', async () => {
     const { fetch: fetchFn, calls } = recordingFetch(() =>
       new Response(JSON.stringify({ status: 'yellow', number_of_nodes: 1 }), { status: 200 })

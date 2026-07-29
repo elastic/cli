@@ -28,9 +28,12 @@ interface Row {
 }
 
 function esSummary (s: EsCheck): string {
-  if (!s.ok) return s.error
+  // Requests forwarded by Kibana are reported explicitly: the url column shows the
+  // Kibana endpoint, so without this the route would be indistinguishable from direct.
+  const route = s.via === 'kibana' ? ' via Kibana' : ''
+  if (!s.ok) return `${s.error}${route}`
   const noun = s.nodes === 1 ? 'node' : 'nodes'
-  return `${s.status} (${s.nodes} ${noun})`
+  return `${s.status} (${s.nodes} ${noun})${route}`
 }
 
 function kbSummary (s: KbCheck): string {

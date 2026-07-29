@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod'
-import type { EsClient } from '../../lib/es-client.ts'
+import type { EsTransport } from '../../lib/es-client.ts'
 import { defineCommand } from '../../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../../factory.ts'
 import { getEsClient } from '../../lib/es-client.ts'
@@ -25,7 +25,7 @@ interface SearchResponse {
 
 /** Dependencies injectable for testing. */
 export interface WatchDeps {
-  getEsClient: () => EsClient
+  getEsClient: () => EsTransport
   stdout: { write: (chunk: string) => boolean }
   stderr: { write: (chunk: string) => boolean }
   sleep: (ms: number) => Promise<void>
@@ -118,7 +118,7 @@ function createWatchHandler (deps: WatchDeps = defaultDeps) {
   return async (parsed: { input?: z.infer<typeof inputSchema>; options: Record<string, string | number | boolean> }): Promise<JsonValue> => {
     const { index, query, query_file, sort_field, poll_interval, from, size, format } = parsed.input!
 
-    let transport: EsClient
+    let transport: EsTransport
     try {
       transport = deps.getEsClient()
     } catch (err) {

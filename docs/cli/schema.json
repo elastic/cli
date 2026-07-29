@@ -69328,6 +69328,13 @@
                 },
                 {
                   "role": "flag",
+                  "name": "es-via",
+                  "type": "string",
+                  "required": false,
+                  "summary": "Reach Elasticsearch through another service instead of a URL. Only \"kibana\" is supported, and it reuses the Kibana credentials -- for deployments where Elasticsearch is unreachable but Kibana is"
+                },
+                {
+                  "role": "flag",
                   "name": "es-username",
                   "type": "string",
                   "required": false,
@@ -69422,6 +69429,13 @@
                   "type": "string",
                   "required": false,
                   "summary": "Elasticsearch URL"
+                },
+                {
+                  "role": "flag",
+                  "name": "es-via",
+                  "type": "string",
+                  "required": false,
+                  "summary": "Reach Elasticsearch through another service instead of a URL. Only \"kibana\" is supported, and it reuses the Kibana credentials -- for deployments where Elasticsearch is unreachable but Kibana is"
                 },
                 {
                   "role": "flag",

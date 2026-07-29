@@ -4,39 +4,26 @@
  */
 
 import { getResolvedConfig } from '../config/store.ts'
-import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
+import { isEsViaKibana } from '../config/types.ts'
+import { buildAuthHeader, narrowAuth, type ApiKeyOrBasicAuth } from './auth.ts'
+import { EsConsoleProxyClient } from './es-console-proxy-client.ts'
+import {
+  buildEsQueryString,
+  EsConnectionError,
+  EsResponseError,
+  type EsRequestParams,
+  type EsTransport,
+} from './es-transport.ts'
 import { clientHeaders } from './meta.ts'
 
-export interface EsRequestParams {
-  method: string
-  path: string
-  querystring?: Record<string, unknown>
-  /** Object body → JSON-serialized; string body → sent as-is with application/json */
-  body?: unknown
-  /** NDJSON body → sent as-is with application/x-ndjson; takes precedence over `body` */
-  bulkBody?: string
-}
-
-export class EsResponseError extends Error {
-  statusCode: number
-  body: unknown
-
-  constructor (statusCode: number, body: unknown) {
-    const message = body != null && typeof body === 'object' && 'error' in body
-      ? JSON.stringify((body as Record<string, unknown>).error)
-      : String(body)
-    super(message)
-    this.name = 'EsResponseError'
-    this.statusCode = statusCode
-    this.body = body
-  }
-}
-
-export class EsConnectionError extends Error {
-  constructor (message: string) {
-    super(message)
-    this.name = 'EsConnectionError'
-  }
+// The transport contract lives in `es-transport.ts` so that other transports can depend
+// on it without importing this module. Re-exported here for existing consumers.
+export {
+  buildEsQueryString,
+  EsConnectionError,
+  EsResponseError,
+  type EsRequestParams,
+  type EsTransport,
 }
 
 /**
@@ -49,7 +36,7 @@ export class EsConnectionError extends Error {
  * All requests automatically include `x-elastic-client-meta` and `user-agent`
  * headers via `clientHeaders()`.
  */
-export class EsClient {
+export class EsClient implements EsTransport {
   readonly baseUrl: string
   private readonly authHeader: string | undefined
   private _fetch: typeof fetch = globalThis.fetch
@@ -68,13 +55,8 @@ export class EsClient {
   ): Promise<T> {
     let url = `${this.baseUrl}${params.path}`
 
-    if (params.querystring != null && Object.keys(params.querystring).length > 0) {
-      const pieces = Object.entries(params.querystring)
-        .filter(([, v]) => v !== undefined)
-        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-        .join('&')
-      if (pieces.length > 0) url += `?${pieces}`
-    }
+    const queryString = buildEsQueryString(params.querystring)
+    if (queryString.length > 0) url += `?${queryString}`
 
     const headers: Record<string, string> = {
       ...clientHeaders(),
@@ -143,15 +125,19 @@ export class EsClient {
   }
 }
 
-let _client: EsClient | undefined
+let _client: EsTransport | undefined
 
 /**
- * Returns a lazily-created, cached `EsClient` configured from the
+ * Returns a lazily-created, cached Elasticsearch transport configured from the
  * resolved config context's `elasticsearch` service block.
  *
- * @throws {Error} with code `missing_config` when no Elasticsearch service is configured
+ * Returns a direct {@link EsClient} for a block with a `url`, or a transport that
+ * forwards through Kibana when the block declares `via: kibana`.
+ *
+ * @throws {Error} with code `missing_config` when no Elasticsearch service is configured,
+ *   or when `via: kibana` is set without a `kibana` block to route through
  */
-export function getEsClient (): EsClient {
+export function getEsClient (): EsTransport {
   if (_client != null) return _client
 
   const config = getResolvedConfig()
@@ -164,17 +150,26 @@ export function getEsClient (): EsClient {
     )
   }
 
-  const { url, auth } = es
-  const authRecord = auth != null ? auth as Record<string, unknown> : undefined
-
-  let typedAuth: { api_key: string } | { username: string; password: string } | undefined
-  if (typeof authRecord?.['api_key'] === 'string') {
-    typedAuth = { api_key: authRecord['api_key'] as string }
-  } else if (typeof authRecord?.['username'] === 'string' && typeof authRecord?.['password'] === 'string') {
-    typedAuth = { username: authRecord['username'] as string, password: authRecord['password'] as string }
+  if (isEsViaKibana(es)) {
+    const kibana = config?.context.kibana
+    if (kibana == null) {
+      throw new Error(
+        'missing_config: elasticsearch is configured with "via: kibana" but the active ' +
+        'context has no kibana block. Add one, or replace "via" with an elasticsearch url.'
+      )
+    }
+    _client = new EsConsoleProxyClient(kibana.url, narrowAuth(kibana.auth))
+    return _client
   }
 
-  _client = new EsClient(url, typedAuth)
+  if (es.url == null) {
+    throw new Error(
+      'missing_config: The elasticsearch block has no url. Set a url, or use ' +
+      '"via: kibana" to route requests through Kibana.'
+    )
+  }
+
+  _client = new EsClient(es.url, narrowAuth(es.auth))
   return _client
 }
 

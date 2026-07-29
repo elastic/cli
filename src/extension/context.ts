@@ -35,6 +35,7 @@
  */
 
 import type { ResolvedConfig, ServiceBlock } from '../config/types.ts'
+import { isEsViaKibana } from '../config/types.ts'
 
 type EnvMap = Record<string, string>
 
@@ -59,7 +60,11 @@ function serviceEnv (prefix: string, block: ServiceBlock): EnvMap {
 export function buildContextEnv (config: ResolvedConfig): EnvMap {
   const env: EnvMap = {}
   const { elasticsearch, kibana, cloud } = config.context
-  if (elasticsearch != null) Object.assign(env, serviceEnv('ELASTIC_ES', elasticsearch))
+  // A `via: kibana` context has no Elasticsearch endpoint to hand to an extension: the
+  // Kibana variables below are the only usable credentials, so no ES_* vars are emitted.
+  if (elasticsearch != null && !isEsViaKibana(elasticsearch)) {
+    Object.assign(env, serviceEnv('ELASTIC_ES', elasticsearch as ServiceBlock))
+  }
   if (kibana != null) Object.assign(env, serviceEnv('ELASTIC_KIBANA', kibana))
   if (cloud != null) Object.assign(env, serviceEnv('ELASTIC_CLOUD', cloud))
   return env

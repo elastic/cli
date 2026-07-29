@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { EsClient } from '../lib/es-client.ts'
+import type { EsTransport } from '../lib/es-client.ts'
 import type { EsApiDefinition } from './types.ts'
 import type { SchemaArgDefinition } from '../lib/schema-args.ts'
 import { buildRequestParams } from './request-builder.ts'
@@ -16,8 +16,8 @@ import type { JsonValue, ParsedResult } from '../factory.ts'
  * Production code uses the defaults; tests supply stubs.
  */
 export interface EsHandlerDeps {
-  /** returns the active EsClient instance, or throws `missing_config` */
-  getEsClient: () => EsClient
+  /** returns the active EsTransport instance, or throws `missing_config` */
+  getEsClient: () => EsTransport
   /** builds EsRequestParams from a definition, parsed CLI input, and schema args */
   buildRequestParams: typeof buildRequestParams
 }

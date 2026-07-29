@@ -25,3 +25,24 @@ export function buildAuthHeader (auth: ApiKeyOrBasicAuth | undefined): string | 
   const encoded = Buffer.from(`${auth.username}:${auth.password}`).toString('base64')
   return `Basic ${encoded}`
 }
+
+/**
+ * Narrows a config service block's `auth` field to {@link ApiKeyOrBasicAuth}.
+ *
+ * The resolved config types auth loosely, since a config file may supply either
+ * variant (or neither, when security is disabled). Every client needs the same
+ * narrowing before it can build a header.
+ *
+ * @returns the narrowed auth, or `undefined` when absent or incomplete
+ */
+export function narrowAuth (auth: unknown): ApiKeyOrBasicAuth | undefined {
+  if (auth == null || typeof auth !== 'object') return undefined
+  const record = auth as Record<string, unknown>
+  if (typeof record['api_key'] === 'string') {
+    return { api_key: record['api_key'] }
+  }
+  if (typeof record['username'] === 'string' && typeof record['password'] === 'string') {
+    return { username: record['username'], password: record['password'] }
+  }
+  return undefined
+}

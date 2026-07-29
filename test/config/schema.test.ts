@@ -5,7 +5,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { ApiKeyAuthSchema, BasicAuthSchema, AuthSchema, ServiceBlockSchema, ContextSchema, ConfigFileSchema, CommandPolicySchema } from '../../src/config/schema.ts'
+import { ApiKeyAuthSchema, BasicAuthSchema, AuthSchema, ServiceBlockSchema, EsServiceBlockSchema, ContextSchema, ConfigFileSchema, CommandPolicySchema } from '../../src/config/schema.ts'
 
 const esBlock = { url: 'https://es.example.com:9200', auth: { api_key: 'key1' } }
 const kibanaBlock = { url: 'https://kibana.example.com:5601', auth: { username: 'u', password: 'p' } }
@@ -192,6 +192,46 @@ describe('ServiceBlockSchema', () => {
   })
 })
 
+describe('EsServiceBlockSchema', () => {
+  it('accepts a direct connection with url and auth', () => {
+    const result = EsServiceBlockSchema.safeParse({
+      url: 'https://es.example.com:9200',
+      auth: { api_key: 'abc123' },
+    })
+    assert.equal(result.success, true)
+    if (result.success) assert.equal(result.data.url, 'https://es.example.com:9200')
+  })
+
+  it('accepts via: kibana without a url', () => {
+    const result = EsServiceBlockSchema.safeParse({ via: 'kibana' })
+    assert.equal(result.success, true)
+    if (result.success) assert.equal(result.data.via, 'kibana')
+  })
+
+  it('rejects a block with both via and url', () => {
+    // A url alongside via is ambiguous: one of the two would be silently ignored.
+    const result = EsServiceBlockSchema.safeParse({ via: 'kibana', url: 'https://es.example.com:9200' })
+    assert.equal(result.success, false)
+  })
+
+  it('rejects a block with neither via nor url', () => {
+    assert.equal(EsServiceBlockSchema.safeParse({}).success, false)
+  })
+
+  it('rejects an unknown via target', () => {
+    assert.equal(EsServiceBlockSchema.safeParse({ via: 'logstash' }).success, false)
+  })
+
+  it('rejects auth alongside via, which reuses the kibana credentials', () => {
+    const result = EsServiceBlockSchema.safeParse({ via: 'kibana', auth: { api_key: 'abc' } })
+    assert.equal(result.success, false)
+  })
+
+  it('still rejects a non-http url', () => {
+    assert.equal(EsServiceBlockSchema.safeParse({ url: 'ftp://es.example.com' }).success, false)
+  })
+})
+
 describe('ContextSchema', () => {
   it('accepts a context with only elasticsearch', () => {
     const result = ContextSchema.safeParse({ elasticsearch: esBlock })
@@ -206,6 +246,19 @@ describe('ContextSchema', () => {
   it('accepts a context with only kibana', () => {
     const result = ContextSchema.safeParse({ kibana: kibanaBlock })
     assert.equal(result.success, true)
+  })
+
+  it('accepts via: kibana when a kibana block is present', () => {
+    const result = ContextSchema.safeParse({ elasticsearch: { via: 'kibana' }, kibana: kibanaBlock })
+    assert.equal(result.success, true)
+  })
+
+  it('rejects via: kibana without a kibana block to route through', () => {
+    const result = ContextSchema.safeParse({ elasticsearch: { via: 'kibana' } })
+    assert.equal(result.success, false)
+    if (!result.success) {
+      assert.match(result.error.issues.map((i) => i.message).join('\n'), /requires a kibana block/)
+    }
   })
 
   it('accepts a context with only cloud', () => {

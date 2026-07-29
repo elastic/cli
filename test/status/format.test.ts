@@ -43,6 +43,28 @@ describe('formatStatusText', () => {
     assert.ok(!out.includes('Cloud'))
   })
 
+  it('marks an Elasticsearch cluster reached through Kibana', () => {
+    // The url column shows the Kibana endpoint, so the route needs saying explicitly.
+    const out = formatStatusText({
+      context: 'proxied',
+      services: {
+        elasticsearch: { ok: true, url: 'https://kibana.example', status: 'green', nodes: 5, via: 'kibana' },
+        kibana: { ok: true, url: 'https://kibana.example', status: 'available', version: '9.2.1' },
+      },
+    })
+    assert.ok(out.includes('green (5 nodes) via Kibana'), `got ${out}`)
+  })
+
+  it('marks the route on a failed proxied check too', () => {
+    const out = formatStatusText({
+      context: 'proxied',
+      services: {
+        elasticsearch: { ok: false, url: 'https://kibana.example', error: 'auth failed (403)', via: 'kibana' },
+      },
+    })
+    assert.ok(out.includes('auth failed (403) via Kibana'), `got ${out}`)
+  })
+
   it('pluralises the node count correctly', () => {
     const one = formatStatusText({
       context: 'c',

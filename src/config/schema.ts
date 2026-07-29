@@ -33,14 +33,44 @@ export const BasicAuthSchema = z.object({
 /** Union of all supported auth variants -- type is inferred from whichever fields are present. */
 export const AuthSchema = z.union([ApiKeyAuthSchema, BasicAuthSchema])
 
+/** Validates that a configured endpoint is an absolute http(s) URL. */
+const ServiceUrlSchema = z.string().url().refine(
+  (u) => u.startsWith('https://') || u.startsWith('http://'),
+  { message: 'URL must use http:// or https:// scheme' }
+)
+
 /** Endpoint URL and authentication credentials for a single service. */
 export const ServiceBlockSchema = z.object({
-  url: z.string().url().refine(
-    (u) => u.startsWith('https://') || u.startsWith('http://'),
-    { message: 'URL must use http:// or https:// scheme' }
-  ),
+  url: ServiceUrlSchema,
   auth: AuthSchema.optional()
 })
+
+/**
+ * The Elasticsearch service block.
+ *
+ * Unlike Kibana and Cloud, Elasticsearch may be addressed in two ways:
+ * - `url` (+ optional `auth`) — a direct connection, the default.
+ * - `via: kibana` — requests are forwarded by Kibana's Console proxy, reusing the
+ *   context's `kibana` credentials. This is for deployments where Elasticsearch is
+ *   not reachable from the client but Kibana is.
+ *
+ * The two are mutually exclusive: `via` means there is no ES endpoint to address
+ * directly, so accepting a `url` alongside it would silently ignore one of them.
+ */
+export const EsServiceBlockSchema = z
+  .object({
+    url: ServiceUrlSchema.optional(),
+    auth: AuthSchema.optional(),
+    via: z.literal('kibana').optional(),
+  })
+  .refine(
+    (es) => (es.via == null) !== (es.url == null),
+    { error: 'elasticsearch: set either "url" for a direct connection or "via: kibana", but not both' }
+  )
+  .refine(
+    (es) => !(es.via != null && es.auth != null),
+    { error: 'elasticsearch: "via: kibana" reuses the kibana credentials; remove "auth"' }
+  )
 
 /**
  * Policy controlling which commands are permitted to run.
@@ -78,7 +108,7 @@ export const CommandPolicySchema = z
  */
 export const ContextSchema = z
   .object({
-    elasticsearch: ServiceBlockSchema.optional(),
+    elasticsearch: EsServiceBlockSchema.optional(),
     kibana: ServiceBlockSchema.optional(),
     cloud: ServiceBlockSchema.optional(),
     commands: CommandPolicySchema.optional(),
@@ -86,6 +116,10 @@ export const ContextSchema = z
   .refine(
     (ctx) => ctx.elasticsearch != null || ctx.kibana != null || ctx.cloud != null,
     { error: 'at least one service block (elasticsearch, kibana, or cloud) is required' }
+  )
+  .refine(
+    (ctx) => ctx.elasticsearch?.via !== 'kibana' || ctx.kibana != null,
+    { error: 'elasticsearch: "via: kibana" requires a kibana block in the same context' }
   )
 
 /**

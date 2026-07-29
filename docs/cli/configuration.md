@@ -53,6 +53,32 @@ Multiple contexts are supported. Override `current_context` for a single command
 
 Each context can have any combination of service blocks (`elasticsearch`, `kibana`, and `cloud`). Authentication supports `api_key` or `username` + `password`.
 
+### Reaching Elasticsearch through Kibana
+
+Some deployments publish only Kibana and keep Elasticsearch unreachable from clients. Set `via: kibana` on the `elasticsearch` block and requests are forwarded by Kibana's Console proxy instead of being sent to Elasticsearch directly:
+
+```yaml
+current_context: proxied
+
+contexts:
+  proxied:
+    kibana:
+      url: https://kibana.example.internal
+      auth:
+        api_key: your-kibana-api-key-here
+    elasticsearch:
+      via: kibana
+```
+
+Notes:
+
+- `via` and `url` are mutually exclusive, and a `via: kibana` block needs a `kibana` block in the same context to route through.
+- The Kibana credentials are reused, so the `elasticsearch` block takes no `auth` of its own.
+- Every `elastic es …` command works as usual, and Elasticsearch errors keep their original status code.
+- `elastic status` marks the route, for example `green (5 nodes) via Kibana`.
+- The Kibana API key must be allowed to use the Console proxy, and the deployment must have it enabled (`console.ui.enabled` is `true` by default).
+- Extensions receive no `ELASTIC_ES_*` environment variables for such a context, since there is no Elasticsearch endpoint to pass on.
+
 ## Authoring the config from the CLI
 
 Instead of hand-editing YAML, the `elastic config` command group creates and maintains contexts and stores secrets in the OS keychain when available (macOS Keychain, Linux libsecret, `pass`, Windows Credential Manager). The YAML then holds a resolver expression like `$(keychain:...)` rather than the raw secret.

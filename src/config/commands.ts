@@ -66,6 +66,7 @@ const SECRET_FIELDS: SecretField[] = [
 
 const PLAIN_FIELDS: PlainField[] = [
   { flag: 'es-url',       path: ['elasticsearch', 'url'],           description: 'Elasticsearch URL' },
+  { flag: 'es-via',       path: ['elasticsearch', 'via'],           description: 'Reach Elasticsearch through another service instead of a URL. Only "kibana" is supported, and it reuses the Kibana credentials -- for deployments where Elasticsearch is unreachable but Kibana is' },
   { flag: 'es-username',  path: ['elasticsearch', 'auth', 'username'], description: 'Elasticsearch username (pair with --es-password)' },
   { flag: 'kb-url',       path: ['kibana', 'url'],                  description: 'Kibana URL' },
   { flag: 'kb-username',  path: ['kibana', 'auth', 'username'],     description: 'Kibana username (pair with --kb-password)' },

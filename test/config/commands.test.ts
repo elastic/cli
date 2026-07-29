@@ -6,7 +6,7 @@
 import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 
@@ -67,6 +67,37 @@ describe('elastic config (integration)', () => {
       const st = await stat(cfg)
       assert.equal(st.mode & 0o777, 0o600, 'inline secrets must be chmod 0600')
     }
+  })
+
+  it('context add --es-via kibana writes a proxied elasticsearch block', async () => {
+    const viaCfg = join(dir, 'via.yml')
+    const res = run([
+      'config', 'context', 'add', 'proxied',
+      '--config-file', viaCfg,
+      '--kb-url', 'https://kibana.example',
+      '--es-via', 'kibana',
+    ])
+    assert.equal(res.exitCode, 0, res.stderr)
+
+    const written = await readFile(viaCfg, 'utf-8')
+    // Isolate the elasticsearch block: the kibana block that follows has its own url.
+    const esBlock = written.match(/ {4}elasticsearch:\n((?: {6}.*\n)*)/)?.[1] ?? ''
+    assert.match(esBlock, /via: kibana/, written)
+    // `via` replaces the url; no Elasticsearch endpoint is written.
+    assert.ok(!esBlock.includes('url:'), written)
+    assert.match(written, / {4}kibana:\n {6}url: https:\/\/kibana\.example/, written)
+  })
+
+  it('context add --es-via kibana without a kibana block is rejected', () => {
+    const res = run([
+      'config', 'context', 'add', 'broken',
+      '--config-file', join(dir, 'broken.yml'),
+      '--es-via', 'kibana',
+    ])
+    assert.notEqual(res.exitCode, 0)
+    const err = (res.json as { error?: { code?: string, message?: string } }).error
+    assert.equal(err?.code, 'invalid_context')
+    assert.match(err?.message ?? '', /requires a kibana block/)
   })
 
   it('context add without any service flags errors with code=no_fields', () => {

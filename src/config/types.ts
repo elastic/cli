@@ -7,6 +7,7 @@ import type { z } from 'zod'
 import type {
   AuthSchema,
   ServiceBlockSchema,
+  EsServiceBlockSchema,
   ContextSchema,
   ConfigFileSchema,
   CommandPolicySchema,
@@ -31,6 +32,12 @@ export type Auth = z.infer<typeof AuthSchema>
 /** Endpoint URL and authentication credentials for a single service. */
 export type ServiceBlock = z.infer<typeof ServiceBlockSchema>
 
+/** The Elasticsearch service block: a direct connection, or routed through Kibana. */
+export type EsServiceBlock = z.infer<typeof EsServiceBlockSchema>
+
+/** An Elasticsearch block whose requests are forwarded by Kibana's Console proxy. */
+export interface EsViaKibanaBlock { via: 'kibana' }
+
 /** A context value: optional service blocks with at least one present. */
 export type Context = z.infer<typeof ContextSchema>
 
@@ -42,9 +49,27 @@ export type CommandPolicy = z.infer<typeof CommandPolicySchema>
 
 /** The active context after resolution — only its configured service blocks, no extras. */
 export interface ResolvedContext {
-  elasticsearch?: ServiceBlock
+  elasticsearch?: EsServiceBlock
   kibana?: ServiceBlock
   cloud?: ServiceBlock
+}
+
+/**
+ * Narrows an Elasticsearch block to the Kibana-routed variant.
+ *
+ * The schema guarantees `via` and `url` are mutually exclusive, so this doubles as
+ * a check that no direct endpoint is available.
+ */
+export function isEsViaKibana (block: EsServiceBlock): block is EsViaKibanaBlock {
+  return block.via === 'kibana'
+}
+
+/**
+ * Narrows an Elasticsearch block to the direct-connection variant, whose `url` is
+ * guaranteed present by the schema.
+ */
+export function isEsDirect (block: EsServiceBlock): block is ServiceBlock {
+  return block.url != null
 }
 
 /** Typed configuration object passed to command handlers after loading and context resolution. */

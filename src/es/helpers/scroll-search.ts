@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod'
-import type { EsClient } from '../../lib/es-client.ts'
+import type { EsTransport } from '../../lib/es-client.ts'
 import { defineCommand } from '../../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../../factory.ts'
 import { getEsClient } from '../../lib/es-client.ts'
@@ -26,7 +26,7 @@ interface SearchResponse {
 
 /** Dependencies injectable for testing. */
 export interface ScrollSearchDeps {
-  getEsClient: () => EsClient
+  getEsClient: () => EsTransport
   stdout: { write: (chunk: string) => boolean }
   stderr: { write: (chunk: string) => boolean }
   env?: NodeJS.ProcessEnv
@@ -53,7 +53,7 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
     const { index, query, query_file, scroll, size, max_docs } = parsed.input!
     const maxDocs = max_docs ?? Infinity
 
-    let transport: EsClient
+    let transport: EsTransport
     try {
       transport = deps.getEsClient()
     } catch (err) {
