@@ -128,6 +128,7 @@ jobs:
     name: Check CLI schema is up to date
     permissions:
       contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     env:
       NODE_OPTIONS: --max-old-space-size=6144
@@ -151,6 +152,14 @@ jobs:
             echo "docs/cli/schema.json is out of date. Run 'npm run build:schema' and commit the result."
             exit 1
           fi
+      - name: Comment on PR
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr comment "$PR_NUMBER" --body "<!-- schema-stale -->
+          \`docs/cli/schema.json\` is out of date. Comment \`/fix-schema\` on this PR and the bot will regenerate and commit it automatically."
 
   ci:
     name: CI Result

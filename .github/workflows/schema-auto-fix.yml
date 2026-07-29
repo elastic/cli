@@ -1,0 +1,73 @@
+name: Auto-fix schema
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  fix:
+    name: Regenerate and commit schema
+    # Only run for maintainer comments: this job checks out and builds the PR
+    # branch with a write token, so it must never be triggerable by outsiders.
+    if: |
+      github.event.issue.pull_request != null &&
+      contains(github.event.comment.body, '/fix-schema') &&
+      contains(fromJSON('["MEMBER", "OWNER", "COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - name: Get PR branch
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          PR_JSON=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json headRefName,headRefOid,isCrossRepository)
+          if [ "$(echo "$PR_JSON" | jq -r .isCrossRepository)" = "true" ]; then
+            echo "Refusing to run against a fork branch." >&2
+            exit 1
+          fi
+          echo "branch=$(echo "$PR_JSON" | jq -r .headRefName)" >> "$GITHUB_OUTPUT"
+          echo "sha=$(echo "$PR_JSON" | jq -r .headRefOid)" >> "$GITHUB_OUTPUT"
+
+      # Check out the exact SHA validated above (not the branch name) so the
+      # ref cannot be swapped between validation and execution (TOCTOU).
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ steps.pr.outputs.sha }}
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 24.x
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Regenerate CLI schema
+        run: npm run build:schema
+
+      - name: Commit and push
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          BRANCH: ${{ steps.pr.outputs.branch }}
+          SHA: ${{ steps.pr.outputs.sha }}
+        run: |
+          if git diff --quiet docs/cli/schema.json; then
+            gh pr comment "$PR_NUMBER" --body "Schema is already up to date - nothing to commit."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add docs/cli/schema.json
+            git commit -m "chore: regenerate CLI schema"
+            # Fail instead of clobbering if the branch moved since validation.
+            git push origin "HEAD:refs/heads/$BRANCH" --force-with-lease="refs/heads/$BRANCH:$SHA"
+            gh pr comment "$PR_NUMBER" --body "Schema regenerated and committed."
+          fi
