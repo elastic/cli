@@ -2,6 +2,16 @@
 
 Thanks for your interest in contributing! We love receiving contributions from our community. Whether you're fixing bugs, adding features, improving documentation, or sharing ideas, we'd love to have your help.
 
+## The one rule
+
+Adapted from [pi's contributing philosophy](https://github.com/earendil-works/pi/blob/main/CONTRIBUTING.md#the-one-rule).
+
+**You must understand your code.** If you cannot explain what your changes do and how they interact with the rest of the codebase, the PR will be closed.
+
+Using AI to write code is fine. Submitting AI-generated code without understanding it is not.
+
+If you use an agent, run it from the repo root so it picks up `AGENTS.md` automatically. Your agent must follow the rules in that file.
+
 ## Ways to contribute
 
 - **Report bugs**: Open an issue describing what you found
@@ -113,7 +123,8 @@ Adding new third-party dependencies is **strongly discouraged** to minimize supp
 
 1. **Fork the repository**: Create a feature branch
 2. **Commit with clear messages**: Describe what and why
-3. **Push and open a PR**: Link to the issue(s) your PR addresses
+3. **Sign the CLA**: [Elastic Contributor License Agreement](https://www.elastic.co/contributor-agreement/) (one-time). PRs without a signed CLA are automatically closed after 48 hours.
+4. **Push and open a PR**: Link to the issue(s) your PR addresses
 
 In your PR description:
 
@@ -121,8 +132,6 @@ In your PR description:
 - Describe your approach
 - Note any breaking changes
 - Reference related issues (e.g., "Closes #123")
-
-4. **Sign the CLA**: [Elastic Contributor License Agreement](https://www.elastic.co/contributor-agreement/) (one-time only)
 
 ## What to expect
 
