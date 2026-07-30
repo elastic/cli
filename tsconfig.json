@@ -22,7 +22,9 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-    "removeComments": true
+    "removeComments": true,
+    "incremental": true,
+    "composite": false
   },
   "include": [
     "src/**/*"
