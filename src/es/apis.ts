@@ -13,12 +13,21 @@
  */
 
 import type { EsApiDefinition } from './types.ts'
+import { createDefinitionResolver } from '../lib/json-schema-refs.ts'
 import type { EsApiMeta } from './api-manifest.ts'
 export { apiManifest } from './api-manifest.ts'
 export type { EsApiMeta } from './api-manifest.ts'
 
 /** Memoised module cache so repeated calls don't re-import the same namespace file. */
 const moduleCache = new Map<string, Promise<EsApiDefinition[]>>()
+
+/**
+ * Rewrites each definition's `input` into a self-contained schema, inlining
+ * the shared type definitions its `$ref`s point at. Sidecar files are loaded
+ * once and shared across every definition that references them (some, like
+ * `_types.json`, are referenced by hundreds).
+ */
+const resolveDefinition = createDefinitionResolver<EsApiDefinition>('@elastic/schemas/es/json')
 
 /**
  * Dynamic-imports the namespace file identified by `namespaceFile` and returns
@@ -38,7 +47,7 @@ export async function loadEsApisInFile (namespaceFile: string): Promise<EsApiDef
     if (!Array.isArray(arr)) {
       throw new Error(`internal error: ${namespaceFile}.js did not export ${exportKey}`)
     }
-    return arr as EsApiDefinition[]
+    return Promise.all((arr as EsApiDefinition[]).map(resolveDefinition))
   })()
   moduleCache.set(namespaceFile, cached)
   return cached

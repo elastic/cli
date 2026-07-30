@@ -2012,7 +2012,7 @@ describe('defineCommand', () => {
       const cmd = defineCommand({
         name: 'search',
         description: 'Search',
-        input: z.object({ index: z.string() }),
+        input: { type: 'object', properties: { index: { type: 'string' } } },
         readOnly: true,
         handler: () => ({}),
       })

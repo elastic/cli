@@ -4,9 +4,16 @@
  */
 
 import type { CloudApiDefinition } from './types.ts'
+import { createDefinitionResolver } from '../lib/json-schema-refs.ts'
 
 /** Lazily loaded cache of all hosted Cloud API definitions. */
 let _allCloudApis: CloudApiDefinition[] | null = null
+
+/**
+ * Rewrites each definition's `input` into a self-contained schema, inlining
+ * the shared type definitions its `$ref`s point at (`_defs.json`).
+ */
+const resolveDefinition = createDefinitionResolver<CloudApiDefinition>('@elastic/schemas/cloud/json')
 
 /**
  * Returns all hosted Cloud API definitions, lazy-loading the per-namespace
@@ -54,6 +61,8 @@ export async function loadCloudApis (): Promise<CloudApiDefinition[]> {
     ...trustedEnvironmentsDefinitions,
     ...userRoleAssignmentsDefinitions,
   ] as CloudApiDefinition[]
+
+  _allCloudApis = await Promise.all(_allCloudApis.map(resolveDefinition))
 
   return _allCloudApis
 }

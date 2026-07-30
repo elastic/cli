@@ -78,6 +78,7 @@ export function buildCloudJsonSchema (def: CloudApiDefinition): Record<string, u
   const props = (def.input.properties ?? {}) as Record<string, Record<string, unknown>>
   const cleaned: Record<string, unknown> = {}
   for (const [key, prop] of Object.entries(props)) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { 'x-found-in': _routing, ...rest } = prop
     cleaned[key] = rest
   }
