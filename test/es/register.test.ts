@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it } from 'node:test'
+import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { z } from 'zod'
 import type { EsApiDefinition } from '../../src/es/types.ts'
 import { registerEsCommands, registerEsCommandsLazy } from '../../src/es/register.ts'
+import { _testSetStdinReader } from '../../src/factory.ts'
 
 function makeDef(name: string, namespace: string, description = `${name} description`): EsApiDefinition {
   return { name, namespace, description, method: 'GET', path: `/_${namespace}/${name}` }
@@ -507,5 +508,54 @@ describe('registerEsCommands - responseType and intent', () => {
     const handle = await registerEsCommands(defs)
     const cmd = handle.commands.find((c) => c.name() === 'reindex')
     assert.ok(cmd != null, 'command should be registered with intent')
+  })
+})
+
+describe('registerEsCommands - REST-style body (#360)', () => {
+  let origIsTTY: boolean | undefined
+  beforeEach(() => {
+    origIsTTY = process.stdin.isTTY
+    Object.defineProperty(process.stdin, 'isTTY', { value: undefined, configurable: true, writable: true })
+  })
+  afterEach(() => {
+    Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+  })
+
+  const indexDef: EsApiDefinition = {
+    name: 'index',
+    description: 'Index a document',
+    method: 'PUT',
+    path: '/{index}/_doc/{id}',
+    input: z.object({
+      index: z.string().meta({ found_in: 'path' }),
+      id: z.string().meta({ found_in: 'path' }),
+      document: z.any().meta({ found_in: 'body' }),
+    }),
+  }
+
+  async function getErr(defs: EsApiDefinition[], stdinJson: string, argv: string[]): Promise<string> {
+    const handle = await registerEsCommands(defs)
+    const cmd = handle.commands.find((c) => c.name() === defs[0]!.name)
+    assert.ok(cmd != null)
+    cmd.exitOverride()
+    let err = ''
+    cmd.configureOutput({ writeErr: (s) => { err += s } })
+    const restore = _testSetStdinReader(() => stdinJson)
+    try {
+      await cmd.parseAsync(argv, { from: 'user' })
+    } catch { /* exitOverride throws, swallow */ } finally {
+      restore()
+    }
+    return err
+  }
+
+  it('REST-style body does not cause input validation error', async () => {
+    const err = await getErr([indexDef], JSON.stringify({ name: 'test' }), ['--index', 'my-index', '--id', '1', '--dry-run'])
+    assert.ok(!err.includes('input validation failed'), `unexpected validation error: ${err}`)
+  })
+
+  it('wrapped body passes validation unchanged', async () => {
+    const err = await getErr([indexDef], JSON.stringify({ document: { name: 'test' } }), ['--index', 'my-index', '--id', '1', '--dry-run'])
+    assert.ok(!err.includes('input validation failed'), `unexpected validation error: ${err}`)
   })
 })
