@@ -75,17 +75,25 @@ async function runCommand (args: string[], deps: BulkIngestDeps): Promise<unknow
     process.exitCode = 0
   }
 
-  // Prefer stderr (error results) over stdout; parse whichever has content
+  // Prefer stderr (error results) over stdout; parse whichever has content.
+  // Node's test runner sends binary IPC frames through process.stdout.write,
+  // so stdoutChunks may contain non-JSON binary frames alongside the command's
+  // JSON output. Scan chunks in reverse: binary frames don't start with { or [,
+  // so the first chunk we can JSON.parse is the command output.
   const errOutput = stderrChunks.join('')
-  const stdOutput = stdoutChunks.join('')
-  const output = errOutput.trim().length > 0 ? errOutput : stdOutput
-  if (output.trim().length > 0) {
-    try {
-      return JSON.parse(output.trim())
-    } catch {
-      return output.trim()
+
+  if (errOutput.trim().length > 0) {
+    try { return JSON.parse(errOutput.trim()) } catch { return errOutput.trim() }
+  }
+
+  for (let i = stdoutChunks.length - 1; i >= 0; i--) {
+    const t = stdoutChunks[i]!.trim()
+    if ((t.startsWith('{') || t.startsWith('[')) && t.length > 0) {
+      try { return JSON.parse(t) } catch {}
     }
   }
+  const stdOutput = stdoutChunks.join('')
+  if (stdOutput.trim().length > 0) return stdOutput.trim()
   return undefined
 }
 
