@@ -144,7 +144,11 @@ function resolveType (
   if (rawType === 'object') return { type: 'object', acceptsArrayForm: false }
   if (rawType === 'string') return { type: 'string', acceptsArrayForm: false }
 
-  // fallback
+  // No type declared at all (e.g. `doc`): ES spec leaves these fully generic,
+  // and CLI users pass JSON for them, so treat as object rather than string.
+  if (rawType === undefined) return { type: 'object', acceptsArrayForm: false }
+
+  // fallback for unrecognized type strings
   return { type: 'string', acceptsArrayForm: false }
 }
 

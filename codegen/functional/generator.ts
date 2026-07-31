@@ -24,6 +24,20 @@ export interface GenerateResult {
 }
 
 /**
+ * Thrown when a step's request body contains a key that can't be routed to
+ * any CLI flag (schema/mapper gap). Generation aborts rather than silently
+ * emitting a script with part of its body missing, which would otherwise
+ * only surface as a live-cluster failure (e.g. `parse_exception: request
+ * body is required`).
+ */
+export class UnmappedBodyKeyError extends Error {
+  constructor (public readonly action: string, public readonly keys: string[]) {
+    super(`action "${action}": unmapped body key(s) [${keys.join(', ')}] — no CLI flag exists to carry this data`)
+    this.name = 'UnmappedBodyKeyError'
+  }
+}
+
+/**
  * Generate a bash test script from a parsed YAML test file.
  */
 export function generateScript (
@@ -285,6 +299,17 @@ function renderDo (
   return 'executed'
 }
 
+/**
+ * Builds the CLI command for a do-step.
+ *
+ * Any body key that can't be routed to a CLI flag — because the CLI's
+ * schema-derived arg map has no matching entry, or because a whole-body
+ * (single-value) endpoint has no CLI flag to receive it at all — is a
+ * codegen gap that would otherwise silently produce a command missing part
+ * of its request body. Rather than emitting a broken script that fails only
+ * once run against a live cluster, this throws so the gap is caught at
+ * generation time.
+ */
 function buildCommand (mapped: MappedAction, step: DoStep): string {
   const args = mapped.cliArgs.map(shellEscape).join(' ')
   let base = `$ELASTIC ${args}`
@@ -313,14 +338,15 @@ function buildCommand (mapped: MappedAction, step: DoStep): string {
       const arrayArgDef = [...mapped.bodyArgsByKey.values()].find(
         (a) => a.foundIn === 'body'
       )
-      if (arrayArgDef != null) {
+      if (arrayArgDef == null) {
+        throw new UnmappedBodyKeyError(step.action, ['(array body)'])
+      }
         // Some YAML bulk tests use a compact format where the document is embedded
         // as a `data` field inside the action metadata object:
         //   { index: { _index: ..., _id: ..., data: { field: value } } }
         // Expand these into proper alternating action+document NDJSON pairs.
         const expanded = expandBulkDataFields(body as unknown[])
         extraArgs.push(`--${arrayArgDef.cliFlag}`, toShellArg(expanded))
-      }
     } else if (typeof body === 'object' && body !== null) {
       // Object bodies — try matching each top-level key to a body schema arg.
       const bodyObj = body as Record<string, unknown>
@@ -328,6 +354,7 @@ function buildCommand (mapped: MappedAction, step: DoStep): string {
       // Track params already set via step.params to avoid duplicates
       const alreadySetParams = new Set(Object.keys(step.params))
       const bodyKeys = Object.keys(bodyObj)
+      const unmappedKeys: string[] = []
       for (const [key, value] of Object.entries(bodyObj)) {
         const argDef = mapped.bodyArgsByKey.get(key)
         if (argDef != null && (argDef.foundIn === 'body' || argDef.foundIn === undefined)) {
@@ -344,22 +371,33 @@ function buildCommand (mapped: MappedAction, step: DoStep): string {
           // Body keys that match path/query params not already set
           // (e.g. render_search_template's "id" is a path param but YAML tests put it in the body)
           extraArgs.push(`--${argDef.cliFlag}`, toShellArg(value))
+        } else if (argDef == null) {
+          unmappedKeys.push(key)
         }
       }
       // If no top-level keys matched body fields, the entire body is a freeform
       // document (e.g. `index` where the body IS the document). Pass it to the
       // single body arg (e.g. --document).
       // Prefer the original string to avoid JSON round-trip float loss (0.0 → 0).
+      if (bodyMatched.length > 0 && unmappedKeys.length > 0) {
+        // Some body keys matched schema args and others didn't — this isn't
+        // the "whole body is a freeform document" case (that requires zero
+        // matches, meaning the object itself is the document/value). Here
+        // the body is a wrapper object with named fields and at least one
+        // of them has nowhere to go — a real codegen/schema gap.
+        throw new UnmappedBodyKeyError(step.action, unmappedKeys)
+      }
       if (bodyMatched.length === 0) {
         const singleBodyArg = [...mapped.bodyArgsByKey.values()].find(
           (a) => a.foundIn === 'body'
         )
-        if (singleBodyArg != null) {
-          if (originalBodyStr != null) {
-            extraArgs.push(`--${singleBodyArg.cliFlag}`, shellEscape(originalBodyStr))
-          } else {
-            extraArgs.push(`--${singleBodyArg.cliFlag}`, toShellArg(body))
-          }
+        if (singleBodyArg == null) {
+          throw new UnmappedBodyKeyError(step.action, bodyKeys)
+        }
+        if (originalBodyStr != null) {
+          extraArgs.push(`--${singleBodyArg.cliFlag}`, shellEscape(originalBodyStr))
+        } else {
+          extraArgs.push(`--${singleBodyArg.cliFlag}`, toShellArg(body))
         }
       }
     } else if (typeof body === 'string') {
@@ -367,9 +405,10 @@ function buildCommand (mapped: MappedAction, step: DoStep): string {
       const singleBodyArg = [...mapped.bodyArgsByKey.values()].find(
         (a) => a.foundIn === 'body'
       )
-      if (singleBodyArg != null) {
-        extraArgs.push(`--${singleBodyArg.cliFlag}`, toShellArg(body))
+      if (singleBodyArg == null) {
+        throw new UnmappedBodyKeyError(step.action, ['(string body)'])
       }
+      extraArgs.push(`--${singleBodyArg.cliFlag}`, toShellArg(body))
     }
 
     if (extraArgs.length > 0) {
