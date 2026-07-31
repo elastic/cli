@@ -50,7 +50,10 @@ function getAjv (): AjvInstance {
   if (_ajv == null) {
      
     const Ajv = _req('ajv') as new (opts: Record<string, unknown>) => AjvInstance
-    _ajv = new Ajv({ allErrors: true, strict: false, logger: false, useDefaults: true })
+    // validateSchema: false — generated schemas contain cosmetic meta-schema violations
+    // (e.g. nullable enums with a repeated `null`) that AJV would otherwise throw on
+    // before validating any input.
+    _ajv = new Ajv({ allErrors: true, strict: false, logger: false, useDefaults: true, validateSchema: false })
   }
   return _ajv
 }

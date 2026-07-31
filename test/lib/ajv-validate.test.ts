@@ -161,4 +161,18 @@ describe('validateWithJsonSchema (anyOf deduplication)', () => {
     assert.equal(result.success, false)
     assert.equal(result.errors.length, 2, `expected 2 errors, got ${result.errors.length}`)
   })
+
+  it('validates against schemas with cosmetically invalid keywords (duplicate enum items)', () => {
+    // @elastic/schemas emits nullable enums with a repeated `null` entry; AJV's
+    // meta-schema check would otherwise throw before validating any input.
+    const schema = {
+      type: 'object',
+      properties: { notify_when: { enum: ['onActiveAlert', null, null] } },
+    }
+    assert.deepEqual(validateWithJsonSchema(schema, { notify_when: 'onActiveAlert' }), {
+      success: true,
+      data: { notify_when: 'onActiveAlert' },
+    })
+    assert.equal(validateWithJsonSchema(schema, { notify_when: 'nope' }).success, false)
+  })
 })

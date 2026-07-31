@@ -11,9 +11,9 @@ import type { KibanaRequestParams } from '../lib/kibana-client.ts'
  * Builds a `KibanaRequestParams` from an API definition and parsed CLI input.
  *
  * Routing is derived from `x-found-in` in the JSON Schema properties:
- * - `"path"` → interpolated into URL path
- * - `"query"` → sent as querystring
- * - `"body"` (or absent) → collected into request body
+ * - `"path"` -> interpolated into URL path
+ * - `"query"` -> sent as querystring
+ * - `"body"` (or absent) -> collected into request body
  */
 export function buildKibanaRequestParams (
   def: KbApiDefinition,
@@ -29,7 +29,17 @@ export function buildKibanaRequestParams (
   if (Object.keys(querystring).length > 0) params.querystring = querystring
 
   const body = collectBody(props, input)
-  if (body !== undefined) params.body = body
+  // ponytail: any Kibana body containing a `file` field needs multipart, not JSON,
+  // encoding -- e.g. saved-objects resolve-import-errors also requires a `retries`
+  // field alongside `file`. Send every body field as a form field so none are dropped.
+  // Add a schema signal (e.g. x-found-in: 'file') if this heuristic ever misfires.
+  if (body !== undefined && typeof body['file'] === 'string') {
+    params.multipartFields = Object.fromEntries(
+      Object.entries(body).map(([key, value]) => [key, typeof value === 'string' ? value : String(value)])
+    )
+  } else if (body !== undefined) {
+    params.body = body
+  }
 
   return params
 }
