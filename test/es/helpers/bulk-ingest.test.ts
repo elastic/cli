@@ -89,7 +89,7 @@ async function runCommand (args: string[], deps: BulkIngestDeps): Promise<unknow
   for (let i = stdoutChunks.length - 1; i >= 0; i--) {
     const t = stdoutChunks[i]!.trim()
     if ((t.startsWith('{') || t.startsWith('[')) && t.length > 0) {
-      try { return JSON.parse(t) } catch {}
+      try { return JSON.parse(t) } catch { /* not JSON, try the next chunk */ }
     }
   }
   const stdOutput = stdoutChunks.join('')
