@@ -18,7 +18,6 @@ import type {
 import { defineCommand, defineGroup, _testSetStdinReader, isCommandAllowed, hideBlockedCommands, configureJsonHelp } from '../src/factory.ts'
 import { setResolvedConfig, _testResetConfig } from '../src/config/store.ts'
 import { Command } from 'commander'
-import { z } from 'zod'
 
 /** Build a JSON Schema for test use. */
 function jsonSchema(
@@ -1206,7 +1205,7 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'search',
           description: 'Run a search',
-          input: z.object({ q: z.string().optional() }),
+          input: { type: 'object', properties: { q: { type: 'string' } } },
           handler: (p) => { received.push(p.input); return {} },
         })
         await invokeAsync(cmd, [])
@@ -1224,7 +1223,7 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'search',
           description: 'Run a search',
-          input: z.object({ q: z.string().optional() }),
+          input: { type: 'object', properties: { q: { type: 'string' } } },
           handler: (p) => { received.push(p.input); return {} },
         })
         await invokeAsync(cmd, [])
@@ -1241,7 +1240,7 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'search',
           description: 'Run a search',
-          input: z.object({ q: z.string().optional() }),
+          input: { type: 'object', properties: { q: { type: 'string' } } },
           handler: () => ({}),
         })
         await assert.rejects(() => invokeAsync(cmd, []), { code: 'EIO' })
@@ -1307,7 +1306,7 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'index',
           description: 'Index a document',
-          input: z.object({ document: z.any() }),
+          input: { type: 'object', properties: { document: {} } },
           inputTransform: (input) => {
             if (input != null && typeof input === 'object' && !Array.isArray(input) && !('document' in (input as object))) {
               return { document: input }
@@ -1330,7 +1329,7 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'index',
           description: 'Index a document',
-          input: z.object({ document: z.any() }),
+          input: { type: 'object', properties: { document: {} } },
           inputTransform: (input) => {
             if (input != null && typeof input === 'object' && !Array.isArray(input) && !('document' in (input as object))) {
               return { document: input }
@@ -2010,7 +2009,7 @@ describe('defineCommand', () => {
       const cmd = defineCommand({
         name: 'info',
         description: 'Get cluster info',
-        input: z.looseObject({}),
+        input: { type: 'object', properties: {} },
         readOnly: true,
         handler: () => ({}),
       })
@@ -2036,7 +2035,7 @@ describe('defineCommand', () => {
       const cmd = defineCommand({
         name: 'create',
         description: 'Create a thing',
-        input: z.looseObject({}),
+        input: { type: 'object', properties: {} },
         handler: () => ({}),
       })
       const help = cmd.helpInformation()
