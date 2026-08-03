@@ -459,6 +459,9 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
           inputValue = parseJsonContent(raw, 'stdin', cmd)
         }
       }
+      if (config.inputTransform != null && inputValue !== undefined) {
+        inputValue = config.inputTransform(inputValue)
+      }
 
       // collect explicitly-provided schema-derived CLI arguments and merge over JSON input
       const cliInput: Record<string, unknown> = {}
