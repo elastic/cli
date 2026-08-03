@@ -502,7 +502,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
               code: 'input_validation_failed',
               message: `Input validation failed with ${result.errors.length} issue(s)`,
               // Emit path as array (like Zod) for API compatibility
-              issues: result.errors.map(e => ({ path: e.path_array, message: e.message }))
+              issues: result.errors.map(e => ({ code: e.code, path: e.path_array, message: e.message }))
             }
           }) + '\n')
           throw Object.assign(new Error('input_validation_failed'), { exitCode: 1 })

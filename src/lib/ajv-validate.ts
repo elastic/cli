@@ -14,13 +14,22 @@ import { createRequire } from 'node:module'
 
 const _req = createRequire(import.meta.url)
 
-/** Simplified validation issue for user-facing output. */
-export interface ValidationError {
+/** Path segment: property name, or array index (as a number). */
+export type PathSegment = string | number
+
+/** Minimal shape accepted by formatValidationErrors. */
+interface FormattableError {
   /** Human-readable path string (e.g. ".index" or "(root)") */
   path: string
-  /** Field path as array of keys (e.g. ["index"] or ["address", "zipCode"]) */
-  path_array: string[]
   message: string
+}
+
+/** Simplified validation issue for user-facing output. */
+export interface ValidationError extends FormattableError {
+  /** AJV's raw keyword (e.g. 'type', 'required', 'enum'), passed through as-is. */
+  code: string
+  /** Field path as array of keys/indices (e.g. ["index"] or ["tags", 0, "name"]) */
+  path_array: PathSegment[]
 }
 
 /** Result of validateWithJsonSchema. */
@@ -41,6 +50,7 @@ interface ValidateFn {
 }
 
 interface AjvError {
+  keyword: string
   dataPath: string
   message?: string
   params?: Record<string, unknown>
@@ -56,6 +66,49 @@ function getAjv (): AjvInstance {
     _ajv = new Ajv({ allErrors: true, strict: false, logger: false, useDefaults: true, validateSchema: false })
   }
   return _ajv
+}
+
+/**
+ * Tokenizes an AJV v6 `dataPath` (e.g. `.tags[0].name` or `['weird.key']`)
+ * into path segments, with array indices as numbers rather than strings.
+ *
+ * AJV v6 dataPath syntax: `.prop` for identifier-like keys, `[N]` for array
+ * indices, and `['key']` for keys containing dots or other special chars.
+ */
+function tokenizePath (dataPath: string): PathSegment[] {
+  const segments: PathSegment[] = []
+  const re = /\[(\d+)\]|\['((?:[^'\\]|\\.)*)'\]|\.([^.[]+)/g
+  let match: RegExpExecArray | null
+  while ((match = re.exec(dataPath)) !== null) {
+    if (match[1] !== undefined) {
+      segments.push(Number(match[1]))
+    } else if (match[2] !== undefined) {
+      segments.push(match[2].replace(/\\'/g, "'"))
+    } else if (match[3] !== undefined) {
+      segments.push(match[3])
+    }
+  }
+  return segments
+}
+
+/**
+ * Enriches an AJV error message with its `params`, where AJV's default
+ * message omits information the params object already has (allowed enum
+ * values, the unrecognized property name).
+ */
+function enrichMessage (keyword: string, message: string, params: Record<string, unknown>): string {
+  switch (keyword) {
+    case 'enum': {
+      const allowed = params.allowedValues
+      return Array.isArray(allowed) ? `${message}: ${allowed.join(', ')}` : message
+    }
+    case 'additionalProperties': {
+      const prop = params.additionalProperty
+      return typeof prop === 'string' ? `should NOT have additional property '${prop}'` : message
+    }
+    default:
+      return message
+  }
 }
 
 /**
@@ -113,14 +166,18 @@ export function validateWithJsonSchema (
 
   const raw: ValidationError[] = (validate.errors ?? []).map((e) => {
     const rawPath = e.dataPath || ''
-    // Convert AJV v6 dot-notation path to array of keys
-    const pathArr = rawPath
-      ? rawPath.replace(/^\./, '').split('.').filter(Boolean)
-      : []
+    const params = e.params ?? {}
+    const pathArr = tokenizePath(rawPath)
+    // AJV reports missing-required errors at the parent path; append the
+    // missing property name so the path names the actual offending field.
+    if (e.keyword === 'required' && typeof params.missingProperty === 'string') {
+      pathArr.push(params.missingProperty)
+    }
     return {
+      code: e.keyword,
       path: rawPath || '(root)',
       path_array: pathArr,
-      message: e.message ?? 'validation error',
+      message: enrichMessage(e.keyword, e.message ?? 'validation error', params),
     }
   })
 
@@ -130,7 +187,7 @@ export function validateWithJsonSchema (
 /**
  * Renders a list of validation errors as human-readable text.
  */
-export function formatValidationErrors (errors: ValidationError[]): string {
+export function formatValidationErrors (errors: FormattableError[]): string {
   if (errors.length === 0) return '✖ Invalid input'
   return errors
     .map(e => `✖ ${e.message}\n  → at ${e.path}`)

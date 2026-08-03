@@ -1623,9 +1623,20 @@ describe('defineCommand', () => {
         handler: () => ({}),
       })
       const { stderr } = await invokeCapturingStreams(cmd, ['--json'], ['--input-file', filePath])
-      const parsed = JSON.parse(stderr) as { error: { code: string; message: string; issues: unknown[] } }
+      const parsed = JSON.parse(stderr) as {
+        error: {
+          code: string
+          message: string
+          issues: Array<{ code: string; path: Array<string|number>; message: string }>
+        }
+      }
       assert.equal(parsed.error.code, 'input_validation_failed')
-      assert.ok(parsed.error.issues.length >= 1, 'expected at least one issue')
+      assert.equal(parsed.error.issues.length, 1,
+        `expected exactly one issue, got ${parsed.error.issues.length}: ${JSON.stringify(parsed.error.issues)}`)
+      const [issue] = parsed.error.issues
+      assert.equal(issue.code, 'type')
+      assert.deepEqual(issue.path, ['query'])
+      assert.match(issue.message, /object/i)
     })
   })
 

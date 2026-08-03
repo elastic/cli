@@ -176,3 +176,102 @@ describe('validateWithJsonSchema (anyOf deduplication)', () => {
     assert.equal(validateWithJsonSchema(schema, { notify_when: 'nope' }).success, false)
   })
 })
+
+describe('validateWithJsonSchema (path tokenization + codes) (#fix4)', () => {
+  it('decomposes array-index paths into numbers, not string segments', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        tags: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' } } } },
+      },
+    }
+    const result = validateWithJsonSchema(schema, { tags: [{ name: 5 }] })
+    assert.equal(result.success, false)
+    assert.ok(!result.success)
+    if (!result.success) {
+      assert.deepEqual(result.errors[0]!.path_array, ['tags', 0, 'name'])
+    }
+  })
+
+  it('decomposes bracket-quoted / dotted keys without mangling', () => {
+    const schema = {
+      type: 'object',
+      properties: { 'weird.key': { type: 'string' } },
+      required: ['weird.key'],
+    }
+    const result = validateWithJsonSchema(schema, { 'weird.key': 5 })
+    assert.equal(result.success, false)
+    assert.ok(!result.success)
+    if (!result.success) {
+      assert.deepEqual(result.errors[0]!.path_array, ['weird.key'])
+    }
+  })
+
+  it('names the missing property for required errors instead of stopping at the parent path', () => {
+    const schema = {
+      type: 'object',
+      properties: { index: { type: 'string' } },
+      required: ['index'],
+    }
+    const result = validateWithJsonSchema(schema, {})
+    assert.equal(result.success, false)
+    assert.ok(!result.success)
+    if (!result.success) {
+      assert.deepEqual(result.errors[0]!.path_array, ['index'])
+      assert.equal(result.errors[0]!.code, 'required')
+    }
+  })
+
+  it('lists allowed values in the message for enum failures', () => {
+    const schema = { type: 'object', properties: { color: { enum: ['red', 'blue'] } } }
+    const result = validateWithJsonSchema(schema, { color: 'green' })
+    assert.equal(result.success, false)
+    assert.ok(!result.success)
+    if (!result.success) {
+      assert.equal(result.errors[0]!.code, 'enum')
+      assert.match(result.errors[0]!.message, /red/)
+      assert.match(result.errors[0]!.message, /blue/)
+    }
+  })
+
+  it('names the unknown field for additionalProperties failures', () => {
+    const schema = { type: 'object', properties: { a: { type: 'string' } }, additionalProperties: false }
+    const result = validateWithJsonSchema(schema, { a: 'x', b: 'y' })
+    assert.equal(result.success, false)
+    assert.ok(!result.success)
+    if (!result.success) {
+      assert.equal(result.errors[0]!.code, 'additionalProperties')
+      assert.match(result.errors[0]!.message, /b/)
+    }
+  })
+
+  it('assigns raw type keyword as code for type mismatches', () => {
+    const schema = { type: 'object', properties: { count: { type: 'integer' } } }
+    const result = validateWithJsonSchema(schema, { count: 'nope' })
+    assert.equal(result.success, false)
+    assert.ok(!result.success)
+    if (!result.success) {
+      assert.equal(result.errors[0]!.code, 'type')
+    }
+  })
+})
+
+describe('validateWithJsonSchema (code is the raw AJV keyword) (#fix4)', () => {
+  it('passes the raw AJV keyword through as code, for representative keywords', () => {
+    const typeResult = validateWithJsonSchema({ type: 'object', properties: { a: { type: 'string' } } }, { a: 1 })
+    assert.ok(!typeResult.success)
+    if (!typeResult.success) assert.equal(typeResult.errors[0]!.code, 'type')
+
+    const requiredResult = validateWithJsonSchema({ type: 'object', required: ['a'] }, {})
+    assert.ok(!requiredResult.success)
+    if (!requiredResult.success) assert.equal(requiredResult.errors[0]!.code, 'required')
+
+    const enumResult = validateWithJsonSchema({ type: 'object', properties: { a: { enum: ['x'] } } }, { a: 'y' })
+    assert.ok(!enumResult.success)
+    if (!enumResult.success) assert.equal(enumResult.errors[0]!.code, 'enum')
+
+    const additionalResult = validateWithJsonSchema({ type: 'object', properties: {}, additionalProperties: false }, { a: 1 })
+    assert.ok(!additionalResult.success)
+    if (!additionalResult.success) assert.equal(additionalResult.errors[0]!.code, 'additionalProperties')
+  })
+})
