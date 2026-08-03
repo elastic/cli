@@ -261,3 +261,35 @@ describe('buildCloudRequestParams', () => {
     assert.equal(result.body, undefined)
   })
 })
+
+describe('buildCloudRequestParams required path param handling (BUG C regression)', () => {
+  it('throws naming the missing param instead of silently truncating the URL, for a real definition', async () => {
+    const { loadCloudApis } = await import('../../src/cloud/apis.ts')
+    const defs = await loadCloudApis()
+    const def = defs.find((d) => d.namespace === 'deployments' && d.name === 'get-deployment')
+    assert.ok(def != null, 'expected get-deployment to exist in the manifest')
+    assert.deepEqual((def.input as { required?: string[] }).required, ['deployment_id'])
+
+    assert.throws(
+      () => buildCloudRequestParams(def, parsed({})),
+      /deployment_id/,
+    )
+  })
+
+  it('still strips an optional path param when absent (construction case, unaffected by the fix)', () => {
+    const def: CloudApiDefinition = {
+      name: 'get',
+      namespace: 'deployments',
+      description: 'Get deployment',
+      method: 'GET',
+      path: '/api/v1/deployments/{deployment_id}',
+      destructive: false,
+      input: {
+        type: 'object',
+        properties: { deployment_id: { type: 'string', description: 'ID', 'x-found-in': 'path' } },
+      },
+    }
+    const result = buildCloudRequestParams(def, parsed())
+    assert.equal(result.path, '/api/v1/deployments')
+  })
+})

@@ -87,3 +87,46 @@ describe('buildKibanaRequestParams', () => {
     assert.equal(result.body, undefined)
   })
 })
+
+describe('buildKibanaRequestParams path param requiredness (BUG A regression)', () => {
+  // ponytail: no real Kibana definition currently has an optional path param
+  // (0 of 555 upstream definitions exercise this — see test/kb/register.test.ts),
+  // so this exercises the branch with a constructed definition.
+  it('strips an optional path param placeholder instead of leaving it literal', () => {
+    const def: KbApiDefinition = {
+      name: 'get-widget',
+      namespace: 'widgets',
+      description: 'Get a widget, optionally scoped',
+      method: 'GET',
+      path: '/api/widgets/{scope}',
+      input: {
+        type: 'object',
+        properties: {
+          scope: { type: 'string', 'x-found-in': 'path' },
+        },
+        // no `required` array -> scope is optional
+      },
+    }
+    const result = buildKibanaRequestParams(def, parsed())
+    assert.equal(result.path, '/api/widgets')
+  })
+
+  it('still interpolates a required path param when provided', () => {
+    const def: KbApiDefinition = {
+      name: 'get-widget',
+      namespace: 'widgets',
+      description: 'Get a widget',
+      method: 'GET',
+      path: '/api/widgets/{id}',
+      input: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', 'x-found-in': 'path' },
+        },
+        required: ['id'],
+      },
+    }
+    const result = buildKibanaRequestParams(def, parsed({ id: 'abc' }))
+    assert.equal(result.path, '/api/widgets/abc')
+  })
+})

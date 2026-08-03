@@ -57,7 +57,7 @@ export function validateCloudApiDefinition (def: CloudApiDefinition): void {
 
   const pathSet = new Set(tokens)
   for (const [key, prop] of Object.entries(props)) {
-    if (prop['x-found-in'] === 'path' && (prop['required'] === true || (resolvedInput?.required as string[] | undefined)?.includes(key))) {
+    if (prop['x-found-in'] === 'path' && (resolvedInput?.required as string[] | undefined)?.includes(key)) {
       if (!pathSet.has(key)) {
         throw new Error(
           `required pathParam "${key}" is not in path template for definition ${JSON.stringify(def.name)}`

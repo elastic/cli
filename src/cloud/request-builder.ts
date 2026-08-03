@@ -40,7 +40,8 @@ export function buildCloudRequestParams (
     else bodyKeys.add(key)
   }
 
-  const path = interpolatePath(def.path, pathKeys, rawInput)
+  const required = new Set(Array.isArray(resolvedInput?.required) ? resolvedInput!.required as string[] : [])
+  const path = interpolatePath(def.path, pathKeys, required, rawInput)
   const querystring = buildQuerystring(queryKeys, rawInput)
   const body = collectBody(def.method, pathKeys, queryKeys, bodyKeys, rawInput)
 
@@ -53,6 +54,7 @@ export function buildCloudRequestParams (
 function interpolatePath (
   template: string,
   pathKeys: Set<string>,
+  required: Set<string>,
   input: Record<string, unknown>,
 ): string {
   let path = template
@@ -60,6 +62,8 @@ function interpolatePath (
     const value = input[key]
     if (value !== undefined) {
       path = path.replace(`{${key}}`, encodeURIComponent(String(value)))
+    } else if (required.has(key)) {
+      throw new Error(`missing required path parameter "${key}"`)
     } else {
       path = path.replace(new RegExp(`/?\\{${key}\\}/?`), '')
       path = path.replace(/\/$/, '') || '/'

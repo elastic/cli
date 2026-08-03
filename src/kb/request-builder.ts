@@ -22,7 +22,8 @@ export function buildKibanaRequestParams (
   const input = (parsed.input ?? {}) as Record<string, unknown>
   const props = ((def.input?.['properties'] ?? {}) as Record<string, Record<string, unknown>>)
 
-  const path = interpolatePath(def.path, props, input)
+  const required = new Set(Array.isArray(def.input?.['required']) ? def.input!['required'] as string[] : [])
+  const path = interpolatePath(def.path, props, required, input)
   const querystring = buildQuerystring(props, input)
 
   const params: KibanaRequestParams = { method: def.method, path }
@@ -51,15 +52,15 @@ function encodePathParam (value: string): string {
 function interpolatePath (
   path: string,
   props: Record<string, Record<string, unknown>>,
+  required: Set<string>,
   input: Record<string, unknown>
 ): string {
   for (const [key, prop] of Object.entries(props)) {
     if (prop['x-found-in'] !== 'path') continue
     const value = input[key]
-    const required = prop['required'] !== false
     if (value !== undefined) {
       path = path.replace(`{${key}}`, encodePathParam(String(value)))
-    } else if (!required) {
+    } else if (!required.has(key)) {
       path = path.replace(new RegExp(`/?\\{${key}\\}/?`), '')
       path = path.replace(/\/$/, '') || '/'
     }
