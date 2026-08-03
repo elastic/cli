@@ -465,15 +465,16 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
 
       const { validateWithJsonSchema, formatValidationErrors } = await import('./lib/ajv-validate.js')
 
-      // Relax schema for sort-pairs and CLI-provided body JSON fields:
-      // - sort-pairs: CLI value is parsed to [{field: dir}] which won't match string schema
-      // - body object/array fields from CLI --flag <json>: full DSL may not match strict schema
-      // Files/stdin input is validated strictly.
+      // Relax schema for sort-pairs and x-found-in: body object/array fields, regardless
+      // of input source (CLI flag, stdin, or --input-file):
+      // - sort-pairs: parsed to [{field: dir}] which won't match string schema
+      // - body object/array fields: full DSL (e.g. query, _source) may not match strict schema
+      // Fields with no x-found-in are validated strictly.
       let validationSchema: Record<string, unknown> = config.input
       const relaxFields = schemaArgs.filter(
         (a) =>
           sortParsedKeys.has(a.schemaKey) ||
-          ((a.type === 'object' || a.type === 'array') && (a.foundIn === 'body' || a.foundIn === undefined) && a.schemaKey in rawBodyValues)
+          (a.foundIn === 'body' && (a.type === 'object' || a.type === 'array'))
       )
       if (relaxFields.length > 0 && typeof config.input['properties'] === 'object') {
         const props = { ...(config.input['properties'] as Record<string, unknown>) }
