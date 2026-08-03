@@ -6,6 +6,7 @@
 import type { CloudApiDefinition } from './types.ts'
 import type { CloudRequestParams } from '../lib/cloud-client.ts'
 import type { ParsedResult } from '../factory.ts'
+import { resolveRootRef } from '../lib/json-schema-refs.ts'
 
 /**
  * Builds a `CloudRequestParams` object from an API definition and parsed CLI input.
@@ -25,7 +26,8 @@ export function buildCloudRequestParams (
   parsed: ParsedResult,
 ): CloudRequestParams {
   const rawInput = (parsed.input ?? {}) as Record<string, unknown>
-  const props = ((def.input?.properties ?? {}) as Record<string, Record<string, unknown>>)
+  const resolvedInput = def.input != null ? resolveRootRef(def.input) : undefined
+  const props = ((resolvedInput?.properties ?? {}) as Record<string, Record<string, unknown>>)
 
   const pathKeys = new Set<string>()
   const queryKeys = new Set<string>()
@@ -87,9 +89,8 @@ function collectBody (
   bodyKeys: Set<string>,
   input: Record<string, unknown>,
 ): Record<string, unknown> | undefined {
-  if (!BODY_METHODS.has(method)) return undefined
-
-  // Explicit body fields from schema
+  // Explicit body fields from schema take precedence over the method gate below:
+  // some commands (e.g. delete-api-keys) send a required body on DELETE.
   if (bodyKeys.size > 0) {
     const body: Record<string, unknown> = {}
     for (const key of bodyKeys) {
@@ -97,6 +98,8 @@ function collectBody (
     }
     return Object.keys(body).length > 0 ? body : undefined
   }
+
+  if (!BODY_METHODS.has(method)) return undefined
 
   // Passthrough: no explicit body schema — use all non-path/non-query fields
   const reserved = new Set([...pathKeys, ...queryKeys])

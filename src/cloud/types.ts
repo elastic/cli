@@ -5,6 +5,7 @@
 
 export type { CloudApiDefinition, HttpMethod } from '@elastic/schemas/cloud/tools/types.js'
 import type { CloudApiDefinition } from '@elastic/schemas/cloud/tools/types.js'
+import { resolveRootRef } from '../lib/json-schema-refs.ts'
 
 const VALID_NAME = /^[a-z0-9][a-z0-9-]*$/
 const VALID_NAMESPACE = /^[a-z][a-z-]*$/
@@ -38,7 +39,8 @@ export function validateCloudApiDefinition (def: CloudApiDefinition): void {
   }
 
   const tokens = extractPathTokens(def.path)
-  const props = (def.input?.properties ?? {}) as Record<string, Record<string, unknown>>
+  const resolvedInput = def.input != null ? resolveRootRef(def.input) : undefined
+  const props = (resolvedInput?.properties ?? {}) as Record<string, Record<string, unknown>>
   const pathParamNames = new Set(
     Object.entries(props)
       .filter(([, v]) => v['x-found-in'] === 'path')
@@ -55,7 +57,7 @@ export function validateCloudApiDefinition (def: CloudApiDefinition): void {
 
   const pathSet = new Set(tokens)
   for (const [key, prop] of Object.entries(props)) {
-    if (prop['x-found-in'] === 'path' && (prop['required'] === true || (def.input?.required as string[] | undefined)?.includes(key))) {
+    if (prop['x-found-in'] === 'path' && (prop['required'] === true || (resolvedInput?.required as string[] | undefined)?.includes(key))) {
       if (!pathSet.has(key)) {
         throw new Error(
           `required pathParam "${key}" is not in path template for definition ${JSON.stringify(def.name)}`
@@ -75,7 +77,8 @@ export function validateCloudApiDefinition (def: CloudApiDefinition): void {
 export function buildCloudJsonSchema (def: CloudApiDefinition): Record<string, unknown> {
   if (def.input == null) return { type: 'object', properties: {} }
 
-  const props = (def.input.properties ?? {}) as Record<string, Record<string, unknown>>
+  const resolved = resolveRootRef(def.input)
+  const props = (resolved.properties ?? {}) as Record<string, Record<string, unknown>>
   const cleaned: Record<string, unknown> = {}
   for (const [key, prop] of Object.entries(props)) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -84,8 +87,12 @@ export function buildCloudJsonSchema (def: CloudApiDefinition): Record<string, u
   }
 
   const schema: Record<string, unknown> = { type: 'object', properties: cleaned }
-  if (Array.isArray(def.input.required) && (def.input.required as unknown[]).length > 0) {
-    schema['required'] = def.input.required
+  if (Array.isArray(resolved.required) && (resolved.required as unknown[]).length > 0) {
+    schema['required'] = resolved.required
+  }
+  // Preserve $defs so nested $refs inside property schemas (e.g. RoleAssignments) still resolve.
+  if (resolved['$defs'] != null && Object.keys(resolved['$defs'] as Record<string, unknown>).length > 0) {
+    schema['$defs'] = resolved['$defs']
   }
   return schema
 }

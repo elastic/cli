@@ -5,7 +5,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { resolveSidecarRefs, createSidecarResolver } from '../../src/lib/json-schema-refs.ts'
+import { resolveSidecarRefs, createSidecarResolver, resolveRootRef } from '../../src/lib/json-schema-refs.ts'
 import { loadEsApisInFile } from '../../src/es/apis.ts'
 
 describe('resolveSidecarRefs', () => {
@@ -236,3 +236,48 @@ function collectRefNames (node: unknown, out: Set<string> = new Set()): Set<stri
   }
   return out
 }
+describe('resolveRootRef', () => {
+  it('returns schema unchanged when it already has top-level properties', () => {
+    const schema = { type: 'object', properties: { id: { type: 'string' } } }
+    assert.equal(resolveRootRef(schema), schema)
+  })
+
+  it('returns schema unchanged when there is no $ref', () => {
+    const schema = { type: 'object' }
+    assert.equal(resolveRootRef(schema), schema)
+  })
+
+  it('resolves a root $ref into the $defs target, preserving $defs for nested refs', () => {
+    const schema = {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      title: 'delete-api-keys',
+      $ref: '#/$defs/DeleteApiKeysRequest',
+      $defs: {
+        DeleteApiKeysRequest: {
+          type: 'object',
+          properties: { keys: { type: 'array', items: { type: 'string' } } },
+          required: ['keys'],
+        },
+      },
+    }
+    const result = resolveRootRef(schema)
+    assert.deepEqual(result['properties'], { keys: { type: 'array', items: { type: 'string' } } })
+    assert.deepEqual(result['required'], ['keys'])
+    assert.ok(result['$defs'] != null, 'should preserve $defs for nested ref resolution')
+  })
+
+  it('throws on a root $ref to a sidecar (external-file) target', () => {
+    const schema = { $ref: './_defs.json#/$defs/Foo' }
+    assert.throws(() => resolveRootRef(schema), /unsupported root \$ref/)
+  })
+
+  it('throws when the root $ref target has no properties', () => {
+    const schema = { $ref: '#/$defs/Empty', $defs: { Empty: { type: 'string' } } }
+    assert.throws(() => resolveRootRef(schema), /does not resolve to an object schema with properties/)
+  })
+
+  it('throws when the root $ref target is missing entirely', () => {
+    const schema = { $ref: '#/$defs/Missing', $defs: {} }
+    assert.throws(() => resolveRootRef(schema), /does not resolve to an object schema with properties/)
+  })
+})

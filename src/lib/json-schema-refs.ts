@@ -223,3 +223,41 @@ export function createDefinitionResolver <T extends { input?: Record<string, unk
     return input === def.input ? def : { ...def, input }
   }
 }
+
+/**
+ * Resolves a top-level `$ref` (e.g. `{"$ref": "#/$defs/DeleteApiKeysRequest", "$defs": {...}}`)
+ * into its effective object schema, preserving `$defs` so nested `$ref`s
+ * inside the resolved target still resolve.
+ *
+ * Some `@elastic/schemas` cloud definitions have no top-level `properties`
+ * key at all — the whole request shape lives behind a root `$ref` into
+ * `$defs` instead. Consumers that only look at `schema.properties` silently
+ * see an empty schema for these. Call this before reading `properties`/
+ * `required` off any cloud `input` schema.
+ *
+ * Returns `schema` unchanged if it already has top-level `properties` or no
+ * `$ref`. Only same-document refs (`#/$defs/Name`) are supported here —
+ * sidecar (external-file) refs must already be resolved via
+ * `resolveSidecarRefs` before this runs.
+ *
+ * @throws {Error} if `schema` has a root `$ref` that does not resolve to an
+ *   object with a `properties` key, so a silently-empty schema never reaches
+ *   downstream CLI-flag derivation or request building.
+ */
+export function resolveRootRef (schema: Record<string, unknown>): Record<string, unknown> {
+  const ref = schema['$ref']
+  if (schema['properties'] != null || typeof ref !== 'string') return schema
+
+  if (!ref.startsWith(SAME_DOC_PREFIX)) {
+    throw new Error(`unsupported root $ref "${ref}": expected a same-document ref (${SAME_DOC_PREFIX}Name)`)
+  }
+
+  const defs = (schema['$defs'] as Record<string, unknown> | undefined) ?? {}
+  const defName = ref.slice(SAME_DOC_PREFIX.length)
+  const target = defs[defName]
+  if (target == null || typeof target !== 'object' || Array.isArray(target) || (target as Record<string, unknown>)['properties'] == null) {
+    throw new Error(`root $ref "${ref}" does not resolve to an object schema with properties`)
+  }
+
+  return { ...(target as Record<string, unknown>), $defs: defs }
+}
