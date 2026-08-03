@@ -196,12 +196,18 @@ async function streamBulkIngest (
   })
 
   const sem = new Semaphore(concurrency)
-  const errors: unknown[] = []
+  const errors: string[] = []
 
   let buf = ''
   let bufBytes = 0
+  let bufDocs = 0
 
-  const submitBatch = async (body: string): Promise<void> => {
+  // A batch can fail two ways: retryWithBackoff exhausts retries after a
+  // network/transport throw (no response, so we don't know per-doc status),
+  // or every item in the ES response errored. Either way we still know
+  // exactly how many docs were in the batch (docCount), so that count is
+  // always reflected in the summary instead of silently vanishing.
+  const submitBatch = async (body: string, docCount: number): Promise<void> => {
     await sem.acquire()
     // Fire-and-forget: producer continues reading while this batch is in flight.
     retryWithBackoff(
@@ -215,23 +221,28 @@ async function streamBulkIngest (
       { retries, delay: retry_delay }
     ).then(res => {
       reporter.report(res.total, res.errors)
-    }).catch(err => {
-      errors.push(err)
+    }).catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err)
+      errors.push(`${docCount} doc(s) dropped: ${message}`)
+      reporter.report(docCount, docCount)
     }).finally(() => sem.release())
   }
 
   const flush = async (): Promise<void> => {
     if (bufBytes === 0) return
     const body = buf
+    const docCount = bufDocs
     buf = ''
     bufBytes = 0
-    await submitBatch(body)
+    bufDocs = 0
+    await submitBatch(body, docCount)
   }
 
   const addDoc = async (docJson: string): Promise<void> => {
     const pair = actionLine + '\n' + docJson + '\n'
     buf += pair
     bufBytes += pair.length
+    bufDocs++
     if (bufBytes >= flush_bytes) await flush()
   }
 
@@ -336,7 +347,9 @@ async function streamBulkIngest (
     await sem.acquire()
   }
 
-  if (errors.length > 0) throw errors[0]
+  if (errors.length > 0) {
+    throw new Error(`${errors.length} batch(es) failed:\n${errors.join('\n')}`)
+  }
 }
 
 function createBulkIngestHandler (deps: BulkIngestDeps = defaultDeps) {
@@ -355,6 +368,10 @@ function createBulkIngestHandler (deps: BulkIngestDeps = defaultDeps) {
     try {
       await streamBulkIngest(opts, transport, reporter)
     } catch (err) {
+      // Include whatever progress was made before the failure, so the caller
+      // knows how much data actually landed and doesn't have to guess before
+      // deciding whether/how to re-run (e.g. with an upsert).
+      const summary = reporter.summary() as Record<string, JsonValue>
       const code = (err as { code?: string }).code
       if (code === 'input_error' || (err instanceof Error && (
         err.message.startsWith('No files matched') ||
@@ -364,13 +381,14 @@ function createBulkIngestHandler (deps: BulkIngestDeps = defaultDeps) {
         err.message.startsWith('Unexpected end of input')
       ))) {
         return {
+          ...summary,
           error: {
             code: 'input_error',
             message: err instanceof Error ? err.message : String(err)
           }
         }
       }
-      return transportError(err)
+      return { ...summary, ...(transportError(err) as Record<string, JsonValue>) }
     }
 
     return reporter.summary()

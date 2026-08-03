@@ -43,6 +43,14 @@ function successResponse (count: number): { errors: boolean, items: Array<Record
   }
 }
 
+/** A response where every item in the batch comes back errored. */
+function failureResponse (count: number): { errors: boolean, items: Array<Record<string, { status: number }>> } {
+  return {
+    errors: true,
+    items: Array.from({ length: count }, () => ({ index: { status: 500 } }))
+  }
+}
+
 /** Runs the bulk-ingest command programmatically and returns handler result. */
 async function runCommand (args: string[], deps: BulkIngestDeps): Promise<unknown> {
   const cmd = createBulkIngestCommand(deps)
@@ -76,24 +84,32 @@ async function runCommand (args: string[], deps: BulkIngestDeps): Promise<unknow
   }
 
   // Prefer stderr (error results) over stdout; parse whichever has content.
-  // Node's test runner sends binary IPC frames through process.stdout.write,
-  // so stdoutChunks may contain non-JSON binary frames alongside the command's
-  // JSON output. Scan chunks in reverse: binary frames don't start with { or [,
-  // so the first chunk we can JSON.parse is the command output.
-  const errOutput = stderrChunks.join('')
-
-  if (errOutput.trim().length > 0) {
-    try { return JSON.parse(errOutput.trim()) } catch { return errOutput.trim() }
-  }
-
-  for (let i = stdoutChunks.length - 1; i >= 0; i--) {
-    const t = stdoutChunks[i]!.trim()
-    if ((t.startsWith('{') || t.startsWith('[')) && t.length > 0) {
-      try { return JSON.parse(t) } catch { /* not JSON, try the next chunk */ }
+  // Each process.stdout/stderr.write() call is its own array entry, and each
+  // logical write (a progress update, a binary IPC frame from Node's test
+  // runner, or the final JSON result) is a complete, self-contained chunk.
+  // So scan chunks (not a joined blob, which can merge binary-frame trailing
+  // bytes into the JSON chunk and break the startsWith('{') check) in
+  // reverse for the last one that parses as JSON.
+  const findJsonChunk = (chunks: string[]): unknown => {
+    for (let i = chunks.length - 1; i >= 0; i--) {
+      const t = chunks[i]!.trim()
+      if ((t.startsWith('{') || t.startsWith('[')) && t.length > 0) {
+        try { return JSON.parse(t) } catch { /* not JSON, try the previous chunk */ }
+      }
     }
+    return undefined
   }
-  const stdOutput = stdoutChunks.join('')
-  if (stdOutput.trim().length > 0) return stdOutput.trim()
+
+  const errResult = findJsonChunk(stderrChunks)
+  if (errResult !== undefined) return errResult
+
+  const outResult = findJsonChunk(stdoutChunks)
+  if (outResult !== undefined) return outResult
+
+  const errOutput = stderrChunks.join('').trim()
+  if (errOutput.length > 0) return errOutput
+  const stdOutput = stdoutChunks.join('').trim()
+  if (stdOutput.length > 0) return stdOutput
   return undefined
 }
 
@@ -368,6 +384,71 @@ describe('bulk-ingest command', () => {
     await runCommand(['--index', 'test-idx', '--data-file', join(tmpDir, 'data.json'), '--json'], makeDeps(transport))
 
     assert.equal(requests.length, 0)
+  })
+
+  it('counts a fully-failed batch instead of dropping it from the summary', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
+    writeFileSync(join(tmpDir, 'data.json'), JSON.stringify([{ a: 1 }, { a: 2 }]))
+
+    const { transport } = mockTransport([failureResponse(2)])
+
+    const result = await runCommand([
+      '--index', 'test-idx',
+      '--data-file', join(tmpDir, 'data.json'),
+      '--retries', '0',
+      '--json'
+    ], makeDeps(transport)) as Record<string, unknown>
+
+    assert.equal(result.total, 2)
+    assert.equal(result.failed, 2)
+    assert.equal(result.succeeded, 0)
+    const error = result.error as Record<string, unknown>
+    assert.equal(error.code, 'transport_error')
+    assert.match(error.message as string, /2 doc\(s\) dropped/)
+  })
+
+  it('surfaces every failed batch, not just the first', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
+    const docs = Array.from({ length: 4 }, (_, i) => ({ id: i, data: 'x'.repeat(100) }))
+    writeFileSync(join(tmpDir, 'data.json'), JSON.stringify(docs))
+
+    // Small flush-bytes forces multiple batches; every batch fails.
+    const { transport, requests } = mockTransport([failureResponse(1)])
+
+    const result = await runCommand([
+      '--index', 'test-idx',
+      '--data-file', join(tmpDir, 'data.json'),
+      '--flush-bytes', '50',
+      '--retries', '0',
+      '--json'
+    ], makeDeps(transport)) as Record<string, unknown>
+
+    assert.ok(requests.length > 1, `expected multiple batches, got ${requests.length}`)
+    const error = result.error as Record<string, unknown>
+    const dropMentions = (error.message as string).split('doc(s) dropped').length - 1
+    assert.equal(dropMentions, requests.length, 'expected every failed batch to be mentioned, not just the first')
+  })
+
+  it('reports partial progress when a later batch fails', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
+    const docs = Array.from({ length: 2 }, (_, i) => ({ id: i, data: 'x'.repeat(100) }))
+    writeFileSync(join(tmpDir, 'data.json'), JSON.stringify(docs))
+
+    // First batch succeeds, second fails.
+    const { transport } = mockTransport([successResponse(1), failureResponse(1)])
+
+    const result = await runCommand([
+      '--index', 'test-idx',
+      '--data-file', join(tmpDir, 'data.json'),
+      '--flush-bytes', '50',
+      '--retries', '0',
+      '--json'
+    ], makeDeps(transport)) as Record<string, unknown>
+
+    assert.equal(result.total, 2)
+    assert.equal(result.succeeded, 1)
+    assert.equal(result.failed, 1)
+    assert.ok(result.error != null)
   })
 
   it('returns empty summary for zero documents', async () => {
