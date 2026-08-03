@@ -5,12 +5,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// Measure heap allocated by importing each API module and validate against
-// recorded baselines. Fails if any module's heap delta exceeds its baseline
-// by more than 20% (override: HEAP_THRESHOLD=1.5 scripts/heap-check).
+// Measure heap allocated by (a) importing each API barrel module and (b) actually
+// loading API definitions through it, and validate both against recorded baselines.
+// Fails if any probe's heap delta exceeds its baseline by more than 20%
+// (override: HEAP_THRESHOLD=1.5 scripts/heap-check).
 //
 // Baselines were measured on Node v25.9.0, Linux x64 after lazy-loading
-// refactor. Method: --expose-gc, gc() before/after dynamic import, heapUsed.
+// refactor. Method: --expose-gc, gc() before/after dynamic import, heapUsed,
+// each probe run in its own child process so module caches never cross-contaminate.
 //
 // Usage:
 //   npm run build && scripts/heap-check
@@ -23,17 +25,46 @@ import { fileURLToPath } from "node:url"
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
 const THRESHOLD = Number(process.env.HEAP_THRESHOLD ?? 1.20)
 
+function runProbe(script) {
+  const out = execFileSync(process.execPath, ["--expose-gc", "-e", script], {
+    encoding: "utf8",
+    cwd: REPO_ROOT,
+  })
+  return JSON.parse(out.trim())
+}
+
+function report(label, deltaMB, baseline, extra) {
+  const ok = baseline === 0 || deltaMB <= baseline * THRESHOLD
+  const pctStr =
+    baseline > 0
+      ? `${deltaMB > baseline ? "+" : ""}${((deltaMB / baseline - 1) * 100).toFixed(1)}%`
+      : "record-only"
+  const limitStr = baseline > 0 ? `, limit ${(baseline * THRESHOLD).toFixed(1)} MB` : ""
+  console.log(
+    `${ok ? "✓" : "✗"}  ${label.padEnd(34)}  ${deltaMB.toFixed(1)} MB` +
+    `  (baseline ${baseline} MB, ${pctStr}${limitStr})${extra ?? ""}`,
+  )
+  return ok
+}
+
+// --- Barrel import probes -------------------------------------------------
+//
+// These guard the lazy-barrel invariant: importing `dist/{es,kb,cloud}/apis.js`
+// must only load manifest metadata, not any endpoint's JSON Schema definition.
+// Keep them even though the baselines are trivially small -- they are the only
+// thing that catches an eager top-level import creeping back into a barrel.
+
 // [relPath, apiCountExpr, baselineMB]
 // apiCountExpr is inlined into the probe JS with `mod` in scope.
 // baselineMB=0 → record-only, never fails.
-const MODULES = [
+const BARREL_MODULES = [
   ["dist/es/apis.js",    "Array.isArray(mod.apiManifest) ? mod.apiManifest.length : null", 0.5],
   ["dist/kb/apis.js",    "Array.isArray(mod.kbApiManifest) ? mod.kbApiManifest.length : null", 0.5],
   ["dist/cloud/apis.js", "mod.allCloudApis?.length ?? null",      0.5],
 ]
 
-function probe(absPath, countExpr) {
-  const script = `
+function probeBarrel(absPath, countExpr) {
+  return runProbe(`
 gc();
 const before = process.memoryUsage().heapUsed;
 import(${JSON.stringify(absPath)}).then(mod => {
@@ -44,38 +75,89 @@ import(${JSON.stringify(absPath)}).then(mod => {
     apiCount: ${countExpr},
   }) + "\\n");
 });
-`
-  const out = execFileSync(process.execPath, ["--expose-gc", "-e", script], {
-    encoding: "utf8",
-    cwd: REPO_ROOT,
-  })
-  return JSON.parse(out.trim())
+`)
+}
+
+// --- Definition-loading probes ---------------------------------------------
+//
+// The barrel probes above never trigger `createDefinitionResolver`'s sidecar-ref
+// inlining (e.g. `_types.json`, shared by hundreds of ES definitions), which is
+// the actual cost elastic/cli#171 warns about ("loading every endpoint's schema
+// at once allocates several gigabytes"). These probes call the real loader
+// functions to measure that cost directly.
+//
+// [label, loadExpr, baselineMB]
+// loadExpr is inlined into the probe JS and must resolve to an array of definitions.
+const DEFINITION_PROBES = [
+  [
+    "dist/es/apis.js loadEsApisInFile('search')",
+    "m.loadEsApisInFile('search')",
+    "./dist/es/apis.js",
+    9.5,
+  ],
+  [
+    // post_alerting_rule_id (create rule) is a single-file KB endpoint with a
+    // per-rule-type union body (allOf/oneOf composition flattened by
+    // flattenComposition in src/kb/apis.ts) -- the heaviest single KB definition.
+    // Unlike ES, every KB namespaceFile holds exactly one definition, so there's
+    // no "large namespace" grouping multiple endpoints to pick instead.
+    "dist/kb/apis.js loadKbApisInFile('post_alerting_rule_id')",
+    "m.loadKbApisInFile('post_alerting_rule_id')",
+    "./dist/kb/apis.js",
+    5.1,
+  ],
+  [
+    // Loads all 567 ES definitions. Record-only (baseline 0): the absolute
+    // number is what elastic/cli#171 cares about, and CLI users only ever hit
+    // the loadEsApisInFile('search')-style single-endpoint path above, so
+    // there's no per-PR regression budget for this beyond "still finishes
+    // and stays in the same order of magnitude" (checked manually against
+    // the comment below).
+    "dist/es/apis.js loadAllEsApis()  [~66 MB / ~950 ms locally]",
+    "m.loadAllEsApis()",
+    "./dist/es/apis.js",
+    0,
+  ],
+]
+
+function probeDefinitions(loadExpr, absPath) {
+  return runProbe(`
+gc();
+const before = process.memoryUsage().heapUsed;
+const t0 = Date.now();
+import(${JSON.stringify(absPath)}).then(m => ${loadExpr}).then(defs => {
+  gc();
+  const after = process.memoryUsage().heapUsed;
+  process.stdout.write(JSON.stringify({
+    deltaMB: (after - before) / 1024 / 1024,
+    apiCount: defs.length,
+    ms: Date.now() - t0,
+  }) + "\\n");
+});
+`)
 }
 
 let failed = false
 
-for (const [relPath, countExpr, baseline] of MODULES) {
-  const { deltaMB, apiCount } = probe(join(REPO_ROOT, relPath), countExpr)
-  const ok = baseline === 0 || deltaMB <= baseline * THRESHOLD
-  const pctStr =
-    baseline > 0
-      ? `${deltaMB > baseline ? "+" : ""}${((deltaMB / baseline - 1) * 100).toFixed(1)}%`
-      : "record-only"
-  const limitStr = baseline > 0 ? `, limit ${(baseline * THRESHOLD).toFixed(1)} MB` : ""
+for (const [relPath, countExpr, baseline] of BARREL_MODULES) {
+  const { deltaMB, apiCount } = probeBarrel(join(REPO_ROOT, relPath), countExpr)
   const countStr = apiCount != null ? `  (${apiCount} APIs)` : ""
-  console.log(
-    `${ok ? "✓" : "✗"}  ${relPath.padEnd(26)}  ${deltaMB.toFixed(1)} MB` +
-    `  (baseline ${baseline} MB, ${pctStr}${limitStr})${countStr}`,
-  )
-  if (!ok) failed = true
+  if (!report(relPath, deltaMB, baseline, countStr)) failed = true
+}
+
+console.log()
+
+for (const [label, loadExpr, relPath, baseline] of DEFINITION_PROBES) {
+  const { deltaMB, apiCount, ms } = probeDefinitions(loadExpr, join(REPO_ROOT, relPath))
+  if (!report(label, deltaMB, baseline, `  (${apiCount} defs, ${ms} ms)`)) failed = true
 }
 
 if (failed) {
   console.error(
-    `\nHeap regression detected. One or more modules exceeded their baseline ` +
+    `\nHeap regression detected. One or more probes exceeded their baseline ` +
     `by more than ${((THRESHOLD - 1) * 100).toFixed(0)}%.`,
   )
   process.exit(1)
 }
 
-console.log(`\nAll modules within the ${((THRESHOLD - 1) * 100).toFixed(0)}% regression threshold.`)
+console.log(`\nAll probes within the ${((THRESHOLD - 1) * 100).toFixed(0)}% regression threshold.`)
