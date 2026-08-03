@@ -174,9 +174,17 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
   const seenFlags = new Map<string, string>() // cliFlag -> first schemaKey seen
   return Object.entries(properties).filter(([key]) => {
     const flag = toKebabCase(key)
-    // ponytail: skip reserved flags and duplicates from upstream schemas
-    if (RESERVED_FLAGS.has(flag)) return false
-    if (seenFlags.has(flag)) return false // skip duplicate flags
+    if (RESERVED_FLAGS.has(flag)) {
+      if (KNOWN_UPSTREAM_FLAG_COLLISIONS.has(flag)) return false
+      throw new Error(`Schema key "${key}" collides with reserved flag "--${flag}"`)
+    }
+    if (seenFlags.has(flag)) {
+      // Known, documented upstream collisions are dropped silently (first-seen key keeps the flag);
+      // anything else is an unreviewed collision and must fail loudly rather than dropping a field
+      // with no CLI flag (AGENTS.md: every top-level schema field needs a flag).
+      if (KNOWN_UPSTREAM_FLAG_COLLISIONS.has(flag)) return false
+      throw new Error(`Schema key "${key}" collides with existing CLI flag "--${flag}" (already mapped from "${seenFlags.get(flag)}")`)
+    }
     seenFlags.set(flag, key)
     return true
   }).map(([key, prop]) => {
@@ -222,8 +230,29 @@ export function buildFlagKeyMap (args: SchemaArgDefinition[]): FlagKeyMap {
 const RESERVED_FLAGS = new Set(['help', 'json', 'config-file', 'use-context', 'command-profile', 'input-file'])
 
 /**
+ * CLI flags where a schema-key collision is a known, reviewed upstream `@elastic/schemas` defect
+ * rather than a CLI bug, and is safe to drop silently (the first-seen key keeps the flag).
+ * Following the pattern of `KNOWN_UPSTREAM_PATH_PARAM_MISMATCHES` in `src/kb/register.ts`:
+ * anything not in this allowlist throws instead of dropping a field with no CLI flag.
+ *
+ * `--version`: `_version` and `version` both appear as top-level input fields and both kebab-case
+ * to `version` in:
+ *   - security-exceptions-api update-exception-list
+ *   - security-lists-api patch-list
+ *   - security-lists-api update-list
+ * `_version` (the optimistic-concurrency-control field) is seen first and keeps the flag; `version`
+ * has no CLI flag but is still forwarded via stdin/`--input-file` body passthrough.
+ */
+const KNOWN_UPSTREAM_FLAG_COLLISIONS = new Set(['version'])
+
+/**
  * Validates schema arguments for naming conflicts.
  * Throws on reserved flag collision or duplicate flags.
+ *
+ * `extractSchemaArgs` now performs this same check (throwing loudly on unreviewed collisions
+ * before this function ever sees them), so on the production path this is unreachable for
+ * `@elastic/schemas`-derived args. Kept as defense-in-depth for callers that hand-build
+ * `SchemaArgDefinition[]` without going through `extractSchemaArgs`.
  */
 export function validateSchemaArgs (args: SchemaArgDefinition[]): void {
   const seen = new Set<string>()

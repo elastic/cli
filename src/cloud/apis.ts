@@ -15,6 +15,21 @@ let _allCloudApis: CloudApiDefinition[] | null = null
  */
 const resolveDefinition = createDefinitionResolver<CloudApiDefinition>('@elastic/schemas/cloud/json')
 
+/** Per-namespace-file module to load, and the export key it exposes its definitions under. */
+const CLOUD_API_MODULES: ReadonlyArray<{ file: string; exportKey: string }> = [
+  { file: 'accounts', exportKey: 'accountsDefinitions' },
+  { file: 'authentication', exportKey: 'authenticationDefinitions' },
+  { file: 'billing-costs-analysis', exportKey: 'billingCostsAnalysisDefinitions' },
+  { file: 'deployment-templates', exportKey: 'deploymentTemplatesDefinitions' },
+  { file: 'deployments', exportKey: 'deploymentsDefinitions' },
+  { file: 'deployments-traffic-filter', exportKey: 'deploymentsTrafficFilterDefinitions' },
+  { file: 'extensions', exportKey: 'extensionsDefinitions' },
+  { file: 'organizations', exportKey: 'organizationsDefinitions' },
+  { file: 'stack', exportKey: 'stackDefinitions' },
+  { file: 'trusted-environments', exportKey: 'trustedEnvironmentsDefinitions' },
+  { file: 'user-role-assignments', exportKey: 'userRoleAssignmentsDefinitions' },
+]
+
 /**
  * Returns all hosted Cloud API definitions, lazy-loading the per-namespace
  * modules from `@elastic/schemas` on first call.
@@ -22,47 +37,24 @@ const resolveDefinition = createDefinitionResolver<CloudApiDefinition>('@elastic
 export async function loadCloudApis (): Promise<CloudApiDefinition[]> {
   if (_allCloudApis != null) return _allCloudApis
 
-  const [
-    { accountsDefinitions },
-    { authenticationDefinitions },
-    { billingCostsAnalysisDefinitions },
-    { deploymentTemplatesDefinitions },
-    { deploymentsDefinitions },
-    { deploymentsTrafficFilterDefinitions },
-    { extensionsDefinitions },
-    { organizationsDefinitions },
-    { stackDefinitions },
-    { trustedEnvironmentsDefinitions },
-    { userRoleAssignmentsDefinitions },
-  ] = await Promise.all([
-    import('@elastic/schemas/cloud/tools/apis/accounts.js'),
-    import('@elastic/schemas/cloud/tools/apis/authentication.js'),
-    import('@elastic/schemas/cloud/tools/apis/billing-costs-analysis.js'),
-    import('@elastic/schemas/cloud/tools/apis/deployment-templates.js'),
-    import('@elastic/schemas/cloud/tools/apis/deployments.js'),
-    import('@elastic/schemas/cloud/tools/apis/deployments-traffic-filter.js'),
-    import('@elastic/schemas/cloud/tools/apis/extensions.js'),
-    import('@elastic/schemas/cloud/tools/apis/organizations.js'),
-    import('@elastic/schemas/cloud/tools/apis/stack.js'),
-    import('@elastic/schemas/cloud/tools/apis/trusted-environments.js'),
-    import('@elastic/schemas/cloud/tools/apis/user-role-assignments.js'),
-  ])
+  const mods = await Promise.all(
+    CLOUD_API_MODULES.map(async ({ file }) => {
+      const fileUrl = import.meta.resolve(`@elastic/schemas/cloud/tools/apis/${file}.js`)
+      return import(fileUrl) as Promise<Record<string, unknown>>
+    })
+  )
 
-  _allCloudApis = [
-    ...accountsDefinitions,
-    ...authenticationDefinitions,
-    ...billingCostsAnalysisDefinitions,
-    ...deploymentTemplatesDefinitions,
-    ...deploymentsDefinitions,
-    ...deploymentsTrafficFilterDefinitions,
-    ...extensionsDefinitions,
-    ...organizationsDefinitions,
-    ...stackDefinitions,
-    ...trustedEnvironmentsDefinitions,
-    ...userRoleAssignmentsDefinitions,
-  ] as CloudApiDefinition[]
+  let all: CloudApiDefinition[] = []
+  for (let i = 0; i < mods.length; i++) {
+    const { file, exportKey } = CLOUD_API_MODULES[i]!
+    const arr = mods[i]![exportKey]
+    if (!Array.isArray(arr)) {
+      throw new Error(`internal error: ${file}.js did not export ${exportKey}`)
+    }
+    all = all.concat(arr as CloudApiDefinition[])
+  }
 
-  _allCloudApis = await Promise.all(_allCloudApis.map(resolveDefinition))
+  _allCloudApis = await Promise.all(all.map(resolveDefinition))
 
   return _allCloudApis
 }
