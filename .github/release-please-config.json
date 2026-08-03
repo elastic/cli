@@ -14,10 +14,6 @@
     "packages/config-resolver": {
         "component": "config-resolver",
         "release-type": "node"
-    },
-    "packages/es-schemas": {
-        "component": "es-schemas",
-        "release-type": "node"
     }
   },
   "plugins": [
