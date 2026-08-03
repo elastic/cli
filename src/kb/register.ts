@@ -13,8 +13,39 @@ import { kbApiManifest, loadKbApi } from './apis.ts'
 import type { KbApiMeta } from './apis.ts'
 import { createKbHandler } from './handler.ts'
 
+/**
+ * Kibana API definitions that fail `validateKbApiDefinition`'s path-param check because of
+ * an upstream `@elastic/schemas` defect (a path placeholder not declared with
+ * `x-found-in: "path"` in the input schema). These are known and tracked upstream; the CLI
+ * still registers them so the rest of the namespace is usable, but `createKbHandler` refuses
+ * to invoke them (see handler.ts) rather than silently sending a request to a literal
+ * `{id}`/`{name}` URL.
+ */
+export const KNOWN_UPSTREAM_PATH_PARAM_MISMATCHES = new Set<string>([
+  'security-ai-assistant-api update-conversation',
+  'security-entity-analytics-api update-priv-mon-user',
+  'security-osquery-api osquery-update-saved-query',
+  'spaces put-spaces-space-id',
+  'streams post-streams-name-content-export',
+])
+
+/**
+ * Validates a definition, allowing the known upstream path-param mismatches through
+ * registration (they still fail loudly at invocation time, see `createKbHandler`).
+ * Anything else that fails validation is a registration-time bug and must throw.
+ */
+function assertRegistrableKbApiDefinition (def: KbApiDefinition): void {
+  try {
+    validateKbApiDefinition(def)
+  } catch (err) {
+    if (KNOWN_UPSTREAM_PATH_PARAM_MISMATCHES.has(`${def.namespace} ${def.name}`)) return
+    throw err
+  }
+}
+
 /** Builds a leaf command handle from a definition. */
 function buildLeafHandle (def: KbApiDefinition): OpaqueCommandHandle {
+  assertRegistrableKbApiDefinition(def)
   return defineCommand({
     name: def.name,
     description: def.description,
@@ -106,14 +137,7 @@ export async function registerKbCommandsLazy (
  * Eagerly registers all Kibana API commands (for tests and scripts).
  */
 export function registerKbCommands (definitions: KbApiDefinition[]): OpaqueCommandHandle {
-  // ponytail: soft validation - upstream schemas may have path/x-found-in mismatches
-  const valid = definitions.filter(def => {
-    try { validateKbApiDefinition(def); return true }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    catch (_e) { /* skip invalid defs from upstream */ return false }
-  })
-  // Use valid filtered list
-  definitions = valid
+  for (const def of definitions) assertRegistrableKbApiDefinition(def)
 
   const byNamespace = new Map<string, KbApiDefinition[]>()
   for (const def of definitions) {
