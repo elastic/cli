@@ -279,6 +279,97 @@ describe('bulk-ingest command', () => {
     assert.equal(requests[0]!.opts, undefined)
   })
 
+  it('streams a pretty-printed, multi-line JSON array', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
+    writeFileSync(join(tmpDir, 'data.json'), JSON.stringify([{ title: 'doc1' }, { title: 'doc2' }], null, 2))
+
+    const { transport, requests } = mockTransport([successResponse(2)])
+
+    await runCommand(['--index', 'test-idx', '--data-file', join(tmpDir, 'data.json'), '--json'], makeDeps(transport))
+
+    assert.equal(requests.length, 1)
+    const body = requests[0]!.params.body as string
+    assert.ok(body.includes('"doc1"'))
+    assert.ok(body.includes('"doc2"'))
+  })
+
+  it('streams a minified JSON array with multiple documents on one line', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
+    writeFileSync(join(tmpDir, 'data.json'), '[{"a":1},{"b":2},{"c":3}]')
+
+    const { transport, requests } = mockTransport([successResponse(3)])
+
+    await runCommand(['--index', 'test-idx', '--data-file', join(tmpDir, 'data.json'), '--json'], makeDeps(transport))
+
+    assert.equal(requests.length, 1)
+    const body = requests[0]!.params.body as string
+    assert.ok(body.includes('"a"') && body.includes('"b"') && body.includes('"c"'))
+  })
+
+  it('correctly splits JSON array elements containing commas and brackets inside strings', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
+    const docs = [
+      { note: 'contains a, comma and a ] bracket' },
+      { note: 'contains an escaped \\" quote' },
+      { nested: { arr: [1, 2, { deep: true }] } }
+    ]
+    writeFileSync(join(tmpDir, 'data.json'), JSON.stringify(docs))
+
+    const { transport, requests } = mockTransport([successResponse(3)])
+
+    await runCommand(['--index', 'test-idx', '--data-file', join(tmpDir, 'data.json'), '--json'], makeDeps(transport))
+
+    assert.equal(requests.length, 1)
+    const body = requests[0]!.params.body as string
+    const lines = body.trim().split('\n').filter((_, i) => i % 2 === 1) // doc lines only
+    assert.deepStrictEqual(lines.map((l) => JSON.parse(l)), docs)
+  })
+
+  it('rejects a JSON array that is never closed', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
+    writeFileSync(join(tmpDir, 'data.json'), '[{"a":1},{"b":2}')
+
+    const { transport } = mockTransport([successResponse(1)])
+
+    const result = await runCommand([
+      '--index', 'test-idx',
+      '--data-file', join(tmpDir, 'data.json'),
+      '--json'
+    ], makeDeps(transport)) as Record<string, unknown>
+
+    const error = result.error as Record<string, unknown>
+    assert.equal(error.code, 'input_error')
+    assert.match(error.message as string, /not closed/)
+  })
+
+  it('rejects an unparseable element inside a JSON array', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
+    writeFileSync(join(tmpDir, 'data.json'), '[{"a":1}, not-json, {"b":2}]')
+
+    const { transport } = mockTransport([successResponse(1)])
+
+    const result = await runCommand([
+      '--index', 'test-idx',
+      '--data-file', join(tmpDir, 'data.json'),
+      '--json'
+    ], makeDeps(transport)) as Record<string, unknown>
+
+    const error = result.error as Record<string, unknown>
+    assert.equal(error.code, 'input_error')
+    assert.match(error.message as string, /Failed to parse JSON array element/)
+  })
+
+  it('streams an empty JSON array without sending any batch', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
+    writeFileSync(join(tmpDir, 'data.json'), '[]')
+
+    const { transport, requests } = mockTransport([successResponse(0)])
+
+    await runCommand(['--index', 'test-idx', '--data-file', join(tmpDir, 'data.json'), '--json'], makeDeps(transport))
+
+    assert.equal(requests.length, 0)
+  })
+
   it('returns empty summary for zero documents', async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
     writeFileSync(join(tmpDir, 'data.json'), '[]')

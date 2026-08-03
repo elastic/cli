@@ -68,6 +68,81 @@ class Semaphore {
   }
 }
 
+/**
+ * Extracts top-level elements from a streamed JSON array (`[doc, doc, ...]`)
+ * without ever holding the whole array in memory. Feed it text chunks in
+ * order via {@link feed}; it returns each complete top-level element (as
+ * unparsed JSON text) as soon as its closing delimiter is seen. Only the
+ * current in-progress element is buffered, so memory is bounded by the
+ * largest single element, not the file size.
+ */
+class JsonArraySplitter {
+  private started = false
+  private closed = false
+  private depth = 0
+  private inString = false
+  private escaped = false
+  private buf = ''
+  private hasContent = false
+
+  feed (chunk: string): string[] {
+    const elements: string[] = []
+    for (let i = 0; i < chunk.length && !this.closed; i++) {
+      const c = chunk[i]!
+
+      if (!this.started) {
+        if (c === '[') this.started = true
+        continue
+      }
+
+      if (this.inString) {
+        this.buf += c
+        if (this.escaped) this.escaped = false
+        else if (c === '\\') this.escaped = true
+        else if (c === '"') this.inString = false
+        continue
+      }
+
+      if (this.depth > 0) {
+        if (c === '"') this.inString = true
+        else if (c === '{' || c === '[') this.depth++
+        else if (c === '}' || c === ']') this.depth--
+        this.buf += c
+        continue
+      }
+
+      // depth === 0: between elements, or inside an unbracketed scalar (number/bool/null/string)
+      if (c === '"') {
+        this.inString = true
+        this.buf += c
+        this.hasContent = true
+      } else if (c === ' ' || c === '\n' || c === '\r' || c === '\t' || c === ',') {
+        if (this.hasContent) elements.push(this.emit())
+      } else if (c === ']') {
+        if (this.hasContent) elements.push(this.emit())
+        this.closed = true
+      } else {
+        if (c === '{' || c === '[') this.depth++
+        this.buf += c
+        this.hasContent = true
+      }
+    }
+    return elements
+  }
+
+  /** True once the closing `]` of the array has been consumed. */
+  isClosed (): boolean {
+    return this.closed
+  }
+
+  private emit (): string {
+    const el = this.buf
+    this.buf = ''
+    this.hasContent = false
+    return el
+  }
+}
+
 /** Returns the default glob pattern for the given source format. */
 function defaultGlob (format: SourceFormat): string {
   if (format === 'csv') return '**/*.csv'
@@ -214,10 +289,11 @@ async function streamBulkIngest (
         await addDoc(JSON.stringify(record))
       }
     } else {
-      // ndjson / json: line-by-line for NDJSON, buffered fallback for JSON arrays
+      // ndjson: line-by-line. json (JSON array): streamed element-by-element via
+      // JsonArraySplitter, so a multi-GB array never gets buffered whole.
       const rl = createInterface({ input: stream, crlfDelay: Infinity })
       let isJsonArray: boolean | null = null // null = not yet determined
-      let arrayBuf = ''
+      const arraySplitter = new JsonArraySplitter()
 
       for await (const line of rl) {
         const trimmed = line.trim()
@@ -228,7 +304,15 @@ async function streamBulkIngest (
         }
 
         if (isJsonArray) {
-          arrayBuf += line + '\n'
+          for (const element of arraySplitter.feed(line + '\n')) {
+            let doc: unknown
+            try {
+              doc = JSON.parse(element)
+            } catch {
+              throw new Error(`Failed to parse JSON array element: ${element.slice(0, 80)}`)
+            }
+            await addDoc(JSON.stringify(doc))
+          }
           continue
         }
 
@@ -239,12 +323,8 @@ async function streamBulkIngest (
         }
       }
 
-      if (isJsonArray === true && arrayBuf.trim().length > 0) {
-        const parsed: unknown = JSON.parse(arrayBuf)
-        if (!Array.isArray(parsed)) throw new Error('Expected a JSON array')
-        for (const doc of parsed) {
-          await addDoc(JSON.stringify(doc))
-        }
+      if (isJsonArray === true && !arraySplitter.isClosed()) {
+        throw new Error('Unexpected end of input: JSON array was not closed')
       }
     }
   }
@@ -281,7 +361,7 @@ function createBulkIngestHandler (deps: BulkIngestDeps = defaultDeps) {
         err.message.startsWith('Provide only one') ||
         err.message.startsWith('No input provided') ||
         err.message.startsWith('Failed to parse') ||
-        err.message.startsWith('Expected a JSON')
+        err.message.startsWith('Unexpected end of input')
       ))) {
         return {
           error: {
