@@ -58,12 +58,16 @@ interface AjvError {
 
 function getAjv (): AjvInstance {
   if (_ajv == null) {
-     
     const Ajv = _req('ajv') as new (opts: Record<string, unknown>) => AjvInstance
     // validateSchema: false — generated schemas contain cosmetic meta-schema violations
     // (e.g. nullable enums with a repeated `null`) that AJV would otherwise throw on
     // before validating any input.
-    _ajv = new Ajv({ allErrors: true, strict: false, logger: false, useDefaults: true, validateSchema: false })
+    //
+    // ponytail: these are ajv6/draft-07 options. `strict` and `validateSchema` mean
+    // something different (or don't exist) on ajv8/draft2020-12 — `unknownFormats`
+    // becomes the `formats` allowlist and `useDefaults` gains array-item semantics.
+    // Re-check every option here if this codebase ever moves off ajv@6.
+    _ajv = new Ajv({ allErrors: true, logger: false, useDefaults: true, validateSchema: false, unknownFormats: 'ignore' })
   }
   return _ajv
 }
@@ -159,7 +163,25 @@ export function validateWithJsonSchema (
   const data = JSON.parse(JSON.stringify(input ?? {})) as Record<string, unknown>
 
   const ajv = getAjv()
-  const validate = ajv.compile(compilable as Record<string, unknown>)
+  let validate: ValidateFn
+  try {
+    validate = ajv.compile(compilable as Record<string, unknown>)
+  } catch (err) {
+    // A malformed schema (bad regex, unresolvable $ref, etc.) throws from
+    // ajv.compile rather than producing validation errors. Surface it through
+    // the normal failure path instead of letting it become an uncaught exception.
+    const title = typeof schema['title'] === 'string' ? schema['title'] : undefined
+    const message = err instanceof Error ? err.message : String(err)
+    return {
+      success: false,
+      errors: [{
+        code: 'schema_compile_failed',
+        path: '(root)',
+        path_array: [],
+        message: title != null ? `schema "${title}" failed to compile: ${message}` : `schema failed to compile: ${message}`,
+      }],
+    }
+  }
   const ok = validate(data)
 
   if (ok) return { success: true, data }

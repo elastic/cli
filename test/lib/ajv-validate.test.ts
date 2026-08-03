@@ -275,3 +275,32 @@ describe('validateWithJsonSchema (code is the raw AJV keyword) (#fix4)', () => {
     if (!additionalResult.success) assert.equal(additionalResult.errors[0]!.code, 'additionalProperties')
   })
 })
+
+describe('validateWithJsonSchema (ajv6 compile robustness) (#fix5)', () => {
+  it('does not throw on an unknown `format` keyword and validates the rest of the schema', () => {
+    const schema = {
+      type: 'object',
+      properties: { x: { type: 'string', format: 'duration' } },
+      required: ['x'],
+    }
+    assert.doesNotThrow(() => validateWithJsonSchema(schema, { x: 'hello' }))
+    const good = validateWithJsonSchema(schema, { x: 'hello' })
+    assert.equal(good.success, true)
+    const bad = validateWithJsonSchema(schema, {})
+    assert.equal(bad.success, false)
+  })
+
+  it('surfaces an uncompilable schema as a structured error instead of throwing', () => {
+    const schema = {
+      type: 'object',
+      properties: { x: { type: 'string', pattern: '(' } }, // invalid regex
+    }
+    assert.doesNotThrow(() => validateWithJsonSchema(schema, { x: 'y' }))
+    const result = validateWithJsonSchema(schema, { x: 'y' })
+    assert.equal(result.success, false)
+    assert.ok(!result.success)
+    if (!result.success) {
+      assert.ok(result.errors.some(e => e.code === 'schema_compile_failed'), `expected schema_compile_failed, got: ${JSON.stringify(result.errors)}`)
+    }
+  })
+})
