@@ -206,7 +206,7 @@ export function hideBlockedCommands (root: OpaqueCommandHandle, policy: CommandP
 // ---------------------------------------------------------------------------
 
 /**
- * Recursively removes `found_in` and `x-found-in` routing keys from a JSON value.
+ * Recursively removes `x-found-in` routing keys from a JSON value.
  *
  * These are internal routing metadata used by the request builder and MUST NOT be
  * exposed in user-facing help text or agent-facing JSON Schema output.
@@ -216,7 +216,7 @@ export function stripTransportMeta (value: JsonValue): JsonValue {
   if (value !== null && typeof value === 'object') {
     const out: Record<string, JsonValue> = {}
     for (const [k, v] of Object.entries(value)) {
-      if (k === 'found_in' || k === 'x-found-in') continue
+      if (k === 'x-found-in') continue
       out[k] = stripTransportMeta(v)
     }
     return out

@@ -3803,7 +3803,7 @@ describe('JSON schema in help output -- transport meta stripping', () => {
     return JSON.parse(out) as Record<string, unknown>
   }
 
-  it('found_in is not present in JSON schema output for a schema with found_in metadata', async () => {
+  it('x-found-in is not present in JSON schema output for a schema with x-found-in metadata', async () => {
     const cmd = defineCommand({
       name: 'create',
       description: 'Create an index',
@@ -3821,7 +3821,7 @@ describe('JSON schema in help output -- transport meta stripping', () => {
     assert.ok(!('x-found-in' in (props['settings'] ?? {})), 'x-found-in must not appear in settings property')
   })
 
-  it('found_in is stripped from nested schema objects too', async () => {
+  it('x-found-in is stripped from nested schema objects too', async () => {
     const cmd = defineCommand({
       name: 'search',
       description: 'Search',
@@ -3834,7 +3834,7 @@ describe('JSON schema in help output -- transport meta stripping', () => {
     assert.ok(!schemaStr.includes('x-found-in'), `x-found-in must not appear anywhere in schema output; got: ${schemaStr}`)
   })
 
-  it('stripping found_in does not remove other metadata (description, type, etc.)', async () => {
+  it('stripping x-found-in does not remove other metadata (description, type, etc.)', async () => {
     const cmd = defineCommand({
       name: 'create',
       description: 'Create',

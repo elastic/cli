@@ -238,11 +238,11 @@ describe('registerEsCommands - extensibility', () => {
     await assert.rejects(registerEsCommands(defs), /path.*must start/i)
   })
 
-  it('rejects a malformed definition (path token with no found_in: "path" field) at registration time', async () => {
+  it('rejects a malformed definition (path token with no x-found-in: "path" field) at registration time', async () => {
     const defs: EsApiDefinition[] = [{
       ...makeDef('get', 'indices'),
       path: '/{index}',
-      input: jsonSchema({}),  // {index} token in path but no found_in: "path" field
+      input: jsonSchema({}),  // {index} token in path but no x-found-in: "path" field
     }]
     await assert.rejects(registerEsCommands(defs), /path.*param.*index/i)
   })

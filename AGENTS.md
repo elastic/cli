@@ -60,8 +60,8 @@ All requirements below are non-negotiable and enforced at review time.
 
 ### Transport Abstraction
 
-- **Hide routing metadata**: `found_in: path | query | body` is an implementation detail. It MUST NOT appear in help text, schema output, or error messages.
-- **Validate path parameter coverage**: If a schema field has `found_in: "path"` but the URL template has no matching placeholder, the system MUST fail fast at registration time.
+- **Hide routing metadata**: `x-found-in: path | query | body` is an implementation detail. It MUST NOT appear in help text, schema output, or error messages.
+- **Validate path parameter coverage**: If a schema field has `x-found-in: "path"` but the URL template has no matching placeholder, the system MUST fail fast at registration time.
 
 ### Cross-Platform Compatibility
 

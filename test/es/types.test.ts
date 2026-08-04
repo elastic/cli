@@ -134,7 +134,7 @@ describe('validateApiDefinition', () => {
       path: '/{index}/_cat/health',
       input: schema({ index: { type: 'string', 'x-found-in': 'query' } }),
     }
-    assert.throws(() => validateApiDefinition(def), /path.*param.*index|index.*found_in.*path/i)
+    assert.throws(() => validateApiDefinition(def), /path.*param.*index|index.*x-found-in.*path/i)
   })
 
   it('rejects a path token when input has no fields at all', () => {
@@ -197,7 +197,7 @@ describe('validateApiDefinition -- unified input schema', () => {
       path: '/{index}',
       input: schema({ index: { type: 'string', 'x-found-in': 'query' } }),
     }
-    assert.throws(() => validateApiDefinition(def), /path.*param.*index|index.*found_in.*path/i)
+    assert.throws(() => validateApiDefinition(def), /path.*param.*index|index.*x-found-in.*path/i)
   })
 
   it('rejects a definition where a x-found-in: "path" field has no matching {param} in path', () => {
