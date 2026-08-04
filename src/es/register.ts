@@ -14,6 +14,7 @@ import type { EsApiDefinition } from './types.ts'
 import type { SchemaArgDefinition } from '../lib/schema-args.ts'
 import { apiManifest } from './api-manifest.ts'
 import type { EsApiMeta } from './api-manifest.ts'
+import { BODY_ROOT_STAR_FIELDS } from './request-builder.ts'
 
 // Lazy-loaded modules (deferred to keep `es --help` fast)
 const _reqEs = createRequire(import.meta.url)
@@ -88,6 +89,17 @@ function buildLeafHandle (
   }
   if (def.responseType === 'text') {
     config.formatOutput = (result) => String(result)
+  }
+  const bodyRootArg = schemaArgs.find(
+    (a) => (a.foundIn === 'body' || a.foundIn === undefined) && a.required && BODY_ROOT_STAR_FIELDS.has(a.schemaKey)
+  )
+  if (bodyRootArg != null) {
+    const rootKey = bodyRootArg.schemaKey
+    config.inputTransform = (input: unknown) => {
+      if (input == null || typeof input !== 'object' || Array.isArray(input)) return input
+      if (rootKey in (input as Record<string, unknown>)) return input
+      return { [rootKey]: input }
+    }
   }
   return defineCommand(config)
 }

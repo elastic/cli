@@ -78,6 +78,8 @@ export interface CommandConfig<T extends z.ZodType = z.ZodType> {
    * empty, --input-file and --dry-run are hidden from help (#378).
    */
   readOnly?: boolean
+  /** Applied to JSON input (stdin or --input-file) before schema validation. */
+  inputTransform?: (input: unknown) => unknown
 }
 
 /** Configuration for a command group (namespace). */

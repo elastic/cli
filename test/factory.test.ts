@@ -1279,6 +1279,62 @@ describe('defineCommand', () => {
     })
 
   })
+  describe('inputTransform', () => {
+    let origIsTTY: boolean | undefined
+    beforeEach(() => {
+      origIsTTY = process.stdin.isTTY
+      Object.defineProperty(process.stdin, 'isTTY', { value: undefined, configurable: true, writable: true })
+    })
+    afterEach(() => {
+      Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+    })
+
+    it('wraps stdin input before validation when transform is provided', async () => {
+      const restore = _testSetStdinReader(() => JSON.stringify({ name: 'test' }))
+      try {
+        const received: ParsedResult[] = []
+        const cmd = defineCommand({
+          name: 'index',
+          description: 'Index a document',
+          input: z.object({ document: z.any() }),
+          inputTransform: (input) => {
+            if (input != null && typeof input === 'object' && !Array.isArray(input) && !('document' in (input as object))) {
+              return { document: input }
+            }
+            return input
+          },
+          handler: (parsed) => { received.push(parsed); return {} },
+        })
+        await invokeAsync(cmd, [])
+        assert.deepEqual(received[0]!.input, { document: { name: 'test' } })
+      } finally {
+        restore()
+      }
+    })
+
+    it('does not wrap when the root key is already present', async () => {
+      const restore = _testSetStdinReader(() => JSON.stringify({ document: { name: 'test' } }))
+      try {
+        const received: ParsedResult[] = []
+        const cmd = defineCommand({
+          name: 'index',
+          description: 'Index a document',
+          input: z.object({ document: z.any() }),
+          inputTransform: (input) => {
+            if (input != null && typeof input === 'object' && !Array.isArray(input) && !('document' in (input as object))) {
+              return { document: input }
+            }
+            return input
+          },
+          handler: (parsed) => { received.push(parsed); return {} },
+        })
+        await invokeAsync(cmd, [])
+        assert.deepEqual(received[0]!.input, { document: { name: 'test' } })
+      } finally {
+        restore()
+      }
+    })
+  })
   describe('schema input - type acceptance', () => {
     it('accepts a Zod object schema as input without throwing', () => {
       const schema = z.object({ index: z.string() })

@@ -142,6 +142,10 @@ const BODY_ROOT_FIELDS: Record<string, Set<string> | '*'> = {
   pipeline: new Set(['/_logstash/pipeline/{id}'])
 }
 
+export const BODY_ROOT_STAR_FIELDS = new Set(
+  Object.entries(BODY_ROOT_FIELDS).filter(([, v]) => v === '*').map(([k]) => k)
+)
+
 /**
  * Collects request body fields from entries with `foundIn === "body"` or no `foundIn`.
  * Returns `undefined` when no body fields are present in the input.
