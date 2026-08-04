@@ -465,6 +465,60 @@ describe('bulk-ingest command', () => {
     assert.match(error.message as string, /ENOENT/)
   })
 
+  it('rejects an empty --data-file as input_error, not a silent success', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
+    const filePath = join(tmpDir, 'empty.ndjson')
+    writeFileSync(filePath, '')
+
+    const { transport, requests } = mockTransport([successResponse(0)])
+
+    const result = await runCommand([
+      '--index', 'test-idx',
+      '--data-file', filePath,
+      '--json'
+    ], makeDeps(transport)) as Record<string, unknown>
+
+    assert.equal(requests.length, 0)
+    const error = result.error as Record<string, unknown>
+    assert.equal(error.code, 'input_error')
+    assert.match(error.message as string, /No input data received/)
+  })
+
+  it('rejects whitespace-only --data-file as input_error', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
+    const filePath = join(tmpDir, 'whitespace.ndjson')
+    writeFileSync(filePath, '   \n\n  \n')
+
+    const { transport } = mockTransport([successResponse(0)])
+
+    const result = await runCommand([
+      '--index', 'test-idx',
+      '--data-file', filePath,
+      '--json'
+    ], makeDeps(transport)) as Record<string, unknown>
+
+    const error = result.error as Record<string, unknown>
+    assert.equal(error.code, 'input_error')
+    assert.match(error.message as string, /No input data received/)
+  })
+
+  it('does not treat a valid empty JSON array `[]` as an input_error', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
+    const filePath = join(tmpDir, 'data.json')
+    writeFileSync(filePath, '[]')
+
+    const { transport } = mockTransport([successResponse(0)])
+
+    const result = await runCommand([
+      '--index', 'test-idx',
+      '--data-file', filePath,
+      '--json'
+    ], makeDeps(transport)) as Record<string, unknown>
+
+    assert.equal(result.error, undefined)
+    assert.equal(result.total, 0)
+  })
+
   it('returns empty summary for zero documents', async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
     writeFileSync(join(tmpDir, 'data.json'), '[]')
@@ -607,6 +661,24 @@ describe('bulk-ingest command', () => {
       const error = result.error as Record<string, unknown>
       assert.equal(error.code, 'input_error')
       assert.match(error.message as string, /ENOENT/)
+    })
+
+    it('does not treat a header-only CSV (zero data rows) as input_error', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-csv-'))
+      const filePath = join(tmpDir, 'headers-only.csv')
+      writeFileSync(filePath, 'name,age\n')
+
+      const { transport } = mockTransport([successResponse(0)])
+
+      const result = await runCommand([
+        '--index', 'test-idx',
+        '--data-file', filePath,
+        '--source-format', 'csv',
+        '--json'
+      ], makeDeps(transport)) as Record<string, unknown>
+
+      assert.equal(result.error, undefined)
+      assert.equal(result.total, 0)
     })
 
     it('casts numeric and boolean values from CSV', async () => {

@@ -278,8 +278,21 @@ async function streamBulkIngest (
     filePaths = [undefined]
   }
 
+  // A single --data-file or stdin with no non-whitespace bytes is almost
+  // certainly a mistake (wrong path, empty pipe), so it's an explicit
+  // input_error rather than a silent "processed 0 docs" success. --data-dir
+  // has no equivalent check: individual empty files within a batch are fine.
+  const singleSourceInput = data_dir == null
+  let sawContent = false
+
   for (const filePath of filePaths) {
     const stream: Readable = filePath != null ? createReadStream(filePath, { encoding: 'utf-8' }) : process.stdin
+
+    if (singleSourceInput) {
+      stream.on('data', (chunk: string | Buffer) => {
+        if (!sawContent && chunk.toString().trim().length > 0) sawContent = true
+      })
+    }
 
     if (source_format === 'csv') {
       const csvColumns = opts.csv_columns != null
@@ -345,6 +358,13 @@ async function streamBulkIngest (
         throw new Error('Unexpected end of input: JSON array was not closed')
       }
     }
+  }
+
+  if (singleSourceInput && !sawContent) {
+    const message = data_file != null
+      ? 'No input data received from file'
+      : 'No input provided. Use --data-file, --data-dir, or pipe data to stdin'
+    throw Object.assign(new Error(message), { code: 'input_error' })
   }
 
   await flush()
