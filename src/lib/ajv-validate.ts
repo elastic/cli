@@ -12,6 +12,8 @@
 
 import { createRequire } from 'node:module'
 
+import type { Ajv, ValidateFunction } from 'ajv'
+
 const _req = createRequire(import.meta.url)
 
 /** Path segment: property name, or array index (as a number). */
@@ -38,27 +40,28 @@ export type ValidationResult =
   | { success: false; errors: ValidationError[] }
 
 // ponytail: module-level cache so AJV is initialised once per process
-let _ajv: AjvInstance | null = null
+let _ajv: Ajv | null = null
 
-interface AjvInstance {
-  compile: (schema: Record<string, unknown>) => ValidateFn
-}
-
-interface ValidateFn {
-  (data: unknown): boolean
-  errors: AjvError[] | null
-}
-
-interface AjvError {
+// ponytail: deliberately not importing ajv's own `ErrorObject` type. Its
+// `params` field is typed as a ~12-member union (ErrorParameters), which
+// does not compile against the three params this module actually reads
+// (missingProperty, allowedValues, additionalProperty) and has no index
+// signature, so it isn't assignable to Record<string, unknown> either.
+// This narrow view names only the fields consumed below.
+interface AjvErrorView {
   keyword: string
   dataPath: string
   message?: string
-  params?: Record<string, unknown>
+  params?: {
+    missingProperty?: string
+    allowedValues?: unknown[]
+    additionalProperty?: string
+  }
 }
 
-function getAjv (): AjvInstance {
+function getAjv (): Ajv {
   if (_ajv == null) {
-    const Ajv = _req('ajv') as new (opts: Record<string, unknown>) => AjvInstance
+    const AjvCtor = _req('ajv') as new (opts: Record<string, unknown>) => Ajv
     // validateSchema: false — generated schemas contain cosmetic meta-schema violations
     // (e.g. nullable enums with a repeated `null`) that AJV would otherwise throw on
     // before validating any input.
@@ -67,7 +70,7 @@ function getAjv (): AjvInstance {
     // something different (or don't exist) on ajv8/draft2020-12 — `unknownFormats`
     // becomes the `formats` allowlist and `useDefaults` gains array-item semantics.
     // Re-check every option here if this codebase ever moves off ajv@6.
-    _ajv = new Ajv({ allErrors: true, logger: false, useDefaults: true, validateSchema: false, unknownFormats: 'ignore' })
+    _ajv = new AjvCtor({ allErrors: true, logger: false, useDefaults: true, validateSchema: false, unknownFormats: 'ignore' })
   }
   return _ajv
 }
@@ -100,7 +103,7 @@ function tokenizePath (dataPath: string): PathSegment[] {
  * message omits information the params object already has (allowed enum
  * values, the unrecognized property name).
  */
-function enrichMessage (keyword: string, message: string, params: Record<string, unknown>): string {
+function enrichMessage (keyword: string, message: string, params: NonNullable<AjvErrorView['params']>): string {
   switch (keyword) {
     case 'enum': {
       const allowed = params.allowedValues
@@ -163,7 +166,7 @@ export function validateWithJsonSchema (
   const data = JSON.parse(JSON.stringify(input ?? {})) as Record<string, unknown>
 
   const ajv = getAjv()
-  let validate: ValidateFn
+  let validate: ValidateFunction
   try {
     validate = ajv.compile(compilable as Record<string, unknown>)
   } catch (err) {
@@ -182,11 +185,17 @@ export function validateWithJsonSchema (
       }],
     }
   }
-  const ok = validate(data)
+  // ajv's ValidateFunction can return a PromiseLike for async schemas ($data/$async
+  // keywords), but this module only ever compiles synchronous schemas, so that arm
+  // is unreachable here; narrow explicitly instead of relying on truthiness.
+  const ok = validate(data) === true
 
   if (ok) return { success: true, data }
 
-  const raw: ValidationError[] = (validate.errors ?? []).map((e) => {
+  // Single cast boundary: ajv's own `errors` type is `ErrorObject[] | null | undefined`,
+  // where `ErrorObject.params` is intentionally not imported (see AjvErrorView above).
+  const errors = (validate.errors ?? []) as unknown as AjvErrorView[]
+  const raw: ValidationError[] = errors.map((e) => {
     const rawPath = e.dataPath || ''
     const params = e.params ?? {}
     const pathArr = tokenizePath(rawPath)
