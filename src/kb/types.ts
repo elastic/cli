@@ -28,29 +28,6 @@ export interface KbApiDefinition {
   intent?: CommandIntent
 }
 
-// Keep for backward-compat with existing cloud/kb api files that declare params separately.
-export interface KbPathParam {
-  name: string
-  description: string
-  required: boolean
-}
-
-export interface KbQueryParam {
-  name: string
-  cliFlag?: string
-  type: 'string' | 'number' | 'boolean'
-  description: string
-  required?: boolean
-}
-
-export interface KbBodyParam {
-  name: string
-  cliFlag?: string
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array'
-  description: string
-  required?: boolean
-}
-
 const VALID_NAME = /^[a-z0-9][a-z0-9-]*$/
 const VALID_NAMESPACE = /^[a-z][a-z0-9-]*$/
 
