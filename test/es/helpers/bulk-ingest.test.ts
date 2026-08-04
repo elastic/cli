@@ -594,6 +594,21 @@ describe('bulk-ingest command', () => {
       assert.ok(body.includes('"bar"'))
     })
 
+    it('reports input_error instead of crashing on a missing CSV file', async () => {
+      const { transport } = mockTransport([successResponse(0)])
+
+      const result = await runCommand([
+        '--index', 'test-idx',
+        '--data-file', '/tmp/does-not-exist-bulk-ingest-test.csv',
+        '--source-format', 'csv',
+        '--json'
+      ], makeDeps(transport)) as Record<string, unknown>
+
+      const error = result.error as Record<string, unknown>
+      assert.equal(error.code, 'input_error')
+      assert.match(error.message as string, /ENOENT/)
+    })
+
     it('casts numeric and boolean values from CSV', async () => {
       const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-csv-'))
       const filePath = join(tmpDir, 'data.csv')

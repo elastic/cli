@@ -298,6 +298,10 @@ async function streamBulkIngest (
           return value
         }
       })
+      // .pipe() doesn't forward source errors to the destination, so a missing
+      // or unreadable file would otherwise crash the process as an unhandled
+      // 'error' event instead of surfacing as an input_error.
+      stream.on('error', (e) => { parser.destroy(e) })
       stream.pipe(parser)
       for await (const record of parser) {
         await addDoc(JSON.stringify(record))
