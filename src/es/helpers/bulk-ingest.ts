@@ -143,6 +143,9 @@ class JsonArraySplitter {
   }
 }
 
+/** Local filesystem error codes that mean "the input is broken", not "the cluster is broken". */
+const LOCAL_FS_ERROR_CODES = new Set(['ENOENT', 'EACCES', 'EISDIR'])
+
 /** Returns the default glob pattern for the given source format. */
 function defaultGlob (format: SourceFormat): string {
   if (format === 'csv') return '**/*.csv'
@@ -373,7 +376,7 @@ function createBulkIngestHandler (deps: BulkIngestDeps = defaultDeps) {
       // deciding whether/how to re-run (e.g. with an upsert).
       const summary = reporter.summary() as Record<string, JsonValue>
       const code = (err as { code?: string }).code
-      if (code === 'input_error' || (err instanceof Error && (
+      if (code === 'input_error' || (code != null && LOCAL_FS_ERROR_CODES.has(code)) || (err instanceof Error && (
         err.message.startsWith('No files matched') ||
         err.message.startsWith('Provide only one') ||
         err.message.startsWith('No input provided') ||

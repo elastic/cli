@@ -451,6 +451,20 @@ describe('bulk-ingest command', () => {
     assert.ok(result.error != null)
   })
 
+  it('reports input_error, not transport_error, for a missing --data-file', async () => {
+    const { transport } = mockTransport([successResponse(0)])
+
+    const result = await runCommand([
+      '--index', 'test-idx',
+      '--data-file', '/tmp/does-not-exist-bulk-ingest-test.ndjson',
+      '--json'
+    ], makeDeps(transport)) as Record<string, unknown>
+
+    const error = result.error as Record<string, unknown>
+    assert.equal(error.code, 'input_error')
+    assert.match(error.message as string, /ENOENT/)
+  })
+
   it('returns empty summary for zero documents', async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
     writeFileSync(join(tmpDir, 'data.json'), '[]')
