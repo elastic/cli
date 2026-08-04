@@ -151,6 +151,8 @@ When constructing URLs, sending credentials, or making HTTP requests:
 
 1. **Enumerate all variants upfront.** A now-retired field-unwrapping helper only handled two shapes out of the many the input source could produce, and the rest fell through silently. The current equivalent is `@elastic/schemas`' use of JSON Schema composition (`$ref`, `anyOf`, `oneOf`, `allOf`, root-level `$ref`): inspect the full set of shapes the upstream schemas can produce (see `src/lib/json-schema-refs.ts`, `src/kb/apis.ts`'s `flattenComposition`) and add explicit handling or a loud failure for unrecognized ones.
 
+   The same applies to upstream `x-` annotations. The current set is `x-found-in`, `x-body-root`, `x-api`, `x-method`, `x-path`, `x-urls`, `x-body-format`, `x-destructive`, `x-response-type`, `x-availability`, `x-deprecated`. New ones appear without warning; classify each as routing (must be stripped from output) or user-facing (may be surfaced) rather than matching on the `x-` prefix. See `ARCHITECTURE.md` → "Schema Composition and `x-` Metadata".
+
 2. **Fail loudly on unrecognized input.** A catch-all fallback once silently returned a garbage field type instead of erroring. `src/lib/json-schema-refs.ts`'s `resolveRootRef()` follows the fix: it throws when a root ref doesn't resolve to an object schema with properties, rather than letting a silently-empty schema reach downstream flag derivation.
 
 3. **Test with real schemas from the actual source.** Hand-crafted toy schemas miss shapes that only appear in real `@elastic/schemas` output (e.g. Kibana's per-rule-type `allOf`/`oneOf` bodies).

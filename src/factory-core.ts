@@ -206,9 +206,25 @@ export function hideBlockedCommands (root: OpaqueCommandHandle, policy: CommandP
 // ---------------------------------------------------------------------------
 
 /**
- * Recursively removes `x-found-in` routing keys from a JSON value.
+ * Routing metadata emitted by `@elastic/schemas` that the request builders consume
+ * and users must never see. Deliberately an explicit list, not `x-` prefix matching,
+ * so genuinely user-facing annotations (`x-availability`, `x-deprecated`,
+ * `x-response-type`, `x-destructive`) survive into help output.
+ */
+const ROUTING_META_KEYS = new Set([
+  'x-found-in',
+  'x-api',
+  'x-method',
+  'x-path',
+  'x-urls',
+  'x-body-root',
+  'x-body-format',
+])
+
+/**
+ * Recursively removes routing keys from a JSON value.
  *
- * These are internal routing metadata used by the request builder and MUST NOT be
+ * These are internal routing metadata used by the request builders and MUST NOT be
  * exposed in user-facing help text or agent-facing JSON Schema output.
  */
 export function stripTransportMeta (value: JsonValue): JsonValue {
@@ -216,7 +232,7 @@ export function stripTransportMeta (value: JsonValue): JsonValue {
   if (value !== null && typeof value === 'object') {
     const out: Record<string, JsonValue> = {}
     for (const [k, v] of Object.entries(value)) {
-      if (k === 'x-found-in') continue
+      if (ROUTING_META_KEYS.has(k)) continue
       out[k] = stripTransportMeta(v)
     }
     return out

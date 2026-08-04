@@ -4,6 +4,7 @@
  */
 
 import type { KbApiDefinition } from './types.ts'
+import { isPlainObject } from '../lib/type-guards.ts'
 import type { ParsedResult } from '../factory.ts'
 import type { KibanaRequestParams } from '../lib/kibana-client.ts'
 
@@ -34,9 +35,10 @@ export function buildKibanaRequestParams (
   // encoding -- e.g. saved-objects resolve-import-errors also requires a `retries`
   // field alongside `file`. Send every body field as a form field so none are dropped.
   // Add a schema signal (e.g. x-found-in: 'file') if this heuristic ever misfires.
-  if (body !== undefined && typeof body['file'] === 'string') {
+  const fields = isPlainObject(body) ? body : undefined
+  if (fields != null && typeof fields['file'] === 'string') {
     params.multipartFields = Object.fromEntries(
-      Object.entries(body).map(([key, value]) => [key, typeof value === 'string' ? value : String(value)])
+      Object.entries(fields).map(([key, value]) => [key, typeof value === 'string' ? value : String(value)])
     )
   } else if (body !== undefined) {
     params.body = body
@@ -81,10 +83,15 @@ function buildQuerystring (
   return qs
 }
 
+/**
+ * Collects request body fields. A single field marked `x-body-root` by
+ * `@elastic/schemas` has its value promoted to be the whole body rather than nested
+ * under the key -- 107 Kibana endpoints model their request body that way.
+ */
 function collectBody (
   props: Record<string, Record<string, unknown>>,
   input: Record<string, unknown>
-): Record<string, unknown> | undefined {
+): unknown {
   const body: Record<string, unknown> = {}
   for (const [key, prop] of Object.entries(props)) {
     const foundIn = prop['x-found-in'] as string | undefined
@@ -96,5 +103,8 @@ function collectBody (
   for (const [key, value] of Object.entries(input)) {
     if (!(key in props) && value !== undefined) body[key] = value
   }
-  return Object.keys(body).length > 0 ? body : undefined
+  const keys = Object.keys(body)
+  if (keys.length === 0) return undefined
+  if (keys.length === 1 && props[keys[0]!]?.['x-body-root'] === true) return body[keys[0]!]
+  return body
 }

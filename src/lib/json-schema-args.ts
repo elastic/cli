@@ -36,6 +36,12 @@ export interface SchemaArgDefinition {
   foundIn?: FoundIn
 
   /**
+   * True when the schema marks this property with `x-body-root`, meaning its value
+   * replaces the entire request body rather than nesting under the key.
+   */
+  bodyRoot?: boolean
+
+  /**
    * True when the schema accepts both a scalar and an array form.
    * CLI flag stays scalar for UX; bodies may need array form for comma-separated values.
    */
@@ -85,6 +91,7 @@ interface JsonSchemaProp {
   default?: unknown
   enum?: unknown[]
   'x-found-in'?: string
+  'x-body-root'?: boolean
   anyOf?: JsonSchemaProp[]
   oneOf?: JsonSchemaProp[]
   allOf?: JsonSchemaProp[]
@@ -207,6 +214,7 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
       ...(defaultValue !== undefined ? { defaultValue } : {}),
       description,
       ...(foundIn !== undefined ? { foundIn } : {}),
+      ...(prop['x-body-root'] === true ? { bodyRoot: true } : {}),
       ...(acceptsArrayForm ? { acceptsArrayForm: true } : {}),
       ...(isSortField ? { parseStyle: 'sort-pairs' as const } : {}),
     }
@@ -232,7 +240,7 @@ const RESERVED_FLAGS = new Set(['help', 'json', 'config-file', 'use-context', 'c
 /**
  * CLI flags where a schema-key collision is a known, reviewed upstream `@elastic/schemas` defect
  * rather than a CLI bug, and is safe to drop silently (the first-seen key keeps the flag).
- * Following the pattern of `KNOWN_UPSTREAM_PATH_PARAM_MISMATCHES` in `src/kb/register.ts`:
+ * The allowlist is exhaustive by design:
  * anything not in this allowlist throws instead of dropping a field with no CLI flag.
  *
  * `--version`: `_version` and `version` both appear as top-level input fields and both kebab-case

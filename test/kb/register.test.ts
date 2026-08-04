@@ -8,31 +8,40 @@ import assert from 'node:assert/strict'
 import { validateKbApiDefinition } from '../../src/kb/types.ts'
 import { loadAllKbApis } from '../../src/kb/apis.ts'
 import { createKbHandler } from '../../src/kb/handler.ts'
-import { KNOWN_UPSTREAM_PATH_PARAM_MISMATCHES } from '../../src/kb/register.ts'
+import type { KbApiDefinition } from '../../src/kb/types.ts'
 import type { ParsedResult } from '../../src/factory.ts'
 
 describe('validateKbApiDefinition against the real Kibana manifest', () => {
-  it('passes for every definition except the known upstream mismatches', async () => {
+  it('passes for every definition, with no allowlisted exceptions', async () => {
     const defs = await loadAllKbApis()
-    const unexpectedFailures: string[] = []
+    const failures: string[] = []
     for (const def of defs) {
-      const key = `${def.namespace} ${def.name}`
       try {
         validateKbApiDefinition(def)
-        assert.ok(!KNOWN_UPSTREAM_PATH_PARAM_MISMATCHES.has(key), `${key} is allowlisted but now passes validation — remove it from the allowlist`)
       } catch (err) {
-        if (!KNOWN_UPSTREAM_PATH_PARAM_MISMATCHES.has(key)) unexpectedFailures.push(`${key}: ${(err as Error).message}`)
+        failures.push(`${def.namespace} ${def.name}: ${(err as Error).message}`)
       }
     }
-    assert.deepEqual(unexpectedFailures, [])
+    assert.deepEqual(failures, [])
   })
 })
 
-describe('createKbHandler invocation-time protection for allowlisted definitions', () => {
+describe('createKbHandler invocation-time protection against upstream regressions', () => {
   it('errors instead of sending a request to a literal {id} URL', async () => {
-    const defs = await loadAllKbApis()
-    const def = defs.find((d) => d.namespace === 'spaces' && d.name === 'put-spaces-space-id')
-    assert.ok(def != null, 'expected put-spaces-space-id to exist in the manifest')
+    // Constructed, not loaded: no real definition has a path placeholder missing from
+    // `x-found-in: "path"` as of @elastic/schemas 0.5.1. This asserts the handler still
+    // refuses to build such a URL if a future release regresses.
+    const def: KbApiDefinition = {
+      name: 'put-spaces-space-id',
+      namespace: 'spaces',
+      description: 'Update a space',
+      method: 'PUT',
+      path: '/api/spaces/space/{id}',
+      input: {
+        type: 'object',
+        properties: { name: { type: 'string', 'x-found-in': 'body' } },
+      },
+    }
 
     const handler = createKbHandler(def)
     const parsed = { input: { id: 'my-space', name: 'x' } } as unknown as ParsedResult

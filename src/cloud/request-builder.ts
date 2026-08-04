@@ -32,18 +32,22 @@ export function buildCloudRequestParams (
   const pathKeys = new Set<string>()
   const queryKeys = new Set<string>()
   const bodyKeys = new Set<string>()
+  const bodyRootKeys = new Set<string>()
 
   for (const [key, prop] of Object.entries(props)) {
     const loc = prop['x-found-in'] as string | undefined
     if (loc === 'path') pathKeys.add(key)
     else if (loc === 'query') queryKeys.add(key)
-    else bodyKeys.add(key)
+    else {
+      bodyKeys.add(key)
+      if (prop['x-body-root'] === true) bodyRootKeys.add(key)
+    }
   }
 
   const required = new Set(Array.isArray(resolvedInput?.required) ? resolvedInput!.required as string[] : [])
   const path = interpolatePath(def.path, pathKeys, required, rawInput)
   const querystring = buildQuerystring(queryKeys, rawInput)
-  const body = collectBody(def.method, pathKeys, queryKeys, bodyKeys, rawInput)
+  const body = collectBody(def.method, pathKeys, queryKeys, bodyKeys, bodyRootKeys, rawInput)
 
   const params: CloudRequestParams = { method: def.method, path }
   if (Object.keys(querystring).length > 0) params.querystring = querystring
@@ -91,8 +95,9 @@ function collectBody (
   pathKeys: Set<string>,
   queryKeys: Set<string>,
   bodyKeys: Set<string>,
+  bodyRootKeys: Set<string>,
   input: Record<string, unknown>,
-): Record<string, unknown> | undefined {
+): unknown {
   // Explicit body fields from schema take precedence over the method gate below:
   // some commands (e.g. delete-api-keys) send a required body on DELETE.
   if (bodyKeys.size > 0) {
@@ -100,7 +105,12 @@ function collectBody (
     for (const key of bodyKeys) {
       if (input[key] !== undefined) body[key] = input[key]
     }
-    return Object.keys(body).length > 0 ? body : undefined
+    const keys = Object.keys(body)
+    if (keys.length === 0) return undefined
+    // `x-body-root` marks a field whose value replaces the whole body (e.g.
+    // patch-current-account's JSON Patch document).
+    if (keys.length === 1 && bodyRootKeys.has(keys[0]!)) return body[keys[0]!]
+    return body
   }
 
   if (!BODY_METHODS.has(method)) return undefined

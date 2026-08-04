@@ -13,7 +13,6 @@ import { validateApiDefinition } from './types.ts'
 import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
 import { apiManifest } from './apis.ts'
 import type { EsApiMeta } from './apis.ts'
-import { BODY_ROOT_STAR_FIELDS } from './request-builder.ts'
 
 let _dc: typeof _DefCmd | null = null
 async function getDefineCommand (): Promise<typeof _DefCmd> {
@@ -70,7 +69,7 @@ function buildLeafHandle (
     config.formatOutput = (result) => String(result)
   }
   const bodyRootArg = schemaArgs.find(
-    (a) => (a.foundIn === 'body' || a.foundIn === undefined) && a.required && BODY_ROOT_STAR_FIELDS.has(a.schemaKey)
+    (a) => (a.foundIn === 'body' || a.foundIn === undefined) && a.required && a.bodyRoot === true
   )
   if (bodyRootArg != null) {
     const rootKey = bodyRootArg.schemaKey

@@ -20,6 +20,22 @@ API input schemas are no longer generated into this repo. They ship as JSON Sche
 
 **Do not**: Eagerly load every namespace file at startup, or bypass `createSidecarResolver`'s per-file memoization when resolving `$ref`s — either regresses the heap/latency numbers this design fixed. There is currently no local regeneration path for these schemas; they come from whatever `@elastic/schemas` version is installed.
 
+## Schema Composition and `x-` Metadata
+
+As of `@elastic/schemas` 0.5.1, every request document in all four namespaces is a plain `{ type: 'object', properties, required }` object. Composition survives only *inside* properties (`$ref`, `anyOf`, `oneOf`), which `src/lib/json-schema-refs.ts` inlines from the sidecar `_defs.json` / `_types.json` files. `flattenComposition()` in `src/kb/apis.ts` and `resolveRootRef()` in `src/lib/json-schema-refs.ts` handle root-level `allOf` / `oneOf` / `$ref`; no current definition reaches either, and both are kept so an upstream regression degrades into correct behaviour rather than silently-missing CLI flags. `resolveRootRef()` throws instead of returning an empty schema when a root `$ref` does not resolve to an object with properties.
+
+Properties and roots carry `x-` annotations. Two classes, and the distinction matters:
+
+| Key | Level | Class | Consumer |
+|---|---|---|---|
+| `x-found-in` | property | routing | request builders |
+| `x-body-root` | property | routing | body promotion in the ES, Kibana, and Cloud request builders |
+| `x-api`, `x-method`, `x-path`, `x-urls`, `x-body-format` | root | routing | duplicates of the definition's own fields |
+| `x-availability`, `x-deprecated` | root + property | user-facing | not yet surfaced |
+| `x-destructive`, `x-response-type` | root | user-facing | duplicates of the definition's own fields |
+
+**Do not**: strip `x-` keys by prefix. `stripTransportMeta()` in `src/factory-core.ts` removes the routing class by explicit name so user-facing annotations survive into `--help --json`. Routing metadata leaking into schema output violates the transport-abstraction requirement in AGENTS.md.
+
 ## `cli-schema.ts` — CLI Structure Emitter
 
 Module that introspects the registered Commander tree and each command's attached JSON Schema `input` to build the `elastic cli-schema` output consumed by agents.

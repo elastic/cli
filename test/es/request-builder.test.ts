@@ -205,10 +205,10 @@ describe('buildRequestParams', () => {
     assert.equal(result.path, '/idx1,idx2/_search')
   })
 
-  it('promotes "document" field to be the entire body (#95)', () => {
+  it('promotes an "x-body-root" field to be the entire body (#95)', () => {
     const input = schema({
       index: { type: 'string', description: 'Index', 'x-found-in': 'path' },
-      document: { type: 'object', description: 'Document', 'x-found-in': 'body' },
+      document: { type: 'object', description: 'Document', 'x-found-in': 'body', 'x-body-root': true },
     }, ['index'])
     const def = makeDefinition({ method: 'PUT', path: '/{index}/_doc', input })
     const doc = { title: 'Hello', count: 42 }
@@ -216,7 +216,7 @@ describe('buildRequestParams', () => {
     assert.deepEqual(result.body, { title: 'Hello', count: 42 }, 'document value should be the body itself, not nested')
   })
 
-  it('does not promote non-document body fields', () => {
+  it('does not promote body fields without "x-body-root"', () => {
     const input = schema({
       settings: { type: 'object', description: 'Settings', 'x-found-in': 'body' },
     })
@@ -224,6 +224,37 @@ describe('buildRequestParams', () => {
     const result = buildRequestParams(def, parsedResult({ settings: { number_of_shards: 1 } }), args(input))
     assert.deepEqual(result.body, { settings: { number_of_shards: 1 } })
   })
+
+  it('promotes any upstream-marked root field, not just a hard-coded name list', () => {
+    const input = schema({
+      search_application: { type: 'object', description: 'App', 'x-found-in': 'body', 'x-body-root': true },
+    })
+    const def = makeDefinition({ method: 'PUT', path: '/_application/search_application', input })
+    const result = buildRequestParams(def, parsedResult({ search_application: { indices: ['a'] } }), args(input))
+    assert.deepEqual(result.body, { indices: ['a'] })
+  })
+
+  it('does not promote when another body field also has a value', () => {
+    const input = schema({
+      document: { type: 'object', description: 'Document', 'x-found-in': 'body', 'x-body-root': true },
+      refresh: { type: 'string', description: 'Refresh', 'x-found-in': 'body' },
+    })
+    const def = makeDefinition({ method: 'PUT', input })
+    const result = buildRequestParams(def, parsedResult({ document: { a: 1 }, refresh: 'true' }), args(input))
+    assert.deepEqual(result.body, { document: { a: 1 }, refresh: 'true' })
+  })
+
+  it('skips root promotion for NDJSON bodies so the array still serializes per line', () => {
+    const input = schema({
+      operations: { type: 'array', description: 'Operations', 'x-found-in': 'body', 'x-body-root': true },
+    })
+    const ops = [{ index: { _id: '1' } }, { title: 'Doc 1' }]
+    const def = makeDefinition({ method: 'POST', input, bodyFormat: 'ndjson' })
+    const result = buildRequestParams(def, parsedResult({ operations: ops }), args(input))
+    assert.equal(result.bulkBody, '{"index":{"_id":"1"}}\n{"title":"Doc 1"}\n')
+    assert.equal(result.body, undefined)
+  })
+
 
   it('serializes body as NDJSON via bulkBody when bodyFormat is "ndjson" (#94)', () => {
     const input = schema({

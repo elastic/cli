@@ -3821,6 +3821,55 @@ describe('JSON schema in help output -- transport meta stripping', () => {
     assert.ok(!('x-found-in' in (props['settings'] ?? {})), 'x-found-in must not appear in settings property')
   })
 
+  it('routing metadata beyond x-found-in is not present in JSON schema output', async () => {
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Run a search',
+      input: {
+        type: 'object',
+        title: 'search',
+        'x-api': { id: 'search', name: 'search', namespace: null },
+        'x-method': 'GET',
+        'x-path': '/{index}/_search',
+        'x-urls': [{ path: '/_search', methods: ['GET', 'POST'] }],
+        'x-body-format': 'ndjson',
+        properties: {
+          index: { type: 'string', description: 'Target index', 'x-found-in': 'path' },
+          operations: { type: 'array', description: 'Ops', 'x-found-in': 'body', 'x-body-root': true },
+        },
+        required: ['index'],
+      },
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    for (const key of ['x-api', 'x-method', 'x-path', 'x-urls', 'x-body-format']) {
+      assert.ok(!(key in schema), `${key} must not appear at the schema root`)
+    }
+    const props = schema['properties'] as Record<string, Record<string, unknown>>
+    assert.ok(!('x-body-root' in (props['operations'] ?? {})), 'x-body-root must not appear in operations property')
+  })
+
+  it('preserves non-routing annotations that users should see', async () => {
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Run a search',
+      input: {
+        type: 'object',
+        'x-availability': { stack: { stability: 'stable' } },
+        properties: {
+          knn: { type: 'object', description: 'kNN', 'x-found-in': 'body', 'x-availability': { stack: { since: '8.4.0' } } },
+          ignore_throttled: { type: 'boolean', description: 'Ignore', 'x-found-in': 'query', 'x-deprecated': { since: '7.16.0' } },
+        },
+      },
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    assert.ok('x-availability' in schema, 'root x-availability must survive')
+    const props = schema['properties'] as Record<string, Record<string, unknown>>
+    assert.ok('x-availability' in (props['knn'] ?? {}), 'property x-availability must survive')
+    assert.ok('x-deprecated' in (props['ignore_throttled'] ?? {}), 'property x-deprecated must survive')
+  })
+
   it('x-found-in is stripped from nested schema objects too', async () => {
     const cmd = defineCommand({
       name: 'search',

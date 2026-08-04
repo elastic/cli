@@ -260,6 +260,14 @@ describe('buildCloudRequestParams', () => {
     const result = buildCloudRequestParams(def, parsed({ id: 'abc', extra: 'value' }))
     assert.equal(result.body, undefined)
   })
+
+  it('promotes an "x-body-root" field to be the entire body, for a real definition', async () => {
+    const { loadCloudApis } = await import('../../src/cloud/apis.ts')
+    const def = (await loadCloudApis()).find((d) => d.name === 'patch-current-account')
+    assert.ok(def != null, 'expected cloud "patch-current-account" definition')
+    const result = buildCloudRequestParams(def, parsed({ body: '[{"op":"replace"}]' }))
+    assert.equal(result.body, '[{"op":"replace"}]', 'body value should be the body itself, not nested under "body"')
+  })
 })
 
 describe('buildCloudRequestParams required path param handling (BUG C regression)', () => {

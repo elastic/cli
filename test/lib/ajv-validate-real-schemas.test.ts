@@ -10,8 +10,11 @@
  * AGENTS.md "Generic Abstractions" lesson 3: hand-crafted schemas miss shapes that
  * only appear in real upstream output. This file loads actual command definitions
  * to exercise each JSON Schema composition shape @elastic/schemas emits: a bare
- * `$ref` property, an `anyOf` union, an `allOf`-composed body, a multi-branch
- * `oneOf`, a nullable enum with a duplicate `null`, and a root-level `$ref` document.
+ * `$ref` property, an `anyOf` union, a multi-branch `oneOf`, a nullable enum with a
+ * duplicate `null`, and the flat cloud bodies that used to arrive as a root `$ref`
+ * or an `allOf` pair. Kibana's remaining root `$ref`/`allOf` documents are resolved
+ * by `flattenComposition` before a definition is returned, so no composite root
+ * reaches a caller.
  */
 
 import { describe, it } from 'node:test'
@@ -37,34 +40,37 @@ async function kbInput (namespace: string, name: string): Promise<Record<string,
   return def.input
 }
 
-describe('real schema shape: bare $ref property (kb apm-agent-configuration delete-agent-configuration)', () => {
+describe('real schema shape: bare $ref property (kb fleet-package-policies post-fleet-package-policies)', () => {
   it('accepts a value matching the $ref target', async () => {
-    const schema = await kbInput('apm-agent-configuration', 'delete-agent-configuration')
-    // "service" is `{ "$ref": "#/$defs/APM_UI_service_object" }` — no inline type.
-    assert.deepEqual(schema['properties'], { service: { $ref: '#/$defs/APM_UI_service_object' } })
-    const result = validateWithJsonSchema(schema, { service: { name: 'my-service' } })
+    const schema = await kbInput('fleet-package-policies', 'post-fleet-package-policies')
+    // "package" is `{ "$ref": "#/$defs/..." }` — no inline type.
+    const pkg = (schema['properties'] as Record<string, Record<string, unknown>>)['package']
+    assert.equal(pkg?.['$ref'], '#/$defs/Kibana_HTTP_APIs_package_policy_package')
+    assert.equal(pkg?.['type'], undefined, 'expected no inline type alongside the $ref')
+    const result = validateWithJsonSchema(schema, { name: 'p1', package: { name: 'nginx', version: '1.0.0' } })
     assert.equal(result.success, true)
   })
 
   it('rejects a value that violates the $ref target with one clean issue', async () => {
-    const schema = await kbInput('apm-agent-configuration', 'delete-agent-configuration')
-    const result = validateWithJsonSchema(schema, { service: 'not-an-object' })
+    const schema = await kbInput('fleet-package-policies', 'post-fleet-package-policies')
+    const result = validateWithJsonSchema(schema, { name: 'p1', package: 'not-an-object' })
     assert.equal(result.success, false)
     assert.ok(!result.success)
     assert.equal(result.errors.length, 1, `expected one issue, got: ${JSON.stringify(result.errors)}`)
     assert.equal(result.errors[0]!.code, 'type')
-    assert.deepEqual(result.errors[0]!.path_array, ['service'])
+    assert.deepEqual(result.errors[0]!.path_array, ['package'])
   })
 })
 
-describe('real schema shape: root $ref document (cloud delete-api-keys)', () => {
+describe('real schema shape: flat root body (cloud delete-api-keys)', () => {
   it('accepts a value matching the resolved root schema', async () => {
     const defs = await loadCloudApis()
     const def = defs.find((d) => d.name === 'delete-api-keys')
     assert.ok(def != null, 'expected cloud "delete-api-keys" definition')
-    // Raw input has no top-level "properties" — only a root $ref.
-    assert.equal(def.input['properties'], undefined)
-    assert.equal(def.input['$ref'], '#/$defs/DeleteApiKeysRequest')
+    // Upstream used to ship this as a root `$ref` document; since the JSON Schema
+    // generation change it is a flat object. `resolveRootRef` is kept as the loud
+    // guard for the shape and is covered by test/lib/json-schema-refs.test.ts.
+    assert.deepEqual(Object.keys(def.input['properties'] as Record<string, unknown>), ['keys'])
     const schema = buildCloudJsonSchema(def)
     const result = validateWithJsonSchema(schema, { keys: ['k1', 'k2'] })
     assert.equal(result.success, true)
@@ -84,12 +90,15 @@ describe('real schema shape: root $ref document (cloud delete-api-keys)', () => 
   })
 })
 
-describe('real schema shape: allOf-composed body (cloud create-deployment)', () => {
-  it('accepts fields from both the root schema and the allOf-merged $ref', async () => {
+describe('real schema shape: previously allOf-composed body (cloud create-deployment)', () => {
+  it('accepts fields that upstream used to split across the root and an allOf $ref', async () => {
     const defs = await loadCloudApis()
     const def = defs.find((d) => d.name === 'create-deployment')
     assert.ok(def != null, 'expected cloud "create-deployment" definition')
-    assert.ok(Array.isArray(def.input['allOf']), 'expected the raw schema to still use allOf')
+    const props = def.input['properties'] as Record<string, unknown>
+    for (const key of ['request_id', 'name']) {
+      assert.ok(key in props, `expected "${key}" to be a flat root property`)
+    }
     // "request_id" is a root property; "name" only exists inside the allOf $ref target.
     const result = validateWithJsonSchema(def.input, { request_id: 'abc', name: 'my-deployment' })
     assert.equal(result.success, true)

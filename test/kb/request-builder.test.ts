@@ -86,6 +86,34 @@ describe('buildKibanaRequestParams', () => {
     assert.deepEqual(result.multipartFields, { file: 'ndjson-contents', retries: '[{"type":"index-pattern"}]' })
     assert.equal(result.body, undefined)
   })
+
+  it('promotes an "x-body-root" field to be the entire body, for a real definition', async () => {
+    const { loadAllKbApis } = await import('../../src/kb/apis.ts')
+    const defs = await loadAllKbApis()
+    const def = defs.find((d) => d.namespace === 'agent-builder' && d.name === 'post-agent-builder-a2a-agentid')
+    assert.ok(def != null, 'expected post-agent-builder-a2a-agentid to exist in the manifest')
+    const result = buildKibanaRequestParams(def, parsed({ agentId: 'a1', body: { hello: 1 } }))
+    assert.deepEqual(result.body, { hello: 1 }, 'body value should be the body itself, not nested under "body"')
+  })
+
+  it('does not promote when another body field also has a value', () => {
+    const def: KbApiDefinition = {
+      name: 'post-thing',
+      namespace: 'widgets',
+      description: 'Post a thing',
+      method: 'POST',
+      path: '/api/widgets',
+      input: {
+        type: 'object',
+        properties: {
+          body: { type: 'object', 'x-found-in': 'body', 'x-body-root': true },
+          note: { type: 'string', 'x-found-in': 'body' },
+        },
+      },
+    }
+    const result = buildKibanaRequestParams(def, parsed({ body: { a: 1 }, note: 'n' }))
+    assert.deepEqual(result.body, { body: { a: 1 }, note: 'n' })
+  })
 })
 
 describe('buildKibanaRequestParams path param requiredness (BUG A regression)', () => {
