@@ -5,74 +5,7 @@
 
 import { readFileSync, globSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { parse as parseCsv } from 'csv-parse/sync'
 import type { JsonValue } from '../../factory.ts'
-
-/**
- * Parses raw text input as either a JSON array or NDJSON (newline-delimited JSON).
- * Auto-detects the format: if the trimmed input starts with `[`, it's parsed as JSON array;
- * otherwise each non-empty line is parsed as a separate JSON object.
- */
-export function parseInput (raw: string): unknown[] {
-  const trimmed = raw.trim()
-  if (trimmed.length === 0) return []
-
-  if (trimmed.startsWith('[')) {
-    const parsed = JSON.parse(trimmed)
-    if (!Array.isArray(parsed)) {
-      throw new Error('Expected a JSON array, got: ' + typeof parsed)
-    }
-    return parsed
-  }
-
-  const lines = trimmed.split('\n')
-  const docs: unknown[] = []
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]!.trim()
-    if (line.length === 0) continue
-    try {
-      docs.push(JSON.parse(line))
-    } catch {
-      throw new Error(`Failed to parse NDJSON at line ${i + 1}: ${line.slice(0, 80)}`)
-    }
-  }
-  return docs
-}
-
-export interface CsvParseOptions {
-  delimiter?: string
-  /** Explicit column names. If provided, the first data row is treated as data (not headers). */
-  columns?: string[]
-  /** Skip the first row of the file (useful when the file has a header you want to discard). */
-  skipHeader?: boolean
-}
-
-/**
- * Parses CSV text into an array of objects.
- * By default the first row is used as column headers.
- * If `columns` is provided, those names are used instead and every row is treated as data.
- * `skipHeader: true` discards the first row (combine with `columns` to rename headers).
- */
-export function parseCsvInput (raw: string, opts: CsvParseOptions = {}): unknown[] {
-  const { delimiter = ',', columns, skipHeader = false } = opts
-
-  const fromLine = skipHeader ? 2 : 1
-  const columnsOpt: string[] | true = columns != null && columns.length > 0 ? columns : true
-
-  return parseCsv(raw, {
-    delimiter,
-    columns: columnsOpt,
-    from_line: fromLine,
-    skip_empty_lines: true,
-    trim: true,
-    cast (value) {
-      if (value === 'true') return true
-      if (value === 'false') return false
-      if (value !== '' && !isNaN(Number(value))) return Number(value)
-      return value
-    },
-  }) as unknown[]
-}
 
 /**
  * Reads raw text content from a file path or stdin.
@@ -97,27 +30,6 @@ export function globFiles (dir: string, pattern: string): string[] {
   const absDir = resolve(dir)
   const matches = globSync(pattern, { cwd: absDir })
   return matches.map((f) => resolve(absDir, f)).sort()
-}
-
-/**
- * Builds an NDJSON body for the Elasticsearch `_bulk` API.
- * Each document is wrapped in an `{"index": {...}}` action line followed by the document line.
- */
-export function buildBulkNdjsonBody (
-  docs: unknown[],
-  opts: { index?: string | undefined, pipeline?: string | undefined, routing?: string | undefined }
-): string {
-  const lines: string[] = []
-  for (const doc of docs) {
-    const action: Record<string, unknown> = {}
-    if (opts.index != null) action._index = opts.index
-    if (opts.pipeline != null) action.pipeline = opts.pipeline
-    if (opts.routing != null) action.routing = opts.routing
-    lines.push(JSON.stringify({ index: action }))
-    lines.push(JSON.stringify(doc))
-  }
-  // bulk API requires a trailing newline
-  return lines.join('\n') + '\n'
 }
 
 /**
