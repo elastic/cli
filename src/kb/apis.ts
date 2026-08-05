@@ -10,6 +10,7 @@
 
 import type { KbApiDefinition } from './types.ts'
 import { createDefinitionResolver } from '../lib/json-schema-refs.ts'
+import { toExportStem } from '../lib/namespace-file-export.ts'
 import type { KbApiMeta } from './api-manifest.ts'
 export { kbApiManifest } from './api-manifest.ts'
 export type { KbApiMeta } from './api-manifest.ts'
@@ -21,17 +22,6 @@ export type { KbApiMeta } from './api-manifest.ts'
  * would otherwise reach AJV unresolved.
  */
 const resolveDefinition = createDefinitionResolver<KbApiDefinition>('@elastic/schemas/kibana/json')
-
-/**
- * Derives the export identifier stem from a namespace file stem: kebab segments become
- * camelCase and any other non-identifier character (e.g. the dot in
- * "get_agent_builder_a2a_agentid.json") becomes an underscore, matching @elastic/schemas.
- */
-function toExportStem (stem: string): string {
-  return stem
-    .replace(/-([a-z0-9])/g, (_, c: string) => c.toUpperCase())
-    .replace(/[^A-Za-z0-9_$]/g, '_')
-}
 
 /**
  * @elastic/schemas expresses Kibana request bodies that combine multiple valid
