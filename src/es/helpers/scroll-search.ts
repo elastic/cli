@@ -73,6 +73,9 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
       return missingConfigError(err)
     }
 
+    // Build the search request body:
+    //   --query      → a Query DSL clause, wrapped as { query: <parsed> }
+    //   --query-file → a full search body (may contain query, sort, aggs, ...)
     let queryBody: Record<string, unknown> = {}
     try {
       if (query != null) {
@@ -98,6 +101,7 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
     }
 
     try {
+      // Initial search with scroll
       const encodedIndex = encodeURIComponent(index)
       const initialResult = await transport.request<SearchResponse>({
         method: 'POST',
@@ -111,10 +115,12 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
       if (scrollId2 != null) scrollId = scrollId2
       let hits = initialResult.hits?.hits ?? []
 
+      // Process pages
       while (hits.length > 0 && totalDocs < maxDocs) {
         for (const hit of hits) {
           if (totalDocs >= maxDocs) break
           if (jsonMode) {
+            // _source is user-defined JSON — always a valid JsonValue at runtime
             documents.push(hit._source as JsonValue)
           } else {
             deps.stdout.write(JSON.stringify(hit._source) + '\n')
@@ -124,6 +130,7 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
 
         if (totalDocs >= maxDocs || scrollId2 == null) break
 
+        // Fetch next page
         const scrollResult = await transport.request<SearchResponse>({
           method: 'POST',
           path: '/_search/scroll',
@@ -138,10 +145,11 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
     } catch (err) {
       return transportError(err)
     } finally {
+      // Always clean up the scroll context
       if (scrollId != null) {
         try {
           await transport.request({ method: 'DELETE', path: '/_search/scroll', body: { scroll_id: scrollId } })
-        } catch { /* best-effort */ }
+        } catch { /* best-effort cleanup — scroll will expire naturally */ }
       }
     }
 

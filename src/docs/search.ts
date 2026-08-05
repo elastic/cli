@@ -60,6 +60,7 @@ export function createSearchCommand (deps: SearchDeps = defaultDeps): OpaqueComm
 
       try {
         const resp = await deps.docsSearch(query, page, size)
+        // Return structured data for --json; formatOutput handles text rendering
         return {
           results: resp.results.map((r) => ({
             title: stripHtmlTags(r.title),

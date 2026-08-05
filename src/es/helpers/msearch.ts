@@ -57,6 +57,7 @@ function buildMsearchNdjsonBody (items: SearchItem[], defaultIndex?: string | un
   return lines.join('\n') + '\n'
 }
 
+/** Parses raw input into an array of search items. */
 function parseSearchItems (raw: string): SearchItem[] {
   const parsed = JSON.parse(raw)
   if (!Array.isArray(parsed)) {
@@ -88,6 +89,7 @@ function createMsearchHandler (deps: MsearchDeps = defaultDeps) {
       return missingConfigError(err)
     }
 
+    // Read and parse input
     let items: SearchItem[]
     try {
       let raw: string | undefined
@@ -106,11 +108,13 @@ function createMsearchHandler (deps: MsearchDeps = defaultDeps) {
 
     if (items.length === 0) return { responses: [] }
 
+    // Split into batches
     const batches: SearchItem[][] = []
     for (let i = 0; i < items.length; i += batch_size) {
       batches.push(items.slice(i, i + batch_size))
     }
 
+    // Build path
     const path = index != null
       ? `/${encodeURIComponent(index)}/_msearch`
       : '/_msearch'

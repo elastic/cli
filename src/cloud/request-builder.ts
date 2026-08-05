@@ -55,6 +55,11 @@ export function buildCloudRequestParams (
   return params
 }
 
+/**
+ * Interpolates `{param}` tokens in the URL template. Values are percent-encoded so
+ * special characters like `/`, `?`, and `#` cannot escape the path segment (#106).
+ * Optional params with no value have their segment stripped.
+ */
 function interpolatePath (
   template: string,
   pathKeys: Set<string>,

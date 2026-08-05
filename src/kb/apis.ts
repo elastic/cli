@@ -3,9 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
+/*
  * Lazy barrel for Kibana API definitions.
- * Loads from @elastic/schemas/kibana/tools/apis/ subpath imports.
+ *
+ * Importing this file is cheap: only `kbApiManifest` (metadata-only) is loaded.
+ * The per-namespace files under `@elastic/schemas/kibana/tools/apis/` are NOT pulled
+ * in transitively. Callers that need the full `KbApiDefinition` for a single endpoint
+ * must go through `loadKbApi()` or `loadKbApisInFile()`, which dynamic-import exactly
+ * one namespace file.
+ *
+ * See elastic/cli#251 for the memory context.
  */
 
 import type { KbApiDefinition } from './types.ts'
@@ -136,10 +143,13 @@ async function resolveDefRef (ref: string): Promise<Record<string, unknown> | un
   return (await defsPromise)[name]
 }
 
+/** Memoised module cache so repeated calls do not re-import the same namespace file. */
 const moduleCache = new Map<string, Promise<KbApiDefinition[]>>()
 
 /**
- * Dynamic-imports the namespace file from @elastic/schemas.
+ * Dynamic-imports the namespace file identified by `namespaceFile` and returns
+ * all `KbApiDefinition`s it exports, with their `input` schemas flattened and
+ * `$ref`s resolved. Subsequent calls for the same file return the cached promise.
  */
 export async function loadKbApisInFile (namespaceFile: string): Promise<KbApiDefinition[]> {
   let cached = moduleCache.get(namespaceFile)

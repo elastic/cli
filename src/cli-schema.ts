@@ -236,6 +236,13 @@ function schemaArgType (arg: SchemaArgDefinition, enumValues: string[] | undefin
   }
 }
 
+/**
+ * Builds the schema parameters for the root program's global options.
+ *
+ * Only `--dry-run` gets a dedicated role; every other option stays a plain `flag`.
+ * Broader heuristics (treating `--force`/`--yes` as a confirmation-skip role) would
+ * change the emitted output for hand-declared flags such as `config`'s `--force`.
+ */
 function buildGlobalParams (rootCmd: Command): CliParameter[] {
   return rootCmd.options.map((opt) => {
     const isFlag = !opt.required && !opt.optional
@@ -310,6 +317,9 @@ function buildCommandParams (cmd: OpaqueCommandHandle): CliParameter[] {
         ...(arg.description && { summary: arg.description }),
         ...(arg.defaultValue != null && { defaultValue: String(arg.defaultValue) }),
         ...(arg.acceptsArrayForm === true && { repeatable: true }),
+        // `acceptsArrayForm` fields routed to the request body need a CSV separator in their
+        // help text: ES does not split comma-separated values inside JSON bodies, only in
+        // querystrings and paths.
         ...(arg.acceptsArrayForm === true && arg.foundIn === 'body' && { separator: ',' }),
         ...(enumValues != null && { enumValues }),
         ...(arg.type === 'array' && node != null && extractElementType(node, root) != null && { elementType: extractElementType(node, root) as string }),

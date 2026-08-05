@@ -58,6 +58,8 @@ export function createChatCommand (deps: ChatDeps = defaultDeps): OpaqueCommandH
       const question = inp.question.trim()
       if (question === '') return { error: { code: 'missing_input', message: 'question is required' } }
 
+      // Spinner and interactive loop are disabled when stderr is not a TTY (piped/redirected)
+      // or when --json is requested, so agents and scripts get clean output.
       const interactive = process.stderr.isTTY === true && parsed.options['json'] !== true
       const conversationId = newUuid()
 

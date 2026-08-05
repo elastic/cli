@@ -45,12 +45,16 @@ function getOutput () {
 
 /**
  * Module-level stdin reader - swappable in tests via {@link _testSetStdinReader}.
+ * Production default reads all of stdin synchronously using file descriptor 0,
+ * which works cross-platform (Windows, Linux, macOS).
  */
 let stdinReader: () => string = () => readFileSync(0, 'utf-8')
 
 /**
  * Test-only seam: replaces the stdin reader with `fn` and returns a restore callback.
- * @internal
+ * Always call the returned function in a `finally` block to avoid test pollution.
+ *
+ * @internal not part of the public API
  */
 export function _testSetStdinReader (fn: () => string): () => void {
   const prev = stdinReader
@@ -65,7 +69,17 @@ function camelCase (s: string): string {
 
 /**
  * Parses an ES `Sort` CLI value into the shape ES expects in a request body.
- * "views:desc,timestamp:asc" → [{ views: "desc" }, { timestamp: "asc" }]
+ *
+ * The CLI help text advertises the URL-query grammar (`<field>:<direction>` pairs, comma-
+ * separated), but the request body needs explicit objects per pair. Bare field names (no
+ * colon) are kept as strings since ES accepts them directly.
+ *
+ * Examples:
+ *   "views"                       → "views"
+ *   "views:desc"                  → [{ views: "desc" }]
+ *   "views,timestamp"             → ["views", "timestamp"]
+ *   "views:desc,timestamp:asc"    → [{ views: "desc" }, { timestamp: "asc" }]
+ *   "views,timestamp:desc"        → ["views", { timestamp: "desc" }]
  */
 function parseSortPairs (value: string): string | Array<string | Record<string, string>> {
   const parts = parseFieldList(value)
@@ -79,6 +93,11 @@ function parseSortPairs (value: string): string | Array<string | Record<string, 
   return transformed
 }
 
+/**
+ * Creates a parseArg function that accumulates repeated string flag values with comma separation.
+ * Uses Commander's option value source tracking: first CLI occurrence replaces any default,
+ * subsequent CLI occurrences append with a comma separator.
+ */
 function stringAccumulator (cmd: Command, attrName: string): (value: string, previous: string | undefined) => string {
   return (value: string, previous: string | undefined): string => {
     if (cmd.getOptionValueSource(attrName) === 'cli') return `${previous},${value}`
@@ -86,6 +105,11 @@ function stringAccumulator (cmd: Command, attrName: string): (value: string, pre
   }
 }
 
+/**
+ * Creates a parseArg function that rejects repeated flag occurrences for singular-value options.
+ * Wraps an optional inner parser (e.g. number coercion) and errors via Commander
+ * if the option has already been set from the CLI.
+ */
 function singleValueGuard<T> (
   cmd: Command, attrName: string, flagDisplay: string, innerParse?: (val: string) => T,
 ): (value: string, previous: T | undefined) => T {
@@ -97,6 +121,10 @@ function singleValueGuard<T> (
   }
 }
 
+/**
+ * Validates all option definitions for a command.
+ * @throws {Error} on short alias length, long name length, or duplicate name violations
+ */
 function validateOptions (options: import('./factory-core.ts').OptionDefinition[]): void {
   const seenLong = new Set<string>()
   const seenShort = new Set<string>()
@@ -159,6 +187,15 @@ function configureHelpWithSchema (
       return origHelp.formatHelp(thisCmd, helper)
     }
   })
+  // The JSON schema for commands like `es search` exceeds 64 KB.  Commander
+  // passes the formatted string to writeOut (process.stdout.write by default),
+  // which is async; process.exit() fires immediately afterwards and discards
+  // the unflushed buffer, truncating the output.
+  //
+  // We override writeOut to write synchronously instead.  Node.js (libuv) puts
+  // pipe file-descriptors into non-blocking mode once process.stdout is
+  // initialised, so a bare writeSync would also stop at the pipe-buffer limit;
+  // setBlocking(true) restores blocking mode first.
   cmd.configureOutput({
     writeOut: (str) => {
       ;(process.stdout as NodeJS.WriteStream & { _handle?: { setBlocking?: (b: boolean) => void } })
@@ -168,6 +205,11 @@ function configureHelpWithSchema (
   })
 }
 
+/**
+ * Parses `raw` as JSON, routing errors through Commander's error handler.
+ * `source` is the error prefix shown to the user (e.g. `'--input-file'` or `'stdin'`).
+ * Returns `never` on any error path via `cmd.error()`.
+ */
 function parseJsonContent (raw: string, source: string, cmd: OpaqueCommandHandle): unknown {
   if (raw.trim().length === 0) {
     return cmd.error(`${source}: invalid JSON: empty content`)
@@ -205,15 +247,44 @@ function coerceNumber (val: string): number | undefined {
 /**
  * Creates a leaf command from a declarative config and returns an opaque handle.
  *
+ * The returned handle can be:
+ * - registered with the CLI program via `program.addCommand(handle)`
+ * - added to a command group via {@link defineGroup}
+ *
  * When `config.input` is a JSON Schema object, the factory:
  * 1. Extracts CLI flags from `input.properties` via `extractSchemaArgs`
  * 2. Registers each property as a Commander option
  * 3. Validates input with AJV (lazy-loaded) before calling the handler
+ *
+ * **Lifecycle** (on invocation):
+ * 1. Commander parses raw argv into typed option values
+ * 2. Number options are coerced and validated inline by parseArg; errors exit before the handler
+ * 3. Required option absence is detected by Commander; exits with a structured error
+ * 4. If `input` is a JSON Schema and JSON data is provided, it is validated with AJV;
+ *    on failure, an error is emitted and the handler is never invoked
+ * 5. Handler is invoked with a {@link ParsedResult} containing coerced options and parsed input
+ *
+ * @example
+ * ```ts
+ * const healthCmd = defineCommand({
+ *   name: 'health',
+ *   description: 'Check cluster health status',
+ *   options: [
+ *     { long: 'verbose', short: 'v', type: 'boolean', description: 'Show detailed output' },
+ *     { long: 'timeout', type: 'number', description: 'Timeout in seconds', defaultValue: 30 },
+ *   ],
+ *   handler: (parsed) => {
+ *     // parsed.options['verbose'] is boolean
+ *     // parsed.options['timeout'] is number (default: 30)
+ *   },
+ * })
+ * ```
  */
 export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
   validateName(config.name, 'command')
   validateOptions(config.options ?? [])
   validateInput(config.name, config.input)
+  // --input-file is reserved when input is a schema; catch collision at definition time
   if (isJsonSchemaInput(config.input) && config.options?.some((o) => o.long === 'input-file')) {
     throw new Error(`command ${JSON.stringify(config.name)}: option --input-file is reserved when input is enabled`)
   }
@@ -250,6 +321,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
     if (opt.type === 'boolean') {
       register(flag, opt.description)
     } else if (opt.type === 'number') {
+      // <number> placeholder communicates type in help text; parseArg coerces and validates inline
       const flagWithArg = `${flag} <number>`
       const attrName = camelCase(opt.long)
       const parseNum = (val: string): number => {
@@ -259,12 +331,13 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
       }
       register(flagWithArg, opt.description, singleValueGuard(cmd, attrName, `--${opt.long}`, parseNum), opt.defaultValue as number | undefined)
     } else {
+      // string options: accumulate repeated values with comma separation
       const attrName = camelCase(opt.long)
       register(`${flag} <string>`, opt.description, stringAccumulator(cmd, attrName), opt.defaultValue !== undefined ? String(opt.defaultValue) : undefined)
     }
   }
 
-  // schema-derived CLI options
+  // schema-derived CLI options (registered before --input-file so help text order is correct)
   let schemaArgs: SchemaArgDefinition[] = []
   if (isJsonSchemaInput(config.input)) {
     schemaArgs = extractSchemaArgs(config.input)
@@ -278,6 +351,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
         : undefined
       const desc = [arg.description, csvNote, suffix].filter(Boolean).join(' ')
       if (arg.type === 'boolean') {
+        // booleans omit the suffix; flag-style convention makes it clear
         cmd.option(`--${arg.cliFlag} [value]`, arg.description)
       } else if (arg.type === 'number') {
         const attrName = camelCase(arg.cliFlag)
@@ -294,6 +368,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
         const attrName = camelCase(arg.cliFlag)
         cmd.option(`--${arg.cliFlag} <value>`, desc, singleValueGuard<string>(cmd, attrName, `--${arg.cliFlag}`))
       } else {
+        // string: accumulate repeated values with comma separation
         const attrName = camelCase(arg.cliFlag)
         cmd.option(`--${arg.cliFlag} <string>`, desc, stringAccumulator(cmd, attrName))
       }
@@ -334,6 +409,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
       if (opt.type === 'boolean') {
         options[opt.long] = rawVal === true
       } else if (rawVal !== undefined) {
+        // number coercion already done by parseArg; string values passed through as-is
         options[opt.long] = rawVal as string | number
       }
     }
@@ -392,9 +468,11 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
       // collect CLI arg values and merge over JSON input
       const cliInput: Record<string, unknown> = {}
       for (const arg of schemaArgs) {
+        // Commander stores kebab-case flags as camelCase keys in opts()
         const camelKey = camelCase(arg.cliFlag)
         const raw = allRaw[camelKey]
         if (raw === undefined) continue
+        // boolean coercion: --flag (no value) -> true, --flag false -> false
         if (arg.type === 'boolean') {
           cliInput[arg.schemaKey] = raw !== 'false'
         } else if (arg.type === 'object' || arg.type === 'array') {
@@ -405,6 +483,8 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
               rawBodyValues[arg.schemaKey] = new RawJsonValue(raw as string, parsed)
             }
           } catch {
+            // If JSON parse fails, pass the raw value - handles schema-less fields
+            // that accept plain strings (e.g. connector update-error --error)
             cliInput[arg.schemaKey] = raw
           }
         } else if (
@@ -412,6 +492,9 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
           arg.foundIn === 'body' &&
           typeof raw === 'string'
         ) {
+          // ES `Sort` body fields: the help text advertises `<field>:<direction>` pairs
+          // (the URL query grammar), but in the request body ES expects
+          // `[{"field": "direction"}, ...]`. Parse the colon syntax into that shape.
           cliInput[arg.schemaKey] = parseSortPairs(raw)
           sortParsedKeys.add(arg.schemaKey)
         } else if (
@@ -421,8 +504,13 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
           typeof raw === 'string' &&
           raw.includes(',')
         ) {
+          // JSON bodies need an array for `anyOf(T, array(T))` fields like `fields`; ES
+          // does not split CSV strings inside bodies (it only does so in path and query).
+          // Users whose individual field values contain literal commas can pass a
+          // pre-built JSON array via `--input-file` instead.
           cliInput[arg.schemaKey] = raw.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
         } else {
+          // string, number (already coerced by parseArg), enum
           cliInput[arg.schemaKey] = raw
         }
       }
@@ -431,6 +519,8 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
         inputValue = { ...(inputValue as Record<string, unknown> ?? {}), ...cliInput }
       }
 
+      // always validate against the schema, even when no input was provided,
+      // so that missing required fields are caught by AJV
       if (inputValue === undefined) inputValue = {}
     }
 
@@ -440,8 +530,11 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
 
     const resolvedConfig = getResolvedConfig()
 
+    // enforce command policy before any other work
     if (resolvedConfig?.commands != null) {
+      // commandPath returns e.g. "elastic elasticsearch search"; strip root program name and dot-join
       const parts = commandPath(cmd).split(' ')
+      // if mounted under a root program (e.g. "elastic"), strip that first segment
       const dotPath = (parts.length > 1 ? parts.slice(1) : parts).join('.')
       if (!isCommandAllowed(dotPath, resolvedConfig.commands)) {
         if (jsonFormat === true) {
@@ -505,6 +598,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
               issues: result.errors.map(e => ({ code: e.code, path: e.path_array, message: e.message }))
             }
           }) + '\n')
+          // throw to prevent handler execution - mirrors cmd.error() behaviour
           throw Object.assign(new Error('input_validation_failed'), { exitCode: 1 })
         }
         return cmd.error(`input validation failed:\n${formatValidationErrors(result.errors)}`)

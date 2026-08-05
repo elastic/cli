@@ -10,6 +10,7 @@ import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
 import { isLoopbackUrl } from './is-loopback-host.ts'
 import { clientHeaders } from './meta.ts'
 
+/** HTTP methods supported by the Kibana API client. */
 export type KibanaHttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD' | 'PATCH'
 
 /**
@@ -121,7 +122,7 @@ export class KibanaClient {
   }
 
   /**
-   * @internal test seam -- replaces the fetch implementation for unit tests
+   * @internal test seam — replaces the fetch implementation for unit tests
    */
   _testSetFetch (fn: typeof fetch): void {
     this._fetch = fn
@@ -160,7 +161,7 @@ export function getKibanaClient (): KibanaClient {
   } else if (typeof authRecord?.['username'] === 'string' && typeof authRecord?.['password'] === 'string') {
     typedAuth = { username: authRecord['username'] as string, password: authRecord['password'] as string }
   }
-  // auth is optional -- when absent (e.g. security disabled), requests are sent without credentials
+  // auth is optional — when absent (e.g. security disabled), requests are sent without credentials
 
   _client = new KibanaClient(url, typedAuth)
   return _client
@@ -169,7 +170,7 @@ export function getKibanaClient (): KibanaClient {
 /**
  * Resets the cached KibanaClient instance.
  *
- * @internal test seam -- call in `afterEach` to prevent instance reuse across tests
+ * @internal test seam — call in `afterEach` to prevent instance reuse across tests
  */
 export function _testResetKibanaClient (): void {
   _client = undefined

@@ -3,13 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
+/*
  * Lazy barrel for Elasticsearch API definitions.
  *
- * Definitions are loaded on-demand from @elastic/schemas/es/tools/apis/ subpath imports,
- * each of which contains JSON Schema-based ApiRegistryDefinitions.
+ * Definitions are loaded on-demand from `@elastic/schemas/es/tools/apis/*` subpath
+ * imports, each of which exports JSON Schema-based API registry definitions for one
+ * namespace.
  *
- * Importing this file is cheap: only the manifest (metadata) is loaded eagerly.
+ * Importing this file is cheap: only the manifest (metadata-only) is loaded eagerly.
+ * The per-namespace definition files are NOT pulled in transitively - each resolves
+ * a large `$ref` closure of shared type definitions, and loading all of them at once
+ * allocates several gigabytes of heap.
+ *
+ * Callers that need the full `EsApiDefinition` (with its resolved `input` schema) for
+ * a single endpoint must go through `loadEsApi()` or `loadEsApisInFile()`, which
+ * dynamic-import exactly one namespace file.
+ *
+ * See elastic/cli#171 for the memory context.
  */
 
 import type { EsApiDefinition } from './types.ts'
@@ -33,6 +43,9 @@ const resolveDefinition = createDefinitionResolver<EsApiDefinition>('@elastic/sc
  * Dynamic-imports the namespace file identified by `namespaceFile` and returns
  * all `EsApiDefinition`s it exports. Subsequent calls for the same file return
  * the cached promise.
+ *
+ * Triggers `$ref` resolution for every definition in the file, which loads that
+ * file's shared type-definition sidecars.
  */
 export async function loadEsApisInFile (namespaceFile: string): Promise<EsApiDefinition[]> {
   let cached = moduleCache.get(namespaceFile)
@@ -67,8 +80,14 @@ export async function loadEsApi (meta: EsApiMeta): Promise<EsApiDefinition> {
 }
 
 /**
- * Eagerly loads every API definition. Only use from tests or scripts that
- * need the full set.
+ * Eagerly loads every API definition, triggering every namespace module. ONLY use
+ * this from tests or scripts that really need the full set - the typical CLI startup
+ * path stays on the manifest + `loadEsApi()`.
+ *
+ * Files are loaded sequentially rather than with Promise.all to keep peak heap
+ * manageable. Each namespace file resolves a multi-MB closure of shared type
+ * definitions; loading all of them simultaneously can exhaust the V8 heap before GC
+ * has a chance to reclaim allocations from earlier modules. See elastic/cli#171.
  */
 export async function loadAllEsApis (): Promise<EsApiDefinition[]> {
   const { apiManifest } = await import('./api-manifest.ts')

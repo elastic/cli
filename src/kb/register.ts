@@ -34,7 +34,10 @@ function buildLeafHandle (def: KbApiDefinition): OpaqueCommandHandle {
   })
 }
 
-/** Builds a stub leaf that loads its full definition on demand. */
+/**
+ * Builds a stub leaf command that loads its full definition on demand.
+ * Commander still shows the stub in group-level help.
+ */
 function buildStubLeaf (meta: KbApiMeta): OpaqueCommandHandle {
   const cmd = new Command(meta.name)
   cmd.description(meta.description)
@@ -54,6 +57,10 @@ function buildStubLeaf (meta: KbApiMeta): OpaqueCommandHandle {
   return cmd
 }
 
+/**
+ * Sniffs `process.argv` to identify which KB leaf command the user
+ * intends to invoke. Returns `null` on ambiguity or help requests.
+ */
 function sniffInvokedLeaf (argv: readonly string[], manifest: readonly KbApiMeta[]): KbApiMeta | null {
   const kbIdx = argv.findIndex((a, i) => i >= 2 && (a === 'kb' || a === 'kibana'))
   if (kbIdx < 0) return null
@@ -74,7 +81,8 @@ export interface RegisterLazyOptions {
 }
 
 /**
- * Lazily registers all Kibana API commands.
+ * Lazily registers all Kibana API commands. Only the invoked endpoint's
+ * namespace file is loaded; everything else stays as lightweight stubs.
  */
 export async function registerKbCommandsLazy (
   opts: RegisterLazyOptions = {}
@@ -110,6 +118,7 @@ export async function registerKbCommandsLazy (
 
 /**
  * Eagerly registers all Kibana API commands (for tests and scripts).
+ * Requires all definitions to be passed in.
  */
 export function registerKbCommands (definitions: KbApiDefinition[]): OpaqueCommandHandle {
   for (const def of definitions) validateKbApiDefinition(def)

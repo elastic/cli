@@ -16,10 +16,15 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD'
  * Declarative description of a single Elasticsearch API endpoint.
  *
  * `input` is a plain JSON Schema object whose properties carry `x-found-in`
- * routing metadata (`"path"`, `"query"`, or `"body"`).
+ * routing metadata (`"path"`, `"query"`, or `"body"`). The generic handler derives
+ * its routing behaviour entirely from that metadata at runtime.
+ *
+ * Definitions with a `namespace` are grouped into per-namespace arrays and loaded
+ * on demand by the barrel module (`src/es/apis.ts`).
  *
  * @example
  * ```ts
+ * // namespaced: registers as `elastic stack es indices create`
  * const createDef: EsApiDefinition = {
  *   name: 'create',
  *   namespace: 'indices',
@@ -41,8 +46,8 @@ export interface EsApiDefinition {
   /** kebab-case command name (e.g. `"health"`, `"create"`, `"put-mapping"`) */
   name: string
   /**
-   * ES namespace (e.g. `"cat"`, `"indices"`) — determines the parent group.
-   * When omitted, the command is a direct leaf of the `es` group.
+   * ES namespace (e.g. `"cat"`, `"indices"`) -- determines the parent group in the command tree.
+   * When omitted, the command is registered as a direct leaf of the `es` group.
    */
   namespace?: string
   /** human-readable description for `--help` text */
@@ -53,18 +58,21 @@ export interface EsApiDefinition {
   path: string
   /**
    * JSON Schema object describing the request parameters.
-   * Properties carry `x-found-in: "path"|"query"|"body"` routing metadata.
+   * Every top-level property represents one parameter.
+   * Properties with `x-found-in: "path"` are interpolated into the URL path.
+   * Properties with `x-found-in: "query"` are sent as querystring params.
+   * Properties with `x-found-in: "body"` (or no `x-found-in`) are sent in the body.
    */
   input?: Record<string, unknown>
   /** how to handle the response body; defaults to `"json"` */
   responseType?: 'json' | 'text' | 'ndjson'
   /** how to serialize the request body; defaults to `"json"` */
   bodyFormat?: 'json' | 'ndjson'
-  /** optional intent override */
+  /** optional intent override; takes precedence over HTTP-method inference in the CLI schema emitter */
   intent?: CommandIntent
 }
 
-/** valid command/namespace name: lowercase alphanumeric with hyphens */
+/** valid command/namespace name: lowercase alphanumeric with hyphens (from `defineCommand` rules) */
 const VALID_NAME = /^[a-z0-9][a-z0-9-]*$/
 
 /** valid namespace name: starts with lowercase letter, lowercase alphanumeric and hyphens */
@@ -77,6 +85,14 @@ function extractPathTokens (path: string): string[] {
 
 /**
  * Validates an `EsApiDefinition` against the data-model rules.
+ *
+ * Checks:
+ * - `name` matches `/^[a-z0-9][a-z0-9-]*$/`
+ * - `namespace`, if present, matches `/^[a-z][a-z-]*$/`
+ * - `path` starts with `/`
+ * - if `input` is provided:
+ *   - every `{param}` token in the path has a corresponding property with `x-found-in: "path"`
+ *   - every property with `x-found-in: "path"` has a matching `{param}` token in the path
  *
  * @throws {Error} if any validation rule is violated
  */

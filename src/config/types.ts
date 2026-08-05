@@ -8,6 +8,13 @@ export type { BuiltInProfile } from './profiles.ts'
 
 /**
  * TypeScript types for the configuration system.
+ *
+ * - Auth: union of authentication methods (api_key | basic)
+ * - ServiceBlock: a service endpoint with auth (url + auth)
+ * - Context: a collection of optional service blocks (elasticsearch, kibana, cloud)
+ * - ConfigFile: the root config file structure (current_context + contexts map)
+ * - ResolvedContext: the active context with only its configured service blocks
+ * - ResolvedConfig: typed config passed to command handlers, wrapping ResolvedContext
  */
 
 /** API key authentication credentials. */

@@ -21,6 +21,9 @@ import type { JsonValue, ParsedResult } from '../factory.ts'
 
 /**
  * Maps project-type namespaces from codegen to short CLI group names.
+ * E.g. `elasticsearch-projects` → `search`, used to build
+ * `elastic cloud serverless projects search <action>`.
+ * The elasticsearch type also gets an `elasticsearch` alias.
  */
 const PROJECT_NAMESPACES: Record<string, string> = {
   'elasticsearch-projects': 'search',
@@ -28,17 +31,37 @@ const PROJECT_NAMESPACES: Record<string, string> = {
   'security-projects': 'security',
 }
 
+/**
+ * Cross-cutting namespaces promoted to direct children of `cloud` because their APIs
+ * apply to both Hosted deployments and Serverless projects.
+ * Values are the display names shown in the CLI tree.
+ *
+ * Defined in ./constants.ts so the lazy register path can import it without
+ * pulling in the Cloud API definition modules.
+ */
 import { PROMOTED_NAMESPACES } from './constants.ts'
 
+/**
+ * Serverless namespaces whose commands are merged into a single `cross-project`
+ * group rather than exposed as two separate namespaces.
+ */
 const CROSS_PROJECT_NAMESPACES = new Set<string>([
   'linked-projects',
   'linked-candidate-projects',
 ])
 
+/**
+ * Display name overrides for hosted namespaces.
+ */
 const HOSTED_NAMESPACE_RENAMES = new Map<string, string>([
   ['deployments-traffic-filter', 'traffic-filters'],
 ])
 
+/**
+ * Namespaces that belong under `cloud serverless`. Enumerated rather than derived
+ * from the serverless definitions so callers passing synthetic definitions to
+ * `registerCloudCommands` still partition deterministically.
+ */
 const SERVERLESS_NAMESPACES = new Set<string>([
   'elasticsearch-projects',
   'observability-projects',
@@ -49,6 +72,14 @@ const SERVERLESS_NAMESPACES = new Set<string>([
   'linked-candidate-projects',
 ])
 
+/**
+ * Strips the project-type identifier from a codegen command name to produce
+ * a short action name for the restructured tree.
+ *
+ * E.g. `list-elasticsearch-projects` → `list`,
+ *      `reset-elasticsearch-project-credentials` → `reset-credentials`,
+ *      `get-elasticsearch-project-status` → `get-status`.
+ */
 export function simplifyProjectCommandName (name: string, namespace: string): string {
   const singular = namespace.endsWith('s') ? namespace.slice(0, -1) : namespace
   let simplified = name.replace(`-${namespace}`, '')
@@ -85,6 +116,11 @@ function buildFlatLeaf (def: CloudApiDefinition): OpaqueCommandHandle {
   })
 }
 
+/**
+ * Builds flat namespace group handles.
+ * `renames` maps internal namespace keys to the display names used in the CLI tree;
+ * if a namespace is not in the map its key is used as-is.
+ */
 function buildFlatNamespaceGroups (
   defsByNamespace: Map<string, CloudApiDefinition[]>,
   descriptionPrefix: string,
@@ -102,6 +138,10 @@ function buildFlatNamespaceGroups (
   return handles
 }
 
+/**
+ * Builds a single project-type subgroup for use inside `cloud serverless projects`.
+ * E.g. `elasticsearch-projects` → `search|elasticsearch` group with shortened action names.
+ */
 function buildServerlessTypeGroup (
   namespace: string,
   defs: CloudApiDefinition[],
@@ -140,6 +180,7 @@ function buildServerlessTypeGroup (
     { name: typeShort, description: `Manage ${typeLabel} projects` },
     ...leaves,
   )
+  // elasticsearch gets an explicit alias so both `search` and `elasticsearch` resolve
   if (typeShort === 'search') {
     ;(grp as Command).alias('elasticsearch')
   }
@@ -173,6 +214,7 @@ function buildServerlessGroup (defs: CloudApiDefinition[]): OpaqueCommandHandle 
 
   const children: OpaqueCommandHandle[] = []
 
+  // Inverted axis: cloud serverless projects <type> <action>
   if (projectDefs.size > 0) {
     const typeGroups: OpaqueCommandHandle[] = []
     for (const [namespace, nsDefs] of projectDefs) {
@@ -181,6 +223,7 @@ function buildServerlessGroup (defs: CloudApiDefinition[]): OpaqueCommandHandle 
     children.push(defineGroup({ name: 'projects', description: 'Manage Serverless projects' }, ...typeGroups))
   }
 
+  // Merge linked-projects + linked-candidate-projects into cross-project
   if (crossProjectDefs.length > 0) {
     checkDuplicates(crossProjectDefs, 'cross-project')
     children.push(defineGroup(
@@ -220,12 +263,19 @@ function partitionDefinitions (definitions: CloudApiDefinition[]): PartitionedDe
   return { promoted, hosted, serverless }
 }
 
+/**
+ * Runs the base cloud handler, then applies the credential-saving policy if
+ * the user passed `--save-as` / `--credentials-file`. Passthrough otherwise.
+ * Policy errors (name collisions, missing contexts) are converted to the
+ * factory's structured error shape so the CLI exits non-zero cleanly.
+ */
 async function wrapWithCredentialPolicy (
   cmdName: string,
   baseHandler: (parsed: ParsedResult) => Promise<JsonValue>,
   parsed: ParsedResult,
 ): Promise<JsonValue> {
   const body = await baseHandler(parsed)
+  // If the base handler itself returned an error envelope, don't touch it.
   if (body != null && typeof body === 'object' && !Array.isArray(body) && 'error' in body) return body
   const opts = readCredentialPolicyOptions(parsed.options)
   if (opts.saveAs == null && opts.credentialsFile == null) return body
@@ -240,7 +290,22 @@ async function wrapWithCredentialPolicy (
 }
 
 /**
- * Registers the unified Cloud command tree.
+ * Registers the unified Cloud command tree under a top-level `cloud` group.
+ *
+ * The tree has three kinds of children:
+ * - **Promoted cross-cutting namespaces** (`account`, `authentication`, `organizations`,
+ *   `user-role-assignments`) as direct children of `cloud`, since their APIs apply to
+ *   both Hosted and Serverless.
+ * - **`cloud hosted <namespace> <command>`** for Hosted-specific APIs (deployments,
+ *   deployment-templates, extensions, stack versions, etc.).
+ * - **`cloud serverless <...>`** for Serverless APIs. Project namespaces are
+ *   restructured into `serverless projects <type> <action>` (e.g.
+ *   `serverless projects search list`); other namespaces (regions, traffic-filters, …)
+ *   remain as flat groups with their codegen command names.
+ *
+ * @param definitions - flat array of API definitions; defaults to the full built-in
+ *   registry (hosted + serverless APIs combined), loaded on demand.
+ * @returns an `OpaqueCommandHandle` for the top-level `cloud` group.
  */
 export async function registerCloudCommands (
   definitions?: CloudApiDefinition[],

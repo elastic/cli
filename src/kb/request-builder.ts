@@ -39,6 +39,10 @@ export const MULTIPART_ENDPOINTS = new Set([
  * - `"path"` -> interpolated into URL path
  * - `"query"` -> sent as querystring
  * - `"body"` (or absent) -> collected into request body
+ *
+ * @param def - the API definition describing the Kibana endpoint
+ * @param parsed - the CLI-parsed result; all API params live in `parsed.input`
+ * @returns `KibanaRequestParams` ready to pass to `KibanaClient.request()`
  */
 export function buildKibanaRequestParams (
   def: KbApiDefinition,
@@ -72,10 +76,15 @@ export function buildKibanaRequestParams (
   return params
 }
 
+/** Percent-encodes a single Kibana path parameter value. */
 function encodePathParam (value: string): string {
   return encodeURIComponent(value)
 }
 
+/**
+ * Interpolates `{param}` tokens in the path template, stripping optional
+ * segments whose value was not supplied.
+ */
 function interpolatePath (
   path: string,
   props: Record<string, Record<string, unknown>>,
@@ -95,6 +104,9 @@ function interpolatePath (
   return path
 }
 
+/**
+ * Builds the querystring record from properties marked `x-found-in: "query"`.
+ */
 function buildQuerystring (
   props: Record<string, Record<string, unknown>>,
   input: Record<string, unknown>
@@ -112,6 +124,8 @@ function buildQuerystring (
  * Collects request body fields. A single field marked `x-body-root` by
  * `@elastic/schemas` has its value promoted to be the whole body rather than nested
  * under the key -- 107 Kibana endpoints model their request body that way.
+ *
+ * Returns `undefined` when no body fields are present.
  */
 function collectBody (
   props: Record<string, Record<string, unknown>>,

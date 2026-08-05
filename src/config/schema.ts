@@ -13,6 +13,21 @@ import type {
   CommandPolicy,
 } from './types.ts'
 
+/**
+ * JSON Schema-based validation for the configuration file.
+ *
+ * Schemas are organized from bottom-up:
+ * 1. Auth schemas: `oneOf` union (api_key | basic) -- the variant is inferred from present fields
+ * 2. ServiceBlock schema: url + auth
+ * 3. Context schema: at least one service block (elasticsearch/kibana/cloud)
+ * 4. ConfigFile root schema: current_context + contexts map + cross-field checks
+ *
+ * Unknown fields are stripped by the `strip*` helpers rather than by the schemas
+ * themselves. Cross-field business rules (at-least-one-service, non-empty contexts
+ * map, valid current_context key, URL scheme) are enforced in `safeParse` because
+ * they cannot be expressed as plain JSON Schema constraints with useful messages.
+ */
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -285,7 +300,21 @@ export const ServiceBlockSchema = {
   },
 }
 
-/** Policy controlling which commands are permitted to run. */
+/**
+ * Policy controlling which commands are permitted to run.
+ *
+ * Mutually exclusive combinations:
+ * - `profile` and `allowed` cannot both be set (profile replaces the allow-list)
+ * - `allowed` and `blocked` cannot both be set
+ *
+ * Valid combinations:
+ * - `profile` alone — use a built-in allow-list
+ * - `profile` + `blocked` — built-in allow-list with additional restrictions
+ * - `allowed` alone — explicit allow-list
+ * - `blocked` alone — explicit deny-list (everything else is allowed)
+ *
+ * Entries may use a trailing wildcard (e.g. `stack.es.*`) to match a namespace.
+ */
 export const CommandPolicySchema = {
   jsonSchema: commandPolicySchema,
   safeParse (input: unknown): ParseResult<CommandPolicy> {
@@ -295,7 +324,10 @@ export const CommandPolicySchema = {
   },
 }
 
-/** A context value: optional service blocks with at least one present. */
+/**
+ * A context value: optional service blocks with at least one present, plus
+ * an optional per-context command policy that overrides the root-level policy.
+ */
 export const ContextSchema = {
   jsonSchema: contextSchema,
   safeParse (input: unknown): ParseResult<Context> {
@@ -311,7 +343,15 @@ export const ContextSchema = {
   },
 }
 
-/** The root configuration file structure. */
+/**
+ * The root configuration file structure.
+ *
+ * `default_profile` sets a fallback profile for all contexts that don't
+ * specify their own `commands.profile`. It is overridden by a per-context
+ * `commands.profile` and by the `--profile` CLI flag.
+ *
+ * `commands` is the root-level policy; per-context `commands` takes precedence.
+ */
 export const ConfigFileSchema = {
   safeParse (input: unknown): ParseResult<ConfigFile> {
     const r = validate(configFileSchema, input)
@@ -348,7 +388,11 @@ export const ConfigFileSchema = {
   },
 }
 
-/** Structural schema for first-pass validation (shape only, no deep context validation). */
+/**
+ * Structural schema for first-pass validation before expression resolution.
+ * Validates the outer config shape (current_context, contexts keys, commands)
+ * without deeply validating context values (which may contain unresolved expressions).
+ */
 export const StructuralConfigSchema = {
   safeParse (input: unknown): ParseResult<{
     current_context: string

@@ -7,6 +7,7 @@ import { getResolvedConfig } from '../config/store.ts'
 import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
 import { clientHeaders } from './meta.ts'
 
+/** Parameters for a single Elasticsearch API request. */
 export interface EsRequestParams {
   method: string
   path: string
@@ -17,6 +18,7 @@ export interface EsRequestParams {
   bulkBody?: string
 }
 
+/** Thrown when Elasticsearch responds with a non-2xx status; carries the status code and body. */
 export class EsResponseError extends Error {
   statusCode: number
   body: unknown
@@ -32,6 +34,7 @@ export class EsResponseError extends Error {
   }
 }
 
+/** Thrown when the request never reached Elasticsearch (DNS, TLS, refused connection). */
 export class EsConnectionError extends Error {
   constructor (message: string) {
     super(message)

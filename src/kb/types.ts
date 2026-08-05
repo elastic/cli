@@ -24,7 +24,7 @@ export interface KbApiDefinition {
   input?: Record<string, unknown>
   /** When 'ndjson', the success response is newline-delimited JSON. */
   responseType?: 'json' | 'ndjson' | 'text'
-  /** optional intent override */
+  /** optional intent override; takes precedence over HTTP-method inference in the CLI schema emitter */
   intent?: CommandIntent
 }
 

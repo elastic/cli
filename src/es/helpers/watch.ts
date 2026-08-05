@@ -85,6 +85,13 @@ export function applyTemplate (template: string, source: Record<string, unknown>
   })
 }
 
+/**
+ * Builds the search body for a watch poll.
+ *
+ * On the very first request (no searchAfter cursor yet) and when `--from` was given,
+ * a range filter is added so we skip documents older than the anchor timestamp.
+ * Once we have a cursor the sort+search_after mechanism prevents duplicates on its own.
+ */
 function buildSearchBody (
   baseQueryBody: Record<string, unknown>,
   sortField: string,
@@ -95,6 +102,7 @@ function buildSearchBody (
   let queryClause: Record<string, unknown>
 
   if (searchAfter == null && fromTimestamp != null) {
+    // Initial request with a --from anchor: wrap with a range filter.
     const rangeFilter = { range: { [sortField]: { gt: fromTimestamp } } }
     const existingQuery = baseQueryBody.query
     if (existingQuery != null) {
@@ -129,6 +137,7 @@ function createWatchHandler (deps: WatchDeps = defaultDeps) {
       return missingConfigError(err)
     }
 
+    // Parse the base query body.
     let baseQueryBody: Record<string, unknown> = {}
     try {
       if (query != null) {
@@ -144,6 +153,9 @@ function createWatchHandler (deps: WatchDeps = defaultDeps) {
     }
 
     const encodedIndex = encodeURIComponent(index)
+    // Determine the starting cursor.
+    //   --from <ts>  → range-filter on the first request, then switch to search_after.
+    //   (default)    → find the most recent document and use its sort values as the cursor.
     let searchAfter: unknown[] | undefined
     let fromTimestamp: string | undefined
 
@@ -151,6 +163,7 @@ function createWatchHandler (deps: WatchDeps = defaultDeps) {
       fromTimestamp = from
       deps.stderr.write(`Watching ${index} from ${from}. Polling every ${poll_interval}ms...\n`)
     } else {
+      // Anchor to the most recent document so we only see documents created after now.
       try {
         const anchorResult = await transport.request<SearchResponse>({
           method: 'POST',
@@ -196,12 +209,14 @@ function createWatchHandler (deps: WatchDeps = defaultDeps) {
             totalDocs++
           }
 
+          // Advance the cursor to the last returned document.
           const lastHit = hits[hits.length - 1]
           if (lastHit?.sort != null) {
             searchAfter = lastHit.sort
-            fromTimestamp = undefined
+            fromTimestamp = undefined // cursor takes over; range filter no longer needed
           }
 
+          // If we got a full page there may be more waiting — skip the sleep and poll again.
           if (running && hits.length < size) await deps.sleep(poll_interval)
         } catch (err) {
           if (!running) break
