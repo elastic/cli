@@ -36,21 +36,22 @@ const resolveDefinition = createDefinitionResolver<KbApiDefinition>('@elastic/sc
  * full JSON Schema evaluator over `input`; it reads `properties`/`required` directly
  * to derive CLI flags (json-schema-args.ts) and body routing (request-builder.ts).
  */
-async function flattenComposition (input: Record<string, unknown>): Promise<void> {
-  const rootRef = input['$ref']
+async function flattenComposition (input: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const result = { ...input }
+  const rootRef = result['$ref']
   if (typeof rootRef === 'string') {
     const resolved = await resolveDefRef(rootRef)
     if (resolved != null) {
-      delete input['$ref']
-      Object.assign(input, resolved)
+      delete result['$ref']
+      Object.assign(result, resolved)
     }
   }
   // oneOf branches are alternatives, but the CLI only needs the union of possible flags.
-  const entries = [...asArray(input['allOf']), ...asArray(input['oneOf'])]
-  if (entries.length === 0) return
-  const properties = { ...(input['properties'] as Record<string, unknown> | undefined) }
-  const required = new Set(Array.isArray(input['required']) ? input['required'] as string[] : [])
-  const merged = input['oneOf'] == null
+  const entries = [...asArray(result['allOf']), ...asArray(result['oneOf'])]
+  if (entries.length === 0) return result
+  const properties = { ...(result['properties'] as Record<string, unknown> | undefined) }
+  const required = new Set(Array.isArray(result['required']) ? result['required'] as string[] : [])
+  const merged = result['oneOf'] == null
   for (const raw of entries) {
     if (raw == null || typeof raw !== 'object') continue
     let entry = raw as Record<string, unknown>
@@ -63,15 +64,62 @@ async function flattenComposition (input: Record<string, unknown>): Promise<void
     const entryRequired = entry['required']
     if (merged && Array.isArray(entryRequired)) for (const key of entryRequired) required.add(key as string)
   }
-  input['type'] = 'object'
-  input['properties'] = properties
-  input['required'] = [...required]
-  delete input['allOf']
-  delete input['oneOf']
+  delete result['allOf']
+  delete result['oneOf']
+  result['type'] = 'object'
+  result['properties'] = properties
+  result['required'] = [...required]
+  return result
 }
 
 function asArray (value: unknown): unknown[] {
   return Array.isArray(value) ? value : []
+}
+
+/**
+ * @elastic/schemas models 78 Kibana request bodies as a single property (usually `body`)
+ * marked `x-body-root` whose value -- an object `$ref` into `_defs.json` -- becomes the whole
+ * request body. `flattenComposition` handles the `allOf`/`oneOf` body shape; this handles the
+ * `x-body-root` object shape so those body fields surface as individual CLI flags instead of a
+ * single opaque `--body <json>` blob (AGENTS.md: every input field needs a flag).
+ *
+ * Promotion is skipped when a body sub-field's key collides with an existing top-level property
+ * (e.g. a `body.id` alongside a path `id`): those endpoints keep the `--body` blob so no field is
+ * silently dropped. Non-object body-roots (scalars, `oneOf` unions) are also left as `--body`.
+ */
+async function promoteBodyRootObject (input: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const properties = input['properties'] as Record<string, Record<string, unknown>> | undefined
+  if (properties == null) return input
+  let nextProps = { ...properties }
+  let required = new Set(Array.isArray(input['required']) ? input['required'] as string[] : [])
+  let changed = false
+  for (const [key, prop] of Object.entries(properties)) {
+    if (prop['x-body-root'] !== true) continue
+    let target = prop
+    const ref = prop['$ref']
+    if (typeof ref === 'string') {
+      const resolved = await resolveDefRef(ref)
+      if (resolved != null) target = resolved
+    }
+    if (target['type'] !== 'object') continue
+    const subProps = target['properties']
+    if (subProps == null || typeof subProps !== 'object') continue
+    const subEntries = Object.entries(subProps as Record<string, Record<string, unknown>>)
+    // Bail on any collision with a sibling top-level key: dropping a field would lose input.
+    const siblings = new Set(Object.keys(nextProps).filter((k) => k !== key))
+    if (subEntries.some(([subKey]) => siblings.has(subKey))) continue
+    nextProps = { ...nextProps }
+    delete nextProps[key]
+    required = new Set(required)
+    required.delete(key)
+    for (const [subKey, subSchema] of subEntries) {
+      nextProps[subKey] = { ...subSchema, 'x-found-in': 'body' }
+    }
+    if (Array.isArray(target['required'])) for (const r of target['required'] as string[]) required.add(r)
+    changed = true
+  }
+  if (!changed) return input
+  return { ...input, properties: nextProps, required: [...required] }
 }
 
 let defsPromise: Promise<Record<string, Record<string, unknown>>> | undefined
@@ -108,7 +156,9 @@ export async function loadKbApisInFile (namespaceFile: string): Promise<KbApiDef
     const defs = arr as KbApiDefinition[]
     const resolved: KbApiDefinition[] = []
     for (const def of defs) {
-      if (def.input != null) await flattenComposition(def.input)
+      if (def.input != null) {
+        def.input = await promoteBodyRootObject(await flattenComposition(def.input))
+      }
       resolved.push(await resolveDefinition(def))
     }
     return resolved

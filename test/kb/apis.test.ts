@@ -25,6 +25,35 @@ describe('loadKbApisInFile', () => {
     assert.equal('allOf' in create.input, false)
   })
 
+  it('promotes an x-body-root object into top-level flag properties', async () => {
+    const defs = await loadKbApisInFile('post_actions_connector_id')
+    const create = defs.find((d) => d.name === 'post-actions-connector-id')
+    assert.ok(create?.input != null)
+
+    const props = create.input['properties'] as Record<string, Record<string, unknown>>
+    // path param stays; opaque `body` wrapper is gone
+    assert.equal(props['id']?.['x-found-in'], 'path')
+    assert.equal('body' in props, false)
+    // body fields promoted and routed to the request body
+    assert.equal(props['connector_type_id']?.['x-found-in'], 'body')
+    assert.equal(props['name']?.['x-found-in'], 'body')
+    assert.ok('config' in props)
+    assert.deepEqual(
+      new Set(create.input['required'] as string[]),
+      new Set(['id', 'name', 'connector_type_id'])
+    )
+  })
+
+  it('keeps the --body blob when a body sub-field collides with a top-level key', async () => {
+    const defs = await loadKbApisInFile('put_spaces_space_id')
+    const put = defs.find((d) => d.name === 'put-spaces-space-id')
+    assert.ok(put?.input != null)
+
+    const props = put.input['properties'] as Record<string, Record<string, unknown>>
+    // body.id would collide with path id, so promotion is skipped
+    assert.equal(props['body']?.['x-body-root'], true)
+  })
+
   it('loads a namespace file whose stem contains a dot', async () => {
     const defs = await loadKbApisInFile('get_agent_builder_a2a_agentid.json')
     assert.ok(defs.length > 0)
