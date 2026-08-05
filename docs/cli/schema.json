@@ -41368,9 +41368,74 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "actions",
+                      "type": "array",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "alert-delay",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Indicates that an alert occurs only when the specified number of consecutive runs met the rule conditions."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "artifacts",
                       "type": "string",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "flapping",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "name",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The name of the rule. While this name does not have to be unique, a distinctive name can help you identify a rule."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "notify-when",
+                      "type": "enum",
+                      "required": false,
+                      "summary": "Indicates how frequently rule actions are triggered. Valid values include: `onActionGroupChange`: Actions run when the alert status changes; `onActiveAlert`: Actions run when the alert becomes active and at each check interval while the rule conditions are met; `onThrottleInterval`: Actions run when the alert becomes active and at the interval specified in the throttle property while the rule conditions are met. You cannot specify `notify_when` at both the rule and action level. The recommended approach is to set it for each action individually. If you set `notify_when` at the rule level and then edit the rule, it will automatically be converted to action-specific values.",
+                      "enumValues": [
+                        "onActionGroupChange",
+                        "onActiveAlert",
+                        "onThrottleInterval"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "params",
+                      "type": "string",
+                      "required": false,
+                      "summary": "The parameters for the rule."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "schedule",
+                      "type": "string",
+                      "required": true
+                    },
+                    {
+                      "role": "flag",
+                      "name": "tags",
+                      "type": "array",
+                      "required": false,
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "throttle",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Use the `throttle` property in the action `frequency` object instead. The throttle interval, which defines how frequently rule actions are triggered. You cannot specify the throttle interval at both the rule and action level. If you set the throttle interval at the rule level and then edit the rule, it will automatically be converted to action-specific values."
                     },
                     {
                       "role": "flag",
@@ -42137,9 +42202,9 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "service",
                       "type": "string",
-                      "required": false
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -42205,9 +42270,22 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "agent-name",
                       "type": "string",
-                      "required": false
+                      "required": false,
+                      "summary": "The agent name is used by the UI to determine which settings to display."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "service",
+                      "type": "string",
+                      "required": true
+                    },
+                    {
+                      "role": "flag",
+                      "name": "settings",
+                      "type": "string",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -42318,9 +42396,30 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "error",
                       "type": "string",
-                      "required": false
+                      "required": false,
+                      "summary": "If provided, the agent configuration will be marked as error and `applied_by_agent` will be set to `false`.\nThis is useful for cases where the agent configuration was not applied successfully.\n"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "etag",
+                      "type": "string",
+                      "required": false,
+                      "summary": "If etags match then `applied_by_agent` field will be set to `true`"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "mark-as-applied-by-agent",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "`markAsAppliedByAgent=true` means \"force setting it to true regardless of etag\".\nThis is needed for Jaeger agent that doesn't have etags\n"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "service",
+                      "type": "string",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -42404,9 +42503,17 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "name",
                       "type": "string",
-                      "required": false
+                      "required": true,
+                      "summary": "The name of the APM agent key."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "privileges",
+                      "type": "array",
+                      "required": true,
+                      "summary": "The APM agent key privileges. It can take one or more of the following values:\n* `event:write`, which is required for ingesting APM agent events. * `config_agent:read`, which is required for APM agents to read agent configuration remotely.\n"
                     },
                     {
                       "role": "flag",
@@ -42452,9 +42559,32 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "@timestamp",
                       "type": "string",
-                      "required": false
+                      "required": true,
+                      "summary": "The date and time of the annotation. It must be in ISO 8601 format."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "message",
+                      "type": "string",
+                      "required": false,
+                      "summary": "The message displayed in the annotation. It defaults to `service.version`."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "service",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The service that identifies the configuration to create or update."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "tags",
+                      "type": "array",
+                      "required": false,
+                      "summary": "Tags are used by the Applications UI to distinguish APM annotations from other annotations. Tags may have additional functionality in future releases. It defaults to `[apm]`. While you can add additional tags, you cannot remove the `apm` tag.\n",
+                      "elementType": "string"
                     },
                     {
                       "role": "flag",
@@ -42781,7 +42911,28 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "connector-type-id",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The type of connector."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "name",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The display name for the connector."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "config",
+                      "type": "string",
+                      "required": false,
+                      "summary": "The connector configuration details."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "secrets",
                       "type": "string",
                       "required": false
                     },
@@ -42822,7 +42973,21 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "name",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The display name for the connector."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "config",
+                      "type": "string",
+                      "required": false,
+                      "summary": "The connector configuration details."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "secrets",
                       "type": "string",
                       "required": false
                     },
@@ -42866,9 +43031,9 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "params",
                       "type": "string",
-                      "required": false
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -43222,9 +43387,17 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "data-view",
                       "type": "string",
-                      "required": false
+                      "required": true,
+                      "summary": "The data view object."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "override",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Override an existing data view if a data view with the provided title already exists."
                     },
                     {
                       "role": "flag",
@@ -43339,9 +43512,17 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "data-view",
                       "type": "string",
-                      "required": false
+                      "required": true,
+                      "summary": "The data view properties you want to update. Only the specified properties are updated in the data view. Unspecified fields stay as they are persisted.\n"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "refresh-fields",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Reloads the data view fields after the data view is updated."
                     },
                     {
                       "role": "flag",
@@ -43721,9 +43902,47 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "delete",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Deletes referenced saved object if all references are removed."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "for-id",
                       "type": "string",
-                      "required": false
+                      "required": false,
+                      "summary": "Limit the affected saved objects to one or more by identifier.",
+                      "repeatable": true,
+                      "separator": ","
+                    },
+                    {
+                      "role": "flag",
+                      "name": "for-type",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Limit the affected saved objects by type."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "from-id",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The saved object reference to change."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "from-type",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Specify the type of the saved object reference to alter. The default value is `index-pattern` for data views.\n"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "to-id",
+                      "type": "string",
+                      "required": true,
+                      "summary": "New saved object reference value to replace the old value."
                     },
                     {
                       "role": "flag",
@@ -43755,9 +43974,47 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "delete",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Deletes referenced saved object if all references are removed."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "for-id",
                       "type": "string",
-                      "required": false
+                      "required": false,
+                      "summary": "Limit the affected saved objects to one or more by identifier.",
+                      "repeatable": true,
+                      "separator": ","
+                    },
+                    {
+                      "role": "flag",
+                      "name": "for-type",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Limit the affected saved objects by type."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "from-id",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The saved object reference to change."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "from-type",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Specify the type of the saved object reference to alter. The default value is `index-pattern` for data views.\n"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "to-id",
+                      "type": "string",
+                      "required": true,
+                      "summary": "New saved object reference value to replace the old value."
                     },
                     {
                       "role": "flag",
@@ -44986,8 +45243,215 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "advanced-settings",
                       "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "agent-features",
+                      "type": "array",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "agentless",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "bump-revision",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "data-output-id",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "description",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "download-source-id",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "fleet-server-host-id",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "force",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "global-data-tags",
+                      "type": "array",
+                      "required": false,
+                      "summary": "User defined data tags that are added to all of the inputs. The values can be strings or numbers."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "has-agent-version-conditions",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "has-fleet-server",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "id",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "inactivity-timeout",
+                      "type": "number",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "is-default",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "is-default-fleet-server",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "is-managed",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "is-protected",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "is-verifier",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "keep-monitoring-alive",
+                      "type": "string",
+                      "required": false,
+                      "summary": "When set to true, monitoring will be enabled but logs/metrics collection will be disabled"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "min-agent-version",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "monitoring-diagnostics",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "monitoring-enabled",
+                      "type": "array",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "monitoring-http",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "monitoring-output-id",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "monitoring-pprof-enabled",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "name",
+                      "type": "string",
+                      "required": true
+                    },
+                    {
+                      "role": "flag",
+                      "name": "namespace",
+                      "type": "string",
+                      "required": true
+                    },
+                    {
+                      "role": "flag",
+                      "name": "overrides",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Override settings that are defined in the agent policy. Input settings cannot be overridden. The override option should be used only in unusual circumstances and not as a routine procedure."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "package-agent-version-conditions",
+                      "type": "string",
+                      "required": false,
+                      "repeatable": true,
+                      "separator": ","
+                    },
+                    {
+                      "role": "flag",
+                      "name": "required-versions",
+                      "type": "string",
+                      "required": false,
+                      "repeatable": true,
+                      "separator": ","
+                    },
+                    {
+                      "role": "flag",
+                      "name": "space-ids",
+                      "type": "array",
+                      "required": false,
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "supports-agentless",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Indicates whether the agent policy supports agentless integrations. Deprecated in favor of the Fleet agentless policies API."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "unenroll-timeout",
+                      "type": "number",
                       "required": false
                     },
                     {
@@ -45147,8 +45611,215 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "advanced-settings",
                       "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "agent-features",
+                      "type": "array",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "agentless",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "bump-revision",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "data-output-id",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "description",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "download-source-id",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "fleet-server-host-id",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "force",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "global-data-tags",
+                      "type": "array",
+                      "required": false,
+                      "summary": "User defined data tags that are added to all of the inputs. The values can be strings or numbers."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "has-agent-version-conditions",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "has-fleet-server",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "id",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "inactivity-timeout",
+                      "type": "number",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "is-default",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "is-default-fleet-server",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "is-managed",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "is-protected",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "is-verifier",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "keep-monitoring-alive",
+                      "type": "string",
+                      "required": false,
+                      "summary": "When set to true, monitoring will be enabled but logs/metrics collection will be disabled"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "min-agent-version",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "monitoring-diagnostics",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "monitoring-enabled",
+                      "type": "array",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "monitoring-http",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "monitoring-output-id",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "monitoring-pprof-enabled",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "name",
+                      "type": "string",
+                      "required": true
+                    },
+                    {
+                      "role": "flag",
+                      "name": "namespace",
+                      "type": "string",
+                      "required": true
+                    },
+                    {
+                      "role": "flag",
+                      "name": "overrides",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Override settings that are defined in the agent policy. Input settings cannot be overridden. The override option should be used only in unusual circumstances and not as a routine procedure."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "package-agent-version-conditions",
+                      "type": "string",
+                      "required": false,
+                      "repeatable": true,
+                      "separator": ","
+                    },
+                    {
+                      "role": "flag",
+                      "name": "required-versions",
+                      "type": "string",
+                      "required": false,
+                      "repeatable": true,
+                      "separator": ","
+                    },
+                    {
+                      "role": "flag",
+                      "name": "space-ids",
+                      "type": "array",
+                      "required": false,
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "supports-agentless",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Indicates whether the agent policy supports agentless integrations. Deprecated in favor of the Fleet agentless policies API."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "unenroll-timeout",
+                      "type": "number",
                       "required": false
                     },
                     {
@@ -45240,9 +45911,15 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "description",
                       "type": "string",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "name",
+                      "type": "string",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -45444,9 +46121,17 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "agent-policy-id",
                       "type": "string",
-                      "required": false
+                      "required": true,
+                      "summary": "The ID of the agent policy"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "force",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "bypass validation checks that can prevent agent policy deletion"
                     },
                     {
                       "role": "flag",
@@ -45478,9 +46163,11 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
-                      "required": false
+                      "name": "ids",
+                      "type": "array",
+                      "required": true,
+                      "summary": "list of package policy ids",
+                      "elementType": "string"
                     },
                     {
                       "role": "flag",
@@ -46527,9 +47214,9 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
-                      "required": false
+                      "name": "asset-ids",
+                      "type": "array",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -46606,9 +47293,21 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
+                      "name": "datasets",
+                      "type": "array",
+                      "required": true
+                    },
+                    {
+                      "role": "flag",
+                      "name": "force",
+                      "type": "boolean",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "integration-name",
+                      "type": "string",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -46799,9 +47498,15 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
+                      "name": "force",
+                      "type": "boolean",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "packages",
+                      "type": "array",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -46833,9 +47538,27 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
-                      "required": false
+                      "name": "disable",
+                      "type": "array",
+                      "required": false,
+                      "summary": "Namespaces to disable namespace-level customization for on each package.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "enable",
+                      "type": "array",
+                      "required": false,
+                      "summary": "Namespaces to enable namespace-level customization for on each package.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "packages",
+                      "type": "array",
+                      "required": true,
+                      "summary": "Package names to apply the customization changes to.",
+                      "elementType": "string"
                     },
                     {
                       "role": "flag",
@@ -46867,9 +47590,9 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
-                      "required": false
+                      "name": "packages",
+                      "type": "array",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -46939,9 +47662,15 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
+                      "name": "force",
+                      "type": "boolean",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "packages",
+                      "type": "array",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -47011,8 +47740,26 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
+                      "name": "force",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "packages",
+                      "type": "array",
+                      "required": true
+                    },
+                    {
+                      "role": "flag",
+                      "name": "prerelease",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "upgrade-package-policies",
+                      "type": "boolean",
                       "required": false
                     },
                     {
@@ -47270,9 +48017,17 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
+                      "name": "keep-policies-up-to-date",
+                      "type": "boolean",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "namespace-customization-enabled-for",
+                      "type": "array",
+                      "required": false,
+                      "summary": "Namespaces for which namespace-level customization is enabled on this package.",
+                      "elementType": "string"
                     },
                     {
                       "role": "flag",
@@ -47522,9 +48277,17 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
+                      "name": "keep-policies-up-to-date",
+                      "type": "boolean",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "namespace-customization-enabled-for",
+                      "type": "array",
+                      "required": false,
+                      "summary": "Namespaces for which namespace-level customization is enabled on this package.",
+                      "elementType": "string"
                     },
                     {
                       "role": "flag",
@@ -47870,9 +48633,9 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
-                      "required": false
+                      "name": "transforms",
+                      "type": "array",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -47911,9 +48674,20 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "action",
+                      "type": "enum",
+                      "required": true,
+                      "enumValues": [
+                        "accept",
+                        "decline",
+                        "pending"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "target-version",
                       "type": "string",
-                      "required": false
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -48239,9 +49013,107 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "additional-datastreams-permissions",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Additional data stream permissions that will be added to the agent policy.",
+                      "repeatable": true,
+                      "separator": ","
+                    },
+                    {
+                      "role": "flag",
+                      "name": "cloud-connector",
                       "type": "string",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "condition",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Agent condition expression to evaluate whether to apply this integration to its inputs."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "create-dataset-templates",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "When true, install dedicated index templates for streams with a custom data_stream.dataset. Defaults to true for input packages, false for integration packages."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "description",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Policy description."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "force",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Force package policy creation even if the package is not verified, or if the agent policy is managed."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "global-data-tags",
+                      "type": "array",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "id",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Policy unique identifier."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "inputs",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Package policy inputs. Refer to the integration documentation to know which inputs are available."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "name",
+                      "type": "string",
+                      "required": true,
+                      "summary": "Unique name for the policy."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "namespace",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Policy namespace. When not specified, it inherits the agent policy namespace."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "package",
+                      "type": "string",
+                      "required": true
+                    },
+                    {
+                      "role": "flag",
+                      "name": "policy-template",
+                      "type": "string",
+                      "required": false,
+                      "summary": "The policy template to use for the agentless package policy. If not provided, the default policy template is used."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "var-group-selections",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Variable group selections. Maps var_group name to the selected option name within that group."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "vars",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Input/stream level variable. Refer to the integration documentation for more information."
                     },
                     {
                       "role": "flag",
@@ -48697,9 +49569,21 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "expiration",
                       "type": "string",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "name",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "policy-id",
+                      "type": "string",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -48731,9 +49615,32 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "force-delete",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "When false (default), invalidate the API key and mark the token as inactive. When true, also delete the token document."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "include-hidden",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "When true, allow deletion of hidden enrollment tokens (managed/agentless policies). Defaults to false."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "kuery",
                       "type": "string",
-                      "required": false
+                      "required": false,
+                      "summary": "KQL query to select enrollment tokens to delete."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "token-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "List of enrollment token IDs to delete.",
+                      "elementType": "string"
                     },
                     {
                       "role": "flag",
@@ -50580,9 +51487,16 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
+                      "name": "force",
+                      "type": "boolean",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "package-policy-ids",
+                      "type": "array",
+                      "required": true,
+                      "elementType": "string"
                     },
                     {
                       "role": "flag",
@@ -50614,9 +51528,10 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
-                      "required": false
+                      "name": "package-policy-ids",
+                      "type": "array",
+                      "required": true,
+                      "elementType": "string"
                     },
                     {
                       "role": "flag",
@@ -50648,7 +51563,14 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "package-policy-ids",
+                      "type": "array",
+                      "required": true,
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "package-version",
                       "type": "string",
                       "required": false
                     },
@@ -51362,9 +52284,29 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "enabled",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Whether the current maintenance window is enabled. Disabled maintenance windows do not suppress notifications."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "schedule",
+                      "type": "string",
+                      "required": true
+                    },
+                    {
+                      "role": "flag",
+                      "name": "scope",
                       "type": "string",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "title",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The name of the maintenance window. While this name does not have to be unique, a distinctive name can help you identify a specific maintenance window."
                     },
                     {
                       "role": "flag",
@@ -51545,9 +52487,29 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "enabled",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Whether the current maintenance window is enabled. Disabled maintenance windows do not suppress notifications."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "schedule",
                       "type": "string",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "scope",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "title",
+                      "type": "string",
+                      "required": false,
+                      "summary": "The name of the maintenance window. While this name does not have to be unique, a distinctive name can help you identify a specific maintenance window."
                     },
                     {
                       "role": "flag",
@@ -51783,7 +52745,31 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "filters",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "from",
+                      "type": "number",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "query",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "size",
+                      "type": "number",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "sort",
                       "type": "string",
                       "required": false
                     },
@@ -52122,7 +53108,26 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "description",
+                      "type": "string",
+                      "required": false,
+                      "summary": "A description for the role."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "elasticsearch",
+                      "type": "string",
+                      "required": true
+                    },
+                    {
+                      "role": "flag",
+                      "name": "kibana",
+                      "type": "array",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "metadata",
                       "type": "string",
                       "required": false
                     },
@@ -52159,9 +53164,9 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "roles",
                       "type": "string",
-                      "required": false
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -52538,9 +53543,73 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "connector-id",
                       "type": "string",
-                      "required": false
+                      "required": true,
+                      "summary": "Required connector identifier to route the request."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "conversation-id",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Existing conversation ID to continue."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "is-stream",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "If true, the response will be streamed in chunks."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "lang-smith-api-key",
+                      "type": "string",
+                      "required": false,
+                      "summary": "API key for LangSmith integration."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "lang-smith-project",
+                      "type": "string",
+                      "required": false,
+                      "summary": "LangSmith project name for tracing."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "messages",
+                      "type": "array",
+                      "required": true,
+                      "summary": "List of chat messages exchanged so far."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "model",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Model ID or name to use for the response."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "persist",
+                      "type": "boolean",
+                      "required": true,
+                      "summary": "Whether to persist the chat and response to storage."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "prompt-id",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Prompt template identifier."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "response-language",
+                      "type": "string",
+                      "required": false,
+                      "summary": "ISO language code for the assistant's response."
                     },
                     {
                       "role": "flag",
@@ -52611,9 +53680,55 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "api-config",
+                      "type": "string",
+                      "required": false,
+                      "summary": "LLM API configuration."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "category",
+                      "type": "enum",
+                      "required": false,
+                      "summary": "The conversation category.",
+                      "enumValues": [
+                        "assistant",
+                        "insights"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "exclude-from-last-conversation-storage",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Exclude from last conversation storage."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "id",
+                      "type": "string",
+                      "required": false,
+                      "summary": "The conversation id."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "messages",
+                      "type": "array",
+                      "required": false,
+                      "summary": "The conversation messages."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "replacements",
                       "type": "string",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "title",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The conversation title."
                     },
                     {
                       "role": "flag",
@@ -53629,9 +54744,77 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "alerts-index-pattern",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The (space specific) index pattern that contains the alerts to use as\ncontext for the attack discovery.\nExample: .alerts-security.alerts-default\n"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "anonymization-fields",
+                      "type": "array",
+                      "required": true,
+                      "summary": "The list of fields, and whether or not they are anonymized, allowed to be sent to LLMs. Consider using the output of the `/api/security_ai_assistant/anonymization_fields/_find` API (for a specific Kibana space) to provide this value."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "api-config",
+                      "type": "string",
+                      "required": true,
+                      "summary": "LLM API configuration."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "connector-name",
                       "type": "string",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "end",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "filter",
+                      "type": "string",
+                      "required": false,
+                      "summary": "An Elasticsearch-style query DSL object used to filter alerts. For example:\n```json {\n  \"filter\": {\n    \"bool\": {\n      \"must\": [],\n      \"filter\": [\n        {\n          \"bool\": {\n            \"should\": [\n              {\n                \"term\": {\n                  \"user.name\": { \"value\": \"james\" }\n                }\n              }\n            ],\n            \"minimum_should_match\": 1\n          }\n        }\n      ],\n      \"should\": [],\n      \"must_not\": []\n    }\n  }\n} ```"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "model",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "replacements",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "size",
+                      "type": "number",
+                      "required": true
+                    },
+                    {
+                      "role": "flag",
+                      "name": "start",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "sub-action",
+                      "type": "enum",
+                      "required": true,
+                      "enumValues": [
+                        "invokeAI",
+                        "invokeStream"
+                      ]
                     },
                     {
                       "role": "flag",
@@ -53802,9 +54985,38 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "actions",
+                      "type": "array",
+                      "required": false,
+                      "summary": "The Attack Discovery schedule actions"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "enabled",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Indicates whether the schedule is enabled"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "name",
                       "type": "string",
-                      "required": false
+                      "required": true,
+                      "summary": "The name of the schedule"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "params",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The Attack Discovery schedule configuration parameters"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "schedule",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The Attack Discovery schedule interval"
                     },
                     {
                       "role": "flag",
@@ -53836,9 +55048,11 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
-                      "required": false
+                      "name": "ids",
+                      "type": "array",
+                      "required": true,
+                      "summary": "The unique identifiers of the Attack Discovery schedules to update.",
+                      "elementType": "string"
                     },
                     {
                       "role": "flag",
@@ -53870,9 +55084,11 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
-                      "required": false
+                      "name": "ids",
+                      "type": "array",
+                      "required": true,
+                      "summary": "The unique identifiers of the Attack Discovery schedules to update.",
+                      "elementType": "string"
                     },
                     {
                       "role": "flag",
@@ -53904,9 +55120,11 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
-                      "required": false
+                      "name": "ids",
+                      "type": "array",
+                      "required": true,
+                      "summary": "The unique identifiers of the Attack Discovery schedules to update.",
+                      "elementType": "string"
                     },
                     {
                       "role": "flag",
@@ -54084,9 +55302,31 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "actions",
+                      "type": "array",
+                      "required": true,
+                      "summary": "The Attack Discovery schedule actions"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "name",
                       "type": "string",
-                      "required": false
+                      "required": true,
+                      "summary": "The name of the schedule"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "params",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The Attack Discovery schedule configuration parameters"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "schedule",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The Attack Discovery schedule interval"
                     },
                     {
                       "role": "flag",
@@ -55226,9 +56466,17 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "assignees",
                       "type": "string",
-                      "required": false
+                      "required": true,
+                      "summary": "Details about the assignees to assign and unassign."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "ids",
+                      "type": "array",
+                      "required": true,
+                      "elementType": "string"
                     },
                     {
                       "role": "flag",
@@ -55260,8 +56508,55 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "source",
                       "type": "string",
+                      "required": false,
+                      "repeatable": true,
+                      "separator": ","
+                    },
+                    {
+                      "role": "flag",
+                      "name": "aggs",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "fields",
+                      "type": "array",
+                      "required": false,
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "query",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "runtime-mappings",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "size",
+                      "type": "number",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "sort",
+                      "type": "string",
+                      "required": false,
+                      "repeatable": true,
+                      "separator": ","
+                    },
+                    {
+                      "role": "flag",
+                      "name": "track-total-hits",
+                      "type": "boolean",
                       "required": false
                     },
                     {
@@ -55363,9 +56658,16 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "ids",
+                      "type": "array",
+                      "required": true,
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "tags",
                       "type": "string",
-                      "required": false
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -56083,9 +57385,50 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "agent-type",
+                      "type": "enum",
+                      "required": false,
+                      "enumValues": [
+                        "endpoint",
+                        "sentinel_one",
+                        "crowdstrike",
+                        "microsoft_defender_endpoint"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "alert-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "case-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "comment",
                       "type": "string",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "endpoint-ids",
+                      "type": "array",
+                      "required": true,
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "parameters",
+                      "type": "string",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -56117,9 +57460,50 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "agent-type",
+                      "type": "enum",
+                      "required": false,
+                      "enumValues": [
+                        "endpoint",
+                        "sentinel_one",
+                        "crowdstrike",
+                        "microsoft_defender_endpoint"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "alert-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "case-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "comment",
                       "type": "string",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "endpoint-ids",
+                      "type": "array",
+                      "required": true,
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "parameters",
+                      "type": "string",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -56151,9 +57535,50 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "agent-type",
+                      "type": "enum",
+                      "required": false,
+                      "enumValues": [
+                        "endpoint",
+                        "sentinel_one",
+                        "crowdstrike",
+                        "microsoft_defender_endpoint"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "alert-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "case-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "comment",
                       "type": "string",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "endpoint-ids",
+                      "type": "array",
+                      "required": true,
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "parameters",
+                      "type": "string",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -56260,9 +57685,50 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "agent-type",
+                      "type": "enum",
+                      "required": false,
+                      "enumValues": [
+                        "endpoint",
+                        "sentinel_one",
+                        "crowdstrike",
+                        "microsoft_defender_endpoint"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "alert-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "case-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "comment",
                       "type": "string",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "endpoint-ids",
+                      "type": "array",
+                      "required": true,
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "parameters",
+                      "type": "string",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -56294,9 +57760,50 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "agent-type",
+                      "type": "enum",
+                      "required": false,
+                      "enumValues": [
+                        "endpoint",
+                        "sentinel_one",
+                        "crowdstrike",
+                        "microsoft_defender_endpoint"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "alert-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "case-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "comment",
                       "type": "string",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "endpoint-ids",
+                      "type": "array",
+                      "required": true,
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "parameters",
+                      "type": "string",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -56328,9 +57835,51 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "agent-type",
+                      "type": "enum",
+                      "required": false,
+                      "enumValues": [
+                        "endpoint",
+                        "sentinel_one",
+                        "crowdstrike",
+                        "microsoft_defender_endpoint"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "alert-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "case-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "comment",
                       "type": "string",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "endpoint-ids",
+                      "type": "array",
+                      "required": true,
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "parameters",
+                      "type": "string",
+                      "required": true,
+                      "summary": "One of the following set of parameters must be provided for the `agentType` that is specified.\n"
                     },
                     {
                       "role": "flag",
@@ -56362,7 +57911,48 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "agent-type",
+                      "type": "enum",
+                      "required": false,
+                      "enumValues": [
+                        "endpoint",
+                        "sentinel_one",
+                        "crowdstrike",
+                        "microsoft_defender_endpoint"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "alert-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "case-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "comment",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "endpoint-ids",
+                      "type": "array",
+                      "required": true,
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "parameters",
                       "type": "string",
                       "required": false
                     },
@@ -56396,9 +57986,50 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "agent-type",
+                      "type": "enum",
+                      "required": false,
+                      "enumValues": [
+                        "endpoint",
+                        "sentinel_one",
+                        "crowdstrike",
+                        "microsoft_defender_endpoint"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "alert-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "case-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "comment",
                       "type": "string",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "endpoint-ids",
+                      "type": "array",
+                      "required": true,
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "parameters",
+                      "type": "string",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -56454,9 +58085,50 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "agent-type",
+                      "type": "enum",
+                      "required": false,
+                      "enumValues": [
+                        "endpoint",
+                        "sentinel_one",
+                        "crowdstrike",
+                        "microsoft_defender_endpoint"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "alert-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "case-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "comment",
                       "type": "string",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "endpoint-ids",
+                      "type": "array",
+                      "required": true,
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "parameters",
+                      "type": "string",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -57671,7 +59343,14 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "entity-analytics-monitoring",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Entity analytics monitoring configuration for the user"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "user",
                       "type": "string",
                       "required": false
                     },
@@ -58792,9 +60471,10 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
-                      "required": false
+                      "name": "entities",
+                      "type": "array",
+                      "required": true,
+                      "summary": "The entities to create or update."
                     },
                     {
                       "role": "flag",
@@ -62176,7 +63856,93 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "agent-all",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "When `true`, the query runs on all agents."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "agent-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "A list of agent IDs to run the query on.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "agent-platforms",
+                      "type": "array",
+                      "required": false,
+                      "summary": "A list of agent platforms to run the query on.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "agent-policy-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "A list of agent policy IDs to run the query on.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "alert-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "A list of alert IDs associated with the live query.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "case-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "A list of case IDs associated with the live query.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "ecs-mapping",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "event-ids",
+                      "type": "array",
+                      "required": false,
+                      "summary": "A list of event IDs associated with the live query.",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "metadata",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Custom metadata object associated with the live query."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "pack-id",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "queries",
+                      "type": "array",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "query",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "saved-query-id",
                       "type": "string",
                       "required": false
                     },
@@ -62395,7 +64161,60 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "description",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "enabled",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "interval",
+                      "type": "number",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "name",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "policy-ids",
+                      "type": "array",
+                      "required": false,
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "queries",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "rrule-schedule",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "schedule-type",
+                      "type": "enum",
+                      "required": false,
+                      "enumValues": [
+                        "interval",
+                        "rrule"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "shards",
                       "type": "string",
                       "required": false
                     },
@@ -62512,7 +64331,60 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "description",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "enabled",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "interval",
+                      "type": "number",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "name",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "policy-ids",
+                      "type": "array",
+                      "required": false,
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "queries",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "rrule-schedule",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "schedule-type",
+                      "type": "enum",
+                      "required": false,
+                      "enumValues": [
+                        "interval",
+                        "rrule"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "shards",
                       "type": "string",
                       "required": false
                     },
@@ -62647,7 +64519,55 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "description",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "ecs-mapping",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "id",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "interval",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "platform",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "query",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "removed",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "snapshot",
+                      "type": "boolean",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "version",
                       "type": "string",
                       "required": false
                     },
@@ -64081,9 +66001,80 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "artifacts",
                       "type": "string",
                       "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "budgeting-method",
+                      "type": "enum",
+                      "required": true,
+                      "enumValues": [
+                        "occurrences",
+                        "timeslices"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "description",
+                      "type": "string",
+                      "required": true,
+                      "summary": "A description for the SLO."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "group-by",
+                      "type": "string",
+                      "required": false,
+                      "repeatable": true,
+                      "separator": ","
+                    },
+                    {
+                      "role": "flag",
+                      "name": "id",
+                      "type": "string",
+                      "required": false,
+                      "summary": "A optional and unique identifier for the SLO. Must be between 8 and 36 chars"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "indicator",
+                      "type": "string",
+                      "required": true
+                    },
+                    {
+                      "role": "flag",
+                      "name": "name",
+                      "type": "string",
+                      "required": true,
+                      "summary": "A name for the SLO."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "objective",
+                      "type": "string",
+                      "required": true
+                    },
+                    {
+                      "role": "flag",
+                      "name": "settings",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "tags",
+                      "type": "array",
+                      "required": false,
+                      "summary": "List of tags",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "time-window",
+                      "type": "string",
+                      "required": true
                     },
                     {
                       "role": "flag",
@@ -64122,9 +66113,11 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
-                      "required": false
+                      "name": "list",
+                      "type": "array",
+                      "required": true,
+                      "summary": "An array of SLO Definition id",
+                      "elementType": "string"
                     },
                     {
                       "role": "flag",
@@ -64208,9 +66201,18 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "list",
+                      "type": "array",
+                      "required": true,
+                      "summary": "An array of slo ids",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "purge-policy",
                       "type": "string",
-                      "required": false
+                      "required": true,
+                      "summary": "Policy that dictates which SLI documents to purge based on age"
                     },
                     {
                       "role": "flag",
@@ -64249,9 +66251,10 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
-                      "type": "string",
-                      "required": false
+                      "name": "list",
+                      "type": "array",
+                      "required": true,
+                      "summary": "An array of slo id and instance id"
                     },
                     {
                       "role": "flag",
@@ -64394,7 +66397,71 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "artifacts",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "budgeting-method",
+                      "type": "enum",
+                      "required": false,
+                      "enumValues": [
+                        "occurrences",
+                        "timeslices"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "description",
+                      "type": "string",
+                      "required": false,
+                      "summary": "A description for the SLO."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "group-by",
+                      "type": "string",
+                      "required": false,
+                      "repeatable": true,
+                      "separator": ","
+                    },
+                    {
+                      "role": "flag",
+                      "name": "indicator",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "name",
+                      "type": "string",
+                      "required": false,
+                      "summary": "A name for the SLO."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "objective",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "settings",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "tags",
+                      "type": "array",
+                      "required": false,
+                      "summary": "List of tags",
+                      "elementType": "string"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "time-window",
                       "type": "string",
                       "required": false
                     },
@@ -66094,9 +68161,24 @@
                   "parameters": [
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "color",
                       "type": "string",
-                      "required": false
+                      "required": false,
+                      "summary": "The tag color as a hex value (e.g. `#772299`). If omitted, a random color is generated."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "description",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Optional description of the tag."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "name",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The display name of the tag."
                     },
                     {
                       "role": "flag",
@@ -66211,9 +68293,24 @@
                     },
                     {
                       "role": "flag",
-                      "name": "body",
+                      "name": "color",
                       "type": "string",
-                      "required": false
+                      "required": false,
+                      "summary": "The tag color as a hex value (e.g. `#772299`). If omitted, a random color is generated."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "description",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Optional description of the tag."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "name",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The display name of the tag."
                     },
                     {
                       "role": "flag",
