@@ -15,8 +15,9 @@ import { createKbHandler } from './handler.ts'
 
 // Every Kibana definition passes `validateKbApiDefinition` as of @elastic/schemas 0.5.1;
 // the five upstream path-param defects that used to need an allowlist here are fixed.
-// `createKbHandler` still revalidates at invocation time (see handler.ts) so a future
-// upstream regression fails loudly instead of sending a request to a literal `{id}` URL.
+// Registration is the single enforcement point: every handler is built through
+// `buildLeafHandle` (including the lazy stub path, which loads its definition and then
+// calls it), so an upstream regression fails here rather than at request time.
 
 /** Builds a leaf command handle from a definition. */
 function buildLeafHandle (def: KbApiDefinition): OpaqueCommandHandle {

@@ -66,6 +66,12 @@ function getAjv (): Ajv {
     // (e.g. nullable enums with a repeated `null`) that AJV would otherwise throw on
     // before validating any input.
     //
+    // useDefaults is load-bearing: the hand-authored input schemas in src/es/helpers/
+    // (bulk-ingest flush_bytes/concurrency/retries/retry_delay/source_format, msearch
+    // batch_size/concurrency, watch sort_field/poll_interval/size) and src/docs/search.ts
+    // (page/size) declare `default` values and their handlers destructure those fields as
+    // non-optional. Removing this option would hand them `undefined`.
+    //
     // ponytail: these are ajv6/draft-07 options. `strict` and `validateSchema` mean
     // something different (or don't exist) on ajv8/draft2020-12 — `unknownFormats`
     // becomes the `formats` allowlist and `useDefaults` gains array-item semantics.

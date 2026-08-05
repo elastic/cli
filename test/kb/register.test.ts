@@ -7,9 +7,8 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { validateKbApiDefinition } from '../../src/kb/types.ts'
 import { loadAllKbApis } from '../../src/kb/apis.ts'
-import { createKbHandler } from '../../src/kb/handler.ts'
+import { registerKbCommands } from '../../src/kb/register.ts'
 import type { KbApiDefinition } from '../../src/kb/types.ts'
-import type { ParsedResult } from '../../src/factory.ts'
 
 describe('validateKbApiDefinition against the real Kibana manifest', () => {
   it('passes for every definition, with no allowlisted exceptions', async () => {
@@ -26,11 +25,11 @@ describe('validateKbApiDefinition against the real Kibana manifest', () => {
   })
 })
 
-describe('createKbHandler invocation-time protection against upstream regressions', () => {
-  it('errors instead of sending a request to a literal {id} URL', async () => {
+describe('registration-time protection against upstream regressions', () => {
+  it('throws instead of registering a command with a literal {id} URL', () => {
     // Constructed, not loaded: no real definition has a path placeholder missing from
-    // `x-found-in: "path"` as of @elastic/schemas 0.5.1. This asserts the handler still
-    // refuses to build such a URL if a future release regresses.
+    // `x-found-in: "path"` as of @elastic/schemas 0.5.1. This asserts registration still
+    // refuses such a definition if a future release regresses.
     const def: KbApiDefinition = {
       name: 'put-spaces-space-id',
       namespace: 'spaces',
@@ -43,13 +42,6 @@ describe('createKbHandler invocation-time protection against upstream regression
       },
     }
 
-    const handler = createKbHandler(def)
-    const parsed = { input: { id: 'my-space', name: 'x' } } as unknown as ParsedResult
-    const result = await handler(parsed)
-
-    assert.ok(result != null && typeof result === 'object' && 'error' in result)
-    const error = (result as { error: { code: string, message: string } }).error
-    assert.equal(error.code, 'invalid_definition')
-    assert.match(error.message, /\{id\}/)
+    assert.throws(() => registerKbCommands([def]), /\{id\}/)
   })
 })

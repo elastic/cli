@@ -4,7 +4,6 @@
  */
 
 import type { KbApiDefinition } from './types.ts'
-import { validateKbApiDefinition } from './types.ts'
 import type { KibanaClient } from '../lib/kibana-client.ts'
 import { getKibanaClient } from '../lib/kibana-client.ts'
 import { buildKibanaRequestParams } from './request-builder.ts'
@@ -35,13 +34,6 @@ export function createKbHandler (
   deps: KbHandlerDeps = defaultDeps
 ): (parsed: ParsedResult) => Promise<JsonValue> {
   return async (parsed: ParsedResult): Promise<JsonValue> => {
-    try {
-      validateKbApiDefinition(def)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      return { error: { code: 'invalid_definition', message } }
-    }
-
     let client: KibanaClient
     try {
       client = deps.getKibanaClient()
