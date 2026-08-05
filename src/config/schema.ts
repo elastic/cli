@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { createRequire } from 'node:module'
+import { validateWithJsonSchema } from '../lib/ajv-validate.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './profiles.ts'
 import type {
   Auth,
@@ -14,60 +14,81 @@ import type {
 } from './types.ts'
 
 // ---------------------------------------------------------------------------
-// AJV setup (lazy singleton)
-// ---------------------------------------------------------------------------
-
-type AjvValidateFunction = (data: unknown) => boolean
-interface AjvInstance {
-  compile(schema: Record<string, unknown>): AjvValidateFunction & { errors: unknown[] | null }
-}
-
-let _ajv: AjvInstance | undefined
-function getAjv (): AjvInstance {
-  if (_ajv == null) {
-    const req = createRequire(import.meta.url)
-     
-    const Ajv = req('ajv') as new (opts: Record<string, unknown>) => AjvInstance
-    // No removeAdditional — we strip unknown fields explicitly after validation.
-    _ajv = new Ajv({ allErrors: true, strict: false, logger: false, useDefaults: true })
-  }
-  return _ajv
-}
-
-// Cache compiled validators by schema object identity to avoid re-compiling on every call.
-const _compiled = new WeakMap<Record<string, unknown>, ReturnType<AjvInstance['compile']>>()
-function compile (schema: Record<string, unknown>): ReturnType<AjvInstance['compile']> {
-  let fn = _compiled.get(schema)
-  if (fn == null) {
-    fn = getAjv().compile(schema)
-    _compiled.set(schema, fn)
-  }
-  return fn
-}
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 type ParseResult<T> = { success: true; data: T } | { success: false; errors: Array<{ path: string; message: string }> }
+type FieldError = { path: string; message: string }
 
-function ajvErrors (errs: unknown[] | null | undefined): Array<{ path: string; message: string }> {
-  return (errs ?? []).map((e) => {
-    const err = e as Record<string, unknown>
-    return {
-      path: String(err['dataPath'] ?? err['instancePath'] ?? ''),
-      message: String(err['message'] ?? 'invalid'),
-    }
-  })
+/**
+ * Resolves the value at an AJV path within `input`, so an error reported on a
+ * sub-object can be re-described in terms of that object's contents.
+ */
+function valueAtPath (input: unknown, pathArray: Array<string | number>): unknown {
+  let cur = input
+  for (const key of pathArray) {
+    if (cur == null || typeof cur !== 'object') return undefined
+    cur = (cur as Record<string, unknown>)[String(key)]
+  }
+  return cur
 }
 
-type ValidateResult = { ok: true; data: unknown } | { ok: false; errors: Array<{ path: string; message: string }> }
+/** Restates a failed mutual-exclusion (`not`) constraint as the offending field pair. */
+function mutualExclusionMessage (value: unknown): string | undefined {
+  if (value == null || typeof value !== 'object') return undefined
+  const v = value as Record<string, unknown>
+  if ('profile' in v && 'allowed' in v) return '"profile" and "allowed" are mutually exclusive'
+  if ('allowed' in v && 'blocked' in v) return '"allowed" and "blocked" are mutually exclusive'
+  return undefined
+}
+
+type ValidateResult = { ok: true; data: unknown } | { ok: false; errors: FieldError[] }
 
 function validate (schema: Record<string, unknown>, input: unknown): ValidateResult {
-  // Deep-clone so AJV mutations (useDefaults) don't affect the original.
-  const copy = JSON.parse(JSON.stringify(input)) as unknown
-  const fn = compile(schema)
-  return fn(copy) ? { ok: true, data: copy } : { ok: false, errors: ajvErrors(fn.errors) }
+  const r = validateWithJsonSchema(schema, input)
+  if (r.success) return { ok: true, data: r.data }
+  const errors = r.errors.map((e) => {
+    const path = e.path === '(root)' ? '' : e.path
+    if (e.code === 'not') {
+      const message = mutualExclusionMessage(valueAtPath(input, e.path_array))
+      if (message != null) return { path, message }
+    }
+    return { path, message: e.message }
+  })
+  return { ok: false, errors }
+}
+
+/**
+ * Verifies a service URL is actually parseable and uses a supported scheme.
+ * A JSON Schema `pattern` can only check the prefix, so bare values like
+ * "https://" would otherwise reach the HTTP transport.
+ */
+function urlError (url: unknown, path: string): FieldError | undefined {
+  if (typeof url !== 'string') return undefined // shape errors are AJV's job
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    return { path, message: 'must be a valid URL' }
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return { path, message: 'must use the http:// or https:// scheme' }
+  }
+  return undefined
+}
+
+/** Collects URL errors for every service block present on a context. */
+function contextUrlErrors (raw: unknown, prefix: string): FieldError[] {
+  if (raw == null || typeof raw !== 'object') return []
+  const r = raw as Record<string, unknown>
+  const errors: FieldError[] = []
+  for (const service of ['elasticsearch', 'kibana', 'cloud'] as const) {
+    const block = r[service]
+    if (block == null || typeof block !== 'object') continue
+    const err = urlError((block as Record<string, unknown>)['url'], `${prefix}.${service}.url`)
+    if (err != null) errors.push(err)
+  }
+  return errors
 }
 
 
@@ -98,7 +119,7 @@ const authSchema: Record<string, unknown> = {
 const serviceBlockSchema: Record<string, unknown> = {
   type: 'object',
   properties: {
-    url: { type: 'string', pattern: '^https?://' },
+    url: { type: 'string', minLength: 1 },
     auth: authSchema,
   },
   required: ['url'],
@@ -110,6 +131,10 @@ const commandPolicySchema: Record<string, unknown> = {
     profile: { type: 'string', enum: [...BUILT_IN_PROFILES] },
     allowed: { type: 'array', items: { type: 'string', minLength: 1 }, minItems: 1 },
     blocked: { type: 'array', items: { type: 'string', minLength: 1 }, minItems: 1 },
+  },
+  // draft-07: `allowed` may not coexist with `profile` or `blocked`.
+  dependencies: {
+    allowed: { not: { anyOf: [{ required: ['profile'] }, { required: ['blocked'] }] } },
   },
 }
 
@@ -253,7 +278,10 @@ export const ServiceBlockSchema = {
   safeParse (input: unknown): ParseResult<ServiceBlock> {
     const r = validate(serviceBlockSchema, input)
     if (!r.ok) return { success: false, errors: r.errors }
-    return { success: true, data: stripServiceBlock(r.data)! }
+    const block = stripServiceBlock(r.data)!
+    const err = urlError(block.url, '.url')
+    if (err != null) return { success: false, errors: [err] }
+    return { success: true, data: block }
   },
 }
 
@@ -263,14 +291,7 @@ export const CommandPolicySchema = {
   safeParse (input: unknown): ParseResult<CommandPolicy> {
     const r = validate(commandPolicySchema, input)
     if (!r.ok) return { success: false, errors: r.errors }
-    const p = stripCommandPolicy(r.data)!
-    if (p.profile != null && p.allowed != null) {
-      return { success: false, errors: [{ path: '', message: '"profile" and "allowed" are mutually exclusive' }] }
-    }
-    if (p.allowed != null && p.blocked != null) {
-      return { success: false, errors: [{ path: '', message: '"allowed" and "blocked" are mutually exclusive' }] }
-    }
-    return { success: true, data: p }
+    return { success: true, data: stripCommandPolicy(r.data)! }
   },
 }
 
@@ -284,15 +305,8 @@ export const ContextSchema = {
     if (ctx.elasticsearch == null && ctx.kibana == null && ctx.cloud == null) {
       return { success: false, errors: [{ path: '', message: 'at least one service block (elasticsearch, kibana, or cloud) is required' }] }
     }
-    if (ctx.commands != null) {
-      const cp = ctx.commands
-      if (cp.profile != null && cp.allowed != null) {
-        return { success: false, errors: [{ path: '.commands', message: '"profile" and "allowed" are mutually exclusive' }] }
-      }
-      if (cp.allowed != null && cp.blocked != null) {
-        return { success: false, errors: [{ path: '.commands', message: '"allowed" and "blocked" are mutually exclusive' }] }
-      }
-    }
+    const urlErrors = contextUrlErrors(r.data, '')
+    if (urlErrors.length > 0) return { success: false, errors: urlErrors }
     return { success: true, data: ctx }
   },
 }
@@ -324,16 +338,11 @@ export const ConfigFileSchema = {
       if (ctx.elasticsearch == null && ctx.kibana == null && ctx.cloud == null) {
         return { success: false, errors: [{ path: `.contexts.${key}`, message: 'at least one service block required' }] }
       }
+      const urlErrors = contextUrlErrors((raw['contexts'] as Record<string, unknown>)[key], `.contexts.${key}`)
+      if (urlErrors.length > 0) return { success: false, errors: urlErrors }
     }
     if (raw['commands'] != null) {
-      const cp = stripCommandPolicy(raw['commands'])!
-      if (cp.profile != null && cp.allowed != null) {
-        return { success: false, errors: [{ path: '.commands', message: '"profile" and "allowed" are mutually exclusive' }] }
-      }
-      if (cp.allowed != null && cp.blocked != null) {
-        return { success: false, errors: [{ path: '.commands', message: '"allowed" and "blocked" are mutually exclusive' }] }
-      }
-      cfg.commands = cp
+      cfg.commands = stripCommandPolicy(raw['commands'])!
     }
     return { success: true, data: cfg }
   },
