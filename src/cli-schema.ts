@@ -9,82 +9,31 @@ import { stripTransportMeta } from './factory.ts'
 import type { OpaqueCommandHandle, CommandConfig, CommandIntent, JsonValue } from './factory.ts'
 import type { SchemaArgDefinition } from './lib/json-schema-args.ts'
 import type { NamespaceEntry } from './namespaces.ts'
+import { SCHEMA_VERSION } from '@cli-schema/spec'
+import type {
+  CliSchema,
+  Command as SpecCommand,
+  Constraint,
+  Environment as CliEnvironment,
+  Namespace as SpecNamespace,
+  Parameter,
+  ParameterElementType,
+  ParameterType,
+} from '@cli-schema/spec'
 
 // ---------------------------------------------------------------------------
 // CLI schema types
 // ---------------------------------------------------------------------------
+//
+// All shapes come from @cli-schema/spec so the emitted `schemaVersion` cannot
+// drift from the types used to build the document. The two local aliases below
+// only tighten optional spec fields that this emitter always populates and
+// mutates in place (hoisting, stripping); they add no new fields.
 
-interface CliValidation {
-  kind: string
-  min?: string
-  max?: string
-  pattern?: string
-  values?: string[]
-}
-
-interface CliParameter {
-  role: string
-  name: string
-  type: string
-  required: boolean
-  shortName?: string
-  summary?: string
-  defaultValue?: string
-  repeatable?: boolean
-  separator?: string
-  aliases?: string[]
-  enumValues?: string[]
-  elementType?: string
-  hidden?: boolean
-  validations?: CliValidation[]
-}
-
-interface CliCommand {
-  path: string[]
-  name: string
-  parameters: CliParameter[]
-  summary?: string
-  aliases?: string[]
-  hidden?: boolean
-  intent?: CommandIntent
-}
-
-interface CliNamespace {
-  segment: string
-  commands: CliCommand[]
-  namespaces: CliNamespace[]
-  summary?: string
-  options?: CliParameter[]
-}
-
-interface CliEnvVar {
-  name: string
-  required: boolean
-  description?: string
-}
-
-interface CliConfigFile {
-  path: string
-  required: boolean
-  description?: string
-}
-
-interface CliEnvironment {
-  variables: CliEnvVar[]
-  configFiles: CliConfigFile[]
-}
-
-interface CliSchema {
-  schemaVersion: number
-  name: string
-  version: string
-  reservedMetaCommands: string[]
-  globalOptions: CliParameter[]
-  environment: CliEnvironment
-  commands: CliCommand[]
-  namespaces: CliNamespace[]
-  description?: string
-}
+type CliValidation = Constraint
+type CliParameter = Parameter
+type CliCommand = SpecCommand & { path: string[], parameters: Parameter[] }
+type CliNamespace = SpecNamespace & { commands: CliCommand[], namespaces: CliNamespace[] }
 
 // ---------------------------------------------------------------------------
 // Environment declaration (sources: src/config/loader.ts, src/lib/logo.ts,
@@ -221,7 +170,7 @@ function extractValidations (node: JsonSchemaNode, root: JsonSchemaNode): CliVal
 // ---------------------------------------------------------------------------
 
 /** Map SchemaArgDefinition.type to a spec-compliant type string. */
-function schemaArgType (arg: SchemaArgDefinition, enumValues: string[] | undefined): string {
+function schemaArgType (arg: SchemaArgDefinition, enumValues: string[] | undefined): ParameterType {
   if (enumValues != null && enumValues.length > 0) return 'enum'
   switch (arg.type) {
     case 'boolean':
@@ -322,7 +271,7 @@ function buildCommandParams (cmd: OpaqueCommandHandle): CliParameter[] {
         // querystrings and paths.
         ...(arg.acceptsArrayForm === true && arg.foundIn === 'body' && { separator: ',' }),
         ...(enumValues != null && { enumValues }),
-        ...(arg.type === 'array' && node != null && extractElementType(node, root) != null && { elementType: extractElementType(node, root) as string }),
+        ...(arg.type === 'array' && node != null && extractElementType(node, root) != null && { elementType: extractElementType(node, root) as ParameterElementType }),
         ...(node != null && extractValidations(node, root) != null && { validations: extractValidations(node, root) as CliValidation[] }),
       })
     }
@@ -549,7 +498,7 @@ export function buildCliSchema (
   const promoted = promoteToGlobalOptions(namespaces, allCommands)
 
   return {
-    schemaVersion: 1,
+    schemaVersion: SCHEMA_VERSION,
     name: root.name() || 'elastic',
     version,
     reservedMetaCommands: ['cli-schema'],
