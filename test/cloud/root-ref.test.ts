@@ -51,6 +51,19 @@ describe('root-$ref cloud input schemas', () => {
     assert.ok('name' in props, 'expected "name" field on create-extension body')
   })
 
+  it('names the unknown field when all required fields are present (additionalProperties)', async () => {
+    const def = await findDef('delete-api-keys')
+    const schema = buildCloudJsonSchema(def)
+    const result = validateWithJsonSchema(schema, { keys: ['k1'], bogus: 1 })
+    assert.equal(result.success, false)
+    if (!result.success) {
+      assert.ok(
+        result.errors.some((e) => e.code === 'additionalProperties' && e.message.includes('bogus')),
+        `expected an error naming "bogus", got ${JSON.stringify(result.errors)}`
+      )
+    }
+  })
+
   it('rejects {"bogus":1} and missing required "keys" with a structured validation error', async () => {
     const def = await findDef('delete-api-keys')
     const schema = buildCloudJsonSchema(def)

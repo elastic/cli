@@ -242,9 +242,6 @@ async function wrapWithCredentialPolicy (
 /**
  * Registers the unified Cloud command tree.
  */
-/**
- * Registers the unified Cloud command tree.
- */
 export async function registerCloudCommands (
   definitions?: CloudApiDefinition[],
 ): Promise<OpaqueCommandHandle> {

@@ -65,8 +65,6 @@ export function validateCloudApiDefinition (def: CloudApiDefinition): void {
       }
     }
   }
-
-  // Detect key collisions (each property key must be unique — they always are in a JSON object, so this is satisfied structurally)
 }
 
 /**
@@ -75,7 +73,7 @@ export function validateCloudApiDefinition (def: CloudApiDefinition): void {
  * routing annotation and must not appear in help text or error messages.
  */
 export function buildCloudJsonSchema (def: CloudApiDefinition): Record<string, unknown> {
-  if (def.input == null) return { type: 'object', properties: {} }
+  if (def.input == null) return { type: 'object', properties: {}, additionalProperties: false }
 
   const resolved = resolveRootRef(def.input)
   const props = (resolved.properties ?? {}) as Record<string, Record<string, unknown>>
@@ -86,7 +84,9 @@ export function buildCloudJsonSchema (def: CloudApiDefinition): Record<string, u
     cleaned[key] = rest
   }
 
-  const schema: Record<string, unknown> = { type: 'object', properties: cleaned }
+  // additionalProperties: false — unknown input keys must be named in a validation
+  // error, not silently stripped. Upstream cloud definitions never set it themselves.
+  const schema: Record<string, unknown> = { type: 'object', properties: cleaned, additionalProperties: false }
   if (Array.isArray(resolved.required) && (resolved.required as unknown[]).length > 0) {
     schema['required'] = resolved.required
   }
