@@ -157,7 +157,7 @@ When constructing URLs, sending credentials, or making HTTP requests:
 
 3. **Test with real schemas from the actual source.** Hand-crafted toy schemas miss shapes that only appear in real `@elastic/schemas` output (e.g. Kibana's per-rule-type `allOf`/`oneOf` bodies).
 
-4. **Generic request builders need extension points for endpoint-specific semantics.** The bulk API needs NDJSON; the index API needs body promotion. Add explicit extension points (`bodyFormat`, `BODY_ROOT_FIELDS`) rather than special-casing later.
+4. **Generic request builders need extension points for endpoint-specific semantics.** The bulk API needs NDJSON; the index API needs body promotion. Add explicit extension points (`bodyFormat`, and the upstream `x-body-root` annotation) rather than special-casing later.
 
 5. **Diagnose common mistakes in user-facing errors.** Map known error patterns (TLS mismatch, auth failure, DNS) to actionable hints instead of propagating raw messages.
 

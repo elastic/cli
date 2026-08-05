@@ -90,9 +90,12 @@ export function simplifyProjectCommandName (name: string, namespace: string): st
 function groupByNamespace (definitions: CloudApiDefinition[]): Map<string, CloudApiDefinition[]> {
   const byNamespace = new Map<string, CloudApiDefinition[]>()
   for (const def of definitions) {
-    let grp = byNamespace.get(def.namespace)
-    if (grp == null) { grp = []; byNamespace.set(def.namespace, grp) }
-    grp.push(def)
+    let group = byNamespace.get(def.namespace)
+    if (group == null) {
+      group = []
+      byNamespace.set(def.namespace, group)
+    }
+    group.push(def)
   }
   return byNamespace
 }
@@ -176,15 +179,15 @@ function buildServerlessTypeGroup (
     return cmd
   })
 
-  const grp = defineGroup(
+  const group = defineGroup(
     { name: typeShort, description: `Manage ${typeLabel} projects` },
     ...leaves,
   )
   // elasticsearch gets an explicit alias so both `search` and `elasticsearch` resolve
   if (typeShort === 'search') {
-    ;(grp as Command).alias('elasticsearch')
+    ;(group as Command).alias('elasticsearch')
   }
-  return grp
+  return group
 }
 
 function buildHostedGroup (defs: CloudApiDefinition[]): OpaqueCommandHandle {
@@ -200,15 +203,15 @@ function buildServerlessGroup (defs: CloudApiDefinition[]): OpaqueCommandHandle 
 
   for (const def of defs) {
     if (PROJECT_NAMESPACES[def.namespace] != null) {
-      let grp = projectDefs.get(def.namespace)
-      if (grp == null) { grp = []; projectDefs.set(def.namespace, grp) }
-      grp.push(def)
+      let group = projectDefs.get(def.namespace)
+      if (group == null) { group = []; projectDefs.set(def.namespace, group) }
+      group.push(def)
     } else if (CROSS_PROJECT_NAMESPACES.has(def.namespace)) {
       crossProjectDefs.push(def)
     } else {
-      let grp = otherDefs.get(def.namespace)
-      if (grp == null) { grp = []; otherDefs.set(def.namespace, grp) }
-      grp.push(def)
+      let group = otherDefs.get(def.namespace)
+      if (group == null) { group = []; otherDefs.set(def.namespace, group) }
+      group.push(def)
     }
   }
 
@@ -250,9 +253,12 @@ function partitionDefinitions (definitions: CloudApiDefinition[]): PartitionedDe
 
   for (const def of definitions) {
     if (PROMOTED_NAMESPACES.has(def.namespace)) {
-      let grp = promoted.get(def.namespace)
-      if (grp == null) { grp = []; promoted.set(def.namespace, grp) }
-      grp.push(def)
+      let group = promoted.get(def.namespace)
+      if (group == null) {
+        group = []
+        promoted.set(def.namespace, group)
+      }
+      group.push(def)
     } else if (SERVERLESS_NAMESPACES.has(def.namespace)) {
       serverless.push(def)
     } else {

@@ -62,7 +62,7 @@ Input validation runs the command's JSON Schema `input` through `ajv@6` (`getAjv
 | `csv-parse` | `src/es/helpers/shared.ts` | Full RFC 4180 CSV parsing for bulk ingest. A naive `split()` breaks on quoted fields, escapes, and multi-line values. |
 | `marked` + `marked-terminal` | `src/docs/renderer.ts` (4 consumers) | Terminal markdown rendering for `elastic docs` commands. |
 | `@elastic/config-resolver` | Config subsystem | Internal Elastic package. |
-| `@elastic/schemas` (^0.5.0) | `src/es/apis.ts`, `src/kb/apis.ts`, `src/es/api-manifest.ts`, `src/kb/api-manifest.ts` | Published source of API manifests and per-endpoint JSON Schema definitions. Replaces the removed Zod-based codegen pipeline (see git history). |
+| `@elastic/schemas` | `src/es/apis.ts`, `src/kb/apis.ts`, `src/es/api-manifest.ts`, `src/kb/api-manifest.ts` | Published source of API manifests and per-endpoint JSON Schema definitions. Replaces the removed Zod-based codegen pipeline (see git history). The CLI tracks the latest stable release; the caret range in `package.json` is the source of truth for the supported version. There is no local regeneration path. |
 | `ajv` (^6.14.0) | `src/lib/ajv-validate.ts` | Validates command input against the JSON Schema `@elastic/schemas` provides. Pinned to v6 for draft-07 semantics this codebase's error handling depends on; see the `ponytail:` comment in `ajv-validate.ts` before upgrading. |
 
 ## `cli-schema-intent.ts`

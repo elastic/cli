@@ -42,8 +42,8 @@ const GROUP_PRIORITY: Readonly<Record<string, number>> = Object.fromEntries(
 )
 
 /** Applies a help-section heading to a command handle (no-op if already set). */
-function applyHelpGroup (handle: OpaqueCommandHandle, grp: string): OpaqueCommandHandle {
-  handle.helpGroup(grp)
+function applyHelpGroup (handle: OpaqueCommandHandle, group: string): OpaqueCommandHandle {
+  handle.helpGroup(group)
   return handle
 }
 
@@ -223,9 +223,12 @@ async function buildEagerTree (definitions: EsApiDefinition[]): Promise<OpaqueCo
   const rootDefs: EsApiDefinition[] = []
   for (const def of definitions) {
     if (def.namespace !== undefined) {
-      let grp = byNamespace.get(def.namespace)
-      if (grp == null) { grp = []; byNamespace.set(def.namespace, grp) }
-      grp.push(def)
+      let group = byNamespace.get(def.namespace)
+      if (group == null) {
+        group = []
+        byNamespace.set(def.namespace, group)
+      }
+      group.push(def)
     } else {
       rootDefs.push(def)
     }
@@ -303,9 +306,12 @@ async function buildLazyTree (manifest: readonly EsApiMeta[], argv: readonly str
   const rootMetas: EsApiMeta[] = []
   for (const m of manifest) {
     if (m.namespace != null) {
-      let grp = byNamespace.get(m.namespace)
-      if (grp == null) { grp = []; byNamespace.set(m.namespace, grp) }
-      grp.push(m)
+      let group = byNamespace.get(m.namespace)
+      if (group == null) {
+        group = []
+        byNamespace.set(m.namespace, group)
+      }
+      group.push(m)
     } else {
       rootMetas.push(m)
     }

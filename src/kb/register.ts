@@ -96,9 +96,12 @@ export async function registerKbCommandsLazy (
 
   const byNamespace = new Map<string, KbApiMeta[]>()
   for (const m of kbApiManifest) {
-    let grp = byNamespace.get(m.namespace!)
-    if (grp == null) { grp = []; byNamespace.set(m.namespace!, grp) }
-    grp.push(m)
+    let group = byNamespace.get(m.namespace!)
+    if (group == null) {
+      group = []
+      byNamespace.set(m.namespace!, group)
+    }
+    group.push(m)
   }
 
   function leafHandleFor (m: KbApiMeta): OpaqueCommandHandle {
@@ -126,9 +129,12 @@ export function registerKbCommands (definitions: KbApiDefinition[]): OpaqueComma
 
   const byNamespace = new Map<string, KbApiDefinition[]>()
   for (const def of definitions) {
-    let grp = byNamespace.get(def.namespace)
-    if (grp == null) { grp = []; byNamespace.set(def.namespace, grp) }
-    grp.push(def)
+    let group = byNamespace.get(def.namespace)
+    if (group == null) {
+      group = []
+      byNamespace.set(def.namespace, group)
+    }
+    group.push(def)
   }
 
   const namespaceHandles: OpaqueCommandHandle[] = []
