@@ -29,7 +29,9 @@ describe('buildKibanaRequestParams', () => {
     assert.equal(result.multipartFields, undefined)
   })
 
-  it('sends a body field as JSON when it is not named "file"', () => {
+  it('sends a body field named "file" as JSON for a non-multipart endpoint', () => {
+    // Constructed: no real non-multipart definition has a body field named `file`,
+    // so this guards against reintroducing a value-based multipart heuristic.
     const def: KbApiDefinition = {
       name: 'create',
       namespace: 'spaces',
@@ -39,52 +41,51 @@ describe('buildKibanaRequestParams', () => {
       input: {
         type: 'object',
         properties: {
-          name: { type: 'string', 'x-found-in': 'body' },
+          file: { type: 'string', 'x-found-in': 'body' },
         },
       },
     }
-    const result = buildKibanaRequestParams(def, parsed({ name: 'engineering' }))
-    assert.deepEqual(result.body, { name: 'engineering' })
+    const result = buildKibanaRequestParams(def, parsed({ file: 'not-an-upload' }))
+    assert.deepEqual(result.body, { file: 'not-an-upload' })
     assert.equal(result.multipartFields, undefined)
   })
 
-  it('routes a body field named "file" through multipart instead of JSON', () => {
-    const def: KbApiDefinition = {
-      name: 'import',
-      namespace: 'saved-objects',
-      description: 'Import saved objects',
-      method: 'POST',
-      path: '/api/saved_objects/_import',
-      input: {
-        type: 'object',
-        properties: {
-          file: { type: 'string', 'x-found-in': 'body' },
-        },
-      },
-    }
-    const result = buildKibanaRequestParams(def, parsed({ file: 'ndjson-contents' }))
-    assert.deepEqual(result.multipartFields, { file: 'ndjson-contents' })
-    assert.equal(result.body, undefined)
-  })
-
-  it('sends every body field as multipart when a "file" field is present, not just the file', () => {
-    const def: KbApiDefinition = {
-      name: 'resolve-import-errors',
-      namespace: 'saved-objects',
-      description: 'Resolve import errors',
-      method: 'POST',
-      path: '/api/saved_objects/_resolve_import_errors',
-      input: {
-        type: 'object',
-        properties: {
-          file: { type: 'string', 'x-found-in': 'body' },
-          retries: { type: 'string', 'x-found-in': 'body' },
-        },
-      },
-    }
-    const result = buildKibanaRequestParams(def, parsed({ file: 'ndjson-contents', retries: '[{"type":"index-pattern"}]' }))
+  it('sends every body field as multipart for a real multipart definition', async () => {
+    const { loadKbApisInFile } = await import('../../src/kb/apis.ts')
+    const defs = await loadKbApisInFile('post_saved_objects_resolve_import_errors')
+    const def = defs.find((d) => d.name === 'post-saved-objects-resolve-import-errors')
+    assert.ok(def != null, 'expected post-saved-objects-resolve-import-errors to exist')
+    const result = buildKibanaRequestParams(def, parsed({
+      file: 'ndjson-contents',
+      retries: '[{"type":"index-pattern"}]',
+      createNewCopies: true,
+    }))
     assert.deepEqual(result.multipartFields, { file: 'ndjson-contents', retries: '[{"type":"index-pattern"}]' })
     assert.equal(result.body, undefined)
+    assert.deepEqual(result.querystring, { createNewCopies: 'true' })
+  })
+
+  it('every MULTIPART_ENDPOINTS entry matches a real definition', async () => {
+    const { loadAllKbApis } = await import('../../src/kb/apis.ts')
+    const { MULTIPART_ENDPOINTS } = await import('../../src/kb/request-builder.ts')
+    const real = new Set((await loadAllKbApis()).map((d) => `${d.namespace} ${d.name}`))
+    const stale = [...MULTIPART_ENDPOINTS].filter((key) => !real.has(key))
+    assert.deepEqual(stale, [], 'stale multipart endpoint keys')
+  })
+
+  it('upstream schemas still emit no multipart/binary signal (delete MULTIPART_ENDPOINTS when they do)', async () => {
+    const { loadAllKbApis } = await import('../../src/kb/apis.ts')
+    const signals = ['contentMediaType', 'contentEncoding', 'x-content-type', 'x-body-format']
+    const found: string[] = []
+    for (const def of await loadAllKbApis()) {
+      const props = (def.input?.['properties'] ?? {}) as Record<string, Record<string, unknown>>
+      for (const [name, prop] of Object.entries(props)) {
+        const hit = signals.find((key) => prop[key] != null)
+        if (hit != null) found.push(`${def.namespace} ${def.name}.${name}: ${hit}`)
+        if (prop['format'] === 'binary') found.push(`${def.namespace} ${def.name}.${name}: format=binary`)
+      }
+    }
+    assert.deepEqual(found, [], 'upstream now signals request-body encoding; derive multipart from the schema')
   })
 
   it('promotes an "x-body-root" field to be the entire body, for a real definition', async () => {
