@@ -350,6 +350,9 @@ export function defineGroup (config: GroupConfig, ...commands: OpaqueCommandHand
   const group = new Command(config.name)
   group.description(config.description)
   group.allowExcessArguments(true)
+  // Defer unknown option validation until after Commander resolves a child.
+  // Leaf commands still validate their own options during delegated parsing.
+  group.allowUnknownOption(true)
   configureErrorOutput(group)
   configureJsonHelp(group)
 
@@ -363,8 +366,12 @@ export function defineGroup (config: GroupConfig, ...commands: OpaqueCommandHand
 
   // Default action: error on unknown sub-command, show help otherwise
   group.action(function (this: OpaqueCommandHandle) {
-    if (this.args.length > 0) {
-      group.error(`unknown command: ${this.args[0]}`)
+    const firstArg = this.args[0]
+    if (firstArg != null) {
+      if (firstArg.startsWith('-')) {
+        group.error(`unknown option '${firstArg}'`)
+      }
+      group.error(`unknown command: ${firstArg}`)
     } else {
       group.help()
     }

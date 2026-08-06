@@ -334,6 +334,64 @@ describe('elastic CLI -- stack command tree', () => {
   })
 })
 
+describe('elastic CLI -- command and option error ordering', () => {
+  it('reports an unknown subcommand before parsing its trailing options', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-unknown-command-'))
+    await writeFile(join(dir, '.elasticrc.yml'), [
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '',
+    ].join('\n'))
+
+    try {
+      const { code, stderr } = await runCli(
+        ['stack', 'es', 'serch', '--index', 'my-index'],
+        { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } }
+      )
+
+      assert.equal(code, 1)
+      assert.match(stderr, /unknown command: serch/)
+      assert.doesNotMatch(stderr, /unknown option/)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('still reports an unknown option for a valid command', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-unknown-option-'))
+    await writeFile(join(dir, '.elasticrc.yml'), [
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '',
+    ].join('\n'))
+
+    try {
+      const { code, stderr } = await runCli(
+        ['stack', 'es', 'search', '--not-a-real-option'],
+        { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } }
+      )
+
+      assert.equal(code, 1)
+      assert.match(stderr, /unknown option '--not-a-real-option'/)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('reports an unknown option when no subcommand is provided', async () => {
+    const { code, stderr } = await runCli(['sanitize', '--not-a-real-option'])
+
+    assert.equal(code, 1)
+    assert.match(stderr, /unknown option '--not-a-real-option'/)
+  })
+})
+
 describe('elastic CLI -- --help --json', () => {
   it('`elastic --help --json` emits structured JSON help', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-help-json-'))
