@@ -322,6 +322,60 @@ describe('bulk-ingest command', () => {
     assert.ok(body.includes('"a"') && body.includes('"b"') && body.includes('"c"'))
   })
 
+  it('splits a JSON array into separate documents regardless of --source-format (ndjson vs json is decorative)', async () => {
+    const docs = [{ title: 'doc1' }, { title: 'doc2' }]
+
+    for (const sourceFormat of ['ndjson', 'json'] as const) {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
+      writeFileSync(join(tmpDir, 'data.json'), JSON.stringify(docs))
+
+      const { transport, requests } = mockTransport([successResponse(2)])
+
+      await runCommand([
+        '--index', 'test-idx',
+        '--data-file', join(tmpDir, 'data.json'),
+        '--source-format', sourceFormat,
+        '--json'
+      ], makeDeps(transport))
+
+      assert.equal(requests.length, 1)
+      const body = requests[0]!.params.body as string
+      const docLines = body.trim().split('\n').filter((_, i) => i % 2 === 1)
+      assert.deepStrictEqual(
+        docLines.map((l) => JSON.parse(l)),
+        docs,
+        `expected two separate documents with --source-format ${sourceFormat}, not the array as one doc`
+      )
+    }
+  })
+
+  it('parses an NDJSON file the same way whether --source-format is ndjson or json', async () => {
+    const docs = [{ title: 'doc1' }, { title: 'doc2' }]
+
+    for (const sourceFormat of ['ndjson', 'json'] as const) {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
+      writeFileSync(join(tmpDir, 'data.ndjson'), docs.map((d) => JSON.stringify(d)).join('\n') + '\n')
+
+      const { transport, requests } = mockTransport([successResponse(2)])
+
+      await runCommand([
+        '--index', 'test-idx',
+        '--data-file', join(tmpDir, 'data.ndjson'),
+        '--source-format', sourceFormat,
+        '--json'
+      ], makeDeps(transport))
+
+      assert.equal(requests.length, 1)
+      const body = requests[0]!.params.body as string
+      const docLines = body.trim().split('\n').filter((_, i) => i % 2 === 1)
+      assert.deepStrictEqual(
+        docLines.map((l) => JSON.parse(l)),
+        docs,
+        `expected NDJSON to parse the same way with --source-format ${sourceFormat}`
+      )
+    }
+  })
+
   it('correctly splits JSON array elements containing commas and brackets inside strings', async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'bulk-test-'))
     const docs = [
