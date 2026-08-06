@@ -16,12 +16,18 @@ jobs:
         include:
           - os: linux
             runner: ubuntu-latest
-            target: node20-linux-x64
+            target: node24-linuxstatic-x64
             artifact: elastic-linux-x64
+
           - os: macos
             runner: macos-latest
-            target: node20-macos-x64
+            target: node24-macos-x64
             artifact: elastic-macos-x64
+
+          - os: windows
+            runner: windows-latest
+            target: node24-win-x64
+            artifact: elastic-windows-x64
 
     steps:
       - name: Checkout
@@ -38,7 +44,7 @@ jobs:
       - name: Build TypeScript
         run: npm run build
 
-      - name: Bundle to CJS (required for pkg + ESM)
+      - name: Bundle to single file
         run: npm run build:bundle
 
       - name: Package binary with pkg

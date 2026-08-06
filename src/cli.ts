@@ -5,21 +5,12 @@
  */
 
 import { Command } from 'commander'
-import { createRequire } from 'node:module'
+import { renderLogo } from './lib/logo.ts'
 import { hideBlockedCommands, configureJsonHelp, hasGlobalJsonFlag } from './factory-core.js'
 import type { OpaqueCommandHandle } from './factory-core.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './config/profiles.ts'
 import { NAMESPACES } from './namespaces.ts'
 import type { LoadConfigResult } from './config/loader.ts'
-
-// Lazy-loaded modules
-const _require = createRequire(import.meta.url)
-
-let _renderLogo: ((v: string) => string) | null = null
-function getRenderLogo (): (v: string) => string {
-  if (_renderLogo == null) _renderLogo = (_require('./lib/logo.js') as typeof import('./lib/logo.ts')).renderLogo
-  return _renderLogo
-}
 
 // Argv pre-scan (single pass to detect flags, help, and operands)
 const argv = process.argv.slice(2)
@@ -267,7 +258,7 @@ if (firstArg != null && (!willJustPrintHelp || hasProfileFlag)) {
 if (firstArg == null) {
   program.addHelpText('before', () =>
     process.argv.includes('--json') || (earlyConfig?.ok === true && earlyConfig.value.banner === false)
-      ? '' : getRenderLogo()(VERSION).replace(/\n$/, '')
+      ? '' : renderLogo(VERSION).replace(/\n$/, '')
   )
 }
 
