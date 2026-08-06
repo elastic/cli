@@ -22,7 +22,7 @@
  *   The derived entrypoint is validated to sit within the install directory.
  */
 
-import { access, chmod, constants, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { access, chmod, constants, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join, isAbsolute, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -189,12 +189,23 @@ async function discoverGithubEntrypoint (installDir: string, baseName: string): 
   )
 }
 
-/** Asserts the entrypoint path is within the install directory (prevents symlink/config injection). */
-function assertWithinInstallDir (entrypoint: string, installDir: string): void {
-  const rel = entrypoint.startsWith(installDir + '/')
-  if (!rel) {
+/**
+ * Asserts the entrypoint path is within the install directory (prevents symlink/config
+ * injection). `resolve()` alone only normalizes `.`/`..` segments and does not follow
+ * symlinks, so a symlinked entrypoint pointing outside the install directory would pass
+ * a plain string-prefix check while still executing arbitrary code from elsewhere on
+ * disk. Both paths are resolved with `realpath` (which does follow symlinks) before the
+ * comparison so the check reflects what will actually run.
+ */
+async function assertWithinInstallDir (entrypoint: string, installDir: string): Promise<void> {
+  const [realEntrypoint, realInstallDir] = await Promise.all([
+    realpath(entrypoint),
+    realpath(installDir),
+  ])
+  const within = realEntrypoint === realInstallDir || realEntrypoint.startsWith(realInstallDir + '/')
+  if (!within) {
     throw new Error(
-      `Resolved entrypoint "${entrypoint}" is outside the install directory "${installDir}". ` +
+      `Entrypoint "${entrypoint}" resolves to "${realEntrypoint}", which is outside the install directory "${realInstallDir}". ` +
       'Refusing to register this extension.'
     )
   }
@@ -249,7 +260,7 @@ export async function installExtension (source: string): Promise<{ entry: Instal
     entrypoint = found
   }
 
-  assertWithinInstallDir(resolve(entrypoint), resolve(installDir))
+  await assertWithinInstallDir(resolve(entrypoint), resolve(installDir))
 
   const entry: InstalledExtension = {
     name: parsed.name,
@@ -316,6 +327,8 @@ export async function createLocalExtension (name: string, targetPath?: string): 
     }
     entrypoint = defaultEntrypoint
   }
+
+  await assertWithinInstallDir(resolve(entrypoint), resolve(installDir))
 
   const entry: InstalledExtension = {
     name,
