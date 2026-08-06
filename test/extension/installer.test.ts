@@ -14,7 +14,7 @@
 
 import { describe, it, before, after, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { mkdtemp, rm, mkdir, readFile, stat, writeFile, symlink, chmod } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { createLocalExtension, installExtension, uninstallExtension, upgradeExtension, upgradeAllExtensions, _testSetExtensionsDir } from '../../src/extension/installer.ts'
@@ -144,6 +144,41 @@ describe('installer', () => {
 
     it('rejects names with path traversal characters', async () => {
       await assert.rejects(createLocalExtension('../escape'), /invalid characters/)
+    })
+
+    it('rejects a --path entrypoint that is a symlink escaping the install directory (#500)', async () => {
+      const outsideDir = await mkdtemp(join(tmpdir(), 'elastic-outside-'))
+      const payload = join(outsideDir, 'payload.sh')
+      await writeFile(payload, '#!/bin/sh\necho PAYLOAD RAN FROM OUTSIDE\n', { mode: 0o755 })
+      await chmod(payload, 0o755)
+
+      const targetDir = join(tmpDir, 'symlink-escape-ext')
+      await mkdir(targetDir, { recursive: true })
+      await symlink(payload, join(targetDir, 'elastic-symlinktest'))
+
+      await assert.rejects(
+        createLocalExtension('symlinktest', targetDir),
+        /outside the install directory/
+      )
+
+      // Refusing to register also means the store stays empty.
+      assert.deepEqual(await readExtensions(), [])
+
+      await rm(outsideDir, { recursive: true, force: true })
+    })
+
+    it('accepts a --path entrypoint that is a real (non-symlink) file inside the install directory', async () => {
+      const targetDir = join(tmpDir, 'real-entrypoint-ext')
+      await mkdir(targetDir, { recursive: true })
+      const entrypointPath = join(targetDir, 'elastic-realtest')
+      await writeFile(entrypointPath, '#!/bin/sh\necho hi\n', { mode: 0o755 })
+      await chmod(entrypointPath, 0o755)
+
+      const { entry } = await createLocalExtension('realtest', targetDir)
+      assert.equal(entry.entrypoint, entrypointPath)
+      const extensions = await readExtensions()
+      assert.equal(extensions.length, 1)
+      assert.equal(extensions[0]!.entrypoint, entrypointPath)
     })
   })
 
