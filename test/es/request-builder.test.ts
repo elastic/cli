@@ -182,6 +182,32 @@ describe('buildRequestParams', () => {
     assert.equal(result.path, '/idx1,idx2/_search')
   })
 
+  for (const widening of ['', '.', '..']) {
+    it(`rejects a path param of ${JSON.stringify(widening)} instead of silently widening the request scope (#499)`, () => {
+      const input = z.looseObject({ index: z.string().describe('Index').meta({ found_in: 'path' }) })
+      const def = makeDefinition({ path: '/{index}/_search', input })
+      assert.throws(
+        () => buildRequestParams(def, parsedResult({ index: widening }), args(input)),
+        /input_error|\.\.|empty|Invalid path parameter/i
+      )
+      try {
+        buildRequestParams(def, parsedResult({ index: widening }), args(input))
+        assert.fail('expected buildRequestParams to throw')
+      } catch (err) {
+        assert.equal((err as { code?: string }).code, 'input_error')
+      }
+    })
+  }
+
+  it('rejects a widening segment inside a comma-separated multi-target value', () => {
+    const input = z.looseObject({ index: z.string().describe('Index').meta({ found_in: 'path' }) })
+    const def = makeDefinition({ path: '/{index}/_search', input })
+    assert.throws(
+      () => buildRequestParams(def, parsedResult({ index: 'idx1,..' }), args(input)),
+      (err: unknown) => (err as { code?: string }).code === 'input_error'
+    )
+  })
+
   it('promotes "document" field to be the entire body (#95)', () => {
     const input = z.looseObject({
       index: z.string().describe('Index').meta({ found_in: 'path' }),

@@ -132,6 +132,35 @@ describe('createEsHandler', () => {
     assert.match(err['message'] as string, /missing_config/)
   })
 
+  it('returns structured input_error when buildRequestParams throws, without calling getEsClient or the transport', async () => {
+    const getEsClientSpy = spy(() => ({ request: async () => 'unreachable' } as unknown as EsClient))
+    const deps = makeDeps({
+      buildRequestParams: () => {
+        throw Object.assign(new Error('Invalid path parameter ".."'), { code: 'input_error' })
+      },
+      getEsClient: getEsClientSpy,
+    })
+
+    const handler = createEsHandler(makeDef(), [], deps)
+    const result = await handler(parsedInput()) as Record<string, unknown>
+
+    const err = result['error'] as Record<string, unknown>
+    assert.equal(err['code'], 'input_error')
+    assert.match(err['message'] as string, /Invalid path parameter/)
+    assert.equal(getEsClientSpy.calls.length, 0, 'must fail closed before touching the transport')
+  })
+
+  it('rethrows a buildRequestParams error with no input_error code', async () => {
+    const deps = makeDeps({
+      buildRequestParams: () => {
+        throw new Error('unexpected bug')
+      },
+    })
+
+    const handler = createEsHandler(makeDef(), [], deps)
+    await assert.rejects(() => handler(parsedInput()), /unexpected bug/)
+  })
+
   it('returns transport_error with status code and ES body for EsResponseError', async () => {
     const esErrorBody = { error: { type: 'index_not_found_exception', reason: 'no such index' }, status: 404 }
     const responseError = new EsResponseError(404, esErrorBody)
