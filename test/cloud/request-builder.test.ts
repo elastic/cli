@@ -165,6 +165,25 @@ describe('buildCloudRequestParams', () => {
     assert.equal(result.path, '/api/v1/deployments/..%2F..%2F..%2Fsecret%3F%23')
   })
 
+  for (const widening of ['', '.', '..']) {
+    it(`rejects a path param of ${JSON.stringify(widening)} instead of silently widening the request scope (#499)`, () => {
+      const def: CloudApiDefinition = {
+        name: 'get',
+        namespace: 'deployments',
+        description: 'Get deployment',
+        method: 'GET',
+        path: '/api/v1/deployments/{deployment_id}',
+        pathParams: [{ name: 'deployment_id', description: 'ID', required: true }],
+      }
+      try {
+        buildCloudRequestParams(def, parsed({ deployment_id: widening }))
+        assert.fail('expected buildCloudRequestParams to throw')
+      } catch (err) {
+        assert.equal((err as { code?: string }).code, 'input_error')
+      }
+    })
+  }
+
   it('forwards stdin body for POST commands without explicit body schema (#86)', () => {
     const def: CloudApiDefinition = {
       name: 'create-elasticsearch-project',

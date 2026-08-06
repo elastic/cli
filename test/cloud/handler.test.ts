@@ -120,6 +120,33 @@ describe('createCloudHandler', () => {
       error: { code: 'cloud_api_error', message: 'Cloud API error 404: {"errors":[{"message":"not found"}]}' },
     })
   })
+
+  it('returns a structured input_error when buildCloudRequestParams throws, without calling client.request', async () => {
+    const requests: unknown[] = []
+    const handler = createCloudHandler(listDef(), {
+      getCloudClient: () => ({
+        baseUrl: 'https://api.elastic-cloud.com',
+        request: async (...args: unknown[]) => { requests.push(args); return {} },
+        _testSetFetch: () => {},
+      } as unknown as CloudClient),
+      buildCloudRequestParams: () => {
+        throw Object.assign(new Error('Invalid path parameter ".."'), { code: 'input_error' })
+      },
+    })
+    const result = await handler(parsed()) as Record<string, unknown>
+    const err = result['error'] as Record<string, unknown>
+    assert.equal(err['code'], 'input_error')
+    assert.match(err['message'] as string, /Invalid path parameter/)
+    assert.equal(requests.length, 0, 'must fail closed before sending a request')
+  })
+
+  it('rethrows a buildCloudRequestParams error with no input_error code', async () => {
+    const handler = createCloudHandler(listDef(), {
+      getCloudClient: () => stubClient({}),
+      buildCloudRequestParams: () => { throw new Error('unexpected bug') },
+    })
+    await assert.rejects(() => handler(parsed()), /unexpected bug/)
+  })
 })
 
 describe('isCreateProjectCommand', () => {
