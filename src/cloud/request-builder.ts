@@ -37,9 +37,18 @@ export function buildCloudRequestParams(
 
 /**
  * Encodes a single path parameter value, percent-encoding special characters
- * like `/`, `?`, and `#` to prevent path traversal (#106).
+ * like `/`, `?`, and `#` to prevent path traversal (#106). Rejects empty,
+ * `.`, and `..` values, which `encodeURIComponent` leaves untouched and which
+ * a URL-consuming layer would otherwise normalize into the parent/root
+ * resource instead of the intended target.
  */
 function encodePathParam(value: string): string {
+  if (value === '' || value === '.' || value === '..') {
+    throw Object.assign(
+      new Error(`Invalid path parameter "${value}": empty, ".", and ".." values are rejected because they resolve to the parent/root resource instead of a specific target`),
+      { code: 'input_error' }
+    )
+  }
   return encodeURIComponent(value)
 }
 

@@ -48,7 +48,16 @@ export function createCloudHandler(
       return missingConfigError(err)
     }
 
-    const params = deps.buildCloudRequestParams(def, parsed)
+    let params
+    try {
+      params = deps.buildCloudRequestParams(def, parsed)
+    } catch (err) {
+      if ((err as { code?: string }).code === 'input_error') {
+        const message = err instanceof Error ? err.message : String(err)
+        return { error: { code: 'input_error', message } }
+      }
+      throw err
+    }
 
     try {
       const body = await client.request(params)
