@@ -69,13 +69,32 @@ export function buildRequestParams (
  * The schema key is both the `{token}` name in the template and the lookup key in `input`.
  * For optional params that are absent, trailing `/{param}` segments are stripped.
  */
+// `encodeURIComponent` leaves `.` and `..` untouched (they're unreserved), and
+// happily encodes an empty string to `''`. A URL-consuming layer normalizes
+// `/./`, `/../`, and empty segments out of the path afterwards, silently
+// widening a single-target request (e.g. a specific index) to the resource
+// root (e.g. the whole cluster). Reject these before they ever reach a path.
+function assertSafePathSegment (segment: string, original: string): void {
+  if (segment === '' || segment === '.' || segment === '..') {
+    throw Object.assign(
+      new Error(`Invalid path parameter "${original}": empty, ".", and ".." segments are rejected because they resolve to the parent/root resource instead of a specific target`),
+      { code: 'input_error' }
+    )
+  }
+}
+
 /**
  * Encodes a single path parameter value. Splits on commas so ES multi-target
  * syntax (e.g. "idx1,idx2") is preserved, while special characters like `/`,
- * `?`, and `#` are percent-encoded to prevent path traversal (#106).
+ * `?`, and `#` are percent-encoded to prevent path traversal (#106). Rejects
+ * empty, `.`, and `..` segments that would otherwise widen the request scope.
  */
 function encodePathParam (value: string): string {
-  return value.split(',').map((s) => encodeURIComponent(s.trim())).join(',')
+  return value.split(',').map((s) => {
+    const trimmed = s.trim()
+    assertSafePathSegment(trimmed, value)
+    return encodeURIComponent(trimmed)
+  }).join(',')
 }
 
 function interpolatePath (

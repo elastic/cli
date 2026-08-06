@@ -12,6 +12,12 @@ export function missingConfigError (err: unknown): JsonValue {
   return { error: { code: 'missing_config', message } }
 }
 
+/** Builds an `input_error` error payload from a thrown error. */
+export function inputError (err: unknown): JsonValue {
+  const message = err instanceof Error ? err.message : String(err)
+  return { error: { code: 'input_error', message } }
+}
+
 const TLS_HINTS = [
   /SSL routines/i,
   /wrong version number/i,
