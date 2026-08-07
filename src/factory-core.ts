@@ -367,15 +367,17 @@ export function defineGroup (config: GroupConfig, ...commands: OpaqueCommandHand
   // Default action: error on unknown sub-command, show help otherwise
   group.action(function (this: OpaqueCommandHandle) {
     const firstArg = this.args[0]
-    const unknownCommand = firstArg === '--' ? this.args[1] : firstArg
     if (firstArg == null) {
       group.help()
     } else if (firstArg !== '--' && firstArg.startsWith('-')) {
       group.error(`unknown option '${firstArg}'`)
-    } else if (unknownCommand != null) {
-      group.error(`unknown command: ${unknownCommand}`)
     } else {
-      group.help()
+      const command = firstArg === '--' ? this.args[1] : firstArg
+      if (command != null) {
+        group.error(`unknown command: ${command}`)
+      } else {
+        group.help() // Bare '--' with no command following it.
+      }
     }
   })
 
