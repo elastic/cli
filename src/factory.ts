@@ -241,6 +241,21 @@ function parseJsonContent (raw: string, source: string, cmd: OpaqueCommandHandle
   }
 }
 
+/**
+ * Writes to stderr through Commander's `configureOutput().writeErr` channel rather than
+ * calling `process.stderr.write` directly. This is the same channel `cmd.error()` and
+ * tests (via `cmd.configureOutput({ writeErr })`) already use, so error output is never
+ * lost to a global stream patch racing across the CJS/ESM boundary (see #455).
+ *
+ * Note: `writeOut` is intentionally NOT migrated here. {@link configureHelpWithSchema}
+ * already overrides `writeOut` on every command for `--help` truncation, so routing
+ * regular handler output through it would change unrelated write semantics.
+ */
+function writeErr (cmd: OpaqueCommandHandle, str: string): void {
+  const write = cmd.configureOutput().writeErr ?? ((s: string) => process.stderr.write(s))
+  write(str)
+}
+
 function isErrorResult (value: JsonValue): boolean {
   return (
     typeof value === 'object' &&
@@ -535,7 +550,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
       const dotPath = (parts.length > 1 ? parts.slice(1) : parts).join('.')
       if (!isCommandAllowed(dotPath, resolvedConfig.commands)) {
         if (jsonFormat === true) {
-          process.stderr.write(JSON.stringify({
+          writeErr(cmd, JSON.stringify({
             error: {
               code: 'command_blocked',
               message: `command "${dotPath}" is not allowed by the current policy`,
@@ -593,8 +608,7 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
         const { simplifyZodIssues, formatIssuesText } = await import('./lib/zod-error.js')
         const issues = simplifyZodIssues(result.error.issues)
         if (jsonFormat === true) {
-          const writeErr = cmd.configureOutput().writeErr ?? ((s: string) => process.stderr.write(s))
-          writeErr(JSON.stringify({
+          writeErr(cmd, JSON.stringify({
             error: {
               code: 'input_validation_failed',
               message: `Input validation failed with ${issues.length} issue(s)`,
@@ -621,9 +635,9 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
     assert(handlerResult !== undefined, `command ${JSON.stringify(config.name)}: handler must return a JsonValue`)
     if (isErrorResult(handlerResult)) {
       if (jsonFormat === true) {
-        process.stderr.write(JSON.stringify(handlerResult) + '\n')
+        writeErr(cmd, JSON.stringify(handlerResult) + '\n')
       } else {
-        process.stderr.write(`Error: ${formatHandlerError(handlerResult)}\n`)
+        writeErr(cmd, `Error: ${formatHandlerError(handlerResult)}\n`)
       }
       process.exitCode = 1
     } else {
@@ -639,11 +653,11 @@ export function defineCommand<T extends z.ZodType> (config: CommandConfig<T>): O
         } catch (err) {
           if (err instanceof TemplateAgainstPrimitiveError) {
             if (jsonFormat === true) {
-              process.stderr.write(JSON.stringify({
+              writeErr(cmd, JSON.stringify({
                 error: { code: 'output_template_error', message: err.message },
               }) + '\n')
             } else {
-              process.stderr.write(`Error: ${err.message}\n`)
+              writeErr(cmd, `Error: ${err.message}\n`)
             }
             process.exitCode = 1
           } else {
