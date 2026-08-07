@@ -27,7 +27,8 @@ jobs:
 
       - name: Review
         env:
-          LITELLM_API_KEY: ${{ secrets.LITELLM_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_BASE_URL: ${{ secrets.OPENROUTER_BASE_URL }}
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
@@ -50,8 +51,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ -z "${LITELLM_API_KEY:-}" ]; then
-            echo "LITELLM_API_KEY not available, skipping review"
+          if [ -z "${OPENROUTER_API_KEY:-}" ]; then
+            echo "OPENROUTER_API_KEY not available, skipping review"
             exit 0
           fi
 
@@ -62,7 +63,7 @@ jobs:
             --arg diff "$DIFF" \
             --arg system "$SYSTEM_PROMPT" \
             '{
-              model: "llm-gateway/claude-sonnet-4-6",
+              model: "anthropic/claude-sonnet-4.6",
               max_tokens: 1024,
               messages: [
                 {role: "system", content: $system},
@@ -70,10 +71,11 @@ jobs:
               ]
             }' > /tmp/payload.json
 
+          BASE_URL="${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
           RESPONSE=$(curl -sf \
-            -H "Authorization: Bearer ${LITELLM_API_KEY}" \
+            -H "Authorization: Bearer ${OPENROUTER_API_KEY}" \
             -H "Content-Type: application/json" \
-            "https://elastic.litellm-prod.ai/v1/chat/completions" \
+            "${BASE_URL%/}/chat/completions" \
             -d @/tmp/payload.json)
 
           CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty')
