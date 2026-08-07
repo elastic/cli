@@ -22,12 +22,20 @@
  *   The derived entrypoint is validated to sit within the install directory.
  */
 
-import { access, chmod, constants, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises'
+import { access, chmod, constants, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { realpath as realpathCb } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, isAbsolute, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
+import { promisify } from 'node:util'
 import { readExtensions, upsertExtension, findExtension, removeExtension as removeFromStore } from './store.ts'
 import type { InstalledExtension } from './store.ts'
+
+// fs.promises.realpath does not expand Windows 8.3 short names (e.g. `RUNNER~1`),
+// so two paths that are the same directory can resolve to different strings and
+// fail a containment check that should pass. realpath.native calls
+// GetFinalPathNameByHandle on Windows, which does expand them.
+const realpath = promisify(realpathCb.native)
 
 // ---------------------------------------------------------------------------
 // Test seams
