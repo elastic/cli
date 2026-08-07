@@ -46,8 +46,16 @@ jobs:
             without losing functionality. The laziest solution that works
             is the right one.
 
-            Also flag real bugs, missing error handling, logic errors, and
-            security issues.
+            Also flag real bugs, missing error handling, and logic errors.
+
+            Pay close attention to security implications: injection risks
+            (shell, command, path), unsafe handling of user-controlled
+            input in URLs/paths/requests, secret or credential exposure,
+            unsafe deserialization, and permission or auth changes. For
+            GitHub Actions workflow diffs specifically, flag any checkout
+            of untrusted PR refs combined with secrets, unpinned actions,
+            or scripts that interpolate untrusted values directly into a
+            shell command.
 
             Skip style nits. Be concise. If nothing is wrong, say so in
             one line.
@@ -96,7 +104,7 @@ jobs:
 
           BODY="$(printf '%s\n%s' '<!-- ai-pr-review -->' "$CONTENT")"
 
-          gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+          gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" --paginate \
             --jq '.[] | select(.user.login == "github-actions[bot]") | select(.body | startswith("<!-- ai-pr-review -->")) | .id' \
             | xargs -I{} gh api --method DELETE \
               "repos/${{ github.repository }}/issues/comments/{}" 2>/dev/null || true
