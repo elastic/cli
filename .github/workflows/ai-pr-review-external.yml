@@ -75,13 +75,19 @@ jobs:
             }' > /tmp/payload.json
 
           BASE_URL="${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
-          RESPONSE=$(curl -sf \
+          HTTP_STATUS=$(curl -s -o /tmp/response.json -w '%{http_code}' \
             -H "Authorization: Bearer ${OPENROUTER_API_KEY}" \
             -H "Content-Type: application/json" \
             "${BASE_URL%/}/chat/completions" \
             -d @/tmp/payload.json)
 
-          CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty')
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "OpenRouter request failed with HTTP $HTTP_STATUS, skipping review"
+            head -c 500 /tmp/response.json
+            exit 0
+          fi
+
+          CONTENT=$(jq -r '.choices[0].message.content // empty' /tmp/response.json)
 
           if [ -z "$CONTENT" ]; then
             echo "Empty response from model, skipping comment"
