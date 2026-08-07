@@ -6,7 +6,6 @@ on:
 
 permissions:
   pull-requests: write
-  contents: read
 
 jobs:
   review:
@@ -17,13 +16,10 @@ jobs:
     name: AI review
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          fetch-depth: 0
-
       - name: Get diff
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.issue.number }}
         run: |
           gh pr diff "$PR_NUMBER" | head -c 32000 > /tmp/diff.txt
@@ -33,6 +29,7 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENROUTER_BASE_URL: ${{ secrets.OPENROUTER_BASE_URL }}
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.issue.number }}
           PR_TITLE: ${{ github.event.issue.title }}
           SYSTEM_PROMPT: |-
