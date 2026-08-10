@@ -227,6 +227,19 @@ describe('buildRequestParams', () => {
     )
   })
 
+  it('identifies the specific offending segment, not the whole comma-separated value', () => {
+    const input = schema({ index: { type: 'string', description: 'Index', 'x-found-in': 'path' } }, ['index'])
+    const def = makeDefinition({ path: '/{index}/_search', input })
+    try {
+      buildRequestParams(def, parsedResult({ index: 'idx1,..' }), args(input))
+      assert.fail('expected buildRequestParams to throw')
+    } catch (err) {
+      const message = (err as Error).message
+      assert.match(message, /Invalid path parameter "\.\."/)
+      assert.match(message, /within "idx1,\.\."/)
+    }
+  })
+
   it('promotes an "x-body-root" field to be the entire body (#95)', () => {
     const input = schema({
       index: { type: 'string', description: 'Index', 'x-found-in': 'path' },

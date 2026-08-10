@@ -76,8 +76,11 @@ export function buildRequestParams (
 // root (e.g. the whole cluster). Reject these before they ever reach a path.
 function assertSafePathSegment (segment: string, original: string): void {
   if (segment === '' || segment === '.' || segment === '..') {
+    // Identify the offending segment itself in the message, not just the full
+    // (possibly comma-separated) value, so e.g. "idx1,.." points at "..".
+    const context = segment === original ? '' : ` (within "${original}")`
     throw Object.assign(
-      new Error(`Invalid path parameter "${original}": empty, ".", and ".." segments are rejected because they resolve to the parent/root resource instead of a specific target`),
+      new Error(`Invalid path parameter "${segment}"${context}: empty, ".", and ".." segments are rejected because they resolve to the parent/root resource instead of a specific target`),
       { code: 'input_error' }
     )
   }
