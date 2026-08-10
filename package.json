@@ -1,6 +1,6 @@
 {
   "name": "@elastic/cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Interact with the Elastic Stack and Elastic Cloud from the command line.",
   "main": "dist/cli.js",
   "bin": {
@@ -57,7 +57,7 @@
   },
   "dependencies": {
     "@cli-schema/spec": "^0.2.0",
-    "@elastic/config-resolver": "*",
+    "@elastic/config-resolver": "0.1.1",
     "@elastic/schemas": "^0.5.1",
     "ajv": "^6.14.0",
     "cli-table3": "^0.6.5",
