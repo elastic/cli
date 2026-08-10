@@ -31,7 +31,6 @@ jobs:
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
-          cache: npm
 
       - name: Install dependencies
         run: npm ci
@@ -40,18 +39,10 @@ jobs:
         run: npm run build
 
       - name: Bundle to CJS (required for pkg + ESM)
-        run: |
-          npx esbuild dist/cli.js \
-            --bundle \
-            --platform=node \
-            --format=cjs \
-            --outfile=dist/cli.cjs
+        run: npm run build:bundle
 
       - name: Package binary with pkg
-        run: |
-          npx @yao-pkg/pkg dist/cli.cjs \
-            --targets ${{ matrix.target }} \
-            --output ${{ matrix.artifact }}
+        run: npm run build:binary -- --targets ${{ matrix.target }} --output ${{ matrix.artifact }}
 
       - name: Upload binary to release
         uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3
