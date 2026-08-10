@@ -25,7 +25,7 @@
 import { access, chmod, constants, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { realpath as realpathCb } from 'node:fs'
 import { homedir } from 'node:os'
-import { join, isAbsolute, resolve } from 'node:path'
+import { join, isAbsolute, resolve, relative } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { promisify } from 'node:util'
 import { readExtensions, upsertExtension, findExtension, removeExtension as removeFromStore } from './store.ts'
@@ -206,11 +206,27 @@ async function discoverGithubEntrypoint (installDir: string, baseName: string): 
  * comparison so the check reflects what will actually run.
  */
 async function assertWithinInstallDir (entrypoint: string, installDir: string): Promise<void> {
-  const [realEntrypoint, realInstallDir] = await Promise.all([
-    realpath(entrypoint),
-    realpath(installDir),
-  ])
-  const within = realEntrypoint === realInstallDir || realEntrypoint.startsWith(realInstallDir + '/')
+  let realEntrypoint: string
+  let realInstallDir: string
+  try {
+    [realEntrypoint, realInstallDir] = await Promise.all([
+      realpath(entrypoint),
+      realpath(installDir),
+    ])
+  } catch (err) {
+    // Both callers create installDir and write/verify the entrypoint before reaching
+    // this check, so ENOENT here means a caller invariant broke, not a normal outcome.
+    // Surface a clear message instead of letting a raw ENOENT bubble up.
+    const path = (err as NodeJS.ErrnoException).path ?? entrypoint
+    throw new Error(`Cannot verify entrypoint containment: "${path}" does not exist.`, { cause: err })
+  }
+  // Use path.relative rather than a hardcoded "/" separator so this works on
+  // Windows too, where realpath returns backslash-separated paths. A target
+  // is contained when the relative path doesn't escape upward (doesn't start
+  // with "..") and isn't absolute (which relative() returns when the paths
+  // are on different drives on Windows, i.e. no relative path exists).
+  const rel = relative(realInstallDir, realEntrypoint)
+  const within = rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
   if (!within) {
     throw new Error(
       `Entrypoint "${entrypoint}" resolves to "${realEntrypoint}", which is outside the install directory "${realInstallDir}". ` +
