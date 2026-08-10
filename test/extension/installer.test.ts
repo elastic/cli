@@ -148,23 +148,25 @@ describe('installer', () => {
 
     it('rejects a --path entrypoint that is a symlink escaping the install directory (#500)', async () => {
       const outsideDir = await mkdtemp(join(tmpdir(), 'elastic-outside-'))
-      const payload = join(outsideDir, 'payload.sh')
-      await writeFile(payload, '#!/bin/sh\necho PAYLOAD RAN FROM OUTSIDE\n', { mode: 0o755 })
-      await chmod(payload, 0o755)
+      try {
+        const payload = join(outsideDir, 'payload.sh')
+        await writeFile(payload, '#!/bin/sh\necho PAYLOAD RAN FROM OUTSIDE\n', { mode: 0o755 })
+        await chmod(payload, 0o755)
 
-      const targetDir = join(tmpDir, 'symlink-escape-ext')
-      await mkdir(targetDir, { recursive: true })
-      await symlink(payload, join(targetDir, 'elastic-symlinktest'))
+        const targetDir = join(tmpDir, 'symlink-escape-ext')
+        await mkdir(targetDir, { recursive: true })
+        await symlink(payload, join(targetDir, 'elastic-symlinktest'))
 
-      await assert.rejects(
-        createLocalExtension('symlinktest', targetDir),
-        /outside the install directory/
-      )
+        await assert.rejects(
+          createLocalExtension('symlinktest', targetDir),
+          /outside the install directory/
+        )
 
-      // Refusing to register also means the store stays empty.
-      assert.deepEqual(await readExtensions(), [])
-
-      await rm(outsideDir, { recursive: true, force: true })
+        // Refusing to register also means the store stays empty.
+        assert.deepEqual(await readExtensions(), [])
+      } finally {
+        await rm(outsideDir, { recursive: true, force: true })
+      }
     })
 
     it('accepts a --path entrypoint that is a real (non-symlink) file inside the install directory', async () => {
