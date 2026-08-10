@@ -43,7 +43,7 @@ output=$($CLI stack kb connectors post-actions-connector-id \
   --id "$CONNECTOR_UUID" \
   --connector-type-id ".index" \
   --name "CLI FT Index Connector" \
-  --kb-config '{"index":"cli-ft-connector-*"}' \
+  --config '{"index":"cli-ft-connector-*"}' \
   --json 2>/tmp/cli-err.txt) \
   || { echo "FAIL: connectors create — command failed"; cat /tmp/cli-err.txt; exit 1; }
 [ "$(echo "$output" | jq -r '.id')" = "$CONNECTOR_UUID" ] \

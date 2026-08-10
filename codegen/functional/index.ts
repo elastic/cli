@@ -8,7 +8,7 @@ import { join, relative, dirname } from 'node:path'
 import { parseArgs } from 'node:util'
 import { loadAllEsApis } from '../../src/es/apis.ts'
 import { parseTestFile, isServerless } from './parser.ts'
-import { generateScript, generateRunner } from './generator.ts'
+import { generateScript, generateRunner, UnmappedBodyKeyError } from './generator.ts'
 
 const { values } = parseArgs({
   options: {
@@ -50,6 +50,10 @@ const SKIP_ENTERPRISE: Set<string> = new Set([
   'search_application/20_behavioral_analytics.yml',
   // ML preview_datafeed — assertion mismatch (codegen gap)
   'machine_learning/preview_datafeed.yml',
+  // ML datafeed tests use the deprecated `indexes` body-field alias for
+  // ml.put_datafeed; the current schema only declares `indices` (codegen gap)
+  'machine_learning/datafeed_crud.yml',
+  'machine_learning/start_stop_datafeed.yml',
   // ESQL view — /_query/view API does not exist in ES 9.3.0
   'esql/40_view.yml',
   // Enterprise Search connectors — system index write block even with trial license
@@ -68,6 +72,7 @@ let skippedNoActions = 0
 let skippedEnterprise = 0
 const scriptPaths: string[] = []
 const allSkippedActions = new Set<string>()
+const bodyKeyErrors: string[] = []
 
 const allApis = await loadAllEsApis()
 
@@ -93,7 +98,16 @@ for (const yamlFile of yamlFiles) {
     continue
   }
 
-  const result = generateScript(testFile, allApis)
+  let result
+  try {
+    result = generateScript(testFile, allApis)
+  } catch (err) {
+    if (err instanceof UnmappedBodyKeyError) {
+      bodyKeyErrors.push(`${relPath}: ${err.message}`)
+      continue
+    }
+    throw err
+  }
 
   for (const action of result.skippedActions) {
     allSkippedActions.add(action)
@@ -130,3 +144,16 @@ if (allSkippedActions.size > 0) {
 
 console.log(`  Output:                 ${outputDir}/`)
 console.log(`  Runner:                 ${outputDir}/run.sh`)
+
+if (bodyKeyErrors.length > 0) {
+  console.error('')
+  console.error(`=== Unmapped body keys (${bodyKeyErrors.length}) ===`)
+  for (const msg of bodyKeyErrors) {
+    console.error(`  ${msg}`)
+  }
+  console.error('')
+  console.error('These are schema/mapper gaps: a request body key has no corresponding CLI flag.')
+  console.error('Add a mapping in codegen/functional/mapper.ts, fix the upstream schema, or add')
+  console.error('an entry to SKIP_ENTERPRISE with a comment explaining the known gap.')
+  process.exit(1)
+}

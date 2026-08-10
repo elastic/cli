@@ -183,6 +183,28 @@ describe('ServiceBlockSchema', () => {
     assert.equal(result.success, false)
   })
 
+  it('rejects a scheme-only URL that matches ^https?:// but is unparseable', () => {
+    const result = ServiceBlockSchema.safeParse({ url: 'https://', auth: { api_key: 'abc123' } })
+    assert.equal(result.success, false)
+    if (result.success) return
+    assert.deepEqual(result.errors, [{ path: '.url', message: 'must be a valid URL' }])
+  })
+
+  it('names the offending field when a nested context URL is unparseable', () => {
+    const ctx = ContextSchema.safeParse({ kibana: { url: 'http://' } })
+    assert.equal(ctx.success, false)
+    if (ctx.success) return
+    assert.deepEqual(ctx.errors, [{ path: '.kibana.url', message: 'must be a valid URL' }])
+
+    const cfg = ConfigFileSchema.safeParse({
+      'current_context': 'p',
+      contexts: { p: { elasticsearch: { url: 'https://' } } },
+    })
+    assert.equal(cfg.success, false)
+    if (cfg.success) return
+    assert.deepEqual(cfg.errors, [{ path: '.contexts.p.elasticsearch.url', message: 'must be a valid URL' }])
+  })
+
   it('accepts http:// URLs (with warning at runtime)', () => {
     const result = ServiceBlockSchema.safeParse({
       url: 'http://localhost:9200',
@@ -349,6 +371,25 @@ describe('CommandPolicySchema', () => {
   it('rejects profile + allowed (mutually exclusive)', () => {
     const result = CommandPolicySchema.safeParse({ profile: 'serverless', allowed: ['stack.es.*'] })
     assert.equal(result.success, false)
+    if (result.success) return
+    assert.deepEqual(result.errors, [{ path: '', message: '"profile" and "allowed" are mutually exclusive' }])
+  })
+
+  it('reports allowed + blocked as mutually exclusive', () => {
+    const result = CommandPolicySchema.safeParse({ allowed: ['ping'], blocked: ['config.*'] })
+    assert.equal(result.success, false)
+    if (result.success) return
+    assert.deepEqual(result.errors, [{ path: '', message: '"allowed" and "blocked" are mutually exclusive' }])
+  })
+
+  it('reports nested commands mutual exclusion at the commands path', () => {
+    const result = ContextSchema.safeParse({
+      elasticsearch: esBlock,
+      commands: { allowed: ['ping'], blocked: ['config.*'] },
+    })
+    assert.equal(result.success, false)
+    if (result.success) return
+    assert.deepEqual(result.errors, [{ path: '.commands', message: '"allowed" and "blocked" are mutually exclusive' }])
   })
 
   it('rejects an unknown profile name', () => {

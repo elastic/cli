@@ -48,11 +48,11 @@ async function runCommand (args: string[], deps: MsearchDeps): Promise<unknown> 
   const stdoutChunks: string[] = []
   const stderrChunks: string[] = []
   process.stdout.write = ((chunk: string) => {
-    stdoutChunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
+    if (typeof chunk === 'string') stdoutChunks.push(chunk)
     return true
   }) as typeof process.stdout.write
   process.stderr.write = ((chunk: string) => {
-    stderrChunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
+    if (typeof chunk === 'string') stderrChunks.push(chunk)
     return true
   }) as typeof process.stderr.write
 
