@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { z } from 'zod'
 import { createReadStream } from 'node:fs'
 import { createInterface } from 'node:readline'
 import type { Readable } from 'node:stream'
@@ -29,25 +28,45 @@ const defaultDeps: BulkIngestDeps = { getEsClient }
 const SOURCE_FORMATS = ['ndjson', 'json', 'csv'] as const
 type SourceFormat = typeof SOURCE_FORMATS[number]
 
-const inputSchema = z.object({
-  index: z.string().describe('Target index'),
-  data_file: z.string().optional().describe('Path to data file (NDJSON, JSON array, or CSV)'),
-  data_dir: z.string().optional().describe('Path to directory of data files to ingest'),
-  glob: z.string().optional().describe('Glob pattern for --data-dir file matching (default: **/*.json, or **/*.csv when --source-format csv)'),
-  no_recursive: z.boolean().optional().describe('Do not recurse into subdirectories when using --data-dir'),
-  source_format: z.enum(SOURCE_FORMATS).default('ndjson').describe('Input file format: csv, or json-based (ndjson vs json array is auto-detected from content; "ndjson" and "json" behave identically here)'),
-  csv_delimiter: z.string().optional().describe('CSV column delimiter (default: ",")'),
-  csv_columns: z.string().optional().describe('Comma-separated list of column names (overrides CSV header row)'),
-  skip_header: z.boolean().optional().describe('Skip the first row of a CSV file'),
-  flush_bytes: z.number().default(5242880).describe('Batch size threshold in bytes'),
-  concurrency: z.number().default(5).describe('Number of parallel bulk requests'),
-  retries: z.number().default(3).describe('Max retries per failed batch'),
-  retry_delay: z.number().default(1000).describe('Initial retry delay in ms (doubles each attempt)'),
-  pipeline: z.string().optional().describe('Ingest pipeline name'),
-  routing: z.string().optional().describe('Custom routing value'),
-})
+const inputSchema: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    index: { type: 'string', description: 'Target index' },
+    data_file: { type: 'string', description: 'Path to data file (NDJSON, JSON array, or CSV)' },
+    data_dir: { type: 'string', description: 'Path to directory of data files to ingest' },
+    glob: { type: 'string', description: 'Glob pattern for --data-dir file matching (default: **/*.json, or **/*.csv when --source-format csv)' },
+    no_recursive: { type: 'boolean', description: 'Do not recurse into subdirectories when using --data-dir' },
+    source_format: { type: 'string', enum: SOURCE_FORMATS, description: 'Input file format: csv, or json-based (ndjson vs json array is auto-detected from content; "ndjson" and "json" behave identically here)', default: 'ndjson' },
+    csv_delimiter: { type: 'string', description: 'CSV column delimiter (default: ",")' },
+    csv_columns: { type: 'string', description: 'Comma-separated list of column names (overrides CSV header row)' },
+    skip_header: { type: 'boolean', description: 'Skip the first row of a CSV file' },
+    flush_bytes: { type: 'integer', description: 'Batch size threshold in bytes', default: 5242880 },
+    concurrency: { type: 'integer', description: 'Number of parallel bulk requests', default: 5 },
+    retries: { type: 'integer', description: 'Max retries per failed batch', default: 3 },
+    retry_delay: { type: 'integer', description: 'Initial retry delay in ms (doubles each attempt)', default: 1000 },
+    pipeline: { type: 'string', description: 'Ingest pipeline name' },
+    routing: { type: 'string', description: 'Custom routing value' },
+  },
+  required: ['index'],
+}
 
-type BulkIngestInput = z.infer<typeof inputSchema>
+interface BulkIngestInput {
+  index: string
+  data_file?: string
+  data_dir?: string
+  glob?: string
+  no_recursive?: boolean
+  source_format: SourceFormat
+  csv_delimiter?: string
+  csv_columns?: string
+  skip_header?: boolean
+  flush_bytes: number
+  concurrency: number
+  retries: number
+  retry_delay: number
+  pipeline?: string
+  routing?: string
+}
 
 /** Bounded concurrency via a counting semaphore. */
 class Semaphore {
@@ -158,7 +177,7 @@ async function sendBatch (
   ndjsonBody: string,
   index: string
 ): Promise<{ errors: number, total: number }> {
-  const path = index != null ? `/${encodeURIComponent(index)}/_bulk` : '/_bulk'
+  const path = `/${encodeURIComponent(index)}/_bulk`
   const result = await transport.request(
     { method: 'POST', path, body: ndjsonBody, bulkBody: ndjsonBody }
   ) as { errors?: boolean, items?: Array<Record<string, { status?: number }>> }
@@ -167,13 +186,10 @@ async function sendBatch (
   if (result.errors === true && result.items != null) {
     for (const item of result.items) {
       const action = Object.values(item)[0]
-      if (action != null && action.status != null && action.status >= 400) {
-        errorCount++
-      }
+      if (action != null && action.status != null && action.status >= 400) errorCount++
     }
   }
-  const total = result.items?.length ?? 0
-  return { errors: errorCount, total }
+  return { errors: errorCount, total: result.items?.length ?? 0 }
 }
 
 /**
@@ -385,15 +401,11 @@ async function streamBulkIngest (
 }
 
 function createBulkIngestHandler (deps: BulkIngestDeps = defaultDeps) {
-  return async (parsed: { input?: BulkIngestInput; options: Record<string, string | number | boolean> }): Promise<JsonValue> => {
-    const opts = parsed.input!
+  return async (parsed: import("../../factory.ts").ParsedResult): Promise<JsonValue> => {
+    const opts = parsed.input as BulkIngestInput
 
     let transport: EsClient
-    try {
-      transport = deps.getEsClient()
-    } catch (err) {
-      return missingConfigError(err)
-    }
+    try { transport = deps.getEsClient() } catch (err) { return missingConfigError(err) }
 
     const reporter = new ProgressReporter()
 
@@ -437,17 +449,14 @@ export function createBulkIngestCommand (deps?: BulkIngestDeps): OpaqueCommandHa
     formatOutput: (result) => {
       const r = result as Record<string, unknown>
       if (r.error != null) return JSON.stringify(result, null, 2) + '\n'
-      const lines = [
+      return [
         `Total:     ${r.total}`,
         `Succeeded: ${r.succeeded}`,
         `Failed:    ${r.failed}`,
         `Retries:   ${r.retries}`,
         `Elapsed:   ${r.elapsed_ms}ms`,
-      ]
-      if (r.files_processed != null) {
-        lines.push(`Files:     ${r.files_processed}`)
-      }
-      return lines.join('\n') + '\n'
+        ...(r.files_processed != null ? [`Files:     ${r.files_processed}`] : []),
+      ].join('\n') + '\n'
     }
   })
 }

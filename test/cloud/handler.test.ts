@@ -207,3 +207,16 @@ describe('--wait polling (#91)', () => {
     assert.ok(result.error.message.includes('Timed out'))
   })
 })
+
+describe('createCloudHandler request-building errors (BUG C regression)', () => {
+  it('returns an invalid_request error naming the missing param when buildCloudRequestParams throws', async () => {
+    const handler = createCloudHandler(listDef(), {
+      getCloudClient: () => stubClient({}),
+      buildCloudRequestParams: () => { throw new Error('missing required path parameter "deployment_id"') },
+    })
+    const result = await handler(parsed())
+    assert.deepEqual(result, {
+      error: { code: 'invalid_request', message: 'missing required path parameter "deployment_id"' },
+    })
+  })
+})

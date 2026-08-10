@@ -22,7 +22,9 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-    "removeComments": true
+    "removeComments": true,
+    "incremental": true,
+    "composite": false
   },
   "include": [
     "src/**/*"
@@ -30,9 +32,6 @@
   "references": [
     {
       "path": "./packages/config-resolver"
-    },
-    {
-      "path": "./packages/es-schemas"
     }
   ]
 }

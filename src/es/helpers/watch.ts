@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { z } from 'zod'
 import type { EsClient } from '../../lib/es-client.ts'
 import { defineCommand } from '../../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../../factory.ts'
@@ -42,16 +41,31 @@ const defaultDeps: WatchDeps = {
   offSignal: (signal, handler) => process.off(signal, handler),
 }
 
-const inputSchema = z.object({
-  index: z.string().describe('Index or data stream to watch'),
-  query: z.string().optional().describe('Query DSL clause as JSON (wrapped under "query"), e.g. \'{"match":{"log.level":"error"}}\''),
-  query_file: z.string().optional().describe('Path to a file containing the full search body JSON'),
-  sort_field: z.string().default('@timestamp').describe('Field to use for ordering and detecting new documents'),
-  poll_interval: z.number().default(5000).describe('Polling interval in milliseconds'),
-  from: z.string().optional().describe('ISO 8601 timestamp to start from (e.g. "2024-01-01T00:00:00Z"). Defaults to the most recent document.'),
-  size: z.number().default(100).describe('Maximum documents to fetch per poll'),
-  format: z.string().optional().describe('Output template with {field} placeholders, e.g. "{@timestamp} {message}". Omit for NDJSON (_source as JSON).'),
-})
+const inputSchema: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    index: { type: 'string', description: 'Index or data stream to watch' },
+    query: { type: 'string', description: "Query DSL clause as JSON (wrapped under \"query\"), e.g. '{\"match\":{\"log.level\":\"error\"}}'" },
+    query_file: { type: 'string', description: 'Path to a file containing the full search body JSON' },
+    sort_field: { type: 'string', description: 'Field to use for ordering and detecting new documents', default: '@timestamp' },
+    poll_interval: { type: 'integer', description: 'Polling interval in milliseconds', default: 5000 },
+    from: { type: 'string', description: 'ISO 8601 timestamp to start from (e.g. "2024-01-01T00:00:00Z"). Defaults to the most recent document.' },
+    size: { type: 'integer', description: 'Maximum documents to fetch per poll', default: 100 },
+    format: { type: 'string', description: 'Output template with {field} placeholders, e.g. "{@timestamp} {message}". Omit for NDJSON (_source as JSON).' },
+  },
+  required: ['index'],
+}
+
+interface WatchInput {
+  index: string
+  query?: string
+  query_file?: string
+  sort_field: string
+  poll_interval: number
+  from?: string
+  size: number
+  format?: string
+}
 
 /** Resolves a dotted field path against an object, e.g. "log.level" → obj.log.level. */
 function getNestedField (obj: Record<string, unknown>, path: string): unknown {
@@ -107,16 +121,14 @@ function buildSearchBody (
     size,
   }
 
-  if (searchAfter != null) {
-    body.search_after = searchAfter
-  }
+  if (searchAfter != null) body.search_after = searchAfter
 
   return body
 }
 
 function createWatchHandler (deps: WatchDeps = defaultDeps) {
-  return async (parsed: { input?: z.infer<typeof inputSchema>; options: Record<string, string | number | boolean> }): Promise<JsonValue> => {
-    const { index, query, query_file, sort_field, poll_interval, from, size, format } = parsed.input!
+  return async (parsed: import("../../factory.ts").ParsedResult): Promise<JsonValue> => {
+    const { index, query, query_file, sort_field, poll_interval, from, size, format } = (parsed.input as WatchInput)
 
     let transport: EsClient
     try {
@@ -137,16 +149,10 @@ function createWatchHandler (deps: WatchDeps = defaultDeps) {
         }
       }
     } catch (err) {
-      return {
-        error: {
-          code: 'input_error',
-          message: `Failed to parse query: ${err instanceof Error ? err.message : String(err)}`,
-        },
-      }
+      return { error: { code: 'input_error', message: `Failed to parse query: ${err instanceof Error ? err.message : String(err)}` } }
     }
 
     const encodedIndex = encodeURIComponent(index)
-
     // Determine the starting cursor.
     //   --from <ts>  → range-filter on the first request, then switch to search_after.
     //   (default)    → find the most recent document and use its sort values as the cursor.
@@ -162,11 +168,7 @@ function createWatchHandler (deps: WatchDeps = defaultDeps) {
         const anchorResult = await transport.request<SearchResponse>({
           method: 'POST',
           path: `/${encodedIndex}/_search`,
-          body: {
-            ...baseQueryBody,
-            sort: [{ [sort_field]: 'desc' }, { _id: 'desc' }],
-            size: 1,
-          },
+          body: { ...baseQueryBody, sort: [{ [sort_field]: 'desc' }, { _id: 'desc' }], size: 1 },
         })
         const lastHit = anchorResult.hits?.hits?.[0]
         if (lastHit?.sort != null) {
@@ -193,12 +195,7 @@ function createWatchHandler (deps: WatchDeps = defaultDeps) {
       while (running) {
         try {
           const body = buildSearchBody(baseQueryBody, sort_field, size, searchAfter, fromTimestamp)
-          const result = await transport.request<SearchResponse>({
-            method: 'POST',
-            path: `/${encodedIndex}/_search`,
-            body,
-          })
-
+          const result = await transport.request<SearchResponse>({ method: 'POST', path: `/${encodedIndex}/_search`, body })
           const hits = result.hits?.hits ?? []
 
           for (const hit of hits) {
@@ -220,9 +217,7 @@ function createWatchHandler (deps: WatchDeps = defaultDeps) {
           }
 
           // If we got a full page there may be more waiting — skip the sleep and poll again.
-          if (running && hits.length < size) {
-            await deps.sleep(poll_interval)
-          }
+          if (running && hits.length < size) await deps.sleep(poll_interval)
         } catch (err) {
           if (!running) break
           deps.stderr.write(`Poll error: ${err instanceof Error ? err.message : String(err)}\n`)
