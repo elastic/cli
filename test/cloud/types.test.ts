@@ -8,13 +8,14 @@ import assert from 'node:assert/strict'
 import { validateCloudApiDefinition } from '../../src/cloud/types.ts'
 import type { CloudApiDefinition } from '../../src/cloud/types.ts'
 
-function validDef(overrides: Partial<CloudApiDefinition> = {}): CloudApiDefinition {
+function validDef (overrides: Partial<CloudApiDefinition> = {}): CloudApiDefinition {
   return {
     name: 'list',
     namespace: 'deployments',
     description: 'List all deployments',
     method: 'GET',
     path: '/api/v1/deployments',
+    destructive: false,
     ...overrides,
   }
 }
@@ -25,17 +26,24 @@ describe('validateCloudApiDefinition', () => {
       assert.doesNotThrow(() => validateCloudApiDefinition(validDef()))
     })
 
-    it('accepts a definition with path params', () => {
+    it('accepts a definition with path params in input', () => {
       assert.doesNotThrow(() => validateCloudApiDefinition(validDef({
         name: 'get',
         path: '/api/v1/deployments/{deployment_id}',
-        pathParams: [{ name: 'deployment_id', description: 'Deployment ID', required: true }],
+        input: {
+          type: 'object',
+          properties: { deployment_id: { type: 'string', description: 'Deployment ID', 'x-found-in': 'path' } },
+          required: ['deployment_id'],
+        },
       })))
     })
 
-    it('accepts a definition with query params', () => {
+    it('accepts a definition with query params in input', () => {
       assert.doesNotThrow(() => validateCloudApiDefinition(validDef({
-        queryParams: [{ name: 'show_metadata', type: 'boolean', description: 'Include metadata' }],
+        input: {
+          type: 'object',
+          properties: { show_metadata: { type: 'boolean', description: 'Include metadata', 'x-found-in': 'query' } },
+        },
       })))
     })
   })
@@ -75,36 +83,22 @@ describe('validateCloudApiDefinition', () => {
   })
 
   describe('path param validation', () => {
-    it('rejects path token without matching pathParam', () => {
+    it('rejects path token without matching x-found-in:path property', () => {
       assert.throws(() => validateCloudApiDefinition(validDef({
         path: '/api/v1/deployments/{id}',
-        pathParams: [],
-      })), /not defined in pathParams/)
+        input: { type: 'object', properties: {} },
+      })), /not defined in input\.properties/)
     })
 
-    it('rejects required pathParam missing from path template', () => {
+    it('rejects if required path param is missing from path template', () => {
       assert.throws(() => validateCloudApiDefinition(validDef({
         path: '/api/v1/deployments',
-        pathParams: [{ name: 'id', description: 'ID', required: true }],
+        input: {
+          type: 'object',
+          properties: { id: { type: 'string', description: 'ID', 'x-found-in': 'path' } },
+          required: ['id'],
+        },
       })), /not in path template/)
-    })
-  })
-
-  describe('schema key collision detection', () => {
-    it('rejects duplicate keys across path and query params', () => {
-      assert.throws(() => validateCloudApiDefinition(validDef({
-        path: '/api/v1/{name}',
-        pathParams: [{ name: 'name', description: 'Name', required: true }],
-        queryParams: [{ name: 'name', type: 'string', description: 'Also name' }],
-      })), /collision/)
-    })
-
-    it('uses cliFlag for query param collision check when present', () => {
-      assert.doesNotThrow(() => validateCloudApiDefinition(validDef({
-        path: '/api/v1/{name}',
-        pathParams: [{ name: 'name', description: 'Name', required: true }],
-        queryParams: [{ name: 'name', cliFlag: 'query-name', type: 'string', description: 'Also name' }],
-      })))
     })
   })
 })

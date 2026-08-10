@@ -9,295 +9,6 @@ Third-party software notices and licenses
 ========================================================================
 
 ------------------------------------------------------------------------
-@cli-schema/commander@0.2.0
-License: MIT
-Repository: https://github.com/cli-schema/cli-schema-js
-------------------------------------------------------------------------
-
-# @cli-schema/commander
-
-Generates a [CLI Schema](https://github.com/cli-schema/cli-schema) document from a live
-[Commander](https://github.com/tj/commander.js) command tree — dynamically. There's no
-registration list to keep in sync: point it at your `program` and it walks the real commands,
-options, and positionals you already built.
-
-Part of the [`cli-schema-js`](https://github.com/cli-schema/cli-schema-js) monorepo.
-
-## Quickstart
-
-```sh
-npm install @cli-schema/commander commander
-```
-
-```ts
-import { Command } from 'commander'
-import { buildCliSchema } from '@cli-schema/commander'
-
-const program = new Command('mytool')
-program.command('search').description('Search an index').argument('<query>')
-
-const schema = buildCliSchema(program, { name: 'mytool', version: '1.0.0' })
-console.log(JSON.stringify(schema, null, 2))
-```
-
-That's a valid CLI Schema document already — `name`, `version`, and `commands` are discovered
-automatically. Everything below is about enriching it.
-
-## Purpose
-
-Commander already knows your command tree — names, descriptions, options, positionals, aliases.
-What it *doesn't* know is the extra layer CLI Schema adds on top for agent/tooling consumption:
-side-effect intent (is this destructive? does it need confirmation?), richer parameter typing
-than Commander's own model (enums, array element types, range constraints), and structured
-metadata like tags or deprecation notices.
-
-`@cli-schema/commander` bridges that gap. It reads everything Commander already exposes
-dynamically, and gives you two ways — a fluent one and a functional one — to attach the parts
-Commander has no concept of.
-
-## Features
-
-- **Dynamic discovery, not registration** — `buildCliSchema(root, options)` walks `root.commands`
-  recursively. Options and positionals come straight from Commander's own `cmd.options` /
-  `cmd.registeredArguments`. There's nothing to forget to register.
-- **Two equivalent ways to attach `.intent()` / `.input()` / `.cliMeta()`:**
-  - **Fluent**, via an opt-in `Command.prototype` augmentation:
-    ```ts
-    import '@cli-schema/commander/augment'
-    ```
-  - **Functional**, with no prototype patching at all:
-    ```ts
-    import { attachIntent, attachInput, attachCliMeta } from '@cli-schema/commander'
-    ```
-  `buildCliSchema` reads either form identically — pick whichever fits your codebase, or mix
-  them.
-- **Zod input schemas become extra parameters automatically.** Attach a schema with `.input()` /
-  `attachInput()`; `buildCliSchema` derives parameters for it via
-  [`@cli-schema/zod`](https://www.npmjs.com/package/@cli-schema/zod) (types, enums, array element
-  types, validation constraints). When a schema field's flag name already matches a real
-  Commander option, the two are **reconciled**, not one discarding the other — see
-  [Reconciling Commander and schema detail](#reconciling-commander-and-schema-detail).
-- **Flag-role heuristics, overridable.** `--dry-run` is classified `role: "dryRun"` and
-  `--yes`/`--force`/`--confirm`/`--no-input`/`--non-interactive` as `role: "confirmationSkip"` by
-  default (spec §6.1) — pass `classifyRole` to change the rule.
-- **Automatic option hoisting.** Flags common to every command in a namespace are promoted to
-  that namespace's `options`; flags common across *every* namespace and root command are promoted
-  further to the document's `globalOptions`. You don't repeat `--json` on every single command in
-  the emitted document just because every command in your CLI happens to support it.
-- **Reconciling Commander and schema detail is a hook, not a fixed rule.** `mergeParameter`
-  (default: schema wins on richness, Commander wins on `role`/`shortName`/`hidden`),
-  `enrichSchemaArg`, and `postProcessInputParameter` let you tune or fully override how the two
-  sources combine for a given flag — see
-  [Reconciling Commander and schema detail](#reconciling-commander-and-schema-detail).
-- **Hidden commands respected.** Commands registered with Commander's own
-  `{ hidden: true }` (via `.command()`/`.addCommand()`) are excluded from the document.
-- **`registerZodOptions`** — an opt-in convenience for quick CLIs: derives and registers basic
-  Commander options directly from a Zod schema, so you don't hand-write `.option()` calls at all.
-- **Spec-conformant, lenient output.** Empty `commands`/`namespaces`/`globalOptions` are omitted
-  rather than emitted as empty arrays, matching the specification's lenient root object.
-
-## Usage
-
-### Attaching intent (fluent)
-
-```ts
-import '@cli-schema/commander/augment'
-import { Command } from 'commander'
-
-const del = new Command('delete')
-  .description('Delete a document')
-  .argument('<id>')
-  .intent({ destructive: true, idempotent: true, scope: 'global', requiresConfirmation: true })
-```
-
-### Attaching intent (functional — no prototype patching)
-
-```ts
-import { Command } from 'commander'
-import { attachIntent } from '@cli-schema/commander'
-
-const del = new Command('delete').description('Delete a document').argument('<id>')
-attachIntent(del, { destructive: true, idempotent: true, scope: 'global', requiresConfirmation: true })
-```
-
-### Deriving parameters from a Zod input schema
-
-```ts
-import { z } from 'zod'
-import { Command } from 'commander'
-import '@cli-schema/commander/augment'
-import { buildCliSchema } from '@cli-schema/commander'
-
-const search = new Command('search')
-  .description('Search an index')
-  .input(z.object({
-    q: z.string().describe('Query string'),
-    size: z.number().default(10).describe('Number of results'),
-  }))
-
-const program = new Command('mytool').addCommand(search)
-const schema = buildCliSchema(program, { name: 'mytool', version: '1.0.0' })
-// schema.commands[0].parameters includes `q` and `size`, with types/descriptions/defaults
-// derived straight from the Zod schema — even though neither was ever registered as a real
-// Commander `.option()`.
-```
-
-If you *do* want real, working `--q`/`--size` flags, register them yourself with `.option()`, or
-use `registerZodOptions` for the simple case:
-
-```ts
-import { registerZodOptions } from '@cli-schema/commander'
-
-registerZodOptions(search, z.object({ q: z.string(), size: z.number().default(10) }))
-// search now has real --q <value> and --size <value> options.
-```
-
-### Reconciling Commander and schema detail
-
-If a schema field's flag name matches a real Commander option, `buildCliSchema` doesn't have to
-choose one source and throw the other away — it **merges** them, by default preferring the
-schema's richer detail (`type`, `required`, `defaultValue`, `enumValues`, `elementType`,
-`validations`, `repeatable`, `summary`) while keeping `role`, `shortName`, and `hidden` from the
-real Commander `Option`, since a Zod schema has no concept of any of those.
-
-Why this needs to be a decision at all, rather than always trusting Commander: some CLIs register
-every option on Commander as merely *optional*, with no default, and enforce `required`/defaults/
-enum membership/ranges purely through the Zod schema at parse time — often because a value can
-arrive through more than one channel (a flag, a JSON file, stdin), and Commander can only ever
-validate the flag form. In that shape, Commander's own `Option` is an inaccurate, impoverished
-view of the real contract; the schema is the source of truth for everything except the raw
-flag/alias/hidden surface. Other CLIs pass accurate `required`/defaults to Commander directly and
-only reach for a schema to layer JSON-Schema detail (enums, ranges) on top — there, the existing
-option's `required`/`default` might be just as trustworthy as the schema's.
-
-Because which side is authoritative depends on how your CLI is built, this is exposed as a hook —
-`mergeParameter` — rather than a fixed rule or a `merge`/`replace` toggle:
-
-```ts
-buildCliSchema(program, {
-  name: 'mytool',
-  version: '1.0.0',
-  // Trust Commander over the schema when both describe the same flag:
-  mergeParameter: (commanderParam, schemaParam) => commanderParam ?? schemaParam,
-})
-```
-
-The default behaves as if you'd written
-`mergeParameter: (commanderParam, schemaParam) => commanderParam == null ? schemaParam : { ...schemaParam, role: commanderParam.role, shortName: commanderParam.shortName, hidden: commanderParam.hidden }`.
-
-Two more hooks round this out:
-- `enrichSchemaArg?: (field, base) => Record<string, unknown>` — threaded to `@cli-schema/zod`'s
-  own `extractSchemaArgs` `enrich` option, for attaching your own metadata (e.g. HTTP-transport
-  routing) to a schema arg before it becomes a parameter.
-- `postProcessInputParameter?: (param, arg) => Parameter` — runs after `mergeParameter`, so you
-  can add fields this package has no business knowing about — e.g. a `separator` that only
-  applies to array-accepting fields your framework routes into a JSON body:
-  ```ts
-  buildCliSchema(program, {
-    name: 'mytool',
-    version: '1.0.0',
-    enrichSchemaArg: (field) => ({ foundIn: field.meta()?.found_in }),
-    postProcessInputParameter: (param, arg) =>
-      arg.acceptsArrayForm && (arg as { foundIn?: string }).foundIn === 'body'
-        ? { ...param, separator: ',' }
-        : param,
-  })
-  ```
-
-### Extra metadata (`notes`, `tags`, `output`, ...)
-
-Anything the spec's [Command Object](https://github.com/cli-schema/cli-schema/blob/main/spec/v1/README.md#7-command-object)
-defines that Commander has no concept of — `notes`, `usage`, `examples`, `tags`, `deprecated`,
-`output`, `streaming`, `longRunning` — goes through `.cliMeta()` / `attachCliMeta()`:
-
-```ts
-del.cliMeta({
-  tags: ['dangerous'],
-  deprecated: { message: 'Use `purge` instead', since: '2.0.0' },
-})
-```
-
-### Building the full document
-
-```ts
-import { buildCliSchema } from '@cli-schema/commander'
-
-const schema = buildCliSchema(program, {
-  name: 'mytool',
-  version: '1.4.2',
-  description: 'An example CLI',
-  environment: {
-    variables: [{ name: 'MYTOOL_TOKEN', required: false, description: 'API token' }],
-    configFiles: [{ path: '~/.mytoolrc.yml', required: false }],
-  },
-  reservedMetaCommands: ['__schema'],
-  // Namespaces/commands NOT in this set default to intent.requiresAuth: true, unless a command
-  // explicitly sets its own requiresAuth via .intent()/attachIntent().
-  noContextNames: new Set(['config', 'help']),
-})
-```
-
-### Wiring up spec discovery (`__schema`)
-
-The spec recommends implementations respond to a single `__schema` argument by printing the
-document to stdout (spec §4.1). A minimal wiring:
-
-```ts
-program
-  .command('__schema', { hidden: true })
-  .description('Emit the CLI structure as JSON')
-  .action(() => {
-    console.log(JSON.stringify(buildCliSchema(program, { name: 'mytool', version: '1.4.2' }), null, 2))
-  })
-```
-
-Registering it as `hidden` keeps it out of your own `--help` output while still being
-discoverable by anything that knows to run `mytool __schema`.
-
-### Custom role classification
-
-```ts
-buildCliSchema(program, {
-  name: 'mytool',
-  version: '1.0.0',
-  classifyRole: (longName) => (longName === 'nuke' ? 'confirmationSkip' : 'flag'),
-})
-```
-
-### When the tree you're walking isn't the program with your real global options
-
-If your CLI lazy-loads its command tree for startup performance — only building the invoked
-subtree, leaving everything else as empty stub commands — you can't hand `buildCliSchema` the
-real `program` directly; it would see mostly stubs. The usual fix is to assemble a synthetic root
-purely for schema generation, eager-loading every command onto it. That synthetic root has no
-options of its own, even though your real program's global flags (`--json`, etc.) should still
-show up in `globalOptions`. Point `globalOptionsSource` at wherever those really live instead of
-copying them onto the synthetic root by hand:
-
-```ts
-const schemaRoot = new Command('mytool')
-// ... eager-load every namespace onto schemaRoot ...
-
-buildCliSchema(schemaRoot, {
-  name: 'mytool',
-  version: '1.0.0',
-  globalOptionsSource: program.options, // the real, lazily-populated program
-})
-```
-
-Defaults to `root.options` — most callers (a CLI that isn't lazy-loading) never need this.
-
-## Related packages
-
-- [`@cli-schema/spec`](https://www.npmjs.com/package/@cli-schema/spec) — the `CliSchema`/`Intent`/`Parameter` types this package produces, plus a validator to check the result
-- [`@cli-schema/zod`](https://www.npmjs.com/package/@cli-schema/zod) — the Zod-schema introspection this package uses for `.input()`-derived parameters
-
-## License
-
-MIT
-
-
-------------------------------------------------------------------------
 @cli-schema/spec@0.2.0
 License: MIT
 Repository: https://github.com/cli-schema/cli-schema-js
@@ -455,197 +166,6 @@ MIT
 
 
 ------------------------------------------------------------------------
-@cli-schema/zod@0.2.0
-License: MIT
-Repository: https://github.com/cli-schema/cli-schema-js
-------------------------------------------------------------------------
-
-# @cli-schema/zod
-
-Derives [CLI Schema](https://github.com/cli-schema/cli-schema) parameter definitions from
-[Zod](https://zod.dev) schemas — types, requiredness, defaults, descriptions, and JSON-Schema
-validation constraints, all read directly off the schema you already wrote for validation.
-
-Part of the [`cli-schema-js`](https://github.com/cli-schema/cli-schema-js) monorepo. Framework-
-agnostic: it doesn't know about Commander, yargs, or any other CLI library — it only knows Zod
-in, structured parameter data out. [`@cli-schema/commander`](https://www.npmjs.com/package/@cli-schema/commander)
-builds on top of it.
-
-## Quickstart
-
-```sh
-npm install @cli-schema/zod zod
-```
-
-```ts
-import { z } from 'zod'
-import { extractSchemaArgs } from '@cli-schema/zod'
-
-const SearchInput = z.object({
-  index: z.string().describe('Index to search'),
-  size: z.number().default(10).describe('Number of results'),
-})
-
-extractSchemaArgs(SearchInput)
-// [
-//   { schemaKey: 'index', cliFlag: 'index', type: 'string', required: true,  description: 'Index to search' },
-//   { schemaKey: 'size',  cliFlag: 'size',  type: 'number', required: false, description: 'Number of results', defaultValue: 10 },
-// ]
-```
-
-That's the core of it: one Zod object schema in, one CLI parameter definition per top-level key
-out.
-
-## Purpose
-
-If your CLI already validates its input with Zod, that schema *is* a complete, precise
-description of every flag the command accepts — type, requiredness, default, description,
-enum/range/length constraints. Re-describing all of that by hand for help text, documentation, or
-a CLI Schema document is duplicated, drifting work. `@cli-schema/zod` reads it back out.
-
-It deliberately knows nothing about any particular CLI's own conventions (routing metadata,
-custom parsing hints, reserved flag names) — those vary per project, so they're exposed as
-extension points (`enrich`, a `reserved` list) rather than baked in.
-
-## Features
-
-- **`extractSchemaArgs`** — the main entry point. Walks a `z.object()`'s top-level shape and
-  returns one `SchemaArgDefinition` per key:
-  - **Type inference** across `string`, `number`, `integer` (zod's `z.int()`), `boolean`,
-    `object`, `array`, `enum` — including through `.optional()`, `.default()`, `z.lazy()`,
-    `z.union()` (first member wins), `z.record()`/`z.any()`/`z.unknown()` (→ `object`).
-  - **Kebab-case flag names** derived from the schema key (`toKebabCase`) — handles
-    `snake_case`, `camelCase`, and strips leading underscores (`_source` → `source`).
-  - **Requiredness and defaults** — a field is required only if it's neither optional nor
-    defaulted; `defaultValue` is read straight off `.default(...)`.
-  - **Descriptions** from `.describe()` / `.meta({ description })`.
-  - **`acceptsArrayForm`** detection for the `union(T, array(T))` pattern — a common way to let a
-    field accept either a single value or a collection while keeping the type inference on the
-    scalar branch for CLI ergonomics.
-  - **An `enrich` hook** so your own framework can attach extra fields (routing metadata, parse
-    hints, anything) without this package needing to know what they mean.
-- **`validateSchemaArgs`** — fail-fast collision detection: throws if two schema keys would
-  produce the same CLI flag, or if a flag collides with your CLI's reserved names.
-- **`buildFlagKeyMap`** — a bidirectional `cliFlag` ↔ `schemaKey` map, for merging parsed CLI
-  flags back into the shape your Zod schema expects.
-- **JSON-Schema-derived enrichment** (`zodToJsonSchema`, `extractEnumValues`,
-  `extractElementType`, `extractValidations`) — for the detail `extractSchemaArgs` alone can't
-  carry (enum values, array element types, range/length/regex/email/url constraints), reusing
-  Zod's own `toJSONSchema()` rather than re-implementing schema introspection.
-- **`readMetaField` / `walkWrapperChain`** — the low-level primitives the above are built on,
-  exported for CLIs that need their own custom extraction (e.g. a `found_in` routing tag, or a
-  named-shape check like "is this schema tagged `Sort` anywhere in its wrapper chain").
-
-## Usage
-
-### Basic extraction
-
-```ts
-import { z } from 'zod'
-import { extractSchemaArgs } from '@cli-schema/zod'
-
-const args = extractSchemaArgs(z.object({
-  numShards: z.number().min(1).max(100),
-  level: z.enum(['low', 'medium', 'high']).default('medium'),
-  tags: z.array(z.string()).optional(),
-}))
-
-args.map((a) => a.cliFlag) // ['num-shards', 'level', 'tags']
-```
-
-### Attaching framework-specific extras with `enrich`
-
-Say your CLI routes some fields to an HTTP path/query/body via `.meta({ found_in: '...' })`.
-Rather than this package hardcoding that convention, thread it through `enrich`:
-
-```ts
-import { z } from 'zod'
-import { extractSchemaArgs, type SchemaArgDefinition } from '@cli-schema/zod'
-
-interface MyExtras {
-  foundIn?: 'path' | 'query' | 'body'
-}
-
-const schema = z.object({
-  index: z.string().meta({ found_in: 'path' }),
-  q: z.string().optional().meta({ found_in: 'query' }),
-})
-
-const args: Array<SchemaArgDefinition & MyExtras> = extractSchemaArgs(schema, {
-  enrich: (field, base) => {
-    const foundIn = (field.meta() as Record<string, unknown> | undefined)?.['found_in']
-    return foundIn != null ? { foundIn } : {}
-  },
-})
-```
-
-### Validating for flag collisions
-
-```ts
-import { validateSchemaArgs } from '@cli-schema/zod'
-
-// throws: "help" collides with a name your CLI already uses for --help
-validateSchemaArgs(extractSchemaArgs(z.object({ help: z.string() })), ['help', 'json', 'config-file'])
-```
-
-`reserved` defaults to `['help']` if omitted, since nearly every CLI framework reserves
-`--help`.
-
-### Round-tripping flags back to schema keys
-
-```ts
-import { buildFlagKeyMap } from '@cli-schema/zod'
-
-const map = buildFlagKeyMap(args)
-map.toSchemaKey.get('num-shards') // 'numShards'
-map.toCliFlag.get('numShards')    // 'num-shards'
-```
-
-### Enum values, array element types, and validation constraints
-
-`extractSchemaArgs` alone doesn't carry enum values or range/length constraints — those need the
-full JSON Schema, which is a separate (and more expensive) step best done once per command:
-
-```ts
-import { z } from 'zod'
-import { extractSchemaArgs, zodToJsonSchema, extractEnumValues, extractElementType, extractValidations } from '@cli-schema/zod'
-
-const schema = z.object({
-  level: z.enum(['low', 'medium', 'high']),
-  size: z.number().min(1).max(100),
-})
-
-const root = zodToJsonSchema(schema)
-const properties = root.properties as Record<string, Record<string, unknown>>
-
-for (const arg of extractSchemaArgs(schema)) {
-  const node = properties[arg.schemaKey]
-  console.log(arg.cliFlag, {
-    enumValues: extractEnumValues(node, root),
-    elementType: extractElementType(node, root), // only meaningful when arg.type === 'array'
-    validations: extractValidations(node, root),  // e.g. [{ kind: 'range', min: '1', max: '100' }]
-  })
-}
-```
-
-`extractValidations` covers the constraint kinds directly derivable from JSON Schema keywords —
-`range` (`minimum`/`maximum`), `length` (`minLength`/`maxLength`), `regex` (`pattern`), `email`
-and `url` (`format`). Kinds that need domain knowledge beyond what JSON Schema expresses
-(`timeSpanRange`, `count`, `allowed`, `denied`, `uriScheme`, `fileExtensions`, `existing`,
-`nonExisting`, `rejectSymbolicLinks` — see the [spec](https://github.com/cli-schema/cli-schema/blob/main/spec/v1/README.md#62-constraints))
-aren't inferred automatically; attach them via the `enrich` hook if your schema encodes them.
-
-## Related packages
-
-- [`@cli-schema/spec`](https://www.npmjs.com/package/@cli-schema/spec) — the `Constraint`/`Parameter` types this package's JSON-Schema helpers produce
-- [`@cli-schema/commander`](https://www.npmjs.com/package/@cli-schema/commander) — wires this package's output into a full `CliSchema` document from a live Commander tree
-
-## License
-
-MIT
-
-
-------------------------------------------------------------------------
 @colors/colors@1.5.0
 License: MIT
 Repository: https://github.com/DABH/colors.js
@@ -701,11 +221,218 @@ released to the public npm registry; depend on it through the workspace.
 
 
 ------------------------------------------------------------------------
-@elastic/es-schemas@1.0.2
-License: UNLICENSED
-Repository: https://github.com/elastic/cli
+@elastic/schemas@0.5.1
+License: Apache-2.0
+Repository: https://github.com/elastic/schemas-js
 Publisher: Elastic Client Library Maintainers
 ------------------------------------------------------------------------
+
+NOTICE:
+Elastic Schemas
+Copyright 2026 Elasticsearch B.V.
+
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright 2020 Elastic and contributors
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
 
 ------------------------------------------------------------------------
@@ -724,6 +451,36 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+------------------------------------------------------------------------
+ajv@6.14.0
+License: MIT
+Repository: https://github.com/ajv-validator/ajv
+Publisher: Evgeny Poberezkin
+------------------------------------------------------------------------
+
+The MIT License (MIT)
+
+Copyright (c) 2015-2017 Evgeny Poberezkin
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 
 ------------------------------------------------------------------------
@@ -1230,6 +987,36 @@ SOFTWARE.
 
 
 ------------------------------------------------------------------------
+fast-json-stable-stringify@2.1.0
+License: MIT
+Repository: https://github.com/epoberezkin/fast-json-stable-stringify
+Publisher: James Halliday <mail@substack.net> (http://substack.net)
+------------------------------------------------------------------------
+
+This software is released under the MIT license:
+
+Copyright (c) 2017 Evgeny Poberezkin
+Copyright (c) 2013 James Halliday
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+------------------------------------------------------------------------
 fast-uri@3.1.5
 License: BSD-3-Clause
 Repository: https://github.com/fastify/fast-uri
@@ -1355,6 +1142,36 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+------------------------------------------------------------------------
+json-schema-traverse@0.4.1
+License: MIT
+Repository: https://github.com/epoberezkin/json-schema-traverse
+Publisher: Evgeny Poberezkin
+------------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2017 Evgeny Poberezkin
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 
 ------------------------------------------------------------------------
@@ -1647,6 +1464,35 @@ THE SOFTWARE.
 
 
 ------------------------------------------------------------------------
+punycode@2.3.1
+License: MIT
+Repository: https://github.com/mathiasbynens/punycode.js
+Publisher: Mathias Bynens (https://mathiasbynens.be/)
+------------------------------------------------------------------------
+
+Copyright Mathias Bynens <https://mathiasbynens.be/>
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+------------------------------------------------------------------------
 require-directory@2.1.1
 License: MIT
 Repository: https://github.com/troygoode/node-require-directory
@@ -1889,6 +1735,26 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 ------------------------------------------------------------------------
+uri-js@4.4.1
+License: BSD-2-Clause
+Repository: https://github.com/garycourt/uri-js
+Publisher: Gary Court <gary.court@gmail.com>
+------------------------------------------------------------------------
+
+Copyright 2011 Gary Court. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+1.	Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+2.	Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY GARY COURT "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL GARY COURT OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+The views and conclusions contained in the software and documentation are those of the authors and should not be interpreted as representing official policies, either expressed or implied, of Gary Court.
+
+
+------------------------------------------------------------------------
 wrap-ansi@7.0.0
 License: MIT
 Repository: https://github.com/chalk/wrap-ansi
@@ -1974,7 +1840,7 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
 ------------------------------------------------------------------------
-yargs@16.2.2
+yargs@16.2.0
 License: MIT
 Repository: https://github.com/yargs/yargs
 ------------------------------------------------------------------------

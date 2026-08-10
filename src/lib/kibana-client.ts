@@ -10,6 +10,7 @@ import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
 import { isLoopbackUrl } from './is-loopback-host.ts'
 import { clientHeaders } from './meta.ts'
 
+/** HTTP methods supported by the Kibana API client. */
 export type KibanaHttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD' | 'PATCH'
 
 /**
@@ -85,7 +86,10 @@ export class KibanaClient {
       const form = new FormData()
       for (const [field, value] of Object.entries(params.multipartFields)) {
         const resolved = path.resolve(value)
-        if (fs.existsSync(resolved)) {
+        // Only treat the value as a file if it resolves to a regular file; a directory
+        // (or other non-file entry) at that path falls through to the literal-string branch
+        // instead of crashing on fs.readFileSync's EISDIR.
+        if (fs.statSync(resolved, { throwIfNoEntry: false })?.isFile() === true) {
           const blob = new Blob([fs.readFileSync(resolved)], { type: 'application/octet-stream' })
           form.append(field, blob, path.basename(resolved))
         } else {

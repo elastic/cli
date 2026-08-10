@@ -16,7 +16,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full policy.
 
 - **Runtime**: Node.js with native TypeScript (`--experimental-strip-types`)
 - **CLI Framework**: Commander.js
-- **Validation**: Zod v4
+- **Validation**: JSON Schema (`@elastic/schemas`) validated with `ajv`
 - **Config Management**: cosmiconfig (YAML serialization)
 - **Testing**: Node.js built-in test runner (`node:test`)
 - **Linting**: ESLint + TypeScript ESLint, MegaLinter (CI + pre-commit)
@@ -39,7 +39,7 @@ All requirements below are non-negotiable and enforced at review time.
 
 - **JSON via stdin and `--input-file`**: Structured input MUST be accepted from stdin or `--input-file <path>`. Neither takes precedence; providing both MUST error.
 - **CLI flags for all input fields**: Every top-level schema field MUST have a corresponding kebab-case CLI flag. When both JSON input and flags are provided, flags take precedence.
-- **Zod input schema**: Every command with structured input MUST declare a Zod schema as the single source of truth for validation, type inference, and help text. `input: true` (untyped) MUST NOT be used in new commands.
+- **JSON Schema input**: Every command with structured input MUST declare a JSON Schema document (from `@elastic/schemas`, or hand-authored for commands with no upstream schema) as the single source of truth for validation and help text. `input: true` (untyped) MUST NOT be used in new commands.
 - **Validate before executing**: All input MUST be validated before any handler logic or network call. Invalid input is a hard error.
 - **Reject unknown keys**: Input with undefined keys MUST produce a validation error naming the unknown field(s). Silent stripping is not acceptable.
 
@@ -60,8 +60,8 @@ All requirements below are non-negotiable and enforced at review time.
 
 ### Transport Abstraction
 
-- **Hide routing metadata**: `found_in: path | query | body` is an implementation detail. It MUST NOT appear in help text, schema output, or error messages.
-- **Validate path parameter coverage**: If a schema field has `found_in: "path"` but the URL template has no matching placeholder, the system MUST fail fast at registration time.
+- **Hide routing metadata**: `x-found-in: path | query | body` is an implementation detail. It MUST NOT appear in help text, schema output, or error messages.
+- **Validate path parameter coverage**: If a schema field has `x-found-in: "path"` but the URL template has no matching placeholder, the system MUST fail fast at registration time.
 
 ### Cross-Platform Compatibility
 
@@ -149,25 +149,27 @@ When constructing URLs, sending credentials, or making HTTP requests:
 
 ## Generic Abstractions: Lessons Learned
 
-1. **Enumerate all variants upfront.** `unwrapField()` only handled `optional` and `default`; codegen also produced `z.lazy()`, `z.record()`, `z.any()`, `z.union()`, which all fell through silently. Inspect the full set of types the upstream system can produce and add explicit branches or a loud failure for unrecognized cases.
+1. **Enumerate all variants upfront.** A now-retired field-unwrapping helper only handled two shapes out of the many the input source could produce, and the rest fell through silently. The current equivalent is `@elastic/schemas`' use of JSON Schema composition (`$ref`, `anyOf`, `oneOf`, `allOf`, root-level `$ref`): inspect the full set of shapes the upstream schemas can produce (see `src/lib/json-schema-refs.ts`, `src/kb/apis.ts`'s `flattenComposition`) and add explicit handling or a loud failure for unrecognized ones.
 
-2. **Fail loudly on unrecognized input.** A catch-all `return { typeName: def.type, isOptional: false }` silently returned garbage. `throw new Error('unhandled Zod type: ' + def.type)` would have surfaced the problem at registration time.
+   The same applies to upstream `x-` annotations. The current set is `x-found-in`, `x-body-root`, `x-api`, `x-method`, `x-path`, `x-urls`, `x-body-format`, `x-destructive`, `x-response-type`, `x-availability`, `x-deprecated`. New ones appear without warning; classify each as routing (must be stripped from output) or user-facing (may be surfaced) rather than matching on the `x-` prefix. See `ARCHITECTURE.md` → "Schema Composition and `x-` Metadata".
 
-3. **Test with real generated schemas.** Hand-crafted toy schemas miss codegen-specific types like `z.lazy`.
+2. **Fail loudly on unrecognized input.** A catch-all fallback once silently returned a garbage field type instead of erroring. `src/lib/json-schema-refs.ts`'s `resolveRootRef()` follows the fix: it throws when a root ref doesn't resolve to an object schema with properties, rather than letting a silently-empty schema reach downstream flag derivation.
 
-4. **Generic request builders need extension points for endpoint-specific semantics.** The bulk API needs NDJSON; the index API needs body promotion. Add explicit extension points (`bodyFormat`, `BODY_ROOT_FIELDS`) rather than special-casing later.
+3. **Test with real schemas from the actual source.** Hand-crafted toy schemas miss shapes that only appear in real `@elastic/schemas` output (e.g. Kibana's per-rule-type `allOf`/`oneOf` bodies).
+
+4. **Generic request builders need extension points for endpoint-specific semantics.** The bulk API needs NDJSON; the index API needs body promotion. Add explicit extension points (`bodyFormat`, and the upstream `x-body-root` annotation) rather than special-casing later.
 
 5. **Diagnose common mistakes in user-facing errors.** Map known error patterns (TLS mismatch, auth failure, DNS) to actionable hints instead of propagating raw messages.
 
-6. **Treat codegen output as untrusted input.** Validate assumptions about which Zod types appear with tests that use actual generated schemas.
+6. **Treat upstream schema output as untrusted input.** Validate assumptions about which JSON Schema shapes appear with tests that use the actual `@elastic/schemas` definitions, not synthetic ones.
 
 7. **Read external type definitions before setting properties.** `TransportRequestParams` has `bulkBody` for NDJSON, not `body` + custom headers. JavaScript silently ignores extra properties; only `tsc --noEmit` or CI catches this. Run `npx tsc --noEmit` before pushing.
 
-8. **Guard clauses that discard data are dangerous.** `if (!(def.body instanceof z.ZodObject)) return undefined` silently dropped all stdin/`--input-file` input for Cloud POST commands. When a guard returns early with no data, ask what happens to the caller's input. Prefer forwarding with passthrough semantics over silent discard.
+8. **Guard clauses that discard data are dangerous.** A guard that returned early whenever a Cloud POST body wasn't a recognized shape once silently dropped all stdin/`--input-file` input for those commands. When a guard returns early with no data, ask what happens to the caller's input. Prefer forwarding with passthrough semantics over silent discard.
 
 9. **Trace the full data flow for every mode combination.** `--json` broke cat APIs because the handler returned raw text and the factory blindly called `JSON.stringify()`. When two layers cooperate (handler + formatter, request builder + transport), enumerate all mode combinations and verify each.
 
-10. **Review codegen command names for UX.** Machine-generated names (e.g. `list-deployments`) are precise but verbose. Add short aliases where unambiguous so users can discover commands intuitively.
+10. **Review upstream command names for UX.** Names sourced directly from `@elastic/schemas` (e.g. `list-deployments`) are precise but verbose. Add short aliases where unambiguous so users can discover commands intuitively.
 
 ## Spec-Kit Workflow
 

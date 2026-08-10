@@ -8,9 +8,10 @@
  *
  * Imports only the minimal set of modules needed to display `elastic cloud
  * --help`: commander, the factory group builder, and the lightweight
- * PROMOTED_NAMESPACES constant.  The full API definition files (allCloudApis,
- * allServerlessApis) and Zod schema builders are NOT imported at module
- * evaluation time, keeping startup heap bounded.
+ * PROMOTED_NAMESPACES constant.  The `@elastic/schemas` API definition modules
+ * (reached via `loadCloudApis` / `loadServerlessApis`) and the JSON Schema `$ref`
+ * resolution they trigger are NOT loaded at module evaluation time, keeping
+ * startup heap bounded.
  *
  * When the user invokes any actual cloud sub-command, the stub-swap mechanism
  * below loads the full command tree on demand.
@@ -32,7 +33,7 @@ import { PROMOTED_NAMESPACES } from './constants.ts'
 export async function registerCloudCommandsLazy (targetSubNamespace?: string): Promise<OpaqueCommandHandle> {
   if (targetSubNamespace != null) {
     const { registerCloudCommands } = await import('./register.js')
-    return registerCloudCommands()
+    return await registerCloudCommands()
   }
 
   // Top-level `cloud --help` path: build minimal stubs for the top-level groups.

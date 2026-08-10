@@ -33,9 +33,6 @@ TYPESCRIPT_ES_CONFIG_FILE: eslint.config.js
 # Global exclusions
 FILTER_REGEX_EXCLUDE: "(node_modules/|dist/|build/|\\.git/)"
 
-# Skip generated code for ESLint (39k lines of schemas + 2k lines of cloud APIs)
-TYPESCRIPT_ES_FILTER_REGEX_EXCLUDE: "(src/es/apis/schemas/|src/cloud/apis/|packages/es-schemas/src/)"
-
 # yamllint: skip test fixtures (custom multi-doc YAML DSL)
 YAML_YAMLLINT_CONFIG_FILE: .yamllint.yml
 YAML_YAMLLINT_FILTER_REGEX_EXCLUDE: "(codegen/functional/test/fixtures/|node_modules/)"
