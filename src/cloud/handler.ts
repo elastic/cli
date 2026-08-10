@@ -48,7 +48,7 @@ export function createCloudHandler(
       return missingConfigError(err)
     }
 
-    let params
+    let params: ReturnType<typeof deps.buildCloudRequestParams>
     try {
       params = deps.buildCloudRequestParams(def, parsed)
     } catch (err) {
@@ -56,7 +56,7 @@ export function createCloudHandler(
         const message = err instanceof Error ? err.message : String(err)
         return { error: { code: 'input_error', message } }
       }
-      throw err
+      return invalidRequestError(err)
     }
 
     try {
@@ -118,4 +118,9 @@ function missingConfigError(err: unknown): JsonValue {
 function cloudApiError(err: unknown): JsonValue {
   const message = err instanceof Error ? err.message : String(err)
   return { error: { code: 'cloud_api_error', message } }
+}
+
+function invalidRequestError(err: unknown): JsonValue {
+  const message = err instanceof Error ? err.message : String(err)
+  return { error: { code: 'invalid_request', message } }
 }

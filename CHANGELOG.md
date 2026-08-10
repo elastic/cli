@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.3.0](https://github.com/elastic/cli/compare/v0.2.0...v0.3.0) (2026-08-10)
+
+
+### Features
+
+* **completion:** Complete context names for positional args ([#424](https://github.com/elastic/cli/issues/424)) ([3883800](https://github.com/elastic/cli/commit/388380053e4b56c15b7b18efda83d9a539ea6438))
+* **docs:** Experimental gate for search/ask, positional args, remove chat ([#457](https://github.com/elastic/cli/issues/457)) ([ef2fbdb](https://github.com/elastic/cli/commit/ef2fbdbe48d6f79e08180ec68c6a753c213065bc))
+* **helpers:** Streaming bulk-ingest with bounded memory ([#495](https://github.com/elastic/cli/issues/495)) ([4a39007](https://github.com/elastic/cli/commit/4a39007ea3b6de3c03f98af9f80469e11bd75524))
+
+
+### Bug Fixes
+
+* Add explicit permissions to GitHub Actions workflows ([#414](https://github.com/elastic/cli/issues/414)) ([252fd44](https://github.com/elastic/cli/commit/252fd44953ffe86ae19a1af8f78fd65c07b3da04))
+* **ci:** Switch ai workflows to openrouter ([#506](https://github.com/elastic/cli/issues/506)) ([4b0534c](https://github.com/elastic/cli/commit/4b0534c7bec0f20e11dd2851f30a64144b523b4f))
+* **ci:** Use node-version instead of missing .nvmrc ([8d84d45](https://github.com/elastic/cli/commit/8d84d4500e0e6a293da6357f0ecd63bc1ecdfbb7))
+* **cli:** Show banner on --help to match bare `elastic` output ([#391](https://github.com/elastic/cli/issues/391)) ([cb4becd](https://github.com/elastic/cli/commit/cb4becd1ef7818dbff23fe240e302402ee4e37aa))
+* **deps:** Update dependency commander to v15 ([#410](https://github.com/elastic/cli/issues/410)) ([7a8056f](https://github.com/elastic/cli/commit/7a8056ffd4c6d2b0ab3f81bd23658744cff97662))
+* **deps:** Update dependency csv-parse to v7 ([#469](https://github.com/elastic/cli/issues/469)) ([b23be14](https://github.com/elastic/cli/commit/b23be144ecb1a7996deb39e98319e9f41ecbb095))
+* **es:** Accept REST-style bodies for index and create ([#493](https://github.com/elastic/cli/issues/493)) ([2f2ac2f](https://github.com/elastic/cli/commit/2f2ac2fb5a645fd14918fafa67bf0bc0ac8e7f13))
+* Expose --name and --region-id flags on project create ([#476](https://github.com/elastic/cli/issues/476)) ([f8a7869](https://github.com/elastic/cli/commit/f8a7869af3c92dae3e2b8c0e61ac33e5b4adb870))
+* **factory:** Handle EAGAIN/EBADF from stdin in non-blocking environments ([#318](https://github.com/elastic/cli/issues/318)) ([14a22ef](https://github.com/elastic/cli/commit/14a22ef8c8fa5f66508b36f0bdfa8d5cf37b60cd)), closes [#311](https://github.com/elastic/cli/issues/311)
+* **factory:** Route JSON validation error through commander writeErr on Node.js 22 ([#444](https://github.com/elastic/cli/issues/444)) ([38fdb26](https://github.com/elastic/cli/commit/38fdb2647cd3a76bfeaa1016c29b34a9682b7c8d))
+* **factory:** Route stderr writes through configureOutput ([#502](https://github.com/elastic/cli/issues/502)) ([ea9a7df](https://github.com/elastic/cli/commit/ea9a7dfe977ebc4bfb90ceadb434172641c20958))
+* Hide --input-file and --dry-run on no-input read-only commands ([#487](https://github.com/elastic/cli/issues/487)) ([c98f210](https://github.com/elastic/cli/commit/c98f21047a52fd3cd0d36e98e3818292ec05e53e))
+* Human-readable text output for simple commands ([#419](https://github.com/elastic/cli/issues/419)) ([c35bce4](https://github.com/elastic/cli/commit/c35bce42e42ba164bfdd022f7a2c460f47b53d3a))
+* Improve performance of config resolver ([#478](https://github.com/elastic/cli/issues/478)) ([bddf491](https://github.com/elastic/cli/commit/bddf491670410c8fe439ec5f1b12cb99b2a74498))
+* Migrate internal schemas package to npm-hosted package ([#472](https://github.com/elastic/cli/issues/472)) ([906150b](https://github.com/elastic/cli/commit/906150b77d4e2c913376515623756696fc5c710c))
+* Wire up serverless profile to block stack-only ES namespaces ([#475](https://github.com/elastic/cli/issues/475)) ([77c7369](https://github.com/elastic/cli/commit/77c73691c5310e49bbd47dfab6eb8de2eb428eeb))
+
+
+### Performance Improvements
+
+* Small tweaks and lazy-loading to improve --help performance ([#400](https://github.com/elastic/cli/issues/400)) ([223fdd3](https://github.com/elastic/cli/commit/223fdd345852e09e816f0d75feb87285a8335fb4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @elastic/config-resolver bumped from * to 0.1.1
+
 ## [0.2.0](https://github.com/elastic/cli/compare/v0.1.1...v0.2.0) (2026-05-29)
 
 

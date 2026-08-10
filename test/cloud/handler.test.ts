@@ -140,12 +140,15 @@ describe('createCloudHandler', () => {
     assert.equal(requests.length, 0, 'must fail closed before sending a request')
   })
 
-  it('rethrows a buildCloudRequestParams error with no input_error code', async () => {
+  it('returns an invalid_request error for a buildCloudRequestParams error with no input_error code', async () => {
     const handler = createCloudHandler(listDef(), {
       getCloudClient: () => stubClient({}),
       buildCloudRequestParams: () => { throw new Error('unexpected bug') },
     })
-    await assert.rejects(() => handler(parsed()), /unexpected bug/)
+    const result = await handler(parsed())
+    assert.deepEqual(result, {
+      error: { code: 'invalid_request', message: 'unexpected bug' },
+    })
   })
 })
 
@@ -232,5 +235,18 @@ describe('--wait polling (#91)', () => {
 
     const result = await handler(parsed(undefined, { wait: true })) as { error: { message: string } }
     assert.ok(result.error.message.includes('Timed out'))
+  })
+})
+
+describe('createCloudHandler request-building errors (BUG C regression)', () => {
+  it('returns an invalid_request error naming the missing param when buildCloudRequestParams throws', async () => {
+    const handler = createCloudHandler(listDef(), {
+      getCloudClient: () => stubClient({}),
+      buildCloudRequestParams: () => { throw new Error('missing required path parameter "deployment_id"') },
+    })
+    const result = await handler(parsed())
+    assert.deepEqual(result, {
+      error: { code: 'invalid_request', message: 'missing required path parameter "deployment_id"' },
+    })
   })
 })

@@ -107,7 +107,7 @@ export const NAMESPACES: NamespaceEntry[] = [
       // all API definition files and Zod schemas.
       if (opts?.eager === true) {
         const { registerCloudCommands } = await import('./cloud/register.ts')
-        return registerCloudCommands()
+        return await registerCloudCommands()
       }
       const { registerCloudCommandsLazy } = await import('./cloud/register-lazy.ts')
       return registerCloudCommandsLazy(opts?.targetSubNamespace)

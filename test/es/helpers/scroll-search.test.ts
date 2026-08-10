@@ -68,11 +68,11 @@ async function runCommand (args: string[], deps: ScrollSearchDeps): Promise<{ re
   const origStdoutWrite = process.stdout.write.bind(process.stdout)
   const origStderrWrite = process.stderr.write.bind(process.stderr)
   process.stdout.write = ((chunk: string) => {
-    progChunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
+    if (typeof chunk === 'string') progChunks.push(chunk)
     return true
   }) as typeof process.stdout.write
   process.stderr.write = ((chunk: string) => {
-    errChunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
+    if (typeof chunk === 'string') errChunks.push(chunk)
     return true
   }) as typeof process.stderr.write
 

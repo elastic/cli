@@ -22,8 +22,9 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         node-version: [22.x, 24.x, 25.x]
     runs-on: ${{ matrix.os }}
-    # Per-endpoint Zod schemas (#171) compile to ~72 MB of .d.ts; tsc needs
-    # more than the 2 GB Node default to hold the type graph during emit.
+    # Per-endpoint Zod schemas (#171) that once bloated .d.ts emit are gone,
+    # but tsc build still peaks around 3.7 GB locally; keep headroom above
+    # the 2 GB Node default for slower/smaller CI runners.
     env:
       NODE_OPTIONS: --max-old-space-size=6144
     steps:

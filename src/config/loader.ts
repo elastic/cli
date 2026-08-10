@@ -28,13 +28,17 @@
 import { access, constants, readFile, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { extname, join } from 'node:path'
-import { z } from 'zod'
 import { parse as parseYaml } from 'yaml'
 import { ContextSchema, CommandPolicySchema, StructuralConfigSchema } from './schema.ts'
 import { resolveExpressions } from '@elastic/config-resolver'
 import { hasInlineSecrets, type RawConfig } from './writer.ts'
 import type { ConfigFile, ResolvedConfig, ResolvedContext } from './types.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './profiles.ts'
+
+function formatAjvErrors (errors: Array<{ path: string; message: string }> | undefined): string {
+  if (!errors || errors.length === 0) return 'Invalid configuration'
+  return errors.map(e => e.path ? `${e.path}: ${e.message}` : e.message).join('\n')
+}
 
 /** Extensions that are rejected to prevent arbitrary code execution. */
 const EXECUTABLE_EXTENSIONS = new Set(['.js', '.ts', '.mjs', '.cjs'])
@@ -322,7 +326,7 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
   // Step 2: structural validation (shape only, no deep context validation)
   const structural = StructuralConfigSchema.safeParse(raw)
   if (!structural.success) {
-    return { ok: false, error: { message: z.prettifyError(structural.error) } }
+    return { ok: false, error: { message: formatAjvErrors(structural.errors) } }
   }
 
   const { current_context, contexts, commands: rawCommands, default_profile: rawDefaultProfile } = structural.data
@@ -366,14 +370,15 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
   // Step 5: validate active context and commands with full schemas
   const contextParsed = ContextSchema.safeParse(resolvedRawContext)
   if (!contextParsed.success) {
-    return { ok: false, error: { message: z.prettifyError(contextParsed.error) } }
+    return { ok: false, error: { message: formatAjvErrors(contextParsed.errors) } }
   }
+  const ctx = contextParsed.data
 
   let commands: ConfigFile['commands']
   if (resolvedRawCommands != null) {
     const commandsParsed = CommandPolicySchema.safeParse(resolvedRawCommands)
     if (!commandsParsed.success) {
-      return { ok: false, error: { message: z.prettifyError(commandsParsed.error) } }
+      return { ok: false, error: { message: formatAjvErrors(commandsParsed.errors) } }
     }
     commands = commandsParsed.data
   }
@@ -381,7 +386,7 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
   // Step 6: build and return ResolvedConfig (delegate to resolveContext)
   const config: ConfigFile = {
     current_context: resolvedContextName,
-    contexts: { [resolvedContextName]: contextParsed.data },
+    contexts: { [resolvedContextName]: ctx },
     ...(commands != null && { commands }),
     ...(defaultProfile != null && { default_profile: defaultProfile }),
     ...(structural.data.banner != null && { banner: structural.data.banner }),

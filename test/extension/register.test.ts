@@ -32,8 +32,8 @@ async function invoke (args: string[]): Promise<{ stdout: string; stderr: string
   const stderr: string[] = []
   const origOut = process.stdout.write.bind(process.stdout)
   const origErr = process.stderr.write.bind(process.stderr)
-  process.stdout.write = (chunk: unknown) => { stdout.push(String(chunk)); return true }
-  process.stderr.write = (chunk: unknown) => { stderr.push(String(chunk)); return true }
+  process.stdout.write = (chunk: unknown) => { if (typeof chunk === 'string') stdout.push(chunk); return true }
+  process.stderr.write = (chunk: unknown) => { if (typeof chunk === 'string') stderr.push(chunk); return true }
 
   let exitCode: number
   const origExit = process.exitCode

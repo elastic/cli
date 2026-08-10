@@ -3,75 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { z } from 'zod'
-
-/**
- * Valid HTTP methods for Cloud control plane API requests.
- */
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
-
-/**
- * Describes a path parameter that gets interpolated into the URL template.
- *
- * @example
- * ```ts
- * const param: CloudPathParam = { name: 'deployment_id', description: 'Deployment ID', required: true }
- * ```
- */
-export interface CloudPathParam {
-  name: string
-  description: string
-  required: boolean
-}
-
-/**
- * Describes a query string parameter for a Cloud API request.
- *
- * The `name` field (snake_case) is used in the query string;
- * the `cliFlag` (kebab-case) is what users type on the command line.
- */
-export interface CloudQueryParam {
-  name: string
-  cliFlag?: string
-  type: 'string' | 'number' | 'boolean'
-  description: string
-  required?: boolean
-  defaultValue?: string | number | boolean
-}
-
-/**
- * Declarative description of a single Cloud control plane API endpoint.
- *
- * Covers both Elastic Cloud Hosted (deployments) and Serverless (projects)
- * APIs. Definitions are grouped by namespace and collected by the barrel
- * module (`src/cloud/apis/index.ts`).
- *
- * @example
- * ```ts
- * const listDef: CloudApiDefinition = {
- *   name: 'list',
- *   namespace: 'deployments',
- *   description: 'List all deployments',
- *   method: 'GET',
- *   path: '/api/v1/deployments',
- * }
- * ```
- */
-export interface CloudApiDefinition {
-  name: string
-  namespace: string
-  description: string
-  method: HttpMethod
-  path: string
-  pathParams?: CloudPathParam[]
-  queryParams?: CloudQueryParam[]
-  body?: z.ZodObject<z.ZodRawShape>
-}
+export type { CloudApiDefinition, HttpMethod } from '@elastic/schemas/cloud/tools/types.js'
+import type { CloudApiDefinition } from '@elastic/schemas/cloud/tools/types.js'
+import { resolveRootRef } from '../lib/json-schema-refs.ts'
 
 const VALID_NAME = /^[a-z0-9][a-z0-9-]*$/
 const VALID_NAMESPACE = /^[a-z][a-z-]*$/
 
-function extractPathTokens(path: string): string[] {
+function extractPathTokens (path: string): string[] {
   return [...path.matchAll(/\{([^}]+)\}/g)].map((m) => m[1] as string)
 }
 
@@ -80,7 +19,7 @@ function extractPathTokens(path: string): string[] {
  *
  * @throws {Error} if any validation rule is violated
  */
-export function validateCloudApiDefinition(def: CloudApiDefinition): void {
+export function validateCloudApiDefinition (def: CloudApiDefinition): void {
   if (!VALID_NAME.test(def.name)) {
     throw new Error(
       `invalid name ${JSON.stringify(def.name)}: ` +
@@ -100,50 +39,60 @@ export function validateCloudApiDefinition(def: CloudApiDefinition): void {
   }
 
   const tokens = extractPathTokens(def.path)
-  const paramNames = new Set((def.pathParams ?? []).map((p) => p.name))
+  const resolvedInput = def.input != null ? resolveRootRef(def.input) : undefined
+  const props = (resolvedInput?.properties ?? {}) as Record<string, Record<string, unknown>>
+  const pathParamNames = new Set(
+    Object.entries(props)
+      .filter(([, v]) => v['x-found-in'] === 'path')
+      .map(([k]) => k)
+  )
 
   for (const token of tokens) {
-    if (!paramNames.has(token)) {
+    if (!pathParamNames.has(token)) {
       throw new Error(
-        `path param {${token}} is not defined in pathParams for definition ${JSON.stringify(def.name)}`
+        `path param {${token}} is not defined in input.properties for definition ${JSON.stringify(def.name)}`
       )
     }
   }
 
   const pathSet = new Set(tokens)
-  for (const param of def.pathParams ?? []) {
-    if (param.required && !pathSet.has(param.name)) {
-      throw new Error(
-        `required pathParam "${param.name}" is not in path template for definition ${JSON.stringify(def.name)}`
-      )
+  for (const [key, prop] of Object.entries(props)) {
+    if (prop['x-found-in'] === 'path' && (resolvedInput?.required as string[] | undefined)?.includes(key)) {
+      if (!pathSet.has(key)) {
+        throw new Error(
+          `required pathParam "${key}" is not in path template for definition ${JSON.stringify(def.name)}`
+        )
+      }
     }
   }
+}
 
-  const schemaKeys = new Set<string>()
-  const collisions: string[] = []
+/**
+ * Builds a JSON Schema object from a CloudApiDefinition's `input`.
+ * Strips `x-found-in` from the returned schema since it is an internal
+ * routing annotation and must not appear in help text or error messages.
+ */
+export function buildCloudJsonSchema (def: CloudApiDefinition): Record<string, unknown> {
+  if (def.input == null) return { type: 'object', properties: {}, additionalProperties: false }
 
-  for (const p of def.pathParams ?? []) {
-    if (schemaKeys.has(p.name)) collisions.push(p.name)
-    schemaKeys.add(p.name)
+  const resolved = resolveRootRef(def.input)
+  const props = (resolved.properties ?? {}) as Record<string, Record<string, unknown>>
+  const cleaned: Record<string, unknown> = {}
+  for (const [key, prop] of Object.entries(props)) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { 'x-found-in': _routing, ...rest } = prop
+    cleaned[key] = rest
   }
 
-  for (const q of def.queryParams ?? []) {
-    const key = q.cliFlag ?? q.name
-    if (schemaKeys.has(key)) collisions.push(key)
-    schemaKeys.add(key)
+  // additionalProperties: false — unknown input keys must be named in a validation
+  // error, not silently stripped. Upstream cloud definitions never set it themselves.
+  const schema: Record<string, unknown> = { type: 'object', properties: cleaned, additionalProperties: false }
+  if (Array.isArray(resolved.required) && (resolved.required as unknown[]).length > 0) {
+    schema['required'] = resolved.required
   }
-
-  if (def.body != null) {
-    for (const fieldName of Object.keys(def.body.shape as Record<string, unknown>)) {
-      if (schemaKeys.has(fieldName)) collisions.push(fieldName)
-      schemaKeys.add(fieldName)
-    }
+  // Preserve $defs so nested $refs inside property schemas (e.g. RoleAssignments) still resolve.
+  if (resolved['$defs'] != null && Object.keys(resolved['$defs'] as Record<string, unknown>).length > 0) {
+    schema['$defs'] = resolved['$defs']
   }
-
-  if (collisions.length > 0) {
-    throw new Error(
-      `schema key collision(s) in definition "${def.name}": ${collisions.join(', ')}. ` +
-      'Use cliFlag to rename the conflicting query param, or restructure the definition to avoid the conflict.'
-    )
-  }
+  return schema
 }

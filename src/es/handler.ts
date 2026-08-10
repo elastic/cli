@@ -5,7 +5,7 @@
 
 import type { EsClient } from '../lib/es-client.ts'
 import type { EsApiDefinition } from './types.ts'
-import type { SchemaArgDefinition } from '../lib/schema-args.ts'
+import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
 import { buildRequestParams } from './request-builder.ts'
 import { getEsClient } from '../lib/es-client.ts'
 import { missingConfigError, transportError, inputError } from './errors.ts'
