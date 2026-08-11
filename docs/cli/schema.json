@@ -75931,6 +75931,13 @@
                           "type": "boolean",
                           "required": false,
                           "summary": "overwrite an existing context (--save-as) or file (--credentials-file)"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "show-credentials",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "print credentials in plain text (default: redacted)"
                         }
                       ],
                       "summary": "Create an Elasticsearch project",
@@ -76140,6 +76147,13 @@
                           "type": "boolean",
                           "required": false,
                           "summary": "overwrite an existing context (--save-as) or file (--credentials-file)"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "show-credentials",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "print credentials in plain text (default: redacted)"
                         }
                       ],
                       "summary": "Reset the project credentials",
@@ -76415,6 +76429,13 @@
                           "type": "boolean",
                           "required": false,
                           "summary": "overwrite an existing context (--save-as) or file (--credentials-file)"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "show-credentials",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "print credentials in plain text (default: redacted)"
                         }
                       ],
                       "summary": "Create an observability project",
@@ -76628,6 +76649,13 @@
                           "type": "boolean",
                           "required": false,
                           "summary": "overwrite an existing context (--save-as) or file (--credentials-file)"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "show-credentials",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "print credentials in plain text (default: redacted)"
                         }
                       ],
                       "summary": "Reset the project credentials",
@@ -76915,6 +76943,13 @@
                           "type": "boolean",
                           "required": false,
                           "summary": "overwrite an existing context (--save-as) or file (--credentials-file)"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "show-credentials",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "print credentials in plain text (default: redacted)"
                         }
                       ],
                       "summary": "Create a security project",
@@ -77137,6 +77172,13 @@
                           "type": "boolean",
                           "required": false,
                           "summary": "overwrite an existing context (--save-as) or file (--credentials-file)"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "show-credentials",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "print credentials in plain text (default: redacted)"
                         }
                       ],
                       "summary": "Reset the project credentials",
