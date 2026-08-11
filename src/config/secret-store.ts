@@ -275,7 +275,7 @@ class WindowsCredentialManagerStore extends ShellSecretStore {
     const target = this.target(service, account).replace(/'/g, "''")
     const user = account.replace(/'/g, "''")
     const expression =
-      `$secure = ConvertTo-SecureString -String ([Console]::In.ReadToEnd().Trim()) -AsPlainText -Force; ` +
+      `$secure = ConvertTo-SecureString -String ([Console]::In.ReadToEnd().TrimEnd(@([char]"\`n", [char]"\`r"))) -AsPlainText -Force; ` +
       `New-StoredCredential -Target '${target}' -UserName '${user}' -SecurePassword $secure -Persist LocalMachine | Out-Null`
     try {
       _execSync(psEncodedCommand(expression), execOpts(10_000, secret))
