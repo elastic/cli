@@ -20,16 +20,16 @@ CI_CONFIG_FILE="$CI_CONFIG_DIR/elastic-cli-ci.json"
 install -m 0600 /dev/null "$CI_CONFIG_FILE"
 
 cleanup_cloud_config() {
-  rm -f "$CI_CONFIG_FILE"
-  rmdir "$CI_CONFIG_DIR" 2>/dev/null || true
+  rm -rf "$CI_CONFIG_DIR"
 }
+# trap fires when the sourcing shell exits, removing the temp config for the lifetime of the CI job
 trap cleanup_cloud_config EXIT
 
 echo "--- Reading Cloud credentials from Vault"
 EC_API_KEY=$(vault read -field=api_key "$CLOUD_CREDENTIALS_PATH")
 
-if [ -z "$EC_API_KEY" ] || [[ "$EC_API_KEY" == *$'\n'* ]]; then
-  echo "Vault returned an invalid Cloud API key" >&2
+if [ -z "$EC_API_KEY" ]; then
+  echo "Vault returned an empty Cloud API key" >&2
   return 1
 fi
 
