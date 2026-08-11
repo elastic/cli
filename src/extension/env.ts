@@ -9,19 +9,20 @@
  * GITHUB_TOKEN, NPM_TOKEN, etc.) present in the parent process are excluded.
  */
 
+// Uppercase for case-insensitive matching (handles Windows env var casing).
 const KEEP_VARS = new Set([
   'PATH', 'HOME', 'USER', 'LOGNAME', 'SHELL', 'TERM',
   'TMPDIR', 'TEMP', 'TMP',
   'LANG', 'LC_ALL', 'LC_CTYPE',
   'TZ',
-  // Windows required vars
-  'SystemRoot', 'ComSpec', 'PATHEXT', 'USERPROFILE',
+  // Windows required vars (stored uppercase so comparison is case-insensitive)
+  'SYSTEMROOT', 'COMSPEC', 'PATHEXT', 'USERPROFILE',
   'APPDATA', 'LOCALAPPDATA',
 ])
 
+// Uppercase prefixes — compared against key.toUpperCase()
 const KEEP_PREFIXES = [
   'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY',
-  'http_proxy', 'https_proxy', 'no_proxy',
   'NODE_EXTRA_CA_CERTS', 'SSL_CERT_',
 ]
 
@@ -30,7 +31,7 @@ export function buildExtensionEnvironment (env: NodeJS.ProcessEnv): Record<strin
   for (const [key, val] of Object.entries(env)) {
     if (val == null) continue
     const upper = key.toUpperCase()
-    if (KEEP_VARS.has(key) || KEEP_VARS.has(upper) || KEEP_PREFIXES.some(p => upper.startsWith(p))) {
+    if (KEEP_VARS.has(upper) || KEEP_PREFIXES.some(p => upper.startsWith(p))) {
       result[key] = val
     }
   }

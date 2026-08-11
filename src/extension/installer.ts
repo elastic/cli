@@ -236,7 +236,7 @@ export async function installExtension (source: string): Promise<{ entry: Instal
   const npmEnv = buildExtensionEnvironment(process.env)
 
   if (parsed.type === 'github') {
-    run('git', ['clone', '--depth', '1', parsed.cloneUrl!, installDir], extensionsDir())
+    run('git', ['clone', '--depth', '1', parsed.cloneUrl!, installDir], extensionsDir(), npmEnv)
 
     // Build if package.json present
     const hasPkg = await readFile(join(installDir, 'package.json'), 'utf-8').then(() => true).catch(() => false)
@@ -376,7 +376,7 @@ export async function upgradeExtension (name: string): Promise<InstalledExtensio
   const npmEnv = buildExtensionEnvironment(process.env)
 
   if (parsed.type === 'github') {
-    run('git', ['pull', '--ff-only'], ext.path)
+    run('git', ['pull', '--ff-only'], ext.path, npmEnv)
     const hasPkg = await readFile(join(ext.path, 'package.json'), 'utf-8').then(() => true).catch(() => false)
     if (hasPkg) {
       run('npm', ['install', '--production', '--no-fund', '--no-audit', '--ignore-scripts'], ext.path, npmEnv)
