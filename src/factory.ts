@@ -5,6 +5,7 @@
 
 import { Command } from 'commander'
 import { readFileSync, writeSync } from 'node:fs'
+import { createInterface } from 'node:readline'
 import assert from 'node:assert/strict'
 import { getResolvedConfig } from './config/store.ts'
 import { extractSchemaArgs, validateSchemaArgs } from './lib/json-schema-args.ts'
@@ -60,6 +61,55 @@ export function _testSetStdinReader (fn: () => string): () => void {
   const prev = stdinReader
   stdinReader = fn
   return () => { stdinReader = prev }
+}
+
+/**
+ * Module-level TTY detector - swappable in tests via {@link _testSetIsTTY}.
+ * Production default reads `process.stderr.isTTY`.
+ */
+let isTTYFn: () => boolean = () => process.stderr.isTTY === true
+
+/**
+ * Test-only seam: overrides the TTY detection function and returns a restore callback.
+ * Always call the returned function in a `finally` block to avoid test pollution.
+ *
+ * @internal not part of the public API
+ */
+export function _testSetIsTTY (value: boolean): () => void {
+  const prev = isTTYFn
+  isTTYFn = () => value
+  return () => { isTTYFn = prev }
+}
+
+/**
+ * Module-level confirm reader - swappable in tests via {@link _testSetConfirmReader}.
+ * Production default prompts on stderr and reads a line from stdin via readline.
+ * `null` means use the real readline prompt.
+ */
+let confirmReader: (() => Promise<boolean>) | null = null
+
+/**
+ * Test-only seam: replaces the confirm reader with `fn` and returns a restore callback.
+ * Always call the returned function in a `finally` block to avoid test pollution.
+ *
+ * @internal not part of the public API
+ */
+export function _testSetConfirmReader (fn: () => Promise<boolean>): () => void {
+  const prev = confirmReader
+  confirmReader = fn
+  return () => { confirmReader = prev }
+}
+
+/** Prompts the user on stderr and reads one line from stdin to confirm a destructive action. */
+async function promptConfirm (): Promise<boolean> {
+  if (confirmReader != null) return confirmReader()
+  return new Promise(resolve => {
+    const rl = createInterface({ input: process.stdin, output: process.stderr })
+    rl.question('This action is destructive. Continue? [y/N] ', answer => {
+      rl.close()
+      resolve(answer.trim().toLowerCase() === 'y')
+    })
+  })
 }
 
 /** converts a kebab-case option name to camelCase to match Commander's opts() keys */
@@ -406,6 +456,10 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
     cmd.option('--dry-run', 'validate all inputs and exit without performing any action')
   }
 
+  if (config.intent?.destructive === true || config.intent?.requiresConfirmation === true) {
+    cmd.option('--yes', 'Confirm destructive action without prompting')
+  }
+
   configureHelpWithSchema(cmd, isJsonSchemaInput(config.input) ? config.input : undefined)
 
   Object.defineProperty(cmd, '_commandConfig', {
@@ -629,6 +683,31 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
         process.stdout.write('dry run: inputs valid, no action performed\n')
       }
       return
+    }
+
+    if (config.intent?.destructive === true || config.intent?.requiresConfirmation === true) {
+      if (allRaw['yes'] !== true) {
+        if (isTTYFn()) {
+          const confirmed = await promptConfirm()
+          if (!confirmed) {
+            const errObj = { error: { code: 'confirmation_required', message: 'Aborted.' } }
+            if (jsonFormat === true) {
+              writeErr(cmd, JSON.stringify(errObj) + '\n')
+            } else {
+              writeErr(cmd, 'Error: Aborted.\n')
+            }
+            throw Object.assign(new Error('confirmation_required'), { exitCode: 1 })
+          }
+        } else {
+          const errObj = { error: { code: 'confirmation_required', message: 'Pass --yes to confirm this destructive action.' } }
+          if (jsonFormat === true) {
+            writeErr(cmd, JSON.stringify(errObj) + '\n')
+          } else {
+            writeErr(cmd, 'Error: Pass --yes to confirm this destructive action.\n')
+          }
+          throw Object.assign(new Error('confirmation_required'), { exitCode: 1 })
+        }
+      }
     }
 
     const handlerResult = await config.handler(parsed)
