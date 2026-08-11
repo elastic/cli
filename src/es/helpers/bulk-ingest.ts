@@ -36,7 +36,7 @@ const inputSchema: Record<string, unknown> = {
     data_dir: { type: 'string', description: 'Path to directory of data files to ingest' },
     glob: { type: 'string', description: 'Glob pattern for --data-dir file matching (default: **/*.json, or **/*.csv when --source-format csv)' },
     no_recursive: { type: 'boolean', description: 'Do not recurse into subdirectories when using --data-dir' },
-    source_format: { type: 'string', enum: SOURCE_FORMATS, description: 'Input file format: ndjson, json, or csv', default: 'ndjson' },
+    source_format: { type: 'string', enum: SOURCE_FORMATS, description: 'Input file format: csv, or json-based (ndjson vs json array is auto-detected from content; "ndjson" and "json" behave identically here)', default: 'ndjson' },
     csv_delimiter: { type: 'string', description: 'CSV column delimiter (default: ",")' },
     csv_columns: { type: 'string', description: 'Comma-separated list of column names (overrides CSV header row)' },
     skip_header: { type: 'boolean', description: 'Skip the first row of a CSV file' },
@@ -338,6 +338,11 @@ async function streamBulkIngest (
     } else {
       // ndjson: line-by-line. json (JSON array): streamed element-by-element via
       // JsonArraySplitter, so a multi-GB array never gets buffered whole.
+      // `source_format` only distinguishes csv from everything else (see the
+      // `if` above); "ndjson" and "json" are treated identically here, and
+      // array-vs-line format is auto-detected from the first non-empty line
+      // rather than trusted from the flag, since either format may legitimately
+      // start a file either way regardless of which of the two was passed.
       const rl = createInterface({ input: stream, crlfDelay: Infinity })
       let isJsonArray: boolean | null = null // null = not yet determined
       const arraySplitter = new JsonArraySplitter()
