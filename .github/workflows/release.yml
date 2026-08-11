@@ -49,8 +49,10 @@ jobs:
 
       - name: Resolve release-please PR branch
         id: pr
+        env:
+          PR_JSON: ${{ needs.release-please.outputs.pr }}
         run: |
-          echo '${{ needs.release-please.outputs.pr }}' | jq -r '"branch=" + .headBranchName' >> "$GITHUB_OUTPUT"
+          echo "$PR_JSON" | jq -r '"branch=" + .headBranchName' >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -72,6 +74,8 @@ jobs:
         run: npm run build:schema
 
       - name: Commit and push if schema changed
+        env:
+          BRANCH: ${{ steps.pr.outputs.branch }}
         run: |
           if git diff --quiet docs/cli/schema.json; then
             echo "Schema already up to date."
@@ -80,7 +84,7 @@ jobs:
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add docs/cli/schema.json
             git commit -m "chore: regenerate CLI schema"
-            git push origin "HEAD:refs/heads/${{ steps.pr.outputs.branch }}"
+            git push origin "HEAD:refs/heads/$BRANCH"
           fi
 
   publish:
