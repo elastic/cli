@@ -146,12 +146,11 @@ class MacOSKeychainStore extends ShellSecretStore {
     validateServiceAccount(service, account, this.kind)
     try {
       // -U updates an existing entry in-place instead of failing.
-      // Use -w with the value as an argument; `security` supports reading from
-      // stdin via `-w` with no value, but argv is simpler and the value is
-      // ASCII-safe after validation.
+      // -w with no argument reads the password from stdin, keeping the secret
+      // out of the process argument list.
       _execSync(
-        `security add-generic-password -U -s ${shellEscape(service)} -a ${shellEscape(account)} -w ${shellEscape(secret)}`,
-        execOpts(5_000)
+        `security add-generic-password -U -s ${shellEscape(service)} -a ${shellEscape(account)} -w`,
+        execOpts(5_000, secret)
       )
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
@@ -275,12 +274,11 @@ class WindowsCredentialManagerStore extends ShellSecretStore {
     validateServiceAccount(service, account, this.kind)
     const target = this.target(service, account).replace(/'/g, "''")
     const user = account.replace(/'/g, "''")
-    const pass = secret.replace(/'/g, "''")
     const expression =
-      `$secure = ConvertTo-SecureString -String '${pass}' -AsPlainText -Force; ` +
+      `$secure = ConvertTo-SecureString -String ([Console]::In.ReadToEnd().Trim()) -AsPlainText -Force; ` +
       `New-StoredCredential -Target '${target}' -UserName '${user}' -SecurePassword $secure -Persist LocalMachine | Out-Null`
     try {
-      _execSync(psEncodedCommand(expression), execOpts(10_000))
+      _execSync(psEncodedCommand(expression), execOpts(10_000, secret))
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       throw new Error(`Credential Manager write failed for service="${service}", account="${account}": ${message}`, { cause: err })

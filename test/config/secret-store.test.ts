@@ -92,7 +92,7 @@ describe('MacOSKeychainStore', () => {
     while (restores.length > 0) restores.pop()!()
   })
 
-  it('put invokes `security add-generic-password -U` with shell-escaped values', async () => {
+  it('put invokes `security add-generic-password -U` with shell-escaped values and passes secret via stdin', async () => {
     const { fn, calls } = makeExec([{ match: 'security ', result: '' }])
     restores.push(_testSetExecSync(fn))
     const store = new _testStores.MacOSKeychainStore()
@@ -102,7 +102,10 @@ describe('MacOSKeychainStore', () => {
     assert.match(put.cmd, /-U /)
     assert.match(put.cmd, /-s 'elastic-cli'/)
     assert.match(put.cmd, /-a 'prod:es.api_key'/)
-    assert.match(put.cmd, /-w 'it'\\''s secret'/)
+    // Secret must NOT appear in the command string (would be visible in `ps`)
+    assert.ok(!put.cmd.includes("it's secret"), 'secret must not be in argv')
+    // Secret IS passed via stdin
+    assert.equal((put.options as { input?: string }).input, "it's secret")
   })
 
   it('delete swallows errors (idempotent)', async () => {
@@ -215,14 +218,20 @@ describe('WindowsCredentialManagerStore', () => {
     while (restores.length > 0) restores.pop()!()
   })
 
-  it('put invokes powershell with an EncodedCommand', async () => {
+  it('put invokes powershell with an EncodedCommand and passes secret via stdin', async () => {
     const { fn, calls } = makeExec([{ match: 'powershell ', result: '' }])
     restores.push(_testSetExecSync(fn))
     const store = new _testStores.WindowsCredentialManagerStore()
-    await store.put('elastic-cli', 'prod:k', 'secret')
+    await store.put('elastic-cli', 'prod:k', 's3cr3t!')
     const put = calls.find(c => c.cmd.startsWith('powershell '))!
     assert.ok(put)
     assert.match(put.cmd, /EncodedCommand /)
+    // Decode the EncodedCommand base64 and confirm the secret is not embedded in it
+    const b64 = put.cmd.replace(/^.*EncodedCommand /, '')
+    const decoded = Buffer.from(b64, 'base64').toString('utf16le')
+    assert.ok(!decoded.includes('s3cr3t!'), 'secret must not be in the EncodedCommand')
+    // Secret IS passed via stdin
+    assert.equal((put.options as { input?: string }).input, 's3cr3t!')
   })
 
   it('resolverExpr produces a credential_manager: expression', () => {
