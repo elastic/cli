@@ -58,7 +58,7 @@ describe('manifest/definition parity (upstream drift guard)', () => {
     })
 
     it('pins the es command count', () => {
-      const expected = 567
+      const expected = 573
       assert.equal(apiManifest.length, expected, countDriftMessage('es', expected, apiManifest.length))
     })
   })
