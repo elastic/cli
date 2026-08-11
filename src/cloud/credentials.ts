@@ -267,7 +267,7 @@ export async function applyCredentialPolicy (
       const redacted = redactCredentials(body, '(redacted — pass --show-credentials to display)')
       return { body: redacted, log: { mode: 'passthrough', storage: 'none', warnings: [] } }
     }
-    const warnings: string[] = opts.showCredentials
+    const warnings: string[] = (opts.showCredentials && extracted.credentials.password != null)
       ? ['Credentials are shown in plain text. Store them securely.']
       : []
     return { body, log: { mode: 'passthrough', storage: 'none', warnings } }
