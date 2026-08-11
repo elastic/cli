@@ -53,6 +53,7 @@ export interface CredentialPolicyOptions {
   credentialsFile?: string
   force?: boolean
   configFile?: string
+  showCredentials?: boolean
 }
 
 export function readCredentialPolicyOptions (
@@ -66,6 +67,8 @@ export function readCredentialPolicyOptions (
   if (options['force'] === true) out.force = true
   const cfg = options['config-file']
   if (typeof cfg === 'string' && cfg.length > 0) out.configFile = cfg
+  const show = options['show-credentials']
+  if (show === true) out.showCredentials = true
   return out
 }
 
@@ -259,10 +262,15 @@ export async function applyCredentialPolicy (
   opts: CredentialPolicyOptions,
 ): Promise<ApplyCredentialPolicyResult> {
   if (opts.saveAs == null && opts.credentialsFile == null) {
-    return {
-      body,
-      log: { mode: 'passthrough', storage: 'none', warnings: [] },
+    const extracted = extractProjectFields(body)
+    if (extracted.credentials.password != null && !opts.showCredentials) {
+      const redacted = redactCredentials(body, '(redacted — pass --show-credentials to display)')
+      return { body: redacted, log: { mode: 'passthrough', storage: 'none', warnings: [] } }
     }
+    const warnings: string[] = opts.showCredentials
+      ? ['Credentials are shown in plain text. Store them securely.']
+      : []
+    return { body, log: { mode: 'passthrough', storage: 'none', warnings } }
   }
 
   const extracted = extractProjectFields(body)
