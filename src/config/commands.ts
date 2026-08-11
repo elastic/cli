@@ -114,6 +114,11 @@ function collectFieldUpdates (options: Record<string, string | number | boolean>
       secrets.push({ field, value: raw })
     }
   }
+  if (secrets.length > 0) {
+    process.stderr.write(
+      `Warning: secret value(s) passed via flag(s) (${secrets.map(s => `--${s.field.flag}`).join(', ')}) are visible in process listings and shell history.\n`
+    )
+  }
   for (const field of PLAIN_FIELDS) {
     const raw = options[field.flag]
     if (typeof raw === 'string' && raw.length > 0) {
