@@ -525,6 +525,13 @@
                   "type": "boolean",
                   "required": false,
                   "summary": "validate all inputs and exit without performing any action"
+                },
+                {
+                  "role": "flag",
+                  "name": "yes",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "Confirm destructive action without prompting"
                 }
               ],
               "summary": "Delete a document.",
@@ -2511,6 +2518,13 @@
                   "type": "boolean",
                   "required": false,
                   "summary": "validate all inputs and exit without performing any action"
+                },
+                {
+                  "role": "flag",
+                  "name": "yes",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "Confirm destructive action without prompting"
                 }
               ],
               "summary": "Clear a scrolling search.",
@@ -2577,6 +2591,13 @@
                   "type": "boolean",
                   "required": false,
                   "summary": "validate all inputs and exit without performing any action"
+                },
+                {
+                  "role": "flag",
+                  "name": "yes",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "Confirm destructive action without prompting"
                 }
               ],
               "summary": "Close a point in time.",
@@ -5402,6 +5423,13 @@
                   "type": "boolean",
                   "required": false,
                   "summary": "validate all inputs and exit without performing any action"
+                },
+                {
+                  "role": "flag",
+                  "name": "yes",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "Confirm destructive action without prompting"
                 }
               ],
               "summary": "Delete a script or search template.",
@@ -6508,6 +6536,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an async search.",
@@ -11315,6 +11350,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete auto-follow patterns.",
@@ -12681,6 +12723,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete component templates.",
@@ -12755,6 +12804,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Clear cluster voting config exclusions.",
@@ -14138,6 +14194,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a connector.",
@@ -14802,6 +14865,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a connector sync job.",
@@ -16395,6 +16465,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a dangling index.",
@@ -16706,6 +16783,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an enrich policy.",
@@ -17098,6 +17182,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an async EQL search.",
@@ -17740,6 +17831,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an async ES|QL query.",
@@ -18148,6 +18246,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an ES|QL view.",
@@ -20076,6 +20181,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a lifecycle policy.",
@@ -21952,6 +22064,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete indices.",
@@ -22042,6 +22161,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an alias.",
@@ -22139,6 +22265,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete data stream lifecycles.",
@@ -22229,6 +22362,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete data streams.",
@@ -22326,6 +22466,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete data stream options.",
@@ -22408,6 +22555,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an index template.",
@@ -22489,6 +22643,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a legacy index template.",
@@ -26848,6 +27009,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Remove an index block.",
@@ -28584,6 +28752,13 @@
                       "type": "string",
                       "required": false,
                       "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an inference endpoint.",
@@ -28644,6 +28819,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete the inference region policy.",
@@ -32649,6 +32831,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete GeoIP database configurations.",
@@ -32731,6 +32920,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete IP geolocation database configurations.",
@@ -32812,6 +33008,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete pipelines.",
@@ -33641,6 +33844,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete the license.",
@@ -34159,6 +34369,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a Logstash pipeline.",
@@ -34714,6 +34931,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a calendar.",
@@ -34788,6 +35012,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete events from a calendar.",
@@ -34863,6 +35094,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete anomaly jobs from a calendar.",
@@ -34944,6 +35182,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a data frame analytics job.",
@@ -35018,6 +35263,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a datafeed.",
@@ -35099,6 +35351,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete expired ML data.",
@@ -35166,6 +35425,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a filter.",
@@ -35254,6 +35520,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete forecasts from a job.",
@@ -35342,6 +35615,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an anomaly detection job.",
@@ -35416,6 +35696,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a model snapshot.",
@@ -35497,6 +35784,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an unreferenced trained model.",
@@ -35571,6 +35865,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a trained model alias.",
@@ -41337,6 +41638,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Clear the archived repositories metering.",
@@ -42223,6 +42531,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a project routing expression.",
@@ -42491,6 +42806,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a query rule.",
@@ -42558,6 +42880,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a query ruleset.",
@@ -43100,6 +43429,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a rollup job.",
@@ -43743,6 +44079,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a search application.",
@@ -43810,6 +44153,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a behavioral analytics collection.",
@@ -45023,6 +45373,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Bulk delete roles.",
@@ -46160,6 +46517,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete application privileges.",
@@ -46239,6 +46603,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete roles.",
@@ -46318,6 +46689,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete role mappings.",
@@ -46411,6 +46789,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete service account tokens.",
@@ -46490,6 +46875,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete users.",
@@ -48289,6 +48681,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Invalidate API keys.",
@@ -48377,6 +48776,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Invalidate a token.",
@@ -50583,6 +50989,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a policy.",
@@ -51729,6 +52142,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete snapshots.",
@@ -51811,6 +52231,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete snapshot repositories.",
@@ -52827,6 +53254,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an async SQL search.",
@@ -53647,6 +54081,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a synonym set.",
@@ -53728,6 +54169,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a synonym rule.",
@@ -55116,6 +55564,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a transform.",
@@ -56548,6 +57003,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a watch.",
@@ -57835,6 +58297,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an agent",
@@ -58125,6 +58594,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete conversation by ID",
@@ -58337,6 +58813,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete conversation attachment",
@@ -58939,6 +59422,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a plugin",
@@ -59172,6 +59662,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a skill",
@@ -59471,6 +59968,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a tool",
@@ -59614,6 +60118,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a rule",
@@ -60304,6 +60815,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a snooze schedule for a rule",
@@ -60577,6 +61095,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a backfill by ID",
@@ -60659,6 +61184,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete agent configuration",
@@ -61286,6 +61818,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a connector",
@@ -61675,6 +62214,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a dashboard",
@@ -61887,6 +62433,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a data view",
@@ -62162,6 +62715,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a runtime field",
@@ -63415,6 +63975,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an agent binary download source",
@@ -65056,6 +65623,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an agent",
@@ -65492,6 +66066,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an uploaded file",
@@ -66295,6 +66876,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a package",
@@ -66534,6 +67122,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a package",
@@ -66846,6 +67441,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete assets for a package",
@@ -66936,6 +67538,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete Kibana assets for a package",
@@ -67610,6 +68219,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an agentless policy",
@@ -67778,6 +68394,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete cloud connector (supports force deletion)",
@@ -68144,6 +68767,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Revoke or delete an enrollment API key",
@@ -68800,6 +69430,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete output",
@@ -69629,6 +70266,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a package policy",
@@ -70169,6 +70813,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a proxy",
@@ -70433,6 +71084,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a Fleet Server host",
@@ -70862,6 +71520,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a maintenance window.",
@@ -71469,6 +72134,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a role",
@@ -72100,6 +72772,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete conversations",
@@ -72308,6 +72987,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a conversation",
@@ -72747,6 +73433,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Deletes a single Knowledge Base Entry using the `id` field",
@@ -73677,6 +74370,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete Attack Discovery schedule",
@@ -73927,6 +74627,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a detection rule",
@@ -75216,6 +75923,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an Elastic Endpoint exception list item",
@@ -77134,6 +77848,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a script",
@@ -77383,6 +78104,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an asset criticality record",
@@ -77652,6 +78380,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete the Privilege Monitoring Engine",
@@ -77877,6 +78612,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a monitored user",
@@ -78476,6 +79218,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete Entity Engines",
@@ -78552,6 +79301,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete the Entity Engine",
@@ -78834,6 +79590,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an entity in Entity Store",
@@ -79068,6 +79831,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Cleanup the Risk Engine",
@@ -79436,6 +80206,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an entity",
@@ -80111,6 +80888,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an exception list",
@@ -80674,6 +81458,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an exception list item",
@@ -81229,6 +82020,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a value list",
@@ -81576,6 +82374,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete value list data streams",
@@ -81685,6 +82490,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a value list item",
@@ -82706,6 +83518,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a pack",
@@ -83059,6 +83878,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a saved query",
@@ -83405,6 +84231,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete one or more notes",
@@ -83660,6 +84493,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete Timelines or Timeline templates",
@@ -84751,6 +85591,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete an SLO",
@@ -85309,6 +86156,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a space",
@@ -85523,6 +86377,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a stream",
@@ -86050,6 +86911,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Remove a query from a stream",
@@ -86358,6 +87226,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Unlink an attachment from a stream",
@@ -86608,6 +87483,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a tag",
@@ -86902,6 +87784,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a visualization",
@@ -86955,6 +87844,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Bulk delete workflows",
@@ -87878,6 +88774,13 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a workflow",
@@ -88378,6 +89281,9 @@
               "parameters": [],
               "summary": "Fetch current account information",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -88411,6 +89317,9 @@
               ],
               "summary": "Updates the current account",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -88485,6 +89394,9 @@
               ],
               "summary": "Get all API keys",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -88560,10 +89472,20 @@
                   "type": "boolean",
                   "required": false,
                   "summary": "validate all inputs and exit without performing any action"
+                },
+                {
+                  "role": "flag",
+                  "name": "yes",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "Confirm destructive action without prompting"
                 }
               ],
               "summary": "Delete API keys",
               "intent": {
+                "destructive": true,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -88598,6 +89520,9 @@
               ],
               "summary": "Get API key",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -88628,10 +89553,20 @@
                   "type": "boolean",
                   "required": false,
                   "summary": "validate all inputs and exit without performing any action"
+                },
+                {
+                  "role": "flag",
+                  "name": "yes",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "Confirm destructive action without prompting"
                 }
               ],
               "summary": "Delete API key",
               "intent": {
+                "destructive": true,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             }
@@ -88687,6 +89622,9 @@
               ],
               "summary": "Get costs overview for the organization. Currently unavailable in self-hosted ECE.",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -88742,6 +89680,9 @@
               ],
               "summary": "Get charts for the organization. Currently unavailable in self-hosted ECE.",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -88790,6 +89731,9 @@
               ],
               "summary": "Get deployments costs for the organization. Currently unavailable in self-hosted ECE.",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -88852,6 +89796,9 @@
               ],
               "summary": "Get charts by deployment. Currently unavailable in self-hosted ECE.",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -88907,6 +89854,9 @@
               ],
               "summary": "Get itemized costs by deployments. Currently unavailable in self-hosted ECE.",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -88955,6 +89905,9 @@
               ],
               "summary": "Get itemized costs for the organization. Currently unavailable in self-hosted ECE.",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             }
@@ -88974,6 +89927,9 @@
               "parameters": [],
               "summary": "List organizations",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -89008,6 +89964,9 @@
               ],
               "summary": "Get organization invitation",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -89076,6 +90035,9 @@
               ],
               "summary": "Fetch organization information",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -89143,6 +90105,9 @@
               ],
               "summary": "Update organization",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -89177,6 +90142,9 @@
               ],
               "summary": "Get domain claims",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -89213,10 +90181,20 @@
                   "type": "boolean",
                   "required": false,
                   "summary": "validate all inputs and exit without performing any action"
+                },
+                {
+                  "role": "flag",
+                  "name": "yes",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "Confirm destructive action without prompting"
                 }
               ],
               "summary": "Delete domain claim",
               "intent": {
+                "destructive": true,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -89331,6 +90309,9 @@
               ],
               "summary": "Get organization IdP",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -89383,6 +90364,9 @@
               ],
               "summary": "Setup organization IdP",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -89413,10 +90397,20 @@
                   "type": "boolean",
                   "required": false,
                   "summary": "validate all inputs and exit without performing any action"
+                },
+                {
+                  "role": "flag",
+                  "name": "yes",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "Confirm destructive action without prompting"
                 }
               ],
               "summary": "Tear down organization IdP",
               "intent": {
+                "destructive": true,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -89451,6 +90445,9 @@
               ],
               "summary": "Get organization service provider SAML2 metadata.xml for configuring the identity provider",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -89485,6 +90482,9 @@
               ],
               "summary": "List organization invitations",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -89575,10 +90575,20 @@
                   "type": "boolean",
                   "required": false,
                   "summary": "validate all inputs and exit without performing any action"
+                },
+                {
+                  "role": "flag",
+                  "name": "yes",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "Confirm destructive action without prompting"
                 }
               ],
               "summary": "Delete organization invitations",
               "intent": {
+                "destructive": true,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -89613,6 +90623,9 @@
               ],
               "summary": "List organization members",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -89657,10 +90670,20 @@
                   "type": "boolean",
                   "required": false,
                   "summary": "validate all inputs and exit without performing any action"
+                },
+                {
+                  "role": "flag",
+                  "name": "yes",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "Confirm destructive action without prompting"
                 }
               ],
               "summary": "Delete organization memberships",
               "intent": {
+                "destructive": true,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -89695,6 +90718,9 @@
               ],
               "summary": "Get role mappings",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -89735,6 +90761,9 @@
               ],
               "summary": "Updates role mappings",
               "intent": {
+                "destructive": false,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             },
@@ -89765,10 +90794,20 @@
                   "type": "boolean",
                   "required": false,
                   "summary": "validate all inputs and exit without performing any action"
+                },
+                {
+                  "role": "flag",
+                  "name": "yes",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "Confirm destructive action without prompting"
                 }
               ],
               "summary": "Delete role mappings",
               "intent": {
+                "destructive": true,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             }
@@ -89888,10 +90927,20 @@
                   "type": "boolean",
                   "required": false,
                   "summary": "validate all inputs and exit without performing any action"
+                },
+                {
+                  "role": "flag",
+                  "name": "yes",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "Confirm destructive action without prompting"
                 }
               ],
               "summary": "Remove Role Assignments",
               "intent": {
+                "destructive": true,
+                "idempotent": true,
+                "scope": "global",
                 "requiresAuth": true
               }
             }
@@ -89973,6 +91022,9 @@
                   ],
                   "summary": "Get deployment templates",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -90036,6 +91088,9 @@
                   ],
                   "summary": "Get deployment template",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 }
@@ -90056,6 +91111,9 @@
                   "parameters": [],
                   "summary": "List Deployments",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -90410,6 +91468,9 @@
                   ],
                   "summary": "Get Deployment",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -90509,6 +91570,9 @@
                   ],
                   "summary": "Update Deployment",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -90691,6 +91755,9 @@
                   ],
                   "summary": "Get Deployment APM Resource Info",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -90824,6 +91891,9 @@
                   ],
                   "summary": "Get Deployment App Search Resource Info",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -90866,6 +91936,9 @@
                   ],
                   "summary": "Set AppSearch read-only status",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -90914,6 +91987,9 @@
                   ],
                   "summary": "Set AppSearch read-only status",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -90949,6 +92025,9 @@
                   ],
                   "summary": "Get certificate authority",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -91068,6 +92147,9 @@
                   ],
                   "summary": "Get Deployment Elasticsearch Resource Info",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -91517,6 +92599,9 @@
                   ],
                   "summary": "Get the items in the Elasticsearch resource keystore",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -91614,6 +92699,9 @@
                   ],
                   "summary": "Get certificate based remote clusters",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -91662,6 +92750,9 @@
                   ],
                   "summary": "Set certificate based remote clusters",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -91704,6 +92795,9 @@
                   ],
                   "summary": "List the attached snapshot repositories",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -91797,10 +92891,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Remove the attached snapshot repository",
                   "intent": {
+                    "destructive": true,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -91843,6 +92947,9 @@
                   ],
                   "summary": "Get Elasticsearch tiers",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -92018,6 +93125,9 @@
                   ],
                   "summary": "Get Deployment Enterprise Search Resource Info",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -92109,6 +93219,9 @@
                   ],
                   "summary": "Get Deployment Integrations Server Resource Info",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -92207,6 +93320,9 @@
                   ],
                   "summary": "Get Deployment Kibana Resource Info",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -92256,6 +93372,9 @@
                   ],
                   "summary": "Build request to migrate deployment to a different template",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -92291,6 +93410,9 @@
                   ],
                   "summary": "Get the tags for a Deployment",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -92332,6 +93454,9 @@
                   ],
                   "summary": "Set the tags for a Deployment",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -92415,6 +93540,9 @@
                   ],
                   "summary": "Get Deployment upgrade assistant status",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -92978,10 +94106,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Cancel resource pending plan",
                   "intent": {
+                    "destructive": true,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -93031,6 +94169,9 @@
                   ],
                   "summary": "Get the user settings of a Deployment resource",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -93086,6 +94227,9 @@
                   ],
                   "summary": "Update user settings for a deployment resource",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -93254,6 +94398,9 @@
                   ],
                   "summary": "Get associated rulesets",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -93296,6 +94443,9 @@
                   ],
                   "summary": "List traffic filter claimed link id",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -93449,6 +94599,9 @@
                   ],
                   "summary": "List traffic filter rulesets",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -93555,6 +94708,9 @@
                   ],
                   "summary": "Retrieves the ruleset by ID.",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -93626,6 +94782,9 @@
                   ],
                   "summary": "Updates a ruleset",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -93664,10 +94823,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a ruleset",
                   "intent": {
+                    "destructive": true,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -93703,6 +94872,9 @@
                   ],
                   "summary": "Get associated deployments",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -93795,10 +94967,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete ruleset association",
                   "intent": {
+                    "destructive": true,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 }
@@ -93819,6 +95001,9 @@
                   "parameters": [],
                   "summary": "List Extensions",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -93923,6 +95108,9 @@
                   ],
                   "summary": "Get Extension",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -94027,6 +95215,9 @@
                   ],
                   "summary": "Uploads the Extension",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -94058,10 +95249,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete Extension",
                   "intent": {
+                    "destructive": true,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 }
@@ -94111,6 +95312,9 @@
                   ],
                   "summary": "Get stack versions",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 }
@@ -94131,6 +95335,9 @@
                   "parameters": [],
                   "summary": "Get trusted environments",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 }
@@ -94199,6 +95406,9 @@
                       ],
                       "summary": "Get Elasticsearch projects",
                       "intent": {
+                        "destructive": false,
+                        "idempotent": true,
+                        "scope": "global",
                         "requiresAuth": true
                       }
                     },
@@ -94358,6 +95568,9 @@
                       ],
                       "summary": "Get an Elasticsearch project",
                       "intent": {
+                        "destructive": false,
+                        "idempotent": true,
+                        "scope": "global",
                         "requiresAuth": true
                       }
                     },
@@ -94390,10 +95603,20 @@
                           "type": "boolean",
                           "required": false,
                           "summary": "validate all inputs and exit without performing any action"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "yes",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "Confirm destructive action without prompting"
                         }
                       ],
                       "summary": "Delete an Elasticsearch project",
                       "intent": {
+                        "destructive": true,
+                        "idempotent": true,
+                        "scope": "global",
                         "requiresAuth": true
                       }
                     },
@@ -94610,6 +95833,9 @@
                       ],
                       "summary": "Get roles for an Elasticsearch project",
                       "intent": {
+                        "destructive": false,
+                        "idempotent": true,
+                        "scope": "global",
                         "requiresAuth": true
                       }
                     },
@@ -94646,6 +95872,9 @@
                       ],
                       "summary": "Get the status of an Elasticsearch project",
                       "intent": {
+                        "destructive": false,
+                        "idempotent": true,
+                        "scope": "global",
                         "requiresAuth": true
                       }
                     }
@@ -94703,6 +95932,9 @@
                       ],
                       "summary": "Get Observability projects",
                       "intent": {
+                        "destructive": false,
+                        "idempotent": true,
+                        "scope": "global",
                         "requiresAuth": true
                       }
                     },
@@ -94856,6 +96088,9 @@
                       ],
                       "summary": "Get an Observability project",
                       "intent": {
+                        "destructive": false,
+                        "idempotent": true,
+                        "scope": "global",
                         "requiresAuth": true
                       }
                     },
@@ -94888,10 +96123,20 @@
                           "type": "boolean",
                           "required": false,
                           "summary": "validate all inputs and exit without performing any action"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "yes",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "Confirm destructive action without prompting"
                         }
                       ],
                       "summary": "Delete an Observability project",
                       "intent": {
+                        "destructive": true,
+                        "idempotent": true,
+                        "scope": "global",
                         "requiresAuth": true
                       }
                     },
@@ -95112,6 +96357,9 @@
                       ],
                       "summary": "Get roles for an Observability project",
                       "intent": {
+                        "destructive": false,
+                        "idempotent": true,
+                        "scope": "global",
                         "requiresAuth": true
                       }
                     },
@@ -95148,6 +96396,9 @@
                       ],
                       "summary": "Get the status of an Observability project",
                       "intent": {
+                        "destructive": false,
+                        "idempotent": true,
+                        "scope": "global",
                         "requiresAuth": true
                       }
                     }
@@ -95205,6 +96456,9 @@
                       ],
                       "summary": "Get Security projects",
                       "intent": {
+                        "destructive": false,
+                        "idempotent": true,
+                        "scope": "global",
                         "requiresAuth": true
                       }
                     },
@@ -95370,6 +96624,9 @@
                       ],
                       "summary": "Get a Security project",
                       "intent": {
+                        "destructive": false,
+                        "idempotent": true,
+                        "scope": "global",
                         "requiresAuth": true
                       }
                     },
@@ -95402,10 +96659,20 @@
                           "type": "boolean",
                           "required": false,
                           "summary": "validate all inputs and exit without performing any action"
+                        },
+                        {
+                          "role": "flag",
+                          "name": "yes",
+                          "type": "boolean",
+                          "required": false,
+                          "summary": "Confirm destructive action without prompting"
                         }
                       ],
                       "summary": "Delete a Security project",
                       "intent": {
+                        "destructive": true,
+                        "idempotent": true,
+                        "scope": "global",
                         "requiresAuth": true
                       }
                     },
@@ -95635,6 +96902,9 @@
                       ],
                       "summary": "Get roles for a Security project",
                       "intent": {
+                        "destructive": false,
+                        "idempotent": true,
+                        "scope": "global",
                         "requiresAuth": true
                       }
                     },
@@ -95671,6 +96941,9 @@
                       ],
                       "summary": "Get the status of a Security project",
                       "intent": {
+                        "destructive": false,
+                        "idempotent": true,
+                        "scope": "global",
                         "requiresAuth": true
                       }
                     }
@@ -95758,6 +97031,9 @@
                   ],
                   "summary": "Get Elasticsearch project link candidates",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -95835,6 +97111,9 @@
                   ],
                   "summary": "Get Observability project link candidates",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -95912,6 +97191,9 @@
                   ],
                   "summary": "Get Security project link candidates",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -95947,6 +97229,9 @@
                   ],
                   "summary": "Get Elasticsearch project delete status",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -95982,6 +97267,9 @@
                   ],
                   "summary": "Get Observability project delete status",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -96017,6 +97305,9 @@
                   ],
                   "summary": "Get Security project delete status",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 }
@@ -96037,6 +97328,9 @@
                   "parameters": [],
                   "summary": "Get regions",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -96072,6 +97366,9 @@
                   ],
                   "summary": "Get a region",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 }
@@ -96121,6 +97418,9 @@
                   ],
                   "summary": "List traffic filters",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -96232,6 +97532,9 @@
                   ],
                   "summary": "List PrivateLink region metadata",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -96267,6 +97570,9 @@
                   ],
                   "summary": "Retrieves the traffic filter by ID.",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -96298,10 +97604,20 @@
                       "type": "boolean",
                       "required": false,
                       "summary": "validate all inputs and exit without performing any action"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "yes",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Confirm destructive action without prompting"
                     }
                   ],
                   "summary": "Delete a traffic filter",
                   "intent": {
+                    "destructive": true,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
