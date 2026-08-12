@@ -24,7 +24,7 @@
 
 import { access, chmod, constants, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join, isAbsolute, resolve } from 'node:path'
+import { join, isAbsolute, resolve, relative } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { readExtensions, upsertExtension, findExtension, removeExtension as removeFromStore } from './store.ts'
 import type { InstalledExtension } from './store.ts'
@@ -203,8 +203,9 @@ async function discoverGithubEntrypoint (installDir: string, baseName: string): 
 
 /** Asserts the entrypoint path is within the install directory (prevents symlink/config injection). */
 function assertWithinInstallDir (entrypoint: string, installDir: string): void {
-  const rel = entrypoint.startsWith(installDir + '/')
-  if (!rel) {
+  const rel = relative(installDir, entrypoint)
+  const within = rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
+  if (!within) {
     throw new Error(
       `Resolved entrypoint "${entrypoint}" is outside the install directory "${installDir}". ` +
       'Refusing to register this extension.'
