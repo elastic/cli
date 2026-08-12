@@ -70,7 +70,6 @@ export function buildRequestParams (
  * The schema key is both the `{token}` name in the template and the lookup key in `input`.
  * For optional params that are absent, trailing `/{param}` segments are stripped.
  */
-
 function interpolatePath (
   path: string,
   schemaArgs: SchemaArgDefinition[],
