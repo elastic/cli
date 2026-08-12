@@ -7,6 +7,7 @@ import type { EsRequestParams } from '../lib/es-client.ts'
 import type { EsApiDefinition } from './types.ts'
 import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
 import type { RawJsonValue, ParsedResult } from '../factory.ts'
+import { encodeMultiTargetPathParam } from '../lib/path-encoding.ts'
 
 /**
  * Builds a `TransportRequestParams` object from an API definition, parsed CLI input,
@@ -69,36 +70,6 @@ export function buildRequestParams (
  * The schema key is both the `{token}` name in the template and the lookup key in `input`.
  * For optional params that are absent, trailing `/{param}` segments are stripped.
  */
-// `encodeURIComponent` leaves `.` and `..` untouched (they're unreserved), and
-// happily encodes an empty string to `''`. A URL-consuming layer normalizes
-// `/./`, `/../`, and empty segments out of the path afterwards, silently
-// widening a single-target request (e.g. a specific index) to the resource
-// root (e.g. the whole cluster). Reject these before they ever reach a path.
-function assertSafePathSegment (segment: string, original: string): void {
-  if (segment === '' || segment === '.' || segment === '..') {
-    // Identify the offending segment itself in the message, not just the full
-    // (possibly comma-separated) value, so e.g. "idx1,.." points at "..".
-    const context = segment === original ? '' : ` (within "${original}")`
-    throw Object.assign(
-      new Error(`Invalid path parameter "${segment}"${context}: empty, ".", and ".." segments are rejected because they resolve to the parent/root resource instead of a specific target`),
-      { code: 'input_error' }
-    )
-  }
-}
-
-/**
- * Encodes a single path parameter value. Splits on commas so ES multi-target
- * syntax (e.g. "idx1,idx2") is preserved, while special characters like `/`,
- * `?`, and `#` are percent-encoded to prevent path traversal (#106). Rejects
- * empty, `.`, and `..` segments that would otherwise widen the request scope.
- */
-function encodePathParam (value: string): string {
-  return value.split(',').map((s) => {
-    const trimmed = s.trim()
-    assertSafePathSegment(trimmed, value)
-    return encodeURIComponent(trimmed)
-  }).join(',')
-}
 
 function interpolatePath (
   path: string,
@@ -108,7 +79,7 @@ function interpolatePath (
   for (const arg of schemaArgs.filter((a) => a.foundIn === 'path')) {
     const value = input[arg.schemaKey]
     if (value !== undefined) {
-      path = path.replace(`{${arg.schemaKey}}`, encodePathParam(String(value)))
+      path = path.replace(`{${arg.schemaKey}}`, encodeMultiTargetPathParam(String(value)))
     } else if (!arg.required) {
       // Strip the optional segment with its leading slash so the rest of the
       // path remains valid. E.g.:

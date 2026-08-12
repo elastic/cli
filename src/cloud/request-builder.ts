@@ -7,6 +7,7 @@ import type { CloudApiDefinition } from './types.ts'
 import type { CloudRequestParams } from '../lib/cloud-client.ts'
 import type { ParsedResult } from '../factory.ts'
 import { resolveRootRef } from '../lib/json-schema-refs.ts'
+import { encodePathParam } from '../lib/path-encoding.ts'
 
 /**
  * Builds a `CloudRequestParams` object from an API definition and parsed CLI input.
@@ -53,23 +54,6 @@ export function buildCloudRequestParams (
   if (Object.keys(querystring).length > 0) params.querystring = querystring
   if (body !== undefined) params.body = body
   return params
-}
-
-/**
- * Encodes a single path parameter value, percent-encoding special characters
- * like `/`, `?`, and `#` to prevent path traversal (#106). Rejects empty,
- * `.`, and `..` values, which `encodeURIComponent` leaves untouched and which
- * a URL-consuming layer would otherwise normalize into the parent/root
- * resource instead of the intended target.
- */
-function encodePathParam (value: string): string {
-  if (value === '' || value === '.' || value === '..') {
-    throw Object.assign(
-      new Error(`Invalid path parameter "${value}": empty, ".", and ".." values are rejected because they resolve to the parent/root resource instead of a specific target`),
-      { code: 'input_error' }
-    )
-  }
-  return encodeURIComponent(value)
 }
 
 /**
