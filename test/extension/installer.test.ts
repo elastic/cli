@@ -92,6 +92,11 @@ describe('installer', () => {
       await assert.doesNotReject(uninstallExtension('nonexistent'))
     })
 
+    it('rejects traversal names', async () => {
+      await assert.rejects(uninstallExtension('../../../target'), /invalid characters/)
+      await assert.rejects(uninstallExtension('..'), /invalid characters/)
+    })
+
     it('removes the registry entry even when the directory is already gone', async () => {
       const entry: InstalledExtension = {
         name: 'gone',
