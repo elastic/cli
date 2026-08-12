@@ -106,20 +106,26 @@ describe('redactCredentials', () => {
 })
 
 describe('readCredentialPolicyOptions', () => {
-  it('extracts all four flags', () => {
+  it('extracts all five flags', () => {
     const opts = readCredentialPolicyOptions({
       'save-as': 'prod',
       'credentials-file': '/tmp/c.yml',
       'force': true,
       'config-file': '/tmp/cfg.yml',
+      'show-credentials': true,
       'irrelevant': 'x',
     })
-    assert.deepEqual(opts, { saveAs: 'prod', credentialsFile: '/tmp/c.yml', force: true, configFile: '/tmp/cfg.yml' })
+    assert.deepEqual(opts, { saveAs: 'prod', credentialsFile: '/tmp/c.yml', force: true, configFile: '/tmp/cfg.yml', showCredentials: true })
   })
 
   it('skips empty strings', () => {
     const opts = readCredentialPolicyOptions({ 'save-as': '' })
     assert.deepEqual(opts, {})
+  })
+
+  it('does not set showCredentials when flag is absent', () => {
+    const opts = readCredentialPolicyOptions({ 'save-as': 'dev' })
+    assert.equal(opts.showCredentials, undefined)
   })
 })
 
@@ -152,10 +158,21 @@ describe('applyCredentialPolicy', () => {
     return calls
   }
 
-  it('passthrough when no relevant flags are set', async () => {
+  it('passthrough without --show-credentials redacts the password', async () => {
     const res = await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, {})
     assert.equal(res.log.mode, 'passthrough')
-    assert.deepEqual(res.body, CREATE_RESPONSE)
+    const body = res.body as { credentials: { password: string; username: string } }
+    assert.match(body.credentials.password, /redacted/)
+    assert.equal(body.credentials.username, 'admin')
+    assert.equal(res.log.warnings.length, 0)
+  })
+
+  it('passthrough with showCredentials: true returns the password and warns', async () => {
+    const res = await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, { showCredentials: true })
+    assert.equal(res.log.mode, 'passthrough')
+    const body = res.body as { credentials: { password: string } }
+    assert.equal(body.credentials.password, 'super-secret-admin-pass')
+    assert.ok(res.log.warnings.some(w => /plain text/i.test(w)))
   })
 
   it('--save-as writes a context, redacts the response, and stores the password in the keychain', async () => {
