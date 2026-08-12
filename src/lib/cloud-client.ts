@@ -110,9 +110,8 @@ export function getCloudClient(): CloudClient {
   }
 
   const { url, auth } = cloud
-  const authRecord = auth as Record<string, unknown>
 
-  const apiKey = typeof authRecord['api_key'] === 'string' ? authRecord['api_key'] : undefined
+  const apiKey = auth != null && 'api_key' in auth ? auth.api_key : undefined
 
   if (apiKey == null) {
     throw new Error(

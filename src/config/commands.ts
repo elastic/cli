@@ -114,6 +114,11 @@ function collectFieldUpdates (options: Record<string, string | number | boolean>
       secrets.push({ field, value: raw })
     }
   }
+  if (secrets.length > 0) {
+    process.stderr.write(
+      `Warning: secret value(s) passed via flag(s) (${secrets.map(s => `--${s.field.flag}`).join(', ')}) are visible in process listings and shell history.\n`
+    )
+  }
   for (const field of PLAIN_FIELDS) {
     const raw = options[field.flag]
     if (typeof raw === 'string' && raw.length > 0) {
@@ -263,7 +268,7 @@ async function handleContextAdd (parsed: {
 
   const contextValidation = ContextSchema.safeParse(resolveForValidation(ctx))
   if (!contextValidation.success) {
-    return errorResult('invalid_context', `context validation failed: ${contextValidation.error.issues.map(i => i.message).join('; ')}`)
+    return errorResult('invalid_context', `context validation failed: ${contextValidation.errors.map(e => e.message).join('; ')}`)
   }
 
   let next = upsertContext(config, name, ctx)
@@ -354,7 +359,7 @@ async function handleContextEdit (parsed: {
     )
     const validation = ContextSchema.safeParse(resolveForValidation(ctx))
     if (!validation.success) {
-      return errorResult('invalid_context', `context validation failed: ${validation.error.issues.map(i => i.message).join('; ')}`)
+      return errorResult('invalid_context', `context validation failed: ${validation.errors.map(e => e.message).join('; ')}`)
     }
     const next = upsertContext(config, name, ctx)
     const result = await writeConfig(path, next, { restrictPermissions: hasInlineSecrets(next) })
@@ -376,7 +381,7 @@ async function handleContextEdit (parsed: {
   }
   const validation = ContextSchema.safeParse(resolveForValidation(edited))
   if (!validation.success) {
-    return errorResult('invalid_context', `edited context failed validation: ${validation.error.issues.map(i => i.message).join('; ')}`)
+    return errorResult('invalid_context', `edited context failed validation: ${validation.errors.map(e => e.message).join('; ')}`)
   }
   const next = upsertContext(config, name, edited)
   const result = await writeConfig(path, next, { restrictPermissions: hasInlineSecrets(next) })

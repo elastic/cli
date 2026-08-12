@@ -9,7 +9,8 @@
  * than nested under `hosted` or `serverless`).
  *
  * Kept in a separate lightweight module so the lazy register path can import
- * it without pulling in allCloudApis / allServerlessApis / Zod schemas.
+ * it without pulling in `loadCloudApis` / `loadServerlessApis` or the
+ * `@elastic/schemas` API definition modules they resolve.
  */
 export const PROMOTED_NAMESPACES: ReadonlyMap<string, string> = new Map([
   ['accounts', 'trust'],

@@ -4,9 +4,8 @@
  */
 
 import type { EsApiDefinition } from '../../src/es/types.ts'
-import { resolveInput } from '../../src/es/types.ts'
-import { extractSchemaArgs } from '../../src/lib/schema-args.ts'
-import type { SchemaArgDefinition } from '../../src/lib/schema-args.ts'
+import { extractSchemaArgs } from '../../src/lib/json-schema-args.ts'
+import type { SchemaArgDefinition } from '../../src/lib/json-schema-args.ts'
 
 /**
  * Result of mapping a YAML dot-notation action to a CLI command.
@@ -63,9 +62,7 @@ export function mapAction (
   if (def.namespace != null) args.push(def.namespace)
   args.push(def.name)
 
-  const schemaArgs = def.input != null
-    ? extractSchemaArgs(resolveInput(def.input))
-    : []
+  const schemaArgs = def.input != null ? extractSchemaArgs(def.input) : []
 
   const bodyFields = new Set(
     schemaArgs.filter((a) => a.foundIn === 'body').map((a) => a.schemaKey)
@@ -78,11 +75,9 @@ export function mapAction (
 
   for (const [key, value] of Object.entries(params)) {
     if (key === 'ignore') continue
-
     const argDef = argsByKey.get(key)
     // Skip params the CLI doesn't expose as flags (e.g. cat's 'format')
     if (argDef == null) continue
-
     // Body fields from YAML params are passed as CLI flags (same as non-body params);
     // they will be handled alongside any explicit body in buildCommand.
     args.push(`--${argDef.cliFlag}`, String(value))

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { z } from 'zod'
 import { defineCommand } from '../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../factory.ts'
 import { docsRead, resolveDocsPath } from './client.ts'
@@ -21,10 +20,13 @@ const defaultDeps: ReadDeps = {
   stdout: process.stdout,
 }
 
-const inputSchema = z.object({
-  path: z.string().optional().describe('Docs path, full elastic.co URL, or search query'),
-  raw: z.boolean().optional().describe('Output unrendered markdown instead of formatted output'),
-})
+const inputSchema: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    path: { type: 'string', description: 'Docs path, full elastic.co URL, or search query' },
+    raw: { type: 'boolean', description: 'Output unrendered markdown instead of formatted output' },
+  },
+}
 
 export function createReadCommand (deps: ReadDeps = defaultDeps): OpaqueCommandHandle {
   return defineCommand({
@@ -33,10 +35,11 @@ export function createReadCommand (deps: ReadDeps = defaultDeps): OpaqueCommandH
     input: inputSchema,
     positionalArg: { name: 'path', description: 'Docs path, full elastic.co URL, or search query', required: false },
     handler: async (parsed): Promise<JsonValue> => {
-      const input = (parsed.arg ?? parsed.input?.path ?? '').trim()
+      const inp = parsed.input as { path?: string; raw?: boolean } | undefined
+      const input = (parsed.arg ?? inp?.path ?? '').trim()
       if (input === '') return { error: { code: 'missing_input', message: 'path is required' } }
 
-      const raw = parsed.input!.raw === true
+      const raw = inp?.raw === true
 
       try {
         const path = await deps.resolveDocsPath(input)

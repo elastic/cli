@@ -332,8 +332,10 @@ export async function createLocalExtension (name: string, targetPath?: string): 
  * and deletes its entry from the registry. No-ops if the extension is not installed.
  */
 export async function uninstallExtension (name: string): Promise<void> {
-  const installDir = join(extensionsDir(), `elastic-${name}`)
-  await rm(installDir, { recursive: true, force: true })
+  assertSafeName(name)
+  const ext = await findExtension(name)
+  if (ext == null) return
+  await rm(ext.path, { recursive: true, force: true })
   await removeFromStore(name)
 }
 

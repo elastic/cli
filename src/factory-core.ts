@@ -8,7 +8,7 @@
  * to build command groups and render `--help` output.
  *
  * This module is separated from factory.ts to avoid pulling in heavy transitive
- * dependencies (Zod, schema-args, output formatters, config store) when all the
+ * dependencies (schema-args, output formatters, config store) when all the
  * caller needs is to define group structure for lazy namespace loading.
  *
  * factory.ts re-exports everything from this module, so consumers that already
@@ -16,7 +16,6 @@
  */
 
 import { Command } from 'commander'
-import type { z } from 'zod'
 import type { ResolvedConfig, CommandPolicy } from './config/types.ts'
 import { resolveBuiltinProfile } from './config/profiles.ts'
 
@@ -63,15 +62,22 @@ export interface ParsedResult<T = unknown> {
   rawBodyValues?: Record<string, RawJsonValue>
 }
 
-/** Full configuration for a leaf command (requires Zod for the input schema type). */
-export interface CommandConfig<T extends z.ZodType = z.ZodType> {
+/**
+ * Full configuration for a leaf command.
+ *
+ * `input` is an optional JSON Schema object. When provided, the factory
+ * extracts CLI flags from `input.properties`, validates user input with AJV,
+ * and delivers the parsed value to the handler as `parsed.input`.
+ */
+export interface CommandConfig {
   name: string
   description: string
   options?: OptionDefinition[]
   positionalArg?: { name: string; description: string; required?: boolean }
-  handler: (parsed: ParsedResult<z.infer<T>>) => JsonValue | Promise<JsonValue>
-  input?: T
-  formatOutput?: (result: JsonValue, parsed: ParsedResult<z.infer<T>>) => string
+  handler: (parsed: ParsedResult) => JsonValue | Promise<JsonValue>
+  /** JSON Schema object for structured input (properties carry `x-found-in` routing). */
+  input?: Record<string, unknown>
+  formatOutput?: (result: JsonValue, parsed: ParsedResult) => string
   intent?: CommandIntent
   /**
    * Marks a command as read-only (GET/HEAD). When the input schema is also
@@ -216,18 +222,33 @@ export function hideBlockedCommands (root: OpaqueCommandHandle, policy: CommandP
 // ---------------------------------------------------------------------------
 
 /**
- * Recursively removes `found_in` keys from a JSON value tree.
+ * Routing metadata emitted by `@elastic/schemas` that the request builders consume
+ * and users must never see. Deliberately an explicit list, not `x-` prefix matching,
+ * so genuinely user-facing annotations (`x-availability`, `x-deprecated`,
+ * `x-response-type`, `x-destructive`) survive into help output.
+ */
+const ROUTING_META_KEYS = new Set([
+  'x-found-in',
+  'x-api',
+  'x-method',
+  'x-path',
+  'x-urls',
+  'x-body-root',
+  'x-body-format',
+])
+
+/**
+ * Recursively removes routing keys from a JSON value.
  *
- * `found_in` is internal routing metadata used by the request builder to classify
- * parameters as path, query, or body. It is an HTTP transport implementation detail
- * and MUST NOT be exposed in user-facing help text or agent-facing JSON Schema output.
+ * These are internal routing metadata used by the request builders and MUST NOT be
+ * exposed in user-facing help text or agent-facing JSON Schema output.
  */
 export function stripTransportMeta (value: JsonValue): JsonValue {
   if (Array.isArray(value)) return value.map(stripTransportMeta)
   if (value !== null && typeof value === 'object') {
     const out: Record<string, JsonValue> = {}
     for (const [k, v] of Object.entries(value)) {
-      if (k === 'found_in') continue
+      if (ROUTING_META_KEYS.has(k)) continue
       out[k] = stripTransportMeta(v)
     }
     return out
