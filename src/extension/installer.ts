@@ -398,6 +398,7 @@ export async function upgradeExtension (name: string): Promise<InstalledExtensio
       run('npm', ['install', '--production', '--no-fund', '--no-audit'], ext.path)
     }
     const entrypoint = await discoverGithubEntrypoint(ext.path, parsed.baseName)
+    await assertWithinInstallDir(resolve(entrypoint), resolve(ext.path))
     const updated: InstalledExtension = { ...ext, entrypoint: resolve(entrypoint) }
     await upsertExtension(updated)
     return updated
