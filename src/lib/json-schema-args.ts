@@ -250,8 +250,10 @@ const RESERVED_FLAGS = new Set(['help', 'json', 'config-file', 'use-context', 'c
  *   - security-lists-api update-list
  * `_version` (the optimistic-concurrency-control field) is seen first and keeps the flag; `version`
  * has no CLI flag but is still forwarded via stdin/`--input-file` body passthrough.
+ *
+ * The ES cat.aliases API has a `help` parameter that will output available columns.
  */
-const KNOWN_UPSTREAM_FLAG_COLLISIONS = new Set(['version'])
+const KNOWN_UPSTREAM_FLAG_COLLISIONS = new Set(['version', 'help'])
 
 /**
  * Validates schema arguments for naming conflicts.
