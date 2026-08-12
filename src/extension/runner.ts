@@ -18,7 +18,6 @@
  */
 
 import { spawn } from 'node:child_process'
-import type { ChildProcess } from 'node:child_process'
 import type { InstalledExtension } from './store.ts'
 import { buildExtensionEnvironment } from './env.ts'
 

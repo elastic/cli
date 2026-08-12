@@ -85,7 +85,7 @@ describe('runExtension', () => {
   })
 
   it('resolves with the child exit code', async () => {
-    _testSetSpawn((_cmd, _args, _options) => {
+    _testSetSpawn(() => {
       const emitter = new EventEmitter() as ReturnType<typeof import('node:child_process').spawn>
       process.nextTick(() => emitter.emit('close', 42))
       return emitter
@@ -96,7 +96,7 @@ describe('runExtension', () => {
   })
 
   it('rejects when the child process fails to start', async () => {
-    _testSetSpawn((_cmd, _args, _options) => {
+    _testSetSpawn(() => {
       const emitter = new EventEmitter() as ReturnType<typeof import('node:child_process').spawn>
       process.nextTick(() => emitter.emit('error', new Error('ENOENT')))
       return emitter
