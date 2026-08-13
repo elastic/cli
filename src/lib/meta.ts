@@ -4,10 +4,10 @@
  */
 
 import os from 'node:os'
-import { createRequire } from 'node:module'
 
-const require = createRequire(import.meta.url)
-const cliVersion: string = (require('../../package.json') as { version: string }).version
+// x-release-please-start-version
+const cliVersion = '0.2.0'
+// x-release-please-end
 
 /**
  * Converts a semver string to the format required by the x-elastic-client-meta spec.

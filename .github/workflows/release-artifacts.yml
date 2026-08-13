@@ -18,16 +18,15 @@ jobs:
             runner: ubuntu-latest
             target: node24-linuxstatic-x64
             artifact: elastic-linux-x64
-
           - os: macos
             runner: macos-latest
             target: node24-macos-x64
             artifact: elastic-macos-x64
-
           - os: windows
             runner: windows-latest
             target: node24-win-x64
-            artifact: elastic-windows-x64
+            # pkg appends .exe for Windows targets; name it here so the upload glob matches.
+            artifact: elastic-windows-x64.exe
 
     steps:
       - name: Checkout
@@ -44,10 +43,14 @@ jobs:
       - name: Build TypeScript
         run: npm run build
 
+      # The banner supplies a CJS `require` so the bundle can keep loading
+      # @elastic/schemas namespace files lazily from the pkg snapshot.
       - name: Bundle to single file
+        shell: bash
         run: npm run build:bundle
 
       - name: Package binary with pkg
+        shell: bash
         run: npm run build:binary -- --targets ${{ matrix.target }} --output ${{ matrix.artifact }}
 
       - name: Upload binary to release

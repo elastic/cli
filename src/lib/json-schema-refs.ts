@@ -14,6 +14,21 @@
  * self-contained schema so they never need file-system/package awareness.
  */
 
+import { createRequire } from 'node:module'
+
+const schemaRequire = createRequire(import.meta.url)
+
+/**
+ * Loads a CommonJS module or JSON file from `@elastic/schemas` by subpath.
+ *
+ * Uses `require` (via the package's `require` export condition) rather than
+ * `import.meta.resolve` + dynamic `import`, so this resolves under bundlers
+ * and binary packagers (e.g. pkg) that don't support ESM dynamic resolution.
+ */
+export function requireSchemaModule <T = Record<string, unknown>> (subpath: string): T {
+  return schemaRequire(subpath) as T
+}
+
 /** Fragment prefix of a same-document ref, i.e. one pointing into the schema's own `$defs`. */
 const SAME_DOC_PREFIX = '#/$defs/'
 
@@ -210,12 +225,9 @@ export async function resolveSidecarRefs (
 export function createDefinitionResolver <T extends { input?: Record<string, unknown> }> (
   jsonSubpath: string
 ): (def: T) => Promise<T> {
-  const loadSidecar = createSidecarResolver(async (filename) => {
-    // import.meta.resolve yields a file URL so dynamic import works under tsx and native Node alike.
-    const fileUrl = import.meta.resolve(`${jsonSubpath}/${filename}`)
-    const mod = await import(fileUrl, { with: { type: 'json' } }) as { default: Record<string, unknown> }
-    return mod.default
-  })
+  const loadSidecar = createSidecarResolver(async (filename) =>
+    requireSchemaModule<Record<string, unknown>>(`${jsonSubpath}/${filename}`)
+  )
 
   return async (def: T): Promise<T> => {
     if (def.input == null) return def

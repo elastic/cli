@@ -26,8 +26,8 @@
     "generate:notice": "node scripts/generate-notice.mjs",
     "test:notice": "node scripts/generate-notice.mjs --check",
     "test:megalinter": "mega-linter-runner --flavor javascript",
-    "build:bundle": "esbuild dist/cli.js --bundle --platform=node --format=esm --outfile=dist/cli.mjs",
-    "build:binary": "pkg dist/cli.mjs --compress Zstd"
+    "build:bundle": "esbuild dist/cli.js --bundle --platform=node --format=esm --banner:js='import { createRequire as __pkgRequire } from 'node:module'; const require = __pkgRequire(import.meta.url);' --outfile=dist/cli.mjs",
+    "build:binary": "pkg dist/cli.mjs --config package.json --compress Zstd"
   },
   "keywords": [
     "cli",
@@ -48,6 +48,13 @@
     "url": "git+https://github.com/elastic/cli.git"
   },
   "license": "Apache-2.0",
+  "pkg": {
+    "assets": [
+      "node_modules/@elastic/schemas/package.json",
+      "node_modules/@elastic/schemas/lib/cjs/**/*.js",
+      "node_modules/@elastic/schemas/src/**/*.json"
+    ]
+  },
   "type": "module",
   "types": "./dist/cli.d.ts",
   "files": [

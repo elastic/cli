@@ -5,7 +5,6 @@
  */
 
 import { Command } from 'commander'
-import { renderLogo } from './lib/logo.ts'
 import { hideBlockedCommands, configureJsonHelp, hasGlobalJsonFlag } from './factory-core.js'
 import type { OpaqueCommandHandle } from './factory-core.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './config/profiles.ts'
@@ -254,12 +253,11 @@ if (firstArg != null && (!willJustPrintHelp || hasProfileFlag)) {
   }
 }
 
-// Logo banner (root help only)
-if (firstArg == null) {
-  program.addHelpText('before', () =>
-    process.argv.includes('--json') || (earlyConfig?.ok === true && earlyConfig.value.banner === false)
-      ? '' : renderLogo(VERSION).replace(/\n$/, '')
-  )
+// Logo banner (root help only). Loaded lazily -- dynamic import keeps it out of the
+// startup graph for every other invocation, and esbuild/pkg can still bundle it.
+if (firstArg == null && !process.argv.includes('--json') && !(earlyConfig?.ok === true && earlyConfig.value.banner === false)) {
+  const { renderLogo } = await import('./lib/logo.js')
+  program.addHelpText('before', () => renderLogo(VERSION).replace(/\n$/, ''))
 }
 
 // Bare invocation: show help

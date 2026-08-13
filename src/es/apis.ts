@@ -23,7 +23,7 @@
  */
 
 import type { EsApiDefinition } from './types.ts'
-import { createDefinitionResolver } from '../lib/json-schema-refs.ts'
+import { createDefinitionResolver, requireSchemaModule } from '../lib/json-schema-refs.ts'
 import type { EsApiMeta } from './api-manifest.ts'
 export { apiManifest } from './api-manifest.ts'
 export type { EsApiMeta } from './api-manifest.ts'
@@ -52,10 +52,9 @@ export async function loadEsApisInFile (namespaceFile: string): Promise<EsApiDef
   if (cached != null) return cached
   cached = (async (): Promise<EsApiDefinition[]> => {
     // File names use the dotted manifest name (e.g. 'cluster.stats.js'); export keys use underscores.
-    // Use import.meta.resolve to get a file URL so dynamic import works under tsx and native Node alike.
+    // Use require (via requireSchemaModule) so this resolves under bundlers/pkg, not just tsx/native Node.
     const exportKey = `${namespaceFile.replace(/\./g, '_')}_definitions`
-    const fileUrl = import.meta.resolve(`@elastic/schemas/es/tools/apis/${namespaceFile}.js`)
-    const mod = await import(fileUrl) as Record<string, unknown>
+    const mod = requireSchemaModule(`@elastic/schemas/es/tools/apis/${namespaceFile}.js`)
     const arr = mod[exportKey]
     if (!Array.isArray(arr)) {
       throw new Error(`internal error: ${namespaceFile}.js did not export ${exportKey}`)

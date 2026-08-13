@@ -4,7 +4,7 @@
  */
 
 import type { CloudApiDefinition } from './types.ts'
-import { createDefinitionResolver } from '../lib/json-schema-refs.ts'
+import { createDefinitionResolver, requireSchemaModule } from '../lib/json-schema-refs.ts'
 import { toExportStem } from '../lib/namespace-file-export.ts'
 import { apiManifest } from './api-manifest.ts'
 
@@ -27,18 +27,11 @@ const CLOUD_NAMESPACE_FILES: readonly string[] = [...new Set(apiManifest.map((m)
 export async function loadCloudApis (): Promise<CloudApiDefinition[]> {
   if (_allCloudApis != null) return _allCloudApis
 
-  const mods = await Promise.all(
-    CLOUD_NAMESPACE_FILES.map(async (file) => {
-      const fileUrl = import.meta.resolve(`@elastic/schemas/cloud/tools/apis/${file}.js`)
-      return import(fileUrl) as Promise<Record<string, unknown>>
-    })
-  )
-
   let all: CloudApiDefinition[] = []
-  for (let i = 0; i < mods.length; i++) {
-    const file = CLOUD_NAMESPACE_FILES[i]!
+  for (const file of CLOUD_NAMESPACE_FILES) {
+    const mod = requireSchemaModule(`@elastic/schemas/cloud/tools/apis/${file}.js`)
     const exportKey = `${toExportStem(file)}Definitions`
-    const arr = mods[i]![exportKey]
+    const arr = mod[exportKey]
     if (!Array.isArray(arr)) {
       throw new Error(`internal error: ${file}.js did not export ${exportKey}`)
     }

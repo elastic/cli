@@ -16,7 +16,7 @@
  */
 
 import type { KbApiDefinition } from './types.ts'
-import { createDefinitionResolver } from '../lib/json-schema-refs.ts'
+import { createDefinitionResolver, requireSchemaModule } from '../lib/json-schema-refs.ts'
 import { toExportStem } from '../lib/namespace-file-export.ts'
 import type { KbApiMeta } from './api-manifest.ts'
 export { kbApiManifest } from './api-manifest.ts'
@@ -129,18 +129,14 @@ async function promoteBodyRootObject (input: Record<string, unknown>): Promise<R
   return { ...input, properties: nextProps, required: [...required] }
 }
 
-let defsPromise: Promise<Record<string, Record<string, unknown>>> | undefined
+let defs: Record<string, Record<string, unknown>> | undefined
 
 /** Resolves a `./_defs.json#/$defs/Name` pointer, or returns undefined for any other ref form. */
 async function resolveDefRef (ref: string): Promise<Record<string, unknown> | undefined> {
   const name = /^\.\/_defs\.json#\/\$defs\/(.+)$/.exec(ref)?.[1]
   if (name == null) return undefined
-  defsPromise ??= (async () => {
-    const url = import.meta.resolve('@elastic/schemas/kibana/json/_defs.json')
-    const mod = await import(url, { with: { type: 'json' } }) as { default: { $defs: Record<string, Record<string, unknown>> } }
-    return mod.default.$defs
-  })()
-  return (await defsPromise)[name]
+  defs ??= requireSchemaModule<{ $defs: Record<string, Record<string, unknown>> }>('@elastic/schemas/kibana/json/_defs.json').$defs
+  return defs[name]
 }
 
 /** Memoised module cache so repeated calls do not re-import the same namespace file. */
@@ -155,9 +151,8 @@ export async function loadKbApisInFile (namespaceFile: string): Promise<KbApiDef
   let cached = moduleCache.get(namespaceFile)
   if (cached != null) return cached
   cached = (async (): Promise<KbApiDefinition[]> => {
-    // Use import.meta.resolve to get a file URL so dynamic import works under tsx and native Node alike.
-    const fileUrl = import.meta.resolve(`@elastic/schemas/kibana/tools/apis/${namespaceFile}.js`)
-    const mod = await import(fileUrl) as Record<string, unknown>
+    // Use require (via requireSchemaModule) so this resolves under bundlers/pkg, not just tsx/native Node.
+    const mod = requireSchemaModule(`@elastic/schemas/kibana/tools/apis/${namespaceFile}.js`)
     const exportKey = `${toExportStem(namespaceFile)}Definitions`
     const arr = mod[exportKey]
     if (!Array.isArray(arr)) {
