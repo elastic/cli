@@ -43,8 +43,6 @@ jobs:
       - name: Build TypeScript
         run: npm run build
 
-      # The banner supplies a CJS `require` so the bundle can keep loading
-      # @elastic/schemas namespace files lazily from the pkg snapshot.
       - name: Bundle to single file
         shell: bash
         run: npm run build:bundle

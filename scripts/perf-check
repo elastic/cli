@@ -9,17 +9,24 @@
 // Fails if any command's mean runtime exceeds its baseline by more than 20%.
 //
 // Usage: scripts/perf-check
+//        scripts/perf-check --binary ./elastic-linux-x64
+// The recorded baselines only describe `node dist/cli.js`; with --binary the means
+// are reported without a pass/fail verdict (a pkg binary pays extra snapshot startup).
 // Override warmup/runs for local profiling:
 //   PERF_WARMUP=5 PERF_RUNS=30 scripts/perf-check
 
 import { execFileSync } from "node:child_process"
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join, dirname } from "node:path"
+import { join, dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
+import { parseArgs } from "node:util"
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
-const CLI = join(REPO_ROOT, "dist", "cli.js")
+
+const { binary } = parseArgs({ options: { binary: { type: "string" } } }).values
+// hyperfine gets one command string; a binary runs directly, the JS build needs `node`.
+const CLI = binary != null ? resolve(binary) : `node ${join(REPO_ROOT, "dist", "cli.js")}`
 
 // Tuned for CI: fast enough to finish in ~60 s on a shared runner while still
 // producing a stable mean. Override with env vars for local profiling.
@@ -65,7 +72,7 @@ try {
 
   for (const [label, baseline] of Object.entries(BASELINES_MS)) {
     const args = label.slice("elastic".length).trim()
-    const cmd = args.length > 0 ? `node ${CLI} ${args}` : `node ${CLI}`
+    const cmd = args.length > 0 ? `${CLI} ${args}` : CLI
     const jsonOut = join(tmpDir, `result-${encodeURIComponent(label)}.json`)
 
     execFileSync(
@@ -75,6 +82,10 @@ try {
     )
 
     const meanMs = JSON.parse(readFileSync(jsonOut, "utf8")).results[0].mean * 1000
+    if (binary != null) {
+      console.log(`   ${label.padEnd(24)}  mean ${meanMs.toFixed(1)} ms`)
+      continue
+    }
     const limit = baseline * THRESHOLD
     const pct = ((meanMs / baseline - 1) * 100).toFixed(1)
     const sign = meanMs > baseline ? "+" : ""
@@ -91,7 +102,9 @@ try {
     process.exit(1)
   }
 
-  console.log("\nAll commands within the 75% regression threshold.")
+  console.log(binary != null
+    ? `\nReported means for ${CLI}. Baselines describe the JS build, so no verdict is given.`
+    : "\nAll commands within the 75% regression threshold.")
 } finally {
   rmSync(tmpDir, { recursive: true, force: true })
 }
