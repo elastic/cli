@@ -337,12 +337,14 @@ describe('installer', () => {
 
       const extPath = join(extDir, 'elastic-npmupgrade')
       await mkdir(extPath, { recursive: true })
+      const ep = join(extPath, 'index.js')
+      await writeFile(ep, '#!/usr/bin/env node\n', 'utf-8')
 
       const entry: InstalledExtension = {
         name: 'npmupgrade',
         source: 'npm:elastic-npmupgrade',
         path: extPath,
-        entrypoint: join(extPath, 'index.js'),
+        entrypoint: ep,
       }
       await writeExtensions([entry])
 
