@@ -28,6 +28,7 @@ import { join, isAbsolute, resolve, relative } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { readExtensions, upsertExtension, findExtension, removeExtension as removeFromStore } from './store.ts'
 import type { InstalledExtension } from './store.ts'
+import { buildExtensionEnvironment } from './env.ts'
 
 // ---------------------------------------------------------------------------
 // Test seams
@@ -40,7 +41,7 @@ export function _testSetExtensionsDir (dir: string | undefined): void {
   _extensionsDir = dir
 }
 
-type RunFn = (cmd: string, args: string[], cwd: string) => void
+type RunFn = (cmd: string, args: string[], cwd: string, env?: Record<string, string>) => void
 let _runImpl: RunFn | undefined
 
 /** @internal Override the run implementation for testing. Pass undefined to restore default. */
@@ -120,9 +121,9 @@ function parseSource (source: string): ParsedSource {
  * Runs a command with an explicit args array (never shell: true).
  * Throws a descriptive error if the process exits non-zero or fails to start.
  */
-function run (cmd: string, args: string[], cwd: string): void {
+function run (cmd: string, args: string[], cwd: string, env?: Record<string, string>): void {
   if (_runImpl != null) {
-    _runImpl(cmd, args, cwd)
+    _runImpl(cmd, args, cwd, env)
     return
   }
   const result = spawnSync(cmd, args, {
@@ -131,6 +132,7 @@ function run (cmd: string, args: string[], cwd: string): void {
     encoding: 'utf-8',
     windowsHide: true,
     shell: false,
+    ...(env != null ? { env } : {}),
   })
   if (result.error != null) {
     throw new Error(`Failed to run ${cmd}: ${result.error.message}`)
@@ -231,19 +233,21 @@ export async function installExtension (source: string): Promise<{ entry: Instal
 
   let entrypoint: string
 
+  const npmEnv = buildExtensionEnvironment(process.env)
+
   if (parsed.type === 'github') {
-    run('git', ['clone', '--depth', '1', parsed.cloneUrl!, installDir], extensionsDir())
+    run('git', ['clone', '--depth', '1', parsed.cloneUrl!, installDir], extensionsDir(), npmEnv)
 
     // Build if package.json present
     const hasPkg = await readFile(join(installDir, 'package.json'), 'utf-8').then(() => true).catch(() => false)
     if (hasPkg) {
-      run('npm', ['install', '--production', '--no-fund', '--no-audit', '--ignore-scripts'], installDir)
+      run('npm', ['install', '--production', '--no-fund', '--no-audit', '--ignore-scripts'], installDir, npmEnv)
     }
 
     entrypoint = await discoverGithubEntrypoint(installDir, parsed.baseName)
   } else {
     // npm source
-    run('npm', ['install', '--prefix', installDir, '--no-fund', '--no-audit', '--ignore-scripts', parsed.package!], extensionsDir())
+    run('npm', ['install', '--prefix', installDir, '--no-fund', '--no-audit', '--ignore-scripts', parsed.package!], extensionsDir(), npmEnv)
     const binDir = join(installDir, 'node_modules', '.bin')
     const binName = parsed.baseName.startsWith('elastic-') ? parsed.baseName : `elastic-${parsed.name}`
     const candidates = [join(binDir, parsed.baseName), join(binDir, binName)]
@@ -369,18 +373,20 @@ export async function upgradeExtension (name: string): Promise<InstalledExtensio
 
   const parsed = parseSource(ext.source)
 
+  const npmEnv = buildExtensionEnvironment(process.env)
+
   if (parsed.type === 'github') {
-    run('git', ['pull', '--ff-only'], ext.path)
+    run('git', ['pull', '--ff-only'], ext.path, npmEnv)
     const hasPkg = await readFile(join(ext.path, 'package.json'), 'utf-8').then(() => true).catch(() => false)
     if (hasPkg) {
-      run('npm', ['install', '--production', '--no-fund', '--no-audit', '--ignore-scripts'], ext.path)
+      run('npm', ['install', '--production', '--no-fund', '--no-audit', '--ignore-scripts'], ext.path, npmEnv)
     }
     const entrypoint = await discoverGithubEntrypoint(ext.path, parsed.baseName)
     const updated: InstalledExtension = { ...ext, entrypoint: resolve(entrypoint) }
     await upsertExtension(updated)
     return updated
   } else {
-    run('npm', ['update', '--prefix', ext.path, '--no-fund', '--no-audit', '--ignore-scripts'], extensionsDir())
+    run('npm', ['update', '--prefix', ext.path, '--no-fund', '--no-audit', '--ignore-scripts'], extensionsDir(), npmEnv)
     await upsertExtension(ext)
     return ext
   }
