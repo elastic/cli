@@ -89,6 +89,19 @@ describe('buildExtensionEnvironment', () => {
     assert.equal(result['SSL_CERT_DIR'], '/etc/ssl/certs')
   })
 
+  it('drops vars that merely start with a proxy var name', () => {
+    const env = {
+      PATH: '/usr/bin',
+      NO_PROXY_BYPASS_SECRET: 'leak',
+      HTTP_PROXY_CREDENTIAL: 'leak',
+      NODE_EXTRA_CA_CERTS_BACKUP: 'leak',
+    }
+    const result = buildExtensionEnvironment(env)
+    assert.ok(!('NO_PROXY_BYPASS_SECRET' in result))
+    assert.ok(!('HTTP_PROXY_CREDENTIAL' in result))
+    assert.ok(!('NODE_EXTRA_CA_CERTS_BACKUP' in result))
+  })
+
   it('drops AWS_SECRET_ACCESS_KEY', () => {
     const env = { PATH: '/usr/bin', AWS_SECRET_ACCESS_KEY: 'supersecret' }
     const result = buildExtensionEnvironment(env)
