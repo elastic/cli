@@ -24,7 +24,7 @@
 
 import { access, chmod, constants, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join, isAbsolute, resolve } from 'node:path'
+import { join, isAbsolute, resolve, relative } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { readExtensions, upsertExtension, findExtension, removeExtension as removeFromStore } from './store.ts'
 import type { InstalledExtension } from './store.ts'
@@ -38,6 +38,14 @@ let _extensionsDir: string | undefined
 /** @internal Override the base extensions directory. Pass undefined to restore default. */
 export function _testSetExtensionsDir (dir: string | undefined): void {
   _extensionsDir = dir
+}
+
+type RunFn = (cmd: string, args: string[], cwd: string) => void
+let _runImpl: RunFn | undefined
+
+/** @internal Override the run implementation for testing. Pass undefined to restore default. */
+export function _testSetRun (impl: RunFn | undefined): void {
+  _runImpl = impl
 }
 
 // ---------------------------------------------------------------------------
@@ -113,6 +121,10 @@ function parseSource (source: string): ParsedSource {
  * Throws a descriptive error if the process exits non-zero or fails to start.
  */
 function run (cmd: string, args: string[], cwd: string): void {
+  if (_runImpl != null) {
+    _runImpl(cmd, args, cwd)
+    return
+  }
   const result = spawnSync(cmd, args, {
     cwd,
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -191,8 +203,9 @@ async function discoverGithubEntrypoint (installDir: string, baseName: string): 
 
 /** Asserts the entrypoint path is within the install directory (prevents symlink/config injection). */
 function assertWithinInstallDir (entrypoint: string, installDir: string): void {
-  const rel = entrypoint.startsWith(installDir + '/')
-  if (!rel) {
+  const rel = relative(installDir, entrypoint)
+  const within = rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
+  if (!within) {
     throw new Error(
       `Resolved entrypoint "${entrypoint}" is outside the install directory "${installDir}". ` +
       'Refusing to register this extension.'
@@ -224,13 +237,13 @@ export async function installExtension (source: string): Promise<{ entry: Instal
     // Build if package.json present
     const hasPkg = await readFile(join(installDir, 'package.json'), 'utf-8').then(() => true).catch(() => false)
     if (hasPkg) {
-      run('npm', ['install', '--production', '--no-fund', '--no-audit'], installDir)
+      run('npm', ['install', '--production', '--no-fund', '--no-audit', '--ignore-scripts'], installDir)
     }
 
     entrypoint = await discoverGithubEntrypoint(installDir, parsed.baseName)
   } else {
     // npm source
-    run('npm', ['install', '--prefix', installDir, '--no-fund', '--no-audit', parsed.package!], extensionsDir())
+    run('npm', ['install', '--prefix', installDir, '--no-fund', '--no-audit', '--ignore-scripts', parsed.package!], extensionsDir())
     const binDir = join(installDir, 'node_modules', '.bin')
     const binName = parsed.baseName.startsWith('elastic-') ? parsed.baseName : `elastic-${parsed.name}`
     const candidates = [join(binDir, parsed.baseName), join(binDir, binName)]
@@ -360,14 +373,14 @@ export async function upgradeExtension (name: string): Promise<InstalledExtensio
     run('git', ['pull', '--ff-only'], ext.path)
     const hasPkg = await readFile(join(ext.path, 'package.json'), 'utf-8').then(() => true).catch(() => false)
     if (hasPkg) {
-      run('npm', ['install', '--production', '--no-fund', '--no-audit'], ext.path)
+      run('npm', ['install', '--production', '--no-fund', '--no-audit', '--ignore-scripts'], ext.path)
     }
     const entrypoint = await discoverGithubEntrypoint(ext.path, parsed.baseName)
     const updated: InstalledExtension = { ...ext, entrypoint: resolve(entrypoint) }
     await upsertExtension(updated)
     return updated
   } else {
-    run('npm', ['update', '--prefix', ext.path, '--no-fund', '--no-audit'], extensionsDir())
+    run('npm', ['update', '--prefix', ext.path, '--no-fund', '--no-audit', '--ignore-scripts'], extensionsDir())
     await upsertExtension(ext)
     return ext
   }
