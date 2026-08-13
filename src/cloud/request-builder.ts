@@ -7,6 +7,7 @@ import type { CloudApiDefinition } from './types.ts'
 import type { CloudRequestParams } from '../lib/cloud-client.ts'
 import type { ParsedResult } from '../factory.ts'
 import { resolveRootRef } from '../lib/json-schema-refs.ts'
+import { encodePathParam } from '../lib/path-encoding.ts'
 
 /**
  * Builds a `CloudRequestParams` object from an API definition and parsed CLI input.
@@ -70,7 +71,7 @@ function interpolatePath (
   for (const key of pathKeys) {
     const value = input[key]
     if (value !== undefined) {
-      path = path.replace(`{${key}}`, encodeURIComponent(String(value)))
+      path = path.replace(`{${key}}`, encodePathParam(String(value)))
     } else if (required.has(key)) {
       throw new Error(`missing required path parameter "${key}"`)
     } else {

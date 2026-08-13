@@ -17,6 +17,7 @@ import {
   retryWithBackoff,
   ProgressReporter
 } from './shared.ts'
+import { encodePathParam } from '../../lib/path-encoding.ts'
 
 /** Dependencies injectable for testing. */
 export interface BulkIngestDeps {
@@ -177,7 +178,7 @@ async function sendBatch (
   ndjsonBody: string,
   index: string
 ): Promise<{ errors: number, total: number }> {
-  const path = `/${encodeURIComponent(index)}/_bulk`
+  const path = `/${encodePathParam(index)}/_bulk`
   const result = await transport.request(
     { method: 'POST', path, body: ndjsonBody, bulkBody: ndjsonBody }
   ) as { errors?: boolean, items?: Array<Record<string, { status?: number }>> }
