@@ -38,6 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     env:
       NODE_OPTIONS: --max-old-space-size=6144
     steps:
