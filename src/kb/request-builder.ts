@@ -7,6 +7,7 @@ import type { KbApiDefinition } from './types.ts'
 import { isPlainObject } from '../lib/type-guards.ts'
 import type { ParsedResult } from '../factory.ts'
 import type { KibanaRequestParams } from '../lib/kibana-client.ts'
+import { encodePathParam } from '../lib/path-encoding.ts'
 
 /**
  * Kibana endpoints whose request body must be sent as `multipart/form-data`.
@@ -74,11 +75,6 @@ export function buildKibanaRequestParams (
   }
 
   return params
-}
-
-/** Percent-encodes a single Kibana path parameter value. */
-function encodePathParam (value: string): string {
-  return encodeURIComponent(value)
 }
 
 /**

@@ -263,9 +263,9 @@ describe('installer', () => {
   describe('installExtension -- --ignore-scripts', () => {
     afterEach(() => _testSetRun(undefined))
 
-    it('passes --ignore-scripts when installing a github extension that has package.json', async () => {
-      const captured: Array<{ cmd: string, args: string[] }> = []
-      _testSetRun((cmd, args) => { captured.push({ cmd, args }) })
+    it('passes --ignore-scripts and a scrubbed env when installing a github extension that has package.json', async () => {
+      const captured: Array<{ cmd: string, args: string[], env?: Record<string, string> }> = []
+      _testSetRun((cmd, args, _cwd, env) => { captured.push({ cmd, args, env }) })
 
       // Pre-populate installDir so git-clone mock + entrypoint discovery work without network
       const installDir = join(extDir, 'elastic-ghpkg')
@@ -275,16 +275,28 @@ describe('installer', () => {
       await writeFile(ep, '#!/bin/sh\necho hi', 'utf-8')
       await chmod(ep, 0o755)
 
-      await installExtension('github:test-org/elastic-ghpkg')
+      const originalEnv = process.env
+      ;(process as NodeJS.Process).env = { ...process.env, GITHUB_TOKEN: 'leak-me-not' }
+      try {
+        await installExtension('github:test-org/elastic-ghpkg')
+      } finally {
+        ;(process as NodeJS.Process).env = originalEnv
+      }
 
       const npmInstall = captured.find(c => c.cmd === 'npm' && c.args.includes('install'))
       assert.ok(npmInstall != null, 'expected npm install to be called')
       assert.ok(npmInstall.args.includes('--ignore-scripts'), '--ignore-scripts should be in npm install args')
+      assert.ok(npmInstall.env != null, 'expected npm install to receive an env object')
+      assert.ok(!('GITHUB_TOKEN' in npmInstall.env), 'GITHUB_TOKEN must not reach npm install')
+
+      const gitClone = captured.find(c => c.cmd === 'git' && c.args.includes('clone'))
+      assert.ok(gitClone?.env != null, 'expected git clone to receive an env object')
+      assert.ok(!('GITHUB_TOKEN' in gitClone.env), 'GITHUB_TOKEN must not reach git clone')
     })
 
-    it('passes --ignore-scripts when installing an npm extension', async () => {
-      const captured: Array<{ cmd: string, args: string[] }> = []
-      _testSetRun((cmd, args) => { captured.push({ cmd, args }) })
+    it('passes --ignore-scripts and a scrubbed env when installing an npm extension', async () => {
+      const captured: Array<{ cmd: string, args: string[], env?: Record<string, string> }> = []
+      _testSetRun((cmd, args, _cwd, env) => { captured.push({ cmd, args, env }) })
 
       // Pre-populate the binary so entrypoint discovery succeeds without a real npm install
       const installDir = join(extDir, 'elastic-npmpkg')
@@ -294,20 +306,28 @@ describe('installer', () => {
       await writeFile(bin, '#!/bin/sh\necho hi', 'utf-8')
       await chmod(bin, 0o755)
 
-      await installExtension('npm:elastic-npmpkg')
+      const originalEnv = process.env
+      ;(process as NodeJS.Process).env = { ...process.env, NPM_TOKEN: 'leak-me-not' }
+      try {
+        await installExtension('npm:elastic-npmpkg')
+      } finally {
+        ;(process as NodeJS.Process).env = originalEnv
+      }
 
       const npmInstall = captured.find(c => c.cmd === 'npm' && c.args.includes('install'))
       assert.ok(npmInstall != null, 'expected npm install to be called')
       assert.ok(npmInstall.args.includes('--ignore-scripts'), '--ignore-scripts should be in npm install args')
+      assert.ok(npmInstall.env != null, 'expected npm install to receive an env object')
+      assert.ok(!('NPM_TOKEN' in npmInstall.env), 'NPM_TOKEN must not reach npm install')
     })
   })
 
   describe('upgradeExtension -- --ignore-scripts', () => {
     afterEach(() => _testSetRun(undefined))
 
-    it('passes --ignore-scripts when upgrading a github extension that has package.json', async () => {
-      const captured: Array<{ cmd: string, args: string[] }> = []
-      _testSetRun((cmd, args) => { captured.push({ cmd, args }) })
+    it('passes --ignore-scripts and a scrubbed env when upgrading a github extension that has package.json', async () => {
+      const captured: Array<{ cmd: string, args: string[], env?: Record<string, string> }> = []
+      _testSetRun((cmd, args, _cwd, env) => { captured.push({ cmd, args, env }) })
 
       const extPath = join(extDir, 'elastic-ghupgrade')
       await mkdir(extPath, { recursive: true })
@@ -324,16 +344,28 @@ describe('installer', () => {
       }
       await writeExtensions([entry])
 
-      await upgradeExtension('ghupgrade')
+      const originalEnv = process.env
+      ;(process as NodeJS.Process).env = { ...process.env, GITHUB_TOKEN: 'leak-me-not' }
+      try {
+        await upgradeExtension('ghupgrade')
+      } finally {
+        ;(process as NodeJS.Process).env = originalEnv
+      }
 
       const npmInstall = captured.find(c => c.cmd === 'npm' && c.args.includes('install'))
       assert.ok(npmInstall != null, 'expected npm install to be called')
       assert.ok(npmInstall.args.includes('--ignore-scripts'), '--ignore-scripts should be in npm install args')
+      assert.ok(npmInstall.env != null, 'expected npm install to receive an env object')
+      assert.ok(!('GITHUB_TOKEN' in npmInstall.env), 'GITHUB_TOKEN must not reach npm install')
+
+      const gitPull = captured.find(c => c.cmd === 'git' && c.args.includes('pull'))
+      assert.ok(gitPull?.env != null, 'expected git pull to receive an env object')
+      assert.ok(!('GITHUB_TOKEN' in gitPull.env), 'GITHUB_TOKEN must not reach git pull')
     })
 
-    it('passes --ignore-scripts when upgrading an npm extension', async () => {
-      const captured: Array<{ cmd: string, args: string[] }> = []
-      _testSetRun((cmd, args) => { captured.push({ cmd, args }) })
+    it('passes --ignore-scripts and a scrubbed env when upgrading an npm extension', async () => {
+      const captured: Array<{ cmd: string, args: string[], env?: Record<string, string> }> = []
+      _testSetRun((cmd, args, _cwd, env) => { captured.push({ cmd, args, env }) })
 
       const extPath = join(extDir, 'elastic-npmupgrade')
       await mkdir(extPath, { recursive: true })
@@ -348,11 +380,19 @@ describe('installer', () => {
       }
       await writeExtensions([entry])
 
-      await upgradeExtension('npmupgrade')
+      const originalEnv = process.env
+      ;(process as NodeJS.Process).env = { ...process.env, NPM_TOKEN: 'leak-me-not' }
+      try {
+        await upgradeExtension('npmupgrade')
+      } finally {
+        ;(process as NodeJS.Process).env = originalEnv
+      }
 
       const npmUpdate = captured.find(c => c.cmd === 'npm' && c.args.includes('update'))
       assert.ok(npmUpdate != null, 'expected npm update to be called')
       assert.ok(npmUpdate.args.includes('--ignore-scripts'), '--ignore-scripts should be in npm update args')
+      assert.ok(npmUpdate.env != null, 'expected npm update to receive an env object')
+      assert.ok(!('NPM_TOKEN' in npmUpdate.env), 'NPM_TOKEN must not reach npm update')
     })
   })
 })

@@ -9,6 +9,7 @@ import type { OpaqueCommandHandle, JsonValue } from '../../factory.ts'
 import { getEsClient } from '../../lib/es-client.ts'
 import { missingConfigError, transportError } from '../errors.ts'
 import { readRawInput, runWithConcurrency } from './shared.ts'
+import { encodeMultiTargetPathParam } from '../../lib/path-encoding.ts'
 
 interface SearchItem {
   header?: Record<string, unknown>
@@ -116,7 +117,7 @@ function createMsearchHandler (deps: MsearchDeps = defaultDeps) {
 
     // Build path
     const path = index != null
-      ? `/${encodeURIComponent(index)}/_msearch`
+      ? `/${encodeMultiTargetPathParam(index)}/_msearch`
       : '/_msearch'
 
     try {
