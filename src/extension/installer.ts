@@ -41,7 +41,7 @@ export function _testSetExtensionsDir (dir: string | undefined): void {
   _extensionsDir = dir
 }
 
-type RunFn = (cmd: string, args: string[], cwd: string) => void
+type RunFn = (cmd: string, args: string[], cwd: string, env?: Record<string, string>) => void
 let _runImpl: RunFn | undefined
 
 /** @internal Override the run implementation for testing. Pass undefined to restore default. */
@@ -123,7 +123,7 @@ function parseSource (source: string): ParsedSource {
  */
 function run (cmd: string, args: string[], cwd: string, env?: Record<string, string>): void {
   if (_runImpl != null) {
-    _runImpl(cmd, args, cwd)
+    _runImpl(cmd, args, cwd, env)
     return
   }
   const result = spawnSync(cmd, args, {

@@ -9,13 +9,15 @@
  * GITHUB_TOKEN, NPM_TOKEN, etc.) present in the parent process are excluded.
  */
 
-// Uppercase for case-insensitive matching (handles Windows env var casing).
+// Stored uppercase; buildExtensionEnvironment() compares against key.toUpperCase(),
+// so any casing of a listed name is kept (handles Windows env var casing, e.g.
+// SystemRoot, and incidentally lowercase POSIX conventions like http_proxy).
 const KEEP_VARS = new Set([
   'PATH', 'HOME', 'USER', 'LOGNAME', 'SHELL', 'TERM',
   'TMPDIR', 'TEMP', 'TMP',
   'LANG', 'LC_ALL', 'LC_CTYPE',
   'TZ',
-  // Windows required vars (stored uppercase so comparison is case-insensitive)
+  // Windows required vars
   'SYSTEMROOT', 'COMSPEC', 'PATHEXT', 'USERPROFILE',
   'APPDATA', 'LOCALAPPDATA',
   'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'NODE_EXTRA_CA_CERTS',
