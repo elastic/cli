@@ -18,7 +18,11 @@
  *   If the repo/package is not prefixed with `elastic-`, the full name is used.
  *
  * Security:
- *   All child processes are spawned with shell: false and an explicit args array.
+ *   All child processes are spawned with an explicit args array, never a shell-
+ *   interpreted string. On Windows, npm is a `.cmd` shim that Node's own
+ *   spawnSync cannot invoke without shell:true, so `run()` uses `cross-spawn`,
+ *   which resolves `.cmd`/`.bat` shims and escapes arguments itself instead of
+ *   relying on unsafe shell string concatenation.
  *   The derived entrypoint is validated to sit within the install directory.
  */
 
@@ -26,7 +30,7 @@ import { access, chmod, constants, mkdir, readFile, rm, writeFile } from 'node:f
 import { realpath as realpathCb } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, isAbsolute, resolve, relative } from 'node:path'
-import { spawnSync } from 'node:child_process'
+import { sync as spawnSync } from 'cross-spawn'
 import { promisify } from 'node:util'
 import { readExtensions, upsertExtension, findExtension, removeExtension as removeFromStore } from './store.ts'
 import type { InstalledExtension } from './store.ts'
@@ -125,7 +129,9 @@ function parseSource (source: string): ParsedSource {
 }
 
 /**
- * Runs a command with an explicit args array (never shell: true).
+ * Runs a command with an explicit args array. Uses `cross-spawn` so `.cmd`/`.bat`
+ * shims (e.g. npm on Windows) resolve correctly without falling back to an
+ * unescaped shell string.
  * Throws a descriptive error if the process exits non-zero or fails to start.
  */
 function run (cmd: string, args: string[], cwd: string): void {
@@ -138,7 +144,6 @@ function run (cmd: string, args: string[], cwd: string): void {
     stdio: ['pipe', 'pipe', 'pipe'],
     encoding: 'utf-8',
     windowsHide: true,
-    shell: false,
   })
   if (result.error != null) {
     throw new Error(`Failed to run ${cmd}: ${result.error.message}`)
