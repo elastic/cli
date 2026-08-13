@@ -221,6 +221,11 @@ async function discoverGithubEntrypoint (installDir: string, baseName: string): 
  * a plain string-prefix check while still executing arbitrary code from elsewhere on
  * disk. Both paths are resolved with `realpath` (which does follow symlinks) before the
  * comparison so the check reflects what will actually run.
+ *
+ * Not airtight: this only checks the target at call time. Nothing prevents the
+ * entrypoint from being replaced with a symlink between this check and the
+ * later execution (TOCTOU). It closes the specific bypasses covered by the
+ * tests here, not every possible race.
  */
 async function assertWithinInstallDir (entrypoint: string, installDir: string): Promise<void> {
   let realEntrypoint: string
