@@ -18,7 +18,7 @@ import { mkdtemp, rm, mkdir, readFile, stat, writeFile, symlink, chmod } from 'n
 import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { createLocalExtension, installExtension, uninstallExtension, upgradeExtension, upgradeAllExtensions, _testSetExtensionsDir } from '../../src/extension/installer.ts'
+import { createLocalExtension, installExtension, uninstallExtension, upgradeExtension, upgradeAllExtensions, _testSetExtensionsDir, _testSetRun } from '../../src/extension/installer.ts'
 import { readExtensions, writeExtensions, _testSetRegistryPath } from '../../src/extension/store.ts'
 import type { InstalledExtension } from '../../src/extension/store.ts'
 
@@ -91,6 +91,11 @@ describe('installer', () => {
 
     it('no-ops gracefully when extension is not installed', async () => {
       await assert.doesNotReject(uninstallExtension('nonexistent'))
+    })
+
+    it('rejects traversal names', async () => {
+      await assert.rejects(uninstallExtension('../../../target'), /invalid characters/)
+      await assert.rejects(uninstallExtension('..'), /invalid characters/)
     })
 
     it('removes the registry entry even when the directory is already gone', async () => {
@@ -252,6 +257,100 @@ describe('installer', () => {
     it('returns empty array when no extensions are installed', async () => {
       const results = await upgradeAllExtensions()
       assert.deepEqual(results, [])
+    })
+  })
+
+  describe('installExtension -- --ignore-scripts', () => {
+    afterEach(() => _testSetRun(undefined))
+
+    it('passes --ignore-scripts when installing a github extension that has package.json', async () => {
+      const captured: Array<{ cmd: string, args: string[] }> = []
+      _testSetRun((cmd, args) => { captured.push({ cmd, args }) })
+
+      // Pre-populate installDir so git-clone mock + entrypoint discovery work without network
+      const installDir = join(extDir, 'elastic-ghpkg')
+      await mkdir(installDir, { recursive: true })
+      await writeFile(join(installDir, 'package.json'), JSON.stringify({ name: 'elastic-ghpkg', version: '1.0.0' }), 'utf-8')
+      const ep = join(installDir, 'elastic-ghpkg')
+      await writeFile(ep, '#!/bin/sh\necho hi', 'utf-8')
+      await chmod(ep, 0o755)
+
+      await installExtension('github:test-org/elastic-ghpkg')
+
+      const npmInstall = captured.find(c => c.cmd === 'npm' && c.args.includes('install'))
+      assert.ok(npmInstall != null, 'expected npm install to be called')
+      assert.ok(npmInstall.args.includes('--ignore-scripts'), '--ignore-scripts should be in npm install args')
+    })
+
+    it('passes --ignore-scripts when installing an npm extension', async () => {
+      const captured: Array<{ cmd: string, args: string[] }> = []
+      _testSetRun((cmd, args) => { captured.push({ cmd, args }) })
+
+      // Pre-populate the binary so entrypoint discovery succeeds without a real npm install
+      const installDir = join(extDir, 'elastic-npmpkg')
+      const binDir = join(installDir, 'node_modules', '.bin')
+      await mkdir(binDir, { recursive: true })
+      const bin = join(binDir, 'elastic-npmpkg')
+      await writeFile(bin, '#!/bin/sh\necho hi', 'utf-8')
+      await chmod(bin, 0o755)
+
+      await installExtension('npm:elastic-npmpkg')
+
+      const npmInstall = captured.find(c => c.cmd === 'npm' && c.args.includes('install'))
+      assert.ok(npmInstall != null, 'expected npm install to be called')
+      assert.ok(npmInstall.args.includes('--ignore-scripts'), '--ignore-scripts should be in npm install args')
+    })
+  })
+
+  describe('upgradeExtension -- --ignore-scripts', () => {
+    afterEach(() => _testSetRun(undefined))
+
+    it('passes --ignore-scripts when upgrading a github extension that has package.json', async () => {
+      const captured: Array<{ cmd: string, args: string[] }> = []
+      _testSetRun((cmd, args) => { captured.push({ cmd, args }) })
+
+      const extPath = join(extDir, 'elastic-ghupgrade')
+      await mkdir(extPath, { recursive: true })
+      const ep = join(extPath, 'elastic-ghupgrade')
+      await writeFile(ep, '#!/bin/sh\necho hi', 'utf-8')
+      await chmod(ep, 0o755)
+      await writeFile(join(extPath, 'package.json'), JSON.stringify({ name: 'elastic-ghupgrade', version: '1.0.0' }), 'utf-8')
+
+      const entry: InstalledExtension = {
+        name: 'ghupgrade',
+        source: 'github:test-org/elastic-ghupgrade',
+        path: extPath,
+        entrypoint: ep,
+      }
+      await writeExtensions([entry])
+
+      await upgradeExtension('ghupgrade')
+
+      const npmInstall = captured.find(c => c.cmd === 'npm' && c.args.includes('install'))
+      assert.ok(npmInstall != null, 'expected npm install to be called')
+      assert.ok(npmInstall.args.includes('--ignore-scripts'), '--ignore-scripts should be in npm install args')
+    })
+
+    it('passes --ignore-scripts when upgrading an npm extension', async () => {
+      const captured: Array<{ cmd: string, args: string[] }> = []
+      _testSetRun((cmd, args) => { captured.push({ cmd, args }) })
+
+      const extPath = join(extDir, 'elastic-npmupgrade')
+      await mkdir(extPath, { recursive: true })
+
+      const entry: InstalledExtension = {
+        name: 'npmupgrade',
+        source: 'npm:elastic-npmupgrade',
+        path: extPath,
+        entrypoint: join(extPath, 'index.js'),
+      }
+      await writeExtensions([entry])
+
+      await upgradeExtension('npmupgrade')
+
+      const npmUpdate = captured.find(c => c.cmd === 'npm' && c.args.includes('update'))
+      assert.ok(npmUpdate != null, 'expected npm update to be called')
+      assert.ok(npmUpdate.args.includes('--ignore-scripts'), '--ignore-scripts should be in npm update args')
     })
   })
 })

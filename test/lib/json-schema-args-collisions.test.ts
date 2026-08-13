@@ -26,9 +26,9 @@ describe('extractSchemaArgs collision handling', () => {
 
   it('throws loudly on an unrecognized reserved-flag collision', () => {
     const s = schema({
-      help: { type: 'string' },
+      json: { type: 'string' },
     })
-    assert.throws(() => extractSchemaArgs(s), /reserved flag "--help"/)
+    assert.throws(() => extractSchemaArgs(s), /reserved flag "--json"/)
   })
 
   it('allows the known upstream `_version`/`version` collision without throwing', () => {

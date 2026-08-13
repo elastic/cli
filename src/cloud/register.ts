@@ -175,6 +175,7 @@ function buildServerlessTypeGroup (
         .option('--credentials-file <path>', 'write credentials to a standalone YAML config fragment at this path (0600)')
         .option('--config-file <path>', 'override the config file written by --save-as (defaults to ~/.elasticrc.yml)')
         .option('--force', 'overwrite an existing context (--save-as) or file (--credentials-file)')
+        .option('--show-credentials', 'print credentials in plain text (default: redacted)')
     }
     return cmd
   })
@@ -284,7 +285,6 @@ async function wrapWithCredentialPolicy (
   // If the base handler itself returned an error envelope, don't touch it.
   if (body != null && typeof body === 'object' && !Array.isArray(body) && 'error' in body) return body
   const opts = readCredentialPolicyOptions(parsed.options)
-  if (opts.saveAs == null && opts.credentialsFile == null) return body
   try {
     const result = await applyCredentialPolicy(cmdName, body, opts)
     for (const w of result.log.warnings) process.stderr.write(`Warning: ${w}\n`)
