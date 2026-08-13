@@ -220,6 +220,32 @@ describe('installer', () => {
         await rm(outsideDir, { recursive: true, force: true })
       }
     })
+
+    it('rejects a stored entrypoint that is a symlink escaping the install directory after npm update (#500)', async () => {
+      const outsideDir = await mkdtemp(join(tmpdir(), 'elastic-outside-'))
+      const extPath = join(extDir, 'elastic-npmupgrade')
+      try {
+        await mkdir(extPath, { recursive: true })
+        await writeFile(join(extPath, 'package.json'), JSON.stringify({ name: 'elastic-npmupgrade', version: '1.0.0' }), 'utf-8')
+
+        // Simulates a symlink left behind under node_modules/.bin by npm update.
+        const payload = join(outsideDir, 'payload.sh')
+        await writeFile(payload, '#!/bin/sh\necho PAYLOAD\n', { mode: 0o755 })
+        await symlink(payload, join(extPath, 'elastic-npmupgrade'))
+
+        const entry: InstalledExtension = {
+          name: 'npmupgrade',
+          source: 'npm:elastic-npmupgrade',
+          path: extPath,
+          entrypoint: join(extPath, 'elastic-npmupgrade'),
+        }
+        await writeExtensions([entry])
+
+        await assert.rejects(upgradeExtension('npmupgrade'), /outside the install directory/)
+      } finally {
+        await rm(outsideDir, { recursive: true, force: true })
+      }
+    })
   })
 
   describe('upgradeAllExtensions', () => {

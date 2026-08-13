@@ -404,6 +404,9 @@ export async function upgradeExtension (name: string): Promise<InstalledExtensio
     return updated
   } else {
     run('npm', ['update', '--prefix', ext.path, '--no-fund', '--no-audit'], extensionsDir())
+    // npm update can rewrite node_modules/.bin symlinks; re-verify the stored
+    // entrypoint still resolves inside the extension's directory.
+    await assertWithinInstallDir(resolve(ext.entrypoint), resolve(ext.path))
     await upsertExtension(ext)
     return ext
   }
