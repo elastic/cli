@@ -14,7 +14,8 @@
 
 import { describe, it, before, after, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, mkdir, readFile, stat, writeFile, chmod } from 'node:fs/promises'
+import { mkdtemp, rm, mkdir, readFile, stat, writeFile, symlink, chmod } from 'node:fs/promises'
+import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { createLocalExtension, installExtension, uninstallExtension, upgradeExtension, upgradeAllExtensions, _testSetExtensionsDir, _testSetRun } from '../../src/extension/installer.ts'
@@ -150,11 +151,105 @@ describe('installer', () => {
     it('rejects names with path traversal characters', async () => {
       await assert.rejects(createLocalExtension('../escape'), /invalid characters/)
     })
+
+    it('rejects a --path entrypoint that is a symlink escaping the install directory (#500)', async () => {
+      const outsideDir = await mkdtemp(join(tmpdir(), 'elastic-outside-'))
+      try {
+        const payload = join(outsideDir, 'payload.sh')
+        await writeFile(payload, '#!/bin/sh\necho PAYLOAD RAN FROM OUTSIDE\n', { mode: 0o755 })
+
+        const targetDir = join(tmpDir, 'symlink-escape-ext')
+        await mkdir(targetDir, { recursive: true })
+        await symlink(payload, join(targetDir, 'elastic-symlinktest'))
+
+        await assert.rejects(
+          createLocalExtension('symlinktest', targetDir),
+          /outside the install directory/
+        )
+
+        // Refusing to register also means the store stays empty.
+        assert.deepEqual(await readExtensions(), [])
+      } finally {
+        await rm(outsideDir, { recursive: true, force: true })
+      }
+    })
+
+    it('accepts a --path entrypoint that is a real (non-symlink) file inside the install directory', async () => {
+      const targetDir = join(tmpDir, 'real-entrypoint-ext')
+      await mkdir(targetDir, { recursive: true })
+      const entrypointPath = join(targetDir, 'elastic-realtest')
+      await writeFile(entrypointPath, '#!/bin/sh\necho hi\n', { mode: 0o755 })
+      await chmod(entrypointPath, 0o755)
+
+      const { entry } = await createLocalExtension('realtest', targetDir)
+      assert.equal(entry.entrypoint, entrypointPath)
+      const extensions = await readExtensions()
+      assert.equal(extensions.length, 1)
+      assert.equal(extensions[0]!.entrypoint, entrypointPath)
+    })
   })
 
   describe('upgradeExtension', () => {
     it('throws when the extension is not installed', async () => {
       await assert.rejects(upgradeExtension('nonexistent'), /not installed/)
+    })
+
+    it('rejects a post-pull entrypoint that is a symlink escaping the install directory (#500)', async () => {
+      const remoteDir = await mkdtemp(join(tmpdir(), 'elastic-remote-'))
+      const outsideDir = await mkdtemp(join(tmpdir(), 'elastic-outside-'))
+      const extPath = join(extDir, 'elastic-symupgrade')
+      try {
+        // Bootstrap a local git remote so git pull --ff-only succeeds (already up to date).
+        const gitEnv = { ...process.env, GIT_AUTHOR_NAME: 'test', GIT_AUTHOR_EMAIL: 't@t.com', GIT_COMMITTER_NAME: 'test', GIT_COMMITTER_EMAIL: 't@t.com' }
+        spawnSync('git', ['init', remoteDir], { encoding: 'utf-8' })
+        spawnSync('git', ['-C', remoteDir, 'commit', '--allow-empty', '-m', 'init'], { encoding: 'utf-8', env: gitEnv })
+        spawnSync('git', ['clone', remoteDir, extPath], { encoding: 'utf-8' })
+
+        // Place a symlink whose target is outside the install dir — simulates a
+        // malicious commit pulled in by git pull.
+        const payload = join(outsideDir, 'elastic-symupgrade')
+        await writeFile(payload, '#!/bin/sh\necho PAYLOAD\n', { mode: 0o755 })
+        await symlink(payload, join(extPath, 'elastic-symupgrade'))
+
+        const entry: InstalledExtension = {
+          name: 'symupgrade',
+          source: 'github:elastic/elastic-symupgrade',
+          path: extPath,
+          entrypoint: join(extPath, 'elastic-symupgrade'),
+        }
+        await writeExtensions([entry])
+
+        await assert.rejects(upgradeExtension('symupgrade'), /outside the install directory/)
+      } finally {
+        await rm(remoteDir, { recursive: true, force: true })
+        await rm(outsideDir, { recursive: true, force: true })
+      }
+    })
+
+    it('rejects a stored entrypoint that is a symlink escaping the install directory after npm update (#500)', async () => {
+      const outsideDir = await mkdtemp(join(tmpdir(), 'elastic-outside-'))
+      const extPath = join(extDir, 'elastic-npmupgrade')
+      try {
+        await mkdir(extPath, { recursive: true })
+        await writeFile(join(extPath, 'package.json'), JSON.stringify({ name: 'elastic-npmupgrade', version: '1.0.0' }), 'utf-8')
+
+        // Simulates a symlink left behind under node_modules/.bin by npm update.
+        const payload = join(outsideDir, 'payload.sh')
+        await writeFile(payload, '#!/bin/sh\necho PAYLOAD\n', { mode: 0o755 })
+        await symlink(payload, join(extPath, 'elastic-npmupgrade'))
+
+        const entry: InstalledExtension = {
+          name: 'npmupgrade',
+          source: 'npm:elastic-npmupgrade',
+          path: extPath,
+          entrypoint: join(extPath, 'elastic-npmupgrade'),
+        }
+        await writeExtensions([entry])
+
+        await assert.rejects(upgradeExtension('npmupgrade'), /outside the install directory/)
+      } finally {
+        await rm(outsideDir, { recursive: true, force: true })
+      }
     })
   })
 
