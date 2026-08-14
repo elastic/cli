@@ -103,6 +103,7 @@ export function _testSetConfirmReader (fn: () => Promise<boolean>): () => void {
 /** Prompts the user on stderr and reads one line from stdin to confirm a destructive action. */
 async function promptConfirm (): Promise<boolean> {
   if (confirmReader != null) return confirmReader()
+  process.stderr.write('DIAGNOSTIC: promptConfirm hit real readline branch, confirmReader was null\n')
   return new Promise(resolve => {
     const rl = createInterface({ input: process.stdin, output: process.stderr })
     rl.question('This action is destructive. Continue? [y/N] ', answer => {
