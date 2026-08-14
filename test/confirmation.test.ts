@@ -42,8 +42,15 @@ async function captureErrAsync (handle: OpaqueCommandHandle, globalFlags: string
 // node:test runs top-level describes concurrently by default. That concurrent
 // execution creates async gaps (from `await import('commander')` inside the
 // helpers) during which sibling describe hooks can mutate shared state such as
-// `process.stderr.isTTY`. Wrapping everything in `{ concurrency: false }` here
+// the `isTTYFn` seam. Wrapping everything in `{ concurrency: false }` here
 // serialises all execution and eliminates those races.
+//
+// Note: TTY state is always overridden via the `_testSetIsTTY` seam, never by
+// `Object.defineProperty(process.stderr, 'isTTY', ...)`. Redefining that
+// property directly replaces the stream's inherited getter with an own data
+// property; "restoring" it afterwards with another `Object.defineProperty`
+// call does not return the stream to its original state, and reliably hangs
+// later TTY-path tests in the same file on Windows CI.
 // ---------------------------------------------------------------------------
 describe('confirmation guard', { concurrency: false }, () => {
   // -------------------------------------------------------------------------
@@ -80,15 +87,10 @@ describe('confirmation guard', { concurrency: false }, () => {
   // -------------------------------------------------------------------------
 
   describe('non-TTY fail-closed', () => {
-    let origIsTTY: boolean | undefined
+    let restore: () => void
 
-    beforeEach(() => {
-      origIsTTY = process.stderr.isTTY
-      Object.defineProperty(process.stderr, 'isTTY', { value: undefined, configurable: true, writable: true })
-    })
-    afterEach(() => {
-      Object.defineProperty(process.stderr, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
-    })
+    beforeEach(() => { restore = _testSetIsTTY(false) })
+    afterEach(() => { restore() })
 
     it('returns confirmation_required error without --yes', async () => {
       const cmd = defineCommand({
@@ -143,15 +145,10 @@ describe('confirmation guard', { concurrency: false }, () => {
   // -------------------------------------------------------------------------
 
   describe('--yes flag', () => {
-    let origIsTTY: boolean | undefined
+    let restore: () => void
 
-    beforeEach(() => {
-      origIsTTY = process.stderr.isTTY
-      Object.defineProperty(process.stderr, 'isTTY', { value: undefined, configurable: true, writable: true })
-    })
-    afterEach(() => {
-      Object.defineProperty(process.stderr, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
-    })
+    beforeEach(() => { restore = _testSetIsTTY(false) })
+    afterEach(() => { restore() })
 
     it('proceeds when --yes is passed', async () => {
       let handlerCalled = false
@@ -237,15 +234,10 @@ describe('confirmation guard', { concurrency: false }, () => {
   // -------------------------------------------------------------------------
 
   describe('--dry-run skip', () => {
-    let origIsTTY: boolean | undefined
+    let restore: () => void
 
-    beforeEach(() => {
-      origIsTTY = process.stderr.isTTY
-      Object.defineProperty(process.stderr, 'isTTY', { value: undefined, configurable: true, writable: true })
-    })
-    afterEach(() => {
-      Object.defineProperty(process.stderr, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
-    })
+    beforeEach(() => { restore = _testSetIsTTY(false) })
+    afterEach(() => { restore() })
 
     it('--dry-run skips confirmation and exits early', async () => {
       let handlerCalled = false
