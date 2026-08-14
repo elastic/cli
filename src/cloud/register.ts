@@ -18,7 +18,6 @@ import {
   readCredentialPolicyOptions,
 } from './credentials.ts'
 import type { JsonValue, ParsedResult } from '../factory.ts'
-import { inferIntentFromHttp } from '@cli-schema/spec'
 
 /**
  * Maps project-type namespaces from codegen to short CLI group names.
@@ -111,14 +110,13 @@ function checkDuplicates (defs: CloudApiDefinition[], namespace: string): void {
 
 function buildFlatLeaf (def: CloudApiDefinition): OpaqueCommandHandle {
   const schema = buildCloudJsonSchema(def)
-  const intent = inferIntentFromHttp(def.method)
   return defineCommand({
     name: def.name,
     description: def.description,
     input: schema,
     readOnly: def.method === 'GET',
     handler: createCloudHandler(def),
-    ...(intent != null ? { intent } : {}),
+    intent: { destructive: def.destructive },
   })
 }
 
@@ -162,14 +160,13 @@ function buildServerlessTypeGroup (
     const handler: (parsed: ParsedResult) => Promise<JsonValue> = isCredentialCommand(def.name)
       ? async (parsed) => wrapWithCredentialPolicy(def.name, baseHandler, parsed)
       : baseHandler
-    const defIntent = inferIntentFromHttp(def.method)
     const cmd = defineCommand({
       name: shortName,
       description: def.description,
       input: schema,
       readOnly: def.method === 'GET',
       handler,
-      ...(defIntent != null ? { intent: defIntent } : {}),
+      intent: { destructive: def.destructive },
     })
     if (isCreateProjectCommand(def.name)) {
       (cmd as Command).option('--wait', 'Wait for the project to reach "initialized" phase before returning')
