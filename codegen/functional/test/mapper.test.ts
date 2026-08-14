@@ -45,6 +45,20 @@ const testDefs: EsApiDefinition[] = [
     description: 'Get cluster info',
     method: 'GET',
     path: '/'
+  },
+  {
+    name: 'delete',
+    namespace: 'indices',
+    description: 'Delete an index',
+    method: 'DELETE',
+    path: '/{index}',
+    input: {
+      type: 'object',
+      properties: {
+        index: { type: 'string', 'x-found-in': 'path' },
+      },
+      required: ['index'],
+    }
   }
 ]
 
@@ -106,5 +120,17 @@ describe('mapAction', () => {
     const result = mapAction('indices.create', { index: 'test', wait_for_active_shards: '1' }, actionMap)
     assert.ok(result)
     assert.ok(result.cliArgs.includes('--wait-for-active-shards'))
+  })
+
+  it('appends --yes for a DELETE action so non-interactive test runs do not prompt', () => {
+    const result = mapAction('indices.delete', { index: 'test' }, actionMap)
+    assert.ok(result)
+    assert.deepStrictEqual(result.cliArgs, ['stack', 'es', 'indices', 'delete', '--yes', '--index', 'test'])
+  })
+
+  it('does not append --yes for a non-destructive action', () => {
+    const result = mapAction('indices.create', { index: 'test' }, actionMap)
+    assert.ok(result)
+    assert.ok(!result.cliArgs.includes('--yes'))
   })
 })

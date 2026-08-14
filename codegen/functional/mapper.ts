@@ -6,6 +6,7 @@
 import type { EsApiDefinition } from '../../src/es/types.ts'
 import { extractSchemaArgs } from '../../src/lib/json-schema-args.ts'
 import type { SchemaArgDefinition } from '../../src/lib/json-schema-args.ts'
+import { inferIntentFromHttp } from '@cli-schema/spec'
 
 /**
  * Result of mapping a YAML dot-notation action to a CLI command.
@@ -61,6 +62,12 @@ export function mapAction (
   const args: string[] = ['stack', 'es']
   if (def.namespace != null) args.push(def.namespace)
   args.push(def.name)
+
+  // Destructive commands prompt for confirmation; test scripts run non-interactively.
+  const intent = def.intent ?? inferIntentFromHttp(def.method)
+  if (intent?.destructive === true || intent?.requiresConfirmation === true) {
+    args.push('--yes')
+  }
 
   const schemaArgs = def.input != null ? extractSchemaArgs(def.input) : []
 
