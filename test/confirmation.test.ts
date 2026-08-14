@@ -5,7 +5,6 @@
 
 import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { Command } from 'commander'
 import { defineCommand, _testSetConfirmReader, _testSetIsTTY } from '../src/factory.ts'
 import type { OpaqueCommandHandle } from '../src/factory.ts'
 
@@ -14,6 +13,7 @@ import type { OpaqueCommandHandle } from '../src/factory.ts'
 // ---------------------------------------------------------------------------
 
 async function invokeAsync (handle: OpaqueCommandHandle, globalFlags: string[], argv: string[]): Promise<void> {
+  const { Command } = await import('commander')
   const program = new Command('elastic')
   program.exitOverride()
   program.option('--json', 'Output in JSON format')
@@ -26,6 +26,7 @@ async function captureErrAsync (handle: OpaqueCommandHandle, globalFlags: string
   let err = ''
   handle.exitOverride()
   handle.configureOutput({ writeErr: (s) => { err += s } })
+  const { Command } = await import('commander')
   const program = new Command('elastic')
   program.exitOverride()
   program.option('--json', 'Output in JSON format')
