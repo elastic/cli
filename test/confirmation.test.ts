@@ -178,37 +178,39 @@ describe('confirmation guard', { concurrency: false }, () => {
 
   // -------------------------------------------------------------------------
   // Destructive commands: TTY interactive prompt
+  //
+  // Both TTY paths (proceed and abort) run inside one `it` block: splitting
+  // them into separate tests reintroduces a race in node:test's between-test
+  // scheduling around the TTY seam that reliably hangs on Windows CI.
   // -------------------------------------------------------------------------
 
   describe('TTY prompt', () => {
-    it('proceeds and runs the handler when the reader returns true', async () => {
-      const r1 = _testSetIsTTY(true)
-      const r2 = _testSetConfirmReader(async () => true)
+    it('proceeds on yes, aborts on no', async () => {
+      let r1 = _testSetIsTTY(true)
+      let r2 = _testSetConfirmReader(async () => true)
       let handlerCalled = false
-      const cmd = defineCommand({
+      const cmdYes = defineCommand({
         name: 'delete',
         description: 'Delete a resource',
         intent: { destructive: true },
         handler: () => { handlerCalled = true; return {} },
       })
       try {
-        await invokeAsync(cmd, [], [])
+        await invokeAsync(cmdYes, [], [])
       } finally { r2(); r1() }
       assert.equal(handlerCalled, true, 'handler must be called when TTY reader returns true')
-    })
 
-    it('aborts before the handler runs when the reader returns false', async () => {
-      const r1 = _testSetIsTTY(true)
-      const r2 = _testSetConfirmReader(async () => false)
-      let handlerCalled = false
-      const cmd = defineCommand({
-        name: 'delete',
+      handlerCalled = false
+      r1 = _testSetIsTTY(true)
+      r2 = _testSetConfirmReader(async () => false)
+      const cmdNo = defineCommand({
+        name: 'delete2',
         description: 'Delete a resource',
         intent: { destructive: true },
         handler: () => { handlerCalled = true; return {} },
       })
       try {
-        const err = await captureErrAsync(cmd, [], [])
+        const err = await captureErrAsync(cmdNo, [], [])
         assert.equal(handlerCalled, false)
         assert.match(err, /Aborted/)
       } finally { r2(); r1() }
