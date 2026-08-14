@@ -5,6 +5,7 @@
 
 import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
+import { Command } from 'commander'
 import { defineCommand, _testSetConfirmReader, _testSetIsTTY } from '../src/factory.ts'
 import type { OpaqueCommandHandle } from '../src/factory.ts'
 
@@ -13,7 +14,6 @@ import type { OpaqueCommandHandle } from '../src/factory.ts'
 // ---------------------------------------------------------------------------
 
 async function invokeAsync (handle: OpaqueCommandHandle, globalFlags: string[], argv: string[]): Promise<void> {
-  const { Command } = await import('commander')
   const program = new Command('elastic')
   program.exitOverride()
   program.option('--json', 'Output in JSON format')
@@ -26,7 +26,6 @@ async function captureErrAsync (handle: OpaqueCommandHandle, globalFlags: string
   let err = ''
   handle.exitOverride()
   handle.configureOutput({ writeErr: (s) => { err += s } })
-  const { Command } = await import('commander')
   const program = new Command('elastic')
   program.exitOverride()
   program.option('--json', 'Output in JSON format')
@@ -40,8 +39,8 @@ async function captureErrAsync (handle: OpaqueCommandHandle, globalFlags: string
 // ---------------------------------------------------------------------------
 // All confirmation guard tests run serially inside one outer describe.
 // node:test runs top-level describes concurrently by default. That concurrent
-// execution creates async gaps (from `await import('commander')` inside the
-// helpers) during which sibling describe hooks can mutate shared state such as
+// execution creates async gaps (each helper awaits program.parseAsync) during
+// which sibling describe hooks can mutate shared state such as
 // `process.stderr.isTTY`. Wrapping everything in `{ concurrency: false }` here
 // serialises all execution and eliminates those races.
 // ---------------------------------------------------------------------------
@@ -178,54 +177,37 @@ describe('confirmation guard', { concurrency: false }, () => {
 
   // -------------------------------------------------------------------------
   // Destructive commands: TTY interactive prompt
-  //
-  // Both TTY paths (proceed and abort) run inside one `it` block so the two
-  // async phases can share state without racing against sibling suites.
   // -------------------------------------------------------------------------
 
   describe('TTY prompt', () => {
-    // node:test v22 / tsx bug: a suite with exactly one async test that yields
-    // early (via `await import(...)`) may be closed prematurely by the runner,
-    // causing the test to not appear in the TAP count. A second (instant) test
-    // keeps the suite registration alive while the real test is running.
-    it('confirm-reader seam restores state', () => {
-      const r1 = _testSetIsTTY(false)
+    it('proceeds and runs the handler when the reader returns true', async () => {
+      const r1 = _testSetIsTTY(true)
       const r2 = _testSetConfirmReader(async () => true)
-      r2(); r1()
-    })
-
-    it('proceeds on yes, aborts on no', async () => {
-      // Case 1: reader returns true → confirmation guard passes, handler runs.
-      // The handler throws after setting the flag so the factory never reaches
-      // the process.stdout.write(renderText(...)) call and does not corrupt the
-      // TAP stream (node:test flushes suite TAP output asynchronously; any
-      // direct process.stdout.write from within a test can overwrite it).
-      let r1 = _testSetIsTTY(true)
-      let r2 = _testSetConfirmReader(async () => true)
       let handlerCalled = false
-      const cmdYes = defineCommand({
+      const cmd = defineCommand({
         name: 'delete',
-        description: 'Delete a resource',
-        intent: { destructive: true },
-        handler: () => { handlerCalled = true; throw new Error('stop_here') },
-      })
-      try {
-        await captureErrAsync(cmdYes, [], [])
-      } finally { r2(); r1() }
-      assert.equal(handlerCalled, true, 'handler must be called when TTY reader returns true')
-
-      // Case 2: reader returns false → aborts before handler runs
-      handlerCalled = false
-      r1 = _testSetIsTTY(true)
-      r2 = _testSetConfirmReader(async () => false)
-      const cmdNo = defineCommand({
-        name: 'delete2',
         description: 'Delete a resource',
         intent: { destructive: true },
         handler: () => { handlerCalled = true; return {} },
       })
       try {
-        const err = await captureErrAsync(cmdNo, [], [])
+        await invokeAsync(cmd, [], [])
+      } finally { r2(); r1() }
+      assert.equal(handlerCalled, true, 'handler must be called when TTY reader returns true')
+    })
+
+    it('aborts before the handler runs when the reader returns false', async () => {
+      const r1 = _testSetIsTTY(true)
+      const r2 = _testSetConfirmReader(async () => false)
+      let handlerCalled = false
+      const cmd = defineCommand({
+        name: 'delete',
+        description: 'Delete a resource',
+        intent: { destructive: true },
+        handler: () => { handlerCalled = true; return {} },
+      })
+      try {
+        const err = await captureErrAsync(cmd, [], [])
         assert.equal(handlerCalled, false)
         assert.match(err, /Aborted/)
       } finally { r2(); r1() }
