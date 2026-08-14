@@ -16,7 +16,7 @@ VIEW_ID=""
 
 teardown() {
   if [ -n "$VIEW_ID" ]; then
-    $CLI stack kb data-views delete-data-view-default --view-id "$VIEW_ID" --json >/dev/null 2>&1 || true
+    $CLI stack kb data-views delete-data-view-default --view-id "$VIEW_ID" --yes --json >/dev/null 2>&1 || true
   fi
 }
 trap teardown EXIT
@@ -48,7 +48,7 @@ count=$(echo "$output" | jq '[.data_view[] | select(.id == "'"$VIEW_ID"'")] | le
 
 # ── delete ────────────────────────────────────────────────────────────
 
-$CLI stack kb data-views delete-data-view-default --view-id "$VIEW_ID" --json >/dev/null 2>/dev/null
+$CLI stack kb data-views delete-data-view-default --view-id "$VIEW_ID" --yes --json >/dev/null 2>/dev/null
 VIEW_ID=""
 
 output=$($CLI stack kb data-views get-all-data-views-default --json 2>/dev/null)
