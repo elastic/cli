@@ -22,7 +22,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.issue.number }}
         run: |
-          gh pr diff "$PR_NUMBER" | head -c 32000 > /tmp/diff.txt
+          gh pr diff "$PR_NUMBER" | head -c 32000 > /tmp/diff.txt || true
 
       - name: Review
         env:

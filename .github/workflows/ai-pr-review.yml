@@ -30,11 +30,11 @@ jobs:
             echo "Reviewing changes since previous review ($PREV_SHA)"
             echo "incremental" > /tmp/review_mode.txt
             gh api "repos/${GH_REPO}/compare/${PREV_SHA}...${HEAD_SHA}" \
-              -H "Accept: application/vnd.github.v3.diff" | head -c 32000 > /tmp/diff.txt
+              -H "Accept: application/vnd.github.v3.diff" | head -c 32000 > /tmp/diff.txt || true
           else
             echo "No prior review found, reviewing full PR diff"
             echo "full" > /tmp/review_mode.txt
-            gh pr diff "$PR_NUMBER" | head -c 32000 > /tmp/diff.txt
+            gh pr diff "$PR_NUMBER" | head -c 32000 > /tmp/diff.txt || true
           fi
 
       - name: Review
