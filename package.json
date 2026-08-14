@@ -14,7 +14,7 @@
     "build": "node --max-old-space-size=8192 node_modules/typescript/bin/tsc -b",
     "postbuild": "node scripts/create-dist-package-jsons.mjs",
     "test": "npm run build && npm run test:unit && npm run test:license",
-    "test:unit": "node --max-old-space-size=8192 --import tsx/esm --test --test-timeout=60000",
+    "test:unit": "node --max-old-space-size=8192 --import tsx/esm --test --test-timeout=60000 --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=90 --test-coverage-functions=90 --test-coverage-include='src/**/*.ts' --test-coverage-include='packages/*/src/**/*.ts' --test-coverage-exclude='src/es/api-manifest.ts' --test-coverage-exclude='src/cloud/serverless-apis.ts' --test-coverage-exclude='node_modules/**'",
     "test:lint": "eslint src packages test",
     "codegen:functional": "npx tsx codegen/functional/index.ts --tests-dir ../elasticsearch-clients-tests/tests",
     "test:functional:es": "bash test/functional/es/run.sh",

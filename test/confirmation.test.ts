@@ -40,8 +40,8 @@ async function captureErrAsync (handle: OpaqueCommandHandle, globalFlags: string
 // ---------------------------------------------------------------------------
 // All confirmation guard tests run serially inside one outer describe.
 // node:test runs top-level describes concurrently by default. That concurrent
-// execution creates async gaps (each helper awaits program.parseAsync) during
-// which sibling describe hooks can mutate shared state such as
+// execution creates async gaps (from `await import('commander')` inside the
+// helpers) during which sibling describe hooks can mutate shared state such as
 // `process.stderr.isTTY`. Wrapping everything in `{ concurrency: false }` here
 // serialises all execution and eliminates those races.
 // ---------------------------------------------------------------------------
@@ -179,13 +179,27 @@ describe('confirmation guard', { concurrency: false }, () => {
   // -------------------------------------------------------------------------
   // Destructive commands: TTY interactive prompt
   //
-  // Both TTY paths (proceed and abort) run inside one `it` block: splitting
-  // them into separate tests reintroduces a race in node:test's between-test
-  // scheduling around the TTY seam that reliably hangs on Windows CI.
+  // Both TTY paths (proceed and abort) run inside one `it` block so the two
+  // async phases can share state without racing against sibling suites.
   // -------------------------------------------------------------------------
 
   describe('TTY prompt', () => {
+    // node:test v22 / tsx bug: a suite with exactly one async test that yields
+    // early (via `await import(...)`) may be closed prematurely by the runner,
+    // causing the test to not appear in the TAP count. A second (instant) test
+    // keeps the suite registration alive while the real test is running.
+    it('confirm-reader seam restores state', () => {
+      const r1 = _testSetIsTTY(false)
+      const r2 = _testSetConfirmReader(async () => true)
+      r2(); r1()
+    })
+
     it('proceeds on yes, aborts on no', async () => {
+      // Case 1: reader returns true → confirmation guard passes, handler runs.
+      // The handler throws after setting the flag so the factory never reaches
+      // the process.stdout.write(renderText(...)) call and does not corrupt the
+      // TAP stream (node:test flushes suite TAP output asynchronously; any
+      // direct process.stdout.write from within a test can overwrite it).
       let r1 = _testSetIsTTY(true)
       let r2 = _testSetConfirmReader(async () => true)
       let handlerCalled = false
@@ -193,13 +207,14 @@ describe('confirmation guard', { concurrency: false }, () => {
         name: 'delete',
         description: 'Delete a resource',
         intent: { destructive: true },
-        handler: () => { handlerCalled = true; return {} },
+        handler: () => { handlerCalled = true; throw new Error('stop_here') },
       })
       try {
-        await invokeAsync(cmdYes, [], [])
+        await captureErrAsync(cmdYes, [], [])
       } finally { r2(); r1() }
       assert.equal(handlerCalled, true, 'handler must be called when TTY reader returns true')
 
+      // Case 2: reader returns false → aborts before handler runs
       handlerCalled = false
       r1 = _testSetIsTTY(true)
       r2 = _testSetConfirmReader(async () => false)
