@@ -457,7 +457,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
   }
 
   if (config.intent?.destructive === true || config.intent?.requiresConfirmation === true) {
-    cmd.option('--yes', 'Confirm destructive action without prompting')
+    cmd.option('--yes', 'confirm destructive action without prompting')
   }
 
   configureHelpWithSchema(cmd, isJsonSchemaInput(config.input) ? config.input : undefined)
