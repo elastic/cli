@@ -253,8 +253,12 @@ jobs:
           if [ "$MATCH" = "false" ]; then
             CORRECT_TYPE=$(jq -r '.correct_type // "unknown"' <<<"$CONTENT")
             REASON=$(jq -r '.reason // "no reason given"' <<<"$CONTENT")
+            # Strip backticks so an embedded one can't prematurely close the
+            # markdown code span below and garble the rendered comment.
+            TITLE_SAFE="${PR_TITLE//\`/}"
+            CORRECT_TYPE_SAFE="${CORRECT_TYPE//\`/}"
             BODY="$COMMENT_TAG
-          **PR type mismatch**: title uses \`$PR_TITLE\`, diff looks like \`$CORRECT_TYPE\` instead.
+          **PR type mismatch**: title uses \`$TITLE_SAFE\`, diff looks like \`$CORRECT_TYPE_SAFE\` instead.
 
           $REASON
 
