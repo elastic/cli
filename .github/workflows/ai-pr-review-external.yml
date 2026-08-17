@@ -183,12 +183,31 @@ jobs:
           # Every run supersedes the last: this bot's own inline comments
           # from prior reviews are deleted before deciding what to post
           # next, so stale findings on since-changed or since-fixed code
-          # never linger. A submitted review itself can't be deleted via
-          # the API (GitHub only allows deleting PENDING reviews), only
-          # its individual inline comments, which is enough for this.
+          # never linger.
           gh api "repos/${GH_REPO}/pulls/${PR_NUMBER}/comments" --paginate \
             --jq '.[] | select(.user.login == "github-actions[bot]") | .id' \
             | xargs -I{} gh api --method DELETE "repos/${GH_REPO}/pulls/comments/{}" 2>/dev/null || true
+
+          # A submitted review's own body can't be deleted via the API
+          # (GitHub only allows deleting PENDING reviews), so prior review
+          # summaries would otherwise pile up in the timeline forever.
+          # PullRequestReview supports GraphQL's Minimizable interface
+          # though, so collapse old ones to "outdated" instead.
+          # shellcheck disable=SC2016
+          gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                  reviews(first: 100) {
+                    nodes { id author { login } }
+                  }
+                }
+              }
+            }' -f owner="${GH_REPO%%/*}" -f repo="${GH_REPO#*/}" -F pr="$PR_NUMBER" \
+            --jq '.data.repository.pullRequest.reviews.nodes[] | select(.author.login == "github-actions") | .id' \
+            | while read -r review_id; do
+                gh api graphql -f query="mutation { minimizeComment(input: {subjectId: \"$review_id\", classifier: OUTDATED}) { clientMutationId } }" > /dev/null 2>&1 || true
+              done
 
           # Strip markdown fences the model may add despite instructions.
           CLEANED=$(sed '/^```/d' <<<"$CONTENT")
