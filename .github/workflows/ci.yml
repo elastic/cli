@@ -180,6 +180,8 @@ jobs:
           fi
 
           DIFF=$(cat /tmp/diff.txt)
+          # A failed `gh pr view` above leaves this empty; that's fine, the
+          # model can still judge the type from the diff and PR title alone.
           COMMITS=$(cat /tmp/commits.txt)
 
           jq -n \
@@ -197,6 +199,14 @@ jobs:
             }' > /tmp/payload.json
 
           BASE_URL="${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
+          case "$BASE_URL" in
+            https://*) ;;
+            *)
+              echo "OPENROUTER_BASE_URL must be https://, refusing to send the API key to it"
+              exit 0
+              ;;
+          esac
+
           HTTP_STATUS=$(curl -s -o /tmp/response.json -w '%{http_code}' \
             -H "Authorization: Bearer ${OPENROUTER_API_KEY}" \
             -H "Content-Type: application/json" \
