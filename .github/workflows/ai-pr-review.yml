@@ -22,8 +22,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          PREV_SHA=$(gh api "repos/${GH_REPO}/issues/${PR_NUMBER}/comments" --paginate \
-            | jq -r '[.[] | select(.user.login == "github-actions[bot]") | select(.body | startswith("<!-- ai-pr-review sha:"))] | last | .body // ""' \
+          PREV_SHA=$(gh api "repos/${GH_REPO}/pulls/${PR_NUMBER}/reviews" --paginate \
+            | jq -r '[.[] | select(.user.login == "github-actions[bot]") | select(.body // "" | startswith("<!-- ai-pr-review sha:"))] | last | .body // ""' \
             | sed -n 's/^<!-- ai-pr-review sha:\([0-9a-f]\{40\}\) -->.*/\1/p')
 
           if [ -n "$PREV_SHA" ] && [ "$PREV_SHA" != "$HEAD_SHA" ]; then
@@ -81,8 +81,26 @@ jobs:
             or scripts that interpolate untrusted values directly into a
             shell command.
 
-            Skip style nits. Be concise. If nothing is wrong, say so in
-            one line.
+            Skip style nits. Be concise.
+
+            State every finding once, decisively. Never think out loud and
+            never contradict yourself: if you start to flag something and
+            conclude it is actually fine, drop the finding entirely rather
+            than posting a concern followed by reasoning that it is not a
+            problem. Only report issues you still believe in after full
+            consideration.
+
+            Respond with ONLY a single JSON object, no markdown fences, no
+            other text:
+            {"summary": "short overall verdict",
+             "comments": [{"path": "file path exactly as in the diff",
+                           "line": line number in the new version of the
+                           file (compute it from the @@ hunk headers; it
+                           must be a line visible in the diff),
+                           "body": "the finding"}]}
+            Anchor every finding to its line via "comments". If nothing is
+            wrong, use an empty comments array and a one-line summary
+            saying so.
         run: |
           set -euo pipefail
 
@@ -107,7 +125,7 @@ jobs:
             --arg prefix "$USER_PREFIX" \
             '{
               model: "anthropic/claude-sonnet-4.6",
-              max_tokens: 1024,
+              max_tokens: 2048,
               messages: [
                 {role: "system", content: $system},
                 {role: "user", content: ($prefix + "\n\nPR: " + $title + "\n\nDiff:\n" + $diff)}
@@ -130,10 +148,41 @@ jobs:
           CONTENT=$(jq -r '.choices[0].message.content // empty' /tmp/response.json)
 
           if [ -z "$CONTENT" ]; then
-            echo "Empty response from model, skipping comment"
+            echo "Empty response from model, skipping review"
             exit 0
           fi
 
-          BODY="$(printf '%s\n%s' "<!-- ai-pr-review sha:${HEAD_SHA} -->" "$CONTENT")"
+          MARKER="<!-- ai-pr-review sha:${HEAD_SHA} -->"
 
-          gh pr comment "$PR_NUMBER" --body "$BODY"
+          # Strip markdown fences the model may add despite instructions.
+          CLEANED=$(sed '/^```/d' <<<"$CONTENT")
+          SUMMARY=$(jq -r '.summary // empty' <<<"$CLEANED" 2>/dev/null || true)
+
+          if [ -z "$SUMMARY" ]; then
+            echo "Unstructured model output, posting it as the review body"
+            jq -n --arg body "$MARKER
+          $CONTENT" '{event: "COMMENT", body: $body}' > /tmp/review.json
+            gh api --method POST "repos/${GH_REPO}/pulls/${PR_NUMBER}/reviews" \
+              --input /tmp/review.json > /dev/null
+            exit 0
+          fi
+
+          COMMENTS=$(jq -c '[.comments // [] | .[] | {path, line, body, side: "RIGHT"}]' \
+            <<<"$CLEANED" 2>/dev/null || echo '[]')
+
+          jq -n --arg body "$MARKER
+          $SUMMARY" --argjson comments "$COMMENTS" \
+            '{event: "COMMENT", body: $body, comments: $comments}' > /tmp/review.json
+
+          if ! gh api --method POST "repos/${GH_REPO}/pulls/${PR_NUMBER}/reviews" \
+            --input /tmp/review.json > /dev/null; then
+            echo "Inline placement rejected (stale line refs?), posting findings in the body"
+            FINDINGS=$(jq -r '.[] | "- " + .path + ":" + (.line|tostring) + " " + .body' \
+              <<<"$COMMENTS")
+            jq -n --arg body "$MARKER
+          $SUMMARY
+
+          $FINDINGS" '{event: "COMMENT", body: $body}' > /tmp/review.json
+            gh api --method POST "repos/${GH_REPO}/pulls/${PR_NUMBER}/reviews" \
+              --input /tmp/review.json > /dev/null
+          fi
