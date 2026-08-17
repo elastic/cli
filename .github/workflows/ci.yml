@@ -2,6 +2,10 @@ name: CI
 
 on:
   pull_request:
+    # Default types (opened, synchronize, reopened) don't include title
+    # edits, so validate-pr-title/ai-pr-type-check never rerun after
+    # fixing a title unless "edited" is listed explicitly.
+    types: [opened, synchronize, reopened, edited]
   push:
     branches:
       - main
@@ -14,6 +18,7 @@ concurrency:
 
 jobs:
   test-node:
+    if: github.event.action != 'edited'
     name: Test Node.js
     permissions:
       contents: read
@@ -41,6 +46,7 @@ jobs:
         shell: bash
 
   license-header:
+    if: github.event.action != 'edited'
     name: Check SPDX license header
     permissions:
       contents: read
@@ -56,6 +62,7 @@ jobs:
         run: npm run test:spdx
 
   notice-file:
+    if: github.event.action != 'edited'
     name: Check NOTICE.txt is up to date
     permissions:
       contents: read
@@ -71,6 +78,7 @@ jobs:
         run: npm run test:notice
 
   test-bun:
+    if: github.event.action != 'edited'
     name: Test Bun
     permissions:
       contents: read
@@ -257,6 +265,7 @@ jobs:
           fi
 
   megalinter:
+    if: github.event.action != 'edited'
     name: MegaLinter
     permissions:
       contents: read
@@ -273,6 +282,7 @@ jobs:
           VALIDATE_ALL_CODEBASE: ${{ github.event_name == 'push' }}
 
   cli-schema:
+    if: github.event.action != 'edited'
     name: Check CLI schema is up to date
     permissions:
       contents: read
