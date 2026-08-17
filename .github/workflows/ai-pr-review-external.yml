@@ -224,14 +224,6 @@ jobs:
             exit 0
           fi
 
-          # Every run supersedes the last: this bot's own inline comments
-          # from prior reviews are deleted before deciding what to post
-          # next, so stale findings on since-changed or since-fixed code
-          # never linger.
-          gh api "repos/${GH_REPO}/pulls/${PR_NUMBER}/comments" --paginate \
-            --jq '.[] | select(.user.login == "github-actions[bot]") | .id' \
-            | xargs -I{} gh api --method DELETE "repos/${GH_REPO}/pulls/comments/{}" 2>/dev/null || true
-
           # A submitted review's own body can't be deleted via the API
           # (GitHub only allows deleting PENDING reviews), so prior review
           # summaries would otherwise pile up in the timeline forever.
@@ -311,11 +303,19 @@ jobs:
             fi
           fi
 
-          # A clean PR gets silence, not an "all good" review; quieter than
-          # posting no-op reviews, and the old comments were already deleted
-          # above so nothing stale is left behind either.
+          # Existing inline comments from this bot are left alone (not
+          # wiped every run), so drop any new finding that already has a
+          # comment at the same path+line rather than posting a duplicate.
+          EXISTING=$(gh api "repos/${GH_REPO}/pulls/${PR_NUMBER}/comments" --paginate \
+            --jq '[.[] | select(.user.login == "github-actions[bot]") | {path, line}]' 2>/dev/null || echo '[]')
+          COMMENTS=$(jq -c --argjson existing "$EXISTING" \
+            '[.[] | select(. as $c | ($existing | any(.path == $c.path and .line == $c.line)) | not)]' \
+            <<<"$COMMENTS" 2>/dev/null || echo "$COMMENTS")
+
+          # A clean PR (or one with nothing new beyond what's already
+          # flagged) gets silence, not an "all good" or repeat review.
           if [ "$(jq 'length' <<<"$COMMENTS")" -eq 0 ]; then
-            echo "No findings, not posting a review"
+            echo "No new findings, not posting a review"
             exit 0
           fi
 
