@@ -119,6 +119,15 @@ jobs:
 
           if [ -z "${OPENROUTER_API_KEY:-}" ]; then
             echo "OPENROUTER_API_KEY not available, skipping review"
+            # GitHub never exposes repo secrets to pull_request runs from a
+            # fork, so this fires on every fork PR push, not just outages.
+            # Surface the /ai-review escape hatch instead of failing silently.
+            NOTICE_TAG='<!-- ai-pr-review-unavailable -->'
+            gh api "repos/${GH_REPO}/issues/${PR_NUMBER}/comments" --paginate \
+              --jq ".[] | select(.user.login == \"github-actions[bot]\") | select(.body | startswith(\"$NOTICE_TAG\")) | .id" \
+              | xargs -I{} gh api --method DELETE "repos/${GH_REPO}/issues/comments/{}" 2>/dev/null || true
+            gh pr comment "$PR_NUMBER" --body "$NOTICE_TAG
+          Automatic AI review didn't run for this push (no API access in this context, which is expected for PRs from forks). A maintainer can comment \`/ai-review\` to run it manually." 2>/dev/null || true
             exit 0
           fi
 
