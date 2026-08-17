@@ -101,9 +101,10 @@ jobs:
                            file (compute it from the @@ hunk headers; it
                            must be a line visible in the diff),
                            "body": "the finding"}]}
-            Anchor every finding to its line via "comments". If nothing is
-            wrong, use an empty comments array and a one-line summary
-            saying so.
+            Anchor every finding to its line via "comments". The summary
+            must only describe the findings; never mention things you
+            checked and found fine. If nothing is wrong, use an empty
+            comments array; the review will not be posted at all.
           CRITIC_PROMPT: |-
             You fact-check code review findings before they are posted. You
             get a diff and a JSON review with proposed findings. For each
@@ -225,6 +226,14 @@ jobs:
             else
               echo "Critic request failed with HTTP $CRITIC_STATUS, keeping original findings"
             fi
+          fi
+
+          # A clean PR gets silence, not an "all good" review. This means the
+          # sha marker does not advance on clean pushes, so the next review
+          # re-covers them; harmless, and quieter than posting no-op reviews.
+          if [ "$(jq 'length' <<<"$COMMENTS")" -eq 0 ]; then
+            echo "No findings, not posting a review"
+            exit 0
           fi
 
           jq -n --arg body "$MARKER
