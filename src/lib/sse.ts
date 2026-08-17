@@ -31,44 +31,10 @@ export interface SseEvent {
 }
 
 /**
- * Streams SSE frames from a byte stream, yielding one {@link SseEvent} per event block.
- *
- * The reusable streaming primitive. Callers may `break` early; the underlying reader is
- * released in the `finally` block.
- */
-export async function * parseSseStream (stream: ReadableStream<Uint8Array>): AsyncGenerator<SseEvent> {
-  const reader = stream.getReader()
-  const decoder = new TextDecoder()
-  let buf = ''
-  try {
-    for (;;) {
-      const { done, value } = await reader.read()
-      if (value != null) buf += decoder.decode(value, { stream: true })
-      buf = buf.replace(/\r\n/g, '\n')
-      let i: number
-      while ((i = buf.indexOf('\n\n')) !== -1) {
-        const ev = parseBlock(buf.slice(0, i))
-        buf = buf.slice(i + 2)
-        if (ev != null) yield ev
-      }
-      if (done) {
-        if (buf.length > 0) {
-          const ev = parseBlock(buf)
-          if (ev != null) yield ev
-        }
-        return
-      }
-    }
-  } finally {
-    void reader.cancel().catch(() => {})
-  }
-}
-
-/**
  * Parses a fully-buffered SSE payload into an ordered array of {@link SseEvent}.
  *
- * Convenience wrapper for callers that already hold the complete response body (e.g. a client
- * that buffers via `response.text()`). Uses the same block parser as {@link parseSseStream}.
+ * For callers that already hold the complete response body (e.g. a client that buffers via
+ * `response.text()`).
  */
 export function parseSseText (text: string): SseEvent[] {
   const events: SseEvent[] = []

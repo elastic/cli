@@ -5,7 +5,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseSseText, parseSseStream, type SseEvent } from '../../src/lib/sse.ts'
+import { parseSseText } from '../../src/lib/sse.ts'
 
 describe('parseSseText', () => {
   it('parses a single frame with event and data', () => {
@@ -49,51 +49,5 @@ describe('parseSseText', () => {
 
   it('drops blocks with no data: field and returns [] for comment-only input', () => {
     assert.deepEqual(parseSseText(': keep-alive\n\n: 0000\n\n'), [])
-  })
-})
-
-describe('parseSseStream', () => {
-  /** Builds a byte stream that emits `chunks` in order. */
-  function byteStream (chunks: string[]): ReadableStream<Uint8Array> {
-    const encoder = new TextEncoder()
-    return new ReadableStream({
-      start (controller) {
-        for (const c of chunks) controller.enqueue(encoder.encode(c))
-        controller.close()
-      },
-    })
-  }
-
-  async function collect (stream: ReadableStream<Uint8Array>): Promise<SseEvent[]> {
-    const out: SseEvent[] = []
-    for await (const ev of parseSseStream(stream)) out.push(ev)
-    return out
-  }
-
-  it('yields frames from a single chunk', async () => {
-    const events = await collect(byteStream(['event: a\ndata: 1\n\nevent: b\ndata: 2\n\n']))
-    assert.deepEqual(events, [{ event: 'a', data: '1' }, { event: 'b', data: '2' }])
-  })
-
-  it('reassembles a frame split across chunk boundaries', async () => {
-    const events = await collect(byteStream(['event: a\nda', 'ta: 1\n', '\nevent: b\ndata: 2\n\n']))
-    assert.deepEqual(events, [{ event: 'a', data: '1' }, { event: 'b', data: '2' }])
-  })
-
-  it('flushes a trailing frame with no terminating blank line', async () => {
-    const events = await collect(byteStream(['event: a\ndata: 1']))
-    assert.deepEqual(events, [{ event: 'a', data: '1' }])
-  })
-
-  it('stops after an early break and runs the reader-cancel cleanup without error', async () => {
-    const seen: string[] = []
-    const stream = byteStream(['event: a\ndata: 1\n\nevent: b\ndata: 2\n\n'])
-    // Breaking triggers the generator's `finally`, which cancels the reader. The loop must
-    // yield only the first frame and complete without an unhandled rejection from cleanup.
-    for await (const ev of parseSseStream(stream)) {
-      seen.push(ev.event)
-      break
-    }
-    assert.deepEqual(seen, ['a'])
   })
 })
