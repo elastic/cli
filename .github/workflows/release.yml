@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
+      pr: ${{ steps.release.outputs.pr }}
     permissions:
       id-token: write
     steps:
@@ -25,6 +26,67 @@ jobs:
           config-file: .github/release-please-config.json
           manifest-file: .github/.release-please-manifest.json
           token: ${{ steps.fetch-token.outputs.token }}
+
+  # release-please's PR opens/updates a version-bump commit that can leave
+  # docs/cli/schema.json stale. Regenerate it immediately and push the fix
+  # to the same PR branch so reviewers never see (or approve) an out-of-date
+  # schema, instead of relying on a maintainer noticing and commenting
+  # /fix-schema after the fact.
+  update-schema:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.pr != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - name: Fetch ephemeral Github token
+        id: fetch-token
+        uses: elastic/ci-gh-actions/fetch-github-token@2feb1c6f5086cf8e06f61ef35e275abed3456f7b # v1.5.3
+        with:
+          vault-instance: "ci-prod"
+
+      - name: Resolve release-please PR branch
+        id: pr
+        env:
+          PR_JSON: ${{ needs.release-please.outputs.pr }}
+        run: |
+          echo "$PR_JSON" | jq -r '"branch=" + .headBranchName' >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ steps.pr.outputs.branch }}
+          token: ${{ steps.fetch-token.outputs.token }}
+          persist-credentials: true
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.x
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Regenerate CLI schema
+        run: npm run build:schema
+
+      - name: Commit and push if schema changed
+        env:
+          BRANCH: ${{ steps.pr.outputs.branch }}
+        run: |
+          if git diff --quiet docs/cli/schema.json; then
+            echo "Schema already up to date."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add docs/cli/schema.json
+            git commit -m "chore: regenerate CLI schema"
+            git push origin "HEAD:refs/heads/$BRANCH"
+          fi
 
   publish:
     needs: release-please

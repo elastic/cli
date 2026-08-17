@@ -52,6 +52,7 @@ export function createCloudHandler(
     try {
       params = deps.buildCloudRequestParams(def, parsed)
     } catch (err) {
+      if ((err as { code?: string }).code === 'input_error') return inputError(err)
       return invalidRequestError(err)
     }
 
@@ -104,6 +105,11 @@ async function pollProjectStatus (
 
 function sleep (ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function inputError(err: unknown): JsonValue {
+  const message = err instanceof Error ? err.message : String(err)
+  return { error: { code: 'input_error', message } }
 }
 
 function missingConfigError(err: unknown): JsonValue {

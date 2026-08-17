@@ -9,6 +9,7 @@ import type { OpaqueCommandHandle, JsonValue, ParsedResult } from '../../factory
 import { getEsClient } from '../../lib/es-client.ts'
 import { missingConfigError, transportError } from '../errors.ts'
 import { readRawInput } from './shared.ts'
+import { encodeMultiTargetPathParam } from '../../lib/path-encoding.ts'
 
 interface SearchHit {
   _source?: unknown
@@ -102,7 +103,7 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
 
     try {
       // Initial search with scroll
-      const encodedIndex = encodeURIComponent(index)
+      const encodedIndex = encodeMultiTargetPathParam(index)
       const initialResult = await transport.request<SearchResponse>({
         method: 'POST',
         path: `/${encodedIndex}/_search`,

@@ -7,6 +7,7 @@ import type { EsRequestParams } from '../lib/es-client.ts'
 import type { EsApiDefinition } from './types.ts'
 import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
 import type { RawJsonValue, ParsedResult } from '../factory.ts'
+import { encodeMultiTargetPathParam } from '../lib/path-encoding.ts'
 
 /**
  * Builds a `TransportRequestParams` object from an API definition, parsed CLI input,
@@ -63,14 +64,12 @@ export function buildRequestParams (
 }
 
 /**
- * Encodes a single path parameter value. Splits on commas so ES multi-target
- * syntax (e.g. "idx1,idx2") is preserved, while special characters like `/`,
- * `?`, and `#` are percent-encoded to prevent path traversal (#106).
+ * Interpolates `{param}` tokens in the path template using values from the unified input object.
+ *
+ * Only `SchemaArgDefinition` entries with `foundIn === "path"` are processed.
+ * The schema key is both the `{token}` name in the template and the lookup key in `input`.
+ * For optional params that are absent, trailing `/{param}` segments are stripped.
  */
-function encodePathParam (value: string): string {
-  return value.split(',').map((s) => encodeURIComponent(s.trim())).join(',')
-}
-
 function interpolatePath (
   path: string,
   schemaArgs: SchemaArgDefinition[],
@@ -79,7 +78,7 @@ function interpolatePath (
   for (const arg of schemaArgs.filter((a) => a.foundIn === 'path')) {
     const value = input[arg.schemaKey]
     if (value !== undefined) {
-      path = path.replace(`{${arg.schemaKey}}`, encodePathParam(String(value)))
+      path = path.replace(`{${arg.schemaKey}}`, encodeMultiTargetPathParam(String(value)))
     } else if (!arg.required) {
       // Strip the optional segment with its leading slash so the rest of the
       // path remains valid. E.g.:

@@ -159,3 +159,39 @@ describe('buildKibanaRequestParams path param requiredness (BUG A regression)', 
     assert.equal(result.path, '/api/widgets/abc')
   })
 })
+
+describe('buildKibanaRequestParams path traversal rejection', () => {
+  function defWithPathParam (): KbApiDefinition {
+    return {
+      name: 'get-space',
+      namespace: 'spaces',
+      description: 'Get a space',
+      method: 'GET',
+      path: '/api/spaces/space/{spaceId}',
+      input: {
+        type: 'object',
+        properties: { spaceId: { type: 'string', 'x-found-in': 'path' } },
+        required: ['spaceId'],
+      },
+    }
+  }
+
+  it('encodes path params to prevent path traversal', () => {
+    const result = buildKibanaRequestParams(defWithPathParam(), parsed({ spaceId: '../../../secret?#' }))
+    assert.ok(!result.path.includes('../'), 'dot-dot-slash must be encoded')
+    assert.equal(result.path, '/api/spaces/space/..%2F..%2F..%2Fsecret%3F%23')
+  })
+
+  for (const widening of ['', '.', '..']) {
+    it(`rejects "${widening}" as a path param`, () => {
+      assert.throws(
+        () => buildKibanaRequestParams(defWithPathParam(), parsed({ spaceId: widening })),
+        (err: unknown) => {
+          assert.ok(err instanceof Error)
+          assert.equal((err as { code?: string }).code, 'input_error')
+          return true
+        }
+      )
+    })
+  }
+})

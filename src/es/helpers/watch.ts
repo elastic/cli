@@ -9,6 +9,7 @@ import type { OpaqueCommandHandle, JsonValue } from '../../factory.ts'
 import { getEsClient } from '../../lib/es-client.ts'
 import { missingConfigError, transportError } from '../errors.ts'
 import { readRawInput } from './shared.ts'
+import { encodeMultiTargetPathParam } from '../../lib/path-encoding.ts'
 
 interface SearchHit {
   _source?: Record<string, unknown>
@@ -152,7 +153,7 @@ function createWatchHandler (deps: WatchDeps = defaultDeps) {
       return { error: { code: 'input_error', message: `Failed to parse query: ${err instanceof Error ? err.message : String(err)}` } }
     }
 
-    const encodedIndex = encodeURIComponent(index)
+    const encodedIndex = encodeMultiTargetPathParam(index)
     // Determine the starting cursor.
     //   --from <ts>  → range-filter on the first request, then switch to search_after.
     //   (default)    → find the most recent document and use its sort values as the cursor.
