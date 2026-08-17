@@ -131,7 +131,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          gh pr diff "$PR_NUMBER" | head -c 32000 > /tmp/diff.txt || true
+          gh pr diff "$PR_NUMBER" | head -c 80000 > /tmp/diff.txt || true
           gh pr view "$PR_NUMBER" --json commits --jq '.commits[].messageHeadline' > /tmp/commits.txt || true
 
       - name: Check declared type against diff
