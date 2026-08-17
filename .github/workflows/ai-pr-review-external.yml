@@ -160,7 +160,15 @@ jobs:
             exit 0
           fi
 
-          MARKER='<!-- ai-pr-review -->'
+          # Every run supersedes the last: this bot's own inline comments
+          # from prior reviews are deleted before deciding what to post
+          # next, so stale findings on since-changed or since-fixed code
+          # never linger. A submitted review itself can't be deleted via
+          # the API (GitHub only allows deleting PENDING reviews), only
+          # its individual inline comments, which is enough for this.
+          gh api "repos/${GH_REPO}/pulls/${PR_NUMBER}/comments" --paginate \
+            --jq '.[] | select(.user.login == "github-actions[bot]") | .id' \
+            | xargs -I{} gh api --method DELETE "repos/${GH_REPO}/pulls/comments/{}" 2>/dev/null || true
 
           # Strip markdown fences the model may add despite instructions.
           CLEANED=$(sed '/^```/d' <<<"$CONTENT")
@@ -168,8 +176,7 @@ jobs:
 
           if [ -z "$SUMMARY" ]; then
             echo "Unstructured model output, posting it as the review body"
-            jq -n --arg body "$MARKER
-          $CONTENT" '{event: "COMMENT", body: $body}' > /tmp/review.json
+            jq -n --arg body "$CONTENT" '{event: "COMMENT", body: $body}' > /tmp/review.json
             gh api --method POST "repos/${GH_REPO}/pulls/${PR_NUMBER}/reviews" \
               --input /tmp/review.json > /dev/null
             exit 0
@@ -217,13 +224,15 @@ jobs:
             fi
           fi
 
+          # A clean PR gets silence, not an "all good" review; quieter than
+          # posting no-op reviews, and the old comments were already deleted
+          # above so nothing stale is left behind either.
           if [ "$(jq 'length' <<<"$COMMENTS")" -eq 0 ]; then
             echo "No findings, not posting a review"
             exit 0
           fi
 
-          jq -n --arg body "$MARKER
-          $SUMMARY" --argjson comments "$COMMENTS" \
+          jq -n --arg body "$SUMMARY" --argjson comments "$COMMENTS" \
             '{event: "COMMENT", body: $body, comments: $comments}' > /tmp/review.json
 
           if ! gh api --method POST "repos/${GH_REPO}/pulls/${PR_NUMBER}/reviews" \
@@ -231,10 +240,8 @@ jobs:
             echo "Inline placement rejected (stale line refs?), posting findings in the body"
             FINDINGS=$(jq -r '.[] | "- " + .path + ":" + (.line|tostring) + " " + .body' \
               <<<"$COMMENTS")
-            jq -n --arg body "$MARKER
-          $SUMMARY
-
-          $FINDINGS" '{event: "COMMENT", body: $body}' > /tmp/review.json
+            jq -n --arg summary "$SUMMARY" --arg findings "$FINDINGS" \
+              '{event: "COMMENT", body: ($summary + "\n\n" + $findings)}' > /tmp/review.json
             gh api --method POST "repos/${GH_REPO}/pulls/${PR_NUMBER}/reviews" \
               --input /tmp/review.json > /dev/null
           fi
