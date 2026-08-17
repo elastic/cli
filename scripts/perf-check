@@ -30,8 +30,8 @@ const CLI = binary != null ? resolve(binary) : `node ${join(REPO_ROOT, "dist", "
 
 // Tuned for CI: fast enough to finish in ~60 s on a shared runner while still
 // producing a stable mean. Override with env vars for local profiling.
-const WARMUP = Number(process.env.PERF_WARMUP ?? 3)
-const MIN_RUNS = Number(process.env.PERF_RUNS ?? 15)
+const WARMUP = Number(process.env.PERF_WARMUP ?? 10)
+const MIN_RUNS = Number(process.env.PERF_RUNS ?? 50)
 
 // Baselines (mean ms) recorded after the optimisations in PR #400.
 // Measured with: hyperfine -w 10 -m 100 <command>
@@ -77,7 +77,7 @@ try {
 
     execFileSync(
       "hyperfine",
-      ["--warmup", String(WARMUP), "--min-runs", String(MIN_RUNS), "--export-json", jsonOut, "--shell=none", cmd],
+      ["--warmup", String(WARMUP), "--min-runs", String(MIN_RUNS), "--export-json", jsonOut, "--shell=none", cmd, cmd2, cmd3, cmd4],
       { stdio: "inherit", env: { ...process.env, ELASTIC_CLI_CONFIG_FILE: staticConfig } },
     )
 
