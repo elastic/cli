@@ -123,8 +123,8 @@ jobs:
           GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          gh pr diff "$PR_NUMBER" | head -c 32000 > /tmp/diff.txt
-          gh pr view "$PR_NUMBER" --json commits --jq '.commits[].messageHeadline' > /tmp/commits.txt
+          gh pr diff "$PR_NUMBER" | head -c 32000 > /tmp/diff.txt || true
+          gh pr view "$PR_NUMBER" --json commits --jq '.commits[].messageHeadline' > /tmp/commits.txt || true
 
       - name: Check declared type against diff
         env:
@@ -168,6 +168,14 @@ jobs:
 
           if [ -z "${OPENROUTER_API_KEY:-}" ]; then
             echo "OPENROUTER_API_KEY not available, skipping check"
+            exit 0
+          fi
+
+          # gh pr diff failing mid-pipeline leaves an empty file without failing
+          # the step; judging the type against an empty diff would produce a
+          # bogus mismatch, so fail open instead.
+          if [ ! -s /tmp/diff.txt ]; then
+            echo "Could not fetch PR diff, skipping check"
             exit 0
           fi
 
