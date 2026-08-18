@@ -190,3 +190,84 @@ describe('KibanaClient.request', () => {
     assert.equal(capturedInit.redirect, 'error')
   })
 })
+
+describe('KibanaClient.request Server-Sent Events', () => {
+  function makeClient () {
+    return new KibanaClient('http://localhost:5601', { api_key: 'test-key' })
+  }
+
+  /** Builds a fetch stub that returns `body` with the given content-type. */
+  function sseFetch (body: string, contentType: string): typeof fetch {
+    return ((): Promise<Response> =>
+      Promise.resolve(new Response(body, { status: 200, headers: { 'content-type': contentType } }))
+    ) as typeof fetch
+  }
+
+  it('parses a single text/event-stream event into [{ event, data }]', async () => {
+    const client = makeClient()
+    const body = 'event: conversation_id_set\ndata: {"data":{"conversation_id":"abc"}}\n\n'
+    client._testSetFetch(sseFetch(body, 'text/event-stream'))
+
+    const result = await client.request({ method: 'POST', path: '/api/agent_builder/converse/async', body: {} })
+    assert.deepEqual(result, [
+      { event: 'conversation_id_set', data: { data: { conversation_id: 'abc' } } },
+    ])
+  })
+
+  it('parses SSE served as application/octet-stream (Kibana proxy workaround)', async () => {
+    const client = makeClient()
+    const body =
+      'event: conversation_id_set\ndata: {"data":{"conversation_id":"ba61"}}\n\n' +
+      ': 000000000000000000000000\n\n' +
+      'event: round_complete\ndata: {"done":true}\n\n'
+    client._testSetFetch(sseFetch(body, 'application/octet-stream'))
+
+    const result = await client.request({ method: 'POST', path: '/api/agent_builder/converse/async', body: {} })
+    assert.deepEqual(result, [
+      { event: 'conversation_id_set', data: { data: { conversation_id: 'ba61' } } },
+      { event: 'round_complete', data: { done: true } },
+    ])
+  })
+
+  it('keeps non-JSON data as a raw string', async () => {
+    const client = makeClient()
+    const body = 'event: note\ndata: hello world\n\n'
+    client._testSetFetch(sseFetch(body, 'text/event-stream'))
+
+    const result = await client.request({ method: 'POST', path: '/x', body: {} })
+    assert.deepEqual(result, [{ event: 'note', data: 'hello world' }])
+  })
+
+  it('matches text/event-stream with a charset suffix', async () => {
+    const client = makeClient()
+    const body = 'event: e\ndata: {"a":1}\n\n'
+    client._testSetFetch(sseFetch(body, 'text/event-stream; charset=utf-8'))
+
+    const result = await client.request({ method: 'POST', path: '/x', body: {} })
+    assert.deepEqual(result, [{ event: 'e', data: { a: 1 } }])
+  })
+
+  it('does NOT treat an application/json body as SSE', async () => {
+    const client = makeClient()
+    client._testSetFetch(sseFetch('{"ok":true}', 'application/json'))
+
+    const result = await client.request({ method: 'POST', path: '/x', body: {} })
+    assert.deepEqual(result, { ok: true })
+  })
+
+  it('does NOT treat a non-SSE application/octet-stream body as SSE', async () => {
+    const client = makeClient()
+    client._testSetFetch(sseFetch('{"ok":true}', 'application/octet-stream'))
+
+    const result = await client.request({ method: 'POST', path: '/x', body: {} })
+    assert.deepEqual(result, { ok: true })
+  })
+
+  it('parses SSE when the content-type header is absent/empty', async () => {
+    const client = makeClient()
+    client._testSetFetch(sseFetch('event: e\ndata: {"a":1}\n\n', ''))
+
+    const result = await client.request({ method: 'POST', path: '/x', body: {} })
+    assert.deepEqual(result, [{ event: 'e', data: { a: 1 } }])
+  })
+})
