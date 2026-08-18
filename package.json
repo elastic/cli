@@ -25,9 +25,7 @@
     "build:schema": "node --import tsx/esm src/cli.ts cli-schema > docs/cli/schema.json",
     "generate:notice": "node scripts/generate-notice.mjs",
     "test:notice": "node scripts/generate-notice.mjs --check",
-    "test:megalinter": "mega-linter-runner --flavor javascript",
-    "build:bundle": "esbuild dist/cli.js --bundle --platform=node --format=cjs --outfile=dist/cli.cjs",
-    "build:binary": "pkg dist/cli.cjs"
+    "test:megalinter": "mega-linter-runner --flavor javascript"
   },
   "keywords": [
     "cli",
@@ -75,8 +73,6 @@
     "@types/cross-spawn": "^6.0.6",
     "@types/marked-terminal": "6.1.1",
     "@types/node": "25.9.4",
-    "@yao-pkg/pkg": "6.22.0",
-    "esbuild": "0.28.1",
     "eslint": "10.6.0",
     "license-checker": "25.0.1",
     "mega-linter-runner": "9.5.0",
