@@ -10,46 +10,49 @@ permissions:
 jobs:
   build:
     name: Build ${{ matrix.os }} binary
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - os: linux
-            runner: ubuntu-latest
-            target: node24-linuxstatic-x64
+          - os: Linux (x64)
+            target: bun-linux-x64
             artifact: elastic-linux-x64
-          - os: macos
-            runner: macos-latest
-            target: node24-macos-x64
+          - os: Linux (arm64)
+            target: bun-linux-arm64
+            artifact: elastic-linux-arm64
+          - os: macOS (x64)
+            target: bun-darwin-x64
             artifact: elastic-macos-x64
-          - os: windows
-            runner: windows-latest
-            target: node24-win-x64
-            # pkg appends .exe for Windows targets; name it here so the upload glob matches.
+          - os: macOS (arm64)
+            target: bun-darwin-arm64
+            artifact: elastic-macos-arm64
+          - os: Windows (x64)
+            target: bun-windows-x64
             artifact: elastic-windows-x64.exe
+          - os: Windows (arm64)
+            target: bun-windows-arm64
+            artifact: elastic-windows-arm64.exe
 
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Set up Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: 24
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install
 
-      - name: Build TypeScript
-        run: npm run build
-
-      - name: Bundle to single file
+      - name: Build binary
         shell: bash
-        run: npm run build:bundle
-
-      - name: Package binary with pkg
-        shell: bash
-        run: npm run build:binary -- --targets ${{ matrix.target }} --output ${{ matrix.artifact }}
+        run: |
+          bun build src/cli.ts \
+            --compile \
+            --minify \
+            --bytecode \
+            --format esm \
+            --outfile ${{ matrix.artifact }} \
+            --target ${{ matrix.target }}
 
       - name: Upload binary to release
         uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3
