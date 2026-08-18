@@ -23,7 +23,7 @@ The CLI looks for a config file in your home directory. The following file names
 3. `.elasticrc.yaml`
 4. `.elasticrc.yml`
 
-Place your config at `~/.elasticrc.yml` (recommended). To use a file in a different location, pass `--config-file <path>` or set `ELASTIC_CLI_CONFIG_FILE`. The flag takes precedence over the environment variable.
+Place your config at `~/.elasticrc.yml` (recommended). To use a file in a different location, pass `--config-file <path>` or set the `ELASTIC_CLI_CONFIG_FILE` environment variable. The flag takes precedence over the environment variable.
 
 ```yaml
 current_context: local
@@ -52,6 +52,8 @@ contexts:
 Multiple contexts are supported. Override `current_context` for a single command with `--use-context <name>`.
 
 Each context can have any combination of service blocks (`elasticsearch`, `kibana`, and `cloud`). Authentication supports `api_key` or `username` + `password`.
+
+See the [CLI configuration reference](./configuration_reference.md) documentation for all available config options.
 
 ## Authoring the config from the CLI
 
@@ -196,3 +198,4 @@ elasticsearch:
 - Run `elastic --help` to explore available commands.
 - Use `elastic cloud serverless` or `elastic cloud hosted` to manage Elastic Cloud resources.
 - See the [CLI command reference](./index.md) for the full list of available commands.
+- See the [CLI configuration reference](./configuration_reference.md) documentation for all available config options.
