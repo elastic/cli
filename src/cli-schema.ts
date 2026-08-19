@@ -526,11 +526,7 @@ export async function registerCliSchemaCommand (
       const schemaRoot = new Command(rootProgram?.name() ?? 'elastic')
       schemaRoot.description(rootProgram?.description() ?? '')
 
-      schemaRoot.addCommand(defineCommand({
-        name: 'version',
-        description: 'Print the elastic CLI version',
-        handler: () => ({ version }),
-      }))
+      schemaRoot.addCommand(new Command('version').description('Print the elastic CLI version'))
 
       const loaded = await Promise.all(namespaces.map((ns) => ns.load({ eager: true })))
       for (const ns of loaded) schemaRoot.addCommand(ns)
