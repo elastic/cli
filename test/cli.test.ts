@@ -334,6 +334,106 @@ describe('elastic CLI -- stack command tree', () => {
   })
 })
 
+describe('elastic CLI -- command and option error ordering', () => {
+  it('reports an unknown subcommand before parsing its trailing options', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-unknown-command-'))
+    await writeFile(join(dir, '.elasticrc.yml'), [
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '',
+    ].join('\n'))
+
+    try {
+      const { code, stderr } = await runCli(
+        ['stack', 'es', 'serch', '--index', 'my-index'],
+        { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } }
+      )
+
+      assert.equal(code, 1)
+      assert.match(stderr, /unknown command: serch/)
+      assert.doesNotMatch(stderr, /unknown option/)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('still reports an unknown option for a valid command', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-unknown-option-'))
+    await writeFile(join(dir, '.elasticrc.yml'), [
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '',
+    ].join('\n'))
+
+    try {
+      const { code, stderr } = await runCli(
+        ['stack', 'es', 'search', '--not-a-real-option'],
+        { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } }
+      )
+
+      assert.equal(code, 1)
+      assert.match(stderr, /unknown option '--not-a-real-option'/)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('reports an unknown option when no subcommand is provided', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-group-unknown-option-'))
+    await writeFile(join(dir, '.elasticrc.yml'), [
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '',
+    ].join('\n'))
+
+    try {
+      const { code, stderr } = await runCli(
+        ['stack', 'es', '--not-a-real-option'],
+        { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } }
+      )
+
+      assert.equal(code, 1)
+      assert.match(stderr, /unknown option '--not-a-real-option'/)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('reports an unknown command after the option separator', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-option-separator-'))
+    await writeFile(join(dir, '.elasticrc.yml'), [
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '',
+    ].join('\n'))
+
+    try {
+      const { code, stderr } = await runCli(
+        ['stack', 'es', '--', 'serch'],
+        { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } }
+      )
+
+      assert.equal(code, 1)
+      assert.match(stderr, /unknown command: serch/)
+      assert.doesNotMatch(stderr, /unknown option/)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+})
+
 describe('elastic CLI -- --help --json', () => {
   it('`elastic --help --json` emits structured JSON help', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-help-json-'))
@@ -458,6 +558,40 @@ describe('elastic CLI -- alias rewriting with option values', () => {
       // Should show kb help, not error about invalid command
       assert.match(result.stdout, /Interact with the Kibana API/)
       assert.equal(result.code, 0)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+})
+
+describe('elastic CLI -- JSON mode error hygiene', () => {
+  it('emits only JSON to stderr (no stack trace) when --json and input validation fails', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-json-err-'))
+    const configPath = join(dir, 'config.yml')
+    await writeFile(configPath, [
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '',
+    ].join('\n'))
+    try {
+      // Pass an invalid --size (string instead of number) so validation fails
+      const { code, stderr } = await runCli(
+        ['--json', '--config-file', configPath, 'es', 'search', '--index', 'test', '--size', 'not-a-number'],
+      )
+      assert.equal(code, 1, `expected exit code 1, got ${code}`)
+      // stderr must be valid JSON — no stack trace mixed in
+      let parsed: unknown
+      try {
+        parsed = JSON.parse(stderr.trim())
+      } catch {
+        assert.fail(`stderr is not valid JSON. Got:\n${stderr}`)
+      }
+      const err = (parsed as Record<string, unknown>)['error'] as Record<string, unknown>
+      assert.ok(err != null, 'expected { error: ... } shape')
+      assert.equal(err['code'], 'input_validation_failed')
     } finally {
       await rm(dir, { recursive: true })
     }

@@ -6,53 +6,60 @@
 /*
  * Lazy barrel for Elasticsearch API definitions.
  *
- * Importing this file is cheap: only `apiManifest` (metadata-only) is loaded.
- * The per-endpoint Zod schemas emitted under `./apis/schemas/*.ts` are NOT
- * pulled in transitively - each carries a multi-MB inlined type closure and
- * loading all 294 of them at once allocates several gigabytes of heap.
+ * Definitions are loaded on-demand from `@elastic/schemas/es/tools/apis/*` subpath
+ * imports, each of which exports JSON Schema-based API registry definitions for one
+ * namespace.
  *
- * Callers that need the full `EsApiDefinition` (with its Zod `input` schema)
- * for a single endpoint must go through `loadEsApi()` or `loadEsApisInFile()`,
- * which dynamic-import exactly one namespace file (and only its schema closure).
+ * Importing this file is cheap: only the manifest (metadata-only) is loaded eagerly.
+ * The per-namespace definition files are NOT pulled in transitively - each resolves
+ * a large `$ref` closure of shared type definitions, and loading all of them at once
+ * allocates several gigabytes of heap.
  *
- * See elastic/cli#171 for the memory context, and
- * elastic/elastic-client-generator-js#161 / PR #164 for the upstream work
- * that made per-endpoint isolation possible.
+ * Callers that need the full `EsApiDefinition` (with its resolved `input` schema) for
+ * a single endpoint must go through `loadEsApi()` or `loadEsApisInFile()`, which
+ * dynamic-import exactly one namespace file.
+ *
+ * See elastic/cli#171 for the memory context.
  */
 
 import type { EsApiDefinition } from './types.ts'
-import { apiManifest } from './api-manifest.ts'
+import { createDefinitionResolver, requireSchemaModule } from '../lib/json-schema-refs.ts'
 import type { EsApiMeta } from './api-manifest.ts'
-
 export { apiManifest } from './api-manifest.ts'
 export type { EsApiMeta } from './api-manifest.ts'
 
-/** Camel-case a snake_case file stem, matching the generator's export naming rule. */
-function toCamelCase (stem: string): string {
-  return stem.replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase())
-}
-
 /** Memoised module cache so repeated calls don't re-import the same namespace file. */
 const moduleCache = new Map<string, Promise<EsApiDefinition[]>>()
+
+/**
+ * Rewrites each definition's `input` into a self-contained schema, inlining
+ * the shared type definitions its `$ref`s point at. Sidecar files are loaded
+ * once and shared across every definition that references them (some, like
+ * `_types.json`, are referenced by hundreds).
+ */
+const resolveDefinition = createDefinitionResolver<EsApiDefinition>('@elastic/schemas/es/json')
 
 /**
  * Dynamic-imports the namespace file identified by `namespaceFile` and returns
  * all `EsApiDefinition`s it exports. Subsequent calls for the same file return
  * the cached promise.
  *
- * Triggers loading of every per-endpoint Zod schema referenced by the file.
+ * Triggers `$ref` resolution for every definition in the file, which loads that
+ * file's shared type-definition sidecars.
  */
 export async function loadEsApisInFile (namespaceFile: string): Promise<EsApiDefinition[]> {
   let cached = moduleCache.get(namespaceFile)
   if (cached != null) return cached
   cached = (async (): Promise<EsApiDefinition[]> => {
-    const mod = await import(`./apis/${namespaceFile}.ts`) as Record<string, EsApiDefinition[]>
-    const exportName = `${toCamelCase(namespaceFile)}Apis`
-    const arr = mod[exportName]
+    // File names use the dotted manifest name (e.g. 'cluster.stats.js'); export keys use underscores.
+    // Use require (via requireSchemaModule) so this resolves under bundlers/pkg, not just tsx/native Node.
+    const exportKey = `${namespaceFile.replace(/\./g, '_')}_definitions`
+    const mod = requireSchemaModule(`@elastic/schemas/es/tools/apis/${namespaceFile}.js`)
+    const arr = mod[exportKey]
     if (!Array.isArray(arr)) {
-      throw new Error(`internal error: ./apis/${namespaceFile}.ts did not export ${exportName}`)
+      throw new Error(`internal error: ${namespaceFile}.js did not export ${exportKey}`)
     }
-    return arr
+    return Promise.all((arr as EsApiDefinition[]).map(resolveDefinition))
   })()
   moduleCache.set(namespaceFile, cached)
   return cached
@@ -66,25 +73,23 @@ export async function loadEsApi (meta: EsApiMeta): Promise<EsApiDefinition> {
   )
   if (found == null) {
     const label = meta.namespace != null ? `${meta.namespace} ${meta.name}` : meta.name
-    throw new Error(`internal error: manifest entry "${label}" has no match in ./apis/${meta.namespaceFile}.ts`)
+    throw new Error(`internal error: manifest entry "${label}" has no match in ${meta.namespaceFile}.js`)
   }
   return found
 }
 
 /**
- * Eagerly loads every API definition, triggering every schema module. ONLY use
- * this from tests or scripts that really need the full set - the typical CLI
- * startup path stays on the manifest + `loadEsApi()`.
+ * Eagerly loads every API definition, triggering every namespace module. ONLY use
+ * this from tests or scripts that really need the full set - the typical CLI startup
+ * path stays on the manifest + `loadEsApi()`.
  *
  * Files are loaded sequentially rather than with Promise.all to keep peak heap
- * manageable. Each namespace file carries multi-MB Zod type closures; loading
- * all 500+ simultaneously can exhaust the V8 heap before GC has a chance to
- * reclaim compile-time allocations from earlier modules.
+ * manageable. Each namespace file resolves a multi-MB closure of shared type
+ * definitions; loading all of them simultaneously can exhaust the V8 heap before GC
+ * has a chance to reclaim allocations from earlier modules. See elastic/cli#171.
  */
 export async function loadAllEsApis (): Promise<EsApiDefinition[]> {
-  // Load namespace files sequentially rather than concurrently to keep peak heap
-  // usage bounded. Concurrent loading via Promise.all compiles all ~40 modules at
-  // once, which can exceed 4 GB on tight heap environments (e.g. V8 on Apple Silicon).
+  const { apiManifest } = await import('./api-manifest.ts')
   const files = [...new Set(apiManifest.map((m) => m.namespaceFile))]
   const results: EsApiDefinition[][] = []
   for (const file of files) {

@@ -33,14 +33,20 @@ TYPESCRIPT_ES_CONFIG_FILE: eslint.config.js
 # Global exclusions
 FILTER_REGEX_EXCLUDE: "(node_modules/|dist/|build/|\\.git/)"
 
-# Skip generated code for ESLint (39k lines of schemas + 2k lines of cloud APIs)
-TYPESCRIPT_ES_FILTER_REGEX_EXCLUDE: "(src/es/apis/schemas/|src/cloud/apis/|packages/es-schemas/src/)"
-
 # yamllint: skip test fixtures (custom multi-doc YAML DSL)
 YAML_YAMLLINT_CONFIG_FILE: .yamllint.yml
 YAML_YAMLLINT_FILTER_REGEX_EXCLUDE: "(codegen/functional/test/fixtures/|node_modules/)"
 
 COPYPASTE_JSCPD_CONFIG_FILE: .jscpd.json
+
+# trivy's default DB registries (mirror.gcr.io, ghcr.io) have been hitting
+# TOOMANYREQUESTS during vulnerability DB download. Add the AWS ECR Public
+# mirror as a third fallback (setting this overrides the defaults, so they're
+# listed explicitly too) since it draws from a separate rate-limit pool.
+# Note: mirror.gcr.io proxies Docker Hub, whose org for this image is
+# "aquasec" (not "aquasecurity" like GHCR/ECR); using the wrong namespace
+# here causes a permanent MANIFEST_UNKNOWN, not a transient rate limit.
+TRIVY_DB_REPOSITORY: "mirror.gcr.io/aquasec/trivy-db:2,ghcr.io/aquasecurity/trivy-db:2,public.ecr.aws/aquasecurity/trivy-db:2"
 
 # shellcheck: warn only until active script work stabilises
 BASH_SHELLCHECK_DISABLE_ERRORS: true

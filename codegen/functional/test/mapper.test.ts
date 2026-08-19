@@ -5,7 +5,6 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { z } from 'zod'
 import { buildActionMap, mapAction } from '../mapper.ts'
 import type { EsApiDefinition } from '../../../src/es/types.ts'
 
@@ -16,22 +15,30 @@ const testDefs: EsApiDefinition[] = [
     description: 'Create an index',
     method: 'PUT',
     path: '/{index}',
-    input: z.object({
-      index: z.string().meta({ found_in: 'path' }),
-      wait_for_active_shards: z.string().optional().meta({ found_in: 'query' }),
-      settings: z.record(z.string(), z.unknown()).optional().meta({ found_in: 'body' })
-    })
+    input: {
+      type: 'object',
+      properties: {
+        index: { type: 'string', 'x-found-in': 'path' },
+        wait_for_active_shards: { type: 'string', 'x-found-in': 'query' },
+        settings: { type: 'object', 'x-found-in': 'body' },
+      },
+      required: ['index'],
+    }
   },
   {
     name: 'get',
     description: 'Get a document',
     method: 'GET',
     path: '/{index}/_doc/{id}',
-    input: z.object({
-      id: z.string().meta({ found_in: 'path' }),
-      index: z.string().meta({ found_in: 'path' }),
-      refresh: z.boolean().optional().meta({ found_in: 'query' })
-    })
+    input: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', 'x-found-in': 'path' },
+        index: { type: 'string', 'x-found-in': 'path' },
+        refresh: { type: 'boolean', 'x-found-in': 'query' },
+      },
+      required: ['id', 'index'],
+    }
   },
   {
     name: 'info',

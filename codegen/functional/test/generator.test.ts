@@ -5,10 +5,10 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { z } from 'zod'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseTestFile } from '../parser.ts'
+import type { TestFile } from '../types.ts'
 import { generateScript, generateRunner } from '../generator.ts'
 import type { EsApiDefinition } from '../../../src/es/types.ts'
 
@@ -21,9 +21,7 @@ const testDefs: EsApiDefinition[] = [
     description: 'Create an index',
     method: 'PUT',
     path: '/{index}',
-    input: z.object({
-      index: z.string().meta({ found_in: 'path' })
-    })
+    input: { type: 'object', properties: { index: { type: 'string', 'x-found-in': 'path' } }, required: ['index'] }
   },
   {
     name: 'delete',
@@ -31,46 +29,35 @@ const testDefs: EsApiDefinition[] = [
     description: 'Delete an index',
     method: 'DELETE',
     path: '/{index}',
-    input: z.object({
-      index: z.string().meta({ found_in: 'path' })
-    })
+    input: { type: 'object', properties: { index: { type: 'string', 'x-found-in': 'path' } }, required: ['index'] }
   },
   {
     name: 'get',
     description: 'Get a document',
     method: 'GET',
     path: '/{index}/_doc/{id}',
-    input: z.object({
-      id: z.string().meta({ found_in: 'path' }),
-      index: z.string().meta({ found_in: 'path' })
-    })
+    input: { type: 'object', properties: { id: { type: 'string', 'x-found-in': 'path' }, index: { type: 'string', 'x-found-in': 'path' } }, required: ['id', 'index'] }
   },
   {
     name: 'index',
     description: 'Index a document',
     method: 'POST',
     path: '/{index}/_doc',
-    input: z.object({
-      index: z.string().meta({ found_in: 'path' })
-    })
+    input: { type: 'object', properties: { index: { type: 'string', 'x-found-in': 'path' }, document: { type: 'object', 'x-found-in': 'body' } }, required: ['index'] }
   },
   {
     name: 'count',
     description: 'Count documents',
     method: 'GET',
     path: '/{index}/_count',
-    input: z.object({
-      index: z.string().meta({ found_in: 'path' })
-    })
+    input: { type: 'object', properties: { index: { type: 'string', 'x-found-in': 'path' } }, required: ['index'] }
   },
   {
     name: 'bulk',
     description: 'Bulk operations',
     method: 'POST',
     path: '/_bulk',
-    input: z.object({
-      refresh: z.boolean().optional().meta({ found_in: 'query' })
-    })
+    input: { type: 'object', properties: { refresh: { type: 'boolean', 'x-found-in': 'query' }, operations: { type: 'array', 'x-found-in': 'body' } } }
   }
 ]
 
@@ -134,8 +121,8 @@ describe('generateScript', () => {
     const testFile = parseTestFile(content, 'get.yml')
     const result = generateScript(testFile, testDefs)
     assert.ok(
-      result.script.includes('$ELASTIC stack es index --index get_test'),
-      'should emit the index command even when body has no matching schema args'
+      result.script.includes('$ELASTIC stack es index --index get_test --document'),
+      'should emit the index command with the body routed to the document flag'
     )
   })
 
@@ -234,6 +221,34 @@ describe('generateScript', () => {
     const result = generateScript(testFile, [])
     assert.ok(result.skippedActions.length > 0)
     assert.ok(result.skippedActions.includes('indices.create'))
+  })
+
+  it('throws UnmappedBodyKeyError when a body key has no matching CLI flag', () => {
+    // 'document' routes to index's body-typed arg; 'legacy_alias_field' has
+    // no schema-derived match — a partial mapping, matching the real-world
+    // gap where ES accepts a deprecated field alias the current schema
+    // doesn't declare.
+    const testFile: TestFile = {
+      sourceFile: 'unmapped-body.yml',
+      requires: { serverless: true, stack: true },
+      setup: [],
+      teardown: [],
+      tests: [{
+        name: 'unmapped body key',
+        steps: [
+          {
+            kind: 'do',
+            action: 'index',
+            params: { index: 'x' },
+            body: { document: { name: 'test' }, legacy_alias_field: ['a'] }
+          }
+        ]
+      }]
+    }
+    assert.throws(
+      () => generateScript(testFile, testDefs),
+      /unmapped body key\(s\) \[legacy_alias_field\]/
+    )
   })
 })
 

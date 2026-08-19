@@ -7,16 +7,13 @@
   "packages" : {
     ".": {
         "extra-files": [
-            "src/cli.ts"
+            "src/cli.ts",
+            "src/lib/meta.ts"
         ],
         "include-component-in-tag": false
     },
     "packages/config-resolver": {
         "component": "config-resolver",
-        "release-type": "node"
-    },
-    "packages/es-schemas": {
-        "component": "es-schemas",
         "release-type": "node"
     }
   },

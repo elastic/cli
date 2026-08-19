@@ -9,7 +9,9 @@ import { getResolvedConfig } from '../config/store.ts'
 import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
 import { isLoopbackUrl } from './is-loopback-host.ts'
 import { clientHeaders } from './meta.ts'
+import { parseSseText } from './sse.ts'
 
+/** HTTP methods supported by the Kibana API client. */
 export type KibanaHttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD' | 'PATCH'
 
 /**
@@ -22,6 +24,38 @@ export interface KibanaRequestParams {
   body?: unknown
   /** When set, the request is sent as multipart/form-data. Keys map to form field names; string values that resolve to an existing file path are sent as file uploads. */
   multipartFields?: Record<string, string>
+}
+
+/** A decoded Server-Sent Event: the raw `data` value is JSON-parsed when possible. */
+interface DecodedSseEvent {
+  event: string
+  data: unknown
+}
+
+const SSE_FIELD_PREFIX = /^(?:event|data|id|retry):|^:/
+
+/**
+ * Returns true when `text` begins with a Server-Sent Events field or comment line.
+ *
+ * Used to disambiguate the Kibana proxy workaround (elastic/kibana#232170), where an SSE
+ * stream is served with `Content-Type: application/octet-stream`. A JSON object body never
+ * starts with a bare `event:`/`data:`/`:` line, so genuine JSON/binary octet-stream payloads
+ * are not misclassified.
+ */
+function looksLikeSse (text: string): boolean {
+  return SSE_FIELD_PREFIX.test(text.replace(/^[\r\n]+/, ''))
+}
+
+/**
+ * Decodes a buffered SSE payload, JSON-parsing each frame's `data` when it is valid JSON and
+ * otherwise keeping the raw string. Wire-format parsing is delegated to the shared `sse` module.
+ */
+function decodeSse (text: string): DecodedSseEvent[] {
+  return parseSseText(text).map(({ event, data }) => {
+    let parsed: unknown
+    try { parsed = JSON.parse(data) } catch { parsed = data }
+    return { event, data: parsed }
+  })
 }
 
 /**
@@ -49,7 +83,12 @@ export class KibanaClient {
   }
 
   /**
-   * Sends an HTTP request to the Kibana API and returns the parsed JSON response.
+   * Sends an HTTP request to the Kibana API and returns the parsed response.
+   *
+   * Decoding is driven by the response `Content-Type`: `application/x-ndjson` yields an array
+   * of per-line objects, `text/event-stream` (or an SSE body masked as `application/octet-stream`,
+   * per elastic/kibana#232170) yields an array of `{ event, data }` events (`data` JSON-parsed when
+   * possible, `event` defaulting to `"message"`), and everything else is parsed as a single JSON value.
    *
    * @throws {Error} on non-2xx responses, including the status code and response body
    */
@@ -85,7 +124,10 @@ export class KibanaClient {
       const form = new FormData()
       for (const [field, value] of Object.entries(params.multipartFields)) {
         const resolved = path.resolve(value)
-        if (fs.existsSync(resolved)) {
+        // Only treat the value as a file if it resolves to a regular file; a directory
+        // (or other non-file entry) at that path falls through to the literal-string branch
+        // instead of crashing on fs.readFileSync's EISDIR.
+        if (fs.statSync(resolved, { throwIfNoEntry: false })?.isFile() === true) {
           const blob = new Blob([fs.readFileSync(resolved)], { type: 'application/octet-stream' })
           form.append(field, blob, path.basename(resolved))
         } else {
@@ -108,10 +150,19 @@ export class KibanaClient {
     const text = await response.text()
     if (text.length === 0) return {}
 
-    // application/x-ndjson: parse each non-empty line as a JSON object
     const contentType = response.headers.get('content-type') ?? ''
+
     if (contentType.includes('ndjson')) {
       return text.split('\n').filter((l) => l.trim().length > 0).map((l) => JSON.parse(l))
+    }
+
+    // Server-Sent Events (agent_builder converse/async) are labeled `text/event-stream` by
+    // spec-compliant Kibana (>= 9.3.8/9.4.2/9.5.0); older builds mask the stream as
+    // `application/octet-stream` to stop a proxy gzip-compressing it (elastic/kibana#232170), so the
+    // body is sniffed only for that masked case to avoid misclassifying binary/JSON octet-stream.
+    const maybeMaskedStream = contentType === '' || contentType.includes('application/octet-stream')
+    if (contentType.includes('text/event-stream') || (maybeMaskedStream && looksLikeSse(text))) {
+      return decodeSse(text)
     }
 
     return JSON.parse(text)

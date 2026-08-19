@@ -11,9 +11,10 @@ permissions:
 jobs:
   auto-pr:
     if: startsWith(github.event.label.name, 'auto-pr')
-    uses: elastic/clients-team-automations/.github/workflows/auto-pr.yml@main
+    uses: elastic/clients-team-automations/.github/workflows/auto-pr.yml@e1f9f004bf69bc295529417b002270216be143e9
     with:
       issue_number: ${{ github.event.issue.number }}
       search_directory: packages
     secrets:
-      LITELLM_API_KEY: ${{ secrets.LITELLM_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_BASE_URL: ${{ secrets.OPENROUTER_BASE_URL }}

@@ -51,6 +51,12 @@ const PALETTE_256 = [205, 220, 43, 26, 39]
 
 const PALETTE_ANSI = ['\x1b[95m', '\x1b[93m', '\x1b[96m', '\x1b[94m', '\x1b[36m']
 
+/**
+ * Renders the coloured Elastic banner for `version`.
+ *
+ * Returns an empty string when `ELASTIC_NO_BANNER=1` is set or stdout is not a TTY,
+ * so piped and redirected output stays clean.
+ */
 export function renderLogo(version: string): string {
   if (process.env.ELASTIC_NO_BANNER === '1') return ''
   if (!isTTY()) return ''

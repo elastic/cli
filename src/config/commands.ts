@@ -114,6 +114,11 @@ function collectFieldUpdates (options: Record<string, string | number | boolean>
       secrets.push({ field, value: raw })
     }
   }
+  if (secrets.length > 0) {
+    process.stderr.write(
+      `Warning: secret value(s) passed via flag(s) (${secrets.map(s => `--${s.field.flag}`).join(', ')}) are visible in process listings and shell history.\n`
+    )
+  }
   for (const field of PLAIN_FIELDS) {
     const raw = options[field.flag]
     if (typeof raw === 'string' && raw.length > 0) {
@@ -263,7 +268,7 @@ async function handleContextAdd (parsed: {
 
   const contextValidation = ContextSchema.safeParse(resolveForValidation(ctx))
   if (!contextValidation.success) {
-    return errorResult('invalid_context', `context validation failed: ${contextValidation.error.issues.map(i => i.message).join('; ')}`)
+    return errorResult('invalid_context', `context validation failed: ${contextValidation.errors.map(e => e.message).join('; ')}`)
   }
 
   let next = upsertContext(config, name, ctx)
@@ -354,7 +359,7 @@ async function handleContextEdit (parsed: {
     )
     const validation = ContextSchema.safeParse(resolveForValidation(ctx))
     if (!validation.success) {
-      return errorResult('invalid_context', `context validation failed: ${validation.error.issues.map(i => i.message).join('; ')}`)
+      return errorResult('invalid_context', `context validation failed: ${validation.errors.map(e => e.message).join('; ')}`)
     }
     const next = upsertContext(config, name, ctx)
     const result = await writeConfig(path, next, { restrictPermissions: hasInlineSecrets(next) })
@@ -376,7 +381,7 @@ async function handleContextEdit (parsed: {
   }
   const validation = ContextSchema.safeParse(resolveForValidation(edited))
   if (!validation.success) {
-    return errorResult('invalid_context', `edited context failed validation: ${validation.error.issues.map(i => i.message).join('; ')}`)
+    return errorResult('invalid_context', `edited context failed validation: ${validation.errors.map(e => e.message).join('; ')}`)
   }
   const next = upsertContext(config, name, edited)
   const result = await writeConfig(path, next, { restrictPermissions: hasInlineSecrets(next) })
@@ -504,6 +509,13 @@ function fieldOptions (): Array<{ long: string; type: 'string'; description: str
   ]
 }
 
+/** Appends any warnings from a handler result as `Warning: <msg>` lines. */
+function appendWarnings (base: string, result: JsonValue): string {
+  const warnings = (result as Record<string, JsonValue>).warnings
+  if (!Array.isArray(warnings)) return base
+  return base + warnings.map((w) => `Warning: ${w}\n`).join('')
+}
+
 function buildContextGroup (): OpaqueCommandHandle {
   const addCmd = defineCommand({
     name: 'add',
@@ -516,6 +528,7 @@ function buildContextGroup (): OpaqueCommandHandle {
       ...fieldOptions(),
     ],
     handler: async (parsed) => handleContextAdd(parsed),
+    formatOutput: (result) => appendWarnings(`Context '${(result as unknown as CommandSummary).context}' added.\n`, result),
   })
 
   const removeCmd = defineCommand({
@@ -527,6 +540,7 @@ function buildContextGroup (): OpaqueCommandHandle {
       { long: 'force', type: 'boolean', description: 'allow removing the current context' },
     ],
     handler: async (parsed) => handleContextRemove(parsed),
+    formatOutput: (result) => appendWarnings(`Context '${(result as unknown as CommandSummary).context}' removed.\n`, result),
   })
 
   const editCmd = defineCommand({
@@ -539,6 +553,7 @@ function buildContextGroup (): OpaqueCommandHandle {
       ...fieldOptions(),
     ],
     handler: async (parsed) => handleContextEdit(parsed),
+    formatOutput: (result) => appendWarnings(`Context '${(result as unknown as CommandSummary).context}' updated.\n`, result),
   })
 
   const listCmd = defineCommand({
@@ -546,6 +561,11 @@ function buildContextGroup (): OpaqueCommandHandle {
     description: 'List all contexts defined in the config file',
     options: [CONFIG_FILE_OPT],
     handler: async (parsed) => handleContextList(parsed.options),
+    formatOutput: (result) => {
+      const r = result as { contexts: Array<{ name: string; current: boolean }> }
+      if (r.contexts.length === 0) return 'No contexts configured.\n'
+      return r.contexts.map((c) => (c.current ? `* ${c.name}` : `  ${c.name}`)).join('\n') + '\n'
+    },
   })
 
   return defineGroup({ name: 'context', description: 'Manage contexts in the elastic config file' }, listCmd, addCmd, editCmd, removeCmd)
@@ -558,6 +578,9 @@ function buildCurrentContextGroup (): OpaqueCommandHandle {
     positionalArg: { name: 'name', description: 'context name', required: true },
     options: [CONFIG_FILE_OPT],
     handler: async (parsed) => handleCurrentContextSet(parsed),
+    formatOutput: (result) => appendWarnings(
+      `Switched to context '${(result as { current: string }).current}'.\n`, result
+    ),
   })
 
   const getCmd = defineCommand({
@@ -565,6 +588,7 @@ function buildCurrentContextGroup (): OpaqueCommandHandle {
     description: 'Print the current context name',
     options: [CONFIG_FILE_OPT],
     handler: async (parsed) => handleCurrentContextGet(parsed.options),
+    formatOutput: (result) => (result as { current: string }).current + '\n',
   })
 
   return defineGroup(

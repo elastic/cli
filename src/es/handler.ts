@@ -5,10 +5,10 @@
 
 import type { EsClient } from '../lib/es-client.ts'
 import type { EsApiDefinition } from './types.ts'
-import type { SchemaArgDefinition } from '../lib/schema-args.ts'
+import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
 import { buildRequestParams } from './request-builder.ts'
 import { getEsClient } from '../lib/es-client.ts'
-import { missingConfigError, transportError } from './errors.ts'
+import { missingConfigError, transportError, inputError } from './errors.ts'
 import type { JsonValue, ParsedResult } from '../factory.ts'
 
 /**
@@ -34,7 +34,13 @@ export function createEsHandler (
   deps: EsHandlerDeps = defaultDeps
 ): (parsed: ParsedResult) => Promise<JsonValue> {
   return async (parsed: ParsedResult): Promise<JsonValue> => {
-    const params = deps.buildRequestParams(def, parsed, schemaArgs)
+    let params
+    try {
+      params = deps.buildRequestParams(def, parsed, schemaArgs)
+    } catch (err) {
+      if ((err as { code?: string }).code === 'input_error') return inputError(err)
+      throw err
+    }
 
     let transport
     try {

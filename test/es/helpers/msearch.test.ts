@@ -48,11 +48,11 @@ async function runCommand (args: string[], deps: MsearchDeps): Promise<unknown> 
   const stdoutChunks: string[] = []
   const stderrChunks: string[] = []
   process.stdout.write = ((chunk: string) => {
-    stdoutChunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
+    if (typeof chunk === 'string') stdoutChunks.push(chunk)
     return true
   }) as typeof process.stdout.write
   process.stderr.write = ((chunk: string) => {
-    stderrChunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
+    if (typeof chunk === 'string') stderrChunks.push(chunk)
     return true
   }) as typeof process.stderr.write
 
@@ -258,5 +258,70 @@ describe('msearch command', () => {
     ) as Record<string, unknown>
 
     assert.deepStrictEqual(result.responses, [])
+  })
+
+  it('uses root _msearch path when --index is not provided', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'msearch-test-'))
+    const filePath = join(tmpDir, 'searches.json')
+    writeFileSync(filePath, makeSearchInput([
+      { header: { index: 'explicit-idx' }, body: { query: { match_all: {} } } }
+    ]))
+
+    const { transport, requests } = mockTransport([{ responses: [{}] }])
+
+    await runCommand(['--query-file', filePath, '--json'], makeDeps(transport))
+
+    assert.equal(requests[0]!.params.path, '/_msearch')
+  })
+
+  it('returns input_error when query-file contains non-array JSON', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'msearch-test-'))
+    const filePath = join(tmpDir, 'searches.json')
+    writeFileSync(filePath, '{"not": "an array"}')
+
+    const { transport } = mockTransport([])
+
+    const result = await runCommand(
+      ['--query-file', filePath, '--json'],
+      makeDeps(transport)
+    ) as Record<string, unknown>
+
+    const error = result.error as Record<string, unknown>
+    assert.equal(error.code, 'input_error')
+    assert.ok((error.message as string).includes('JSON array'))
+  })
+
+  it('returns input_error when search item is missing body', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'msearch-test-'))
+    const filePath = join(tmpDir, 'searches.json')
+    writeFileSync(filePath, JSON.stringify([{ header: { index: 'x' } }]))
+
+    const { transport } = mockTransport([])
+
+    const result = await runCommand(
+      ['--query-file', filePath, '--json'],
+      makeDeps(transport)
+    ) as Record<string, unknown>
+
+    const error = result.error as Record<string, unknown>
+    assert.equal(error.code, 'input_error')
+    assert.ok((error.message as string).includes('body'))
+  })
+
+  it('returns input_error when search item is not an object', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'msearch-test-'))
+    const filePath = join(tmpDir, 'searches.json')
+    writeFileSync(filePath, JSON.stringify(['not an object']))
+
+    const { transport } = mockTransport([])
+
+    const result = await runCommand(
+      ['--query-file', filePath, '--json'],
+      makeDeps(transport)
+    ) as Record<string, unknown>
+
+    const error = result.error as Record<string, unknown>
+    assert.equal(error.code, 'input_error')
+    assert.ok((error.message as string).includes('must be an object'))
   })
 })

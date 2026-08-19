@@ -48,7 +48,13 @@ export function createCloudHandler(
       return missingConfigError(err)
     }
 
-    const params = deps.buildCloudRequestParams(def, parsed)
+    let params: ReturnType<typeof deps.buildCloudRequestParams>
+    try {
+      params = deps.buildCloudRequestParams(def, parsed)
+    } catch (err) {
+      if ((err as { code?: string }).code === 'input_error') return inputError(err)
+      return invalidRequestError(err)
+    }
 
     try {
       const body = await client.request(params)
@@ -101,6 +107,11 @@ function sleep (ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+function inputError(err: unknown): JsonValue {
+  const message = err instanceof Error ? err.message : String(err)
+  return { error: { code: 'input_error', message } }
+}
+
 function missingConfigError(err: unknown): JsonValue {
   const message = err instanceof Error ? err.message : String(err)
   return { error: { code: 'missing_config', message } }
@@ -109,4 +120,9 @@ function missingConfigError(err: unknown): JsonValue {
 function cloudApiError(err: unknown): JsonValue {
   const message = err instanceof Error ? err.message : String(err)
   return { error: { code: 'cloud_api_error', message } }
+}
+
+function invalidRequestError(err: unknown): JsonValue {
+  const message = err instanceof Error ? err.message : String(err)
+  return { error: { code: 'invalid_request', message } }
 }

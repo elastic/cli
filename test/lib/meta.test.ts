@@ -7,6 +7,9 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { clientHeaders, toMetaVersion } from '../../src/lib/meta.ts'
 import os from 'node:os'
+import { createRequire } from 'node:module'
+
+const pkgVersion = (createRequire(import.meta.url)('../../package.json') as { version: string }).version
 
 describe('toMetaVersion', () => {
   it('returns a stable version unchanged', () => {
@@ -37,8 +40,10 @@ describe('clientHeaders', () => {
   const headers = clientHeaders()
 
   describe('user-agent', () => {
-    it('starts with elastic-cli/ and the CLI version', () => {
-      assert.match(headers['user-agent'], /^elastic-cli\//)
+    // meta.ts hardcodes the version (release-please keeps it in sync) so the packaged
+    // binary does not need to read package.json at runtime; guard against drift.
+    it('starts with elastic-cli/ and the package.json version', () => {
+      assert.equal(headers['user-agent'].split(' ')[0], `elastic-cli/${pkgVersion}`)
     })
 
     it('contains the OS platform and architecture', () => {

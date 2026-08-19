@@ -5,21 +5,11 @@
  */
 
 import { Command } from 'commander'
-import { createRequire } from 'node:module'
 import { hideBlockedCommands, configureJsonHelp, hasGlobalJsonFlag } from './factory-core.js'
 import type { OpaqueCommandHandle } from './factory-core.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './config/profiles.ts'
 import { NAMESPACES } from './namespaces.ts'
 import type { LoadConfigResult } from './config/loader.ts'
-
-// Lazy-loaded modules
-const _require = createRequire(import.meta.url)
-
-let _renderLogo: ((v: string) => string) | null = null
-function getRenderLogo (): (v: string) => string {
-  if (_renderLogo == null) _renderLogo = (_require('./lib/logo.js') as typeof import('./lib/logo.ts')).renderLogo
-  return _renderLogo
-}
 
 // Argv pre-scan (single pass to detect flags, help, and operands)
 const argv = process.argv.slice(2)
@@ -34,7 +24,7 @@ for (const arg of argv) {
 }
 
 // x-release-please-start-version
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 // x-release-please-end
 
 const program = new Command()
@@ -263,12 +253,11 @@ if (firstArg != null && (!willJustPrintHelp || hasProfileFlag)) {
   }
 }
 
-// Logo banner (root help only)
-if (firstArg == null) {
-  program.addHelpText('before', () =>
-    process.argv.includes('--json') || (earlyConfig?.ok === true && earlyConfig.value.banner === false)
-      ? '' : getRenderLogo()(VERSION).replace(/\n$/, '')
-  )
+// Logo banner (root help only). Loaded lazily -- dynamic import keeps it out of the
+// startup graph for every other invocation, and esbuild/pkg can still bundle it.
+if (firstArg == null && !process.argv.includes('--json') && !(earlyConfig?.ok === true && earlyConfig.value.banner === false)) {
+  const { renderLogo } = await import('./lib/logo.js')
+  program.addHelpText('before', () => renderLogo(VERSION).replace(/\n$/, ''))
 }
 
 // Bare invocation: show help
@@ -292,4 +281,13 @@ if (!wantsHelp && firstArg != null && !program.commands.some(c => c.name() === f
   }
 }
 
-await program.parseAsync(process.argv)
+try {
+  await program.parseAsync(process.argv)
+} catch (err) {
+  // The factory already wrote a JSON error to stderr; suppress the raw stack trace.
+  // For unhandled errors without an exitCode marker, re-throw so Node prints the stack.
+  if (err != null && typeof err === 'object' && 'exitCode' in err) {
+    process.exit((err as { exitCode: number }).exitCode)
+  }
+  throw err
+}

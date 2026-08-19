@@ -1,6 +1,6 @@
 {
   "name": "@elastic/cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Interact with the Elastic Stack and Elastic Cloud from the command line.",
   "main": "dist/cli.js",
   "bin": {
@@ -12,14 +12,11 @@
   "scripts": {
     "prepare": "git config core.hooksPath .githooks || true",
     "build": "node --max-old-space-size=8192 node_modules/typescript/bin/tsc -b",
-    "postbuild": "node -e \"const {unlinkSync,readdirSync,existsSync}=require('fs'),{join}=require('path'),d='dist/es/apis/schemas';if(existsSync(d))readdirSync(d).filter(f=>/\\.(d\\.ts|d\\.ts\\.map|js\\.map)$/.test(f)).forEach(f=>unlinkSync(join(d,f)))\" && node scripts/create-dist-package-jsons.mjs",
+    "postbuild": "node scripts/create-dist-package-jsons.mjs",
     "test": "npm run build && npm run test:unit && npm run test:license",
-    "test:unit": "node --max-old-space-size=8192 --import tsx/esm --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=90 --test-coverage-functions=90 --test-coverage-include='src/**/*.ts' --test-coverage-include='packages/*/src/**/*.ts' --test-coverage-exclude='src/cloud/apis/**' --test-coverage-exclude='src/es/apis.ts' --test-coverage-exclude='src/es/api-manifest.ts' --test-coverage-exclude='src/es/apis/**' --test-coverage-exclude='src/cloud/apis.ts' --test-coverage-exclude='src/cloud/serverless-apis.ts' --test-coverage-exclude='node_modules/**'",
-    "test:lint": "eslint src packages",
+    "test:unit": "node --max-old-space-size=8192 --import tsx/esm --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=90 --test-coverage-functions=90 --test-coverage-include='src/**/*.ts' --test-coverage-include='packages/*/src/**/*.ts' --test-coverage-exclude='src/es/api-manifest.ts' --test-coverage-exclude='src/cloud/serverless-apis.ts' --test-coverage-exclude='node_modules/**'",
+    "test:lint": "eslint src packages test",
     "codegen:functional": "npx tsx codegen/functional/index.ts --tests-dir ../elasticsearch-clients-tests/tests",
-    "codegen:es": "node scripts/codegen.mjs es",
-    "codegen:cloud": "node scripts/codegen.mjs cloud",
-    "codegen:kibana": "node scripts/codegen.mjs kibana",
     "test:functional:es": "bash test/functional/es/run.sh",
     "test:functional:cloud": "bash test/functional/cloud/smoke.sh",
     "test:functional:kb": "bash test/functional/kb/run.sh",
@@ -59,18 +56,21 @@
     "test": "test"
   },
   "dependencies": {
-    "@elastic/config-resolver": "*",
-    "@elastic/es-schemas": "1.0.2",
+    "@cli-schema/spec": "^0.2.0",
+    "@elastic/config-resolver": "0.1.1",
+    "@elastic/schemas": "^0.6.2",
+    "ajv": "^6.14.0",
     "cli-table3": "^0.6.5",
     "commander": "^15.0.0",
+    "cross-spawn": "^7.0.6",
     "csv-parse": "^7.0.0",
     "marked": "^14.1.4",
     "marked-terminal": "^7.3.0",
-    "yaml": "^2.8.3",
-    "zod": "^4.3.6"
+    "yaml": "^2.8.3"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@types/cross-spawn": "^6.0.6",
     "@types/marked-terminal": "6.1.1",
     "@types/node": "25.9.4",
     "eslint": "10.6.0",
@@ -80,9 +80,10 @@
     "typescript": "6.0.3",
     "typescript-eslint": "8.62.1"
   },
+  "overrides": {
+    "fast-uri": "^3.1.4"
+  },
   "bundleDependencies": [
-    "@elastic/config-resolver",
-    "@elastic/es-schemas",
-    "zod"
+    "@elastic/config-resolver"
   ]
 }

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { z } from 'zod'
 import { defineCommand } from '../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../factory.ts'
 import { docsAskStream, newUuid, type AskStreamEvent } from './client.ts'
@@ -22,9 +21,12 @@ const defaultDeps: AskDeps = {
   stderr: process.stderr,
 }
 
-const inputSchema = z.object({
-  question: z.string().optional().describe('Question to ask'),
-})
+const inputSchema: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    question: { type: 'string', description: 'Question to ask' },
+  },
+}
 
 function experimentalBanner (isTTY: boolean): string {
   const text =
@@ -47,7 +49,8 @@ export function createAskCommand (deps: AskDeps = defaultDeps): OpaqueCommandHan
       },
     ],
     handler: async (parsed): Promise<JsonValue> => {
-      const question = (parsed.arg ?? parsed.input?.question ?? '').trim()
+      const inp = parsed.input as { question?: string } | undefined
+      const question = (parsed.arg ?? inp?.question ?? '').trim()
       if (question === '') return { error: { code: 'missing_input', message: 'question is required' } }
 
       if (parsed.options['accept-experimental'] !== true && parsed.options['json'] !== true) {
