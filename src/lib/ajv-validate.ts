@@ -7,14 +7,12 @@
  * AJV-based JSON Schema validation, replacing the Zod-based zod-error.ts.
  *
  * Uses ajv@6 (already installed) with allErrors + useDefaults.
- * Lazy-loads ajv to keep --help fast.
+ * Imported statically so `bun build --compile` embeds it; createRequire is
+ * invisible to the bundler and leaves compiled binaries with a missing module.
  */
 
-import { createRequire } from 'node:module'
-
-import type { Ajv, ValidateFunction } from 'ajv'
-
-const _req = createRequire(import.meta.url)
+import Ajv from 'ajv'
+import type { Ajv as AjvInstance, ValidateFunction } from 'ajv'
 
 /** Path segment: property name, or array index (as a number). */
 export type PathSegment = string | number
@@ -40,7 +38,7 @@ export type ValidationResult =
   | { success: false; errors: ValidationError[] }
 
 // ponytail: module-level cache so AJV is initialised once per process
-let _ajv: Ajv | null = null
+let _ajv: AjvInstance | null = null
 
 // ponytail: deliberately not importing ajv's own `ErrorObject` type. Its
 // `params` field is typed as a ~12-member union (ErrorParameters), which
@@ -59,9 +57,8 @@ interface AjvErrorView {
   }
 }
 
-function getAjv (): Ajv {
+function getAjv (): AjvInstance {
   if (_ajv == null) {
-    const AjvCtor = _req('ajv') as new (opts: Record<string, unknown>) => Ajv
     // validateSchema: false — generated schemas contain cosmetic meta-schema violations
     // (e.g. nullable enums with a repeated `null`) that AJV would otherwise throw on
     // before validating any input.
@@ -76,7 +73,7 @@ function getAjv (): Ajv {
     // something different (or don't exist) on ajv8/draft2020-12 — `unknownFormats`
     // becomes the `formats` allowlist and `useDefaults` gains array-item semantics.
     // Re-check every option here if this codebase ever moves off ajv@6.
-    _ajv = new AjvCtor({ allErrors: true, logger: false, useDefaults: true, validateSchema: false, unknownFormats: 'ignore' })
+    _ajv = new Ajv({ allErrors: true, logger: false, useDefaults: true, validateSchema: false, unknownFormats: 'ignore' })
   }
   return _ajv
 }
