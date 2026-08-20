@@ -16,15 +16,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 const root = join(fileURLToPath(import.meta.url), '..', '..')
 const schemasRoot = join(root, 'node_modules', '@elastic', 'schemas')
 
-const groups = [
-  { dir: join(schemasRoot, 'src', 'es', 'json'), spec: '@elastic/schemas/es/json', json: true },
-  { dir: join(schemasRoot, 'src', 'kibana', 'json'), spec: '@elastic/schemas/kibana/json', json: true },
-  { dir: join(schemasRoot, 'src', 'cloud', 'json'), spec: '@elastic/schemas/cloud/json', json: true },
-  { dir: join(schemasRoot, 'lib', 'es', 'tools', 'apis'), spec: '@elastic/schemas/es/tools/apis', json: false },
-  { dir: join(schemasRoot, 'lib', 'kibana', 'tools', 'apis'), spec: '@elastic/schemas/kibana/tools/apis', json: false },
-  { dir: join(schemasRoot, 'lib', 'cloud', 'tools', 'apis'), spec: '@elastic/schemas/cloud/tools/apis', json: false },
-]
-
 /** Schema filenames are dotted identifiers plus an extension, nothing else. */
 export function isSafeSchemaFilename (file, suffix) {
   return typeof file === 'string' && file.endsWith(suffix) && /^[A-Za-z0-9._-]+$/.test(file)
@@ -41,6 +32,21 @@ export function quoteSpecifier (spec) {
 }
 
 export async function generateSchemaLoaders () {
+  const [{ esJsonManifest }, { kibanaJsonManifest }, { cloudJsonManifest }] = await Promise.all([
+    import('@elastic/schemas/es/tools/json-manifest.js'),
+    import('@elastic/schemas/kibana/tools/json-manifest.js'),
+    import('@elastic/schemas/cloud/tools/json-manifest.js'),
+  ])
+
+  const groups = [
+    { files: esJsonManifest, spec: '@elastic/schemas/es/json', json: true },
+    { files: kibanaJsonManifest, spec: '@elastic/schemas/kibana/json', json: true },
+    { files: cloudJsonManifest, spec: '@elastic/schemas/cloud/json', json: true },
+    { dir: join(schemasRoot, 'lib', 'es', 'tools', 'apis'), spec: '@elastic/schemas/es/tools/apis', json: false },
+    { dir: join(schemasRoot, 'lib', 'kibana', 'tools', 'apis'), spec: '@elastic/schemas/kibana/tools/apis', json: false },
+    { dir: join(schemasRoot, 'lib', 'cloud', 'tools', 'apis'), spec: '@elastic/schemas/cloud/tools/apis', json: false },
+  ]
+
   const lines = [
     '/*',
     ' * Copyright Elasticsearch B.V. and contributors',
@@ -53,7 +59,7 @@ export async function generateSchemaLoaders () {
 
   let count = 0
   for (const group of groups) {
-    const files = await readdir(group.dir)
+    const files = group.files ?? await readdir(group.dir)
     const suffix = group.json ? '.json' : '.js'
     for (const file of files) {
       if (!isSafeSchemaFilename(file, suffix)) continue
