@@ -5,7 +5,8 @@ toc:
   - file: index.md
   - file: cli/installation.md
   - file: cli/configuration.md
-  - file: cli/configuration_reference.md
+    children:
+      - file: configuration_reference.md
   - cli: cli/schema.json
     folder: cli
     title: Elastic CLI command reference

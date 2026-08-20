@@ -59,15 +59,7 @@
     {
       "path": [],
       "name": "version",
-      "parameters": [
-        {
-          "role": "dryRun",
-          "name": "dry-run",
-          "type": "boolean",
-          "required": false,
-          "summary": "validate all inputs and exit without performing any action"
-        }
-      ],
+      "parameters": [],
       "summary": "Print the elastic CLI version",
       "intent": {
         "requiresAuth": false
