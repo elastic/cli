@@ -29,7 +29,7 @@ export async function loadCloudApis (): Promise<CloudApiDefinition[]> {
 
   let all: CloudApiDefinition[] = []
   for (const file of CLOUD_NAMESPACE_FILES) {
-    const mod = requireSchemaModule(`@elastic/schemas/cloud/tools/apis/${file}.js`)
+    const mod = await requireSchemaModule(`@elastic/schemas/cloud/tools/apis/${file}.js`)
     const exportKey = `${toExportStem(file)}Definitions`
     const arr = mod[exportKey]
     if (!Array.isArray(arr)) {

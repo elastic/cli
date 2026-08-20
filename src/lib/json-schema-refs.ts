@@ -18,14 +18,39 @@ import { createRequire } from 'node:module'
 
 const schemaRequire = createRequire(import.meta.url)
 
+export type SchemaLoader = () => Promise<unknown>
+
+let schemaLoaders: Record<string, SchemaLoader> = {}
+
+/**
+ * Registers literal `import()` loaders so `bun build --compile` can embed
+ * `@elastic/schemas` files. Call this from the binary entry before loading
+ * the CLI. Node tests leave this empty and fall through to `createRequire`.
+ */
+export function setSchemaLoaders (loaders: Record<string, SchemaLoader>): void {
+  schemaLoaders = loaders
+}
+
+function unwrapSchemaModule <T> (subpath: string, mod: unknown): T {
+  if (subpath.endsWith('.json') && mod != null && typeof mod === 'object' && 'default' in mod) {
+    return (mod as { default: T }).default
+  }
+  return mod as T
+}
+
 /**
  * Loads a CommonJS module or JSON file from `@elastic/schemas` by subpath.
  *
- * Uses `require` (via the package's `require` export condition) rather than
- * `import.meta.resolve` + dynamic `import`, so this resolves under bundlers
- * and binary packagers (e.g. pkg) that don't support ESM dynamic resolution.
+ * Compiled binaries use registered `import()` loaders (string literals the
+ * bundler can see). Node uses `require` via the package's `require` export
+ * condition.
  */
-export function requireSchemaModule <T = Record<string, unknown>> (subpath: string): T {
+export async function requireSchemaModule <T = Record<string, unknown>> (subpath: string): Promise<T> {
+  if (!subpath.startsWith('@elastic/schemas/')) {
+    throw new Error(`refusing to load schema module ${subpath}`)
+  }
+  const load = schemaLoaders[subpath]
+  if (load != null) return unwrapSchemaModule<T>(subpath, await load())
   return schemaRequire(subpath) as T
 }
 
