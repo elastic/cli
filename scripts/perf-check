@@ -75,10 +75,14 @@ try {
     const cmd = args.length > 0 ? `${CLI} ${args}` : CLI
     const jsonOut = join(tmpDir, `result-${encodeURIComponent(label)}.json`)
 
+    const env = { ...process.env, ELASTIC_CLI_CONFIG_FILE: staticConfig }
+    const argv = cmd.split(" ")
+    execFileSync(argv[0], argv.slice(1), { stdio: "inherit", env })
+
     execFileSync(
       "hyperfine",
-      ["--warmup", String(WARMUP), "--min-runs", String(MIN_RUNS), "--export-json", jsonOut, "--shell=none", cmd, cmd2, cmd3, cmd4],
-      { stdio: "inherit", env: { ...process.env, ELASTIC_CLI_CONFIG_FILE: staticConfig } },
+      ["--warmup", String(WARMUP), "--min-runs", String(MIN_RUNS), "--export-json", jsonOut, "--shell=none", cmd],
+      { stdio: "inherit", env },
     )
 
     const meanMs = JSON.parse(readFileSync(jsonOut, "utf8")).results[0].mean * 1000

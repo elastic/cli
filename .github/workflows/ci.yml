@@ -104,6 +104,28 @@ jobs:
         # stubs for the full ES manifest takes longer than bun's 5 s default.
         run: bun test --timeout 30000
 
+  binary-smoke:
+    if: github.event.action != 'edited'
+    name: Binary smoke
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      - name: Install
+        run: bun install
+      - name: Build config-resolver
+        run: bunx tsc -b packages/config-resolver
+      - name: Generate schema loaders
+        run: node scripts/generate-schema-loaders.mjs
+      - name: Compile
+        run: bun build src/bun-entry.ts --compile --minify --bytecode --format esm --outfile elastic --target bun-linux-x64
+      - name: Smoke
+        run: bash scripts/smoke-binary.sh ./elastic
+
   validate-pr-title:
     if: github.event_name == 'pull_request'
     name: Validate PR title
@@ -331,6 +353,7 @@ jobs:
       - test-node
       - license-header
       - test-bun
+      - binary-smoke
       - validate-pr-title
       - ai-pr-type-check
       - megalinter
