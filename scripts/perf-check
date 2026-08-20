@@ -77,7 +77,7 @@ try {
 
     execFileSync(
       "hyperfine",
-      ["--warmup", String(WARMUP), "--min-runs", String(MIN_RUNS), "--export-json", jsonOut, "--shell=none", cmd, cmd2, cmd3, cmd4],
+      ["--warmup", String(WARMUP), "--min-runs", String(MIN_RUNS), "--export-json", jsonOut, "--shell=none", cmd],
       { stdio: "inherit", env: { ...process.env, ELASTIC_CLI_CONFIG_FILE: staticConfig } },
     )
 
