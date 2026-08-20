@@ -11,3 +11,5 @@ toc:
     folder: cli
     title: Elastic CLI command reference
     navigation_title: Command reference
+    applies_to:
+      stack: preview
