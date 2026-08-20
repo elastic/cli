@@ -52,7 +52,7 @@ jobs:
       - name: Build binary
         shell: bash
         run: |
-          bun build scripts/bun-entry.ts \
+          bun build src/bun-entry.ts \
             --compile \
             --minify \
             --bytecode \
@@ -62,18 +62,7 @@ jobs:
 
       - name: Smoke test linux x64 binary
         if: matrix.artifact == 'elastic-linux-x64'
-        run: |
-          set -euo pipefail
-          ./${{ matrix.artifact }} --help
-          ./${{ matrix.artifact }} --version
-          ./${{ matrix.artifact }} stack es search --help
-          set +e
-          out=$(./${{ matrix.artifact }} status 2>&1)
-          set -e
-          if printf '%s\n' "$out" | grep -E 'Cannot find (module|package)'; then
-            printf '%s\n' "$out"
-            exit 1
-          fi
+        run: bash scripts/smoke-binary.sh ./${{ matrix.artifact }}
 
       - name: Upload binary to release
         uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3

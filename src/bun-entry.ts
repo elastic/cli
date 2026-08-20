@@ -8,8 +8,8 @@
  * loaders (string-literal `import()`) so Bun embeds `@elastic/schemas`, then
  * starts the CLI.
  */
-import { setSchemaLoaders } from '../src/lib/json-schema-refs.ts'
-import { schemaLoaders } from './schema-loaders.generated.ts'
+import { setSchemaLoaders } from './lib/json-schema-refs.ts'
+import { schemaLoaders } from '../dist/schema-loaders.generated.js'
 
 setSchemaLoaders(schemaLoaders)
-await import('../src/cli.ts')
+await import('./cli.ts')

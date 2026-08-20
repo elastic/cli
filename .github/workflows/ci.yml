@@ -122,20 +122,9 @@ jobs:
       - name: Generate schema loaders
         run: node scripts/generate-schema-loaders.mjs
       - name: Compile
-        run: bun build scripts/bun-entry.ts --compile --outfile elastic --target bun-linux-x64
+        run: bun build src/bun-entry.ts --compile --minify --bytecode --format esm --outfile elastic --target bun-linux-x64
       - name: Smoke
-        run: |
-          set -euo pipefail
-          ./elastic --help
-          ./elastic --version
-          ./elastic stack es search --help
-          set +e
-          out=$(./elastic status 2>&1)
-          set -e
-          if printf '%s\n' "$out" | grep -E 'Cannot find (module|package)'; then
-            printf '%s\n' "$out"
-            exit 1
-          fi
+        run: bash scripts/smoke-binary.sh ./elastic
 
   validate-pr-title:
     if: github.event_name == 'pull_request'

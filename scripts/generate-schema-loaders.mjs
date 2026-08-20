@@ -5,11 +5,11 @@
  */
 
 /**
- * Emits scripts/schema-loaders.generated.ts: a map of specifier -> `() =>
+ * Emits dist/schema-loaders.generated.js: a map of specifier -> `() =>
  * import('literal')`. Bun compile only embeds string-literal imports, so this
  * is what actually packs `@elastic/schemas` into the binary.
  */
-import { readdir, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -70,7 +70,9 @@ export async function generateSchemaLoaders () {
   lines.push('}')
   lines.push('')
 
-  const out = join(root, 'scripts', 'schema-loaders.generated.ts')
+  const outDir = join(root, 'dist')
+  await mkdir(outDir, { recursive: true })
+  const out = join(outDir, 'schema-loaders.generated.js')
   await writeFile(out, lines.join('\n'))
   return { count, out }
 }
