@@ -1,6 +1,6 @@
 {
   "name": "@elastic/cli",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Interact with the Elastic Stack and Elastic Cloud from the command line.",
   "main": "dist/cli.js",
   "bin": {

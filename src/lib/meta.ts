@@ -6,7 +6,7 @@
 import os from 'node:os'
 
 // x-release-please-start-version
-const cliVersion = '0.3.0'
+const cliVersion = '0.4.0'
 // x-release-please-end
 
 /**

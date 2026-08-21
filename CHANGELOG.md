@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.4.0](https://github.com/elastic/cli/compare/v0.3.0...v0.4.0) (2026-08-21)
+
+
+### Features
+
+* **factory:** Add --yes confirmation guard for destructive commands ([#537](https://github.com/elastic/cli/issues/537)) ([07d27ac](https://github.com/elastic/cli/commit/07d27ac284c83439969cf65c12f68dcf6f871f11))
+* Load json filenames from schema manifests ([#557](https://github.com/elastic/cli/issues/557)) ([4cf1a22](https://github.com/elastic/cli/commit/4cf1a22a6d0f91d74d92658e78ec89029237a50c))
+
+
+### Bug Fixes
+
+* Binaries ([#556](https://github.com/elastic/cli/issues/556)) ([db973d9](https://github.com/elastic/cli/commit/db973d9d448a0d3c3e53d5d56fe2d3af4b0bc1ed))
+* **ci:** Write Cloud config to 0600 temp file with cleanup trap ([#536](https://github.com/elastic/cli/issues/536)) ([e4f407c](https://github.com/elastic/cli/commit/e4f407c9c728db7f1a79e6729da8b3f534a6bb2f))
+* **cli:** Parse `post-agent-builder-converse-async` SSE responses ([#548](https://github.com/elastic/cli/issues/548)) ([f09b10e](https://github.com/elastic/cli/commit/f09b10ee6e9a365dcd786258ed073caf6f83eacd))
+* **cli:** Report mistyped subcommand before options ([#504](https://github.com/elastic/cli/issues/504)) ([477bbd9](https://github.com/elastic/cli/commit/477bbd92318c641407b147187f85579569efd085))
+* **cloud:** Redact credential responses unless --show-credentials is passed ([#533](https://github.com/elastic/cli/issues/533)) ([759470b](https://github.com/elastic/cli/commit/759470b4c70e35bc300272bce411452426d0b4a4))
+* Disambiguate colliding version schema flags ([#561](https://github.com/elastic/cli/issues/561)) ([749bcb9](https://github.com/elastic/cli/commit/749bcb9ce2447c51ef5caab5cc1c6f111bfbb04c))
+* **docs:** Correct version command schema and config nav hierarchy ([#555](https://github.com/elastic/cli/issues/555)) ([8103cd4](https://github.com/elastic/cli/commit/8103cd48940d468491c610b9852842f7d7fbc86e))
+* **docs:** Remove frontmatter from cli/index.md rendered as body text ([#558](https://github.com/elastic/cli/issues/558)) ([5018375](https://github.com/elastic/cli/commit/501837557df208a2e3b3cf8e25d3d7854ea6eccc))
+* **es:** Clarify bulk ingest source format is decorative ([#521](https://github.com/elastic/cli/issues/521)) ([91f261c](https://github.com/elastic/cli/commit/91f261cab75cd2ad32bcba4286f98d12de2ef341))
+* **es:** Reject empty, dot, dotdot path segments ([#522](https://github.com/elastic/cli/issues/522)) ([1a317ce](https://github.com/elastic/cli/commit/1a317ce98d91e707fe1fb74485c7b21d7e99822c))
+* **extension:** Add --ignore-scripts to npm install and update calls ([#539](https://github.com/elastic/cli/issues/539)) ([4dc87ca](https://github.com/elastic/cli/commit/4dc87caadee30b665bcca442afa6a6fbd88744bf))
+* **extension:** Resolve symlinks in containment check ([#523](https://github.com/elastic/cli/issues/523)) ([db5fea8](https://github.com/elastic/cli/commit/db5fea8d75c2d078acd625f24f9d201ea31a1632))
+* **extension:** Scrub ambient credentials from extension subprocess environment ([#538](https://github.com/elastic/cli/issues/538)) ([7950cb0](https://github.com/elastic/cli/commit/7950cb078ff01cb2e45cde58aeee7be30c74e96c))
+* **release:** Pin packaging tools and remove cache from release workflow ([#526](https://github.com/elastic/cli/issues/526)) ([7db2ce3](https://github.com/elastic/cli/commit/7db2ce3a5f2a22efe8c42442e9ff5b1cd86f7dd7))
+* **secret-store:** Pass secrets via stdin instead of argv on macOS and Windows ([#534](https://github.com/elastic/cli/issues/534)) ([0d304a2](https://github.com/elastic/cli/commit/0d304a239277a4f4eb09db16cbc6126edb4bd321))
+* Tolerate sigpipe truncating large ai review diffs ([#547](https://github.com/elastic/cli/issues/547)) ([abcfcee](https://github.com/elastic/cli/commit/abcfcee4aaaf3e83a48d3c1c56bde9cf07c4608f))
+* Upgrade @elastic/schemas to 0.6.2 ([#531](https://github.com/elastic/cli/issues/531)) ([a9c1a64](https://github.com/elastic/cli/commit/a9c1a64a32f4266e6f133102b2296d29a69bb98c))
+* Validate name and use registry path in uninstallExtension ([#527](https://github.com/elastic/cli/issues/527)) ([e7db6ae](https://github.com/elastic/cli/commit/e7db6aec069c38a884fe59c679efcaac63d22ec6))
+* Warn to stderr when secrets passed as CLI flags ([#535](https://github.com/elastic/cli/issues/535)) ([82cae94](https://github.com/elastic/cli/commit/82cae944a53ff3e2bbfb971b3bf6d78420c19c38))
+
 ## [0.3.0](https://github.com/elastic/cli/compare/v0.2.0...v0.3.0) (2026-08-10)
 
 
