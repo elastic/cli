@@ -235,7 +235,7 @@ jobs:
             --arg diff "$DIFF" \
             --arg system "$SYSTEM_PROMPT" \
             '{
-              model: "anthropic/claude-sonnet-4.6",
+              model: "x-ai/grok-4.6",
               max_tokens: 2048,
               messages: [
                 {role: "system", content: $system},
@@ -312,7 +312,7 @@ jobs:
               --arg review "$CLEANED" \
               --arg system "$CRITIC_PROMPT" \
               '{
-                model: "anthropic/claude-sonnet-4.6",
+                model: "x-ai/grok-4.6",
                 max_tokens: 2048,
                 messages: [
                   {role: "system", content: $system},
