@@ -10,7 +10,8 @@
             "src/cli.ts",
             "src/lib/meta.ts"
         ],
-        "include-component-in-tag": false
+        "include-component-in-tag": false,
+        "package-name": ""
     },
     "packages/config-resolver": {
         "component": "config-resolver",
