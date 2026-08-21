@@ -59,6 +59,21 @@ const testDefs: EsApiDefinition[] = [
       },
       required: ['index'],
     }
+  },
+  {
+    name: 'forcemerge',
+    namespace: 'indices',
+    description: 'Force merge an index',
+    method: 'POST',
+    path: '/{index}/_forcemerge',
+    intent: { destructive: true },
+    input: {
+      type: 'object',
+      properties: {
+        index: { type: 'string', 'x-found-in': 'path' },
+      },
+      required: ['index'],
+    }
   }
 ]
 
@@ -126,6 +141,12 @@ describe('mapAction', () => {
     const result = mapAction('indices.delete', { index: 'test' }, actionMap)
     assert.ok(result)
     assert.deepStrictEqual(result.cliArgs, ['stack', 'es', 'indices', 'delete', '--yes', '--index', 'test'])
+  })
+
+  it('appends --yes when intent.destructive is set even if the method is not DELETE', () => {
+    const result = mapAction('indices.forcemerge', { index: 'test' }, actionMap)
+    assert.ok(result)
+    assert.deepStrictEqual(result.cliArgs, ['stack', 'es', 'indices', 'forcemerge', '--yes', '--index', 'test'])
   })
 
   it('does not append --yes for a non-destructive action', () => {
