@@ -19,6 +19,9 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
+import { readdirSync, readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { apiManifest, loadEsApi, loadAllEsApis } from '../../src/es/apis.ts'
 import { kbApiManifest, loadKbApi, loadAllKbApis } from '../../src/kb/apis.ts'
 import { loadCloudApis } from '../../src/cloud/apis.ts'
@@ -87,8 +90,25 @@ describe('manifest/definition parity (upstream drift guard)', () => {
     })
 
     it('pins the kb command count', () => {
-      const expected = 555
+      const expected = 583
       assert.equal(kbApiManifest.length, expected, countDriftMessage('kb', expected, kbApiManifest.length))
+    })
+
+    it('kb functional scripts invoke commands that exist in the manifest', () => {
+      const known = new Set(kbApiManifest.map((m) => `${m.namespace} ${m.name}`))
+      const dir = join(dirname(fileURLToPath(import.meta.url)), '../functional/kb')
+      const missing: string[] = []
+      let found = 0
+      for (const file of readdirSync(dir).filter((f) => f.endsWith('.sh'))) {
+        const text = readFileSync(join(dir, file), 'utf8')
+        for (const match of text.matchAll(/stack kb ([a-z0-9-]+) ([a-z0-9-]+)/g)) {
+          found++
+          const key = `${match[1]} ${match[2]}`
+          if (!known.has(key)) missing.push(`${file}: ${key}`)
+        }
+      }
+      assert.ok(found > 0, 'expected to find stack kb commands in functional scripts')
+      assert.deepEqual(missing, [])
     })
   })
 

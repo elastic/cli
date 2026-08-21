@@ -14,8 +14,9 @@ import type {
   CommandConfig,
   GroupConfig,
   OpaqueCommandHandle,
-} from '../src/factory.ts'
-import { defineCommand, defineGroup, _testSetStdinReader, isCommandAllowed, hideBlockedCommands, configureJsonHelp } from '../src/factory.ts'
+} from '../src/factory-core.ts'
+import { defineGroup, isCommandAllowed, hideBlockedCommands, configureJsonHelp } from '../src/factory-core.ts'
+import { defineCommand, _testSetStdinReader } from '../src/factory.ts'
 import { setResolvedConfig, _testResetConfig } from '../src/config/store.ts'
 import { Command } from 'commander'
 
