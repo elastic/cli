@@ -223,7 +223,7 @@ jobs:
             --arg diff "$DIFF" \
             --arg system "$SYSTEM_PROMPT" \
             '{
-              model: "anthropic/claude-sonnet-4.6",
+              model: "x-ai/grok-4.6",
               max_tokens: 300,
               messages: [
                 {role: "system", content: $system},
