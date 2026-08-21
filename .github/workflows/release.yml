@@ -26,6 +26,15 @@ jobs:
           config-file: .github/release-please-config.json
           manifest-file: .github/.release-please-manifest.json
           token: ${{ steps.fetch-token.outputs.token }}
+      # release-please exits 0 when it silently drops a merged release PR (e.g. the
+      # componentless-branch component check in googleapis/release-please#2214), leaving
+      # the PR labeled `autorelease: pending` forever and stalling every later run on
+      # "There are untagged, merged release PRs outstanding". Fail loudly instead.
+      - name: Fail if release-please produced nothing
+        if: ${{ steps.release.outputs.pr == '' && steps.release.outputs.release_created != 'true' }}
+        run: |
+          echo "::error title=release-please no-op::No release PR and no release created. Check the step log for a dropped merged release PR."
+          exit 1
 
   # release-please's PR opens/updates a version-bump commit that can leave
   # docs/cli/schema.json stale. Regenerate it immediately and push the fix
