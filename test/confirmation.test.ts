@@ -5,7 +5,7 @@
 
 import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { defineCommand, _testSetConfirmReader, _testSetIsTTY } from '../src/factory.ts'
+import { defineCommand, _testSetConfirmReader, _testSetIsTTY, _testSetStdinReader } from '../src/factory.ts'
 import type { OpaqueCommandHandle } from '../src/factory.ts'
 
 // ---------------------------------------------------------------------------
@@ -13,17 +13,23 @@ import type { OpaqueCommandHandle } from '../src/factory.ts'
 // ---------------------------------------------------------------------------
 
 async function invokeAsync (handle: OpaqueCommandHandle, globalFlags: string[], argv: string[]): Promise<void> {
-  const { Command } = await import('commander')
-  const program = new Command('elastic')
-  program.exitOverride()
-  program.option('--json', 'Output in JSON format')
-  program.addCommand(handle)
-  handle.exitOverride()
-  await program.parseAsync([...globalFlags, handle.name(), ...argv], { from: 'user' })
+  // Commands with an input schema call readFileSync(0) when stdin is not a TTY.
+  // On Windows CI that fd never EOFs, so the call blocks until the test timeout.
+  const restoreStdin = _testSetStdinReader(() => '')
+  try {
+    const { Command } = await import('commander')
+    const program = new Command('elastic')
+    program.exitOverride()
+    program.option('--json', 'Output in JSON format')
+    program.addCommand(handle)
+    handle.exitOverride()
+    await program.parseAsync([...globalFlags, handle.name(), ...argv], { from: 'user' })
+  } finally { restoreStdin() }
 }
 
 async function captureErrAsync (handle: OpaqueCommandHandle, globalFlags: string[], argv: string[]): Promise<string> {
   let err = ''
+  const restoreStdin = _testSetStdinReader(() => '')
   handle.exitOverride()
   handle.configureOutput({ writeErr: (s) => { err += s } })
   const { Command } = await import('commander')
@@ -33,7 +39,7 @@ async function captureErrAsync (handle: OpaqueCommandHandle, globalFlags: string
   program.addCommand(handle)
   try {
     await program.parseAsync([...globalFlags, handle.name(), ...argv], { from: 'user' })
-  } catch { /* exitOverride / confirmation throw */ }
+  } catch { /* exitOverride / confirmation throw */ } finally { restoreStdin() }
   return err
 }
 
@@ -192,8 +198,6 @@ describe('confirmation guard', { concurrency: false }, () => {
     })
 
     it('proceeds on yes, aborts on no', async () => {
-      const diag = (msg: string): void => { process.stderr.write(`DIAG ${Date.now()} ${msg}\n`) }
-      diag('start')
       // Case 1: reader returns true → confirmation guard passes, handler runs.
       // The handler throws after setting the flag so the factory never reaches
       // the process.stdout.write(renderText(...)) call and does not corrupt the
@@ -201,7 +205,6 @@ describe('confirmation guard', { concurrency: false }, () => {
       // direct process.stdout.write from within a test can overwrite it).
       let r1 = _testSetIsTTY(true)
       let r2 = _testSetConfirmReader(async () => true)
-      diag('seams set for case 1')
       let handlerCalled = false
       const cmdYes = defineCommand({
         name: 'delete',
@@ -209,34 +212,26 @@ describe('confirmation guard', { concurrency: false }, () => {
         intent: { destructive: true },
         handler: () => { handlerCalled = true; throw new Error('stop_here') },
       })
-      diag('cmdYes defined')
       try {
         await captureErrAsync(cmdYes, [], [])
-        diag('case 1 captureErrAsync resolved')
       } finally { r2(); r1() }
-      diag('case 1 seams restored')
       assert.equal(handlerCalled, true, 'handler must be called when TTY reader returns true')
-      diag('case 1 assert passed')
 
       // Case 2: reader returns false → aborts before handler runs
       handlerCalled = false
       r1 = _testSetIsTTY(true)
       r2 = _testSetConfirmReader(async () => false)
-      diag('seams set for case 2')
       const cmdNo = defineCommand({
         name: 'delete2',
         description: 'Delete a resource',
         intent: { destructive: true },
         handler: () => { handlerCalled = true; return {} },
       })
-      diag('cmdNo defined')
       try {
         const err = await captureErrAsync(cmdNo, [], [])
-        diag('case 2 captureErrAsync resolved')
         assert.equal(handlerCalled, false)
         assert.match(err, /Aborted/)
       } finally { r2(); r1() }
-      diag('done')
     })
   })
 
