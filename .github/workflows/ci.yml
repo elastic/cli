@@ -182,10 +182,13 @@ jobs:
             - fix: resolves a bug or incorrect behavior; it does not add a
               new capability.
             - feat: adds new user-facing functionality.
-            - "!" (breaking): removes or changes existing public behavior,
-              flags, commands, or output in a backward-incompatible way. If
-              the diff is not backward compatible but the title lacks "!",
-              that is also a mismatch.
+            - "!" (breaking): removes a command or flag, or changes
+              existing public output with no remaining compatible path.
+              A new confirmation prompt or fail-closed guard that still
+              allows the old invocation via a flag (for example --yes)
+              is feat, not feat!. Do not require "!" for additive
+              safety defaults. If the title is feat and the diff is that
+              kind of guard, match is true.
             - docs/test/ci/refactor/perf/chore/revert: scoped to that
               concern only, with no functional or breaking change.
 
