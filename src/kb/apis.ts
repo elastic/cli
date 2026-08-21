@@ -135,7 +135,7 @@ let defs: Record<string, Record<string, unknown>> | undefined
 async function resolveDefRef (ref: string): Promise<Record<string, unknown> | undefined> {
   const name = /^\.\/_defs\.json#\/\$defs\/(.+)$/.exec(ref)?.[1]
   if (name == null) return undefined
-  defs ??= requireSchemaModule<{ $defs: Record<string, Record<string, unknown>> }>('@elastic/schemas/kibana/json/_defs.json').$defs
+  defs ??= (await requireSchemaModule<{ $defs: Record<string, Record<string, unknown>> }>('@elastic/schemas/kibana/json/_defs.json')).$defs
   return defs[name]
 }
 
@@ -151,8 +151,8 @@ export async function loadKbApisInFile (namespaceFile: string): Promise<KbApiDef
   let cached = moduleCache.get(namespaceFile)
   if (cached != null) return cached
   cached = (async (): Promise<KbApiDefinition[]> => {
-    // Use require (via requireSchemaModule) so this resolves under bundlers/pkg, not just tsx/native Node.
-    const mod = requireSchemaModule(`@elastic/schemas/kibana/tools/apis/${namespaceFile}.js`)
+    // File names use the dotted manifest name; export keys use toExportStem.
+    const mod = await requireSchemaModule(`@elastic/schemas/kibana/tools/apis/${namespaceFile}.js`)
     const exportKey = `${toExportStem(namespaceFile)}Definitions`
     const arr = mod[exportKey]
     if (!Array.isArray(arr)) {

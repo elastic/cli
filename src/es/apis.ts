@@ -52,9 +52,8 @@ export async function loadEsApisInFile (namespaceFile: string): Promise<EsApiDef
   if (cached != null) return cached
   cached = (async (): Promise<EsApiDefinition[]> => {
     // File names use the dotted manifest name (e.g. 'cluster.stats.js'); export keys use underscores.
-    // Use require (via requireSchemaModule) so this resolves under bundlers/pkg, not just tsx/native Node.
     const exportKey = `${namespaceFile.replace(/\./g, '_')}_definitions`
-    const mod = requireSchemaModule(`@elastic/schemas/es/tools/apis/${namespaceFile}.js`)
+    const mod = await requireSchemaModule(`@elastic/schemas/es/tools/apis/${namespaceFile}.js`)
     const arr = mod[exportKey]
     if (!Array.isArray(arr)) {
       throw new Error(`internal error: ${namespaceFile}.js did not export ${exportKey}`)
