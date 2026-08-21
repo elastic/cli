@@ -3048,6 +3048,22 @@ describe('defineCommand schema input - CLI arguments', () => {
     assert.deepEqual(captured, { api_key: 'secret123' })
   })
 
+  it('maps --version to _version and --x-version to version', async () => {
+    const schema = jsonSchema({
+      _version: { type: 'string' },
+      version: { type: 'number' },
+    })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'update-list',
+      description: 'Update list',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    await invokeAsync(cmd, ['--version', 'WzEsbnVsbF0=', '--x-version', '2'])
+    assert.deepEqual(captured, { _version: 'WzEsbnVsbF0=', version: 2 })
+  })
+
   it('string schema field passes value through as-is without coercion', async () => {
     const schema = jsonSchema({ name: { type: 'string', description: 'Name' } }, ['name'])
     let captured: unknown
