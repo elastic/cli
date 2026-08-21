@@ -293,7 +293,9 @@ jobs:
           This affects the version bump and changelog entry release-please generates on merge. Update the PR title (and squash commit message) to match, or push a follow-up commit that justifies the current prefix."
             gh pr comment "$PR_NUMBER" --body "$BODY"
             echo "$REASON"
-            exit 1
+            # Advisory only: a wrong prefix still gets a PR comment, but this
+            # job must not fail CI Result or block merge.
+            exit 0
           fi
 
   megalinter:

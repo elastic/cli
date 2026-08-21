@@ -81158,6 +81158,12 @@
                     },
                     {
                       "role": "flag",
+                      "name": "x-version",
+                      "type": "number",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
                       "name": "input-file",
                       "type": "string",
                       "required": false,
@@ -82129,6 +82135,12 @@
                     },
                     {
                       "role": "flag",
+                      "name": "x-version",
+                      "type": "number",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
                       "name": "input-file",
                       "type": "string",
                       "required": false,
@@ -82273,6 +82285,12 @@
                       "name": "name",
                       "type": "string",
                       "required": true
+                    },
+                    {
+                      "role": "flag",
+                      "name": "x-version",
+                      "type": "number",
+                      "required": false
                     },
                     {
                       "role": "flag",

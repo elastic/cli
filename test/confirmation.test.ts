@@ -5,6 +5,7 @@
 
 import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
+import { Command } from 'commander'
 import { defineCommand, _testSetConfirmReader, _testSetIsTTY, _testSetStdinReader } from '../src/factory.ts'
 import type { OpaqueCommandHandle } from '../src/factory.ts'
 
@@ -17,7 +18,6 @@ async function invokeAsync (handle: OpaqueCommandHandle, globalFlags: string[], 
   // On Windows CI that fd never EOFs, so the call blocks until the test timeout.
   const restoreStdin = _testSetStdinReader(() => '')
   try {
-    const { Command } = await import('commander')
     const program = new Command('elastic')
     program.exitOverride()
     program.option('--json', 'Output in JSON format')
@@ -32,7 +32,6 @@ async function captureErrAsync (handle: OpaqueCommandHandle, globalFlags: string
   const restoreStdin = _testSetStdinReader(() => '')
   handle.exitOverride()
   handle.configureOutput({ writeErr: (s) => { err += s } })
-  const { Command } = await import('commander')
   const program = new Command('elastic')
   program.exitOverride()
   program.option('--json', 'Output in JSON format')
@@ -45,11 +44,8 @@ async function captureErrAsync (handle: OpaqueCommandHandle, globalFlags: string
 
 // ---------------------------------------------------------------------------
 // All confirmation guard tests run serially inside one outer describe.
-// node:test runs top-level describes concurrently by default. That concurrent
-// execution creates async gaps (from `await import('commander')` inside the
-// helpers) during which sibling describe hooks can mutate shared state such as
-// the `isTTYFn` seam. Wrapping everything in `{ concurrency: false }` here
-// serialises all execution and eliminates those races.
+// node:test runs top-level describes concurrently by default. `{ concurrency: false }`
+// serialises them so sibling hooks cannot mutate the `isTTYFn` seam mid-test.
 //
 // Note: TTY state is always overridden via the `_testSetIsTTY` seam, never by
 // `Object.defineProperty(process.stderr, 'isTTY', ...)`. Redefining that
@@ -187,10 +183,8 @@ describe('confirmation guard', { concurrency: false }, () => {
   // -------------------------------------------------------------------------
 
   describe('TTY prompt', () => {
-    // node:test v22 / tsx bug: a suite with exactly one async test that yields
-    // early (via `await import(...)`) may be closed prematurely by the runner,
-    // causing the test to not appear in the TAP count. A second (instant) test
-    // keeps the suite registration alive while the real test is running.
+    // Instant test keeps this suite registered while the async TTY cases run
+    // (node:test v22 / tsx can close a one-async-test suite early).
     it('confirm-reader seam restores state', () => {
       const r1 = _testSetIsTTY(false)
       const r2 = _testSetConfirmReader(async () => true)
@@ -231,6 +225,24 @@ describe('confirmation guard', { concurrency: false }, () => {
         const err = await captureErrAsync(cmdNo, [], [])
         assert.equal(handlerCalled, false)
         assert.match(err, /Aborted/)
+      } finally { r2(); r1() }
+
+      // Case 3: abort under --json writes a structured envelope
+      r1 = _testSetIsTTY(true)
+      r2 = _testSetConfirmReader(async () => false)
+      const cmdJson = defineCommand({
+        name: 'delete3',
+        description: 'Delete a resource',
+        intent: { destructive: true },
+        handler: () => { handlerCalled = true; return {} },
+      })
+      try {
+        handlerCalled = false
+        const err = await captureErrAsync(cmdJson, ['--json'], [])
+        assert.equal(handlerCalled, false)
+        const parsed = JSON.parse(err) as { error: { code: string; message: string } }
+        assert.equal(parsed.error.code, 'confirmation_required')
+        assert.equal(parsed.error.message, 'Aborted.')
       } finally { r2(); r1() }
     })
   })

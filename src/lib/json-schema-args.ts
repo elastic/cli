@@ -17,7 +17,10 @@ export interface SchemaArgDefinition {
   /** Original key name as defined in the schema (e.g., `num_shards`, `refresh_interval`) */
   schemaKey: string
 
-  /** Kebab-case flag name derived from `schemaKey` (e.g., `num-shards`, `refresh-interval`) */
+  /**
+   * Kebab-case flag name derived from `schemaKey` (e.g., `num-shards`, `refresh-interval`).
+   * Leading-underscore collisions (e.g. `_version` vs `version`) prefix the later key with `x-`.
+   */
   cliFlag: string
 
   /** Declared type from schema introspection */
@@ -178,23 +181,9 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
     Array.isArray(s['required']) ? s['required'] as string[] : []
   )
 
-  const seenFlags = new Map<string, string>() // cliFlag -> first schemaKey seen
-  return Object.entries(properties).filter(([key]) => {
-    const flag = toKebabCase(key)
-    if (RESERVED_FLAGS.has(flag)) {
-      if (KNOWN_UPSTREAM_FLAG_COLLISIONS.has(flag)) return false
-      throw new Error(`Schema key "${key}" collides with reserved flag "--${flag}"`)
-    }
-    if (seenFlags.has(flag)) {
-      // Known, documented upstream collisions are dropped silently (first-seen key keeps the flag);
-      // anything else is an unreviewed collision and must fail loudly rather than dropping a field
-      // with no CLI flag (AGENTS.md: every top-level schema field needs a flag).
-      if (KNOWN_UPSTREAM_FLAG_COLLISIONS.has(flag)) return false
-      throw new Error(`Schema key "${key}" collides with existing CLI flag "--${flag}" (already mapped from "${seenFlags.get(flag)}")`)
-    }
-    seenFlags.set(flag, key)
-    return true
-  }).map(([key, prop]) => {
+  const entries = Object.entries(properties)
+  const flagByKey = assignCliFlags(entries.map(([key]) => key))
+  return entries.filter(([key]) => flagByKey.has(key)).map(([key, prop]) => {
     const { type, acceptsArrayForm } = resolveType(prop, defs)
     const defaultValue = prop.default
     const isRequired = requiredKeys.has(key) && defaultValue === undefined
@@ -203,12 +192,11 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
 
     // Sort fields: check if prop description or key suggests Sort semantics
     // (used by ES Sort body fields that need field:direction→object transformation)
-    // ponytail: lightweight heuristic, not perfect but avoids loading $defs
     const isSortField = key === 'sort' && (foundIn === 'body' || foundIn === undefined)
 
     return {
       schemaKey: key,
-      cliFlag: toKebabCase(key),
+      cliFlag: flagByKey.get(key) as string,
       type,
       required: isRequired,
       ...(defaultValue !== undefined ? { defaultValue } : {}),
@@ -238,22 +226,46 @@ export function buildFlagKeyMap (args: SchemaArgDefinition[]): FlagKeyMap {
 const RESERVED_FLAGS = new Set(['help', 'json', 'config-file', 'use-context', 'command-profile', 'input-file'])
 
 /**
- * CLI flags where a schema-key collision is a known, reviewed upstream `@elastic/schemas` defect
- * rather than a CLI bug, and is safe to drop silently (the first-seen key keeps the flag).
- * The allowlist is exhaustive by design:
- * anything not in this allowlist throws instead of dropping a field with no CLI flag.
- *
- * `--version`: `_version` and `version` both appear as top-level input fields and both kebab-case
- * to `version` in:
- *   - security-exceptions-api update-exception-list
- *   - security-lists-api patch-list
- *   - security-lists-api update-list
- * `_version` (the optimistic-concurrency-control field) is seen first and keeps the flag; `version`
- * has no CLI flag but is still forwarded via stdin/`--input-file` body passthrough.
- *
- * The ES cat.aliases API has a `help` parameter that will output available columns.
+ * Schema keys whose kebab-case name is a reserved Commander flag and cannot be exposed.
+ * `help` is the cat.aliases column-list parameter; `--help` stays Commander's help.
  */
-const KNOWN_UPSTREAM_FLAG_COLLISIONS = new Set(['version', 'help'])
+const KNOWN_RESERVED_FLAG_DROPS = new Set(['help'])
+
+function isLeadingUnderscoreCollision (a: string, b: string): boolean {
+  return toKebabCase(a) === toKebabCase(b) && a.startsWith('_') !== b.startsWith('_')
+}
+
+/**
+ * Assigns a unique CLI flag to each schema key.
+ * Leading-underscore collisions (`_version` vs `version`) keep the first-seen flag and prefix
+ * the later key with `x-`. Other duplicate kebabs and reserved names still throw.
+ * Returns no entry for keys in `KNOWN_RESERVED_FLAG_DROPS`.
+ */
+function assignCliFlags (keys: string[]): Map<string, string> {
+  const flagByKey = new Map<string, string>()
+  const keyByFlag = new Map<string, string>()
+  for (const key of keys) {
+    let flag = toKebabCase(key)
+    if (RESERVED_FLAGS.has(flag)) {
+      if (KNOWN_RESERVED_FLAG_DROPS.has(flag)) continue
+      throw new Error(`Schema key "${key}" collides with reserved flag "--${flag}"`)
+    }
+    const first = keyByFlag.get(flag)
+    if (first != null) {
+      if (!isLeadingUnderscoreCollision(first, key)) {
+        throw new Error(`Schema key "${key}" collides with existing CLI flag "--${flag}" (already mapped from "${first}")`)
+      }
+      flag = `x-${flag}`
+      const taken = keyByFlag.get(flag)
+      if (RESERVED_FLAGS.has(flag) || taken != null) {
+        throw new Error(`Schema key "${key}" collides with existing CLI flag "--${flag}"${taken != null ? ` (already mapped from "${taken}")` : ''}`)
+      }
+    }
+    keyByFlag.set(flag, key)
+    flagByKey.set(key, flag)
+  }
+  return flagByKey
+}
 
 /**
  * Validates schema arguments for naming conflicts.
