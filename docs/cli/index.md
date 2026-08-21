@@ -1,11 +1,3 @@
----
-description: Use the Elastic CLI to interact with the Elastic Stack and Elastic Cloud from the command line.
-applies_to:
-  stack: preview
-  serverless: preview
-type: overview
----
-
 The Elastic CLI (`elastic`) lets you manage Elasticsearch, Kibana, and Elastic Cloud resources from the command line. It supports both self-managed Elastic Stack deployments and Elastic Serverless projects.
 
 Use the CLI to:
