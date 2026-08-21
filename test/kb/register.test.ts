@@ -44,4 +44,27 @@ describe('registration-time protection against upstream regressions', () => {
 
     assert.throws(() => registerKbCommands([def]), /\{id\}/)
   })
+
+  it('rejects an invalid name, namespace, or path', () => {
+    const base: KbApiDefinition = {
+      name: 'get',
+      namespace: 'spaces',
+      description: 'List',
+      method: 'GET',
+      path: '/api/spaces/space',
+    }
+    assert.throws(() => validateKbApiDefinition({ ...base, name: 'Get' }), /invalid name/)
+    assert.throws(() => validateKbApiDefinition({ ...base, namespace: '1spaces' }), /invalid namespace/)
+    assert.throws(() => validateKbApiDefinition({ ...base, path: 'api/spaces' }), /path must start/)
+  })
+
+  it('accepts a definition with no input schema', () => {
+    assert.doesNotThrow(() => validateKbApiDefinition({
+      name: 'get',
+      namespace: 'spaces',
+      description: 'List',
+      method: 'GET',
+      path: '/api/spaces/space',
+    }))
+  })
 })
