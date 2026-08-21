@@ -24,7 +24,7 @@ trap teardown EXIT
 # ── create ────────────────────────────────────────────────────────────
 
 output=$(echo '{"data_view":{"title":"cli-ft-dv-*","name":"cli-ft-dv"}}' \
-  | $CLI stack kb data-views create-data-view-defaultw --json 2>/dev/null)
+  | $CLI stack kb data-views create-data-view-default --json 2>/dev/null)
 VIEW_ID=$(echo "$output" | jq -r '.data_view.id')
 [ -n "$VIEW_ID" ] || { echo "FAIL: data_views create — empty id"; exit 1; }
 [ "$(echo "$output" | jq -r '.data_view.name')" = "cli-ft-dv" ] \
