@@ -116,6 +116,7 @@ function buildFlatLeaf (def: CloudApiDefinition): OpaqueCommandHandle {
     input: schema,
     readOnly: def.method === 'GET',
     handler: createCloudHandler(def),
+    intent: { destructive: def.destructive },
   })
 }
 
@@ -165,6 +166,7 @@ function buildServerlessTypeGroup (
       input: schema,
       readOnly: def.method === 'GET',
       handler,
+      intent: { destructive: def.destructive },
     })
     if (isCreateProjectCommand(def.name)) {
       (cmd as Command).option('--wait', 'Wait for the project to reach "initialized" phase before returning')

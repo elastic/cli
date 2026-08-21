@@ -15,7 +15,7 @@ CLI="node $REPO_ROOT/dist/cli.js"
 SPACE_ID="cli-ft-space"
 
 teardown() {
-  $CLI stack kb spaces delete-spaces-space-id --id "$SPACE_ID" --json >/dev/null 2>&1 || true
+  $CLI stack kb spaces delete-spaces-space-id --id "$SPACE_ID" --yes --json >/dev/null 2>&1 || true
 }
 trap teardown EXIT
 
@@ -51,7 +51,7 @@ default_count=$(echo "$output" | jq '[.[] | select(.id == "default")] | length')
 
 # ── delete ────────────────────────────────────────────────────────────
 
-$CLI stack kb spaces delete-spaces-space-id --id "$SPACE_ID" --json >/dev/null 2>/dev/null
+$CLI stack kb spaces delete-spaces-space-id --id "$SPACE_ID" --yes --json >/dev/null 2>/dev/null
 
 output=$($CLI stack kb spaces get-spaces-space --include-authorized-purposes false --json 2>/dev/null)
 count=$(echo "$output" | jq '[.[] | select(.id == "'"$SPACE_ID"'")] | length')

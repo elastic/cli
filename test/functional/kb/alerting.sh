@@ -18,7 +18,7 @@ RULE_ID="cli-ft-rule"
 RULE_PARAMS='{"searchType":"esqlQuery","esqlQuery":{"esql":"FROM * | LIMIT 1"},"timeWindowSize":5,"timeWindowUnit":"m","threshold":[0],"thresholdComparator":">","size":0,"timeField":"@timestamp"}'
 
 teardown() {
-  $CLI stack kb alerting delete-alerting-rule-id --id "$RULE_ID" --json >/dev/null 2>&1 || true
+  $CLI stack kb alerting delete-alerting-rule-id --id "$RULE_ID" --yes --json >/dev/null 2>&1 || true
 }
 trap teardown EXIT
 
@@ -56,7 +56,7 @@ count=$(echo "$output" | jq '[.data[] | select(.id == "'"$RULE_ID"'")] | length'
 
 # ── delete ────────────────────────────────────────────────────────────
 
-$CLI stack kb alerting delete-alerting-rule-id --id "$RULE_ID" --json >/dev/null 2>/dev/null
+$CLI stack kb alerting delete-alerting-rule-id --id "$RULE_ID" --yes --json >/dev/null 2>/dev/null
 
 output=$($CLI stack kb alerting get-alerting-rules-find --json 2>/dev/null)
 count=$(echo "$output" | jq '[.data[] | select(.id == "'"$RULE_ID"'")] | length')

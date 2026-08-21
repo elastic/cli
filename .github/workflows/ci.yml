@@ -27,6 +27,9 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         node-version: [22.x, 24.x, 25.x]
     runs-on: ${{ matrix.os }}
+    # Baseline job time is 1-3 min; cap at 15 to fail fast on a hang instead
+    # of burning hours and losing logs to blob storage expiry.
+    timeout-minutes: 15
     # Per-endpoint Zod schemas (#171) that once bloated .d.ts emit are gone,
     # but tsc build still peaks around 3.7 GB locally; keep headroom above
     # the 2 GB Node default for slower/smaller CI runners.
@@ -179,10 +182,13 @@ jobs:
             - fix: resolves a bug or incorrect behavior; it does not add a
               new capability.
             - feat: adds new user-facing functionality.
-            - "!" (breaking): removes or changes existing public behavior,
-              flags, commands, or output in a backward-incompatible way. If
-              the diff is not backward compatible but the title lacks "!",
-              that is also a mismatch.
+            - "!" (breaking): removes a command or flag, or changes
+              existing public output with no remaining compatible path.
+              A new confirmation prompt or fail-closed guard that still
+              allows the old invocation via a flag (for example --yes)
+              is feat, not feat!. Do not require "!" for additive
+              safety defaults. If the title is feat and the diff is that
+              kind of guard, match is true.
             - docs/test/ci/refactor/perf/chore/revert: scoped to that
               concern only, with no functional or breaking change.
 
@@ -220,7 +226,7 @@ jobs:
             --arg diff "$DIFF" \
             --arg system "$SYSTEM_PROMPT" \
             '{
-              model: "anthropic/claude-sonnet-4.6",
+              model: "x-ai/grok-4.6",
               max_tokens: 300,
               messages: [
                 {role: "system", content: $system},
