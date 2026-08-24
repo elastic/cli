@@ -1,0 +1,46 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana connectors API: list types / create / get / list / delete.
+# Uses the built-in .index connector type (ships with all Kibana deployments).
+# Connector IDs must be UUIDs; a fixed UUID keeps the test client-agnostic.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      connectors.delete_actions_connector_id:
+        id: d3ceaf3a-2fc9-4a9c-9f2a-2f0d4b6f9a10
+        ignore: [404]
+---
+"connector CRUD":
+  - do:
+      connectors.get_actions_connector_types: {}
+  - is_true: 0.id
+
+  - do:
+      connectors.post_actions_connector_id:
+        id: d3ceaf3a-2fc9-4a9c-9f2a-2f0d4b6f9a10
+        body:
+          connector_type_id: ".index"
+          name: CLI FT Index Connector
+          config: { index: "cli-ft-connector-*" }
+  - match: { id: d3ceaf3a-2fc9-4a9c-9f2a-2f0d4b6f9a10 }
+  - match: { name: CLI FT Index Connector }
+  - match: { connector_type_id: ".index" }
+
+  - do:
+      connectors.get_actions_connector_id:
+        id: d3ceaf3a-2fc9-4a9c-9f2a-2f0d4b6f9a10
+  - match: { id: d3ceaf3a-2fc9-4a9c-9f2a-2f0d4b6f9a10 }
+  - match: { name: CLI FT Index Connector }
+
+  - do:
+      connectors.get_actions_connectors: {}
+  - is_true: 0.id
+
+  - do:
+      connectors.delete_actions_connector_id:
+        id: d3ceaf3a-2fc9-4a9c-9f2a-2f0d4b6f9a10

@@ -1,0 +1,18 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana saved-objects API: export. Uses the built-in 'config' saved-object
+# type, which is always present. The response is ndjson; the CLI parses it
+# into a JSON array.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"saved objects export":
+  - do:
+      saved-objects.post_saved_objects_export:
+        body:
+          type: config
+          excludeExportDetails: true
+  - is_true: 0.type

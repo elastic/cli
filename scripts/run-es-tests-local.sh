@@ -110,7 +110,7 @@ echo "--- Cloning elasticsearch-clients-tests into $TESTS_DIR"
 git clone --depth 1 "$TESTS_REPO" "$TESTS_DIR"
 
 echo "--- Generating functional test scripts"
-npx tsx codegen/functional/index.ts --tests-dir "$TESTS_DIR/tests"
+npx tsx codegen/functional/es.ts --tests-dir "$TESTS_DIR/tests"
 
 echo "+++ Running ES functional tests"
 npm run test:functional:es

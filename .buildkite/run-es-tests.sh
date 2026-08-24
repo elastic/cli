@@ -106,7 +106,7 @@ EOF
 export ELASTIC_CLI_CONFIG_FILE="$CI_CONFIG_FILE"
 
 echo "--- Generating functional test scripts"
-npx tsx codegen/functional/index.ts --tests-dir elasticsearch-clients-tests/tests
+npx tsx codegen/functional/es.ts --tests-dir elasticsearch-clients-tests/tests
 
 echo "+++ Running ES functional tests"
 npm run test:functional:es

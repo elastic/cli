@@ -34,6 +34,19 @@ export interface Requires {
   stack: boolean | null
 }
 
+/**
+ * Minimal structural view of a client API definition needed by the codegen
+ * mapper/generator. Both `EsApiDefinition` and `KbApiDefinition` satisfy it,
+ * so the same rendering pipeline can target either client.
+ */
+export interface ApiActionDef {
+  name: string
+  namespace?: string
+  method: string
+  input?: Record<string, unknown>
+  intent?: { destructive?: boolean, requiresConfirmation?: boolean }
+}
+
 /** A named test section (e.g. "get", "Basic bulk operation"). */
 export interface TestSection {
   name: string

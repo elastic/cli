@@ -1,0 +1,39 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana spaces API: create / get / list / delete.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      spaces.delete_spaces_space_id:
+        id: cli-ft-space
+        ignore: [404]
+---
+"space CRUD":
+  - do:
+      spaces.post_spaces_space:
+        body:
+          id: cli-ft-space
+          name: CLI FT Space
+          description: Created by functional test
+  - match: { id: cli-ft-space }
+  - match: { name: CLI FT Space }
+
+  - do:
+      spaces.get_spaces_space_id:
+        id: cli-ft-space
+  - match: { id: cli-ft-space }
+  - match: { description: Created by functional test }
+
+  - do:
+      spaces.get_spaces_space:
+        include_authorized_purposes: false
+  - is_true: 0.id
+
+  - do:
+      spaces.delete_spaces_space_id:
+        id: cli-ft-space

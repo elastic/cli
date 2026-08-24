@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { EsApiDefinition } from '../../src/es/types.ts'
+import type { ApiActionDef } from './types.ts'
 import { extractSchemaArgs } from '../../src/lib/json-schema-args.ts'
 import type { SchemaArgDefinition } from '../../src/lib/json-schema-args.ts'
 import { inferIntentFromHttp } from '@cli-schema/spec'
@@ -24,14 +24,14 @@ export interface MappedAction {
 }
 
 /**
- * Builds a lookup from YAML dot-notation action names to EsApiDefinitions.
+ * Builds a lookup from YAML dot-notation action names to API definitions.
  *
  * YAML uses `namespace.name` (e.g. "indices.create") or just `name` (e.g. "get").
  * Definitions with `namespace` are keyed as `namespace.name`.
  * Definitions without `namespace` are keyed as just `name`.
  */
-export function buildActionMap (definitions: EsApiDefinition[]): Map<string, EsApiDefinition> {
-  const map = new Map<string, EsApiDefinition>()
+export function buildActionMap (definitions: ApiActionDef[]): Map<string, ApiActionDef> {
+  const map = new Map<string, ApiActionDef>()
   for (const def of definitions) {
     const key = def.namespace != null ? `${def.namespace}.${def.name}` : def.name
     map.set(key, def)
@@ -50,7 +50,8 @@ export function buildActionMap (definitions: EsApiDefinition[]): Map<string, EsA
 export function mapAction (
   action: string,
   params: Record<string, unknown>,
-  actionMap: Map<string, EsApiDefinition>
+  actionMap: Map<string, ApiActionDef>,
+  clientArgs: string[] = ['stack', 'es']
 ): MappedAction | null {
   // YAML tests use underscore notation (e.g. "clear_scroll", "cat.ml_data_frame_analytics")
   // but CLI definitions use kebab-case (e.g. "clear-scroll", "cat.ml-data-frame-analytics").
@@ -59,7 +60,7 @@ export function mapAction (
   const def = actionMap.get(action) ?? actionMap.get(normalizedAction)
   if (def == null) return null
 
-  const args: string[] = ['stack', 'es']
+  const args: string[] = [...clientArgs]
   if (def.namespace != null) args.push(def.namespace)
   args.push(def.name)
 

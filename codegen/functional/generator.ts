@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { EsApiDefinition } from '../../src/es/types.ts'
+import type { ApiActionDef } from './types.ts'
 import {
   YamlFloat,
   type TestFile, type Step, type DoStep, type SetStep, type MatchStep,
@@ -40,10 +40,22 @@ export class UnmappedBodyKeyError extends Error {
 /**
  * Generate a bash test script from a parsed YAML test file.
  */
+export interface GenerateOptions {
+  /** Leading CLI args identifying the client (default ["stack", "es"]). */
+  clientArgs?: string[]
+  /** Preamble lines defining the `$ELASTIC` invocation and `$RESPONSE` (default: the `elastic` binary). */
+  preamble?: string[]
+}
+
+const DEFAULT_PREAMBLE = ['exec < /dev/null', 'ELASTIC="elastic --json"', 'RESPONSE=""']
+
 export function generateScript (
   testFile: TestFile,
-  definitions: EsApiDefinition[]
+  definitions: ApiActionDef[],
+  opts: GenerateOptions = {}
 ): GenerateResult {
+  const clientArgs = opts.clientArgs ?? ['stack', 'es']
+  const preamble = opts.preamble ?? DEFAULT_PREAMBLE
   const actionMap = buildActionMap(definitions)
   const skippedActions: string[] = []
   const lines: string[] = []
@@ -52,15 +64,13 @@ export function generateScript (
   lines.push(`# Generated from ${testFile.sourceFile}`)
   lines.push('set -euo pipefail')
   lines.push('')
-  lines.push('exec < /dev/null')
-  lines.push('ELASTIC="elastic --json"')
-  lines.push('RESPONSE=""')
+  for (const line of preamble) lines.push(line)
   lines.push('')
 
   if (testFile.teardown.length > 0) {
     lines.push('teardown() {')
     const teardownStart = lines.length
-    renderSteps(testFile.teardown, actionMap, lines, skippedActions, '  ')
+    renderSteps(testFile.teardown, actionMap, clientArgs, lines, skippedActions, '  ')
     if (!hasExecutableLine(lines.slice(teardownStart))) {
       lines.push('  :')
     }
@@ -76,13 +86,13 @@ export function generateScript (
 
   if (testFile.setup.length > 0) {
     lines.push('# --- Setup ---')
-    hadSkippedDo = renderSteps(testFile.setup, actionMap, lines, skippedActions, '')
+    hadSkippedDo = renderSteps(testFile.setup, actionMap, clientArgs, lines, skippedActions, '')
     lines.push('')
   }
 
   for (const section of testFile.tests) {
     lines.push(`# --- Test: ${section.name} ---`)
-    renderSteps(section.steps, actionMap, lines, skippedActions, '', hadSkippedDo)
+    renderSteps(section.steps, actionMap, clientArgs, lines, skippedActions, '', hadSkippedDo)
     lines.push('')
   }
 
@@ -168,7 +178,8 @@ function hasExecutableLine (lines: string[]): boolean {
  */
 function renderSteps (
   steps: Step[],
-  actionMap: Map<string, EsApiDefinition>,
+  actionMap: Map<string, ApiActionDef>,
+  clientArgs: string[],
   lines: string[],
   skippedActions: string[],
   indent: string,
@@ -196,7 +207,7 @@ function renderSteps (
       }
       // Only pass allowFailure from the setup→test propagation, not from
       // prior skipped steps within the same section (those are unrelated).
-      const result = renderDo(step, actionMap, lines, skippedActions, indent, initialHadSkippedDo)
+      const result = renderDo(step, actionMap, clientArgs, lines, skippedActions, indent, initialHadSkippedDo)
       if (result === 'skipped') {
         responseFromLastDo = false
         hadSkippedDo = true
@@ -265,7 +276,8 @@ function renderSteps (
  */
 function renderDo (
   step: DoStep,
-  actionMap: Map<string, EsApiDefinition>,
+  actionMap: Map<string, ApiActionDef>,
+  clientArgs: string[],
   lines: string[],
   skippedActions: string[],
   indent: string,
@@ -280,7 +292,7 @@ function renderDo (
     lines.push(`${indent}# NOTE: headers not supported by CLI (${Object.keys(step.headers).join(', ')})`)
   }
 
-  const mapped = mapAction(step.action, step.params, actionMap)
+  const mapped = mapAction(step.action, step.params, actionMap, clientArgs)
   if (mapped == null) {
     skippedActions.push(step.action)
     lines.push(`${indent}# SKIPPED: action "${step.action}" not registered in CLI`)
