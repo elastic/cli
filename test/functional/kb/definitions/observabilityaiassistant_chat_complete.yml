@@ -1,0 +1,43 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana Observability AI Assistant API: send a minimal chat completion request.
+# Creates a .gen-ai connector as a prerequisite.
+# Expects a request error because no real LLM backend is available in CI;
+# the test validates that the CLI correctly constructs and routes the request.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      connectors.delete_actions_connector_id:
+        id: cli-ft-obs-ai-connector
+        ignore: [404]
+---
+"observability ai assistant chat complete":
+  - do:
+      connectors.post_actions_connector_id:
+        id: cli-ft-obs-ai-connector
+        body:
+          connector_type_id: ".gen-ai"
+          name: CLI FT Obs AI Connector
+          config:
+            apiProvider: OpenAI
+            apiUrl: "https://api.openai.com/v1"
+          secrets:
+            apiKey: "placeholder-key"
+  - match: { id: cli-ft-obs-ai-connector }
+
+  - do:
+      catch: request
+      observabilityaiassistant.observability_ai_assistant_chat_complete:
+        body:
+          connectorId: cli-ft-obs-ai-connector
+          persist: false
+          messages:
+            - "@timestamp": "2024-01-01T00:00:00.000Z"
+              message:
+                role: user
+                content: Hello

@@ -1,0 +1,20 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-management-api: get a file from an endpoint.
+# No real endpoint exists in a test environment, so a fake UUID is used and a
+# 404 is expected.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-endpoint-management-api endpoint get file action":
+  - do:
+      catch: missing
+      security-endpoint-management-api.endpoint_get_file_action:
+        body:
+          endpoint_ids:
+            - "00000000-0000-0000-0000-000000000000"
+          parameters:
+            path: "/tmp/test-file.txt"

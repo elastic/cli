@@ -1,0 +1,43 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana SLO API: create an SLO then disable it in the default space.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      slo.create_slo_op:
+        space_id: default
+        body:
+          id: cli-ft-disable-slo
+          name: CLI FT Disable SLO
+          description: Created by functional test
+          indicator:
+            type: sli.kql.custom
+            params:
+              index: "*"
+              timestampField: "@timestamp"
+              good: ""
+              total: ""
+          timeWindow:
+            duration: 7d
+            type: rolling
+          budgetingMethod: occurrences
+          objective:
+            target: 0.99
+---
+teardown:
+  - do:
+      slo.delete_slo_op:
+        space_id: default
+        slo_id: cli-ft-disable-slo
+        ignore: [404]
+---
+"slo disable-slo-op":
+  - do:
+      slo.disable_slo_op:
+        space_id: default
+        slo_id: cli-ft-disable-slo

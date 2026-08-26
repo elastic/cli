@@ -1,0 +1,31 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-timeline-api: resolve a timeline.
+# Creates a timeline in setup, resolves it by ID, and cleans up in teardown.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-timeline-api.create_timelines:
+        body:
+          timeline:
+            title: CLI FT resolve-timeline test
+  - set: { "savedObjectId": timeline_id }
+---
+teardown:
+  - do:
+      security-timeline-api.delete_timelines:
+        body:
+          savedObjectIds:
+            - $timeline_id
+        ignore: [404]
+---
+"security-timeline-api resolve timeline":
+  - do:
+      security-timeline-api.resolve_timeline:
+        id: $timeline_id
+  - is_true: savedObjectId

@@ -1,0 +1,47 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana streams API: unlink an attachment from a stream.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      streams.put_streams_name:
+        name: cli-ft-streams-att-delete
+        body:
+          dashboards: []
+          rules: []
+          stream:
+            description: ""
+            type: wired
+            ingest:
+              lifecycle: {}
+              processing:
+                steps: []
+              settings: {}
+              failure_store: {}
+              wired:
+                fields: {}
+                routing: []
+  - do:
+      streams.put_streams_streamname_attachments_attachmenttype_attachmentid:
+        stream_name: cli-ft-streams-att-delete
+        attachment_type: dashboard
+        attachment_id: cli-ft-dashboard-id
+---
+teardown:
+  - do:
+      streams.delete_streams_name:
+        name: cli-ft-streams-att-delete
+        ignore: [404]
+---
+"streams delete streams streamname attachments attachmenttype attachmentid":
+  - do:
+      streams.delete_streams_streamname_attachments_attachmenttype_attachmentid:
+        stream_name: cli-ft-streams-att-delete
+        attachment_type: dashboard
+        attachment_id: cli-ft-dashboard-id
+  - is_true: ""

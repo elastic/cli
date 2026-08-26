@@ -1,0 +1,44 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana SLO API: create an SLO then find it in the default space.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      slo.delete_slo_op:
+        space_id: default
+        slo_id: cli-ft-find-slo
+        ignore: [404]
+---
+"slo find-slos-op":
+  - do:
+      slo.create_slo_op:
+        space_id: default
+        body:
+          id: cli-ft-find-slo
+          name: CLI FT Find SLO
+          description: Created by functional test
+          indicator:
+            type: sli.kql.custom
+            params:
+              index: "*"
+              timestampField: "@timestamp"
+              good: ""
+              total: ""
+          timeWindow:
+            duration: 7d
+            type: rolling
+          budgetingMethod: occurrences
+          objective:
+            target: 0.99
+  - match: { id: cli-ft-find-slo }
+
+  - do:
+      slo.find_slos_op:
+        space_id: default
+  - gt: { total: 0 }
+  - is_true: results

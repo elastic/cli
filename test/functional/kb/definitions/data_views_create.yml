@@ -1,0 +1,24 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana data-views API: create a data view.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      data-views.delete_data_view_default:
+        viewId: $view_id
+        ignore: [404]
+---
+"data views create":
+  - do:
+      data-views.create_data_view_default:
+        body:
+          data_view: { title: "cli-ft-dv-create-*", name: cli-ft-dv-create }
+  - set: { data_view.id: view_id }
+  - is_true: data_view.id
+  - match: { data_view.title: "cli-ft-dv-create-*" }
+  - match: { data_view.name: cli-ft-dv-create }

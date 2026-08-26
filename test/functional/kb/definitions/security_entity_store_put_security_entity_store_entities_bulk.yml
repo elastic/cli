@@ -1,0 +1,37 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-store: bulk update entities.
+# Verifies that put-security-entity-store-entities-bulk updates an entity without error.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-entity-store.post_security_entity_store_entities_entitytype:
+        entity_type: user
+        body:
+          user:
+            name: cli-ft-entity-bulk-update
+  - set: { entity.id: entity_id }
+---
+teardown:
+  - do:
+      security-entity-store.delete_security_entity_store_entities:
+        entity_id: $entity_id
+        ignore: [404]
+---
+"security-entity-store put security entity store entities bulk":
+  - do:
+      security-entity-store.put_security_entity_store_entities_bulk:
+        body:
+          entities:
+            - type: user
+              doc:
+                entity:
+                  id: $entity_id
+                user:
+                  name: cli-ft-entity-bulk-update
+  - is_true: ""

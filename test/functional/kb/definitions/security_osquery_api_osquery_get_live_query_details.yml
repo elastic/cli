@@ -1,0 +1,24 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-osquery-api: get live query details.
+# Creates a live query in setup to obtain a valid action_id; no teardown needed
+# because no delete endpoint exists for live queries.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-osquery-api.osquery_create_live_query:
+        body:
+          query: SELECT * FROM uptime LIMIT 1
+          agent_all: true
+  - set: { data.action_id: live_query_id }
+---
+"security-osquery-api get live query details":
+  - do:
+      security-osquery-api.osquery_get_live_query_details:
+        id: $live_query_id
+  - is_true: data

@@ -1,0 +1,40 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana streams API: get attachments for a stream.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      streams.put_streams_name:
+        name: cli-ft-streams-attachments
+        body:
+          dashboards: []
+          rules: []
+          stream:
+            description: ""
+            type: wired
+            ingest:
+              lifecycle: {}
+              processing:
+                steps: []
+              settings: {}
+              failure_store: {}
+              wired:
+                fields: {}
+                routing: []
+---
+teardown:
+  - do:
+      streams.delete_streams_name:
+        name: cli-ft-streams-attachments
+        ignore: [404]
+---
+"streams get streams streamname attachments":
+  - do:
+      streams.get_streams_streamname_attachments:
+        stream_name: cli-ft-streams-attachments
+  - is_true: attachments

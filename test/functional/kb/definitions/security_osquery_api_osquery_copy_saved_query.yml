@@ -1,0 +1,37 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-osquery-api: copy a saved query.
+# Creates a source saved query in setup, copies it in the test, and deletes both in teardown.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-osquery-api.osquery_create_saved_query:
+        body:
+          id: cli-ft-osquery-copy-saved-query-source
+          query: SELECT * FROM uptime LIMIT 1
+          interval: "3600"
+          description: Created by elastic-cli functional test
+  - set: { "data.id": source_saved_query_id }
+---
+teardown:
+  - do:
+      security-osquery-api.osquery_delete_saved_query:
+        id: $source_saved_query_id
+        ignore: [404]
+  - do:
+      security-osquery-api.osquery_delete_saved_query:
+        id: $copy_saved_query_id
+        ignore: [404]
+---
+"security-osquery-api copy saved query":
+  - do:
+      security-osquery-api.osquery_copy_saved_query:
+        id: $source_saved_query_id
+  - set: { "data.id": copy_saved_query_id }
+  - is_true: data.id
+  - is_true: data.query

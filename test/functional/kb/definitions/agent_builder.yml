@@ -1,0 +1,47 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana agent-builder A2A API: create agent / send A2A task / delete agent.
+# Uses a fixed agent ID and a minimal JSON-RPC 2.0 tasks/send payload.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      agent-builder.delete_agent_builder_agents_id:
+        id: cli-ft-ab-agent
+        ignore: [404]
+---
+"agent-builder A2A send task":
+  - do:
+      agent-builder.post_agent_builder_agents:
+        body:
+          id: cli-ft-ab-agent
+          name: CLI FT Agent
+          description: Created by functional test
+          configuration:
+            tools: []
+  - match: { id: cli-ft-ab-agent }
+  - match: { name: CLI FT Agent }
+
+  - do:
+      agent-builder.post_agent_builder_a2a_agentid:
+        agentId: cli-ft-ab-agent
+        body:
+          jsonrpc: "2.0"
+          id: "1"
+          method: tasks/send
+          params:
+            id: cli-ft-task-1
+            message:
+              role: user
+              parts:
+                - type: text
+                  text: ping
+  - is_true: id
+
+  - do:
+      agent-builder.delete_agent_builder_agents_id:
+        id: cli-ft-ab-agent

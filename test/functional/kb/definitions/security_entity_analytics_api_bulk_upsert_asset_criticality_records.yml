@@ -1,0 +1,26 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-analytics-api: bulk upsert asset criticality records.
+# Verifies bulk-upsert-asset-criticality-records creates a record and returns no errors.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      security-entity-analytics-api.delete_asset_criticality_record:
+        id_value: cli-ft-bulk-upsert-asset-criticality-test
+        id_field: host.name
+        ignore: [404]
+---
+"security-entity-analytics-api bulk upsert asset criticality records":
+  - do:
+      security-entity-analytics-api.bulk_upsert_asset_criticality_records:
+        body:
+          records:
+            - id_field: host.name
+              id_value: cli-ft-bulk-upsert-asset-criticality-test
+              criticality_level: low_impact
+  - is_false: errors

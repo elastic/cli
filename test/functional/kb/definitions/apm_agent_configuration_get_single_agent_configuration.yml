@@ -1,0 +1,31 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana apm-agent-configuration API: create a configuration then fetch it via get-single-agent-configuration.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      apm-agent-configuration.create_update_agent_configuration:
+        body:
+          service:
+            name: cli-ft-apm-svc
+          settings:
+            transaction_sample_rate: "0.5"
+---
+teardown:
+  - do:
+      apm-agent-configuration.delete_agent_configuration:
+        body:
+          service:
+            name: cli-ft-apm-svc
+        ignore: [404]
+---
+"apm-agent-configuration get single agent configuration":
+  - do:
+      apm-agent-configuration.get_single_agent_configuration:
+        name: cli-ft-apm-svc
+  - is_true: settings

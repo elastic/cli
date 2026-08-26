@@ -1,0 +1,22 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agents API: delete an uploaded agent file by file ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agents.get_fleet_agents: {}
+  - set: { "items.0.id": agent_id }
+  - do:
+      elastic-agents.get_fleet_agents_agentid_uploads:
+        agent_id: $agent_id
+  - set: { "items.0.id": file_id }
+---
+"elastic-agents delete fleet agents files fileid":
+  - do:
+      elastic-agents.delete_fleet_agents_files_fileid:
+        file_id: $file_id

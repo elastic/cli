@@ -1,0 +1,32 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-analytics-api: privmon bulk upload users CSV.
+# Initializes the Privilege Monitoring Engine in setup, writes a minimal CSV
+# to a temp file, uploads it, and verifies no errors were returned.
+# Teardown deletes the monitoring engine to clean up.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-entity-analytics-api.init_monitoring_engine: {}
+  - write_temp:
+      variable: csv_file
+      content: "username\ncli-ft-priv-mon-csv-user\n"
+      suffix: .csv
+---
+teardown:
+  - do:
+      security-entity-analytics-api.delete_monitoring_engine:
+        ignore: [404]
+---
+"security-entity-analytics-api privmon bulk upload users CSV":
+  - do:
+      security-entity-analytics-api.privmon_bulk_upload_users_c_s_v:
+        body:
+          file: $csv_file
+  - is_false: errors
+  - match: { stats.uploaded: 1 }

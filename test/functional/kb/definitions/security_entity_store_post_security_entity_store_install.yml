@@ -1,0 +1,19 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-store API: install the Entity Store.
+# Verifies that post-security-entity-store-install succeeds without error.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      security-entity-store.post_security_entity_store_uninstall:
+        ignore: [404]
+---
+"security-entity-store install":
+  - do:
+      security-entity-store.post_security_entity_store_install:
+  - is_true: ""

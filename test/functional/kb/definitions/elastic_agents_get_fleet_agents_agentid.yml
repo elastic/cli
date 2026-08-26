@@ -1,0 +1,20 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agents API: get a single Fleet agent by ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agents.get_fleet_agents: {}
+  - set: { "items.0.id": agent_id }
+---
+"elastic-agents get fleet agents agentid":
+  - do:
+      elastic-agents.get_fleet_agents_agentid:
+        agent_id: $agent_id
+  - is_true: item.id
+  - is_true: item.status

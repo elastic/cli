@@ -1,0 +1,30 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana connectors API: list all connectors.
+# Creates one .index connector to ensure a non-empty list, then verifies
+# the response contains at least one item with an id.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      connectors.delete_actions_connector_id:
+        id: e4f5a6b7-c8d9-0123-efab-c01234567803
+        ignore: [404]
+---
+"connectors list all":
+  - do:
+      connectors.post_actions_connector_id:
+        id: e4f5a6b7-c8d9-0123-efab-c01234567803
+        body:
+          connector_type_id: ".index"
+          name: CLI FT List Connectors
+          config: { index: "cli-ft-list-connectors-*" }
+  - match: { id: e4f5a6b7-c8d9-0123-efab-c01234567803 }
+
+  - do:
+      connectors.get_actions_connectors: {}
+  - is_true: 0.id

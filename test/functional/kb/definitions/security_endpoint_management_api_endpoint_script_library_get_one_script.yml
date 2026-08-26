@@ -1,0 +1,36 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-management-api: get a single script from the endpoint script library.
+# Creates a script in setup and retrieves it by ID in the test.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - write_temp:
+      variable: script_file
+      content: "#!/bin/bash\necho hello\n"
+      suffix: .sh
+  - do:
+      security-endpoint-management-api.endpoint_script_library_create_script:
+        body:
+          file: $script_file
+          fileType: script
+          name: cli-ft-ep-script-lib-get-one
+          platform: linux
+  - set: { id: script_id }
+---
+teardown:
+  - do:
+      security-endpoint-management-api.endpoint_script_library_delete_script:
+        script_id: $script_id
+        ignore: [404]
+---
+"security-endpoint-management-api get one endpoint script library script":
+  - do:
+      security-endpoint-management-api.endpoint_script_library_get_one_script:
+        script_id: $script_id
+  - is_true: id
+  - is_true: name

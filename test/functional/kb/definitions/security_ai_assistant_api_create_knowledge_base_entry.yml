@@ -1,0 +1,26 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-ai-assistant-api: create a knowledge base entry (document type).
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      security-ai-assistant-api.delete_knowledge_base_entry:
+        id: $entry_id
+        ignore: [404]
+---
+"security-ai-assistant-api create knowledge base entry":
+  - do:
+      security-ai-assistant-api.create_knowledge_base_entry:
+        body:
+          name: CLI FT create-knowledge-base-entry test
+          type: document
+          kbResource: user
+          source: test-source
+          text: This is a test knowledge base entry created by the CLI functional test.
+  - set: { id: entry_id }
+  - is_true: id

@@ -1,0 +1,28 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-ai-assistant-api: read conversation.
+# Creates a conversation in setup, then verifies read-conversation returns it.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-ai-assistant-api.create_conversation:
+        body:
+          title: CLI FT read-conversation test
+  - set: { id: conv_id }
+---
+teardown:
+  - do:
+      security-ai-assistant-api.delete_conversation:
+        id: $conv_id
+        ignore: [404]
+---
+"security-ai-assistant-api read conversation":
+  - do:
+      security-ai-assistant-api.read_conversation:
+        id: $conv_id
+  - is_true: id

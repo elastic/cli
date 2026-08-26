@@ -17,7 +17,7 @@
     "test:unit": "node --max-old-space-size=8192 --import tsx/esm --test --test-timeout=60000 --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=90 --test-coverage-functions=90 --test-coverage-include='src/**/*.ts' --test-coverage-include='packages/*/src/**/*.ts' --test-coverage-exclude='src/es/api-manifest.ts' --test-coverage-exclude='src/cloud/serverless-apis.ts' --test-coverage-exclude='node_modules/**'",
     "test:lint": "eslint src packages test",
     "codegen:functional": "npx tsx codegen/functional/es.ts --tests-dir ../elasticsearch-clients-tests/tests",
-    "codegen:functional:kb": "npx tsx codegen/functional/kb.ts",
+    "codegen:functional:kb": "rm -rf test/functional/kb/generated && npx tsx codegen/functional/kb.ts",
     "test:functional:es": "bash test/functional/es/run.sh",
     "test:functional:cloud": "bash test/functional/cloud/smoke.sh",
     "test:functional:kb": "npm run codegen:functional:kb && bash test/functional/kb/generated/run.sh",

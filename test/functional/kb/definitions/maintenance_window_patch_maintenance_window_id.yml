@@ -1,0 +1,34 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana maintenance-window API: create a maintenance window then update its title via PATCH.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      maintenance-window.post_maintenance_window:
+        body:
+          title: CLI FT Patch Maintenance Window
+          schedule:
+            custom:
+              start: "2030-01-01T00:00:00.000Z"
+              duration: 1h
+  - set: { id: mw_id }
+---
+teardown:
+  - do:
+      maintenance-window.delete_maintenance_window_id:
+        id: $mw_id
+        ignore: [404]
+---
+"maintenance-window patch by id":
+  - do:
+      maintenance-window.patch_maintenance_window_id:
+        id: $mw_id
+        body:
+          title: CLI FT Patch Maintenance Window Updated
+  - match: { id: $mw_id }
+  - match: { title: CLI FT Patch Maintenance Window Updated }

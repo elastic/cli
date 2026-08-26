@@ -1,0 +1,27 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agent-binary-download-sources API: create then delete an agent binary download source.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      elastic-agent-binary-download-sources.delete_fleet_agent_download_sources_sourceid:
+        source_id: $source_id
+        ignore: [404]
+---
+"elastic-agent-binary-download-sources delete fleet agent download source by ID":
+  - do:
+      elastic-agent-binary-download-sources.post_fleet_agent_download_sources:
+        body:
+          name: cli-ft-download-source-delete
+          host: https://artifacts.elastic.co/downloads/
+  - set: { item.id: source_id }
+  - is_true: item.id
+
+  - do:
+      elastic-agent-binary-download-sources.delete_fleet_agent_download_sources_sourceid:
+        source_id: $source_id

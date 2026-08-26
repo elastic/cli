@@ -1,0 +1,39 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana alerting API: find rules (no filter, default pagination).
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-find-rule
+        ignore: [404]
+---
+"alerting find rules":
+  - do:
+      alerting.post_alerting_rule_id:
+        id: cli-ft-find-rule
+        body:
+          consumer: stackAlerts
+          name: CLI FT Find Rule
+          rule_type_id: ".es-query"
+          schedule: { interval: "1m" }
+          params:
+            searchType: esqlQuery
+            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            timeWindowSize: 5
+            timeWindowUnit: m
+            threshold: [0]
+            thresholdComparator: ">"
+            size: 0
+            timeField: "@timestamp"
+  - match: { id: cli-ft-find-rule }
+
+  - do:
+      alerting.get_alerting_rules_find: {}
+  - gt: { total: 0 }
+  - is_true: data

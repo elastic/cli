@@ -1,0 +1,18 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana apm-annotations API: create a service annotation.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"apm-annotations create annotation":
+  - do:
+      apm-annotations.create_annotation:
+        body:
+          serviceName: cli-ft-apm-svc
+          "@timestamp": "2024-01-01T00:00:00.000Z"
+          service:
+            version: "1.0.0"
+  - is_true: ""

@@ -1,0 +1,28 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana markdowns API: get a markdown library item by ID.
+---
+requires:
+  serverless: false
+  stack: false
+---
+teardown:
+  - do:
+      markdowns.delete_markdowns_id:
+        id: $markdown_id
+        ignore: [404]
+---
+"markdowns get markdowns id":
+  - do:
+      markdowns.post_markdowns:
+        body:
+          title: test-markdown-get-id
+          content: "# Hello"
+  - set: { id: markdown_id }
+  - is_true: id
+
+  - do:
+      markdowns.get_markdowns_id:
+        id: $markdown_id
+  - is_true: id

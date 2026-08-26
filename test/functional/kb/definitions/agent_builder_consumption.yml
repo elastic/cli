@@ -1,0 +1,34 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana agent-builder API: create agent / get consumption data / delete agent.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      agent-builder.delete_agent_builder_agents_id:
+        id: cli-ft-ab-consumption
+        ignore: [404]
+---
+"agent-builder get agent consumption":
+  - do:
+      agent-builder.post_agent_builder_agents:
+        body:
+          id: cli-ft-ab-consumption
+          name: CLI FT Agent Consumption
+          description: Created by functional test
+          configuration:
+            tools: []
+  - match: { id: cli-ft-ab-consumption }
+
+  - do:
+      agent-builder.post_agent_builder_agents_agent_id_consumption:
+        agent_id: cli-ft-ab-consumption
+  - is_true: ""
+
+  - do:
+      agent-builder.delete_agent_builder_agents_id:
+        id: cli-ft-ab-consumption

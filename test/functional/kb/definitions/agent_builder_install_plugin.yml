@@ -1,0 +1,23 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana agent-builder API: install a plugin.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      agent-builder.delete_agent_builder_plugins_pluginid:
+        pluginId: $plugin_id
+        force: true
+        ignore: [404]
+---
+"agent-builder install plugin":
+  - do:
+      agent-builder.post_agent_builder_plugins_install:
+        body:
+          url: "https://github.com/elastic/kibana-agent-builder-plugin-example/releases/download/v0.0.1/plugin.zip"
+  - set: { id: plugin_id }
+  - is_true: id

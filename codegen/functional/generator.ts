@@ -8,7 +8,8 @@ import {
   YamlFloat,
   type TestFile, type Step, type DoStep, type SetStep, type MatchStep,
   type IsTrueStep, type IsFalseStep, type LengthStep,
-  type GtStep, type GteStep, type LtStep, type LteStep, type ContainsStep
+  type GtStep, type GteStep, type LtStep, type LteStep, type ContainsStep,
+  type WriteNdjsonTempStep
 } from './types.ts'
 import { buildActionMap, mapAction } from './mapper.ts'
 import type { MappedAction } from './mapper.ts'
@@ -68,12 +69,23 @@ export function generateScript (
   lines.push('')
 
   if (testFile.teardown.length > 0) {
-    lines.push('teardown() {')
-    const teardownStart = lines.length
-    renderSteps(testFile.teardown, actionMap, clientArgs, lines, skippedActions, '  ')
-    if (!hasExecutableLine(lines.slice(teardownStart))) {
-      lines.push('  :')
+    const teardownBody: string[] = []
+    renderSteps(testFile.teardown, actionMap, clientArgs, teardownBody, skippedActions, '  ')
+    if (!hasExecutableLine(teardownBody)) {
+      teardownBody.push('  :')
     }
+    // The teardown runs via `trap teardown EXIT`, so it fires even when a
+    // setup/test `do` fails before the `set` that assigns a stash var. Under
+    // `set -u` an unassigned reference would abort teardown with "unbound
+    // variable", masking the real failure. Initialize any stash var the
+    // teardown references (excluding preamble-defined vars) to empty first.
+    // Scoped to teardown only; main-body refs still fail loud as real bugs.
+    const preambleVars = new Set(preamble.flatMap(declaredVar))
+    for (const v of collectVarRefs(teardownBody)) {
+      if (!preambleVars.has(v)) lines.push(`${v}=""`)
+    }
+    lines.push('teardown() {')
+    lines.push(...teardownBody)
     lines.push('}')
     lines.push('trap teardown EXIT')
     lines.push('')
@@ -125,6 +137,8 @@ export function generateRunner (scriptPaths: string[]): string {
   lines.push('PASSED=0')
   lines.push('FAILED=0')
   lines.push('ERRORS=""')
+  lines.push('BAIL=0')
+  lines.push('[ "${1:-}" = "--bail" ] && BAIL=1')
   lines.push('')
 
   for (const p of scriptPaths) {
@@ -136,6 +150,7 @@ export function generateRunner (scriptPaths: string[]): string {
     lines.push(`  ERRORS="$ERRORS\\n  FAIL: ${p}"`)
     lines.push(`  echo "FAIL: ${p}"`)
     lines.push('  echo "$OUTPUT" | tail -5')
+    lines.push('  if [ "$BAIL" -eq 1 ]; then exit 1; fi')
     lines.push('fi')
     lines.push('')
   }
@@ -166,6 +181,35 @@ function hasExecutableLine (lines: string[]): boolean {
     const trimmed = line.trim()
     return trimmed.length > 0 && !trimmed.startsWith('#')
   })
+}
+
+/**
+ * Extract the variable name declared by a preamble line (e.g. `RESPONSE=""`
+ * -> `RESPONSE`), or nothing if the line is not an assignment.
+ */
+function declaredVar (line: string): string[] {
+  const m = line.match(/^([A-Z_][A-Z0-9_]*)=/)
+  return m?.[1] != null ? [m[1]] : []
+}
+
+/**
+ * Collect distinct bash variable names referenced (`$VAR` / `${VAR}`) across
+ * the given lines, in first-seen order. Assignment targets like `VAR=$(...)`
+ * are not matched (the `$` there belongs to `$(`).
+ */
+function collectVarRefs (lines: string[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const line of lines) {
+    for (const m of line.matchAll(/\$\{?([A-Z_][A-Z0-9_]*)\}?/g)) {
+      const v = m[1]
+      if (v != null && !seen.has(v)) {
+        seen.add(v)
+        out.push(v)
+      }
+    }
+  }
+  return out
 }
 
 /**
@@ -229,6 +273,9 @@ function renderSteps (
           unsetVars.add(varName.toUpperCase().replace(/[^A-Z0-9]/g, '_'))
         }
       }
+      if (step.kind === 'write_ndjson_temp') {
+        unsetVars.add(step.varName.toUpperCase().replace(/[^A-Z0-9]/g, '_'))
+      }
       lines.push(`${indent}# SKIPPED: ${step.kind} assertion follows skipped do-step`)
       continue
     }
@@ -240,6 +287,10 @@ function renderSteps (
         for (const varName of Object.values(step.assignments)) {
           unsetVars.delete(varName.toUpperCase().replace(/[^A-Z0-9]/g, '_'))
         }
+        break
+      case 'write_ndjson_temp':
+        renderWriteNdjsonTemp(step, lines, indent)
+        unsetVars.delete(step.varName.toUpperCase().replace(/[^A-Z0-9]/g, '_'))
         break
       case 'match':
         renderMatch(step, lines, indent)
@@ -437,6 +488,17 @@ function renderSet (step: SetStep, lines: string[], indent: string): void {
     const jqPath = toJqPath(responsePath)
     lines.push(`${indent}${bashVar}=$(echo "$RESPONSE" | jq -r '${jqPath}')`)
   }
+}
+
+function renderWriteNdjsonTemp (step: WriteNdjsonTempStep, lines: string[], indent: string): void {
+  const bashVar = step.varName.toUpperCase().replace(/[^A-Z0-9]/g, '_')
+  // The Kibana client decodes an NDJSON export response into a JSON array; jq
+  // reconstitutes one NDJSON line per element so the import step can pass the
+  // temp file via --file. Kibana rejects any file extension other than
+  // .ndjson, and mktemp yields a random suffix, so place the file in a temp
+  // dir with an explicit .ndjson name.
+  lines.push(`${indent}${bashVar}=$(mktemp -d)/export.ndjson`)
+  lines.push(`${indent}echo "$RESPONSE" | jq -c '.[]' > "$${bashVar}"`)
 }
 
 function renderMatch (step: MatchStep, lines: string[], indent: string): void {

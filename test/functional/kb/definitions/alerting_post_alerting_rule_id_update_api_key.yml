@@ -1,0 +1,47 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana alerting API: update the API key for a rule and verify the rule is still accessible.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-update-api-key
+        ignore: [404]
+---
+"alerting update api key for rule":
+  - do:
+      alerting.post_alerting_rule_id:
+        id: cli-ft-rule-update-api-key
+        body:
+          consumer: stackAlerts
+          name: CLI FT Rule Update API Key
+          rule_type_id: ".es-query"
+          schedule: { interval: "1m" }
+          params:
+            searchType: esqlQuery
+            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            timeWindowSize: 5
+            timeWindowUnit: m
+            threshold: [0]
+            thresholdComparator: ">"
+            size: 0
+            timeField: "@timestamp"
+  - match: { id: cli-ft-rule-update-api-key }
+
+  - do:
+      alerting.post_alerting_rule_id_update_api_key:
+        id: cli-ft-rule-update-api-key
+
+  - do:
+      alerting.get_alerting_rule_id:
+        id: cli-ft-rule-update-api-key
+  - match: { id: cli-ft-rule-update-api-key }
+
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-update-api-key

@@ -1,0 +1,19 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-analytics-api: init monitoring engine.
+# Verifies that init-monitoring-engine initializes the Privilege Monitoring Engine.
+# Teardown deletes it to clean up.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      security-entity-analytics-api.delete_monitoring_engine:
+        ignore: [404]
+---
+"security-entity-analytics-api init monitoring engine":
+  - do:
+      security-entity-analytics-api.init_monitoring_engine: {}

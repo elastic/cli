@@ -74,6 +74,20 @@ const testDefs: EsApiDefinition[] = [
       },
       required: ['index'],
     }
+  },
+  {
+    name: 'upgrade',
+    namespace: 'agents',
+    description: 'Upgrade an agent',
+    method: 'POST',
+    path: '/agents/{agentId}/upgrade',
+    input: {
+      type: 'object',
+      properties: {
+        agentId: { type: 'string', 'x-found-in': 'path' },
+      },
+      required: ['agentId'],
+    }
   }
 ]
 
@@ -135,6 +149,12 @@ describe('mapAction', () => {
     const result = mapAction('indices.create', { index: 'test', wait_for_active_shards: '1' }, actionMap)
     assert.ok(result)
     assert.ok(result.cliArgs.includes('--wait-for-active-shards'))
+  })
+
+  it('maps a snake_case param to a camelCase schema key (e.g. agent_id -> agentId)', () => {
+    const result = mapAction('agents.upgrade', { agent_id: 'a1' }, actionMap)
+    assert.ok(result)
+    assert.deepStrictEqual(result.cliArgs, ['stack', 'es', 'agents', 'upgrade', '--agent-id', 'a1'])
   })
 
   it('appends --yes for a DELETE action so non-interactive test runs do not prompt', () => {

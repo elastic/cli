@@ -1,0 +1,28 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-ai-assistant-api: create a prompt via bulk action.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      security-ai-assistant-api.perform_prompts_bulk_action:
+        body:
+          delete:
+            ids:
+              - $prompt_id
+        ignore: [404]
+---
+"security-ai-assistant-api perform prompts bulk action":
+  - do:
+      security-ai-assistant-api.perform_prompts_bulk_action:
+        body:
+          create:
+            - name: CLI FT bulk-action prompt
+              content: This is a test prompt created by the CLI functional test.
+              promptType: quick
+  - set: { "attributes.results.created.0.id": prompt_id }
+  - is_true: attributes.results.created

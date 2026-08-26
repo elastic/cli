@@ -167,6 +167,17 @@ describe('generateScript', () => {
     )
   })
 
+  it('initializes teardown stash vars so the EXIT trap cannot abort on set -u', () => {
+    const content = readFileSync(join(fixturesDir, 'teardown-var.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'teardown-var.yml')
+    const result = generateScript(testFile, testDefs)
+    const beforeFn = result.script.split('teardown() {')[0]
+    assert.ok(
+      beforeFn.includes('ID=""'),
+      'stash vars referenced by teardown must be initialized before the trap'
+    )
+  })
+
   it('produces teardown that parses as valid bash when all steps are skipped', async () => {
     const { spawnSync } = await import('node:child_process')
     const content = readFileSync(join(fixturesDir, 'skipped-teardown.yml'), 'utf-8')

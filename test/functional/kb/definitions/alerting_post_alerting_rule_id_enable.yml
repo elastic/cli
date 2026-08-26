@@ -1,0 +1,58 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana alerting API: enable a rule and verify it is active.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-enable
+        ignore: [404]
+---
+"alerting enable rule":
+  - do:
+      alerting.post_alerting_rule_id:
+        id: cli-ft-rule-enable
+        body:
+          consumer: stackAlerts
+          name: CLI FT Rule Enable
+          rule_type_id: ".es-query"
+          schedule: { interval: "1m" }
+          params:
+            searchType: esqlQuery
+            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            timeWindowSize: 5
+            timeWindowUnit: m
+            threshold: [0]
+            thresholdComparator: ">"
+            size: 0
+            timeField: "@timestamp"
+  - match: { id: cli-ft-rule-enable }
+  - is_true: enabled
+
+  - do:
+      alerting.post_alerting_rule_id_disable:
+        id: cli-ft-rule-enable
+
+  - do:
+      alerting.get_alerting_rule_id:
+        id: cli-ft-rule-enable
+  - match: { enabled: false }
+
+  - do:
+      alerting.post_alerting_rule_id_enable:
+        id: cli-ft-rule-enable
+
+  - do:
+      alerting.get_alerting_rule_id:
+        id: cli-ft-rule-enable
+  - match: { id: cli-ft-rule-enable }
+  - match: { enabled: true }
+
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-enable

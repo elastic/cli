@@ -1,0 +1,32 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana connectors API: execute a connector.
+# Uses the built-in .server-log connector type (ships with all Kibana deployments).
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      connectors.delete_actions_connector_id:
+        id: e5f6a7b8-c9d0-1234-ef01-234567890005
+        ignore: [404]
+---
+"execute connector":
+  - do:
+      connectors.post_actions_connector_id:
+        id: e5f6a7b8-c9d0-1234-ef01-234567890005
+        body:
+          connector_type_id: ".server-log"
+          name: CLI FT Execute Connector
+
+  - do:
+      connectors.post_actions_connector_id_execute:
+        id: e5f6a7b8-c9d0-1234-ef01-234567890005
+        body:
+          params:
+            message: CLI functional test execute
+
+  - match: { status: ok }

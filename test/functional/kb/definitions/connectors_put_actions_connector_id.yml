@@ -1,0 +1,35 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana connectors API: create a connector then update it by ID.
+# Uses the built-in .index connector type (ships with all Kibana deployments).
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      connectors.delete_actions_connector_id:
+        id: d4e5f6a7-b8c9-0123-def0-123456789004
+        ignore: [404]
+---
+"connectors put by ID":
+  - do:
+      connectors.post_actions_connector_id:
+        id: d4e5f6a7-b8c9-0123-def0-123456789004
+        body:
+          connector_type_id: ".index"
+          name: CLI FT Connector Put Original
+          config: { index: "cli-ft-connector-put-*" }
+  - match: { id: d4e5f6a7-b8c9-0123-def0-123456789004 }
+
+  - do:
+      connectors.put_actions_connector_id:
+        id: d4e5f6a7-b8c9-0123-def0-123456789004
+        body:
+          name: CLI FT Connector Put Updated
+          config: { index: "cli-ft-connector-put-*" }
+  - match: { id: d4e5f6a7-b8c9-0123-def0-123456789004 }
+  - match: { name: CLI FT Connector Put Updated }
+  - match: { connector_type_id: ".index" }

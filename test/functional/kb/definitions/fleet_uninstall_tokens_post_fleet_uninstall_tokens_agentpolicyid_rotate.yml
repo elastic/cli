@@ -1,0 +1,30 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-uninstall-tokens API: rotate an uninstall token for an agent policy.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agent-policies.post_fleet_agent_policies:
+        body:
+          name: cli-ft-fleet-uninstall-token-rotate
+          namespace: testprefix
+          is_protected: true
+  - set: { "item.id": policy_id }
+---
+teardown:
+  - do:
+      elastic-agent-policies.post_fleet_agent_policies_delete:
+        body:
+          agentPolicyId: $policy_id
+        ignore: [404]
+---
+"fleet-uninstall-tokens post fleet uninstall tokens agentpolicyid rotate":
+  - do:
+      fleet-uninstall-tokens.post_fleet_uninstall_tokens_agentpolicyid_rotate:
+        agent_policy_id: $policy_id
+  - is_true: message

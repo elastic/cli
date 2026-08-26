@@ -1,0 +1,26 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana links API: create a links library item / verify response / delete item.
+---
+requires:
+  serverless: false
+  stack: false
+---
+teardown:
+  - do:
+      links.delete_links_id:
+        id: $created_id
+        ignore: [404]
+---
+"links create links library item":
+  - do:
+      links.post_links:
+        body:
+          title: CLI FT Links Post
+          links:
+            - type: externalLink
+              destination: https://elastic.co
+  - set: { id: created_id }
+  - is_true: id
+  - match: { data.title: CLI FT Links Post }

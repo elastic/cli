@@ -1,0 +1,30 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-analytics-api: delete priv-mon user.
+# Initializes the Privilege Monitoring Engine and creates a user in setup,
+# then verifies delete-priv-mon-user removes it. Teardown deletes the engine to clean up.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-entity-analytics-api.init_monitoring_engine: {}
+  - do:
+      security-entity-analytics-api.create_priv_mon_user:
+        body:
+          user:
+            name: cli-ft-delete-priv-mon-user
+  - set: { "id": user_id }
+---
+teardown:
+  - do:
+      security-entity-analytics-api.delete_monitoring_engine:
+        ignore: [404]
+---
+"security-entity-analytics-api delete priv-mon user":
+  - do:
+      security-entity-analytics-api.delete_priv_mon_user:
+        id: $user_id

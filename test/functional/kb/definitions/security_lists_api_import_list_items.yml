@@ -1,0 +1,40 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-lists-api: create a keyword value list, write a temp file with
+# one value, then import it via import-list-items and verify the list is returned.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-lists-api.create_list_index:
+  - do:
+      security-lists-api.create_list:
+        body:
+          id: cli-ft-sec-lists-import-items-list
+          name: CLI FT Import List Items List
+          description: Created by functional test
+          type: keyword
+  - write_temp:
+      variable: items_file
+      content: "test-import-value\n"
+      suffix: .txt
+---
+teardown:
+  - do:
+      security-lists-api.delete_list:
+        id: cli-ft-sec-lists-import-items-list
+        ignore: [404]
+---
+"security-lists-api import list items":
+  - do:
+      security-lists-api.import_list_items:
+        list_id: cli-ft-sec-lists-import-items-list
+        type: keyword
+        body:
+          file: $items_file
+  - match: { id: cli-ft-sec-lists-import-items-list }
+  - match: { type: keyword }

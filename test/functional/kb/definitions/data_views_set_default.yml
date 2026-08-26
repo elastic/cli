@@ -1,0 +1,29 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana data-views API: set the default data view.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      data-views.create_data_view_default:
+        body:
+          data_view: { title: "cli-ft-dv-setdefault-*", name: cli-ft-dv-setdefault }
+  - set: { data_view.id: view_id }
+---
+teardown:
+  - do:
+      data-views.delete_data_view_default:
+        viewId: $view_id
+        ignore: [404]
+---
+"data views set default":
+  - do:
+      data-views.set_default_datail_view_default:
+        body:
+          data_view_id: $view_id
+          force: true
+  - is_true: acknowledged

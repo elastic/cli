@@ -1,0 +1,33 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana tags API: upsert a tag by ID.
+---
+requires:
+  serverless: false
+  stack: false
+---
+setup:
+  - do:
+      tags.post_tags:
+        body:
+          name: cli-ft-tags-put-before
+          color: "#112233"
+  - set: { id: tag_id }
+---
+teardown:
+  - do:
+      tags.delete_tags_id:
+        id: $tag_id
+        ignore: [404]
+---
+"tags put tags id":
+  - do:
+      tags.put_tags_id:
+        id: $tag_id
+        body:
+          name: cli-ft-tags-put-after
+          color: "#334455"
+  - is_true: id
+  - match: { data.name: cli-ft-tags-put-after }
+  - match: { data.color: "#334455" }

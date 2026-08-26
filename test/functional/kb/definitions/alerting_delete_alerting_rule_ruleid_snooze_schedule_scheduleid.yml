@@ -1,0 +1,53 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana alerting API: create a rule and snooze schedule, then delete the snooze schedule.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-del-snooze-sched
+        ignore: [404]
+---
+"alerting delete snooze schedule":
+  - do:
+      alerting.post_alerting_rule_id:
+        id: cli-ft-rule-del-snooze-sched
+        body:
+          consumer: stackAlerts
+          name: CLI FT Rule Del Snooze Sched
+          rule_type_id: ".es-query"
+          schedule: { interval: "1m" }
+          params:
+            searchType: esqlQuery
+            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            timeWindowSize: 5
+            timeWindowUnit: m
+            threshold: [0]
+            thresholdComparator: ">"
+            size: 0
+            timeField: "@timestamp"
+  - match: { id: cli-ft-rule-del-snooze-sched }
+
+  - do:
+      alerting.post_alerting_rule_id_snooze_schedule:
+        id: cli-ft-rule-del-snooze-sched
+        schedule:
+          custom:
+            start: "2099-01-01T00:00:00.000Z"
+            duration: "1h"
+  - set: { "schedule.id": schedule_id }
+  - is_true: schedule.id
+
+  - do:
+      alerting.delete_alerting_rule_ruleid_snooze_schedule_scheduleid:
+        rule_id: cli-ft-rule-del-snooze-sched
+        schedule_id: $schedule_id
+
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-del-snooze-sched

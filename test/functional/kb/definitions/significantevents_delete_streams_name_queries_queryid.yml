@@ -1,0 +1,32 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana significantevents API: delete a query from a stream.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      significantevents.put_streams_name_queries_queryid:
+        name: cli-ft-se-stream
+        query_id: cli-ft-se-del-query
+        body:
+          title: CLI FT Delete Query Test
+          esql:
+            query: "FROM cli-ft-se-stream | LIMIT 10"
+---
+teardown:
+  - do:
+      significantevents.delete_streams_name_queries_queryid:
+        name: cli-ft-se-stream
+        query_id: cli-ft-se-del-query
+        ignore: [404]
+---
+"significantevents delete streams name queries queryid":
+  - do:
+      significantevents.delete_streams_name_queries_queryid:
+        name: cli-ft-se-stream
+        query_id: cli-ft-se-del-query
+  - is_true: ""

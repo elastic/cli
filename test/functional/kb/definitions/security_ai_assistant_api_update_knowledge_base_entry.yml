@@ -1,0 +1,38 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-ai-assistant-api: update knowledge base entry.
+# Creates an entry in setup, updates its text, then verifies the change.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-ai-assistant-api.create_knowledge_base_entry:
+        body:
+          name: CLI FT update-knowledge-base-entry test
+          type: document
+          kbResource: user
+          source: test-source
+          text: Original text for CLI functional test.
+  - set: { id: entry_id }
+---
+teardown:
+  - do:
+      security-ai-assistant-api.delete_knowledge_base_entry:
+        id: $entry_id
+        ignore: [404]
+---
+"security-ai-assistant-api update knowledge base entry":
+  - do:
+      security-ai-assistant-api.update_knowledge_base_entry:
+        id: $entry_id
+        body:
+          name: CLI FT update-knowledge-base-entry test
+          type: document
+          kbResource: user
+          source: test-source
+          text: Updated text for CLI functional test.
+  - is_true: id

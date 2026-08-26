@@ -1,0 +1,27 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-timeline-api: create a timeline.
+# Captures the generated timeline ID and deletes it in teardown.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      security-timeline-api.delete_timelines:
+        body:
+          savedObjectIds:
+            - $timeline_id
+        ignore: [404]
+---
+"security-timeline-api create timelines":
+  - do:
+      security-timeline-api.create_timelines:
+        body:
+          timeline:
+            title: CLI FT create-timelines test
+  - set: { "savedObjectId": timeline_id }
+  - is_true: savedObjectId
+  - match: { title: CLI FT create-timelines test }

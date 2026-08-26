@@ -1,0 +1,25 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-timeline-api: persist note route.
+# Verifies persist-note-route creates a standalone note and returns its ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      security-timeline-api.delete_note:
+        note_id: $note_id
+        ignore: [404]
+---
+"security-timeline-api persist note route":
+  - do:
+      security-timeline-api.persist_note_route:
+        body:
+          note:
+            timelineId: ""
+            note: CLI FT persist-note-route test
+  - set: { "note.noteId": note_id }
+  - is_true: note.noteId

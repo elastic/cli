@@ -1,0 +1,31 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana spaces API: create a space then update it.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      spaces.post_spaces_space:
+        body:
+          id: cli-ft-spaces-put
+          name: CLI FT Spaces Put
+---
+teardown:
+  - do:
+      spaces.delete_spaces_space_id:
+        id: cli-ft-spaces-put
+        ignore: [404]
+---
+"update space":
+  - do:
+      spaces.put_spaces_space_id:
+        id: cli-ft-spaces-put
+        body:
+          id: cli-ft-spaces-put
+          name: CLI FT Spaces Put Updated
+  - match: { id: cli-ft-spaces-put }
+  - match: { name: CLI FT Spaces Put Updated }

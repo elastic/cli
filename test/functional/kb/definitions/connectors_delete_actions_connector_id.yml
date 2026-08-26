@@ -1,0 +1,29 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana connectors API: create a connector then delete it by ID.
+# Uses the built-in .index connector type (ships with all Kibana deployments).
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      connectors.delete_actions_connector_id:
+        id: a1b2c3d4-e5f6-7890-abcd-ef1234567801
+        ignore: [404]
+---
+"connectors delete by ID":
+  - do:
+      connectors.post_actions_connector_id:
+        id: a1b2c3d4-e5f6-7890-abcd-ef1234567801
+        body:
+          connector_type_id: ".index"
+          name: CLI FT Connector Delete
+          config: { index: "cli-ft-connector-delete-*" }
+  - match: { id: a1b2c3d4-e5f6-7890-abcd-ef1234567801 }
+
+  - do:
+      connectors.delete_actions_connector_id:
+        id: a1b2c3d4-e5f6-7890-abcd-ef1234567801

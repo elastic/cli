@@ -1,0 +1,19 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agents API: get a Fleet agent's effective config.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agents.get_fleet_agents: {}
+  - set: { "items.0.id": agent_id }
+---
+"elastic-agents get fleet agents agentid effective config":
+  - do:
+      elastic-agents.get_fleet_agents_agentid_effective_config:
+        agent_id: $agent_id
+  - is_true: config

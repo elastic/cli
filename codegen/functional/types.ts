@@ -70,6 +70,7 @@ export type Step =
   | LteStep
   | ContainsStep
   | SkipStep
+  | WriteNdjsonTempStep
 
 export interface DoStep {
   kind: 'do'
@@ -148,4 +149,15 @@ export interface ContainsStep {
 /** No-op — the skip action is parsed but does not produce output. */
 export interface SkipStep {
   kind: 'skip'
+}
+
+/**
+ * Writes the current `$RESPONSE` (an NDJSON export decoded to a JSON array by
+ * the Kibana client) back to a temp NDJSON file and binds its path to a
+ * variable, so a later import step can pass it via `--file`.
+ */
+export interface WriteNdjsonTempStep {
+  kind: 'write_ndjson_temp'
+  /** Variable name to bind the temp file path to (e.g. "export_file"). */
+  varName: string
 }

@@ -1,0 +1,36 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-exceptions-api: create an endpoint list item then delete it.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      security-endpoint-exceptions-api.delete_endpoint_list_item:
+        item_id: cli-ft-endpoint-list-item-delete
+        ignore: [404]
+---
+"security-endpoint-exceptions-api delete endpoint list item":
+  - do:
+      security-endpoint-exceptions-api.create_endpoint_list: {}
+  - do:
+      security-endpoint-exceptions-api.create_endpoint_list_item:
+        body:
+          item_id: cli-ft-endpoint-list-item-delete
+          name: CLI FT Endpoint List Item Delete
+          description: Test item for delete test
+          type: simple
+          entries:
+            - type: match
+              field: process.name
+              value: test.exe
+              operator: included
+  - match: { item_id: cli-ft-endpoint-list-item-delete }
+
+  - do:
+      security-endpoint-exceptions-api.delete_endpoint_list_item:
+        item_id: cli-ft-endpoint-list-item-delete
+  - is_true: item_id

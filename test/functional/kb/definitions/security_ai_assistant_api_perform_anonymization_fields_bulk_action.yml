@@ -1,0 +1,26 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-ai-assistant-api: create an anonymization field via bulk action.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      security-ai-assistant-api.perform_anonymization_fields_bulk_action:
+        body:
+          delete:
+            ids:
+              - $field_id
+        ignore: [404]
+---
+"security-ai-assistant-api perform anonymization fields bulk action":
+  - do:
+      security-ai-assistant-api.perform_anonymization_fields_bulk_action:
+        body:
+          create:
+            - field: cli.ft.test.anonymization.field
+  - set: { "attributes.results.created.0.id": field_id }
+  - is_true: attributes.results.created

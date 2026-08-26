@@ -1,0 +1,31 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agent-policies API: get outputs for agent policies by IDs.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agent-policies.post_fleet_agent_policies:
+        body:
+          name: cli-ft-ea-policy-post-outputs
+          namespace: testprefix
+  - set: { "item.id": policy_id }
+---
+teardown:
+  - do:
+      elastic-agent-policies.post_fleet_agent_policies_delete:
+        body:
+          agentPolicyId: $policy_id
+        ignore: [404]
+---
+"elastic-agent-policies post fleet agent policies outputs":
+  - do:
+      elastic-agent-policies.post_fleet_agent_policies_outputs:
+        body:
+          ids:
+            - $policy_id
+  - is_true: items

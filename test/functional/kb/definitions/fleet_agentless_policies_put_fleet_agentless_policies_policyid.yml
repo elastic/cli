@@ -1,0 +1,40 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-agentless-policies API: update a managed integration (agentless policy) by ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-package-manager-epm.get_fleet_epm_packages_pkgname:
+        pkg_name: cloud_security_posture
+  - set: { "item.version": pkg_version }
+  - do:
+      fleet-agentless-policies.post_fleet_agentless_policies:
+        body:
+          name: cli-ft-agentless-policy-put
+          package:
+            name: cloud_security_posture
+            version: $pkg_version
+  - set: { "item.id": policy_id }
+---
+teardown:
+  - do:
+      fleet-agentless-policies.delete_fleet_agentless_policies_policyid:
+        policy_id: $policy_id
+        ignore: [404]
+---
+"fleet-agentless-policies put fleet agentless policies policyid":
+  - do:
+      fleet-agentless-policies.put_fleet_agentless_policies_policyid:
+        policy_id: $policy_id
+        body:
+          name: cli-ft-agentless-policy-put-updated
+          package:
+            name: cloud_security_posture
+            version: $pkg_version
+  - is_true: item.id
+  - is_true: item.name

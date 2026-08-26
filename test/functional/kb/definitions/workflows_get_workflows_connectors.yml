@@ -1,0 +1,12 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: get available connectors.
+---
+requires:
+  serverless: true
+---
+"workflows get workflows connectors":
+  - do:
+      workflows.get_workflows_connectors: {}
+  - is_true: ""

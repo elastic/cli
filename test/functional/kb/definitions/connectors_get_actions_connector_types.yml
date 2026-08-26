@@ -1,0 +1,15 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana connectors API: list available connector types.
+# No setup required — built-in connector types are always present.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"connector types list":
+  - do:
+      connectors.get_actions_connector_types: {}
+  - is_true: 0.id
+  - is_true: 0.name

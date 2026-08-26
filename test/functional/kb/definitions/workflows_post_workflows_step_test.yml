@@ -1,0 +1,26 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: test a single workflow step in isolation.
+# No persistent state is created; no teardown required.
+---
+requires:
+  serverless: true
+---
+"workflows post workflows step test":
+  - do:
+      workflows.post_workflows_step_test:
+        body:
+          stepId: my-step
+          contextOverride: {}
+          workflowYaml: |
+            version: '1'
+            name: CLI FT Workflow Step Test
+            triggers:
+              - type: manual
+            steps:
+              - id: my-step
+                type: waitForInput
+                configuration:
+                  inputSchema: {}
+  - is_true: ""

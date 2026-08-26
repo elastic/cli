@@ -1,0 +1,26 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana significantevents API: upsert a query on a stream.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      significantevents.delete_streams_name_queries_queryid:
+        name: cli-ft-se-stream
+        query_id: cli-ft-se-put-query
+        ignore: [404]
+---
+"significantevents put streams name queries queryid":
+  - do:
+      significantevents.put_streams_name_queries_queryid:
+        name: cli-ft-se-stream
+        query_id: cli-ft-se-put-query
+        body:
+          title: CLI FT Put Query Test
+          esql:
+            query: "FROM cli-ft-se-stream | LIMIT 10"
+  - is_true: ""

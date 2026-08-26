@@ -1,0 +1,31 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana agent-builder API: delete tool by ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      agent-builder.delete_agent_builder_tools_toolid:
+        tool_id: cli-ft-ab-del-tool
+        force: true
+        ignore: [404]
+---
+"agent-builder delete tool by ID":
+  - do:
+      agent-builder.post_agent_builder_tools:
+        body:
+          id: cli-ft-ab-del-tool
+          type: esql
+          description: Created by functional test
+          configuration:
+            query: FROM logs-* | LIMIT 10
+            params: {}
+  - match: { id: cli-ft-ab-del-tool }
+
+  - do:
+      agent-builder.delete_agent_builder_tools_toolid:
+        tool_id: cli-ft-ab-del-tool

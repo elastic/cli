@@ -1,0 +1,37 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-osquery-api: delete a pack.
+# Creates a pack in setup, deletes it in the test, and verifies deletion.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      security-osquery-api.osquery_delete_packs:
+        id: $pack_id
+        ignore: [404]
+---
+"security-osquery-api delete pack":
+  - do:
+      security-osquery-api.osquery_create_packs:
+        body:
+          name: cli-ft-osquery-delete-pack
+          enabled: true
+          interval: 3600
+          queries:
+            uptime:
+              query: SELECT * FROM uptime LIMIT 1
+  - set: { "data.id": pack_id }
+  - is_true: data.id
+
+  - do:
+      security-osquery-api.osquery_delete_packs:
+        id: $pack_id
+
+  - do:
+      catch: missing
+      security-osquery-api.osquery_delete_packs:
+        id: $pack_id

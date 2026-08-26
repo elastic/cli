@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-internals API: check Fleet permissions.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"fleet-internals get fleet check permissions":
+  - do:
+      fleet-internals.get_fleet_check_permissions: {}
+  - is_true: success

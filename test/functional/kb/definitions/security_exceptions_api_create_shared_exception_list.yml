@@ -1,0 +1,27 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-exceptions-api: create a shared exception list.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      security-exceptions-api.delete_exception_list:
+        list_id: $list_id
+        namespace_type: agnostic
+        ignore: [404]
+---
+"security-exceptions-api create shared exception list":
+  - do:
+      security-exceptions-api.create_shared_exception_list:
+        body:
+          name: CLI FT Shared Exception List
+          description: Created by functional test
+  - is_true: id
+  - is_true: list_id
+  - set: { list_id: list_id }
+  - match: { name: CLI FT Shared Exception List }
+  - match: { namespace_type: agnostic }

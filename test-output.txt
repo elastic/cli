@@ -1,0 +1,1078 @@
+FAIL: security_attack_discovery_api_attack_discovery_find.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_attack_discovery_api_bulk_delete_attack_discovery_schedules.sh
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Saved object [action/cli-ft-attack-discovery-bulk-del-connector] not found\"}"}}
+FAIL: security_attack_discovery_api_bulk_disable_attack_discovery_schedules.sh
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Saved object [action/cli-ft-attack-discovery-bulk-dis-connector] not found\"}"}}
+FAIL: security_attack_discovery_api_bulk_enable_attack_discovery_schedules.sh
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Saved object [action/cli-ft-attack-discovery-bulk-en-connector] not found\"}"}}
+FAIL: security_attack_discovery_api_create_attack_discovery_schedules.sh
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Saved object [action/cli-ft-attack-discovery-sched-connector] not found\"}"}}
+FAIL: security_attack_discovery_api_delete_attack_discovery_schedules.sh
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Saved object [action/cli-ft-attack-discovery-del-sched-connector] not found\"}"}}
+FAIL: security_attack_discovery_api_disable_attack_discovery_schedules.sh
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Saved object [action/cli-ft-attack-discovery-dis-connector] not found\"}"}}
+FAIL: security_attack_discovery_api_enable_attack_discovery_schedules.sh
+    at async file:///home/joshmock/Code/elastic-cli/dist/cli.js:244:5 {
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+FAIL: security_attack_discovery_api_find_attack_discovery_schedules.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_attack_discovery_api_get_attack_discovery_generations.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_attack_discovery_api_get_attack_discovery_schedules.sh
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Saved object [action/cli-ft-attack-discovery-get-sched-connector] not found\"}"}}
+FAIL: security_attack_discovery_api_post_attack_discovery_bulk.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_attack_discovery_api_update_attack_discovery_schedules.sh
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Saved object [action/cli-ft-attack-discovery-upd-sched-connector] not found\"}"}}
+FAIL: security_detections_api_create_rule.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_delete_rule.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_export_rules.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_find_rules.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_import_rules.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_patch_rule.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_perform_rules_bulk_action.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_read_privileges.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_read_rule.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_read_tags.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_rule_preview.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_search_alerts.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_search_attacks.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_set_alert_assignees.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_set_alert_tags.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_set_alerts_status.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_set_attacks_assignees.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_set_attacks_status.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_set_attacks_tags.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_detections_api_update_rule.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_endpoint_exceptions_api_create_endpoint_list.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_endpoint_exceptions_api_create_endpoint_list_item.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_endpoint_exceptions_api_delete_endpoint_list_item.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_endpoint_exceptions_api_find_endpoint_list_items.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_endpoint_exceptions_api_read_endpoint_list_item.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_endpoint_exceptions_api_update_endpoint_list_item.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_endpoint_management_api_endpoint_get_actions_list.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_endpoint_management_api_endpoint_get_actions_state.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_endpoint_management_api_endpoint_get_actions_status.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_endpoint_management_api_endpoint_script_library_create_script.sh
+    at async file:///home/joshmock/Code/elastic-cli/dist/cli.js:244:5 {
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+FAIL: security_endpoint_management_api_endpoint_script_library_delete_script.sh
+    at async file:///home/joshmock/Code/elastic-cli/dist/cli.js:244:5 {
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+FAIL: security_endpoint_management_api_endpoint_script_library_get_one_script.sh
+    at async file:///home/joshmock/Code/elastic-cli/dist/cli.js:244:5 {
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+FAIL: security_endpoint_management_api_endpoint_script_library_list_scripts.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_endpoint_management_api_endpoint_script_library_patch_update_script.sh
+    at async file:///home/joshmock/Code/elastic-cli/dist/cli.js:244:5 {
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+FAIL: security_endpoint_management_api_get_endpoint_metadata_list.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_assign_watchlist_entities.sh
+    at async file:///home/joshmock/Code/elastic-cli/dist/cli.js:244:5 {
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+FAIL: security_entity_analytics_api_bulk_upsert_asset_criticality_records.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_clean_up_risk_engine.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_configure_risk_engine_saved_object.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_create_asset_criticality_record.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_create_priv_mon_user.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_create_watchlist.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_delete_asset_criticality_record.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_delete_monitoring_engine.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_delete_priv_mon_user.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_disable_monitoring_engine.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_find_asset_criticality_records.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_get_asset_criticality_record.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_get_privileged_access_detection_package_status.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_get_risk_score_history.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_get_watchlist.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_init_monitoring_engine.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_install_privileged_access_detection_package.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_list_priv_mon_users.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_list_watchlists.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_priv_mon_health.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_priv_mon_privileges.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_privmon_bulk_upload_users_c_s_v.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_schedule_monitoring_engine.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_schedule_risk_engine_now.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_unassign_watchlist_entities.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_update_priv_mon_user.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_update_watchlist.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_analytics_api_upload_watchlist_csv.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_entity_store_delete_security_entity_store_entities.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"Entity Store is not installed. Install it via POST /api/security/entity_store/install or from the Security Entity Store page, then retry.\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Entity ID '' not found\"}"}}
+FAIL: security_entity_store_get_security_entity_store_resolution_group.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"Entity Store is not installed. Install it via POST /api/security/entity_store/install or from the Security Entity Store page, then retry.\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Entity ID '' not found\"}"}}
+FAIL: security_entity_store_post_security_entity_store_entities_entitytype.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"Entity Store is not installed. Install it via POST /api/security/entity_store/install or from the Security Entity Store page, then retry.\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Entity ID '' not found\"}"}}
+FAIL: security_entity_store_post_security_entity_store_install.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[request body]: Invalid input: expected object, received null\"}"}}
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[request body]: Invalid input: expected object, received null\"}"}}
+FAIL: security_entity_store_post_security_entity_store_resolution_link.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"Entity Store is not installed. Install it via POST /api/security/entity_store/install or from the Security Entity Store page, then retry.\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Entity ID '' not found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Entity ID '' not found\"}"}}
+FAIL: security_entity_store_post_security_entity_store_resolution_unlink.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"Entity Store is not installed. Install it via POST /api/security/entity_store/install or from the Security Entity Store page, then retry.\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Entity ID '' not found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Entity ID '' not found\"}"}}
+FAIL: security_entity_store_post_security_entity_store_uninstall.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[request body]: Invalid input: expected object, received null\"}"}}
+FAIL: security_entity_store_put_security_entity_store.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Entity store is not installed\"}"}}
+FAIL: security_entity_store_put_security_entity_store_entities_bulk.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"Entity Store is not installed. Install it via POST /api/security/entity_store/install or from the Security Entity Store page, then retry.\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Entity ID '' not found\"}"}}
+FAIL: security_entity_store_put_security_entity_store_entities_entitytype.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"Entity Store is not installed. Install it via POST /api/security/entity_store/install or from the Security Entity Store page, then retry.\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Entity ID '' not found\"}"}}
+FAIL: security_entity_store_put_security_entity_store_start.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[request body]: Invalid input: expected object, received null\"}"}}
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[request body]: Invalid input: expected object, received null\"}"}}
+FAIL: security_entity_store_put_security_entity_store_stop.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[request body]: Invalid input: expected object, received null\"}"}}
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[request body]: Invalid input: expected object, received null\"}"}}
+FAIL: security_exceptions_api_create_exception_list.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_exceptions_api_create_exception_list_item.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_exceptions_api_create_rule_exception_list_items.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_exceptions_api_create_shared_exception_list.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_exceptions_api_delete_exception_list.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_exceptions_api_delete_exception_list_item.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_exceptions_api_duplicate_exception_list.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_exceptions_api_export_exception_list.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_exceptions_api_find_exception_list_items.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_exceptions_api_find_exception_lists.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_exceptions_api_import_exception_list.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_exceptions_api_read_exception_list.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_exceptions_api_read_exception_list_item.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_exceptions_api_read_exception_list_summary.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_exceptions_api_update_exception_list.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_exceptions_api_update_exception_list_item.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_create_list.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_create_list_index.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_create_list_item.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_delete_list.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_delete_list_index.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_delete_list_item.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_export_list_items.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_find_list_items.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_find_lists.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_import_list_items.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_patch_list.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_patch_list_item.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_read_list.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_read_list_index.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_read_list_item.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_read_list_privileges.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_update_list.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_lists_api_update_list_item.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_osquery_api_osquery_copy_packs.sh
+    at async file:///home/joshmock/Code/elastic-cli/dist/cli.js:244:5 {
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+FAIL: security_osquery_api_osquery_copy_saved_query.sh
+    at async file:///home/joshmock/Code/elastic-cli/dist/cli.js:244:5 {
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+FAIL: security_osquery_api_osquery_create_live_query.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_osquery_api_osquery_create_packs.sh
+    at async file:///home/joshmock/Code/elastic-cli/dist/cli.js:244:5 {
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+FAIL: security_osquery_api_osquery_create_saved_query.sh
+    at async file:///home/joshmock/Code/elastic-cli/dist/cli.js:244:5 {
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+FAIL: security_osquery_api_osquery_delete_packs.sh
+    at async file:///home/joshmock/Code/elastic-cli/dist/cli.js:244:5 {
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+FAIL: security_osquery_api_osquery_delete_saved_query.sh
+    at async file:///home/joshmock/Code/elastic-cli/dist/cli.js:244:5 {
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+FAIL: security_osquery_api_osquery_export_live_query_results.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_osquery_api_osquery_find_live_queries.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_osquery_api_osquery_find_packs.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_osquery_api_osquery_find_saved_queries.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_osquery_api_osquery_get_live_query_details.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_osquery_api_osquery_get_live_query_results.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_osquery_api_osquery_get_packs_details.sh
+    at async file:///home/joshmock/Code/elastic-cli/dist/cli.js:244:5 {
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+FAIL: security_osquery_api_osquery_get_saved_query_details.sh
+    at async file:///home/joshmock/Code/elastic-cli/dist/cli.js:244:5 {
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+FAIL: security_osquery_api_osquery_get_unified_history.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_osquery_api_osquery_update_packs.sh
+    at async file:///home/joshmock/Code/elastic-cli/dist/cli.js:244:5 {
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+FAIL: security_osquery_api_osquery_update_saved_query.sh
+    at async file:///home/joshmock/Code/elastic-cli/dist/cli.js:244:5 {
+  code: 'input_error'
+}
+
+Node.js v25.9.0
+FAIL: security_solution_initialization_api_initialize_security_solution.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_timeline_api_clean_draft_timelines.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_timeline_api_copy_timeline.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_timeline_api_create_timelines.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_timeline_api_delete_note.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_timeline_api_delete_timelines.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_timeline_api_export_timelines.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_timeline_api_get_draft_timelines.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_timeline_api_get_notes.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_timeline_api_get_timeline.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_timeline_api_get_timelines.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_timeline_api_import_timelines.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_timeline_api_install_prepacked_timelines.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_timeline_api_patch_timeline.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_timeline_api_persist_favorite_route.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_timeline_api_persist_note_route.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_timeline_api_persist_pinned_event_route.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: security_timeline_api_resolve_timeline.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: significantevents_delete_streams_name_queries_queryid.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: significantevents_get_streams_name_queries.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: significantevents_get_streams_name_significant_events.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: significantevents_post_streams_name_queries_bulk.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: significantevents_put_streams_name_queries_queryid.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: slo_bulk_delete_op.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: slo_bulk_snapshot_op.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: slo_create_slo_op.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: slo_delete_rollup_data_op.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: slo_delete_slo_instances_op.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: slo_delete_slo_op.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: slo_disable_slo_op.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: slo_enable_slo_op.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: slo_find_slos_op.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: slo_get_definitions_op.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: slo_get_slo_op.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: slo_get_snapshot_op.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: slo_reset_slo_op.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: slo_update_slo_op.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+FAIL: streams_delete_streams_name.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n
+     \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid inp
+ut: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n
+   ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"pat
+h\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n
+           \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n
+   \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n
+           \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n
+ }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid
+input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n
+            ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n
+         \\\"message\\\": \\\"Invalid input\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invali
+d_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\
+\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\
+\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undef
+ined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"i
+nvalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\
+"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n
+  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_t
+ype\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\":
+ \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n
+    ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"in
+valid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"classic\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_
+value\\\",\\n          \\\"values\\\": [\\n            \\\"classic\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\\\"classic\\\\\\\"\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"code\\\": \\\"invalid_value\\\",\\n          \\\"values\\\": [\\n            \\\"query\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\
+\\"query\\\\\\\"\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"query\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected ob
+ject, received undefined\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\": \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Cannot find stream cli-ft-streams-delete\",\"attributes\":{}}"}}
+FAIL: streams_delete_streams_streamname_attachments_attachmenttype_attachmentid.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n
+     \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid inp
+ut: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n
+   ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"pat
+h\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n
+           \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n
+   \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n
+           \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n
+ }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid
+input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n
+            ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n
+         \\\"message\\\": \\\"Invalid input\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invali
+d_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\
+\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\
+\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undef
+ined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"i
+nvalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\
+"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n
+  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_t
+ype\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\":
+ \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n
+    ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"in
+valid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"classic\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_
+value\\\",\\n          \\\"values\\\": [\\n            \\\"classic\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\\\"classic\\\\\\\"\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"code\\\": \\\"invalid_value\\\",\\n          \\\"values\\\": [\\n            \\\"query\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\
+\\"query\\\\\\\"\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"query\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected ob
+ject, received undefined\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\": \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Cannot find stream cli-ft-streams-att-delete\",\"attributes\":{}}"}}
+FAIL: streams_get_streams_name.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n
+     \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid inp
+ut: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n
+   ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"pat
+h\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n
+           \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n
+   \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n
+           \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n
+ }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid
+input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n
+            ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n
+         \\\"message\\\": \\\"Invalid input\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invali
+d_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\
+\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\
+\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undef
+ined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"i
+nvalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\
+"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n
+  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_t
+ype\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\":
+ \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n
+    ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"in
+valid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"classic\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_
+value\\\",\\n          \\\"values\\\": [\\n            \\\"classic\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\\\"classic\\\\\\\"\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"code\\\": \\\"invalid_value\\\",\\n          \\\"values\\\": [\\n            \\\"query\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\
+\\"query\\\\\\\"\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"query\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected ob
+ject, received undefined\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\": \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Cannot find stream cli-ft-streams-get-name\",\"attributes\":{}}"}}
+FAIL: streams_get_streams_name_ingest.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n
+     \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid inp
+ut: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n
+   ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"pat
+h\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n
+           \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n
+   \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n
+           \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n
+ }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid
+input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n
+            ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n
+         \\\"message\\\": \\\"Invalid input\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invali
+d_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\
+\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\
+\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undef
+ined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"i
+nvalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\
+"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n
+  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_t
+ype\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\":
+ \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n
+    ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"in
+valid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"classic\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_
+value\\\",\\n          \\\"values\\\": [\\n            \\\"classic\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\\\"classic\\\\\\\"\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"code\\\": \\\"invalid_value\\\",\\n          \\\"values\\\": [\\n            \\\"query\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\
+\\"query\\\\\\\"\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"query\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected ob
+ject, received undefined\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\": \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Cannot find stream cli-ft-streams-get-ingest\",\"attributes\":{}}"}}
+FAIL: streams_get_streams_name_query.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n
+     \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid inp
+ut: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n
+   ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"pat
+h\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n
+           \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n
+   \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n
+           \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n
+ }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid
+input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n
+            ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n
+         \\\"message\\\": \\\"Invalid input\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invali
+d_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\
+\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\
+\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undef
+ined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"i
+nvalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\
+"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n
+  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_t
+ype\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\":
+ \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n
+    ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"in
+valid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"classic\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_
+value\\\",\\n          \\\"values\\\": [\\n            \\\"classic\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\\\"classic\\\\\\\"\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"code\\\": \\\"invalid_value\\\",\\n          \\\"values\\\": [\\n            \\\"query\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\
+\\"query\\\\\\\"\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"query\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected ob
+ject, received undefined\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\": \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Cannot find stream cli-ft-streams-get-query\",\"attributes\":{}}"}}
+FAIL: streams_get_streams_streamname_attachments.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n
+     \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid inp
+ut: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n
+   ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"pat
+h\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n
+           \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n
+   \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n
+           \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n
+ }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid
+input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n
+            ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n
+         \\\"message\\\": \\\"Invalid input\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invali
+d_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\
+\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\
+\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undef
+ined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"i
+nvalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\
+"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n
+  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_t
+ype\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\":
+ \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n
+    ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"in
+valid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"classic\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_
+value\\\",\\n          \\\"values\\\": [\\n            \\\"classic\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\\\"classic\\\\\\\"\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"code\\\": \\\"invalid_value\\\",\\n          \\\"values\\\": [\\n            \\\"query\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\
+\\"query\\\\\\\"\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"query\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected ob
+ject, received undefined\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\": \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Cannot find stream cli-ft-streams-attachments\",\"attributes\":{}}"}}
+FAIL: streams_post_streams_name_content_export.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n
+     \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid inp
+ut: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n
+   ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"pat
+h\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n
+           \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n
+   \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n
+           \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n
+ }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid
+input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n
+            ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n
+         \\\"message\\\": \\\"Invalid input\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invali
+d_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\
+\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\
+\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undef
+ined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"i
+nvalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\
+"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n
+  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_t
+ype\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\":
+ \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n
+    ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"in
+valid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"classic\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_
+value\\\",\\n          \\\"values\\\": [\\n            \\\"classic\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\\\"classic\\\\\\\"\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"code\\\": \\\"invalid_value\\\",\\n          \\\"values\\\": [\\n            \\\"query\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\
+\\"query\\\\\\\"\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"query\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected ob
+ject, received undefined\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\": \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Cannot find stream cli-ft-streams-content-export\",\"attributes\":{}}"}}
+FAIL: streams_post_streams_name_content_import.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n
+     \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid inp
+ut: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n
+   ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"pat
+h\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n
+           \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n
+   \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n
+           \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n
+ }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid
+input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n
+            ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n
+         \\\"message\\\": \\\"Invalid input\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invali
+d_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\
+\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\
+\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undef
+ined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"i
+nvalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\
+"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n
+  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_t
+ype\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\":
+ \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n
+    ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"in
+valid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"classic\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_
+value\\\",\\n          \\\"values\\\": [\\n            \\\"classic\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\\\"classic\\\\\\\"\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"code\\\": \\\"invalid_value\\\",\\n          \\\"values\\\": [\\n            \\\"query\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\
+\\"query\\\\\\\"\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"query\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected ob
+ject, received undefined\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\": \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Cannot find stream cli-ft-streams-content-import\",\"attributes\":{}}"}}
+FAIL: streams_post_streams_name_fork.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n
+     \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid inp
+ut: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n
+   ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"pat
+h\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n
+           \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n
+   \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n
+           \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n
+ }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid
+input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n
+            ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n
+         \\\"message\\\": \\\"Invalid input\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invali
+d_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\
+\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\
+\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undef
+ined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"i
+nvalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\
+"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n
+  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_t
+ype\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\":
+ \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n
+    ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"in
+valid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"classic\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_
+value\\\",\\n          \\\"values\\\": [\\n            \\\"classic\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\\\"classic\\\\\\\"\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"code\\\": \\\"invalid_value\\\",\\n          \\\"values\\\": [\\n            \\\"query\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\
+\\"query\\\\\\\"\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"query\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected ob
+ject, received undefined\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\": \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Cannot find stream cli-ft-streams-fork-parent.child\",\"attributes\":{}}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Cannot find stream cli-ft-streams-fork-parent\",\"attributes\":{}}"}}
+FAIL: streams_post_streams_streamname_attachments_bulk.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n
+     \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid inp
+ut: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n
+   ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"pat
+h\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n
+           \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n
+   \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n
+           \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n
+ }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid
+input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n
+            ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n
+         \\\"message\\\": \\\"Invalid input\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invali
+d_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\
+\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\
+\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undef
+ined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"i
+nvalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\
+"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n
+  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_t
+ype\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\":
+ \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n
+    ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"in
+valid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"classic\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_
+value\\\",\\n          \\\"values\\\": [\\n            \\\"classic\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\\\"classic\\\\\\\"\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"code\\\": \\\"invalid_value\\\",\\n          \\\"values\\\": [\\n            \\\"query\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\
+\\"query\\\\\\\"\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"query\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected ob
+ject, received undefined\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\": \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Cannot find stream cli-ft-streams-att-bulk\",\"attributes\":{}}"}}
+FAIL: streams_put_streams_name.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n
+     \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid inp
+ut: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n
+   ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"pat
+h\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n
+           \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n
+   \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n
+           \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n
+ }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid
+input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n
+            ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n
+         \\\"message\\\": \\\"Invalid input\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invali
+d_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\
+\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\
+\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undef
+ined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"i
+nvalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\
+"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n
+  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_t
+ype\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\":
+ \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n
+    ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"in
+valid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"classic\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_
+value\\\",\\n          \\\"values\\\": [\\n            \\\"classic\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\\\"classic\\\\\\\"\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"code\\\": \\\"invalid_value\\\",\\n          \\\"values\\\": [\\n            \\\"query\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\
+\\"query\\\\\\\"\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"query\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected ob
+ject, received undefined\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\": \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Cannot find stream cli-ft-streams-put\",\"attributes\":{}}"}}
+FAIL: streams_put_streams_name_ingest.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n
+     \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid inp
+ut: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n
+   ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"pat
+h\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n
+           \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n
+   \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n
+           \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n
+ }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid
+input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n
+            ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n
+         \\\"message\\\": \\\"Invalid input\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invali
+d_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\
+\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\
+\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undef
+ined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"i
+nvalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\
+"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n
+  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_t
+ype\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\":
+ \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n
+    ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"in
+valid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"classic\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_
+value\\\",\\n          \\\"values\\\": [\\n            \\\"classic\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\\\"classic\\\\\\\"\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"code\\\": \\\"invalid_value\\\",\\n          \\\"values\\\": [\\n            \\\"query\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\
+\\"query\\\\\\\"\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"query\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected ob
+ject, received undefined\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\": \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Cannot find stream cli-ft-streams-put-ingest\",\"attributes\":{}}"}}
+FAIL: streams_put_streams_name_query.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n
+     \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid inp
+ut: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n
+   ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"pat
+h\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n
+           \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n
+   \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n
+           \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n
+ }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid
+input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n
+            ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n
+         \\\"message\\\": \\\"Invalid input\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invali
+d_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\
+\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\
+\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undef
+ined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"i
+nvalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\
+"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n
+  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_t
+ype\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\":
+ \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n
+    ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"in
+valid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"classic\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_
+value\\\",\\n          \\\"values\\\": [\\n            \\\"classic\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\\\"classic\\\\\\\"\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"code\\\": \\\"invalid_value\\\",\\n          \\\"values\\\": [\\n            \\\"query\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\
+\\"query\\\\\\\"\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"query\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected ob
+ject, received undefined\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\": \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Cannot find stream cli-ft-streams-put-query\",\"attributes\":{}}"}}
+FAIL: streams_put_streams_streamname_attachments_attachmenttype_attachmentid.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n
+     \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid inp
+ut: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n
+   ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"pat
+h\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n
+           \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n
+   \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n
+           \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n
+ }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid
+input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n
+            ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n
+         \\\"message\\\": \\\"Invalid input\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"code\\\": \\\"invalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invali
+d_type\\\",\\n                \\\"path\\\": [\\n                  \\\"dsl\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\
+\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"ilm\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\
+\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undef
+ined\\\"\\n              }\\n            ]\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"lifecycle\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"i
+nvalid_union\\\",\\n          \\\"errors\\\": [\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"inherit\\\"\\n                ],\\n                \\\
+"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n
+  \\\"disabled\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\": \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_t
+ype\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ],\\n            [\\n              {\\n                \\\"expected\\\":
+ \\\"object\\\",\\n                \\\"code\\\": \\\"invalid_type\\\",\\n                \\\"path\\\": [\\n                  \\\"lifecycle\\\"\\n                ],\\n                \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n              }\\n            ]\\n
+    ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"failure_store\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"in
+valid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"ingest\\\",\\n            \\\"classic\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected object, received undefined\\\"\\n        },\\n        {\\n          \\\"code\\\": \\\"invalid_
+value\\\",\\n          \\\"values\\\": [\\n            \\\"classic\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\\\"classic\\\\\\\"\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"code\\\": \\\"invalid_value\\\",\\n          \\\"values\\\": [\\n            \\\"query\\\"\\n          ],\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"type\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected \\\\\
+\\"query\\\\\\\"\\\"\\n        },\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [\\n            \\\"stream\\\",\\n            \\\"query\\\"\\n          ],\\n          \\\"message\\\": \\\"Invalid input: expected ob
+ject, received undefined\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\": \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Cannot find stream cli-ft-streams-att-put\",\"attributes\":{}}"}}
+PASS: system_get_status.sh
+PASS: tags_delete_tags_id.sh
+PASS: tags_get_tags.sh
+PASS: tags_get_tags_id.sh
+PASS: tags_post_tags.sh
+PASS: tags_put_tags_id.sh
+PASS: task_manager_health.sh
+FAIL: visualizations_delete_visualization.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n
+  \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n
+  \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\":
+ \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received nu
+ll\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n
+  {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\"
+,\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\"
+,\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"
+message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object,
+ received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\":
+ \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"A visualization with id [cli-ft-visualization-delete] was not found.\"}"}}
+FAIL: visualizations_get_visualization.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n
+  \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n
+  \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\":
+ \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received nu
+ll\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n
+  {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\"
+,\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\"
+,\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"
+message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object,
+ received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\":
+ \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"A visualization with id [cli-ft-visualization-get] was not found.\"}"}}
+FAIL: visualizations_search_visualizations.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n
+  \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n
+  \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\":
+ \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received nu
+ll\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n
+  {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\"
+,\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\"
+,\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"
+message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object,
+ received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\":
+ \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"A visualization with id [cli-ft-visualization-search] was not found.\"}"}}
+FAIL: visualizations_upsert_visualization.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"[\\n  {\\n    \\\"code\\\": \\\"invalid_union\\\",\\n    \\\"errors\\\": [\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n
+  \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n
+  \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\":
+ \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received nu
+ll\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n
+  {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\"
+,\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\"
+,\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"
+message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object,
+ received null\\\"\\n        }\\n      ],\\n      [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ],\\n
+  [\\n        {\\n          \\\"expected\\\": \\\"object\\\",\\n          \\\"code\\\": \\\"invalid_type\\\",\\n          \\\"path\\\": [],\\n          \\\"message\\\": \\\"Invalid input: expected object, received null\\\"\\n        }\\n      ]\\n    ],\\n    \\\"path\\\": [],\\n    \\\"message\\\":
+ \\\"Invalid input\\\"\\n  }\\n]\"}"}}
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"A visualization with id [cli-ft-visualization-upsert] was not found.\"}"}}
+PASS: workflows_delete_workflows.sh
+PASS: workflows_delete_workflows_workflow_id.sh
+FAIL: workflows_get_workflows.sh
+jq: error (at <stdin>:1): Cannot index object with number (0)
+FAIL: expected 0.id to be truthy
+PASS: workflows_get_workflows_aggs.sh
+PASS: workflows_get_workflows_connectors.sh
+FAIL: workflows_get_workflows_executions_executionid.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":409,"message":"Kibana API error 409: {\"statusCode\":409,\"error\":\"Conflict\",\"message\":\"Cannot force-delete workflows with running executions: [cli-ft-workflow-get-exec-id]\"}"}}
+FAIL: workflows_get_workflows_executions_executionid_children.sh
+{"error":{"code":"kibana_api_error","status_code":409,"message":"Kibana API error 409: {\"statusCode\":409,\"error\":\"Conflict\",\"message\":\"Workflow with id 'cli-ft-workflow-get-exec-children' already exists\"}"}}
+FAIL: workflows_get_workflows_executions_executionid_logs.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":409,"message":"Kibana API error 409: {\"statusCode\":409,\"error\":\"Conflict\",\"message\":\"Cannot force-delete workflows with running executions: [cli-ft-workflow-exec-logs]\"}"}}
+FAIL: workflows_get_workflows_executions_executionid_step_stepexecutionid.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"Workflow is not valid.\"}"}}
+FAIL: workflows_get_workflows_executions_executionid_steps_stepid_resume_external.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"Workflow is not valid.\"}"}}
+FAIL: workflows_get_workflows_executions_executionid_steps_stepid_resume_external_form.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"Workflow is not valid.\"}"}}
+FAIL: workflows_get_workflows_workflow_executions.sh
+{"error":{"code":"kibana_api_error","status_code":409,"message":"Kibana API error 409: {\"statusCode\":409,\"error\":\"Conflict\",\"message\":\"Workflow with id 'cli-ft-workflow-executions-all' already exists\"}"}}
+FAIL: workflows_get_workflows_workflow_workflowid_executions.sh
+jq: error (at <stdin>:1): Cannot index object with number (0)
+FAIL: expected 0.executionId to be truthy
+{"error":{"code":"kibana_api_error","status_code":409,"message":"Kibana API error 409: {\"statusCode\":409,\"error\":\"Conflict\",\"message\":\"Cannot force-delete workflows with running executions: [cli-ft-workflow-list-executions]\"}"}}
+FAIL: workflows_get_workflows_workflow_workflowid_executions_steps.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"Workflow is not valid.\"}"}}
+FAIL: workflows_post_workflows_executions_executionid_cancel.sh
+{"error":{"code":"kibana_api_error","status_code":404,"message":"Kibana API error 404: {\"statusCode\":404,\"error\":\"Not Found\",\"message\":\"Not Found\"}"}}
+{"error":{"code":"kibana_api_error","status_code":409,"message":"Kibana API error 409: {\"statusCode\":409,\"error\":\"Conflict\",\"message\":\"Cannot force-delete workflows with running executions: [cli-ft-workflow-cancel-exec]\"}"}}
+FAIL: workflows_post_workflows_executions_executionid_resume.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"Workflow is not valid.\"}"}}
+FAIL: workflows_post_workflows_executions_executionid_steps_stepid_resume_external.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"Workflow is not valid.\"}"}}
+FAIL: workflows_post_workflows_step_test.sh
+{"error":{"code":"kibana_api_error","status_code":400,"message":"Kibana API error 400: {\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"Workflow validation failed\",\"attributes\":{\"validationErrors\":[\"name expects string (at step #1 › name)\"]}}"}}
+FAIL: workflows_post_workflows_workflow_id_run.sh
+FAIL: expected executionId to be truthy
+FAIL: workflows_put_workflows_managed_workflow_id.sh
+jq: error (at <stdin>:1): Cannot index object with number (0)

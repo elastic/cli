@@ -1,0 +1,28 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana spaces API: create a space then retrieve it by ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      spaces.post_spaces_space:
+        body:
+          id: cli-ft-spaces-get-id
+          name: CLI FT Spaces Get ID
+---
+teardown:
+  - do:
+      spaces.delete_spaces_space_id:
+        id: cli-ft-spaces-get-id
+        ignore: [404]
+---
+"get space by id":
+  - do:
+      spaces.get_spaces_space_id:
+        id: cli-ft-spaces-get-id
+  - match: { id: cli-ft-spaces-get-id }
+  - match: { name: CLI FT Spaces Get ID }

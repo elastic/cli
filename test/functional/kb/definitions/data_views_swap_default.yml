@@ -1,0 +1,38 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana data-views API: swap saved object references from one data view to another.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      data-views.create_data_view_default:
+        body:
+          data_view: { title: "cli-ft-dv-swap-from-*", name: cli-ft-dv-swap-from }
+  - set: { data_view.id: from_id }
+  - do:
+      data-views.create_data_view_default:
+        body:
+          data_view: { title: "cli-ft-dv-swap-to-*", name: cli-ft-dv-swap-to }
+  - set: { data_view.id: to_id }
+---
+teardown:
+  - do:
+      data-views.delete_data_view_default:
+        viewId: $from_id
+        ignore: [404]
+  - do:
+      data-views.delete_data_view_default:
+        viewId: $to_id
+        ignore: [404]
+---
+"data views swap default":
+  - do:
+      data-views.swap_data_views_default:
+        body:
+          fromId: $from_id
+          toId: $to_id
+  - is_true: result

@@ -1,0 +1,17 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-analytics-api: get risk score history.
+# Requests risk score history for a known host entity; expects a successful
+# response (history may be empty if the risk engine has not run).
+---
+requires:
+  serverless: false
+  stack: false
+---
+"security-entity-analytics-api get risk score history":
+  - do:
+      security-entity-analytics-api.get_risk_score_history:
+        entity_type: host
+        entity_id: cli-ft-get-risk-score-history-test
+  - is_true: ""

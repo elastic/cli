@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana roles API: get all security roles.
+# Built-in roles always exist; no setup or teardown required.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"roles get security role":
+  - do:
+      roles.get_security_role: {}
+  - is_true: ""

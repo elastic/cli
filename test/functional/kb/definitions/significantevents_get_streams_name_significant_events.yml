@@ -1,0 +1,17 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana significantevents API: read significant events for a stream.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"significantevents get streams name significant events":
+  - do:
+      significantevents.get_streams_name_significant_events:
+        name: cli-ft-se-stream
+        from: "2024-01-01T00:00:00.000Z"
+        to: "2024-01-02T00:00:00.000Z"
+        bucket_size: "1h"
+  - is_true: ""

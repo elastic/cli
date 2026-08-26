@@ -1,0 +1,34 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-lists-api: create a value list then patch it.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-lists-api.create_list_index:
+  - do:
+      security-lists-api.create_list:
+        body:
+          id: cli-ft-sec-lists-patch-list
+          name: CLI FT Patch List
+          description: Created by functional test
+          type: keyword
+---
+teardown:
+  - do:
+      security-lists-api.delete_list:
+        id: cli-ft-sec-lists-patch-list
+        ignore: [404]
+---
+"security-lists-api patch list":
+  - do:
+      security-lists-api.patch_list:
+        body:
+          id: cli-ft-sec-lists-patch-list
+          description: Updated by functional test
+  - match: { id: cli-ft-sec-lists-patch-list }
+  - match: { description: Updated by functional test }

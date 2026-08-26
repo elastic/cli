@@ -1,0 +1,33 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agent-actions API: bulk update agent tags.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agents.get_fleet_agents: {}
+  - set: { "items.0.id": agent_id }
+---
+teardown:
+  - do:
+      elastic-agent-actions.post_fleet_agents_bulk_update_agent_tags:
+        body:
+          agents:
+            - $agent_id
+          tagsToRemove:
+            - cli-ft-tag
+        ignore: [404]
+---
+"elastic-agent-actions post fleet agents bulk update agent tags":
+  - do:
+      elastic-agent-actions.post_fleet_agents_bulk_update_agent_tags:
+        body:
+          agents:
+            - $agent_id
+          tagsToAdd:
+            - cli-ft-tag
+  - is_true: actionId

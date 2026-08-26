@@ -1,0 +1,29 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana tags API: get a tag by ID.
+---
+requires:
+  serverless: false
+  stack: false
+---
+setup:
+  - do:
+      tags.post_tags:
+        body:
+          name: cli-ft-tags-get-id
+          color: "#334455"
+  - set: { id: tag_id }
+---
+teardown:
+  - do:
+      tags.delete_tags_id:
+        id: $tag_id
+        ignore: [404]
+---
+"tags get tags id":
+  - do:
+      tags.get_tags_id:
+        id: $tag_id
+  - is_true: id
+  - match: { data.name: cli-ft-tags-get-id }

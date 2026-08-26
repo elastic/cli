@@ -1,0 +1,35 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-exceptions-api: create an endpoint list item.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-endpoint-exceptions-api.create_endpoint_list: {}
+---
+teardown:
+  - do:
+      security-endpoint-exceptions-api.delete_endpoint_list_item:
+        item_id: cli-ft-endpoint-list-item-create
+        ignore: [404]
+---
+"security-endpoint-exceptions-api create endpoint list item":
+  - do:
+      security-endpoint-exceptions-api.create_endpoint_list_item:
+        body:
+          item_id: cli-ft-endpoint-list-item-create
+          name: CLI FT Endpoint List Item Create
+          description: Test item for create test
+          type: simple
+          entries:
+            - type: match
+              field: process.name
+              value: test.exe
+              operator: included
+  - is_true: item_id
+  - match: { item_id: cli-ft-endpoint-list-item-create }
+  - match: { name: CLI FT Endpoint List Item Create }

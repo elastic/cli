@@ -1,0 +1,55 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana alerting API: unmute a specific alert instance for a rule and verify via GET.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-unmute-alert
+        ignore: [404]
+---
+"alerting unmute specific alert":
+  - do:
+      alerting.post_alerting_rule_id:
+        id: cli-ft-rule-unmute-alert
+        body:
+          consumer: stackAlerts
+          name: CLI FT Rule Unmute Alert
+          rule_type_id: ".es-query"
+          schedule: { interval: "1m" }
+          params:
+            searchType: esqlQuery
+            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            timeWindowSize: 5
+            timeWindowUnit: m
+            threshold: [0]
+            thresholdComparator: ">"
+            size: 0
+            timeField: "@timestamp"
+  - match: { id: cli-ft-rule-unmute-alert }
+
+  - do:
+      alerting.post_alerting_rule_rule_id_alert_alert_id_mute:
+        rule_id: cli-ft-rule-unmute-alert
+        alert_id: query matched
+        validate_alerts_existence: false
+
+  - do:
+      alerting.post_alerting_rule_rule_id_alert_alert_id_unmute:
+        rule_id: cli-ft-rule-unmute-alert
+        alert_id: query matched
+
+  - do:
+      alerting.get_alerting_rule_id:
+        id: cli-ft-rule-unmute-alert
+  - match: { id: cli-ft-rule-unmute-alert }
+  - match: { muted_alert_ids: [] }
+
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-unmute-alert

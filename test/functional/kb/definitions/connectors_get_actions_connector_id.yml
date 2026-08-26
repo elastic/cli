@@ -1,0 +1,32 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana connectors API: create a connector then retrieve it by ID.
+# Uses the built-in .index connector type (ships with all Kibana deployments).
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      connectors.delete_actions_connector_id:
+        id: b2c3d4e5-f6a7-8901-bcde-f01234567802
+        ignore: [404]
+---
+"connectors get by ID":
+  - do:
+      connectors.post_actions_connector_id:
+        id: b2c3d4e5-f6a7-8901-bcde-f01234567802
+        body:
+          connector_type_id: ".index"
+          name: CLI FT Connector Get
+          config: { index: "cli-ft-connector-get-*" }
+  - match: { id: b2c3d4e5-f6a7-8901-bcde-f01234567802 }
+
+  - do:
+      connectors.get_actions_connector_id:
+        id: b2c3d4e5-f6a7-8901-bcde-f01234567802
+  - match: { id: b2c3d4e5-f6a7-8901-bcde-f01234567802 }
+  - match: { name: CLI FT Connector Get }
+  - match: { connector_type_id: ".index" }

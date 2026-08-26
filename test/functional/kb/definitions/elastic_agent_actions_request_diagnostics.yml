@@ -1,0 +1,19 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agent-actions API: request diagnostics from an enrolled agent.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agents.get_fleet_agents: {}
+  - set: { "items.0.id": agent_id }
+---
+"elastic-agent-actions post fleet agents agentid request diagnostics":
+  - do:
+      elastic-agent-actions.post_fleet_agents_agentid_request_diagnostics:
+        agent_id: $agent_id
+  - is_true: actionId

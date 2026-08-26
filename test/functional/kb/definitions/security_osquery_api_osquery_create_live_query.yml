@@ -1,0 +1,17 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-osquery-api: create a live query targeting all agents.
+# No delete endpoint exists for live queries; no teardown required.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-osquery-api create live query":
+  - do:
+      security-osquery-api.osquery_create_live_query:
+        body:
+          query: SELECT * FROM uptime LIMIT 1
+          agent_all: true
+  - is_true: ""

@@ -1,0 +1,30 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agent-policies API: get auto upgrade agent status for a Fleet agent policy.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agent-policies.post_fleet_agent_policies:
+        body:
+          name: cli-ft-ea-policy-auto-upgrade-status
+          namespace: testprefix
+  - set: { "item.id": policy_id }
+---
+teardown:
+  - do:
+      elastic-agent-policies.post_fleet_agent_policies_delete:
+        body:
+          agentPolicyId: $policy_id
+        ignore: [404]
+---
+"elastic-agent-policies get auto upgrade agents status":
+  - do:
+      elastic-agent-policies.get_fleet_agent_policies_agentpolicyid_auto_upgrade_agents_status:
+        agent_policy_id: $policy_id
+  - is_true: currentVersions
+  - gte: { totalAgents: 0 }

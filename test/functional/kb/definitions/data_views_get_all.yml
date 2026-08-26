@@ -1,0 +1,27 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana data-views API: get all data views.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      data-views.create_data_view_default:
+        body:
+          data_view: { title: "cli-ft-dv-getall-*", name: cli-ft-dv-getall }
+  - set: { data_view.id: view_id }
+---
+teardown:
+  - do:
+      data-views.delete_data_view_default:
+        viewId: $view_id
+        ignore: [404]
+---
+"data views get all":
+  - do:
+      data-views.get_all_data_views_default: {}
+  - is_true: data_view
+  - is_true: data_view.0.id

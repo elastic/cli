@@ -1,0 +1,16 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-solution-initialization-api: initialize security solution.
+# Verifies that initialize-security-solution runs a single flow without error.
+---
+requires:
+  serverless: false
+  stack: false
+---
+"security-solution-initialization-api initialize security solution":
+  - do:
+      security-solution-initialization-api.initialize_security_solution:
+        body:
+          flows:
+            - security-data-views

@@ -1,0 +1,25 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-store API: stop Entity Store engines.
+# Verifies that put-security-entity-store-stop succeeds without error.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-entity-store.post_security_entity_store_install:
+  - do:
+      security-entity-store.put_security_entity_store_start:
+---
+teardown:
+  - do:
+      security-entity-store.post_security_entity_store_uninstall:
+        ignore: [404]
+---
+"security-entity-store stop":
+  - do:
+      security-entity-store.put_security_entity_store_stop:
+  - is_true: ""

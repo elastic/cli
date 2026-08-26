@@ -1,0 +1,32 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-osquery-api: get saved query details.
+# Creates a saved query in setup, retrieves it in the test, deletes it in teardown.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-osquery-api.osquery_create_saved_query:
+        body:
+          id: cli-ft-osquery-get-saved-query-details
+          query: SELECT * FROM uptime LIMIT 1
+          interval: "3600"
+          description: Created by elastic-cli functional test
+  - set: { "data.id": saved_query_id }
+---
+teardown:
+  - do:
+      security-osquery-api.osquery_delete_saved_query:
+        id: $saved_query_id
+        ignore: [404]
+---
+"security-osquery-api get saved query details":
+  - do:
+      security-osquery-api.osquery_get_saved_query_details:
+        id: $saved_query_id
+  - is_true: data.id
+  - match: { data.id: cli-ft-osquery-get-saved-query-details }

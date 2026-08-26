@@ -1,0 +1,16 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-analytics-api: configure risk engine saved object.
+# Verifies that configure-risk-engine-saved-object patches the saved object without error.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-entity-analytics-api configure risk engine saved object":
+  - do:
+      security-entity-analytics-api.configure_risk_engine_saved_object:
+        body:
+          page_size: 500
+  - is_true: ""

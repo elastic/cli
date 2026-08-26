@@ -1,0 +1,54 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana streams API: import a content pack into a stream.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      streams.put_streams_name:
+        name: cli-ft-streams-content-import
+        body:
+          dashboards: []
+          rules: []
+          stream:
+            description: ""
+            type: wired
+            ingest:
+              lifecycle: {}
+              processing:
+                steps: []
+              settings: {}
+              failure_store: {}
+              wired:
+                fields: {}
+                routing: []
+  - do:
+      streams.post_streams_name_content_export:
+        name: cli-ft-streams-content-import
+        body:
+          name: cli-ft-content-pack
+          description: "test"
+          version: "1.0.0"
+          include:
+            objects:
+              all: {}
+  - set: { "": content_pack }
+---
+teardown:
+  - do:
+      streams.delete_streams_name:
+        name: cli-ft-streams-content-import
+        ignore: [404]
+---
+"streams post streams name content import":
+  - do:
+      streams.post_streams_name_content_import:
+        name: cli-ft-streams-content-import
+        body:
+          content: $content_pack
+          include: '{"objects":{"all":{}}}'
+  - is_true: ""

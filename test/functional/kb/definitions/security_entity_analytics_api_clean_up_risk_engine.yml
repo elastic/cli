@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-analytics-api: clean up risk engine.
+# Verifies that clean-up-risk-engine deletes risk engine data without error.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-entity-analytics-api clean up risk engine":
+  - do:
+      security-entity-analytics-api.clean_up_risk_engine: {}

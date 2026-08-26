@@ -1,0 +1,33 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-lists-api: create a value list then read it.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-lists-api.create_list_index:
+  - do:
+      security-lists-api.create_list:
+        body:
+          id: cli-ft-sec-lists-read-list
+          name: CLI FT Read List
+          description: Created by functional test
+          type: keyword
+---
+teardown:
+  - do:
+      security-lists-api.delete_list:
+        id: cli-ft-sec-lists-read-list
+        ignore: [404]
+---
+"security-lists-api read list":
+  - do:
+      security-lists-api.read_list:
+        id: cli-ft-sec-lists-read-list
+  - match: { id: cli-ft-sec-lists-read-list }
+  - match: { name: CLI FT Read List }
+  - match: { type: keyword }

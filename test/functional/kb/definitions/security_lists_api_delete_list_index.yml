@@ -1,0 +1,22 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-lists-api: create list data streams then delete them.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-lists-api.create_list_index:
+---
+teardown:
+  - do:
+      security-lists-api.create_list_index:
+        ignore: [404]
+---
+"security-lists-api delete list index":
+  - do:
+      security-lists-api.delete_list_index:
+  - match: { acknowledged: true }

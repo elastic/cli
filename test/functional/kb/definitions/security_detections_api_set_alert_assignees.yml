@@ -1,0 +1,22 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-detections-api: set assignees on detection alerts (no-op).
+# Uses a nonexistent alert ID with empty add and remove assignee arrays.
+# The bulk assignee update returns successfully with zero updates rather than
+# an error, so no setup or teardown is required.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-detections-api set alert assignees":
+  - do:
+      security-detections-api.set_alert_assignees:
+        body:
+          ids:
+            - nonexistent-alert-id
+          assignees:
+            add: []
+            remove: []
+  - is_true: ""

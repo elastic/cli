@@ -1,0 +1,27 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana agent-builder API: install plugin / delete plugin by ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      agent-builder.delete_agent_builder_plugins_pluginid:
+        pluginId: $plugin_id
+        force: true
+        ignore: [404]
+---
+"agent-builder delete plugin by ID":
+  - do:
+      agent-builder.post_agent_builder_plugins_install:
+        body:
+          url: "https://github.com/elastic/kibana-agent-builder-plugin-example/releases/download/v0.0.1/plugin.zip"
+  - set: { id: plugin_id }
+  - is_true: id
+
+  - do:
+      agent-builder.delete_agent_builder_plugins_pluginid:
+        pluginId: $plugin_id

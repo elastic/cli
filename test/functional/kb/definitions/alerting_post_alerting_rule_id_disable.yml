@@ -1,0 +1,49 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana alerting API: disable a rule and verify it is no longer enabled.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-disable
+        ignore: [404]
+---
+"alerting disable rule":
+  - do:
+      alerting.post_alerting_rule_id:
+        id: cli-ft-rule-disable
+        body:
+          consumer: stackAlerts
+          name: CLI FT Rule Disable
+          rule_type_id: ".es-query"
+          schedule: { interval: "1m" }
+          params:
+            searchType: esqlQuery
+            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            timeWindowSize: 5
+            timeWindowUnit: m
+            threshold: [0]
+            thresholdComparator: ">"
+            size: 0
+            timeField: "@timestamp"
+  - match: { id: cli-ft-rule-disable }
+  - is_true: enabled
+
+  - do:
+      alerting.post_alerting_rule_id_disable:
+        id: cli-ft-rule-disable
+
+  - do:
+      alerting.get_alerting_rule_id:
+        id: cli-ft-rule-disable
+  - match: { id: cli-ft-rule-disable }
+  - match: { enabled: false }
+
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-disable

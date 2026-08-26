@@ -1,0 +1,20 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana dashboards API: create a dashboard.
+---
+requires:
+  serverless: false
+  stack: false
+---
+teardown:
+  - do:
+      dashboards.delete_dashboard:
+        id: $dashboard_id
+        ignore: [404]
+---
+"dashboards create":
+  - do:
+      dashboards.create_dashboard:
+  - set: { id: dashboard_id }
+  - is_true: id

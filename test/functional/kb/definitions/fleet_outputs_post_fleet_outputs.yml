@@ -1,0 +1,26 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-outputs API: create a fleet output.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      fleet-outputs.delete_fleet_outputs_outputid:
+        output_id: $output_id
+        ignore: [404]
+---
+"fleet-outputs post fleet outputs":
+  - do:
+      fleet-outputs.post_fleet_outputs:
+        body:
+          name: test-kafka-output
+          type: kafka
+          auth_type: none
+          hosts:
+            - "kafka:9092"
+  - set: { item.id: output_id }
+  - is_true: item.id

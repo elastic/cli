@@ -1,0 +1,29 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana links API: create a links library item / delete it by ID.
+---
+requires:
+  serverless: false
+  stack: false
+---
+teardown:
+  - do:
+      links.delete_links_id:
+        id: $created_id
+        ignore: [404]
+---
+"links delete links item by id":
+  - do:
+      links.post_links:
+        body:
+          title: CLI FT Links Delete
+          links:
+            - type: externalLink
+              destination: https://elastic.co
+  - set: { id: created_id }
+  - is_true: id
+
+  - do:
+      links.delete_links_id:
+        id: $created_id

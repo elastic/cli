@@ -1,0 +1,39 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana data-views API: update a runtime field on a data view.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      data-views.create_data_view_default:
+        body:
+          data_view: { title: "cli-ft-dv-upd-rt-*", name: cli-ft-dv-upd-rt }
+  - set: { data_view.id: view_id }
+  - do:
+      data-views.create_runtime_field_default:
+        viewId: $view_id
+        body:
+          name: cli_ft_upd_rt_field
+          runtimeField:
+            type: keyword
+---
+teardown:
+  - do:
+      data-views.delete_data_view_default:
+        viewId: $view_id
+        ignore: [404]
+---
+"data views update runtime field":
+  - do:
+      data-views.update_runtime_field_default:
+        viewId: $view_id
+        fieldName: cli_ft_upd_rt_field
+        body:
+          runtimeField:
+            type: long
+  - is_true: data_view.id
+  - match: { data_view.runtimeFieldMap.cli_ft_upd_rt_field.type: long }

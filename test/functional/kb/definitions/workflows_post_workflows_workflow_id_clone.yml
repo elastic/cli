@@ -1,0 +1,38 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: clone an existing workflow by ID.
+---
+requires:
+  serverless: true
+---
+setup:
+  - do:
+      workflows.post_workflows_workflow:
+        body:
+          id: cli-ft-workflow-clone-source
+          yaml: |
+            version: '1'
+            name: CLI FT Workflow Clone Source
+            triggers:
+              - type: manual
+            steps: []
+---
+teardown:
+  - do:
+      workflows.delete_workflows_workflow_id:
+        id: cli-ft-workflow-clone-source
+        force: true
+        ignore: [404]
+  - do:
+      workflows.delete_workflows_workflow_id:
+        id: $cloned_id
+        force: true
+        ignore: [404]
+---
+"workflows post workflows workflow id clone":
+  - do:
+      workflows.post_workflows_workflow_id_clone:
+        id: cli-ft-workflow-clone-source
+  - set: { id: cloned_id }
+  - is_true: id

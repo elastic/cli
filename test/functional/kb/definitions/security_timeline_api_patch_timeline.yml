@@ -1,0 +1,38 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-timeline-api: patch (update) a timeline.
+# Creates a timeline in setup, patches its title, and verifies the updated title.
+# Teardown cleans up in case the patch step fails.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-timeline-api.create_timelines:
+        body:
+          timeline:
+            title: CLI FT patch-timeline test
+  - set: { "savedObjectId": timeline_id }
+  - set: { "version": timeline_version }
+---
+teardown:
+  - do:
+      security-timeline-api.delete_timelines:
+        body:
+          savedObjectIds:
+            - $timeline_id
+        ignore: [404]
+---
+"security-timeline-api patch timeline":
+  - do:
+      security-timeline-api.patch_timeline:
+        body:
+          timelineId: $timeline_id
+          version: $timeline_version
+          timeline:
+            title: CLI FT patch-timeline test updated
+  - is_true: savedObjectId
+  - match: { title: CLI FT patch-timeline test updated }

@@ -1,0 +1,50 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana alerting API: unsnooze a specific alert instance for a rule.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-unsnooze-alert
+        ignore: [404]
+---
+"alerting unsnooze specific alert":
+  - do:
+      alerting.post_alerting_rule_id:
+        id: cli-ft-rule-unsnooze-alert
+        body:
+          consumer: stackAlerts
+          name: CLI FT Rule Unsnooze Alert
+          rule_type_id: ".es-query"
+          schedule: { interval: "1m" }
+          params:
+            searchType: esqlQuery
+            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            timeWindowSize: 5
+            timeWindowUnit: m
+            threshold: [0]
+            thresholdComparator: ">"
+            size: 0
+            timeField: "@timestamp"
+  - match: { id: cli-ft-rule-unsnooze-alert }
+
+  - do:
+      alerting.post_alerting_rule_rule_id_alert_alert_id_snooze:
+        rule_id: cli-ft-rule-unsnooze-alert
+        alert_id: query matched
+        validate_alerts_existence: false
+        expires_at: "2099-01-01T00:00:00.000Z"
+
+  - do:
+      alerting.post_alerting_rule_rule_id_alert_alert_id_unsnooze:
+        rule_id: cli-ft-rule-unsnooze-alert
+        alert_id: query matched
+
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-unsnooze-alert

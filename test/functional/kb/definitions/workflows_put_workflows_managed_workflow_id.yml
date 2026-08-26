@@ -1,0 +1,21 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: update a managed workflow.
+---
+requires:
+  serverless: true
+---
+setup:
+  - do:
+      workflows.get_workflows:
+        managed: managed
+  - set: { "0.id": workflow_id }
+---
+"workflows put managed workflow":
+  - do:
+      workflows.put_workflows_managed_workflow_id:
+        id: $workflow_id
+        body:
+          enabled: true
+  - is_true: id

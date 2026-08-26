@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-ai-assistant-api: find anonymization fields.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-ai-assistant-api find anonymization fields":
+  - do:
+      security-ai-assistant-api.find_anonymization_fields: {}
+  - is_true: ""

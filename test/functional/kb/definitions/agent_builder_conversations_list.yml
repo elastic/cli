@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana agent-builder API: list conversations.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"agent-builder list conversations":
+  - do:
+      agent-builder.get_agent_builder_conversations: {}
+  - is_true: ""

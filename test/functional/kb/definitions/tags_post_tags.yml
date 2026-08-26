@@ -1,0 +1,25 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana tags API: create a tag.
+---
+requires:
+  serverless: false
+  stack: false
+---
+teardown:
+  - do:
+      tags.delete_tags_id:
+        id: $tag_id
+        ignore: [404]
+---
+"tags post tags":
+  - do:
+      tags.post_tags:
+        body:
+          name: cli-ft-tags-post
+          color: "#772299"
+  - set: { id: tag_id }
+  - is_true: id
+  - match: { data.name: cli-ft-tags-post }
+  - match: { data.color: "#772299" }

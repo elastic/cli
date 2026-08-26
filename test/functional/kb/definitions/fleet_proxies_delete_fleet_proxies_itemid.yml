@@ -1,0 +1,27 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-proxies API: create a proxy then delete it by ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      fleet-proxies.delete_fleet_proxies_itemid:
+        item_id: $proxy_id
+        ignore: [404]
+---
+"fleet-proxies delete fleet proxies by ID":
+  - do:
+      fleet-proxies.post_fleet_proxies:
+        body:
+          name: cli-ft-proxy-delete
+          url: "http://proxy.example.com:8080"
+  - set: { "item.id": proxy_id }
+  - is_true: item.id
+
+  - do:
+      fleet-proxies.delete_fleet_proxies_itemid:
+        item_id: $proxy_id

@@ -1,0 +1,40 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana streams API: get ingest stream settings by name.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      streams.put_streams_name:
+        name: cli-ft-streams-get-ingest
+        body:
+          dashboards: []
+          rules: []
+          stream:
+            description: ""
+            type: wired
+            ingest:
+              lifecycle: {}
+              processing:
+                steps: []
+              settings: {}
+              failure_store: {}
+              wired:
+                fields: {}
+                routing: []
+---
+teardown:
+  - do:
+      streams.delete_streams_name:
+        name: cli-ft-streams-get-ingest
+        ignore: [404]
+---
+"streams get streams name ingest":
+  - do:
+      streams.get_streams_name_ingest:
+        name: cli-ft-streams-get-ingest
+  - is_true: ingest

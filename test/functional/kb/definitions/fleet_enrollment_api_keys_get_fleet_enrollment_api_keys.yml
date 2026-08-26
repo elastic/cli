@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-enrollment-api-keys API: list enrollment API keys.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"fleet-enrollment-api-keys get fleet enrollment api keys":
+  - do:
+      fleet-enrollment-api-keys.get_fleet_enrollment_api_keys: {}
+  - is_true: items

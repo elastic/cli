@@ -1,0 +1,45 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-exceptions-api: create an exception list, export it to a
+# temp NDJSON file, delete the original, then re-import it from the file.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-exceptions-api.create_exception_list:
+        body:
+          name: CLI FT Exception List Import
+          description: Created by functional test
+          type: detection
+          list_id: cli-ft-sec-exc-import-list
+          namespace_type: single
+  - set: { id: exc_list_id }
+  - do:
+      security-exceptions-api.export_exception_list:
+        id: $exc_list_id
+        list_id: cli-ft-sec-exc-import-list
+        namespace_type: single
+        include_expired_exceptions: "false"
+  - write_ndjson_temp: export_file
+  - do:
+      security-exceptions-api.delete_exception_list:
+        list_id: cli-ft-sec-exc-import-list
+        namespace_type: single
+---
+teardown:
+  - do:
+      security-exceptions-api.delete_exception_list:
+        list_id: cli-ft-sec-exc-import-list
+        namespace_type: single
+        ignore: [404]
+---
+"security-exceptions-api import exception list":
+  - do:
+      security-exceptions-api.import_exception_list:
+        body:
+          file: $export_file
+  - is_true: success

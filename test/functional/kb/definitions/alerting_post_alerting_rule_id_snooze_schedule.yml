@@ -1,0 +1,47 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana alerting API: schedule a snooze for a rule and verify the returned schedule ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-snooze-schedule
+        ignore: [404]
+---
+"alerting post snooze schedule":
+  - do:
+      alerting.post_alerting_rule_id:
+        id: cli-ft-rule-snooze-schedule
+        body:
+          consumer: stackAlerts
+          name: CLI FT Rule Snooze Schedule
+          rule_type_id: ".es-query"
+          schedule: { interval: "1m" }
+          params:
+            searchType: esqlQuery
+            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            timeWindowSize: 5
+            timeWindowUnit: m
+            threshold: [0]
+            thresholdComparator: ">"
+            size: 0
+            timeField: "@timestamp"
+  - match: { id: cli-ft-rule-snooze-schedule }
+
+  - do:
+      alerting.post_alerting_rule_id_snooze_schedule:
+        id: cli-ft-rule-snooze-schedule
+        schedule:
+          custom:
+            start: "2099-01-01T00:00:00.000Z"
+            duration: "1h"
+  - is_true: schedule.id
+
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-snooze-schedule

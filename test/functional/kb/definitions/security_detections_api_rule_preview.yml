@@ -1,0 +1,23 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-detections-api: preview alerts for a detection rule.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-detections-api rule preview":
+  - do:
+      security-detections-api.rule_preview:
+        body:
+          type: esql
+          name: cli-ft-sec-det-rule-preview
+          description: Created by functional test
+          risk_score: 21
+          severity: low
+          language: esql
+          query: "FROM logs-* | LIMIT 1"
+          invocationCount: 1
+          timeframeEnd: "2025-01-01T00:00:00.000Z"
+  - is_true: logs

@@ -1,0 +1,17 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana apm-agent-keys API: create an APM agent key.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"apm-agent-keys create agent key":
+  - do:
+      apm-agent-keys.create_agent_key:
+        body:
+          name: cli-ft-apm-agent-key
+          privileges:
+            - event:write
+  - is_true: ""

@@ -1,0 +1,39 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana agent-builder API: update tool by ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      agent-builder.delete_agent_builder_tools_toolid:
+        tool_id: cli-ft-ab-put-toolid
+        force: true
+        ignore: [404]
+---
+"agent-builder update tool by ID":
+  - do:
+      agent-builder.post_agent_builder_tools:
+        body:
+          id: cli-ft-ab-put-toolid
+          type: esql
+          description: Created by functional test
+          configuration:
+            query: "FROM .kibana | LIMIT 1"
+            params: {}
+  - match: { id: cli-ft-ab-put-toolid }
+
+  - do:
+      agent-builder.put_agent_builder_tools_toolid:
+        tool_id: cli-ft-ab-put-toolid
+        description: Updated by functional test
+  - match: { id: cli-ft-ab-put-toolid }
+  - match: { description: Updated by functional test }
+
+  - do:
+      agent-builder.delete_agent_builder_tools_toolid:
+        tool_id: cli-ft-ab-put-toolid
+        force: true

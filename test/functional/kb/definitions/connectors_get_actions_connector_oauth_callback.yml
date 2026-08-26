@@ -1,0 +1,22 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana connectors API: OAuth callback handler.
+# The endpoint processes the redirect from an OAuth provider after user
+# authorisation.  A successful response requires a provider-issued code and
+# a Kibana-issued state token from a live OAuth flow, so the test exercises
+# the error path: the provider signals access_denied, which Kibana can
+# handle without a valid code.  The call is expected to fail (Kibana rejects
+# the unknown state token) and is therefore marked ignore: [400].
+---
+requires:
+  serverless: true
+  stack: true
+---
+"connector OAuth callback - provider error":
+  - do:
+      connectors.get_actions_connector_oauth_callback:
+        error: access_denied
+        error_description: User denied access
+        state: invalid-test-state
+        ignore: [400]

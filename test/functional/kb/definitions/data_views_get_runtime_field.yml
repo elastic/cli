@@ -1,0 +1,36 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana data-views API: get a runtime field from a data view.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      data-views.create_data_view_default:
+        body:
+          data_view: { title: "cli-ft-dv-get-rt-*", name: cli-ft-dv-get-rt }
+  - set: { data_view.id: view_id }
+  - do:
+      data-views.create_runtime_field_default:
+        viewId: $view_id
+        body:
+          name: cli_ft_get_rt_field
+          runtimeField:
+            type: keyword
+---
+teardown:
+  - do:
+      data-views.delete_data_view_default:
+        viewId: $view_id
+        ignore: [404]
+---
+"data views get runtime field":
+  - do:
+      data-views.get_runtime_field_default:
+        viewId: $view_id
+        fieldName: cli_ft_get_rt_field
+  - is_true: data_view.id
+  - match: { data_view.runtimeFieldMap.cli_ft_get_rt_field.type: keyword }

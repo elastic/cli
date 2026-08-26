@@ -81,14 +81,36 @@ export function mapAction (
     argsByKey.set(arg.schemaKey, arg)
   }
 
+  // YAML definitions use snake_case param keys (e.g. agent_id) but upstream
+  // schema keys are frequently camelCase (e.g. agentId). Fall back to a
+  // separator/case-insensitive match so these params still map to a flag
+  // instead of being silently dropped (which yields a missing required arg).
+  const canonKey = (k: string): string => k.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const canonMap = new Map<string, SchemaArgDefinition>()
+  const canonAmbiguous = new Set<string>()
+  for (const arg of schemaArgs) {
+    const c = canonKey(arg.schemaKey)
+    if (canonMap.has(c)) canonAmbiguous.add(c)
+    else canonMap.set(c, arg)
+  }
+
   for (const [key, value] of Object.entries(params)) {
     if (key === 'ignore') continue
-    const argDef = argsByKey.get(key)
+    // Exact match first; fall back to canonical match only when unambiguous.
+    let argDef = argsByKey.get(key)
+    if (argDef == null) {
+      const c = canonKey(key)
+      if (!canonAmbiguous.has(c)) argDef = canonMap.get(c)
+    }
     // Skip params the CLI doesn't expose as flags (e.g. cat's 'format')
     if (argDef == null) continue
     // Body fields from YAML params are passed as CLI flags (same as non-body params);
     // they will be handled alongside any explicit body in buildCommand.
-    args.push(`--${argDef.cliFlag}`, String(value))
+    // Object/array param values must be JSON-encoded so the CLI can parse them;
+    // String(value) would yield "[object Object]". shellEscape (in the generator)
+    // handles quoting.
+    const argValue = value !== null && typeof value === 'object' ? JSON.stringify(value) : String(value)
+    args.push(`--${argDef.cliFlag}`, argValue)
   }
 
   const hasBody = schemaArgs.some((a) => a.foundIn === 'body')

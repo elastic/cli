@@ -1,0 +1,55 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: get the external input form for a paused workflow execution.
+#
+# The resume token is a server-side HMAC-secured nonce — generated once at
+# pause-time and never exposed by any Kibana read API (only the HMAC hash is
+# stored).  A valid token is therefore inaccessible from a test harness, so
+# this definition exercises token rejection: it supplies a real execution ID
+# and step execution ID alongside an invalid token and expects the API to
+# refuse the request.
+---
+requires:
+  serverless: true
+---
+setup:
+  - do:
+      workflows.post_workflows_workflow:
+        body:
+          id: cli-ft-workflow-get-ext-form
+          yaml: |
+            version: '1'
+            name: CLI FT Workflow Get Ext Form
+            triggers:
+              - type: manual
+            steps:
+              - id: wait-step
+                type: waitForInput
+                configuration:
+                  inputSchema: {}
+  - do:
+      workflows.post_workflows_workflow_id_run:
+        id: cli-ft-workflow-get-ext-form
+        body:
+          inputs: {}
+  - set: { executionId: execution_id }
+  - do:
+      workflows.get_workflows_workflow_workflowid_executions_steps:
+        workflow_id: cli-ft-workflow-get-ext-form
+  - set: { "results.0.id": step_id }
+---
+teardown:
+  - do:
+      workflows.delete_workflows_workflow_id:
+        id: cli-ft-workflow-get-ext-form
+        force: true
+        ignore: [404]
+---
+"workflows get workflows executions executionid steps stepid resume external form":
+  - do:
+      catch: request
+      workflows.get_workflows_executions_executionid_steps_stepid_resume_external_form:
+        execution_id: $execution_id
+        step_id: $step_id
+        token: invalid-token

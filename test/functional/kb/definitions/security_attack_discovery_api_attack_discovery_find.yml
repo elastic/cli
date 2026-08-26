@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-attack-discovery-api: find attack discoveries (default pagination).
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-attack-discovery-api find attack discoveries":
+  - do:
+      security-attack-discovery-api.attack_discovery_find:
+        per_page: 1
+  - is_true: data

@@ -1,0 +1,17 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-timeline-api: install prepacked timelines.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-timeline-api install prepacked timelines":
+  - do:
+      security-timeline-api.install_prepacked_timelines:
+        body:
+          prepackagedTimelines: []
+          timelinesToInstall: []
+          timelinesToUpdate: []
+  - is_true: ""

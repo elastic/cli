@@ -1,0 +1,33 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-analytics-api: upload watchlist CSV.
+# Creates a watchlist in setup and writes a minimal CSV to a temp file.
+# Uploads the CSV and verifies the response has no failed rows.
+# Rows will be unmatched (no entity store data in test env) — that is not an error.
+# ponytail: no delete-watchlist command exists in the CLI; teardown is omitted.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-entity-analytics-api.create_watchlist:
+        body:
+          name: cli-ft-upload-watchlist-csv-test
+          riskModifier: 10
+  - set: { id: watchlist_id }
+  - write_temp:
+      variable: csv_file
+      content: "value\n192.168.1.1\n"
+      suffix: .csv
+---
+"security-entity-analytics-api upload watchlist CSV":
+  - do:
+      security-entity-analytics-api.upload_watchlist_csv:
+        watchlist_id: $watchlist_id
+        body:
+          file: $csv_file
+  - match: { total: 1 }
+  - match: { failed: 0 }

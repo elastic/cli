@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-analytics-api: install privileged access detection package.
+# Verifies that install-privileged-access-detection-package completes successfully.
+# No teardown: there is no uninstall endpoint for this package.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-entity-analytics-api install privileged access detection package":
+  - do:
+      security-entity-analytics-api.install_privileged_access_detection_package: {}

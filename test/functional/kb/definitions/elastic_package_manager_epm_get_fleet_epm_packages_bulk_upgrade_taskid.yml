@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-package-manager-epm API: get bulk upgrade task details.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"elastic-package-manager-epm get fleet epm packages bulk upgrade taskid":
+  - do:
+      catch: missing
+      elastic-package-manager-epm.get_fleet_epm_packages_bulk_upgrade_taskid:
+        task_id: "non-existent-task-id"

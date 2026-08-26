@@ -1,0 +1,32 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agent-policies API: get full Fleet agent policy by ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agent-policies.post_fleet_agent_policies:
+        body:
+          name: cli-ft-ea-policy-get-full
+          namespace: testprefix
+  - set: { "item.id": policy_id }
+---
+teardown:
+  - do:
+      elastic-agent-policies.post_fleet_agent_policies_delete:
+        body:
+          agentPolicyId: $policy_id
+        ignore: [404]
+---
+"elastic-agent-policies get full fleet agent policy by id":
+  - do:
+      elastic-agent-policies.get_fleet_agent_policies_agentpolicyid_full:
+        agent_policy_id: $policy_id
+  - is_true: item.id
+  # NOTE: the /full endpoint returns a full_agent_policy (schema
+  # Kibana_HTTP_APIs_full_agent_policy), which has `id` but no `name` field,
+  # unlike the plain agent-policy endpoints. Do not assert item.name here.

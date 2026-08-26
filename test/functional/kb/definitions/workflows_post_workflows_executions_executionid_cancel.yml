@@ -1,0 +1,37 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: cancel a workflow execution.
+---
+requires:
+  serverless: true
+---
+setup:
+  - do:
+      workflows.post_workflows_workflow:
+        body:
+          id: cli-ft-workflow-cancel-exec
+          yaml: |
+            version: '1'
+            name: CLI FT Workflow Cancel Exec
+            triggers:
+              - type: manual
+            steps: []
+  - do:
+      workflows.post_workflows_workflow_id_run:
+        id: cli-ft-workflow-cancel-exec
+        body:
+          inputs: {}
+  - set: { executionId: execution_id }
+---
+teardown:
+  - do:
+      workflows.delete_workflows_workflow_id:
+        id: cli-ft-workflow-cancel-exec
+        force: true
+        ignore: [404]
+---
+"workflows post workflows executions executionid cancel":
+  - do:
+      workflows.post_workflows_executions_executionid_cancel:
+        execution_id: $execution_id

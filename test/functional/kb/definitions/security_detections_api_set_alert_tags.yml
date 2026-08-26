@@ -1,0 +1,22 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-detections-api: set tags on detection alerts (no-op).
+# Uses a nonexistent alert ID with empty tags_to_add and tags_to_remove arrays.
+# The bulk tag update returns successfully with zero updates rather than an
+# error, so no setup or teardown is required.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-detections-api set alert tags":
+  - do:
+      security-detections-api.set_alert_tags:
+        body:
+          ids:
+            - nonexistent-alert-id
+          tags:
+            tags_to_add: []
+            tags_to_remove: []
+  - is_true: ""

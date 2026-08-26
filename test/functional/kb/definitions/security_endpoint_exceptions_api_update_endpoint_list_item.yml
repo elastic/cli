@@ -1,0 +1,48 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-exceptions-api: create an endpoint list item then update it.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-endpoint-exceptions-api.create_endpoint_list: {}
+  - do:
+      security-endpoint-exceptions-api.create_endpoint_list_item:
+        body:
+          item_id: cli-ft-endpoint-list-item-update
+          name: CLI FT Endpoint List Item Update
+          description: Test item for update test
+          type: simple
+          entries:
+            - type: match
+              field: process.name
+              value: test.exe
+              operator: included
+---
+teardown:
+  - do:
+      security-endpoint-exceptions-api.delete_endpoint_list_item:
+        item_id: cli-ft-endpoint-list-item-update
+        ignore: [404]
+---
+"security-endpoint-exceptions-api update endpoint list item":
+  - do:
+      security-endpoint-exceptions-api.update_endpoint_list_item:
+        body:
+          item_id: cli-ft-endpoint-list-item-update
+          name: CLI FT Endpoint List Item Updated
+          description: Updated description
+          type: simple
+          entries:
+            - type: match
+              field: process.name
+              value: updated.exe
+              operator: included
+  - is_true: item_id
+  - match: { item_id: cli-ft-endpoint-list-item-update }
+  - match: { name: CLI FT Endpoint List Item Updated }
+  - match: { description: Updated description }

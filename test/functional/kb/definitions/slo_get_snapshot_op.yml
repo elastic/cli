@@ -1,0 +1,45 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana SLO API: create an SLO then compute its instance summary at a point in time.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      slo.delete_slo_op:
+        space_id: default
+        slo_id: cli-ft-get-snapshot-slo
+        ignore: [404]
+---
+"slo get-snapshot-op":
+  - do:
+      slo.create_slo_op:
+        space_id: default
+        body:
+          id: cli-ft-get-snapshot-slo
+          name: CLI FT Get Snapshot SLO
+          description: Created by functional test
+          indicator:
+            type: sli.kql.custom
+            params:
+              index: "*"
+              timestampField: "@timestamp"
+              good: ""
+              total: ""
+          timeWindow:
+            duration: 7d
+            type: rolling
+          budgetingMethod: occurrences
+          objective:
+            target: 0.99
+  - match: { id: cli-ft-get-snapshot-slo }
+
+  - do:
+      slo.get_snapshot_op:
+        space_id: default
+        slo_id: cli-ft-get-snapshot-slo
+        at: "2025-01-01T00:00:00.000Z"
+  - is_true: results

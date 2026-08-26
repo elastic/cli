@@ -1,0 +1,22 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana apm-annotations API: create an annotation then search for it by service name.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"apm-annotations get annotation":
+  - do:
+      apm-annotations.create_annotation:
+        body:
+          serviceName: cli-ft-apm-svc
+          "@timestamp": "2024-01-01T00:00:00.000Z"
+          service:
+            version: "1.0.0"
+
+  - do:
+      apm-annotations.get_annotation:
+        service_name: cli-ft-apm-svc
+  - is_true: ""

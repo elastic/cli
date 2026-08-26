@@ -1,0 +1,57 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana alerting API: unmute all alerts for a rule and verify via GET.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-unmute-all
+        ignore: [404]
+---
+"alerting unmute all alerts":
+  - do:
+      alerting.post_alerting_rule_id:
+        id: cli-ft-rule-unmute-all
+        body:
+          consumer: stackAlerts
+          name: CLI FT Rule Unmute All
+          rule_type_id: ".es-query"
+          schedule: { interval: "1m" }
+          params:
+            searchType: esqlQuery
+            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            timeWindowSize: 5
+            timeWindowUnit: m
+            threshold: [0]
+            thresholdComparator: ">"
+            size: 0
+            timeField: "@timestamp"
+  - match: { id: cli-ft-rule-unmute-all }
+
+  - do:
+      alerting.post_alerting_rule_id_mute_all:
+        id: cli-ft-rule-unmute-all
+
+  - do:
+      alerting.get_alerting_rule_id:
+        id: cli-ft-rule-unmute-all
+  - match: { mute_all: true }
+
+  - do:
+      alerting.post_alerting_rule_id_unmute_all:
+        id: cli-ft-rule-unmute-all
+
+  - do:
+      alerting.get_alerting_rule_id:
+        id: cli-ft-rule-unmute-all
+  - match: { id: cli-ft-rule-unmute-all }
+  - match: { mute_all: false }
+
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-unmute-all
