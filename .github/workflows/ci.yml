@@ -319,15 +319,16 @@ jobs:
     if: github.event.action != 'edited'
     name: Check CLI schema is up to date
     permissions:
-      contents: read
-      pull-requests: write
+      contents: write
     runs-on: ubuntu-latest
     env:
       NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          persist-credentials: false
+          # PR head, not the merge ref, so a schema commit can fast-forward the branch.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24.x
@@ -337,21 +338,25 @@ jobs:
         run: npm run build
       - name: Regenerate CLI schema
         run: npm run build:schema
-      - name: Check for uncommitted changes
-        run: |
-          if ! git diff --exit-code docs/cli/schema.json; then
-            echo ""
-            echo "docs/cli/schema.json is out of date. Run 'npm run build:schema' and commit the result."
-            exit 1
-          fi
-      - name: Comment on PR
-        if: failure() && github.event_name == 'pull_request'
+      - name: Commit schema or fail
         env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BRANCH: ${{ github.head_ref }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
-          gh pr comment "$PR_NUMBER" --body "<!-- schema-stale -->
-          \`docs/cli/schema.json\` is out of date. Comment \`/fix-schema\` on this PR and the bot will regenerate and commit it automatically."
+          if git diff --quiet docs/cli/schema.json; then
+            exit 0
+          fi
+          if [ "$SAME_REPO" = "true" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add docs/cli/schema.json
+            git commit -m "chore: regenerate CLI schema"
+            git push origin "HEAD:refs/heads/$BRANCH" --force-with-lease="refs/heads/$BRANCH:$SHA"
+            exit 0
+          fi
+          echo "docs/cli/schema.json is out of date. Run 'npm run build:schema' and commit the result."
+          exit 1
 
   ci:
     name: CI Result
