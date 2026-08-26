@@ -24,8 +24,23 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full policy.
 
 Avoid adding new third-party dependencies to reduce supply-chain attack surface.
 
-## Architecture
+## Setup
 
+Node.js 22 or later. `tsc` can peak around 3.7 GB; if the process OOMs, set `NODE_OPTIONS=--max-old-space-size=8192`.
+
+```bash
+npm ci
+npm run build
+npm test
+```
+
+Use `npm ci` in CI and for a clean checkout. `npm install` is fine locally. Unset `ELASTIC_CLI_CONFIG_FILE` before running the built CLI against a real cluster.
+
+After dependency changes, run `node scripts/generate-notice.mjs` and commit `NOTICE.txt` if it changed. After command or flag changes, run `npm run build:schema` and commit `docs/cli/schema.json`.
+
+Do not edit generated files: `src/es/apis/*.ts`, `src/es/api-manifest.ts`, `src/kb/apis.ts`, `src/kb/api-manifest.ts`.
+
+## Architecture
 
 Commands are defined via shared config structures (see `factory.ts`). Custom logic is only permitted for behaviors that cannot be expressed in config.
 
