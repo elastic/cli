@@ -186,20 +186,6 @@ When constructing URLs, sending credentials, or making HTTP requests:
 
 10. **Review upstream command names for UX.** Names sourced directly from `@elastic/schemas` (e.g. `list-deployments`) are precise but verbose. Add short aliases where unambiguous so users can discover commands intuitively.
 
-## Spec-Kit Workflow
-
-Uses [spec-kit](https://github.com/github/spec-kit) for AI-assisted feature development.
-
-| Path | Purpose |
-|------|---------|
-| `.specify/specs/` | Feature specifications |
-| `.specify/plans/` | Implementation plans |
-| `.specify/tasks/` | Task definitions |
-| `.specify/memory/` | Long-lived context (e.g. `constitution.md`) |
-| `.specify/templates/` | Markdown templates |
-| `.specify/scripts/` | Helper scripts |
-| `.specify/hooks.yml` | CI/automation hooks |
-
 ## Conventional Commits
 
 All commit messages and PR titles MUST follow [Conventional Commits v1.0.0](https://www.conventionalcommits.org/en/v1.0.0/). PR titles are validated in CI.
@@ -248,28 +234,6 @@ Indicate with `!` before the colon, a `BREAKING CHANGE` footer, or both:
 feat(cli)!: rename --output to --format
 
 BREAKING CHANGE: --output is removed; use --format instead.
-```
-
-### Release-Please Integration
-
-[release-please](https://github.com/googleapis/release-please) automates versioning from commit messages via squash-merge.
-
-To override a merged commit message, add to the PR body:
-
-```
-BEGIN_COMMIT_OVERRIDE
-feat(cli): correct description
-
-fix(config): secondary fix
-END_COMMIT_OVERRIDE
-```
-
-To force a specific version, use the `Release-As` trailer:
-
-```
-chore: release 3.0.0
-
-Release-As: 3.0.0
 ```
 
 ### Common Mistakes

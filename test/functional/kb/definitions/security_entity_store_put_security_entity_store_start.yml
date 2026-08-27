@@ -11,13 +11,19 @@ requires:
 setup:
   - do:
       security-entity-store.post_security_entity_store_install:
+        body:
+          entityTypes: [user, host, service, generic]
 ---
 teardown:
   - do:
       security-entity-store.post_security_entity_store_uninstall:
+        body:
+          entityTypes: [user, host, service, generic]
         ignore: [404]
 ---
 "security-entity-store start":
   - do:
       security-entity-store.put_security_entity_store_start:
+        body:
+          entityTypes: [user, host, service, generic]
   - is_true: ""

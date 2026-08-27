@@ -11,9 +11,13 @@ requires:
 teardown:
   - do:
       security-entity-store.post_security_entity_store_uninstall:
+        body:
+          entityTypes: [user, host, service, generic]
         ignore: [404]
 ---
 "security-entity-store install":
   - do:
       security-entity-store.post_security_entity_store_install:
+        body:
+          entityTypes: [user, host, service, generic]
   - is_true: ""

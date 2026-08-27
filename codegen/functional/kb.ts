@@ -51,59 +51,7 @@ const yamlFiles = readdirSync(DEFS_DIR)
 const scriptNames: string[] = []
 const allSkippedActions = new Set<string>()
 
-// CLI defect, not a test defect: the agent-builder consumption endpoint has an
-// all-optional request body, but the CLI omits the body entirely when no body
-// flags are passed (collectBody returns undefined), so Kibana rejects the request
-// with "[request body]: expected a plain object value, but found [null] instead."
-// Any agent invoking this command with only --agent-id hits the same error. The
-// agent-builder MCP endpoint (post_agent_builder_mcp) has the same all-optional
-// body and fails identically when called with no body flags. The security-role
-// query endpoint (misc.post_security_role_query, POST /api/security/role/_query)
-// is a third instance: its body is an all-optional object, the test invokes it
-// with `{}`, so the CLI sends no body and Kibana rejects the null with the same
-// "expected a plain object value, but found [null] instead" 400. Skip all three
-// until the CLI sends {} for endpoints that require an object body.
-
-// Not a CLI defect: these three tests schedule a backfill (POST
-// /api/alerting/rules/_backfill/_schedule) and read the returned backfill id, but
-// backfill scheduling is only supported for rule types explicitly registered with
-// backfill support (security detection rules). On the target serverless project the
-// only available stack rule type, `.es-query`, is rejected with `Rule type
-// ".es-query" ... is not supported`, and security rule types like `siem.queryRule`
-// are `not registered`, so scheduling always returns an error with no id — no test
-// data change can produce one. (The out-of-window `2024-01-01` range compounds this:
-// it trips `Backfill cannot look back more than 90 days`, whose top-level error object
-// makes `jq '.[0].id'` abort the script and surfaces as an `input_error` crash in
-// teardown.) The `_backfill/_find` test needs no scheduled backfill and is unaffected.
-
-// Not a CLI defect: this test creates an `.es-query` rule and calls the query
-// inspector (GET /api/alerting/rule/{id}/_query_inspector), but query inspection
-// is only supported for rule types that build an Elasticsearch DSL query. Kibana
-// rejects `.es-query` with `Query inspection is not supported for rule type
-// ".es-query"`. `.es-query` is the only stack rule type available on the target
-// project, so no test data change can make this pass; the CLI forwards the request
-// correctly and the 400 comes from Kibana.
-// Not a CLI defect: every `apm-*` command targets a route under `/api/apm/...`,
-// but the APM plugin/integration is not present on the target deployment, so
-// Kibana returns a bare `404 Not Found` for the route path itself. Both the create
-// (PUT) and teardown (DELETE) calls in the agent-configuration test failed with the
-// identical generic 404, confirming the route is unregistered rather than the request
-// being malformed. No test-data or codegen change can register a missing route, and
-// the CLI forwards the request correctly. Skip all APM definitions until the target
-// deployment provisions APM.
-
-// CLI defect, not a test defect: these commands have no input schema in
-// @elastic/schemas (loadKbApi returns a definition with no `input`), so the CLI
-// derives no body flags and can never send a request body. Their Kibana endpoints
-// require a non-null object body (dashboard attributes; ml job/space ids; trained-
-// model space ids; visualization attributes), so every invocation is rejected with
-// "expected object, received null" / "expected a plain object value, but found
-// [null]". No test-data or codegen change can supply a body the CLI has no schema
-// to accept. Skip until the CLI sends {} for these endpoints or upstream adds an
-// input schema.
 const skippedFiles = new Set<string>([
-
-
   // KNOWN WORKING, SKIP FOR NOW!
   "agent_builder_a2a_get_json.yml",
   "agent_builder_access_control.yml",
@@ -437,15 +385,28 @@ const skippedFiles = new Set<string>([
   "workflows_post_workflows_workflow_id_clone.yml",
   "workflows_post_workflows_workflow_workflowid_executions_cancel.yml",
   "workflows_put_workflows_workflow_id.yml",
-  "apm_agent_configuration_create_update_agent_configuration.yml",
-  "apm_agent_configuration_delete_agent_configuration.yml",
-  "apm_agent_configuration_get_agent_configurations.yml",
-  "apm_agent_configuration_get_agent_name_for_service.yml",
-  "apm_agent_configuration_get_environments_for_service.yml",
-  "apm_agent_configuration_get_single_agent_configuration.yml",
-  "apm_agent_keys_create_agent_key.yml",
-  "apm_server_schema_save_apm_server_schema.yml",
   // END KNOWN WORKING, SKIP FOR NOW!
+
+
+  // Not a CLI defect: every `apm-*` command targets a route under `/api/apm/...`,
+  // but the APM plugin/integration is not present on the target deployment, so
+  // Kibana returns a bare `404 Not Found` for the route path itself. Both the create
+  // (PUT) and teardown (DELETE) calls in the agent-configuration test failed with the
+  // identical generic 404, confirming the route is unregistered rather than the request
+  // being malformed. No test-data or codegen change can register a missing route, and
+  // the CLI forwards the request correctly. Skip all APM definitions until the target
+  // deployment provisions APM.
+  // "apm_agent_configuration_create_update_agent_configuration.yml",
+  // "apm_agent_configuration_delete_agent_configuration.yml",
+  // "apm_agent_configuration_get_agent_configurations.yml",
+  // "apm_agent_configuration_get_agent_name_for_service.yml",
+  // "apm_agent_configuration_get_environments_for_service.yml",
+  // "apm_agent_configuration_get_single_agent_configuration.yml",
+  // "apm_agent_keys_create_agent_key.yml",
+  // "apm_server_schema_save_apm_server_schema.yml",
+  // 'apm_agent_configuration_search_single_configuration.yml',
+  // 'apm_annotations_create_annotation.yml',
+  // 'apm_annotations_get_annotation.yml',
 
 
   // some security detections APIs not available in this environment
@@ -467,34 +428,76 @@ const skippedFiles = new Set<string>([
   // src/lib/kibana-client.ts by following redirects with a same-origin guard, so
   // `agent_builder.yml` is no longer skipped. The two below invoke/stream through separate
   // routes (consumption, MCP) and stay skipped until verified against a live environment.
+  // CLI defect, not a test defect: the agent-builder consumption endpoint has an
+  // all-optional request body, but the CLI omits the body entirely when no body
+  // flags are passed (collectBody returns undefined), so Kibana rejects the request
+  // with "[request body]: expected a plain object value, but found [null] instead."
+  // Any agent invoking this command with only --agent-id hits the same error. The
+  // agent-builder MCP endpoint (post_agent_builder_mcp) has the same all-optional
+  // body and fails identically when called with no body flags. The security-role
+  // query endpoint (misc.post_security_role_query, POST /api/security/role/_query)
+  // is a third instance: its body is an all-optional object, the test invokes it
+  // with `{}`, so the CLI sends no body and Kibana rejects the null with the same
+  // "expected a plain object value, but found [null] instead" 400. Skip all three
+  // until the CLI sends {} for endpoints that require an object body.
   // 'agent_builder_consumption.yml',
   // 'agent_builder_mcp_post.yml',
   // 'misc_post_security_role_query.yml',
+
+  // Not a CLI defect: these three tests schedule a backfill (POST
+  // /api/alerting/rules/_backfill/_schedule) and read the returned backfill id, but
+  // backfill scheduling is only supported for rule types explicitly registered with
+  // backfill support (security detection rules). On the target serverless project the
+  // only available stack rule type, `.es-query`, is rejected with `Rule type
+  // ".es-query" ... is not supported`, and security rule types like `siem.queryRule`
+  // are `not registered`, so scheduling always returns an error with no id — no test
+  // data change can produce one. (The out-of-window `2024-01-01` range compounds this:
+  // it trips `Backfill cannot look back more than 90 days`, whose top-level error object
+  // makes `jq '.[0].id'` abort the script and surfaces as an `input_error` crash in
+  // teardown.) The `_backfill/_find` test needs no scheduled backfill and is unaffected.
   // 'alerting_post_alerting_rules_backfill_schedule.yml',
   // 'alerting_get_alerting_rules_backfill_id.yml',
   // 'alerting_delete_alerting_rules_backfill_id.yml',
-  // 'alerting_get_alerting_rule_id_query_inspector.yml',
-  // 'apm_agent_configuration_create_update_agent_configuration.yml',
-  // 'apm_agent_configuration_delete_agent_configuration.yml',
-  // 'apm_agent_configuration_get_agent_configurations.yml',
-  // 'apm_agent_configuration_get_agent_name_for_service.yml',
-  // 'apm_agent_configuration_get_environments_for_service.yml',
-  // 'apm_agent_configuration_get_single_agent_configuration.yml',
-  // 'apm_agent_configuration_search_single_configuration.yml',
-  // 'apm_agent_keys_create_agent_key.yml',
-  // 'apm_annotations_create_annotation.yml',
-  // 'apm_annotations_get_annotation.yml',
-  // 'apm_server_schema_save_apm_server_schema.yml',
-  // 'dashboards_create.yml',
 
+  // Not a CLI defect: this test creates an `.es-query` rule and calls the query
+  // inspector (GET /api/alerting/rule/{id}/_query_inspector), but query inspection
+  // is only supported for rule types that build an Elasticsearch DSL query. Kibana
+  // rejects `.es-query` with `Query inspection is not supported for rule type
+  // ".es-query"`. `.es-query` is the only stack rule type available on the target
+  // project, so no test data change can make this pass; the CLI forwards the request
+  // correctly and the 400 comes from Kibana.
+  // 'alerting_get_alerting_rule_id_query_inspector.yml',
+
+  // CLI defect, not a test defect: these commands have no input schema in
+  // @elastic/schemas (loadKbApi returns a definition with no `input`), so the CLI
+  // derives no body flags and can never send a request body. Their Kibana endpoints
+  // require a non-null object body (dashboard attributes; ml job/space ids; trained-
+  // model space ids; visualization attributes), so every invocation is rejected with
+  // "expected object, received null" / "expected a plain object value, but found
+  // [null]". No test-data or codegen change can supply a body the CLI has no schema
+  // to accept. Skip until the CLI sends {} for these endpoints or upstream adds an
+  // input schema.
+  //
+  // Upstream schema bug tracked at:
+  // https://github.com/elastic/schemas-js/issues/77
   // dashboards_delete/get/upsert all depend on upsert_dashboard, which has no
   // input schema and hits the same null-body rejection as dashboards_create.
+  'dashboards_create.yml',
   'dashboards_delete.yml',
   'dashboards_get.yml',
   'dashboards_upsert.yml',
   'ml_ml_update_jobs_spaces.yml',
   'ml_ml_update_trained_models_spaces.yml',
   'visualizations_create_visualization.yml',
+
+  // visualizations upsert/get/delete/search all depend on upsert_visualization,
+  // which has no input schema and hits the same null-body rejection (see issue 77
+  // linked above). get/delete/search create their fixture via upsert in setup.
+  'visualizations_upsert_visualization.yml',
+  'visualizations_get_visualization.yml',
+  'visualizations_delete_visualization.yml',
+  'visualizations_search_visualizations.yml',
+
   // Environment defect, not a test defect: these tests derive an agent id from
   // `elastic-agents.get_fleet_agents` in setup (`items.0.id`) and feed it to a
   // request that requires a live, enrolled Fleet agent. The stack/serverless test
