@@ -18,11 +18,11 @@ setup:
             description: ""
             type: wired
             ingest:
-              lifecycle: {}
+              lifecycle: { inherit: {} }
               processing:
                 steps: []
               settings: {}
-              failure_store: {}
+              failure_store: { inherit: {} }
               wired:
                 fields: {}
                 routing: []
@@ -39,11 +39,11 @@ teardown:
         name: cli-ft-streams-put-ingest
         body:
           ingest:
-            lifecycle: {}
+            lifecycle: { inherit: {} }
             processing:
               steps: []
             settings: {}
-            failure_store: {}
+            failure_store: { inherit: {} }
             wired:
               fields: {}
               routing: []

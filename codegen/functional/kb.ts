@@ -448,6 +448,16 @@ const skippedFiles = new Set<string>([
   // END KNOWN WORKING, SKIP FOR NOW!
 
 
+  // some security detections APIs not available in this environment
+  "security_detections_api_export_rules.yml",
+  "security_detections_api_import_rules.yml",
+  "security_detections_api_patch_rule.yml",
+  "security_detections_api_search_alerts.yml",
+  "security_detections_api_search_attacks.yml",
+  "security_detections_api_set_attacks_assignees.yml",
+  "security_detections_api_set_attacks_status.yml",
+  "security_detections_api_set_attacks_tags.yml",
+  "security_detections_api_update_rule.yml",
 
 
   // Agent-invoking endpoints. The A2A send-task POST (/api/agent_builder/a2a/{agentId},
