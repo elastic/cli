@@ -178,7 +178,7 @@ describe('KibanaClient.request', () => {
     assert.deepEqual(result, {})
   })
 
-  it('sets redirect to error', async () => {
+  it('follows redirects (so same-host redirect routes resolve instead of rejecting)', async () => {
     const client = makeClient()
     let capturedInit: RequestInit = {}
     client._testSetFetch(((url: string, init: RequestInit) => {
@@ -187,7 +187,32 @@ describe('KibanaClient.request', () => {
     }) as typeof fetch)
 
     await client.request({ method: 'GET', path: '/api/status' })
-    assert.equal(capturedInit.redirect, 'error')
+    assert.equal(capturedInit.redirect, 'follow')
+  })
+
+  it('rejects a response that landed on a different origin after a redirect', async () => {
+    const client = makeClient()
+    client._testSetFetch(((() => {
+      const resp = new Response('{}', { status: 200 })
+      Object.defineProperty(resp, 'url', { value: 'https://evil.example.com/api/status' })
+      return Promise.resolve(resp)
+    }) as typeof fetch))
+
+    await assert.rejects(
+      client.request({ method: 'GET', path: '/api/status' }),
+      /different origin/
+    )
+  })
+
+  it('accepts a response that stayed on the configured origin after a redirect', async () => {
+    const client = makeClient()
+    client._testSetFetch(((() => {
+      const resp = new Response('{"ok":true}', { status: 200 })
+      Object.defineProperty(resp, 'url', { value: 'http://localhost:5601/api/status/' })
+      return Promise.resolve(resp)
+    }) as typeof fetch))
+
+    assert.deepEqual(await client.request({ method: 'GET', path: '/api/status' }), { ok: true })
   })
 })
 
