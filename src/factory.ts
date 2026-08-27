@@ -15,12 +15,14 @@ import { pickFields, parseFieldList, applyTemplate, TemplateAgainstPrimitiveErro
 import { validateName, hasGlobalJsonFlag, configureErrorOutput, commandPath, isCommandAllowed, stripTransportMeta } from './factory-core.ts'
 import type { OpaqueCommandHandle, JsonValue, CommandConfig, ParsedResult } from './factory-core.ts'
 import { RawJsonValue } from './factory-core.ts'
+import { YamlResponse } from './lib/yaml-response.ts'
 
 // Re-export from factory-core for backward compatibility
 export {
   type CommandIntent,
   type OptionDefinition,
   type JsonValue,
+  type HandlerResult,
   RawJsonValue,
   type ParsedResult,
   type CommandConfig,
@@ -715,17 +717,32 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
     const { renderText, formatHandlerError } = await getOutput()
     assert(handlerResult !== undefined, `command ${JSON.stringify(config.name)}: handler must return a JsonValue`)
 
-    if (isErrorResult(handlerResult)) {
+    // A YAML body is printed verbatim by default; `--json` parses it into structured JSON that then
+    // flows through the normal field-selection / template / JSON-output pipeline below.
+    let result: JsonValue
+    if (handlerResult instanceof YamlResponse) {
+      if (jsonFormat !== true) {
+        const text = handlerResult.text
+        process.stdout.write(text.endsWith('\n') ? text : text + '\n')
+        return
+      }
+      const { parse: parseYaml } = await import('yaml')
+      result = parseYaml(handlerResult.text) as JsonValue
+    } else {
+      result = handlerResult
+    }
+
+    if (isErrorResult(result)) {
       if (jsonFormat === true) {
-        writeErr(cmd, JSON.stringify(handlerResult) + '\n')
+        writeErr(cmd, JSON.stringify(result) + '\n')
       } else {
-        writeErr(cmd, `Error: ${formatHandlerError(handlerResult)}\n`)
+        writeErr(cmd, `Error: ${formatHandlerError(result)}\n`)
       }
       process.exitCode = 1
     } else {
       const fieldsRaw = allRaw.outputFields as string | undefined
       const templateRaw = allRaw.outputTemplate as string | undefined
-      let output = handlerResult
+      let output = result
       if (fieldsRaw != null) {
         output = pickFields(output, parseFieldList(fieldsRaw))
       }

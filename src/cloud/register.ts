@@ -17,7 +17,8 @@ import {
   isCredentialCommand,
   readCredentialPolicyOptions,
 } from './credentials.ts'
-import type { JsonValue, ParsedResult } from '../factory.ts'
+import type { HandlerResult, ParsedResult } from '../factory.ts'
+import { YamlResponse } from '../lib/yaml-response.ts'
 
 /**
  * Maps project-type namespaces from codegen to short CLI group names.
@@ -157,7 +158,7 @@ function buildServerlessTypeGroup (
     const shortName = simplifyProjectCommandName(def.name, namespace)
     const schema = buildCloudJsonSchema(def)
     const baseHandler = createCloudHandler(def)
-    const handler: (parsed: ParsedResult) => Promise<JsonValue> = isCredentialCommand(def.name)
+    const handler: (parsed: ParsedResult) => Promise<HandlerResult> = isCredentialCommand(def.name)
       ? async (parsed) => wrapWithCredentialPolicy(def.name, baseHandler, parsed)
       : baseHandler
     const cmd = defineCommand({
@@ -280,10 +281,12 @@ function partitionDefinitions (definitions: CloudApiDefinition[]): PartitionedDe
  */
 async function wrapWithCredentialPolicy (
   cmdName: string,
-  baseHandler: (parsed: ParsedResult) => Promise<JsonValue>,
+  baseHandler: (parsed: ParsedResult) => Promise<HandlerResult>,
   parsed: ParsedResult,
-): Promise<JsonValue> {
+): Promise<HandlerResult> {
   const body = await baseHandler(parsed)
+  // Credential commands never return YAML; pass any YAML body straight through untouched.
+  if (body instanceof YamlResponse) return body
   // If the base handler itself returned an error envelope, don't touch it.
   if (body != null && typeof body === 'object' && !Array.isArray(body) && 'error' in body) return body
   const opts = readCredentialPolicyOptions(parsed.options)

@@ -10,6 +10,7 @@ import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
 import { isLoopbackUrl } from './is-loopback-host.ts'
 import { clientHeaders } from './meta.ts'
 import { parseSseText } from './sse.ts'
+import { YamlResponse, isYamlContentType } from './yaml-response.ts'
 
 /** HTTP methods supported by the Kibana API client. */
 export type KibanaHttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD' | 'PATCH'
@@ -178,7 +179,23 @@ export class KibanaClient {
       return decodeSse(text)
     }
 
-    return JSON.parse(text)
+    // YAML bodies (agent-policy / Kubernetes manifest downloads) are wrapped so the output layer
+    // can print them verbatim by default and parse them to JSON only under `--json`.
+    if (isYamlContentType(contentType)) {
+      return new YamlResponse(text)
+    }
+
+    // Other raw non-JSON payloads (script-library downloads, the OAuth callback JavaScript) are
+    // returned verbatim instead of blowing up with `is not valid JSON`. Bodies advertised as JSON
+    // are parsed strictly; otherwise fall back to the raw text when parsing fails.
+    if (contentType.includes('json')) {
+      return JSON.parse(text)
+    }
+    try {
+      return JSON.parse(text)
+    } catch {
+      return text
+    }
   }
 
   /**

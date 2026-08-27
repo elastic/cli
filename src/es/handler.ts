@@ -9,7 +9,7 @@ import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
 import { buildRequestParams } from './request-builder.ts'
 import { getEsClient } from '../lib/es-client.ts'
 import { missingConfigError, transportError, inputError } from './errors.ts'
-import type { JsonValue, ParsedResult } from '../factory.ts'
+import type { HandlerResult, ParsedResult } from '../factory.ts'
 
 /**
  * Dependencies for `createEsHandler`, injectable for testing.
@@ -32,8 +32,8 @@ export function createEsHandler (
   def: EsApiDefinition,
   schemaArgs: SchemaArgDefinition[],
   deps: EsHandlerDeps = defaultDeps
-): (parsed: ParsedResult) => Promise<JsonValue> {
-  return async (parsed: ParsedResult): Promise<JsonValue> => {
+): (parsed: ParsedResult) => Promise<HandlerResult> {
+  return async (parsed: ParsedResult): Promise<HandlerResult> => {
     let params
     try {
       params = deps.buildRequestParams(def, parsed, schemaArgs)
@@ -63,14 +63,14 @@ export function createEsHandler (
 
       if (responseType === 'text' && (jsonRequested || structuredOutputRequested)) {
         params.querystring = { ...(params.querystring ?? {}), format: 'json' }
-        return await transport.request<JsonValue>(params)
+        return await transport.request<HandlerResult>(params)
       }
 
       if (responseType === 'text') {
-        return await transport.request<JsonValue>(params, { headers: { 'Accept': 'text/plain' } })
+        return await transport.request<HandlerResult>(params, { headers: { 'Accept': 'text/plain' } })
       }
 
-      return await transport.request<JsonValue>(params)
+      return await transport.request<HandlerResult>(params)
     } catch (err) {
       return transportError(err)
     }

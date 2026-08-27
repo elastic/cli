@@ -7,7 +7,7 @@ import type { CloudApiDefinition } from './types.ts'
 import type { CloudClient } from '../lib/cloud-client.ts'
 import { getCloudClient } from '../lib/cloud-client.ts'
 import { buildCloudRequestParams } from './request-builder.ts'
-import type { JsonValue, ParsedResult } from '../factory.ts'
+import type { HandlerResult, JsonValue, ParsedResult } from '../factory.ts'
 
 const DEFAULT_POLL_INTERVAL_MS = 10_000
 const DEFAULT_POLL_TIMEOUT_MS = 300_000
@@ -39,8 +39,8 @@ const defaultDeps: CloudHandlerDeps = { getCloudClient, buildCloudRequestParams 
 export function createCloudHandler(
   def: CloudApiDefinition,
   deps: CloudHandlerDeps = defaultDeps,
-): (parsed: ParsedResult) => Promise<JsonValue> {
-  return async (parsed: ParsedResult): Promise<JsonValue> => {
+): (parsed: ParsedResult) => Promise<HandlerResult> {
+  return async (parsed: ParsedResult): Promise<HandlerResult> => {
     let client: CloudClient
     try {
       client = deps.getCloudClient()
@@ -68,7 +68,7 @@ export function createCloudHandler(
         }
       }
 
-      return body as JsonValue
+      return body as HandlerResult
     } catch (err) {
       return cloudApiError(err)
     }

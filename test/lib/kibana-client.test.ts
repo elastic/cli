@@ -5,6 +5,7 @@
 
 import { describe, it, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
+import { YamlResponse } from '../../src/lib/yaml-response.ts'
 import { KibanaClient, getKibanaClient, _testResetKibanaClient } from '../../src/lib/kibana-client.ts'
 import { setResolvedConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
@@ -294,5 +295,36 @@ describe('KibanaClient.request Server-Sent Events', () => {
 
     const result = await client.request({ method: 'POST', path: '/x', body: {} })
     assert.deepEqual(result, [{ event: 'e', data: { a: 1 } }])
+  })
+})
+
+describe('KibanaClient.request non-JSON bodies', () => {
+  function makeClient () {
+    return new KibanaClient('http://localhost:5601', { api_key: 'test-key' })
+  }
+
+  function rawFetch (body: string, contentType: string): typeof fetch {
+    return ((): Promise<Response> =>
+      Promise.resolve(new Response(body, { status: 200, headers: { 'content-type': contentType } }))
+    ) as typeof fetch
+  }
+
+  it('wraps an application/yaml body in a YamlResponse (agent-policy/k8s manifest download)', async () => {
+    const client = makeClient()
+    const yaml = 'apiVersion: v1\nkind: ConfigMap\n'
+    client._testSetFetch(rawFetch(yaml, 'application/yaml'))
+
+    const result = await client.request({ method: 'GET', path: '/api/fleet/kubernetes/download' })
+    assert.ok(result instanceof YamlResponse)
+    assert.equal(result.text, yaml)
+  })
+
+  it('returns a raw JavaScript body verbatim (oauth callback script)', async () => {
+    const client = makeClient()
+    const js = '(() => { window.location = "/" })()'
+    client._testSetFetch(rawFetch(js, 'text/javascript'))
+
+    const result = await client.request({ method: 'GET', path: '/oauth/callback' })
+    assert.equal(result, js)
   })
 })

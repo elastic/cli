@@ -8,7 +8,7 @@ import type { KibanaClient } from '../lib/kibana-client.ts'
 import { getKibanaClient } from '../lib/kibana-client.ts'
 import { buildKibanaRequestParams } from './request-builder.ts'
 import { missingConfigError, kibanaApiError } from './errors.ts'
-import type { JsonValue, ParsedResult } from '../factory.ts'
+import type { HandlerResult, ParsedResult } from '../factory.ts'
 
 /**
  * Dependencies for `createKbHandler`, injectable for testing.
@@ -32,8 +32,8 @@ const defaultDeps: KbHandlerDeps = { getKibanaClient, buildKibanaRequestParams }
 export function createKbHandler (
   def: KbApiDefinition,
   deps: KbHandlerDeps = defaultDeps
-): (parsed: ParsedResult) => Promise<JsonValue> {
-  return async (parsed: ParsedResult): Promise<JsonValue> => {
+): (parsed: ParsedResult) => Promise<HandlerResult> {
+  return async (parsed: ParsedResult): Promise<HandlerResult> => {
     let client: KibanaClient
     try {
       client = deps.getKibanaClient()
@@ -45,7 +45,7 @@ export function createKbHandler (
 
     try {
       const body = await client.request(params)
-      return body as JsonValue
+      return body as HandlerResult
     } catch (err) {
       return kibanaApiError(err)
     }

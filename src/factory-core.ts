@@ -18,6 +18,7 @@
 import { Command } from 'commander'
 import type { ResolvedConfig, CommandPolicy } from './config/types.ts'
 import { resolveBuiltinProfile } from './config/profiles.ts'
+import { YamlResponse } from './lib/yaml-response.ts'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,6 +45,9 @@ export interface OptionDefinition {
 
 /** Recursive JSON value type used throughout the CLI for structured output. */
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
+
+/** A handler may return structured JSON, or a raw YAML body deferred for `--json`-aware rendering. */
+export type HandlerResult = JsonValue | YamlResponse
 
 /**
  * Wraps a raw JSON string alongside its parsed form. Used to carry body values
@@ -74,7 +78,7 @@ export interface CommandConfig {
   description: string
   options?: OptionDefinition[]
   positionalArg?: { name: string; description: string; required?: boolean }
-  handler: (parsed: ParsedResult) => JsonValue | Promise<JsonValue>
+  handler: (parsed: ParsedResult) => HandlerResult | Promise<HandlerResult>
   /** JSON Schema object for structured input (properties carry `x-found-in` routing). */
   input?: Record<string, unknown>
   formatOutput?: (result: JsonValue, parsed: ParsedResult) => string
