@@ -124,10 +124,24 @@ export function generateScript (
   }
 }
 
+/** A generated script plus the `requires` metadata used for runtime filtering. */
+export interface RunnerScript {
+  path: string
+  serverless?: boolean
+  /** true = runs on stack, false = excluded, null/undefined = not specified */
+  stack?: boolean | null
+}
+
 /**
  * Generate the run.sh runner script that executes all generated test scripts.
+ *
+ * Scripts may be passed as bare paths or as {@link RunnerScript} objects. When
+ * `requires` metadata is present, the runner supports `--serverless` / `--stack`
+ * flags that run ONLY scripts whose matching `requires` field is `true`.
  */
-export function generateRunner (scriptPaths: string[]): string {
+export function generateRunner (scripts: Array<string | RunnerScript>): string {
+  const normalized: RunnerScript[] = scripts.map((s) =>
+    typeof s === 'string' ? { path: s } : s)
   const lines: string[] = []
   lines.push('#!/bin/bash')
   lines.push('# Runner for generated functional tests')
@@ -138,19 +152,36 @@ export function generateRunner (scriptPaths: string[]): string {
   lines.push('FAILED=0')
   lines.push('ERRORS=""')
   lines.push('BAIL=0')
-  lines.push('[ "${1:-}" = "--bail" ] && BAIL=1')
+  lines.push('FILTER=""')
+  lines.push('for arg in "$@"; do')
+  lines.push('  case "$arg" in')
+  lines.push('    --bail) BAIL=1 ;;')
+  lines.push('    --serverless) FILTER=serverless ;;')
+  lines.push('    --stack) FILTER=stack ;;')
+  lines.push('  esac')
+  lines.push('done')
+  lines.push('')
+  lines.push('should_run () {')
+  lines.push('  # args: <serverless> <stack>')
+  lines.push('  [ -z "$FILTER" ] && return 0')
+  lines.push('  [ "$FILTER" = serverless ] && [ "$1" = true ] && return 0')
+  lines.push('  [ "$FILTER" = stack ] && [ "$2" = true ] && return 0')
+  lines.push('  return 1')
+  lines.push('}')
   lines.push('')
 
-  for (const p of scriptPaths) {
-    lines.push(`if OUTPUT=$(bash "$SCRIPT_DIR/${p}" 2>&1); then`)
-    lines.push('  PASSED=$((PASSED + 1))')
-    lines.push(`  echo "PASS: ${p}"`)
-    lines.push('else')
-    lines.push('  FAILED=$((FAILED + 1))')
-    lines.push(`  ERRORS="$ERRORS\\n  FAIL: ${p}"`)
-    lines.push(`  echo "FAIL: ${p}"`)
-    lines.push('  echo "$OUTPUT" | tail -5')
-    lines.push('  if [ "$BAIL" -eq 1 ]; then exit 1; fi')
+  for (const { path: p, serverless, stack } of normalized) {
+    lines.push(`if should_run ${serverless === true ? 'true' : 'false'} ${stack === true ? 'true' : 'false'}; then`)
+    lines.push(`  if OUTPUT=$(bash "$SCRIPT_DIR/${p}" 2>&1); then`)
+    lines.push('    PASSED=$((PASSED + 1))')
+    lines.push(`    echo "PASS: ${p}"`)
+    lines.push('  else')
+    lines.push('    FAILED=$((FAILED + 1))')
+    lines.push(`    ERRORS="$ERRORS\\n  FAIL: ${p}"`)
+    lines.push(`    echo "FAIL: ${p}"`)
+    lines.push('    echo "$OUTPUT" | tail -5')
+    lines.push('    if [ "$BAIL" -eq 1 ]; then exit 1; fi')
+    lines.push('  fi')
     lines.push('fi')
     lines.push('')
   }

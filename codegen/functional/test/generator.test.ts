@@ -277,6 +277,22 @@ describe('generateRunner', () => {
     const runner = generateRunner(['test.sh'])
     assert.ok(runner.includes('exit 1'))
   })
+
+  it('emits requires-based filter guards for --serverless/--stack', () => {
+    const runner = generateRunner([
+      { path: 'sl.sh', serverless: true, stack: false },
+      { path: 'stk.sh', serverless: false, stack: true }
+    ])
+    assert.ok(runner.includes('--serverless) FILTER=serverless'))
+    assert.ok(runner.includes('--stack) FILTER=stack'))
+    assert.ok(runner.includes('if should_run true false; then'))
+    assert.ok(runner.includes('if should_run false true; then'))
+  })
+
+  it('bare string paths always run (guard true true)', () => {
+    const runner = generateRunner(['plain.sh'])
+    assert.ok(runner.includes('if should_run false false; then'))
+  })
 })
 
 describe('shell injection prevention in match assertions', () => {

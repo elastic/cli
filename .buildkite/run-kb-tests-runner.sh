@@ -129,4 +129,4 @@ EOF
 export ELASTIC_CLI_CONFIG_FILE="/tmp/elastic-rc.yml"
 
 echo "+++ Running KB functional tests"
-npm run test:functional:kb
+npm run test:functional:kb -- --stack
