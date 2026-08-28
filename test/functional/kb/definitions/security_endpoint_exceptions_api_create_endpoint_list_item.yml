@@ -31,5 +31,5 @@ teardown:
               value: test.exe
               operator: included
   - is_true: item_id
-  - match: { item_id: cli-ft-endpoint-list-item-create }
-  - match: { name: CLI FT Endpoint List Item Create }
+  - match: {item_id: cli-ft-endpoint-list-item-create}
+  - match: {name: CLI FT Endpoint List Item Create}

@@ -19,7 +19,7 @@ teardown:
         body:
           name: cli-ft-download-source-delete
           host: https://artifacts.elastic.co/downloads/
-  - set: { item.id: source_id }
+  - set: {item.id: source_id}
   - is_true: item.id
 
   - do:

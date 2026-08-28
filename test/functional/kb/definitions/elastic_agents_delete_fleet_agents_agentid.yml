@@ -12,7 +12,7 @@ setup:
       elastic-agents.get_fleet_agents:
         kuery: "status:unenrolled"
         show_inactive: true
-  - set: { "items.0.id": agent_id }
+  - set: {"items.0.id": agent_id}
 ---
 "elastic-agents delete fleet agents agentid":
   - do:

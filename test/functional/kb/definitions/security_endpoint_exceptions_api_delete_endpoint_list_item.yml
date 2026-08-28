@@ -28,7 +28,7 @@ teardown:
               field: process.name
               value: test.exe
               operator: included
-  - match: { item_id: cli-ft-endpoint-list-item-delete }
+  - match: {item_id: cli-ft-endpoint-list-item-delete}
 
   - do:
       security-endpoint-exceptions-api.delete_endpoint_list_item:

@@ -43,6 +43,6 @@ teardown:
               value: updated.exe
               operator: included
   - is_true: item_id
-  - match: { item_id: cli-ft-endpoint-list-item-update }
-  - match: { name: CLI FT Endpoint List Item Updated }
-  - match: { description: Updated description }
+  - match: {item_id: cli-ft-endpoint-list-item-update}
+  - match: {name: CLI FT Endpoint List Item Updated}
+  - match: {description: Updated description}

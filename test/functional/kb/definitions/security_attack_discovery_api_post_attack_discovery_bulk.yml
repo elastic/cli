@@ -15,7 +15,7 @@ setup:
   - do:
       security-attack-discovery-api.attack_discovery_find:
         per_page: 1
-  - set: { "data.0.id": discovery_id }
+  - set: {"data.0.id": discovery_id}
 ---
 "security-attack-discovery-api post attack discovery bulk":
   - do:

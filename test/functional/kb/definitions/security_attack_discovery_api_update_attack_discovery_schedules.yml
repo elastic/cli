@@ -21,7 +21,7 @@ setup:
             apiUrl: "https://api.openai.com/v1"
           secrets:
             apiKey: "placeholder-key"
-  - match: { id: cli-ft-attack-discovery-upd-sched-connector }
+  - match: {id: cli-ft-attack-discovery-upd-sched-connector}
   - do:
       security-attack-discovery-api.create_attack_discovery_schedules:
         body:
@@ -35,7 +35,7 @@ setup:
               actionTypeId: ".gen-ai"
               name: CLI FT Attack Discovery Upd Sched Connector
             size: 20
-  - set: { id: schedule_id }
+  - set: {id: schedule_id}
 ---
 teardown:
   - do:
@@ -63,4 +63,4 @@ teardown:
               actionTypeId: ".gen-ai"
               name: CLI FT Attack Discovery Upd Sched Connector
             size: 20
-  - match: { name: cli-ft-attack-discovery-upd-schedule-updated }
+  - match: {name: cli-ft-attack-discovery-upd-schedule-updated}

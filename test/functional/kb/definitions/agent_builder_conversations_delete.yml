@@ -18,7 +18,7 @@ teardown:
       agent-builder.post_agent_builder_converse:
         body:
           input: ping
-  - set: { conversation_id: conv_id }
+  - set: {conversation_id: conv_id}
   - is_true: conversation_id
 
   - do:

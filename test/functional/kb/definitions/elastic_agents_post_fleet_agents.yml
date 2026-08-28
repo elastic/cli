@@ -10,11 +10,11 @@ requires:
 setup:
   - do:
       elastic-agents.get_fleet_agents: {}
-  - set: { "items.0.id": agent_id }
+  - set: {"items.0.id": agent_id}
   - do:
       elastic-agent-actions.post_fleet_agents_agentid_request_diagnostics:
         agent_id: $agent_id
-  - set: { actionId: action_id }
+  - set: {actionId: action_id}
 ---
 "elastic-agents post fleet agents":
   - do:

@@ -15,7 +15,7 @@ setup:
         body:
           name: cli-ft-list-watchlists-test
           riskModifier: 10
-  - set: { id: watchlist_id }
+  - set: {id: watchlist_id}
 ---
 "security-entity-analytics-api list watchlists":
   - do:

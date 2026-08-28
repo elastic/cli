@@ -21,17 +21,17 @@ teardown:
           consumer: stackAlerts
           name: CLI FT Rule Enable
           rule_type_id: ".es-query"
-          schedule: { interval: "1m" }
+          schedule: {interval: "1m"}
           params:
             searchType: esqlQuery
-            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            esqlQuery: {esql: "FROM * | LIMIT 1"}
             timeWindowSize: 5
             timeWindowUnit: m
             threshold: [0]
             thresholdComparator: ">"
             size: 0
             timeField: "@timestamp"
-  - match: { id: cli-ft-rule-enable }
+  - match: {id: cli-ft-rule-enable}
   - is_true: enabled
 
   - do:
@@ -41,7 +41,7 @@ teardown:
   - do:
       alerting.get_alerting_rule_id:
         id: cli-ft-rule-enable
-  - match: { enabled: false }
+  - match: {enabled: false}
 
   - do:
       alerting.post_alerting_rule_id_enable:
@@ -50,8 +50,8 @@ teardown:
   - do:
       alerting.get_alerting_rule_id:
         id: cli-ft-rule-enable
-  - match: { id: cli-ft-rule-enable }
-  - match: { enabled: true }
+  - match: {id: cli-ft-rule-enable}
+  - match: {enabled: true}
 
   - do:
       alerting.delete_alerting_rule_id:

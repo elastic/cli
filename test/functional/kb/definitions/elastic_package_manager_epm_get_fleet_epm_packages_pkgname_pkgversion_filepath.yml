@@ -11,7 +11,7 @@ requires:
   - do:
       elastic-package-manager-epm.get_fleet_epm_packages_pkgname:
         pkg_name: system
-  - set: { "item.version": pkg_version }
+  - set: {"item.version": pkg_version}
 
   - do:
       elastic-package-manager-epm.get_fleet_epm_packages_pkgname_pkgversion_filepath:

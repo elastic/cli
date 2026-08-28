@@ -21,11 +21,11 @@ teardown:
           links:
             - type: externalLink
               destination: https://elastic.co
-  - set: { id: created_id }
+  - set: {id: created_id}
   - is_true: id
 
   - do:
       links.get_links_id:
         id: $created_id
-  - match: { id: $created_id }
-  - match: { data.title: CLI FT Links Get By Id }
+  - match: {id: $created_id}
+  - match: {data.title: CLI FT Links Get By Id}

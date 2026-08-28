@@ -21,7 +21,7 @@ setup:
             apiUrl: "https://api.openai.com/v1"
           secrets:
             apiKey: "placeholder-key"
-  - match: { id: cli-ft-attack-discovery-en-connector }
+  - match: {id: cli-ft-attack-discovery-en-connector}
   - do:
       security-attack-discovery-api.create_attack_discovery_schedules:
         body:
@@ -35,7 +35,7 @@ setup:
               actionTypeId: ".gen-ai"
               name: CLI FT Attack Discovery En Connector
             size: 20
-  - set: { id: schedule_id }
+  - set: {id: schedule_id}
   - do:
       security-attack-discovery-api.disable_attack_discovery_schedules:
         id: $schedule_id

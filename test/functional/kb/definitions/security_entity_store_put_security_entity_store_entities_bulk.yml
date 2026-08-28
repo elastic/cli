@@ -15,7 +15,7 @@ setup:
         body:
           user:
             name: cli-ft-entity-bulk-update
-  - set: { entity.id: entity_id }
+  - set: {entity.id: entity_id}
 ---
 teardown:
   - do:

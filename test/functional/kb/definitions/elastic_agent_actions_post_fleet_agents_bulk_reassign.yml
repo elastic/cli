@@ -10,14 +10,14 @@ requires:
 setup:
   - do:
       elastic-agents.get_fleet_agents: {}
-  - set: { "items.0.id": agent_id }
-  - set: { "items.0.policy_id": original_policy_id }
+  - set: {"items.0.id": agent_id}
+  - set: {"items.0.policy_id": original_policy_id}
   - do:
       elastic-agent-policies.post_fleet_agent_policies:
         body:
           name: cli-ft-ea-bulk-reassign
           namespace: default
-  - set: { "item.id": new_policy_id }
+  - set: {"item.id": new_policy_id}
 ---
 teardown:
   - do:

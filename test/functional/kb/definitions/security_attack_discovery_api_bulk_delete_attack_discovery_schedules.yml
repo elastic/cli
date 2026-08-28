@@ -20,7 +20,7 @@ setup:
             apiUrl: "https://api.openai.com/v1"
           secrets:
             apiKey: "placeholder-key"
-  - match: { id: cli-ft-attack-discovery-bulk-del-connector }
+  - match: {id: cli-ft-attack-discovery-bulk-del-connector}
   - do:
       security-attack-discovery-api.create_attack_discovery_schedules:
         body:
@@ -34,7 +34,7 @@ setup:
               actionTypeId: ".gen-ai"
               name: CLI FT Attack Discovery Bulk Del Connector
             size: 20
-  - set: { id: schedule_id }
+  - set: {id: schedule_id}
 ---
 teardown:
   - do:

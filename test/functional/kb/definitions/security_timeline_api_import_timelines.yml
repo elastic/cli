@@ -15,7 +15,7 @@ setup:
         body:
           timeline:
             title: CLI FT import-timelines test
-  - set: { "savedObjectId": timeline_id }
+  - set: {"savedObjectId": timeline_id}
   - do:
       security-timeline-api.export_timelines:
         file_name: export.ndjson

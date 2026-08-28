@@ -16,5 +16,5 @@ teardown:
 "visualizations create visualization":
   - do:
       visualizations.create_visualization: {}
-  - set: { id: viz_id }
+  - set: {id: viz_id}
   - is_true: id

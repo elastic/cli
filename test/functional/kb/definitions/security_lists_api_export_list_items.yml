@@ -34,5 +34,5 @@ teardown:
       security-lists-api.export_list_items:
         list_id: cli-ft-sec-lists-export-items-list
   - is_true: 0.list_id
-  - match: { 0.list_id: cli-ft-sec-lists-export-items-list }
-  - match: { 0.value: "192.0.2.1" }
+  - match: {0.list_id: cli-ft-sec-lists-export-items-list}
+  - match: {0.value: "192.0.2.1"}

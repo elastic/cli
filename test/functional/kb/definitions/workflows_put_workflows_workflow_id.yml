@@ -31,4 +31,4 @@ teardown:
         id: cli-ft-workflow-update
         body:
           name: CLI FT Workflow Updated
-  - match: { id: cli-ft-workflow-update }
+  - match: {id: cli-ft-workflow-update}

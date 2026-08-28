@@ -28,4 +28,4 @@ teardown:
   - do:
       security-lists-api.delete_list:
         id: cli-ft-sec-lists-delete-list
-  - match: { id: cli-ft-sec-lists-delete-list }
+  - match: {id: cli-ft-sec-lists-delete-list}

@@ -22,6 +22,6 @@ teardown:
         body:
           timeline:
             title: CLI FT create-timelines test
-  - set: { "savedObjectId": timeline_id }
+  - set: {"savedObjectId": timeline_id}
   - is_true: savedObjectId
-  - match: { title: CLI FT create-timelines test }
+  - match: {title: CLI FT create-timelines test}

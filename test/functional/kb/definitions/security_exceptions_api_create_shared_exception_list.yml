@@ -22,6 +22,6 @@ teardown:
           description: Created by functional test
   - is_true: id
   - is_true: list_id
-  - set: { list_id: list_id }
-  - match: { name: CLI FT Shared Exception List }
-  - match: { namespace_type: agnostic }
+  - set: {list_id: list_id}
+  - match: {name: CLI FT Shared Exception List}
+  - match: {namespace_type: agnostic}

@@ -35,4 +35,4 @@ teardown:
           budgetingMethod: occurrences
           objective:
             target: 0.99
-  - match: { id: cli-ft-create-slo }
+  - match: {id: cli-ft-create-slo}

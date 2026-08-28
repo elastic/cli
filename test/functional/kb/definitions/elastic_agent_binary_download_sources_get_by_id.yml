@@ -19,11 +19,11 @@ teardown:
         body:
           name: cli-ft-download-source-get-by-id
           host: https://artifacts.elastic.co/downloads/
-  - set: { item.id: source_id }
+  - set: {item.id: source_id}
   - is_true: item.id
 
   - do:
       elastic-agent-binary-download-sources.get_fleet_agent_download_sources_sourceid:
         source_id: $source_id
   - is_true: item.id
-  - match: { item.name: cli-ft-download-source-get-by-id }
+  - match: {item.name: cli-ft-download-source-get-by-id}

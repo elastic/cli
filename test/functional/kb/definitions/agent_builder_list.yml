@@ -22,7 +22,7 @@ teardown:
           description: Created by functional test
           configuration:
             tools: []
-  - match: { id: cli-ft-ab-list }
+  - match: {id: cli-ft-ab-list}
 
   - do:
       agent-builder.get_agent_builder_agents: {}

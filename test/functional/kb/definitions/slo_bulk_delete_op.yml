@@ -35,7 +35,7 @@ teardown:
           budgetingMethod: occurrences
           objective:
             target: 0.99
-  - match: { id: cli-ft-bulk-delete-slo }
+  - match: {id: cli-ft-bulk-delete-slo}
 
   - do:
       slo.bulk_delete_op:

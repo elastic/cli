@@ -24,7 +24,7 @@ teardown:
           queries:
             uptime:
               query: SELECT * FROM uptime LIMIT 1
-  - set: { "data.id": pack_id }
+  - set: {"data.id": pack_id}
   - is_true: data.id
 
   - do:

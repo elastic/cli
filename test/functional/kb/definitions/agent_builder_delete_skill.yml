@@ -21,7 +21,7 @@ teardown:
           name: CLI FT Skill Delete
           description: Created by functional test
           content: "# Skill\nDo something useful."
-  - match: { id: cli-ft-ab-skill-delete }
+  - match: {id: cli-ft-ab-skill-delete}
 
   - do:
       agent-builder.delete_agent_builder_skills_skillid:

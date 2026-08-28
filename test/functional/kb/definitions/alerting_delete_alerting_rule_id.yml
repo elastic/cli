@@ -21,17 +21,17 @@ teardown:
           consumer: stackAlerts
           name: CLI FT Rule Delete
           rule_type_id: ".es-query"
-          schedule: { interval: "1m" }
+          schedule: {interval: "1m"}
           params:
             searchType: esqlQuery
-            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            esqlQuery: {esql: "FROM * | LIMIT 1"}
             timeWindowSize: 5
             timeWindowUnit: m
             threshold: [0]
             thresholdComparator: ">"
             size: 0
             timeField: "@timestamp"
-  - match: { id: cli-ft-rule-delete }
+  - match: {id: cli-ft-rule-delete}
 
   - do:
       alerting.delete_alerting_rule_id:

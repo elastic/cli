@@ -35,7 +35,7 @@ teardown:
           budgetingMethod: occurrences
           objective:
             target: 0.99
-  - match: { id: cli-ft-get-snapshot-slo }
+  - match: {id: cli-ft-get-snapshot-slo}
 
   - do:
       slo.get_snapshot_op:

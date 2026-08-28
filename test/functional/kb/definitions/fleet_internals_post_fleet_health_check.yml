@@ -11,7 +11,7 @@ setup:
   - do:
       elastic-agents.get_fleet_agents:
         kuery: "type:FLEET_SERVER"
-  - set: { "items.0.id": fleet_server_id }
+  - set: {"items.0.id": fleet_server_id}
 ---
 "fleet-internals post fleet health check":
   - do:

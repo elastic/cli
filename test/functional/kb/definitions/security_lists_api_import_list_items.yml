@@ -36,5 +36,5 @@ teardown:
         type: keyword
         body:
           file: $items_file
-  - match: { id: cli-ft-sec-lists-import-items-list }
-  - match: { type: keyword }
+  - match: {id: cli-ft-sec-lists-import-items-list}
+  - match: {type: keyword}

@@ -11,7 +11,7 @@ setup:
   - do:
       elastic-package-manager-epm.get_fleet_epm_packages_pkgname:
         pkg_name: apache
-  - set: { "item.version": pkg_version }
+  - set: {"item.version": pkg_version}
   - do:
       elastic-package-manager-epm.post_fleet_epm_packages_pkgname_pkgversion:
         pkg_name: apache
@@ -21,7 +21,7 @@ setup:
         body:
           name: cli-ft-epm-ds-assets-policy
           namespace: testprefix
-  - set: { "item.id": agent_policy_id }
+  - set: {"item.id": agent_policy_id}
   - do:
       fleet-package-policies.post_fleet_package_policies:
         body:
@@ -31,7 +31,7 @@ setup:
           package:
             name: apache
             version: $pkg_version
-  - set: { "item.id": package_policy_id }
+  - set: {"item.id": package_policy_id}
 ---
 teardown:
   - do:

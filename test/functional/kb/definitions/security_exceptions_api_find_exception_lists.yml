@@ -27,5 +27,5 @@ teardown:
 "security-exceptions-api find exception lists":
   - do:
       security-exceptions-api.find_exception_lists: {}
-  - gt: { total: 0 }
+  - gt: {total: 0}
   - is_true: data

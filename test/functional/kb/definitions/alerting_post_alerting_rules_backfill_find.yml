@@ -10,5 +10,5 @@ requires:
 "alerting find backfills":
   - do:
       alerting.post_alerting_rules_backfill_find: {}
-  - match: { page: 1 }
+  - match: {page: 1}
   - is_true: data

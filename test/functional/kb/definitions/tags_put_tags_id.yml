@@ -13,7 +13,7 @@ setup:
         body:
           name: cli-ft-tags-put-before
           color: "#112233"
-  - set: { id: tag_id }
+  - set: {id: tag_id}
 ---
 teardown:
   - do:
@@ -29,5 +29,5 @@ teardown:
           name: cli-ft-tags-put-after
           color: "#334455"
   - is_true: id
-  - match: { data.name: cli-ft-tags-put-after }
-  - match: { data.color: "#334455" }
+  - match: {data.name: cli-ft-tags-put-after}
+  - match: {data.color: "#334455"}

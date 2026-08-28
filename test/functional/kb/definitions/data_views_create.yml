@@ -17,8 +17,8 @@ teardown:
   - do:
       data-views.create_data_view_default:
         body:
-          data_view: { title: "cli-ft-dv-create-*", name: cli-ft-dv-create }
-  - set: { data_view.id: view_id }
+          data_view: {title: "cli-ft-dv-create-*", name: cli-ft-dv-create}
+  - set: {data_view.id: view_id}
   - is_true: data_view.id
-  - match: { data_view.title: "cli-ft-dv-create-*" }
-  - match: { data_view.name: cli-ft-dv-create }
+  - match: {data_view.title: "cli-ft-dv-create-*"}
+  - match: {data_view.name: cli-ft-dv-create}

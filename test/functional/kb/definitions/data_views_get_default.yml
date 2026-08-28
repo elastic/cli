@@ -11,8 +11,8 @@ setup:
   - do:
       data-views.create_data_view_default:
         body:
-          data_view: { title: "cli-ft-dv-getdefault-*", name: cli-ft-dv-getdefault }
-  - set: { data_view.id: view_id }
+          data_view: {title: "cli-ft-dv-getdefault-*", name: cli-ft-dv-getdefault}
+  - set: {data_view.id: view_id}
   - do:
       data-views.set_default_datail_view_default:
         body:
@@ -30,4 +30,4 @@ teardown:
       data-views.get_default_data_view_default: {}
   # The get-default endpoint returns only { data_view_id }, not the full data_view object.
   - is_true: data_view_id
-  - match: { data_view_id: $view_id }
+  - match: {data_view_id: $view_id}

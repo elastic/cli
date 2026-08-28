@@ -13,7 +13,7 @@ setup:
         body:
           name: cli-ft-ea-policy-delete
           namespace: testprefix
-  - set: { "item.id": policy_id }
+  - set: {"item.id": policy_id}
 ---
 teardown:
   - do:

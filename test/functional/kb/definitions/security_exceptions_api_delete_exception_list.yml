@@ -23,10 +23,10 @@ teardown:
           type: detection
           list_id: cli-ft-sec-exc-del-list
           namespace_type: single
-  - match: { list_id: cli-ft-sec-exc-del-list }
+  - match: {list_id: cli-ft-sec-exc-del-list}
 
   - do:
       security-exceptions-api.delete_exception_list:
         list_id: cli-ft-sec-exc-del-list
         namespace_type: single
-  - match: { list_id: cli-ft-sec-exc-del-list }
+  - match: {list_id: cli-ft-sec-exc-del-list}

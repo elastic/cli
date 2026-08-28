@@ -16,7 +16,7 @@ setup:
             custom:
               start: "2030-01-01T00:00:00.000Z"
               duration: 1h
-  - set: { id: mw_id }
+  - set: {id: mw_id}
 ---
 teardown:
   - do:
@@ -27,5 +27,5 @@ teardown:
 "maintenance-window find":
   - do:
       maintenance-window.get_maintenance_window_find: {}
-  - gt: { total: 0 }
+  - gt: {total: 0}
   - is_true: maintenanceWindows

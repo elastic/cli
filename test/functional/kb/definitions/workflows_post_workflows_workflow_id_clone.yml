@@ -34,5 +34,5 @@ teardown:
   - do:
       workflows.post_workflows_workflow_id_clone:
         id: cli-ft-workflow-clone-source
-  - set: { id: cloned_id }
+  - set: {id: cloned_id}
   - is_true: id

@@ -26,7 +26,7 @@ setup:
         id: cli-ft-workflow-resume-exec
         body:
           inputs: {}
-  - set: { executionId: execution_id }
+  - set: {executionId: execution_id}
 ---
 teardown:
   - do:

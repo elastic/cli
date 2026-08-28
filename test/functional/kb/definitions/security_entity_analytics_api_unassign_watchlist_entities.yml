@@ -15,7 +15,7 @@ setup:
         body:
           name: cli-ft-unassign-watchlist-entities-test
           riskModifier: 10
-  - set: { id: watchlist_id }
+  - set: {id: watchlist_id}
   - do:
       security-entity-analytics-api.assign_watchlist_entities:
         watchlist_id: $watchlist_id

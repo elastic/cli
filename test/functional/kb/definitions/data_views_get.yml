@@ -11,8 +11,8 @@ setup:
   - do:
       data-views.create_data_view_default:
         body:
-          data_view: { title: "cli-ft-dv-get-*", name: cli-ft-dv-get }
-  - set: { data_view.id: view_id }
+          data_view: {title: "cli-ft-dv-get-*", name: cli-ft-dv-get}
+  - set: {data_view.id: view_id}
 ---
 teardown:
   - do:
@@ -25,5 +25,5 @@ teardown:
       data-views.get_data_view_default:
         viewId: $view_id
   - is_true: data_view.id
-  - match: { data_view.title: "cli-ft-dv-get-*" }
-  - match: { data_view.name: cli-ft-dv-get }
+  - match: {data_view.title: "cli-ft-dv-get-*"}
+  - match: {data_view.name: cli-ft-dv-get}

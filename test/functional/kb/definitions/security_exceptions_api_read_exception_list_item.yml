@@ -36,6 +36,6 @@ teardown:
       security-exceptions-api.read_exception_list_item:
         item_id: cli-ft-sec-exc-read-list-item
         namespace_type: agnostic
-  - match: { item_id: cli-ft-sec-exc-read-list-item }
-  - match: { name: CLI FT Read Exception List Item }
+  - match: {item_id: cli-ft-sec-exc-read-list-item}
+  - match: {name: CLI FT Read Exception List Item}
   - is_true: id

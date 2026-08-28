@@ -11,13 +11,13 @@ setup:
   - do:
       data-views.create_data_view_default:
         body:
-          data_view: { title: "cli-ft-dv-swap-from-*", name: cli-ft-dv-swap-from }
-  - set: { data_view.id: from_id }
+          data_view: {title: "cli-ft-dv-swap-from-*", name: cli-ft-dv-swap-from}
+  - set: {data_view.id: from_id}
   - do:
       data-views.create_data_view_default:
         body:
-          data_view: { title: "cli-ft-dv-swap-to-*", name: cli-ft-dv-swap-to }
-  - set: { data_view.id: to_id }
+          data_view: {title: "cli-ft-dv-swap-to-*", name: cli-ft-dv-swap-to}
+  - set: {data_view.id: to_id}
 ---
 teardown:
   - do:

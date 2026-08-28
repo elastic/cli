@@ -17,7 +17,7 @@ setup:
           kbResource: user
           source: test-source
           text: Original text for CLI functional test.
-  - set: { id: entry_id }
+  - set: {id: entry_id}
 ---
 teardown:
   - do:

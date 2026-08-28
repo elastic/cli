@@ -24,8 +24,8 @@ teardown:
           configuration:
             query: FROM logs-* | LIMIT 10
             params: {}
-  - match: { id: cli-ft-ab-post-tools }
-  - match: { type: esql }
+  - match: {id: cli-ft-ab-post-tools}
+  - match: {type: esql}
 
   - do:
       agent-builder.delete_agent_builder_tools_toolid:

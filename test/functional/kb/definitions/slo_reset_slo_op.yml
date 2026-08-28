@@ -41,4 +41,4 @@ teardown:
       slo.reset_slo_op:
         space_id: default
         slo_id: cli-ft-reset-slo
-  - match: { id: cli-ft-reset-slo }
+  - match: {id: cli-ft-reset-slo}

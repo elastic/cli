@@ -19,7 +19,7 @@ teardown:
         body:
           name: cli-ft-proxy-put
           url: "http://proxy.example.com:8080"
-  - set: { "item.id": proxy_id }
+  - set: {"item.id": proxy_id}
   - is_true: item.id
 
   - do:
@@ -28,5 +28,5 @@ teardown:
         body:
           name: cli-ft-proxy-put-updated
           url: "http://proxy.example.com:9090"
-  - match: { item.name: cli-ft-proxy-put-updated }
-  - match: { item.url: "http://proxy.example.com:9090" }
+  - match: {item.name: cli-ft-proxy-put-updated}
+  - match: {item.url: "http://proxy.example.com:9090"}

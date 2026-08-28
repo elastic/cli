@@ -14,7 +14,7 @@ setup:
       security-ai-assistant-api.create_conversation:
         body:
           title: CLI FT delete-all-conversations test
-  - set: { id: conv_id }
+  - set: {id: conv_id}
 ---
 teardown:
   - do:

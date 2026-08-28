@@ -19,7 +19,7 @@ setup:
           severity: low
           query: "*"
           rule_id: cli-ft-export-rules-rule
-  - set: { id: rule_id }
+  - set: {id: rule_id}
 ---
 teardown:
   - do:
@@ -34,4 +34,4 @@ teardown:
           objects:
             - rule_id: cli-ft-export-rules-rule
   - is_true: 0.rule_id
-  - match: { 0.rule_id: cli-ft-export-rules-rule }
+  - match: {0.rule_id: cli-ft-export-rules-rule}

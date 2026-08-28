@@ -19,7 +19,7 @@ teardown:
       agent-builder.post_agent_builder_plugins_install:
         body:
           url: "https://github.com/elastic/kibana-agent-builder-plugin-example/releases/download/v0.0.1/plugin.zip"
-  - set: { id: plugin_id }
+  - set: {id: plugin_id}
   - is_true: id
 
   - do:

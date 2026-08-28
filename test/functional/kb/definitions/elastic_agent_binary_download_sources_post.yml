@@ -19,6 +19,6 @@ teardown:
         body:
           name: cli-ft-download-source
           host: https://artifacts.elastic.co/downloads/
-  - set: { item.id: source_id }
+  - set: {item.id: source_id}
   - is_true: item.id
-  - match: { item.name: cli-ft-download-source }
+  - match: {item.name: cli-ft-download-source}

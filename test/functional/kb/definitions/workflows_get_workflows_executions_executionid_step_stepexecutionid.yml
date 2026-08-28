@@ -26,11 +26,11 @@ setup:
         id: cli-ft-workflow-exec-step
         body:
           inputs: {}
-  - set: { executionId: execution_id }
+  - set: {executionId: execution_id}
   - do:
       workflows.get_workflows_workflow_workflowid_executions_steps:
         workflow_id: cli-ft-workflow-exec-step
-  - set: { "results.0.id": step_execution_id }
+  - set: {"results.0.id": step_execution_id}
 ---
 teardown:
   - do:

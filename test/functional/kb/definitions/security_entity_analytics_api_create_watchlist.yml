@@ -16,5 +16,5 @@ requires:
           name: cli-ft-create-watchlist-test
           riskModifier: 10
   - is_true: id
-  - match: { name: cli-ft-create-watchlist-test }
-  - match: { risk_modifier: 10 }
+  - match: {name: cli-ft-create-watchlist-test}
+  - match: {risk_modifier: 10}

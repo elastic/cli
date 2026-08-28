@@ -19,7 +19,7 @@ teardown:
         body:
           name: cli-ft-download-source-put
           host: https://artifacts.elastic.co/downloads/
-  - set: { item.id: source_id }
+  - set: {item.id: source_id}
   - is_true: item.id
 
   - do:
@@ -29,4 +29,4 @@ teardown:
           name: cli-ft-download-source-put-updated
           host: https://artifacts.elastic.co/downloads/
   - is_true: item.id
-  - match: { item.name: cli-ft-download-source-put-updated }
+  - match: {item.name: cli-ft-download-source-put-updated}

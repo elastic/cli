@@ -22,6 +22,6 @@ teardown:
           id_field: host.name
           id_value: cli-ft-create-asset-criticality-test
           criticality_level: low_impact
-  - match: { id_value: cli-ft-create-asset-criticality-test }
-  - match: { id_field: host.name }
-  - match: { criticality_level: low_impact }
+  - match: {id_value: cli-ft-create-asset-criticality-test}
+  - match: {id_field: host.name}
+  - match: {criticality_level: low_impact}

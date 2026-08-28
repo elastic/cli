@@ -33,11 +33,11 @@ setup:
         id: cli-ft-workflow-post-ext-resume
         body:
           inputs: {}
-  - set: { executionId: execution_id }
+  - set: {executionId: execution_id}
   - do:
       workflows.get_workflows_workflow_workflowid_executions_steps:
         workflow_id: cli-ft-workflow-post-ext-resume
-  - set: { "results.0.id": step_id }
+  - set: {"results.0.id": step_id}
 ---
 teardown:
   - do:

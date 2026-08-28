@@ -11,5 +11,5 @@ requires:
 "misc post security role query":
   - do:
       misc.post_security_role_query: {}
-  - gt: { total: 0 }
+  - gt: {total: 0}
   - is_true: roles

@@ -27,5 +27,5 @@ teardown:
         body:
           id: cli-ft-spaces-put
           name: CLI FT Spaces Put Updated
-  - match: { id: cli-ft-spaces-put }
-  - match: { name: CLI FT Spaces Put Updated }
+  - match: {id: cli-ft-spaces-put}
+  - match: {name: CLI FT Spaces Put Updated}

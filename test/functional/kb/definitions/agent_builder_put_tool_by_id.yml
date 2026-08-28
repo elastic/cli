@@ -24,14 +24,14 @@ teardown:
           configuration:
             query: "FROM .kibana | LIMIT 1"
             params: {}
-  - match: { id: cli-ft-ab-put-toolid }
+  - match: {id: cli-ft-ab-put-toolid}
 
   - do:
       agent-builder.put_agent_builder_tools_toolid:
         tool_id: cli-ft-ab-put-toolid
         description: Updated by functional test
-  - match: { id: cli-ft-ab-put-toolid }
-  - match: { description: Updated by functional test }
+  - match: {id: cli-ft-ab-put-toolid}
+  - match: {description: Updated by functional test}
 
   - do:
       agent-builder.delete_agent_builder_tools_toolid:

@@ -31,4 +31,4 @@ teardown:
           platform: linux
   - is_true: id
   - is_true: name
-  - set: { id: script_id }
+  - set: {id: script_id}

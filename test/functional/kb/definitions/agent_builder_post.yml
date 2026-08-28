@@ -22,9 +22,9 @@ teardown:
           description: Created by functional test
           configuration:
             tools: []
-  - match: { id: cli-ft-ab-post }
-  - match: { name: CLI FT Agent Post }
-  - match: { description: Created by functional test }
+  - match: {id: cli-ft-ab-post}
+  - match: {name: CLI FT Agent Post}
+  - match: {description: Created by functional test}
 
   - do:
       agent-builder.delete_agent_builder_agents_id:

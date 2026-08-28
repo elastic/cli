@@ -18,7 +18,7 @@ setup:
           queries:
             uptime:
               query: SELECT * FROM uptime LIMIT 1
-  - set: { "data.id": source_pack_id }
+  - set: {"data.id": source_pack_id}
 ---
 teardown:
   - do:
@@ -34,6 +34,6 @@ teardown:
   - do:
       security-osquery-api.osquery_copy_packs:
         id: $source_pack_id
-  - set: { "data.id": copy_pack_id }
+  - set: {"data.id": copy_pack_id}
   - is_true: data.id
   - is_true: data.name

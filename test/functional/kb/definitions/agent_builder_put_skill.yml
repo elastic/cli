@@ -21,16 +21,16 @@ teardown:
           name: CLI FT Skill Put
           description: Created by functional test
           content: "# Skill\nDo something useful."
-  - match: { id: cli-ft-ab-skill-put }
+  - match: {id: cli-ft-ab-skill-put}
 
   - do:
       agent-builder.put_agent_builder_skills_skillid:
         skillId: cli-ft-ab-skill-put
         name: CLI FT Skill Put Updated
         description: Updated by functional test
-  - match: { id: cli-ft-ab-skill-put }
-  - match: { name: CLI FT Skill Put Updated }
-  - match: { description: Updated by functional test }
+  - match: {id: cli-ft-ab-skill-put}
+  - match: {name: CLI FT Skill Put Updated}
+  - match: {description: Updated by functional test}
 
   - do:
       agent-builder.delete_agent_builder_skills_skillid:

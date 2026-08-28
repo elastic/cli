@@ -26,16 +26,16 @@ teardown:
         body:
           connector_type_id: ".index"
           name: CLI FT Index Connector
-          config: { index: "cli-ft-connector-*" }
-  - match: { id: d3ceaf3a-2fc9-4a9c-9f2a-2f0d4b6f9a10 }
-  - match: { name: CLI FT Index Connector }
-  - match: { connector_type_id: ".index" }
+          config: {index: "cli-ft-connector-*"}
+  - match: {id: d3ceaf3a-2fc9-4a9c-9f2a-2f0d4b6f9a10}
+  - match: {name: CLI FT Index Connector}
+  - match: {connector_type_id: ".index"}
 
   - do:
       connectors.get_actions_connector_id:
         id: d3ceaf3a-2fc9-4a9c-9f2a-2f0d4b6f9a10
-  - match: { id: d3ceaf3a-2fc9-4a9c-9f2a-2f0d4b6f9a10 }
-  - match: { name: CLI FT Index Connector }
+  - match: {id: d3ceaf3a-2fc9-4a9c-9f2a-2f0d4b6f9a10}
+  - match: {name: CLI FT Index Connector}
 
   - do:
       connectors.get_actions_connectors: {}

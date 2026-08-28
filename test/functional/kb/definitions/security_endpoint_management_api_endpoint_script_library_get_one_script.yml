@@ -20,7 +20,7 @@ setup:
           fileType: script
           name: cli-ft-ep-script-lib-get-one
           platform: linux
-  - set: { id: script_id }
+  - set: {id: script_id}
 ---
 teardown:
   - do:

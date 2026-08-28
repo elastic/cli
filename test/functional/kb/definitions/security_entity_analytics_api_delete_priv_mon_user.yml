@@ -17,7 +17,7 @@ setup:
         body:
           user:
             name: cli-ft-delete-priv-mon-user
-  - set: { "id": user_id }
+  - set: {"id": user_id}
 ---
 teardown:
   - do:

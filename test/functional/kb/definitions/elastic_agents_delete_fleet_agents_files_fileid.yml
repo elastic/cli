@@ -10,11 +10,11 @@ requires:
 setup:
   - do:
       elastic-agents.get_fleet_agents: {}
-  - set: { "items.0.id": agent_id }
+  - set: {"items.0.id": agent_id}
   - do:
       elastic-agents.get_fleet_agents_agentid_uploads:
         agent_id: $agent_id
-  - set: { "items.0.id": file_id }
+  - set: {"items.0.id": file_id}
 ---
 "elastic-agents delete fleet agents files fileid":
   - do:

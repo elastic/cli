@@ -11,7 +11,7 @@ setup:
   - do:
       elastic-package-manager-epm.get_fleet_epm_packages_pkgname:
         pkg_name: cloud_security_posture
-  - set: { "item.version": pkg_version }
+  - set: {"item.version": pkg_version}
   - do:
       fleet-agentless-policies.post_fleet_agentless_policies:
         body:
@@ -19,7 +19,7 @@ setup:
           package:
             name: cloud_security_posture
             version: $pkg_version
-  - set: { "item.id": policy_id }
+  - set: {"item.id": policy_id}
 ---
 teardown:
   - do:

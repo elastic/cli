@@ -29,4 +29,4 @@ teardown:
       security-exceptions-api.read_exception_list_summary:
         list_id: cli-ft-sec-exc-summary-list
         namespace_type: single
-  - match: { total: 0 }
+  - match: {total: 0}

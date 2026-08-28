@@ -19,5 +19,5 @@ teardown:
         body:
           id: cli-ft-spaces-post
           name: CLI FT Spaces Post
-  - match: { id: cli-ft-spaces-post }
-  - match: { name: CLI FT Spaces Post }
+  - match: {id: cli-ft-spaces-post}
+  - match: {name: CLI FT Spaces Post}

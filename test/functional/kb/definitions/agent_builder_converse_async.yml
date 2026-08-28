@@ -19,5 +19,5 @@ teardown:
       agent-builder.post_agent_builder_converse_async:
         body:
           input: ping
-  - set: { "0.data.data.conversation_id": conv_id }
+  - set: {"0.data.data.conversation_id": conv_id}
   - is_true: "0.data.data.conversation_id"

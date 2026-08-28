@@ -22,5 +22,5 @@ teardown:
           kbResource: user
           source: test-source
           text: This is a test knowledge base entry created by the CLI functional test.
-  - set: { id: entry_id }
+  - set: {id: entry_id}
   - is_true: id

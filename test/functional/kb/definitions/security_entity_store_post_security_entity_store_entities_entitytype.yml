@@ -20,5 +20,5 @@ teardown:
         body:
           user:
             name: cli-ft-entity-create
-  - set: { entity.id: entity_id }
+  - set: {entity.id: entity_id}
   - is_true: "entity.id"

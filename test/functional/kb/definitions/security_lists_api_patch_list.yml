@@ -30,5 +30,5 @@ teardown:
         body:
           id: cli-ft-sec-lists-patch-list
           description: Updated by functional test
-  - match: { id: cli-ft-sec-lists-patch-list }
-  - match: { description: Updated by functional test }
+  - match: {id: cli-ft-sec-lists-patch-list}
+  - match: {description: Updated by functional test}

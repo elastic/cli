@@ -15,7 +15,7 @@ setup:
         body:
           query: SELECT * FROM uptime LIMIT 1
           agent_all: true
-  - set: { data.action_id: live_query_id }
+  - set: {data.action_id: live_query_id}
 ---
 "security-osquery-api export live query results":
   - do:

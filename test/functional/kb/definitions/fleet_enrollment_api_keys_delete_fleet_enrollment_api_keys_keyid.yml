@@ -13,12 +13,12 @@ setup:
         body:
           name: cli-ft-fleet-enroll-key-delete-policy
           namespace: testprefix
-  - set: { "item.id": policy_id }
+  - set: {"item.id": policy_id}
   - do:
       fleet-enrollment-api-keys.post_fleet_enrollment_api_keys:
         body:
           policy_id: $policy_id
-  - set: { "item.id": key_id }
+  - set: {"item.id": key_id}
 ---
 teardown:
   - do:

@@ -19,5 +19,5 @@ teardown:
         body:
           title: test-markdown
           content: "# Hello"
-  - set: { id: markdown_id }
+  - set: {id: markdown_id}
   - is_true: id

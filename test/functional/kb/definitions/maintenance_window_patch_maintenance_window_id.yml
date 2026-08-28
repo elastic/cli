@@ -16,7 +16,7 @@ setup:
             custom:
               start: "2030-01-01T00:00:00.000Z"
               duration: 1h
-  - set: { id: mw_id }
+  - set: {id: mw_id}
 ---
 teardown:
   - do:
@@ -30,5 +30,5 @@ teardown:
         id: $mw_id
         body:
           title: CLI FT Patch Maintenance Window Updated
-  - match: { id: $mw_id }
-  - match: { title: CLI FT Patch Maintenance Window Updated }
+  - match: {id: $mw_id}
+  - match: {title: CLI FT Patch Maintenance Window Updated}

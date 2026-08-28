@@ -15,7 +15,7 @@ setup:
         body:
           timeline:
             title: CLI FT get-timelines test
-  - set: { "savedObjectId": timeline_id }
+  - set: {"savedObjectId": timeline_id}
 ---
 teardown:
   - do:
@@ -28,5 +28,5 @@ teardown:
 "security-timeline-api get timelines":
   - do:
       security-timeline-api.get_timelines: {}
-  - gt: { totalCount: 0 }
+  - gt: {totalCount: 0}
   - is_true: timeline

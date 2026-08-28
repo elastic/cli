@@ -20,6 +20,6 @@ teardown:
         body:
           name: cli-ft-ea-policy-create
           namespace: testprefix
-  - set: { "item.id": policy_id }
+  - set: {"item.id": policy_id}
   - is_true: item.id
   - is_true: item.name

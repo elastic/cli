@@ -16,7 +16,7 @@ setup:
             custom:
               start: "2030-01-01T00:00:00.000Z"
               duration: 1h
-  - set: { id: mw_id }
+  - set: {id: mw_id}
 ---
 teardown:
   - do:

@@ -35,6 +35,6 @@ teardown:
           id: cli-ft-sec-lists-create-item
           list_id: cli-ft-sec-lists-create-item-list
           value: "192.0.2.1"
-  - match: { id: cli-ft-sec-lists-create-item }
-  - match: { list_id: cli-ft-sec-lists-create-item-list }
-  - match: { value: "192.0.2.1" }
+  - match: {id: cli-ft-sec-lists-create-item}
+  - match: {list_id: cli-ft-sec-lists-create-item-list}
+  - match: {value: "192.0.2.1"}

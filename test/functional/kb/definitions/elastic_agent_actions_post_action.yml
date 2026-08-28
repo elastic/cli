@@ -10,7 +10,7 @@ requires:
 setup:
   - do:
       elastic-agents.get_fleet_agents: {}
-  - set: { "items.0.id": agent_id }
+  - set: {"items.0.id": agent_id}
 ---
 "elastic-agent-actions post fleet agents agentid actions":
   - do:
@@ -22,4 +22,4 @@ setup:
             data:
               log_level: info
   - is_true: item.id
-  - match: { item.type: SETTINGS }
+  - match: {item.type: SETTINGS}

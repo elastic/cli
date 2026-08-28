@@ -34,4 +34,4 @@ teardown:
       security-endpoint-exceptions-api.read_endpoint_list_item:
         item_id: cli-ft-endpoint-list-item-read
   - is_true: item_id
-  - match: { name: CLI FT Endpoint List Item Read }
+  - match: {name: CLI FT Endpoint List Item Read}

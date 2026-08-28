@@ -17,7 +17,7 @@ setup:
           risk_score: 21
           severity: low
           query: "*"
-  - set: { id: rule_id }
+  - set: {id: rule_id}
 ---
 teardown:
   - do:
@@ -29,4 +29,4 @@ teardown:
   - do:
       security-detections-api.find_rules:
   - is_true: total
-  - gt: { total: 0 }
+  - gt: {total: 0}

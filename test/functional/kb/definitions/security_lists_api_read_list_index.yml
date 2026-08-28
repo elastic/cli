@@ -19,5 +19,5 @@ teardown:
 "security-lists-api read list index":
   - do:
       security-lists-api.read_list_index:
-  - match: { list_index: true }
-  - match: { list_item_index: true }
+  - match: {list_index: true}
+  - match: {list_item_index: true}

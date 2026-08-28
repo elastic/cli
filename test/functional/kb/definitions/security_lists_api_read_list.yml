@@ -28,6 +28,6 @@ teardown:
   - do:
       security-lists-api.read_list:
         id: cli-ft-sec-lists-read-list
-  - match: { id: cli-ft-sec-lists-read-list }
-  - match: { name: CLI FT Read List }
-  - match: { type: keyword }
+  - match: {id: cli-ft-sec-lists-read-list}
+  - match: {name: CLI FT Read List}
+  - match: {type: keyword}

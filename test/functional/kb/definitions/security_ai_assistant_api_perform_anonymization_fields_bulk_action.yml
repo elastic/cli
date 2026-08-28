@@ -22,5 +22,5 @@ teardown:
         body:
           create:
             - field: cli.ft.test.anonymization.field
-  - set: { "attributes.results.created.0.id": field_id }
+  - set: {"attributes.results.created.0.id": field_id}
   - is_true: attributes.results.created

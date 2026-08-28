@@ -29,5 +29,5 @@ teardown:
       security-exceptions-api.read_exception_list:
         list_id: cli-ft-sec-exc-read-list
         namespace_type: single
-  - match: { list_id: cli-ft-sec-exc-read-list }
-  - match: { name: CLI FT Exception List Read }
+  - match: {list_id: cli-ft-sec-exc-read-list}
+  - match: {name: CLI FT Exception List Read}

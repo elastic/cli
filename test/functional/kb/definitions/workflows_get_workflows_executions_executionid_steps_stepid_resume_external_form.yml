@@ -33,11 +33,11 @@ setup:
         id: cli-ft-workflow-get-ext-form
         body:
           inputs: {}
-  - set: { executionId: execution_id }
+  - set: {executionId: execution_id}
   - do:
       workflows.get_workflows_workflow_workflowid_executions_steps:
         workflow_id: cli-ft-workflow-get-ext-form
-  - set: { "results.0.id": step_id }
+  - set: {"results.0.id": step_id}
 ---
 teardown:
   - do:

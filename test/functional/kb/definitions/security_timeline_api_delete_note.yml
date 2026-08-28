@@ -16,7 +16,7 @@ setup:
           note:
             timelineId: ""
             note: CLI FT delete-note test
-  - set: { "note.noteId": note_id }
+  - set: {"note.noteId": note_id}
 ---
 teardown:
   - do:

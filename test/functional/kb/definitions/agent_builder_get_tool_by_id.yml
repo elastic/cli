@@ -24,13 +24,13 @@ teardown:
           configuration:
             query: "FROM .kibana | LIMIT 1"
             params: {}
-  - match: { id: cli-ft-ab-get-toolid }
+  - match: {id: cli-ft-ab-get-toolid}
 
   - do:
       agent-builder.get_agent_builder_tools_toolid:
         tool_id: cli-ft-ab-get-toolid
-  - match: { id: cli-ft-ab-get-toolid }
-  - match: { type: esql }
+  - match: {id: cli-ft-ab-get-toolid}
+  - match: {type: esql}
 
   - do:
       agent-builder.delete_agent_builder_tools_toolid:

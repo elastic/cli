@@ -43,5 +43,5 @@ teardown:
         slo_id: cli-ft-update-slo
         body:
           name: CLI FT Updated SLO
-  - match: { id: cli-ft-update-slo }
-  - match: { name: CLI FT Updated SLO }
+  - match: {id: cli-ft-update-slo}
+  - match: {name: CLI FT Updated SLO}

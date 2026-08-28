@@ -24,7 +24,7 @@ teardown:
           configuration:
             query: FROM logs-* | LIMIT 10
             params: {}
-  - match: { id: cli-ft-ab-tools-exec }
+  - match: {id: cli-ft-ab-tools-exec}
 
   - do:
       agent-builder.post_agent_builder_tools_execute:

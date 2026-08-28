@@ -15,7 +15,7 @@ setup:
         body:
           name: cli-ft-update-watchlist-test
           riskModifier: 10
-  - set: { id: watchlist_id }
+  - set: {id: watchlist_id}
 ---
 "security-entity-analytics-api update watchlist":
   - do:
@@ -24,6 +24,6 @@ setup:
         body:
           name: cli-ft-update-watchlist-updated
           riskModifier: 20
-  - match: { id: $watchlist_id }
-  - match: { name: cli-ft-update-watchlist-updated }
-  - match: { risk_modifier: 20 }
+  - match: {id: $watchlist_id}
+  - match: {name: cli-ft-update-watchlist-updated}
+  - match: {risk_modifier: 20}

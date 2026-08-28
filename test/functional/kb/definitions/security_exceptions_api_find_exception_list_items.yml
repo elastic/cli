@@ -39,4 +39,4 @@ teardown:
         namespace_type:
           - agnostic
   - is_true: data
-  - gt: { total: 0 }
+  - gt: {total: 0}

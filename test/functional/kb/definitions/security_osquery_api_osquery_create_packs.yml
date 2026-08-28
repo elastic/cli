@@ -24,9 +24,9 @@ teardown:
           queries:
             uptime:
               query: SELECT * FROM uptime LIMIT 1
-  - set: { "data.id": pack_id }
+  - set: {"data.id": pack_id}
   - is_true: data.id
-  - match: { data.name: cli-ft-osquery-create-pack }
+  - match: {data.name: cli-ft-osquery-create-pack}
 
   - do:
       security-osquery-api.osquery_delete_packs:

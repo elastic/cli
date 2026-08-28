@@ -13,7 +13,7 @@ setup:
       security-ai-assistant-api.create_conversation:
         body:
           title: CLI FT update-conversation original
-  - set: { id: conv_id }
+  - set: {id: conv_id}
 ---
 teardown:
   - do:

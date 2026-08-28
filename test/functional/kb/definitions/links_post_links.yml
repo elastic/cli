@@ -21,6 +21,6 @@ teardown:
           links:
             - type: externalLink
               destination: https://elastic.co
-  - set: { id: created_id }
+  - set: {id: created_id}
   - is_true: id
-  - match: { data.title: CLI FT Links Post }
+  - match: {data.title: CLI FT Links Post}

@@ -13,7 +13,7 @@ setup:
         body:
           name: cli-ft-ea-policy-copy-source
           namespace: testprefix
-  - set: { "item.id": source_policy_id }
+  - set: {"item.id": source_policy_id}
 ---
 teardown:
   - do:
@@ -33,6 +33,6 @@ teardown:
         agent_policy_id: $source_policy_id
         body:
           name: cli-ft-ea-policy-copy-dest
-  - set: { "item.id": copy_policy_id }
+  - set: {"item.id": copy_policy_id}
   - is_true: item.id
   - is_true: item.name

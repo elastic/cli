@@ -21,17 +21,17 @@ teardown:
           consumer: stackAlerts
           name: CLI FT Rule Del Snooze Sched
           rule_type_id: ".es-query"
-          schedule: { interval: "1m" }
+          schedule: {interval: "1m"}
           params:
             searchType: esqlQuery
-            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            esqlQuery: {esql: "FROM * | LIMIT 1"}
             timeWindowSize: 5
             timeWindowUnit: m
             threshold: [0]
             thresholdComparator: ">"
             size: 0
             timeField: "@timestamp"
-  - match: { id: cli-ft-rule-del-snooze-sched }
+  - match: {id: cli-ft-rule-del-snooze-sched}
 
   - do:
       alerting.post_alerting_rule_id_snooze_schedule:
@@ -40,7 +40,7 @@ teardown:
           custom:
             start: "2099-01-01T00:00:00.000Z"
             duration: "1h"
-  - set: { "schedule.id": schedule_id }
+  - set: {"schedule.id": schedule_id}
   - is_true: schedule.id
 
   - do:

@@ -16,7 +16,7 @@ setup:
           query: SELECT * FROM uptime LIMIT 1
           interval: "3600"
           description: Created by elastic-cli functional test
-  - set: { "data.id": saved_query_id }
+  - set: {"data.id": saved_query_id}
 ---
 teardown:
   - do:
@@ -29,4 +29,4 @@ teardown:
       security-osquery-api.osquery_get_saved_query_details:
         id: $saved_query_id
   - is_true: data.id
-  - match: { data.id: cli-ft-osquery-get-saved-query-details }
+  - match: {data.id: cli-ft-osquery-get-saved-query-details}

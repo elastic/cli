@@ -21,20 +21,20 @@ teardown:
           consumer: stackAlerts
           name: CLI FT Rule Post
           rule_type_id: ".es-query"
-          schedule: { interval: "1m" }
+          schedule: {interval: "1m"}
           params:
             searchType: esqlQuery
-            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            esqlQuery: {esql: "FROM * | LIMIT 1"}
             timeWindowSize: 5
             timeWindowUnit: m
             threshold: [0]
             thresholdComparator: ">"
             size: 0
             timeField: "@timestamp"
-  - match: { id: cli-ft-rule-post }
-  - match: { name: CLI FT Rule Post }
-  - match: { rule_type_id: ".es-query" }
-  - match: { consumer: stackAlerts }
+  - match: {id: cli-ft-rule-post}
+  - match: {name: CLI FT Rule Post}
+  - match: {rule_type_id: ".es-query"}
+  - match: {consumer: stackAlerts}
   - is_true: enabled
 
   - do:

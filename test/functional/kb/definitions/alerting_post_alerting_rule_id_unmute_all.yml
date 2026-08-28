@@ -21,17 +21,17 @@ teardown:
           consumer: stackAlerts
           name: CLI FT Rule Unmute All
           rule_type_id: ".es-query"
-          schedule: { interval: "1m" }
+          schedule: {interval: "1m"}
           params:
             searchType: esqlQuery
-            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            esqlQuery: {esql: "FROM * | LIMIT 1"}
             timeWindowSize: 5
             timeWindowUnit: m
             threshold: [0]
             thresholdComparator: ">"
             size: 0
             timeField: "@timestamp"
-  - match: { id: cli-ft-rule-unmute-all }
+  - match: {id: cli-ft-rule-unmute-all}
 
   - do:
       alerting.post_alerting_rule_id_mute_all:
@@ -40,7 +40,7 @@ teardown:
   - do:
       alerting.get_alerting_rule_id:
         id: cli-ft-rule-unmute-all
-  - match: { mute_all: true }
+  - match: {mute_all: true}
 
   - do:
       alerting.post_alerting_rule_id_unmute_all:
@@ -49,8 +49,8 @@ teardown:
   - do:
       alerting.get_alerting_rule_id:
         id: cli-ft-rule-unmute-all
-  - match: { id: cli-ft-rule-unmute-all }
-  - match: { mute_all: false }
+  - match: {id: cli-ft-rule-unmute-all}
+  - match: {mute_all: false}
 
   - do:
       alerting.delete_alerting_rule_id:

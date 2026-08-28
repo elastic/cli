@@ -13,7 +13,7 @@ setup:
         body:
           name: cli-ft-fleet-enroll-key-policy
           namespace: testprefix
-  - set: { "item.id": policy_id }
+  - set: {"item.id": policy_id}
 ---
 teardown:
   - do:
@@ -31,6 +31,6 @@ teardown:
       fleet-enrollment-api-keys.post_fleet_enrollment_api_keys:
         body:
           policy_id: $policy_id
-  - set: { "item.id": key_id }
+  - set: {"item.id": key_id}
   - is_true: item.id
   - is_true: item.policy_id

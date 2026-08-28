@@ -17,7 +17,7 @@ setup:
           risk_score: 21
           severity: low
           query: "*"
-  - set: { id: rule_id }
+  - set: {id: rule_id}
 ---
 teardown:
   - do:
@@ -32,4 +32,4 @@ teardown:
           id: $rule_id
           name: cli-ft-sec-det-patch-rule-updated
   - is_true: id
-  - match: { name: cli-ft-sec-det-patch-rule-updated }
+  - match: {name: cli-ft-sec-det-patch-rule-updated}

@@ -17,7 +17,7 @@ setup:
         body:
           name: cli-ft-upload-watchlist-csv-test
           riskModifier: 10
-  - set: { id: watchlist_id }
+  - set: {id: watchlist_id}
   - write_temp:
       variable: csv_file
       content: "value\n192.168.1.1\n"
@@ -29,5 +29,5 @@ setup:
         watchlist_id: $watchlist_id
         body:
           file: $csv_file
-  - match: { total: 1 }
-  - match: { failed: 0 }
+  - match: {total: 1}
+  - match: {failed: 0}

@@ -25,17 +25,17 @@ teardown:
           consumer: stackAlerts
           name: CLI FT Rule Backfill Sched
           rule_type_id: ".es-query"
-          schedule: { interval: "1m" }
+          schedule: {interval: "1m"}
           params:
             searchType: esqlQuery
-            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            esqlQuery: {esql: "FROM * | LIMIT 1"}
             timeWindowSize: 5
             timeWindowUnit: m
             threshold: [0]
             thresholdComparator: ">"
             size: 0
             timeField: "@timestamp"
-  - match: { id: cli-ft-rule-backfill-sched }
+  - match: {id: cli-ft-rule-backfill-sched}
 
   - do:
       alerting.post_alerting_rules_backfill_schedule:
@@ -44,7 +44,7 @@ teardown:
             ranges:
               - start: "2024-01-01T00:00:00.000Z"
                 end: "2024-01-02T00:00:00.000Z"
-  - set: { "0.id": backfill_id }
+  - set: {"0.id": backfill_id}
   - is_true: "0.id"
 
   - do:

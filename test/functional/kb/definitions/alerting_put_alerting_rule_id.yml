@@ -21,36 +21,36 @@ teardown:
           consumer: stackAlerts
           name: CLI FT Rule Put
           rule_type_id: ".es-query"
-          schedule: { interval: "1m" }
+          schedule: {interval: "1m"}
           params:
             searchType: esqlQuery
-            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            esqlQuery: {esql: "FROM * | LIMIT 1"}
             timeWindowSize: 5
             timeWindowUnit: m
             threshold: [0]
             thresholdComparator: ">"
             size: 0
             timeField: "@timestamp"
-  - match: { id: cli-ft-rule-put }
+  - match: {id: cli-ft-rule-put}
 
   - do:
       alerting.put_alerting_rule_id:
         id: cli-ft-rule-put
         name: CLI FT Rule Put Updated
-        schedule: { interval: "5m" }
+        schedule: {interval: "5m"}
         # es-query rule type revalidates params on update; the full params body must be resent
         params:
           searchType: esqlQuery
-          esqlQuery: { esql: "FROM * | LIMIT 1" }
+          esqlQuery: {esql: "FROM * | LIMIT 1"}
           timeWindowSize: 5
           timeWindowUnit: m
           threshold: [0]
           thresholdComparator: ">"
           size: 0
           timeField: "@timestamp"
-  - match: { id: cli-ft-rule-put }
-  - match: { name: CLI FT Rule Put Updated }
-  - match: { schedule: { interval: "5m" } }
+  - match: {id: cli-ft-rule-put}
+  - match: {name: CLI FT Rule Put Updated}
+  - match: {schedule: {interval: "5m"}}
   - is_true: enabled
 
   - do:

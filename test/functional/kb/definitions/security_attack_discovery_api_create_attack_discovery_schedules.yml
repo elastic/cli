@@ -20,7 +20,7 @@ setup:
             apiUrl: "https://api.openai.com/v1"
           secrets:
             apiKey: "placeholder-key"
-  - match: { id: cli-ft-attack-discovery-sched-connector }
+  - match: {id: cli-ft-attack-discovery-sched-connector}
 ---
 teardown:
   - do:
@@ -46,5 +46,5 @@ teardown:
               actionTypeId: ".gen-ai"
               name: CLI FT Attack Discovery Sched Connector
             size: 20
-  - set: { id: schedule_id }
+  - set: {id: schedule_id}
   - is_true: id

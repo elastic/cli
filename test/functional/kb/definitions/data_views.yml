@@ -17,16 +17,16 @@ teardown:
   - do:
       data-views.create_data_view_default:
         body:
-          data_view: { title: "cli-ft-dv-*", name: cli-ft-dv }
-  - set: { data_view.id: view_id }
+          data_view: {title: "cli-ft-dv-*", name: cli-ft-dv}
+  - set: {data_view.id: view_id}
   - is_true: data_view.id
-  - match: { data_view.name: cli-ft-dv }
-  - match: { data_view.title: "cli-ft-dv-*" }
+  - match: {data_view.name: cli-ft-dv}
+  - match: {data_view.title: "cli-ft-dv-*"}
 
   - do:
       data-views.get_data_view_default:
         viewId: $view_id
-  - match: { data_view.name: cli-ft-dv }
+  - match: {data_view.name: cli-ft-dv}
 
   - do:
       data-views.get_all_data_views_default: {}

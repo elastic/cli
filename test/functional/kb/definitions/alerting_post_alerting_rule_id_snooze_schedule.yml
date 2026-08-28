@@ -21,17 +21,17 @@ teardown:
           consumer: stackAlerts
           name: CLI FT Rule Snooze Schedule
           rule_type_id: ".es-query"
-          schedule: { interval: "1m" }
+          schedule: {interval: "1m"}
           params:
             searchType: esqlQuery
-            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            esqlQuery: {esql: "FROM * | LIMIT 1"}
             timeWindowSize: 5
             timeWindowUnit: m
             threshold: [0]
             thresholdComparator: ">"
             size: 0
             timeField: "@timestamp"
-  - match: { id: cli-ft-rule-snooze-schedule }
+  - match: {id: cli-ft-rule-snooze-schedule}
 
   - do:
       alerting.post_alerting_rule_id_snooze_schedule:

@@ -27,5 +27,5 @@ teardown:
 "security-lists-api find lists":
   - do:
       security-lists-api.find_lists: {}
-  - gt: { total: 0 }
+  - gt: {total: 0}
   - is_true: data

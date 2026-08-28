@@ -29,4 +29,4 @@ teardown:
   - do:
       workflows.get_workflows_workflow_id:
         id: cli-ft-workflow-get-by-id
-  - match: { id: cli-ft-workflow-get-by-id }
+  - match: {id: cli-ft-workflow-get-by-id}

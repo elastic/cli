@@ -17,7 +17,7 @@ setup:
           risk_score: 21
           severity: low
           query: "*"
-  - set: { id: rule_id }
+  - set: {id: rule_id}
 ---
 teardown:
   - do:
@@ -30,4 +30,4 @@ teardown:
       security-detections-api.read_rule:
         id: $rule_id
   - is_true: id
-  - match: { name: cli-ft-sec-det-read-rule }
+  - match: {name: cli-ft-sec-det-read-rule}

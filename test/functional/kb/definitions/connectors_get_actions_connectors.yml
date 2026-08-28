@@ -22,8 +22,8 @@ teardown:
         body:
           connector_type_id: ".index"
           name: CLI FT List Connectors
-          config: { index: "cli-ft-list-connectors-*" }
-  - match: { id: e4f5a6b7-c8d9-0123-efab-c01234567803 }
+          config: {index: "cli-ft-list-connectors-*"}
+  - match: {id: e4f5a6b7-c8d9-0123-efab-c01234567803}
 
   - do:
       connectors.get_actions_connectors: {}

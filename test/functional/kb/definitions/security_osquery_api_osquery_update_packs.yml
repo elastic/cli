@@ -18,7 +18,7 @@ setup:
           queries:
             uptime:
               query: SELECT * FROM uptime LIMIT 1
-  - set: { "data.id": pack_id }
+  - set: {"data.id": pack_id}
 ---
 teardown:
   - do:
@@ -34,5 +34,5 @@ teardown:
           name: cli-ft-osquery-update-pack
           enabled: true
           interval: 7200
-  - match: { data.enabled: true }
-  - match: { data.interval: 7200 }
+  - match: {data.enabled: true}
+  - match: {data.interval: 7200}

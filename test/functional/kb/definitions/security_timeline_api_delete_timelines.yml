@@ -15,7 +15,7 @@ setup:
         body:
           timeline:
             title: CLI FT delete-timelines test
-  - set: { "savedObjectId": timeline_id }
+  - set: {"savedObjectId": timeline_id}
 ---
 teardown:
   - do:

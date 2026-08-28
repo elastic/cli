@@ -28,7 +28,7 @@ teardown:
             apiUrl: "https://api.openai.com/v1"
           secrets:
             apiKey: "placeholder-key"
-  - match: { id: cli-ft-attack-discovery-connector }
+  - match: {id: cli-ft-attack-discovery-connector}
 
   - do:
       catch: request

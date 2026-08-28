@@ -48,6 +48,6 @@ teardown:
               value:
                 - "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
   - is_true: item_id
-  - match: { item_id: cli-ft-sec-exc-update-list-item }
-  - match: { name: CLI FT Update Exception List Item Updated }
-  - match: { description: Updated by functional test }
+  - match: {item_id: cli-ft-sec-exc-update-list-item}
+  - match: {name: CLI FT Update Exception List Item Updated}
+  - match: {description: Updated by functional test}

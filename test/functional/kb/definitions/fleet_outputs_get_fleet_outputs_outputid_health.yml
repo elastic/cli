@@ -16,7 +16,7 @@ setup:
           auth_type: none
           hosts:
             - "kafka:9092"
-  - set: { "item.id": output_id }
+  - set: {"item.id": output_id}
 ---
 teardown:
   - do:

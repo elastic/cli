@@ -41,5 +41,5 @@ teardown:
       slo.get_slo_op:
         space_id: default
         slo_id: cli-ft-get-slo
-  - match: { id: cli-ft-get-slo }
-  - match: { name: CLI FT Get SLO }
+  - match: {id: cli-ft-get-slo}
+  - match: {name: CLI FT Get SLO}

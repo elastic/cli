@@ -13,7 +13,7 @@ setup:
         body:
           name: cli-ft-ea-policy-list
           namespace: testprefix
-  - set: { "item.id": policy_id }
+  - set: {"item.id": policy_id}
 ---
 teardown:
   - do:
@@ -26,4 +26,4 @@ teardown:
   - do:
       elastic-agent-policies.get_fleet_agent_policies: {}
   - is_true: items
-  - gt: { total: 0 }
+  - gt: {total: 0}

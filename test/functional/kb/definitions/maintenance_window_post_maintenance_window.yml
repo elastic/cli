@@ -22,8 +22,8 @@ teardown:
             custom:
               start: "2030-01-01T00:00:00.000Z"
               duration: 1h
-  - set: { id: mw_id }
-  - match: { title: CLI FT Maintenance Window }
+  - set: {id: mw_id}
+  - match: {title: CLI FT Maintenance Window}
   - is_true: id
 
   - do:

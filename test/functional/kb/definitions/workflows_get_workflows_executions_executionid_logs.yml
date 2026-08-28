@@ -22,7 +22,7 @@ setup:
         id: cli-ft-workflow-exec-logs
         body:
           inputs: {}
-  - set: { executionId: execution_id }
+  - set: {executionId: execution_id}
 ---
 teardown:
   - do:

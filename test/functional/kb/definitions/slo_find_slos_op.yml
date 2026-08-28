@@ -35,10 +35,10 @@ teardown:
           budgetingMethod: occurrences
           objective:
             target: 0.99
-  - match: { id: cli-ft-find-slo }
+  - match: {id: cli-ft-find-slo}
 
   - do:
       slo.find_slos_op:
         space_id: default
-  - gt: { total: 0 }
+  - gt: {total: 0}
   - is_true: results

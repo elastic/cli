@@ -24,5 +24,5 @@ teardown:
             - name: CLI FT bulk-action prompt
               content: This is a test prompt created by the CLI functional test.
               promptType: quick
-  - set: { "attributes.results.created.0.id": prompt_id }
+  - set: {"attributes.results.created.0.id": prompt_id}
   - is_true: attributes.results.created

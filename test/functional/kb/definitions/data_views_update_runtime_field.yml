@@ -11,8 +11,8 @@ setup:
   - do:
       data-views.create_data_view_default:
         body:
-          data_view: { title: "cli-ft-dv-upd-rt-*", name: cli-ft-dv-upd-rt }
-  - set: { data_view.id: view_id }
+          data_view: {title: "cli-ft-dv-upd-rt-*", name: cli-ft-dv-upd-rt}
+  - set: {data_view.id: view_id}
   - do:
       data-views.create_runtime_field_default:
         viewId: $view_id
@@ -36,4 +36,4 @@ teardown:
           runtimeField:
             type: long
   - is_true: data_view.id
-  - match: { data_view.runtimeFieldMap.cli_ft_upd_rt_field.type: long }
+  - match: {data_view.runtimeFieldMap.cli_ft_upd_rt_field.type: long}

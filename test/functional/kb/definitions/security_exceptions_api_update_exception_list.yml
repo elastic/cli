@@ -33,6 +33,6 @@ teardown:
           type: detection
           list_id: cli-ft-sec-exc-update-list
           namespace_type: single
-  - match: { list_id: cli-ft-sec-exc-update-list }
-  - match: { name: CLI FT Exception List Updated }
-  - match: { description: Updated by functional test }
+  - match: {list_id: cli-ft-sec-exc-update-list}
+  - match: {name: CLI FT Exception List Updated}
+  - match: {description: Updated by functional test}

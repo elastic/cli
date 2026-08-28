@@ -42,4 +42,4 @@ teardown:
         body:
           file: $import_file
   - is_true: success
-  - match: { rules_count: 1 }
+  - match: {rules_count: 1}

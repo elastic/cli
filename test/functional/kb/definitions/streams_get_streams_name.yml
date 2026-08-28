@@ -18,11 +18,11 @@ setup:
             description: ""
             type: wired
             ingest:
-              lifecycle: { inherit: {} }
+              lifecycle: {inherit: {}}
               processing:
                 steps: []
               settings: {}
-              failure_store: { inherit: {} }
+              failure_store: {inherit: {}}
               wired:
                 fields: {}
                 routing: []

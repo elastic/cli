@@ -21,5 +21,5 @@ teardown:
           note:
             timelineId: ""
             note: CLI FT persist-note-route test
-  - set: { "note.noteId": note_id }
+  - set: {"note.noteId": note_id}
   - is_true: note.noteId

@@ -16,5 +16,5 @@ teardown:
 "dashboards create":
   - do:
       dashboards.create_dashboard:
-  - set: { id: dashboard_id }
+  - set: {id: dashboard_id}
   - is_true: id

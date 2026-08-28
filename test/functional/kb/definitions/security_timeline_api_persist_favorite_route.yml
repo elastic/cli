@@ -14,7 +14,7 @@ setup:
         body:
           timeline:
             title: CLI FT persist-favorite-route test
-  - set: { "savedObjectId": timeline_id }
+  - set: {"savedObjectId": timeline_id}
 ---
 teardown:
   - do:

@@ -18,5 +18,5 @@ teardown:
       security-ai-assistant-api.create_conversation:
         body:
           title: CLI FT create-conversation test
-  - set: { id: conv_id }
+  - set: {id: conv_id}
   - is_true: id

@@ -25,6 +25,6 @@ teardown:
             external_id:
               type: text
               value: cli-ft-external-id-1234567890
-  - set: { "item.id": connector_id }
+  - set: {"item.id": connector_id}
   - is_true: item.id
   - is_true: item.name

@@ -29,4 +29,4 @@ teardown:
         body:
           file: $csv_file
   - is_false: errors
-  - match: { stats.uploaded: 1 }
+  - match: {stats.uploaded: 1}

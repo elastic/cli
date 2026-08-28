@@ -23,6 +23,6 @@ teardown:
           type: detection
           list_id: cli-ft-sec-exc-create-list
           namespace_type: single
-  - match: { list_id: cli-ft-sec-exc-create-list }
-  - match: { name: CLI FT Exception List Create }
+  - match: {list_id: cli-ft-sec-exc-create-list}
+  - match: {name: CLI FT Exception List Create}
   - is_true: id

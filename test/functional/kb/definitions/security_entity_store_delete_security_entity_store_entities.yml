@@ -14,7 +14,7 @@ setup:
         body:
           user:
             name: cli-ft-entity-delete
-  - set: { entity.id: entity_id }
+  - set: {entity.id: entity_id}
 ---
 teardown:
   - do:

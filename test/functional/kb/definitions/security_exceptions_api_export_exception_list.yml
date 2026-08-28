@@ -16,7 +16,7 @@ setup:
           type: detection
           list_id: cli-ft-sec-exc-export-list
           namespace_type: single
-  - set: { id: list_id }
+  - set: {id: list_id}
 ---
 teardown:
   - do:
@@ -33,4 +33,4 @@ teardown:
         namespace_type: single
         include_expired_exceptions: "false"
   - is_true: 0.list_id
-  - match: { 0.list_id: cli-ft-sec-exc-export-list }
+  - match: {0.list_id: cli-ft-sec-exc-export-list}

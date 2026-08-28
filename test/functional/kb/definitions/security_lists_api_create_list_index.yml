@@ -15,4 +15,4 @@ teardown:
 "security-lists-api create list index":
   - do:
       security-lists-api.create_list_index:
-  - match: { acknowledged: true }
+  - match: {acknowledged: true}

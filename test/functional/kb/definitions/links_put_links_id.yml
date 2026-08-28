@@ -22,5 +22,5 @@ teardown:
           links:
             - type: externalLink
               destination: https://elastic.co
-  - match: { id: cli-ft-links-put }
-  - match: { data.title: CLI FT Links Put }
+  - match: {id: cli-ft-links-put}
+  - match: {data.title: CLI FT Links Put}

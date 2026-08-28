@@ -11,13 +11,13 @@ setup:
   - do:
       elastic-package-manager-epm.get_fleet_epm_packages_pkgname:
         pkg_name: system
-  - set: { "item.version": pkg_version }
+  - set: {"item.version": pkg_version}
   - do:
       elastic-agent-policies.post_fleet_agent_policies:
         body:
           name: cli-ft-pkg-policy-bulk-delete-agent-policy
           namespace: testprefix
-  - set: { "item.id": agent_policy_id }
+  - set: {"item.id": agent_policy_id}
   - do:
       fleet-package-policies.post_fleet_package_policies:
         body:
@@ -27,7 +27,7 @@ setup:
           package:
             name: system
             version: $pkg_version
-  - set: { "item.id": policy_id }
+  - set: {"item.id": policy_id}
 ---
 teardown:
   - do:

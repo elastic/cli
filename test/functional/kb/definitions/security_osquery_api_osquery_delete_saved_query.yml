@@ -16,7 +16,7 @@ setup:
           query: SELECT * FROM uptime LIMIT 1
           interval: "3600"
           description: Created by elastic-cli functional test
-  - set: { "data.id": saved_query_id }
+  - set: {"data.id": saved_query_id}
 ---
 teardown:
   - do:

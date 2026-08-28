@@ -35,7 +35,7 @@ teardown:
           budgetingMethod: occurrences
           objective:
             target: 0.99
-  - match: { id: cli-ft-bulk-snapshot-slo }
+  - match: {id: cli-ft-bulk-snapshot-slo}
 
   - do:
       slo.bulk_snapshot_op:

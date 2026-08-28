@@ -24,7 +24,7 @@ teardown:
           configuration:
             query: FROM logs-* | LIMIT 10
             params: {}
-  - match: { id: cli-ft-ab-del-tool }
+  - match: {id: cli-ft-ab-del-tool}
 
   - do:
       agent-builder.delete_agent_builder_tools_toolid:

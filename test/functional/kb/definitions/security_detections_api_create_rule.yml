@@ -23,7 +23,7 @@ teardown:
           risk_score: 21
           severity: low
           query: "*"
-  - set: { id: rule_id }
+  - set: {id: rule_id}
   - is_true: id
-  - match: { name: cli-ft-sec-det-create-rule }
-  - match: { type: query }
+  - match: {name: cli-ft-sec-det-create-rule}
+  - match: {type: query}

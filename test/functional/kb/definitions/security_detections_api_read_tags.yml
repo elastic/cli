@@ -20,7 +20,7 @@ setup:
           query: "*"
           tags:
             - cli-ft-read-tags
-  - set: { id: rule_id }
+  - set: {id: rule_id}
 ---
 teardown:
   - do:
@@ -31,4 +31,4 @@ teardown:
 "security-detections-api read tags":
   - do:
       security-detections-api.read_tags:
-  - contains: { "": "cli-ft-read-tags" }
+  - contains: {"": "cli-ft-read-tags"}

@@ -14,7 +14,7 @@ setup:
         body:
           timeline:
             title: CLI FT copy-timeline source
-  - set: { "savedObjectId": timeline_id }
+  - set: {"savedObjectId": timeline_id}
 ---
 teardown:
   - do:
@@ -37,6 +37,6 @@ teardown:
           timelineIdToCopy: $timeline_id
           timeline:
             title: CLI FT copy-timeline copy
-  - set: { "savedObjectId": copy_id }
+  - set: {"savedObjectId": copy_id}
   - is_true: savedObjectId
-  - match: { title: CLI FT copy-timeline copy }
+  - match: {title: CLI FT copy-timeline copy}

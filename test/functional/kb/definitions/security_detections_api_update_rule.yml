@@ -17,7 +17,7 @@ setup:
           risk_score: 21
           severity: low
           query: "*"
-  - set: { id: rule_id }
+  - set: {id: rule_id}
 ---
 teardown:
   - do:
@@ -37,6 +37,6 @@ teardown:
           severity: medium
           query: "*"
   - is_true: id
-  - match: { name: cli-ft-sec-det-update-rule-updated }
-  - match: { risk_score: 42 }
-  - match: { severity: medium }
+  - match: {name: cli-ft-sec-det-update-rule-updated}
+  - match: {risk_score: 42}
+  - match: {severity: medium}

@@ -20,6 +20,6 @@ teardown:
           name: cli-ft-fleet-server-host
           host_urls:
             - "https://fleet-server.example.com:8220"
-  - set: { item.id: host_id }
+  - set: {item.id: host_id}
   - is_true: item.id
   - is_true: item.name

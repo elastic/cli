@@ -40,5 +40,5 @@ teardown:
         body:
           id: cli-ft-sec-lists-patch-item
           value: "192.0.2.2"
-  - match: { id: cli-ft-sec-lists-patch-item }
-  - match: { value: "192.0.2.2" }
+  - match: {id: cli-ft-sec-lists-patch-item}
+  - match: {value: "192.0.2.2"}

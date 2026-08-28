@@ -15,14 +15,14 @@ setup:
         body:
           user:
             name: cli-ft-resolution-link-source
-  - set: { entity.id: entity_id_source }
+  - set: {entity.id: entity_id_source}
   - do:
       security-entity-store.put_security_entity_store_entities_entitytype:
         entity_type: user
         body:
           user:
             name: cli-ft-resolution-link-target
-  - set: { entity.id: entity_id_target }
+  - set: {entity.id: entity_id_target}
 ---
 teardown:
   - do:

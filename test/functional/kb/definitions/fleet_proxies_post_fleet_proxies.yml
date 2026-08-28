@@ -19,6 +19,6 @@ teardown:
         body:
           name: cli-ft-fleet-proxy
           url: "https://proxy.example.com:8080"
-  - set: { item.id: proxy_id }
+  - set: {item.id: proxy_id}
   - is_true: item.id
   - is_true: item.name

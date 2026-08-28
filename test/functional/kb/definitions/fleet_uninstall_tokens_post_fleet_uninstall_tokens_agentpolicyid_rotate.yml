@@ -14,7 +14,7 @@ setup:
           name: cli-ft-fleet-uninstall-token-rotate
           namespace: testprefix
           is_protected: true
-  - set: { "item.id": policy_id }
+  - set: {"item.id": policy_id}
 ---
 teardown:
   - do:

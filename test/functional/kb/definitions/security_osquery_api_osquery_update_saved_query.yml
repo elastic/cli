@@ -16,7 +16,7 @@ setup:
           query: SELECT * FROM uptime LIMIT 1
           interval: "3600"
           description: Created by elastic-cli functional test
-  - set: { "data.id": saved_query_id }
+  - set: {"data.id": saved_query_id}
 ---
 teardown:
   - do:
@@ -33,5 +33,5 @@ teardown:
           query: SELECT * FROM uptime LIMIT 1
           interval: "7200"
           description: Updated by elastic-cli functional test
-  - match: { data.interval: "7200" }
-  - match: { data.description: "Updated by elastic-cli functional test" }
+  - match: {data.interval: "7200"}
+  - match: {data.description: "Updated by elastic-cli functional test"}

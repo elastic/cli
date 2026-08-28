@@ -13,11 +13,11 @@ setup:
         body:
           name: cli-ft-fleet-uninstall-token-get-id
           namespace: testprefix
-  - set: { "item.id": policy_id }
+  - set: {"item.id": policy_id}
   - do:
       fleet-uninstall-tokens.get_fleet_uninstall_tokens:
         policy_id: $policy_id
-  - set: { "items.0.id": token_id }
+  - set: {"items.0.id": token_id}
 ---
 teardown:
   - do:

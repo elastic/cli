@@ -19,7 +19,7 @@ teardown:
         body:
           title: test-markdown-delete
           content: "# Hello"
-  - set: { id: markdown_id }
+  - set: {id: markdown_id}
   - is_true: id
 
   - do:

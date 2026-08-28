@@ -17,7 +17,7 @@ setup:
           type: detection
           list_id: cli-ft-sec-exc-import-list
           namespace_type: single
-  - set: { id: exc_list_id }
+  - set: {id: exc_list_id}
   - do:
       security-exceptions-api.export_exception_list:
         id: $exc_list_id

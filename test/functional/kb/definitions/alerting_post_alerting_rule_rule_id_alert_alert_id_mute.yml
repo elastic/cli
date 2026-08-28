@@ -21,17 +21,17 @@ teardown:
           consumer: stackAlerts
           name: CLI FT Rule Mute Alert
           rule_type_id: ".es-query"
-          schedule: { interval: "1m" }
+          schedule: {interval: "1m"}
           params:
             searchType: esqlQuery
-            esqlQuery: { esql: "FROM * | LIMIT 1" }
+            esqlQuery: {esql: "FROM * | LIMIT 1"}
             timeWindowSize: 5
             timeWindowUnit: m
             threshold: [0]
             thresholdComparator: ">"
             size: 0
             timeField: "@timestamp"
-  - match: { id: cli-ft-rule-mute-alert }
+  - match: {id: cli-ft-rule-mute-alert}
 
   - do:
       alerting.post_alerting_rule_rule_id_alert_alert_id_mute:
@@ -42,7 +42,7 @@ teardown:
   - do:
       alerting.get_alerting_rule_id:
         id: cli-ft-rule-mute-alert
-  - match: { id: cli-ft-rule-mute-alert }
+  - match: {id: cli-ft-rule-mute-alert}
   - is_true: muted_alert_ids
 
   - do:

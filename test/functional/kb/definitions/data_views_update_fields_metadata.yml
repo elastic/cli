@@ -11,8 +11,8 @@ setup:
   - do:
       data-views.create_data_view_default:
         body:
-          data_view: { title: "cli-ft-dv-fields-*", name: cli-ft-dv-fields }
-  - set: { data_view.id: view_id }
+          data_view: {title: "cli-ft-dv-fields-*", name: cli-ft-dv-fields}
+  - set: {data_view.id: view_id}
 ---
 teardown:
   - do:
@@ -28,4 +28,4 @@ teardown:
           _id:
             customLabel: Document ID
   - is_true: data_view.id
-  - match: { data_view.title: "cli-ft-dv-fields-*" }
+  - match: {data_view.title: "cli-ft-dv-fields-*"}

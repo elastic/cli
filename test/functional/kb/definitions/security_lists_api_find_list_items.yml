@@ -38,5 +38,5 @@ teardown:
   - do:
       security-lists-api.find_list_items:
         list_id: cli-ft-sec-lists-find-items-list
-  - gt: { total: 0 }
+  - gt: {total: 0}
   - is_true: data

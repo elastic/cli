@@ -10,15 +10,15 @@ requires:
 setup:
   - do:
       elastic-agents.get_fleet_agents: {}
-  - set: { "items.0.id": agent_id }
+  - set: {"items.0.id": agent_id}
   - do:
       elastic-agent-actions.post_fleet_agents_agentid_request_diagnostics:
         agent_id: $agent_id
-  - set: { actionId: action_id }
+  - set: {actionId: action_id}
 ---
 "elastic-agent-actions post fleet agents actions actionid cancel":
   - do:
       elastic-agent-actions.post_fleet_agents_actions_actionid_cancel:
         action_id: $action_id
   - is_true: item.id
-  - match: { item.type: CANCEL }
+  - match: {item.type: CANCEL}

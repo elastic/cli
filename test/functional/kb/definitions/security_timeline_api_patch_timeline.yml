@@ -15,8 +15,8 @@ setup:
         body:
           timeline:
             title: CLI FT patch-timeline test
-  - set: { "savedObjectId": timeline_id }
-  - set: { "version": timeline_version }
+  - set: {"savedObjectId": timeline_id}
+  - set: {"version": timeline_version}
 ---
 teardown:
   - do:
@@ -35,4 +35,4 @@ teardown:
           timeline:
             title: CLI FT patch-timeline test updated
   - is_true: savedObjectId
-  - match: { title: CLI FT patch-timeline test updated }
+  - match: {title: CLI FT patch-timeline test updated}

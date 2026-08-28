@@ -14,7 +14,7 @@ setup:
         body:
           timeline:
             title: CLI FT resolve-timeline test
-  - set: { "savedObjectId": timeline_id }
+  - set: {"savedObjectId": timeline_id}
 ---
 teardown:
   - do:

@@ -11,7 +11,7 @@ setup:
   - do:
       elastic-package-manager-epm.get_fleet_epm_packages_pkgname:
         pkg_name: system
-  - set: { "item.version": pkg_version }
+  - set: {"item.version": pkg_version}
   - do:
       fleet-managed-integrations.post_fleet_managed_integrations:
         body:
@@ -19,7 +19,7 @@ setup:
           package:
             name: system
             version: $pkg_version
-  - set: { "item.id": policy_id }
+  - set: {"item.id": policy_id}
 ---
 teardown:
   - do:

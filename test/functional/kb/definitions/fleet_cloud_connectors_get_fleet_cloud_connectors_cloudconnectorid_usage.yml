@@ -19,7 +19,7 @@ setup:
             external_id:
               type: text
               value: cli-ft-external-id-1234567890
-  - set: { "item.id": connector_id }
+  - set: {"item.id": connector_id}
 ---
 teardown:
   - do:

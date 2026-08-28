@@ -13,7 +13,7 @@ setup:
         body:
           name: cli-ft-ea-policy-auto-upgrade-status
           namespace: testprefix
-  - set: { "item.id": policy_id }
+  - set: {"item.id": policy_id}
 ---
 teardown:
   - do:
@@ -27,4 +27,4 @@ teardown:
       elastic-agent-policies.get_fleet_agent_policies_agentpolicyid_auto_upgrade_agents_status:
         agent_policy_id: $policy_id
   - is_true: currentVersions
-  - gte: { totalAgents: 0 }
+  - gte: {totalAgents: 0}

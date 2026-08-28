@@ -12,7 +12,7 @@ requires:
 setup:
   - do:
       security-entity-store.get_security_entity_store_resolution_rules: {}
-  - set: { "rules.0.id": rule_id }
+  - set: {"rules.0.id": rule_id}
   - do:
       security-entity-store.put_security_entity_store_resolution_rules_id_disable:
         id: $rule_id

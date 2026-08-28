@@ -19,4 +19,4 @@ teardown:
 "security-lists-api delete list index":
   - do:
       security-lists-api.delete_list_index:
-  - match: { acknowledged: true }
+  - match: {acknowledged: true}

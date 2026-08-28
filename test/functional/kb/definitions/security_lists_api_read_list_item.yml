@@ -38,6 +38,6 @@ teardown:
   - do:
       security-lists-api.read_list_item:
         id: cli-ft-sec-lists-read-item
-  - match: { id: cli-ft-sec-lists-read-item }
-  - match: { list_id: cli-ft-sec-lists-read-item-list }
-  - match: { value: "192.0.2.1" }
+  - match: {id: cli-ft-sec-lists-read-item}
+  - match: {list_id: cli-ft-sec-lists-read-item-list}
+  - match: {value: "192.0.2.1"}
