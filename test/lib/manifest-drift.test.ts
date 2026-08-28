@@ -90,7 +90,7 @@ describe('manifest/definition parity (upstream drift guard)', () => {
     })
 
     it('pins the kb command count', () => {
-      const expected = 583
+      const expected = 666
       assert.equal(kbApiManifest.length, expected, countDriftMessage('kb', expected, kbApiManifest.length))
     })
 
@@ -118,7 +118,7 @@ describe('manifest/definition parity (upstream drift guard)', () => {
   // loaded count still catches an upstream add/remove going unnoticed.
   describe('cloud', () => {
     it('pins the cloud command count', async () => {
-      const expected = 112
+      const expected = 114
       const actual = (await loadCloudApis()).length
       assert.equal(actual, expected, countDriftMessage('cloud', expected, actual))
     })
