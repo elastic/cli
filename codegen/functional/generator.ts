@@ -136,8 +136,8 @@ export interface RunnerScript {
  * Generate the run.sh runner script that executes all generated test scripts.
  *
  * Scripts may be passed as bare paths or as {@link RunnerScript} objects. When
- * `requires` metadata is present, the runner supports `--serverless` / `--stack`
- * flags that run ONLY scripts whose matching `requires` field is `true`.
+ * `requires` metadata is present, the runner reads `ELASTIC_ENVIRONMENT`
+ * ("serverless" | "stack") to run only scripts whose matching `requires` field is `true`.
  */
 export function generateRunner (scripts: Array<string | RunnerScript>): string {
   const normalized: RunnerScript[] = scripts.map((s) =>
@@ -152,20 +152,17 @@ export function generateRunner (scripts: Array<string | RunnerScript>): string {
   lines.push('FAILED=0')
   lines.push('ERRORS=""')
   lines.push('BAIL=0')
-  lines.push('FILTER=""')
   lines.push('for arg in "$@"; do')
   lines.push('  case "$arg" in')
   lines.push('    --bail) BAIL=1 ;;')
-  lines.push('    --serverless) FILTER=serverless ;;')
-  lines.push('    --stack) FILTER=stack ;;')
   lines.push('  esac')
   lines.push('done')
   lines.push('')
   lines.push('should_run () {')
   lines.push('  # args: <serverless> <stack>')
-  lines.push('  [ -z "$FILTER" ] && return 0')
-  lines.push('  [ "$FILTER" = serverless ] && [ "$1" = true ] && return 0')
-  lines.push('  [ "$FILTER" = stack ] && [ "$2" = true ] && return 0')
+  lines.push('  [ -z "${ELASTIC_ENVIRONMENT:-}" ] && return 0')
+  lines.push('  [ "${ELASTIC_ENVIRONMENT}" = serverless ] && [ "$1" = true ] && return 0')
+  lines.push('  [ "${ELASTIC_ENVIRONMENT}" = stack ] && [ "$2" = true ] && return 0')
   lines.push('  return 1')
   lines.push('}')
   lines.push('')
