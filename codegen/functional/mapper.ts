@@ -61,8 +61,14 @@ export function mapAction (
   if (def == null) return null
 
   const args: string[] = [...clientArgs]
-  if (def.namespace != null) args.push(def.namespace)
-  args.push(def.name)
+  // Clients with a restructured command tree (Cloud) provide an explicit path;
+  // the flat `namespace name` layout is the default for ES/Kibana.
+  if (def.cliPath != null) {
+    args.push(...def.cliPath)
+  } else {
+    if (def.namespace != null) args.push(def.namespace)
+    args.push(def.name)
+  }
 
   // Destructive commands prompt for confirmation; test scripts run non-interactively.
   const intent = def.intent ?? inferIntentFromHttp(def.method)

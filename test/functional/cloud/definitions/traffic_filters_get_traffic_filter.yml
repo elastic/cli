@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Retrieves the traffic filter by ID. (GET /api/v1/serverless/traffic-filters/{id})
+# Id for {id} is derived from traffic-filters.list-traffic-filters.
+# TODO: verify the response path in the `set` step against a live API.
+---
+"traffic-filters get-traffic-filter":
+  - do:
+      traffic-filters.list-traffic-filters: {}
+  - set: {filters.0.id: id}
+  - do:
+      traffic-filters.get-traffic-filter:
+        id: $id

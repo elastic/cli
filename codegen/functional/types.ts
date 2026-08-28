@@ -45,6 +45,13 @@ export interface ApiActionDef {
   method: string
   input?: Record<string, unknown>
   intent?: { destructive?: boolean, requiresConfirmation?: boolean }
+  /**
+   * Explicit CLI arg path (after the leading client args) for clients whose
+   * command tree is restructured away from a flat `namespace name` layout
+   * (e.g. Cloud). When set, the mapper emits these tokens instead of
+   * `namespace` + `name`.
+   */
+  cliPath?: string[]
 }
 
 /** A named test section (e.g. "get", "Basic bulk operation"). */
