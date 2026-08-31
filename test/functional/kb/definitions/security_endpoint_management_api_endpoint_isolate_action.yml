@@ -1,0 +1,18 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-management-api: isolate an endpoint.
+# No real endpoint exists in a test environment, so a fake UUID is used and a
+# 404 is expected.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-endpoint-management-api endpoint isolate action":
+  - do:
+      catch: missing
+      security-endpoint-management-api.endpoint_isolate_action:
+        body:
+          endpoint_ids:
+            - "00000000-0000-0000-0000-000000000000"

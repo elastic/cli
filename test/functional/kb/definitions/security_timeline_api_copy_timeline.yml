@@ -1,0 +1,42 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-timeline-api: copy a timeline.
+# Creates a source timeline in setup, copies it, and cleans up both in teardown.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-timeline-api.create_timelines:
+        body:
+          timeline:
+            title: CLI FT copy-timeline source
+  - set: {"savedObjectId": timeline_id}
+---
+teardown:
+  - do:
+      security-timeline-api.delete_timelines:
+        body:
+          savedObjectIds:
+            - $timeline_id
+        ignore: [404]
+  - do:
+      security-timeline-api.delete_timelines:
+        body:
+          savedObjectIds:
+            - $copy_id
+        ignore: [404]
+---
+"security-timeline-api copy timeline":
+  - do:
+      security-timeline-api.copy_timeline:
+        body:
+          timelineIdToCopy: $timeline_id
+          timeline:
+            title: CLI FT copy-timeline copy
+  - set: {"savedObjectId": copy_id}
+  - is_true: savedObjectId
+  - match: {title: CLI FT copy-timeline copy}

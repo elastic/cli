@@ -1,0 +1,44 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-lists-api: create a value list + item then update the item.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-lists-api.create_list_index:
+  - do:
+      security-lists-api.create_list:
+        body:
+          id: cli-ft-sec-lists-update-item-list
+          name: CLI FT Update List Item List
+          description: Created by functional test
+          type: keyword
+  - do:
+      security-lists-api.create_list_item:
+        body:
+          id: cli-ft-sec-lists-update-item
+          list_id: cli-ft-sec-lists-update-item-list
+          value: "192.0.2.1"
+---
+teardown:
+  - do:
+      security-lists-api.delete_list_item:
+        id: cli-ft-sec-lists-update-item
+        ignore: [404]
+  - do:
+      security-lists-api.delete_list:
+        id: cli-ft-sec-lists-update-item-list
+        ignore: [404]
+---
+"security-lists-api update list item":
+  - do:
+      security-lists-api.update_list_item:
+        body:
+          id: cli-ft-sec-lists-update-item
+          value: "192.0.2.2"
+  - match: {id: cli-ft-sec-lists-update-item}
+  - match: {value: "192.0.2.2"}

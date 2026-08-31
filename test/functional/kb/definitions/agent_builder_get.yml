@@ -1,0 +1,35 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana agent-builder API: create agent / get agent by ID / delete agent.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      agent-builder.delete_agent_builder_agents_id:
+        id: cli-ft-ab-get
+        ignore: [404]
+---
+"agent-builder get agent by ID":
+  - do:
+      agent-builder.post_agent_builder_agents:
+        body:
+          id: cli-ft-ab-get
+          name: CLI FT Agent Get
+          description: Created by functional test
+          configuration:
+            tools: []
+  - match: {id: cli-ft-ab-get}
+
+  - do:
+      agent-builder.get_agent_builder_agents_id:
+        id: cli-ft-ab-get
+  - match: {id: cli-ft-ab-get}
+  - match: {name: CLI FT Agent Get}
+
+  - do:
+      agent-builder.delete_agent_builder_agents_id:
+        id: cli-ft-ab-get

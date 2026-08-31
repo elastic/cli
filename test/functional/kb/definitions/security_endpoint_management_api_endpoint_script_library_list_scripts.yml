@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-management-api: list endpoint script library scripts.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-endpoint-management-api list endpoint script library scripts":
+  - do:
+      security-endpoint-management-api.endpoint_script_library_list_scripts: {}
+  - is_true: data
+  - is_true: total

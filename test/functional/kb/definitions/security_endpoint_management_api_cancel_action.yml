@@ -1,0 +1,20 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-management-api: cancel a response action.
+# No real endpoint or running response action exists in a test environment, so
+# fake UUIDs are used and a 404 is expected.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-endpoint-management-api cancel action":
+  - do:
+      catch: missing
+      security-endpoint-management-api.cancel_action:
+        body:
+          endpoint_ids:
+            - "00000000-0000-0000-0000-000000000000"
+          parameters:
+            id: "00000000-0000-0000-0000-000000000000"

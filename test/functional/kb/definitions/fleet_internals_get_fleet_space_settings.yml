@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-internals API: get Fleet space settings.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"fleet-internals get fleet space settings":
+  - do:
+      fleet-internals.get_fleet_space_settings: {}
+  - is_true: item

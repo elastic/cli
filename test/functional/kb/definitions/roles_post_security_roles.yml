@@ -1,0 +1,23 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana roles API: create or update multiple roles in a single bulk request.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      roles.delete_security_role_name:
+        name: cli-ft-role-bulk
+        ignore: [404]
+---
+"roles post security roles":
+  - do:
+      roles.post_security_roles:
+        body:
+          roles:
+            cli-ft-role-bulk:
+              elasticsearch: {}
+  - is_true: ""

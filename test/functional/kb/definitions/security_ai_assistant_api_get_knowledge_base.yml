@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-ai-assistant-api: get knowledge base.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-ai-assistant-api get knowledge base":
+  - do:
+      security-ai-assistant-api.get_knowledge_base: {}
+  - is_true: ""

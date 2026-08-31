@@ -1,0 +1,32 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-detections-api: list detection rules.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-detections-api.create_rule:
+        body:
+          type: query
+          name: cli-ft-sec-det-find-rules
+          description: Created by functional test
+          risk_score: 21
+          severity: low
+          query: "*"
+  - set: {id: rule_id}
+---
+teardown:
+  - do:
+      security-detections-api.delete_rule:
+        id: $rule_id
+        ignore: [404]
+---
+"security-detections-api find rules":
+  - do:
+      security-detections-api.find_rules:
+  - is_true: total
+  - gt: {total: 0}

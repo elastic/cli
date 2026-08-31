@@ -1,0 +1,47 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana streams API: export stream content as a content pack.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      streams.put_streams_name:
+        name: cli-ft-streams-content-export
+        body:
+          dashboards: []
+          rules: []
+          stream:
+            description: ""
+            type: wired
+            ingest:
+              lifecycle: {inherit: {}}
+              processing:
+                steps: []
+              settings: {}
+              failure_store: {inherit: {}}
+              wired:
+                fields: {}
+                routing: []
+---
+teardown:
+  - do:
+      streams.delete_streams_name:
+        name: cli-ft-streams-content-export
+        ignore: [404]
+---
+"streams post streams name content export":
+  - do:
+      streams.post_streams_name_content_export:
+        name: cli-ft-streams-content-export
+        body:
+          name: cli-ft-content-pack
+          description: "test export"
+          version: "1.0.0"
+          include:
+            objects:
+              all: {}
+  - is_true: ""

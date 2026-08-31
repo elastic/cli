@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana data-streams API: list Fleet EPM data streams.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"data-streams get fleet epm data streams":
+  - do:
+      data-streams.get_fleet_epm_data_streams: {}
+  - is_true: items

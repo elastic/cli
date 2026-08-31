@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-timeline-api: get draft timelines.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-timeline-api get draft timelines":
+  - do:
+      security-timeline-api.get_draft_timelines:
+        timeline_type: default
+  - is_true: ""

@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-management-api: get endpoint response actions state.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-endpoint-management-api get actions state":
+  - do:
+      security-endpoint-management-api.endpoint_get_actions_state: {}
+  - is_true: data

@@ -1,0 +1,15 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana misc API: query security roles with default parameters.
+# Built-in roles always exist; no setup or teardown required.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"misc post security role query":
+  - do:
+      misc.post_security_role_query: {}
+  - gt: {total: 0}
+  - is_true: roles

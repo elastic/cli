@@ -1,0 +1,15 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana spaces API: list all spaces.
+# No setup required — the default space is always present.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"spaces list all spaces":
+  - do:
+      spaces.get_spaces_space: {}
+  - is_true: 0.id
+  - is_true: 0.name

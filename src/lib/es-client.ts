@@ -6,6 +6,7 @@
 import { getResolvedConfig } from '../config/store.ts'
 import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
 import { clientHeaders } from './meta.ts'
+import { YamlResponse, isYamlContentType } from './yaml-response.ts'
 
 /** Parameters for a single Elasticsearch API request. */
 export interface EsRequestParams {
@@ -136,6 +137,11 @@ export class EsClient {
     if (text.length === 0) return {} as T
     if (contentType.includes('application/json') || contentType.includes('application/x-ndjson')) {
       return JSON.parse(text) as T
+    }
+    // YAML bodies are wrapped so the output layer prints them verbatim by default and parses
+    // them to JSON only under `--json`.
+    if (isYamlContentType(contentType)) {
+      return new YamlResponse(text) as unknown as T
     }
     return text as unknown as T
   }

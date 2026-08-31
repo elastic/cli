@@ -1,0 +1,30 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-lists-api: create a value list.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-lists-api.create_list_index:
+---
+teardown:
+  - do:
+      security-lists-api.delete_list:
+        id: cli-ft-sec-lists-create-list
+        ignore: [404]
+---
+"security-lists-api create list":
+  - do:
+      security-lists-api.create_list:
+        body:
+          id: cli-ft-sec-lists-create-list
+          name: CLI FT Create List
+          description: Created by functional test
+          type: keyword
+  - match: {id: cli-ft-sec-lists-create-list}
+  - match: {name: CLI FT Create List}
+  - match: {type: keyword}

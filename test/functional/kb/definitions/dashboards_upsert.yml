@@ -1,0 +1,20 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana dashboards API: upsert a dashboard by id.
+---
+requires:
+  serverless: false
+  stack: false
+---
+teardown:
+  - do:
+      dashboards.delete_dashboard:
+        id: cli-ft-dashboard-upsert
+        ignore: [404]
+---
+"dashboards upsert":
+  - do:
+      dashboards.upsert_dashboard:
+        id: cli-ft-dashboard-upsert
+  - is_true: item.id

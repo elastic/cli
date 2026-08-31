@@ -1,0 +1,16 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana apm-server-schema API: save APM server schema.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"apm-server-schema save apm server schema":
+  - do:
+      apm-server-schema.save_apm_server_schema:
+        body:
+          schema:
+            version: "8.0.0"
+  - is_true: ""

@@ -123,6 +123,8 @@ function parseSteps (raw: unknown[]): Step[] {
       steps.push(parseContains(obj.contains as Record<string, unknown>))
     } else if ('skip' in obj) {
       steps.push({ kind: 'skip' })
+    } else if ('write_ndjson_temp' in obj) {
+      steps.push({ kind: 'write_ndjson_temp', varName: String(obj.write_ndjson_temp) })
     }
   }
   return steps

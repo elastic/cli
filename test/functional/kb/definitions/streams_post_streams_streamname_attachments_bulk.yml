@@ -1,0 +1,45 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana streams API: bulk update attachments on a stream.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      streams.put_streams_name:
+        name: cli-ft-streams-att-bulk
+        body:
+          dashboards: []
+          rules: []
+          stream:
+            description: ""
+            type: wired
+            ingest:
+              lifecycle: {inherit: {}}
+              processing:
+                steps: []
+              settings: {}
+              failure_store: {inherit: {}}
+              wired:
+                fields: {}
+                routing: []
+---
+teardown:
+  - do:
+      streams.delete_streams_name:
+        name: cli-ft-streams-att-bulk
+        ignore: [404]
+---
+"streams post streams streamname attachments bulk":
+  - do:
+      streams.post_streams_streamname_attachments_bulk:
+        stream_name: cli-ft-streams-att-bulk
+        body:
+          operations:
+            - index:
+                id: cli-ft-dashboard-id
+                type: dashboard
+  - is_true: ""

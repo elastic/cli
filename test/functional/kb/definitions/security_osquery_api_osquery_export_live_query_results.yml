@@ -1,0 +1,26 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-osquery-api: export live query results.
+# Creates a live query in setup to obtain a valid id and action_id; no teardown
+# needed because no delete endpoint exists for live queries.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-osquery-api.osquery_create_live_query:
+        body:
+          query: SELECT * FROM uptime LIMIT 1
+          agent_all: true
+  - set: {data.action_id: live_query_id}
+---
+"security-osquery-api export live query results":
+  - do:
+      security-osquery-api.osquery_export_live_query_results:
+        id: $live_query_id
+        action_id: $live_query_id
+        format: ndjson
+  - is_true: ""

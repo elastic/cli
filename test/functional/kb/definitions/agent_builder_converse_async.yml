@@ -1,0 +1,23 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana agent-builder API: send a streaming (async) chat message and verify
+# a conversation_id_set event is returned.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      agent-builder.delete_agent_builder_conversations_conversation_id:
+        conversation_id: $conv_id
+        ignore: [404]
+---
+"agent-builder converse async":
+  - do:
+      agent-builder.post_agent_builder_converse_async:
+        body:
+          input: ping
+  - set: {"0.data.data.conversation_id": conv_id}
+  - is_true: "0.data.data.conversation_id"

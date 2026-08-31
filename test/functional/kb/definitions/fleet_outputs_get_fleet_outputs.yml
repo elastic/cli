@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-outputs API: get outputs.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"fleet-outputs get fleet outputs":
+  - do:
+      fleet-outputs.get_fleet_outputs: {}
+  - is_true: items

@@ -18,6 +18,7 @@ import type {
 import { defineGroup, isCommandAllowed, hideBlockedCommands, configureJsonHelp } from '../src/factory-core.ts'
 import { defineCommand, _testSetStdinReader } from '../src/factory.ts'
 import { setResolvedConfig, _testResetConfig } from '../src/config/store.ts'
+import { YamlResponse } from '../src/lib/yaml-response.ts'
 import { Command } from 'commander'
 
 /** Build a JSON Schema for test use. */
@@ -4224,5 +4225,60 @@ describe('configureJsonHelp', () => {
     } catch { /* exitOverride on --help */ }
     const parsed = JSON.parse(out) as { name: string }
     assert.equal(parsed.name, 'sanitize')
+  })
+})
+
+describe('YAML response rendering', () => {
+  async function capture (rootArgv: string[], cmd: OpaqueCommandHandle): Promise<string> {
+    const prog = new Command('elastic')
+    prog.option('--json', 'output as JSON')
+    prog.addCommand(cmd)
+    prog.exitOverride()
+    cmd.exitOverride()
+    let out = ''
+    const orig = process.stdout.write.bind(process.stdout)
+    process.stdout.write = (chunk: unknown) => { if (typeof chunk === 'string') out += chunk; return true }
+    try {
+      await prog.parseAsync([...rootArgv, cmd.name()], { from: 'user' })
+    } finally {
+      process.stdout.write = orig
+    }
+    return out
+  }
+
+  const yamlBody = 'apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: agent\n'
+
+  it('prints the raw YAML body verbatim by default', async () => {
+    const cmd = defineCommand({
+      name: 'download',
+      description: 'Download',
+      handler: () => new YamlResponse(yamlBody),
+    })
+    const out = await capture([], cmd)
+    assert.equal(out, yamlBody)
+  })
+
+  it('parses YAML into JSON when --json is passed', async () => {
+    const cmd = defineCommand({
+      name: 'download',
+      description: 'Download',
+      handler: () => new YamlResponse(yamlBody),
+    })
+    const out = await capture(['--json'], cmd)
+    assert.deepEqual(JSON.parse(out), {
+      apiVersion: 'v1',
+      kind: 'ConfigMap',
+      metadata: { name: 'agent' },
+    })
+  })
+
+  it('appends a trailing newline when the YAML body lacks one', async () => {
+    const cmd = defineCommand({
+      name: 'download',
+      description: 'Download',
+      handler: () => new YamlResponse('key: value'),
+    })
+    const out = await capture([], cmd)
+    assert.equal(out, 'key: value\n')
   })
 })

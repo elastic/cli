@@ -1,0 +1,33 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-timeline-api: persist pinned event route.
+# Creates a timeline in setup, pins an event to it, and verifies the response.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-timeline-api.create_timelines:
+        body:
+          timeline:
+            title: CLI FT persist-pinned-event-route test
+  - set: {"savedObjectId": timeline_id}
+---
+teardown:
+  - do:
+      security-timeline-api.delete_timelines:
+        body:
+          savedObjectIds:
+            - $timeline_id
+        ignore: [404]
+---
+"security-timeline-api persist pinned event route":
+  - do:
+      security-timeline-api.persist_pinned_event_route:
+        body:
+          eventId: test-event-id-001
+          timelineId: $timeline_id
+  - is_true: pinnedEventId

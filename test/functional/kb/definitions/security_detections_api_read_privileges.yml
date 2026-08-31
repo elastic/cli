@@ -1,0 +1,15 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-detections-api: read user privileges for the Kibana space.
+# GET /api/detection_engine/privileges — no parameters required.
+# Returns a privileges object; no setup or teardown needed.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-detections-api read privileges":
+  - do:
+      security-detections-api.read_privileges: {}
+  - is_true: ""

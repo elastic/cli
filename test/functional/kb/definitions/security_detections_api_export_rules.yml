@@ -1,0 +1,37 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-detections-api: export detection rules.
+# Creates a rule with a known rule_id, exports by that rule_id, then deletes.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-detections-api.create_rule:
+        body:
+          type: query
+          name: cli-ft-sec-det-export-rules
+          description: Created by functional test
+          risk_score: 21
+          severity: low
+          query: "*"
+          rule_id: cli-ft-export-rules-rule
+  - set: {id: rule_id}
+---
+teardown:
+  - do:
+      security-detections-api.delete_rule:
+        id: $rule_id
+        ignore: [404]
+---
+"security-detections-api export rules":
+  - do:
+      security-detections-api.export_rules:
+        body:
+          objects:
+            - rule_id: cli-ft-export-rules-rule
+  - is_true: 0.rule_id
+  - match: {0.rule_id: cli-ft-export-rules-rule}

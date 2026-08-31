@@ -1,0 +1,31 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana apm-agent-configuration API: get environments for a service.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      apm-agent-configuration.delete_agent_configuration:
+        body:
+          service:
+            name: cli-ft-apm-svc
+        ignore: [404]
+---
+"apm-agent-configuration get environments for service":
+  - do:
+      apm-agent-configuration.create_update_agent_configuration:
+        body:
+          service:
+            name: cli-ft-apm-svc
+            environment: production
+          settings:
+            transaction_sample_rate: "0.5"
+
+  - do:
+      apm-agent-configuration.get_environments_for_service:
+        service_name: cli-ft-apm-svc
+  - is_true: ""

@@ -1,0 +1,36 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-analytics-api: assign watchlist entities.
+# Creates a watchlist in setup, assigns an entity to it, then unassigns in teardown.
+# ponytail: no delete-watchlist command exists in the CLI; watchlist persists after teardown.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-entity-analytics-api.create_watchlist:
+        body:
+          name: cli-ft-assign-watchlist-entities-test
+          riskModifier: 10
+  - set: {id: watchlist_id}
+---
+teardown:
+  - do:
+      security-entity-analytics-api.unassign_watchlist_entities:
+        watchlist_id: $watchlist_id
+        body:
+          euids:
+            - cli-ft-test-euid
+        ignore: [404]
+---
+"security-entity-analytics-api assign watchlist entities":
+  - do:
+      security-entity-analytics-api.assign_watchlist_entities:
+        watchlist_id: $watchlist_id
+        body:
+          euids:
+            - cli-ft-test-euid
+  - is_true: ""

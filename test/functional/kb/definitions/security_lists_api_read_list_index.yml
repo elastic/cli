@@ -1,0 +1,23 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-lists-api: check status of value list data streams.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-lists-api.create_list_index:
+---
+teardown:
+  - do:
+      security-lists-api.delete_list_index:
+        ignore: [404]
+---
+"security-lists-api read list index":
+  - do:
+      security-lists-api.read_list_index:
+  - match: {list_index: true}
+  - match: {list_item_index: true}

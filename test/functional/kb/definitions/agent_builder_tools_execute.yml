@@ -1,0 +1,39 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana agent-builder API: execute a tool by ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      agent-builder.delete_agent_builder_tools_toolid:
+        tool_id: cli-ft-ab-tools-exec
+        force: true
+        ignore: [404]
+---
+"agent-builder execute tool":
+  - do:
+      agent-builder.post_agent_builder_tools:
+        body:
+          id: cli-ft-ab-tools-exec
+          type: esql
+          description: Created by functional test
+          configuration:
+            query: FROM logs-* | LIMIT 10
+            params: {}
+  - match: {id: cli-ft-ab-tools-exec}
+
+  - do:
+      agent-builder.post_agent_builder_tools_execute:
+        body:
+          tool_id: cli-ft-ab-tools-exec
+          tool_params: {}
+  - is_true: ""
+
+  - do:
+      agent-builder.delete_agent_builder_tools_toolid:
+        tool_id: cli-ft-ab-tools-exec
+        force: true

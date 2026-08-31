@@ -1,0 +1,34 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana agent-builder A2A API: create agent / get A2A agent card JSON / delete agent.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      agent-builder.delete_agent_builder_agents_id:
+        id: cli-ft-ab-get-json
+        ignore: [404]
+---
+"agent-builder get A2A agent card JSON":
+  - do:
+      agent-builder.post_agent_builder_agents:
+        body:
+          id: cli-ft-ab-get-json
+          name: CLI FT Agent Get JSON
+          description: Created by functional test
+          configuration:
+            tools: []
+  - match: {id: cli-ft-ab-get-json}
+
+  - do:
+      agent-builder.get_agent_builder_a2a_agentid_json:
+        agentId: cli-ft-ab-get-json
+  - is_true: name
+
+  - do:
+      agent-builder.delete_agent_builder_agents_id:
+        id: cli-ft-ab-get-json

@@ -1,0 +1,38 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana SLO API: create an SLO in the default space.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      slo.delete_slo_op:
+        space_id: default
+        slo_id: cli-ft-create-slo
+        ignore: [404]
+---
+"slo create-slo-op":
+  - do:
+      slo.create_slo_op:
+        space_id: default
+        body:
+          id: cli-ft-create-slo
+          name: CLI FT Create SLO
+          description: Created by functional test
+          indicator:
+            type: sli.kql.custom
+            params:
+              index: "*"
+              timestampField: "@timestamp"
+              good: ""
+              total: ""
+          timeWindow:
+            duration: 7d
+            type: rolling
+          budgetingMethod: occurrences
+          objective:
+            target: 0.99
+  - match: {id: cli-ft-create-slo}

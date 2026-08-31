@@ -1,0 +1,20 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-detections-api: set status on detection alerts (no-op).
+# Uses a nonexistent alert ID with status "open". The bulk update returns
+# successfully with zero updates rather than an error, so no setup or
+# teardown is required.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-detections-api set alerts status":
+  - do:
+      security-detections-api.set_alerts_status:
+        body:
+          signal_ids:
+            - nonexistent-alert-id
+          status: open
+  - is_true: ""

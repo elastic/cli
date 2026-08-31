@@ -1,0 +1,45 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana SLO API: create an SLO then get it by ID in the default space.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      slo.create_slo_op:
+        space_id: default
+        body:
+          id: cli-ft-get-slo
+          name: CLI FT Get SLO
+          description: Created by functional test
+          indicator:
+            type: sli.kql.custom
+            params:
+              index: "*"
+              timestampField: "@timestamp"
+              good: ""
+              total: ""
+          timeWindow:
+            duration: 7d
+            type: rolling
+          budgetingMethod: occurrences
+          objective:
+            target: 0.99
+---
+teardown:
+  - do:
+      slo.delete_slo_op:
+        space_id: default
+        slo_id: cli-ft-get-slo
+        ignore: [404]
+---
+"slo get-slo-op":
+  - do:
+      slo.get_slo_op:
+        space_id: default
+        slo_id: cli-ft-get-slo
+  - match: {id: cli-ft-get-slo}
+  - match: {name: CLI FT Get SLO}

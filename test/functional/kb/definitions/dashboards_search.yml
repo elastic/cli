@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana dashboards API: search dashboards.
+---
+requires:
+  serverless: false
+  stack: false
+---
+"dashboards search":
+  - do:
+      dashboards.search_dashboards:
+  - is_true: ""

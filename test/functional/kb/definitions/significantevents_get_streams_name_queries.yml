@@ -1,0 +1,36 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana significantevents API: put a query on a stream / get stream queries / delete query.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      significantevents.delete_streams_name_queries_queryid:
+        name: cli-ft-se-stream
+        query_id: cli-ft-se-query
+        ignore: [404]
+---
+"significantevents get stream queries":
+  - do:
+      significantevents.put_streams_name_queries_queryid:
+        name: cli-ft-se-stream
+        query_id: cli-ft-se-query
+        body:
+          title: CLI FT Significant Events Query
+          esql:
+            query: "FROM cli-ft-se-stream | LIMIT 10"
+  - is_true: ""
+
+  - do:
+      significantevents.get_streams_name_queries:
+        name: cli-ft-se-stream
+  - is_true: ""
+
+  - do:
+      significantevents.delete_streams_name_queries_queryid:
+        name: cli-ft-se-stream
+        query_id: cli-ft-se-query

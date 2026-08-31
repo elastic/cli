@@ -1,0 +1,18 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agent-actions API: remove an OpAMP collector from an enrolled agent.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agents.get_fleet_agents: {}
+  - set: {"items.0.id": agent_id}
+---
+"elastic-agent-actions post fleet agents agentid remove collector":
+  - do:
+      elastic-agent-actions.post_fleet_agents_agentid_remove_collector:
+        agent_id: $agent_id

@@ -1,0 +1,66 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-attack-discovery-api: update an Attack Discovery schedule.
+# Creates a .gen-ai connector and schedule in setup, then verifies update changes the schedule name.
+# Teardown cleans up in case the update step fails.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      connectors.post_actions_connector_id:
+        id: cli-ft-attack-discovery-upd-sched-connector
+        body:
+          connector_type_id: ".gen-ai"
+          name: CLI FT Attack Discovery Upd Sched Connector
+          config:
+            apiProvider: OpenAI
+            apiUrl: "https://api.openai.com/v1"
+          secrets:
+            apiKey: "placeholder-key"
+  - match: {id: cli-ft-attack-discovery-upd-sched-connector}
+  - do:
+      security-attack-discovery-api.create_attack_discovery_schedules:
+        body:
+          name: cli-ft-attack-discovery-upd-schedule
+          schedule:
+            interval: "24h"
+          params:
+            alerts_index_pattern: ".alerts-security.alerts-default"
+            api_config:
+              connectorId: cli-ft-attack-discovery-upd-sched-connector
+              actionTypeId: ".gen-ai"
+              name: CLI FT Attack Discovery Upd Sched Connector
+            size: 20
+  - set: {id: schedule_id}
+---
+teardown:
+  - do:
+      security-attack-discovery-api.delete_attack_discovery_schedules:
+        id: $schedule_id
+        ignore: [404]
+  - do:
+      connectors.delete_actions_connector_id:
+        id: cli-ft-attack-discovery-upd-sched-connector
+        ignore: [404]
+---
+"security-attack-discovery-api update attack discovery schedules":
+  - do:
+      security-attack-discovery-api.update_attack_discovery_schedules:
+        id: $schedule_id
+        body:
+          name: cli-ft-attack-discovery-upd-schedule-updated
+          actions: []
+          schedule:
+            interval: "12h"
+          params:
+            alerts_index_pattern: ".alerts-security.alerts-default"
+            api_config:
+              connectorId: cli-ft-attack-discovery-upd-sched-connector
+              actionTypeId: ".gen-ai"
+              name: CLI FT Attack Discovery Upd Sched Connector
+            size: 20
+  - match: {name: cli-ft-attack-discovery-upd-schedule-updated}

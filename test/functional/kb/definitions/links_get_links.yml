@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana links API: list links library items.
+---
+requires:
+  serverless: false
+  stack: false
+---
+"links get links":
+  - do:
+      links.get_links: {}
+  - is_true: ""

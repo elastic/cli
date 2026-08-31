@@ -34,6 +34,19 @@ export interface Requires {
   stack: boolean | null
 }
 
+/**
+ * Minimal structural view of a client API definition needed by the codegen
+ * mapper/generator. Both `EsApiDefinition` and `KbApiDefinition` satisfy it,
+ * so the same rendering pipeline can target either client.
+ */
+export interface ApiActionDef {
+  name: string
+  namespace?: string
+  method: string
+  input?: Record<string, unknown>
+  intent?: { destructive?: boolean, requiresConfirmation?: boolean }
+}
+
 /** A named test section (e.g. "get", "Basic bulk operation"). */
 export interface TestSection {
   name: string
@@ -57,6 +70,7 @@ export type Step =
   | LteStep
   | ContainsStep
   | SkipStep
+  | WriteNdjsonTempStep
 
 export interface DoStep {
   kind: 'do'
@@ -135,4 +149,15 @@ export interface ContainsStep {
 /** No-op — the skip action is parsed but does not produce output. */
 export interface SkipStep {
   kind: 'skip'
+}
+
+/**
+ * Writes the current `$RESPONSE` (an NDJSON export decoded to a JSON array by
+ * the Kibana client) back to a temp NDJSON file and binds its path to a
+ * variable, so a later import step can pass it via `--file`.
+ */
+export interface WriteNdjsonTempStep {
+  kind: 'write_ndjson_temp'
+  /** Variable name to bind the temp file path to (e.g. "export_file"). */
+  varName: string
 }

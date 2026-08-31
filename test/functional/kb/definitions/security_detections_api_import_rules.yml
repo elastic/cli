@@ -1,0 +1,45 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-detections-api: import detection rules.
+# Creates a rule with a known rule_id, exports it to NDJSON, deletes it,
+# then imports it back from the temp file to verify the import succeeds.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-detections-api.create_rule:
+        body:
+          type: query
+          name: cli-ft-sec-det-import-rules
+          description: Created by functional test
+          risk_score: 21
+          severity: low
+          query: "*"
+          rule_id: cli-ft-import-rules-rule
+  - do:
+      security-detections-api.export_rules:
+        body:
+          objects:
+            - rule_id: cli-ft-import-rules-rule
+  - write_ndjson_temp: import_file
+  - do:
+      security-detections-api.delete_rule:
+        rule_id: cli-ft-import-rules-rule
+---
+teardown:
+  - do:
+      security-detections-api.delete_rule:
+        rule_id: cli-ft-import-rules-rule
+        ignore: [404]
+---
+"security-detections-api import rules":
+  - do:
+      security-detections-api.import_rules:
+        body:
+          file: $import_file
+  - is_true: success
+  - match: {rules_count: 1}

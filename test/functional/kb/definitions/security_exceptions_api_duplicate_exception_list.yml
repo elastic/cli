@@ -1,0 +1,34 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-exceptions-api: duplicate an exception list.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-exceptions-api.create_exception_list:
+        body:
+          name: CLI FT Exception List Dup Src
+          description: Created by functional test
+          type: detection
+          list_id: cli-ft-sec-exc-dup-src
+          namespace_type: single
+---
+teardown:
+  - do:
+      security-exceptions-api.delete_exception_list:
+        list_id: cli-ft-sec-exc-dup-src
+        namespace_type: single
+        ignore: [404]
+---
+"security-exceptions-api duplicate exception list":
+  - do:
+      security-exceptions-api.duplicate_exception_list:
+        list_id: cli-ft-sec-exc-dup-src
+        namespace_type: single
+        include_expired_exceptions: "false"
+  - is_true: id
+  - is_true: list_id

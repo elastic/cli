@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { EsApiDefinition } from '../../src/es/types.ts'
+import type { ApiActionDef } from './types.ts'
 import { extractSchemaArgs } from '../../src/lib/json-schema-args.ts'
 import type { SchemaArgDefinition } from '../../src/lib/json-schema-args.ts'
 import { inferIntentFromHttp } from '@cli-schema/spec'
@@ -24,14 +24,14 @@ export interface MappedAction {
 }
 
 /**
- * Builds a lookup from YAML dot-notation action names to EsApiDefinitions.
+ * Builds a lookup from YAML dot-notation action names to API definitions.
  *
  * YAML uses `namespace.name` (e.g. "indices.create") or just `name` (e.g. "get").
  * Definitions with `namespace` are keyed as `namespace.name`.
  * Definitions without `namespace` are keyed as just `name`.
  */
-export function buildActionMap (definitions: EsApiDefinition[]): Map<string, EsApiDefinition> {
-  const map = new Map<string, EsApiDefinition>()
+export function buildActionMap (definitions: ApiActionDef[]): Map<string, ApiActionDef> {
+  const map = new Map<string, ApiActionDef>()
   for (const def of definitions) {
     const key = def.namespace != null ? `${def.namespace}.${def.name}` : def.name
     map.set(key, def)
@@ -50,7 +50,8 @@ export function buildActionMap (definitions: EsApiDefinition[]): Map<string, EsA
 export function mapAction (
   action: string,
   params: Record<string, unknown>,
-  actionMap: Map<string, EsApiDefinition>
+  actionMap: Map<string, ApiActionDef>,
+  clientArgs: string[] = ['stack', 'es']
 ): MappedAction | null {
   // YAML tests use underscore notation (e.g. "clear_scroll", "cat.ml_data_frame_analytics")
   // but CLI definitions use kebab-case (e.g. "clear-scroll", "cat.ml-data-frame-analytics").
@@ -59,7 +60,7 @@ export function mapAction (
   const def = actionMap.get(action) ?? actionMap.get(normalizedAction)
   if (def == null) return null
 
-  const args: string[] = ['stack', 'es']
+  const args: string[] = [...clientArgs]
   if (def.namespace != null) args.push(def.namespace)
   args.push(def.name)
 
@@ -80,14 +81,36 @@ export function mapAction (
     argsByKey.set(arg.schemaKey, arg)
   }
 
+  // YAML definitions use snake_case param keys (e.g. agent_id) but upstream
+  // schema keys are frequently camelCase (e.g. agentId). Fall back to a
+  // separator/case-insensitive match so these params still map to a flag
+  // instead of being silently dropped (which yields a missing required arg).
+  const canonKey = (k: string): string => k.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const canonMap = new Map<string, SchemaArgDefinition>()
+  const canonAmbiguous = new Set<string>()
+  for (const arg of schemaArgs) {
+    const c = canonKey(arg.schemaKey)
+    if (canonMap.has(c)) canonAmbiguous.add(c)
+    else canonMap.set(c, arg)
+  }
+
   for (const [key, value] of Object.entries(params)) {
     if (key === 'ignore') continue
-    const argDef = argsByKey.get(key)
+    // Exact match first; fall back to canonical match only when unambiguous.
+    let argDef = argsByKey.get(key)
+    if (argDef == null) {
+      const c = canonKey(key)
+      if (!canonAmbiguous.has(c)) argDef = canonMap.get(c)
+    }
     // Skip params the CLI doesn't expose as flags (e.g. cat's 'format')
     if (argDef == null) continue
     // Body fields from YAML params are passed as CLI flags (same as non-body params);
     // they will be handled alongside any explicit body in buildCommand.
-    args.push(`--${argDef.cliFlag}`, String(value))
+    // Object/array param values must be JSON-encoded so the CLI can parse them;
+    // String(value) would yield "[object Object]". shellEscape (in the generator)
+    // handles quoting.
+    const argValue = value !== null && typeof value === 'object' ? JSON.stringify(value) : String(value)
+    args.push(`--${argDef.cliFlag}`, argValue)
   }
 
   const hasBody = schemaArgs.some((a) => a.foundIn === 'body')

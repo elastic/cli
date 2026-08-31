@@ -1,0 +1,29 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-analytics-api: update watchlist.
+# Creates a watchlist in setup, then verifies update-watchlist modifies its fields.
+# ponytail: no delete-watchlist command exists in the CLI; teardown is omitted.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-entity-analytics-api.create_watchlist:
+        body:
+          name: cli-ft-update-watchlist-test
+          riskModifier: 10
+  - set: {id: watchlist_id}
+---
+"security-entity-analytics-api update watchlist":
+  - do:
+      security-entity-analytics-api.update_watchlist:
+        id: $watchlist_id
+        body:
+          name: cli-ft-update-watchlist-updated
+          riskModifier: 20
+  - match: {id: $watchlist_id}
+  - match: {name: cli-ft-update-watchlist-updated}
+  - match: {risk_modifier: 20}

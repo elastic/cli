@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-attack-discovery-api: get attack discovery generations metadata.
+# Read-only listing — no setup/teardown required.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-attack-discovery-api get attack discovery generations":
+  - do:
+      security-attack-discovery-api.get_attack_discovery_generations:
+  - is_true: data

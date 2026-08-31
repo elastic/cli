@@ -1,0 +1,21 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana streams API: enable streams.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      streams.post_streams_disable: {}
+---
+teardown:
+  - do:
+      streams.post_streams_disable: {}
+---
+"streams post streams enable":
+  - do:
+      streams.post_streams_enable: {}
+  - is_true: acknowledged

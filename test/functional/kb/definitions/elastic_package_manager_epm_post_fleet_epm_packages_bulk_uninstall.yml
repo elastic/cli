@@ -1,0 +1,17 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-package-manager-epm API: bulk uninstall packages.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"elastic-package-manager-epm post fleet epm packages bulk uninstall":
+  - do:
+      elastic-package-manager-epm.post_fleet_epm_packages_bulk_uninstall:
+        body:
+          packages:
+            - name: system
+              version: "1.0.0"
+  - is_true: taskId

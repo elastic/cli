@@ -1,0 +1,15 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-management-api: get endpoint metadata list.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-endpoint-management-api get endpoint metadata list":
+  - do:
+      security-endpoint-management-api.get_endpoint_metadata_list:
+        host_statuses: []
+  - is_true: data
+  - is_true: total

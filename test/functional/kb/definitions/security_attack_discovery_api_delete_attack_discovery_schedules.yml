@@ -1,0 +1,57 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-attack-discovery-api: delete an Attack Discovery schedule.
+# Creates a .gen-ai connector and schedule in setup, then verifies delete removes the schedule.
+# Teardown cleans up in case the delete step fails.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      connectors.post_actions_connector_id:
+        id: cli-ft-attack-discovery-del-sched-connector
+        body:
+          connector_type_id: ".gen-ai"
+          name: CLI FT Attack Discovery Del Sched Connector
+          config:
+            apiProvider: OpenAI
+            apiUrl: "https://api.openai.com/v1"
+          secrets:
+            apiKey: "placeholder-key"
+  - match: {id: cli-ft-attack-discovery-del-sched-connector}
+  - do:
+      security-attack-discovery-api.create_attack_discovery_schedules:
+        body:
+          name: cli-ft-attack-discovery-del-schedule
+          schedule:
+            interval: "24h"
+          params:
+            alerts_index_pattern: ".alerts-security.alerts-default"
+            api_config:
+              connectorId: cli-ft-attack-discovery-del-sched-connector
+              actionTypeId: ".gen-ai"
+              name: CLI FT Attack Discovery Del Sched Connector
+            size: 20
+  - set: {id: schedule_id}
+---
+teardown:
+  - do:
+      security-attack-discovery-api.delete_attack_discovery_schedules:
+        id: $schedule_id
+        ignore: [404]
+  - do:
+      connectors.delete_actions_connector_id:
+        id: cli-ft-attack-discovery-del-sched-connector
+        ignore: [404]
+---
+"security-attack-discovery-api delete attack discovery schedules":
+  - do:
+      security-attack-discovery-api.delete_attack_discovery_schedules:
+        id: $schedule_id
+  - do:
+      catch: missing
+      security-attack-discovery-api.get_attack_discovery_schedules:
+        id: $schedule_id

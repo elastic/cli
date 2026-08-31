@@ -1,0 +1,36 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-exceptions-api: find endpoint list items.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-endpoint-exceptions-api.create_endpoint_list: {}
+  - do:
+      security-endpoint-exceptions-api.create_endpoint_list_item:
+        body:
+          item_id: cli-ft-endpoint-list-item-find
+          name: CLI FT Endpoint List Item Find
+          description: Test item for find test
+          type: simple
+          entries:
+            - type: match
+              field: process.name
+              value: test.exe
+              operator: included
+---
+teardown:
+  - do:
+      security-endpoint-exceptions-api.delete_endpoint_list_item:
+        item_id: cli-ft-endpoint-list-item-find
+        ignore: [404]
+---
+"security-endpoint-exceptions-api find endpoint list items":
+  - do:
+      security-endpoint-exceptions-api.find_endpoint_list_items: {}
+  - is_true: data
+  - is_true: total

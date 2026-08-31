@@ -10,6 +10,7 @@ import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
 import { isLoopbackUrl } from './is-loopback-host.ts'
 import { clientHeaders } from './meta.ts'
 import { parseSseText } from './sse.ts'
+import { YamlResponse, isYamlContentType } from './yaml-response.ts'
 
 /** HTTP methods supported by the Kibana API client. */
 export type KibanaHttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD' | 'PATCH'
@@ -117,7 +118,13 @@ export class KibanaClient {
       headers['kbn-xsrf'] = 'true'
     }
 
-    const init: RequestInit = { method, headers, redirect: 'error' }
+    // redirect:'follow' lets same-host redirect routes resolve instead of rejecting at the
+    // transport layer. Some Kibana endpoints (e.g. the agent_builder A2A send-task POST
+    // /api/agent_builder/a2a/{agentId}) answer with a 3xx; redirect:'error' turned that into an
+    // opaque `fetch failed` with no status. Credentials stay protected: the fetch spec strips the
+    // Authorization header on cross-origin redirects, and the same-origin check below rejects any
+    // response that ended up on a different origin rather than trusting it.
+    const init: RequestInit = { method, headers, redirect: 'follow' }
 
     if (params.multipartFields != null) {
       // Send as multipart/form-data; do NOT set Content-Type manually (fetch sets it with the boundary)
@@ -142,6 +149,13 @@ export class KibanaClient {
 
     const response = await this._fetch(url, init)
 
+    // Reject any redirect that crossed origins. response.url is the final URL after following
+    // redirects; it is empty only for synthetic Responses (never from real fetch), so skip the
+    // check in that case.
+    if (response.url !== '' && new URL(response.url).origin !== new URL(this.baseUrl).origin) {
+      throw new Error(`Kibana API error: response landed on a different origin (${new URL(response.url).origin})`)
+    }
+
     if (!response.ok) {
       const text = await response.text()
       throw new Error(`Kibana API error ${response.status}: ${text}`)
@@ -165,7 +179,23 @@ export class KibanaClient {
       return decodeSse(text)
     }
 
-    return JSON.parse(text)
+    // YAML bodies (agent-policy / Kubernetes manifest downloads) are wrapped so the output layer
+    // can print them verbatim by default and parse them to JSON only under `--json`.
+    if (isYamlContentType(contentType)) {
+      return new YamlResponse(text)
+    }
+
+    // Other raw non-JSON payloads (script-library downloads, the OAuth callback JavaScript) are
+    // returned verbatim instead of blowing up with `is not valid JSON`. Bodies advertised as JSON
+    // are parsed strictly; otherwise fall back to the raw text when parsing fails.
+    if (contentType.includes('json')) {
+      return JSON.parse(text)
+    }
+    try {
+      return JSON.parse(text)
+    } catch {
+      return text
+    }
   }
 
   /**

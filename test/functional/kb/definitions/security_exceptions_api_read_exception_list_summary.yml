@@ -1,0 +1,32 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-exceptions-api: create an exception list then read its summary.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-exceptions-api.create_exception_list:
+        body:
+          name: CLI FT Exception List Summary
+          description: Created by functional test
+          type: detection
+          list_id: cli-ft-sec-exc-summary-list
+          namespace_type: single
+---
+teardown:
+  - do:
+      security-exceptions-api.delete_exception_list:
+        list_id: cli-ft-sec-exc-summary-list
+        namespace_type: single
+        ignore: [404]
+---
+"security-exceptions-api read exception list summary":
+  - do:
+      security-exceptions-api.read_exception_list_summary:
+        list_id: cli-ft-sec-exc-summary-list
+        namespace_type: single
+  - match: {total: 0}

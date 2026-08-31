@@ -1,0 +1,15 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-lists-api: get value list privileges for the current user.
+# GET /api/lists/privileges — no parameters required.
+# Returns a privileges object; no setup or teardown needed.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-lists-api read list privileges":
+  - do:
+      security-lists-api.read_list_privileges: {}
+  - is_true: ""

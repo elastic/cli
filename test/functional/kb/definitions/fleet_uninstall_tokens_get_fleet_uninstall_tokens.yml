@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-uninstall-tokens API: list Fleet uninstall tokens.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"fleet-uninstall-tokens get fleet uninstall tokens":
+  - do:
+      fleet-uninstall-tokens.get_fleet_uninstall_tokens: {}
+  - is_true: items

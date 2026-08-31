@@ -1,0 +1,16 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-internals API: update Fleet space settings.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"fleet-internals put fleet space settings":
+  - do:
+      fleet-internals.put_fleet_space_settings:
+        body:
+          allowed_namespace_prefixes:
+            - testprefix
+  - is_true: item

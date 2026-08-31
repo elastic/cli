@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-osquery-api: find saved queries.
+# All parameters are optional; an empty result set is a valid response.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-osquery-api find saved queries":
+  - do:
+      security-osquery-api.osquery_find_saved_queries: {}
+  - is_true: ""

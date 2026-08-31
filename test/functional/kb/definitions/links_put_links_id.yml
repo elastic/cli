@@ -1,0 +1,26 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana links API: upsert a links library item by ID / verify response.
+---
+requires:
+  serverless: false
+  stack: false
+---
+teardown:
+  - do:
+      links.delete_links_id:
+        id: cli-ft-links-put
+        ignore: [404]
+---
+"links upsert links item by id":
+  - do:
+      links.put_links_id:
+        id: cli-ft-links-put
+        body:
+          title: CLI FT Links Put
+          links:
+            - type: externalLink
+              destination: https://elastic.co
+  - match: {id: cli-ft-links-put}
+  - match: {data.title: CLI FT Links Put}

@@ -1,0 +1,42 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-detections-api: update a detection rule by ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-detections-api.create_rule:
+        body:
+          type: query
+          name: cli-ft-sec-det-update-rule
+          description: Created by functional test
+          risk_score: 21
+          severity: low
+          query: "*"
+  - set: {id: rule_id}
+---
+teardown:
+  - do:
+      security-detections-api.delete_rule:
+        id: $rule_id
+        ignore: [404]
+---
+"security-detections-api update rule":
+  - do:
+      security-detections-api.update_rule:
+        body:
+          id: $rule_id
+          type: query
+          name: cli-ft-sec-det-update-rule-updated
+          description: Updated by functional test
+          risk_score: 42
+          severity: medium
+          query: "*"
+  - is_true: id
+  - match: {name: cli-ft-sec-det-update-rule-updated}
+  - match: {risk_score: 42}
+  - match: {severity: medium}

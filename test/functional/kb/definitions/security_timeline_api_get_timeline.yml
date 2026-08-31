@@ -1,0 +1,32 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-timeline-api: get timeline.
+# Creates a timeline in setup, then verifies get-timeline retrieves it by ID.
+# Teardown cleans up in case the get step fails.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-timeline-api.create_timelines:
+        body:
+          timeline:
+            title: CLI FT get-timeline test
+  - set: {"savedObjectId": timeline_id}
+---
+teardown:
+  - do:
+      security-timeline-api.delete_timelines:
+        body:
+          savedObjectIds:
+            - $timeline_id
+        ignore: [404]
+---
+"security-timeline-api get timeline":
+  - do:
+      security-timeline-api.get_timeline:
+        id: $timeline_id
+  - is_true: savedObjectId

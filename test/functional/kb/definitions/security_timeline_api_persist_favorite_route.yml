@@ -1,0 +1,35 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-timeline-api: persist favorite route.
+# Creates a timeline in setup, favorites it, and verifies the savedObjectId in the response.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-timeline-api.create_timelines:
+        body:
+          timeline:
+            title: CLI FT persist-favorite-route test
+  - set: {"savedObjectId": timeline_id}
+---
+teardown:
+  - do:
+      security-timeline-api.delete_timelines:
+        body:
+          savedObjectIds:
+            - $timeline_id
+        ignore: [404]
+---
+"security-timeline-api persist favorite route":
+  - do:
+      security-timeline-api.persist_favorite_route:
+        body:
+          timelineId: $timeline_id
+          templateTimelineId: null
+          templateTimelineVersion: null
+          timelineType: default
+  - is_true: savedObjectId

@@ -1,0 +1,37 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: list executions for a workflow.
+---
+requires:
+  serverless: true
+---
+setup:
+  - do:
+      workflows.post_workflows_workflow:
+        body:
+          id: cli-ft-workflow-list-executions
+          yaml: |
+            version: '1'
+            name: CLI FT Workflow List Executions
+            triggers:
+              - type: manual
+            steps: []
+  - do:
+      workflows.post_workflows_workflow_id_run:
+        id: cli-ft-workflow-list-executions
+        body:
+          inputs: {}
+---
+teardown:
+  - do:
+      workflows.delete_workflows_workflow_id:
+        id: cli-ft-workflow-list-executions
+        force: true
+        ignore: [404]
+---
+"workflows get workflows workflow workflowid executions":
+  - do:
+      workflows.get_workflows_workflow_workflowid_executions:
+        workflow_id: cli-ft-workflow-list-executions
+  - is_true: 0.executionId

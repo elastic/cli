@@ -1,0 +1,27 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-analytics-api: create asset criticality record.
+# Verifies create-asset-criticality-record upserts a record and returns it.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      security-entity-analytics-api.delete_asset_criticality_record:
+        id_value: cli-ft-create-asset-criticality-test
+        id_field: host.name
+        ignore: [404]
+---
+"security-entity-analytics-api create asset criticality record":
+  - do:
+      security-entity-analytics-api.create_asset_criticality_record:
+        body:
+          id_field: host.name
+          id_value: cli-ft-create-asset-criticality-test
+          criticality_level: low_impact
+  - match: {id_value: cli-ft-create-asset-criticality-test}
+  - match: {id_field: host.name}
+  - match: {criticality_level: low_impact}

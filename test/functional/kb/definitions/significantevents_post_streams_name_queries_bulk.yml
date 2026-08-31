@@ -1,0 +1,28 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana significantevents API: bulk upsert a query on a stream.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      significantevents.delete_streams_name_queries_queryid:
+        name: cli-ft-se-stream
+        query_id: cli-ft-se-bulk-query
+        ignore: [404]
+---
+"significantevents post streams name queries bulk":
+  - do:
+      significantevents.post_streams_name_queries_bulk:
+        name: cli-ft-se-stream
+        body:
+          operations:
+            - index:
+                id: cli-ft-se-bulk-query
+                title: CLI FT Bulk Query
+                esql:
+                  query: "FROM cli-ft-se-stream | LIMIT 10"
+  - is_true: ""

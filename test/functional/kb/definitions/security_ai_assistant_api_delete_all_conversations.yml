@@ -1,0 +1,27 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-ai-assistant-api: delete all conversations.
+# Creates a conversation in setup, then verifies delete-all-conversations
+# removes it. Teardown cleans up in case the delete-all step fails.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-ai-assistant-api.create_conversation:
+        body:
+          title: CLI FT delete-all-conversations test
+  - set: {id: conv_id}
+---
+teardown:
+  - do:
+      security-ai-assistant-api.delete_conversation:
+        id: $conv_id
+        ignore: [404]
+---
+"security-ai-assistant-api delete all conversations":
+  - do:
+      security-ai-assistant-api.delete_all_conversations: {}

@@ -1,0 +1,17 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-management-api: download a file from a response action.
+# No real endpoint response action can be created in a test environment, so known-missing
+# UUIDs are used and a 404 is expected.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-endpoint-management-api download endpoint file":
+  - do:
+      catch: missing
+      security-endpoint-management-api.endpoint_file_download:
+        action_id: "00000000-0000-0000-0000-000000000000"
+        file_id: "00000000-0000-0000-0000-000000000000.00000000-0000-0000-0000-000000000001"

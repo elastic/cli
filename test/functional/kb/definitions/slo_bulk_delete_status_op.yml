@@ -1,0 +1,15 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana SLO API: retrieve the status of a bulk deletion task.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"slo bulk-delete-status-op":
+  - do:
+      catch: missing
+      slo.bulk_delete_status_op:
+        space_id: default
+        task_id: "non-existent-task-id"

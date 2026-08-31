@@ -1,0 +1,15 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana ML saved-objects sync API: syncs ML saved objects in the default space.
+# Non-destructive GET; no setup or teardown required.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"ml ml-sync":
+  - do:
+      ml.ml_sync: {}
+  - is_true: savedObjectsCreated
+  - is_true: savedObjectsDeleted

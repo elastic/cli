@@ -1,0 +1,31 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-lists-api: create a value list then delete it.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-lists-api.create_list_index:
+  - do:
+      security-lists-api.create_list:
+        body:
+          id: cli-ft-sec-lists-delete-list
+          name: CLI FT Delete List
+          description: Created by functional test
+          type: keyword
+---
+teardown:
+  - do:
+      security-lists-api.delete_list:
+        id: cli-ft-sec-lists-delete-list
+        ignore: [404]
+---
+"security-lists-api delete list":
+  - do:
+      security-lists-api.delete_list:
+        id: cli-ft-sec-lists-delete-list
+  - match: {id: cli-ft-sec-lists-delete-list}

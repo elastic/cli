@@ -1,0 +1,19 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-ai-assistant-api: read knowledge base for a resource.
+# Initializes the knowledge base in setup, then reads the esql resource.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-ai-assistant-api.post_knowledge_base: {}
+---
+"security-ai-assistant-api read knowledge base":
+  - do:
+      security-ai-assistant-api.read_knowledge_base:
+        resource: esql
+  - is_true: ""

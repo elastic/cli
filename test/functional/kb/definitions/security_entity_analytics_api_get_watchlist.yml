@@ -1,0 +1,25 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-analytics-api: get watchlist.
+# Creates a watchlist in setup, then verifies get-watchlist returns it by ID.
+# ponytail: no delete-watchlist command exists in the CLI; teardown is omitted.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-entity-analytics-api.create_watchlist:
+        body:
+          name: cli-ft-get-watchlist-test
+          riskModifier: 10
+  - set: {id: watchlist_id}
+---
+"security-entity-analytics-api get watchlist":
+  - do:
+      security-entity-analytics-api.get_watchlist:
+        id: $watchlist_id
+  - match: {id: $watchlist_id}
+  - match: {name: cli-ft-get-watchlist-test}

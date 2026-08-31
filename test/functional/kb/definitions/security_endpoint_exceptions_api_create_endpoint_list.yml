@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-exceptions-api: create endpoint list.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-endpoint-exceptions-api create endpoint list":
+  - do:
+      security-endpoint-exceptions-api.create_endpoint_list: {}
+  - is_true: ""

@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-osquery-api: get unified query history.
+# All parameters are optional; an empty result set is a valid response.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-osquery-api get unified history":
+  - do:
+      security-osquery-api.osquery_get_unified_history: {}
+  - is_true: ""

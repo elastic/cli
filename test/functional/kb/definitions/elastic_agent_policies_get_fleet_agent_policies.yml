@@ -1,0 +1,29 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agent-policies API: list Fleet agent policies.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agent-policies.post_fleet_agent_policies:
+        body:
+          name: cli-ft-ea-policy-list
+          namespace: testprefix
+  - set: {"item.id": policy_id}
+---
+teardown:
+  - do:
+      elastic-agent-policies.post_fleet_agent_policies_delete:
+        body:
+          agentPolicyId: $policy_id
+        ignore: [404]
+---
+"elastic-agent-policies get fleet agent policies":
+  - do:
+      elastic-agent-policies.get_fleet_agent_policies: {}
+  - is_true: items
+  - gt: {total: 0}

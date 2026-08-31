@@ -1,0 +1,15 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-package-manager-epm API: bulk get assets.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"elastic-package-manager-epm post fleet epm bulk assets":
+  - do:
+      elastic-package-manager-epm.post_fleet_epm_bulk_assets:
+        body:
+          assetIds: []
+  - is_true: items

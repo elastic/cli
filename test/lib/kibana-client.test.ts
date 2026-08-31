@@ -5,6 +5,7 @@
 
 import { describe, it, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
+import { YamlResponse } from '../../src/lib/yaml-response.ts'
 import { KibanaClient, getKibanaClient, _testResetKibanaClient } from '../../src/lib/kibana-client.ts'
 import { setResolvedConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
@@ -178,7 +179,7 @@ describe('KibanaClient.request', () => {
     assert.deepEqual(result, {})
   })
 
-  it('sets redirect to error', async () => {
+  it('follows redirects (so same-host redirect routes resolve instead of rejecting)', async () => {
     const client = makeClient()
     let capturedInit: RequestInit = {}
     client._testSetFetch(((url: string, init: RequestInit) => {
@@ -187,7 +188,32 @@ describe('KibanaClient.request', () => {
     }) as typeof fetch)
 
     await client.request({ method: 'GET', path: '/api/status' })
-    assert.equal(capturedInit.redirect, 'error')
+    assert.equal(capturedInit.redirect, 'follow')
+  })
+
+  it('rejects a response that landed on a different origin after a redirect', async () => {
+    const client = makeClient()
+    client._testSetFetch(((() => {
+      const resp = new Response('{}', { status: 200 })
+      Object.defineProperty(resp, 'url', { value: 'https://evil.example.com/api/status' })
+      return Promise.resolve(resp)
+    }) as typeof fetch))
+
+    await assert.rejects(
+      client.request({ method: 'GET', path: '/api/status' }),
+      /different origin/
+    )
+  })
+
+  it('accepts a response that stayed on the configured origin after a redirect', async () => {
+    const client = makeClient()
+    client._testSetFetch(((() => {
+      const resp = new Response('{"ok":true}', { status: 200 })
+      Object.defineProperty(resp, 'url', { value: 'http://localhost:5601/api/status/' })
+      return Promise.resolve(resp)
+    }) as typeof fetch))
+
+    assert.deepEqual(await client.request({ method: 'GET', path: '/api/status' }), { ok: true })
   })
 })
 
@@ -269,5 +295,36 @@ describe('KibanaClient.request Server-Sent Events', () => {
 
     const result = await client.request({ method: 'POST', path: '/x', body: {} })
     assert.deepEqual(result, [{ event: 'e', data: { a: 1 } }])
+  })
+})
+
+describe('KibanaClient.request non-JSON bodies', () => {
+  function makeClient () {
+    return new KibanaClient('http://localhost:5601', { api_key: 'test-key' })
+  }
+
+  function rawFetch (body: string, contentType: string): typeof fetch {
+    return ((): Promise<Response> =>
+      Promise.resolve(new Response(body, { status: 200, headers: { 'content-type': contentType } }))
+    ) as typeof fetch
+  }
+
+  it('wraps an application/yaml body in a YamlResponse (agent-policy/k8s manifest download)', async () => {
+    const client = makeClient()
+    const yaml = 'apiVersion: v1\nkind: ConfigMap\n'
+    client._testSetFetch(rawFetch(yaml, 'application/yaml'))
+
+    const result = await client.request({ method: 'GET', path: '/api/fleet/kubernetes/download' })
+    assert.ok(result instanceof YamlResponse)
+    assert.equal(result.text, yaml)
+  })
+
+  it('returns a raw JavaScript body verbatim (oauth callback script)', async () => {
+    const client = makeClient()
+    const js = '(() => { window.location = "/" })()'
+    client._testSetFetch(rawFetch(js, 'text/javascript'))
+
+    const result = await client.request({ method: 'GET', path: '/oauth/callback' })
+    assert.equal(result, js)
   })
 })

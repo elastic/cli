@@ -1,0 +1,46 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana SLO API: create an SLO then batch-delete its instance rollup/summary data in the default space.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      slo.create_slo_op:
+        space_id: default
+        body:
+          id: cli-ft-delete-slo-instances
+          name: CLI FT Delete SLO Instances
+          description: Created by functional test
+          indicator:
+            type: sli.kql.custom
+            params:
+              index: "*"
+              timestampField: "@timestamp"
+              good: ""
+              total: ""
+          timeWindow:
+            duration: 7d
+            type: rolling
+          budgetingMethod: occurrences
+          objective:
+            target: 0.99
+---
+teardown:
+  - do:
+      slo.delete_slo_op:
+        space_id: default
+        slo_id: cli-ft-delete-slo-instances
+        ignore: [404]
+---
+"slo delete-slo-instances-op":
+  - do:
+      slo.delete_slo_instances_op:
+        space_id: default
+        body:
+          list:
+            - sloId: cli-ft-delete-slo-instances
+              instanceId: "*"

@@ -1,0 +1,45 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-timeline-api: import timelines.
+# Creates a timeline, exports it to a temp NDJSON file, deletes the original,
+# then re-imports it from the file. Teardown removes the re-imported timeline.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-timeline-api.create_timelines:
+        body:
+          timeline:
+            title: CLI FT import-timelines test
+  - set: {"savedObjectId": timeline_id}
+  - do:
+      security-timeline-api.export_timelines:
+        file_name: export.ndjson
+        body:
+          ids:
+            - $timeline_id
+  - write_ndjson_temp: export_file
+  - do:
+      security-timeline-api.delete_timelines:
+        body:
+          savedObjectIds:
+            - $timeline_id
+---
+teardown:
+  - do:
+      security-timeline-api.delete_timelines:
+        body:
+          savedObjectIds:
+            - $timeline_id
+        ignore: [404]
+---
+"security-timeline-api import timelines":
+  - do:
+      security-timeline-api.import_timelines:
+        body:
+          file: $export_file
+  - is_true: ""

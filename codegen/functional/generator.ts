@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { EsApiDefinition } from '../../src/es/types.ts'
+import type { ApiActionDef } from './types.ts'
 import {
   YamlFloat,
   type TestFile, type Step, type DoStep, type SetStep, type MatchStep,
   type IsTrueStep, type IsFalseStep, type LengthStep,
-  type GtStep, type GteStep, type LtStep, type LteStep, type ContainsStep
+  type GtStep, type GteStep, type LtStep, type LteStep, type ContainsStep,
+  type WriteNdjsonTempStep
 } from './types.ts'
 import { buildActionMap, mapAction } from './mapper.ts'
 import type { MappedAction } from './mapper.ts'
@@ -40,10 +41,22 @@ export class UnmappedBodyKeyError extends Error {
 /**
  * Generate a bash test script from a parsed YAML test file.
  */
+export interface GenerateOptions {
+  /** Leading CLI args identifying the client (default ["stack", "es"]). */
+  clientArgs?: string[]
+  /** Preamble lines defining the `$ELASTIC` invocation and `$RESPONSE` (default: the `elastic` binary). */
+  preamble?: string[]
+}
+
+const DEFAULT_PREAMBLE = ['exec < /dev/null', 'ELASTIC="elastic --json"', 'RESPONSE=""']
+
 export function generateScript (
   testFile: TestFile,
-  definitions: EsApiDefinition[]
+  definitions: ApiActionDef[],
+  opts: GenerateOptions = {}
 ): GenerateResult {
+  const clientArgs = opts.clientArgs ?? ['stack', 'es']
+  const preamble = opts.preamble ?? DEFAULT_PREAMBLE
   const actionMap = buildActionMap(definitions)
   const skippedActions: string[] = []
   const lines: string[] = []
@@ -52,18 +65,27 @@ export function generateScript (
   lines.push(`# Generated from ${testFile.sourceFile}`)
   lines.push('set -euo pipefail')
   lines.push('')
-  lines.push('exec < /dev/null')
-  lines.push('ELASTIC="elastic --json"')
-  lines.push('RESPONSE=""')
+  for (const line of preamble) lines.push(line)
   lines.push('')
 
   if (testFile.teardown.length > 0) {
-    lines.push('teardown() {')
-    const teardownStart = lines.length
-    renderSteps(testFile.teardown, actionMap, lines, skippedActions, '  ')
-    if (!hasExecutableLine(lines.slice(teardownStart))) {
-      lines.push('  :')
+    const teardownBody: string[] = []
+    renderSteps(testFile.teardown, actionMap, clientArgs, teardownBody, skippedActions, '  ')
+    if (!hasExecutableLine(teardownBody)) {
+      teardownBody.push('  :')
     }
+    // The teardown runs via `trap teardown EXIT`, so it fires even when a
+    // setup/test `do` fails before the `set` that assigns a stash var. Under
+    // `set -u` an unassigned reference would abort teardown with "unbound
+    // variable", masking the real failure. Initialize any stash var the
+    // teardown references (excluding preamble-defined vars) to empty first.
+    // Scoped to teardown only; main-body refs still fail loud as real bugs.
+    const preambleVars = new Set(preamble.flatMap(declaredVar))
+    for (const v of collectVarRefs(teardownBody)) {
+      if (!preambleVars.has(v)) lines.push(`${v}=""`)
+    }
+    lines.push('teardown() {')
+    lines.push(...teardownBody)
     lines.push('}')
     lines.push('trap teardown EXIT')
     lines.push('')
@@ -76,13 +98,13 @@ export function generateScript (
 
   if (testFile.setup.length > 0) {
     lines.push('# --- Setup ---')
-    hadSkippedDo = renderSteps(testFile.setup, actionMap, lines, skippedActions, '')
+    hadSkippedDo = renderSteps(testFile.setup, actionMap, clientArgs, lines, skippedActions, '')
     lines.push('')
   }
 
   for (const section of testFile.tests) {
     lines.push(`# --- Test: ${section.name} ---`)
-    renderSteps(section.steps, actionMap, lines, skippedActions, '', hadSkippedDo)
+    renderSteps(section.steps, actionMap, clientArgs, lines, skippedActions, '', hadSkippedDo)
     lines.push('')
   }
 
@@ -102,10 +124,24 @@ export function generateScript (
   }
 }
 
+/** A generated script plus the `requires` metadata used for runtime filtering. */
+export interface RunnerScript {
+  path: string
+  serverless?: boolean
+  /** true = runs on stack, false = excluded, null/undefined = not specified */
+  stack?: boolean | null
+}
+
 /**
  * Generate the run.sh runner script that executes all generated test scripts.
+ *
+ * Scripts may be passed as bare paths or as {@link RunnerScript} objects. When
+ * `requires` metadata is present, the runner reads `ELASTIC_ENVIRONMENT`
+ * ("serverless" | "stack") to run only scripts whose matching `requires` field is `true`.
  */
-export function generateRunner (scriptPaths: string[]): string {
+export function generateRunner (scripts: Array<string | RunnerScript>): string {
+  const normalized: RunnerScript[] = scripts.map((s) =>
+    typeof s === 'string' ? { path: s } : s)
   const lines: string[] = []
   lines.push('#!/bin/bash')
   lines.push('# Runner for generated functional tests')
@@ -115,17 +151,34 @@ export function generateRunner (scriptPaths: string[]): string {
   lines.push('PASSED=0')
   lines.push('FAILED=0')
   lines.push('ERRORS=""')
+  lines.push('BAIL=0')
+  lines.push('for arg in "$@"; do')
+  lines.push('  case "$arg" in')
+  lines.push('    --bail) BAIL=1 ;;')
+  lines.push('  esac')
+  lines.push('done')
+  lines.push('')
+  lines.push('should_run () {')
+  lines.push('  # args: <serverless> <stack>')
+  lines.push('  [ -z "${ELASTIC_ENVIRONMENT:-}" ] && return 0')
+  lines.push('  [ "${ELASTIC_ENVIRONMENT}" = serverless ] && [ "$1" = true ] && return 0')
+  lines.push('  [ "${ELASTIC_ENVIRONMENT}" = stack ] && [ "$2" = true ] && return 0')
+  lines.push('  return 1')
+  lines.push('}')
   lines.push('')
 
-  for (const p of scriptPaths) {
-    lines.push(`if OUTPUT=$(bash "$SCRIPT_DIR/${p}" 2>&1); then`)
-    lines.push('  PASSED=$((PASSED + 1))')
-    lines.push(`  echo "PASS: ${p}"`)
-    lines.push('else')
-    lines.push('  FAILED=$((FAILED + 1))')
-    lines.push(`  ERRORS="$ERRORS\\n  FAIL: ${p}"`)
-    lines.push(`  echo "FAIL: ${p}"`)
-    lines.push('  echo "$OUTPUT" | tail -5')
+  for (const { path: p, serverless, stack } of normalized) {
+    lines.push(`if should_run ${serverless === true ? 'true' : 'false'} ${stack === true ? 'true' : 'false'}; then`)
+    lines.push(`  if OUTPUT=$(bash "$SCRIPT_DIR/${p}" 2>&1); then`)
+    lines.push('    PASSED=$((PASSED + 1))')
+    lines.push(`    echo "PASS: ${p}"`)
+    lines.push('  else')
+    lines.push('    FAILED=$((FAILED + 1))')
+    lines.push(`    ERRORS="$ERRORS\\n  FAIL: ${p}"`)
+    lines.push(`    echo "FAIL: ${p}"`)
+    lines.push('    echo "$OUTPUT" | tail -5')
+    lines.push('    if [ "$BAIL" -eq 1 ]; then exit 1; fi')
+    lines.push('  fi')
     lines.push('fi')
     lines.push('')
   }
@@ -159,6 +212,35 @@ function hasExecutableLine (lines: string[]): boolean {
 }
 
 /**
+ * Extract the variable name declared by a preamble line (e.g. `RESPONSE=""`
+ * -> `RESPONSE`), or nothing if the line is not an assignment.
+ */
+function declaredVar (line: string): string[] {
+  const m = line.match(/^([A-Z_][A-Z0-9_]*)=/)
+  return m?.[1] != null ? [m[1]] : []
+}
+
+/**
+ * Collect distinct bash variable names referenced (`$VAR` / `${VAR}`) across
+ * the given lines, in first-seen order. Assignment targets like `VAR=$(...)`
+ * are not matched (the `$` there belongs to `$(`).
+ */
+function collectVarRefs (lines: string[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const line of lines) {
+    for (const m of line.matchAll(/\$\{?([A-Z_][A-Z0-9_]*)\}?/g)) {
+      const v = m[1]
+      if (v != null && !seen.has(v)) {
+        seen.add(v)
+        out.push(v)
+      }
+    }
+  }
+  return out
+}
+
+/**
  * Renders a sequence of test steps into bash lines.
  * @param initialHadSkippedDo - if true, assume prior steps in an earlier
  *   section (e.g. setup) already skipped do-steps, so the first mapped
@@ -168,7 +250,8 @@ function hasExecutableLine (lines: string[]): boolean {
  */
 function renderSteps (
   steps: Step[],
-  actionMap: Map<string, EsApiDefinition>,
+  actionMap: Map<string, ApiActionDef>,
+  clientArgs: string[],
   lines: string[],
   skippedActions: string[],
   indent: string,
@@ -196,7 +279,7 @@ function renderSteps (
       }
       // Only pass allowFailure from the setup→test propagation, not from
       // prior skipped steps within the same section (those are unrelated).
-      const result = renderDo(step, actionMap, lines, skippedActions, indent, initialHadSkippedDo)
+      const result = renderDo(step, actionMap, clientArgs, lines, skippedActions, indent, initialHadSkippedDo)
       if (result === 'skipped') {
         responseFromLastDo = false
         hadSkippedDo = true
@@ -218,6 +301,9 @@ function renderSteps (
           unsetVars.add(varName.toUpperCase().replace(/[^A-Z0-9]/g, '_'))
         }
       }
+      if (step.kind === 'write_ndjson_temp') {
+        unsetVars.add(step.varName.toUpperCase().replace(/[^A-Z0-9]/g, '_'))
+      }
       lines.push(`${indent}# SKIPPED: ${step.kind} assertion follows skipped do-step`)
       continue
     }
@@ -229,6 +315,10 @@ function renderSteps (
         for (const varName of Object.values(step.assignments)) {
           unsetVars.delete(varName.toUpperCase().replace(/[^A-Z0-9]/g, '_'))
         }
+        break
+      case 'write_ndjson_temp':
+        renderWriteNdjsonTemp(step, lines, indent)
+        unsetVars.delete(step.varName.toUpperCase().replace(/[^A-Z0-9]/g, '_'))
         break
       case 'match':
         renderMatch(step, lines, indent)
@@ -265,7 +355,8 @@ function renderSteps (
  */
 function renderDo (
   step: DoStep,
-  actionMap: Map<string, EsApiDefinition>,
+  actionMap: Map<string, ApiActionDef>,
+  clientArgs: string[],
   lines: string[],
   skippedActions: string[],
   indent: string,
@@ -280,7 +371,7 @@ function renderDo (
     lines.push(`${indent}# NOTE: headers not supported by CLI (${Object.keys(step.headers).join(', ')})`)
   }
 
-  const mapped = mapAction(step.action, step.params, actionMap)
+  const mapped = mapAction(step.action, step.params, actionMap, clientArgs)
   if (mapped == null) {
     skippedActions.push(step.action)
     lines.push(`${indent}# SKIPPED: action "${step.action}" not registered in CLI`)
@@ -425,6 +516,17 @@ function renderSet (step: SetStep, lines: string[], indent: string): void {
     const jqPath = toJqPath(responsePath)
     lines.push(`${indent}${bashVar}=$(echo "$RESPONSE" | jq -r '${jqPath}')`)
   }
+}
+
+function renderWriteNdjsonTemp (step: WriteNdjsonTempStep, lines: string[], indent: string): void {
+  const bashVar = step.varName.toUpperCase().replace(/[^A-Z0-9]/g, '_')
+  // The Kibana client decodes an NDJSON export response into a JSON array; jq
+  // reconstitutes one NDJSON line per element so the import step can pass the
+  // temp file via --file. Kibana rejects any file extension other than
+  // .ndjson, and mktemp yields a random suffix, so place the file in a temp
+  // dir with an explicit .ndjson name.
+  lines.push(`${indent}${bashVar}=$(mktemp -d)/export.ndjson`)
+  lines.push(`${indent}echo "$RESPONSE" | jq -c '.[]' > "$${bashVar}"`)
 }
 
 function renderMatch (step: MatchStep, lines: string[], indent: string): void {

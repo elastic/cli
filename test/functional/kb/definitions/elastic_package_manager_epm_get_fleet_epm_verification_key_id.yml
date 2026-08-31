@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-package-manager-epm API: get package signature verification key ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"elastic-package-manager-epm get fleet epm verification key id":
+  - do:
+      elastic-package-manager-epm.get_fleet_epm_verification_key_id: {}
+  - is_true: ""

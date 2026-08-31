@@ -1,0 +1,23 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana spaces API: create a space.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      spaces.delete_spaces_space_id:
+        id: cli-ft-spaces-post
+        ignore: [404]
+---
+"create space":
+  - do:
+      spaces.post_spaces_space:
+        body:
+          id: cli-ft-spaces-post
+          name: CLI FT Spaces Post
+  - match: {id: cli-ft-spaces-post}
+  - match: {name: CLI FT Spaces Post}

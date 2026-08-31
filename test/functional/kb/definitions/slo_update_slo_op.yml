@@ -1,0 +1,47 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana SLO API: create an SLO then update its name in the default space.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      slo.create_slo_op:
+        space_id: default
+        body:
+          id: cli-ft-update-slo
+          name: CLI FT Update SLO
+          description: Created by functional test
+          indicator:
+            type: sli.kql.custom
+            params:
+              index: "*"
+              timestampField: "@timestamp"
+              good: ""
+              total: ""
+          timeWindow:
+            duration: 7d
+            type: rolling
+          budgetingMethod: occurrences
+          objective:
+            target: 0.99
+---
+teardown:
+  - do:
+      slo.delete_slo_op:
+        space_id: default
+        slo_id: cli-ft-update-slo
+        ignore: [404]
+---
+"slo update-slo-op":
+  - do:
+      slo.update_slo_op:
+        space_id: default
+        slo_id: cli-ft-update-slo
+        body:
+          name: CLI FT Updated SLO
+  - match: {id: cli-ft-update-slo}
+  - match: {name: CLI FT Updated SLO}

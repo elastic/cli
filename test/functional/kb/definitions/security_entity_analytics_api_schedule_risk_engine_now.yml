@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-analytics-api: schedule risk engine now.
+# Verifies that schedule-risk-engine-now triggers the risk scoring engine without error.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-entity-analytics-api schedule risk engine now":
+  - do:
+      security-entity-analytics-api.schedule_risk_engine_now: {}

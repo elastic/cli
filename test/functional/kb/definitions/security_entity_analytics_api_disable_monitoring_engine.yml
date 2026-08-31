@@ -1,0 +1,23 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-analytics-api: disable monitoring engine.
+# Initializes the Privilege Monitoring Engine in setup, then verifies
+# disable-monitoring-engine stops it. Teardown deletes it to clean up.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-entity-analytics-api.init_monitoring_engine: {}
+---
+teardown:
+  - do:
+      security-entity-analytics-api.delete_monitoring_engine:
+        ignore: [404]
+---
+"security-entity-analytics-api disable monitoring engine":
+  - do:
+      security-entity-analytics-api.disable_monitoring_engine: {}

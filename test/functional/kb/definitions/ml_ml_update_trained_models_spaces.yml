@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana ML saved-objects API: updates trained models spaces in the default space.
+# No-arg POST; no setup or teardown required.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"ml ml-update-trained-models-spaces":
+  - do:
+      ml.ml_update_trained_models_spaces: {}
+  - is_true: ""
