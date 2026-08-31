@@ -15,7 +15,8 @@
     },
     "packages/config-resolver": {
         "component": "config-resolver",
-        "release-type": "node"
+        "release-type": "node",
+        "release-as": "0.1.1"
     }
   },
   "plugins": [
