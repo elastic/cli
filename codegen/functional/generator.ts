@@ -487,6 +487,10 @@ function buildCommand (mapped: MappedAction, step: DoStep): string {
         }
         if (originalBodyStr != null) {
           extraArgs.push(`--${singleBodyArg.cliFlag}`, shellEscape(originalBodyStr))
+        } else if (containsVarRef(body)) {
+          // Whole-body arg carrying $var references (e.g. patch_rule's body.id
+          // set from a create step) — expand vars instead of quoting literally.
+          extraArgs.push(`--${singleBodyArg.cliFlag}`, buildVarExpandingJson(body))
         } else {
           extraArgs.push(`--${singleBodyArg.cliFlag}`, toShellArg(body))
         }

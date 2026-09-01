@@ -523,6 +523,8 @@ const skippedFilesStack = new Set<string>([
   "elastic_agent_actions_rollback.yml",
   "elastic_agent_actions_unenroll.yml",
   "elastic_agent_actions_upgrade.yml",
+  "elastic_agent_actions_reassign.yml",
+  "elastic_agent_actions_post_fleet_agents_bulk_reassign.yml",
   "elastic_agents_delete_fleet_agents_agentid.yml",
   "elastic_agents_delete_fleet_agents_files_fileid.yml",
   "elastic_agents_get_fleet_agents_agentid.yml",
@@ -601,6 +603,13 @@ const skippedFilesStack = new Set<string>([
   // current configuration).
   "agent_builder_get_plugins.yml",
   "security_timeline_api_copy_timeline.yml",
+  "security_entity_analytics_api_create_watchlist.yml",
+  "security_entity_analytics_api_get_watchlist.yml",
+  "security_entity_analytics_api_list_watchlists.yml",
+  "security_entity_analytics_api_unassign_watchlist_entities.yml",
+  "security_entity_analytics_api_update_watchlist.yml",
+  "security_entity_analytics_api_upload_watchlist_csv.yml",
+  "alerting_get_alerting_rule_id_query_inspector.yml",
 
   // Assertions fail or the response is unparseable: required objects were never
   // provisioned in the stack env, or the body isn't the JSON/YAML the check expects.
@@ -611,6 +620,13 @@ const skippedFilesStack = new Set<string>([
   "security_entity_analytics_api_bulk_upsert_asset_criticality_records.yml",
   "security_lists_api_export_list_items.yml",
   "security_timeline_api_resolve_timeline.yml",
+  "apm_agent_configuration_search_single_configuration.yml",
+  "security_exceptions_api_create_shared_exception_list.yml",
+
+  // Kibana forbids deleting EPM package kibana assets from the space where the
+  // package is installed (400: "you must uninstall the package"); the op is not
+  // exercisable without a separate space, which the test does not provision.
+  "elastic_package_manager_epm_delete_fleet_epm_packages_pkgname_pkgversion_kibana_assets.yml",
 
   // @elastic/schemas defect:
   // Upstream bugs tracked at:
@@ -624,6 +640,14 @@ const skippedFilesStack = new Set<string>([
   'ml_ml_update_jobs_spaces.yml',
   'ml_ml_update_trained_models_spaces.yml',
   'visualizations_create_visualization.yml',
+  // create/read/update/delete/find exception-list-item request schemas restrict
+  // `list_id` to the enum ["endpoint_blocklists"], so any real list id fails CLI
+  // input validation before the request is sent.
+  "security_exceptions_api_create_exception_list_item.yml",
+  "security_exceptions_api_read_exception_list_item.yml",
+  "security_exceptions_api_update_exception_list_item.yml",
+  "security_exceptions_api_delete_exception_list_item.yml",
+  "security_exceptions_api_find_exception_list_items.yml",
 ])
 
 const skippedFiles = env === 'serverless' ? skippedFilesServerless : skippedFilesStack

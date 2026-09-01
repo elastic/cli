@@ -133,6 +133,22 @@ describe('generateScript', () => {
     assert.ok(result.script.includes('# SKIPPED: catch not supported'))
   })
 
+  it('expands $var references inside a whole-body arg', () => {
+    const content = readFileSync(join(fixturesDir, 'body-var.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'body-var.yml')
+    const result = generateScript(testFile, testDefs)
+    // The body maps to the single --document flag; the $doc_id reference must
+    // be emitted as an expanding "$DOC_ID" break-out, not a literal $doc_id.
+    assert.ok(
+      result.script.includes('"$DOC_ID"'),
+      'whole-body $var must expand to the bash variable'
+    )
+    assert.ok(
+      !result.script.includes('$doc_id'),
+      'literal $doc_id must not survive into the generated script'
+    )
+  })
+
   it('generates comparison assertions', () => {
     const content = readFileSync(join(fixturesDir, 'comparisons.yml'), 'utf-8')
     const testFile = parseTestFile(content, 'comparisons.yml')
