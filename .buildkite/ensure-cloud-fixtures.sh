@@ -4,9 +4,9 @@
 #
 # Idempotent QA fixtures so Cloud item GET tests have something to fetch.
 # Creates one serverless project per type, one serverless traffic filter,
-# and one hosted traffic-filter ruleset when the matching list is empty.
-# Does not create hosted deployments or extensions (those need a template
-# or a plugin zip). Does not print create responses (they can contain creds).
+# one hosted traffic-filter ruleset, and one hosted deployment when the
+# matching list is empty. Skips extensions (need a plugin zip). Does not
+# print create responses (they can contain creds).
 
 set -euo pipefail
 
@@ -89,3 +89,10 @@ ensure "hosted traffic filter ruleset" \
   --include-by-default false \
   --region "$REGION" \
   --rules "$RULES"
+
+ensure "hosted deployment" \
+  cloud hosted deployments list-deployments -- \
+  cloud hosted deployments create-deployment \
+  --name cli-functional \
+  --region "$REGION" \
+  --template-id gcp-general-purpose
