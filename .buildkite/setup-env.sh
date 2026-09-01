@@ -38,7 +38,7 @@ printf '%s' "$EC_API_KEY" | node -e '
   const key = require("node:fs").readFileSync(0, "utf-8").trim()
   process.stdout.write(JSON.stringify({
     contexts: { ci: { cloud: {
-      url: "https://admin.qa.cld.elstc.co",
+      url: "https://public-api.qa.cld.elstc.co",
       auth: { api_key: key },
     } } },
     current_context: "ci",
@@ -46,7 +46,6 @@ printf '%s' "$EC_API_KEY" | node -e '
 ' > "$CI_CONFIG_FILE"
 
 unset EC_API_KEY
-export ELASTIC_CLOUD_ADMIN_API=true
 export ELASTIC_CLI_CONFIG_FILE="$CI_CONFIG_FILE"
 
-echo "Cloud config written to $CI_CONFIG_FILE (admin API mode enabled)"
+echo "Cloud config written to $CI_CONFIG_FILE"
