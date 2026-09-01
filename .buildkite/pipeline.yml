@@ -65,4 +65,3 @@ steps:
         command: ".buildkite/run-cloud-tests.sh"
         artifact_paths:
           - "test/functional/cloud/*.log"
-        soft_fail: true
