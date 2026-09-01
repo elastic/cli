@@ -73,7 +73,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
-    "@types/cross-spawn": "^6.0.6",
+    "@types/cross-spawn": "6.0.6",
     "@types/marked-terminal": "6.1.1",
     "@types/node": "25.9.4",
     "eslint": "10.6.0",
