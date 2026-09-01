@@ -26,7 +26,7 @@ import { YamlResponse } from '../lib/yaml-response.ts'
  * `elastic cloud serverless projects search <action>`.
  * The elasticsearch type also gets an `elasticsearch` alias.
  */
-const PROJECT_NAMESPACES: Record<string, string> = {
+export const PROJECT_NAMESPACES: Record<string, string> = {
   'elasticsearch-projects': 'search',
   'observability-projects': 'observability',
   'security-projects': 'security',
@@ -46,7 +46,7 @@ import { PROMOTED_NAMESPACES } from './constants.ts'
  * Serverless namespaces whose commands are merged into a single `cross-project`
  * group rather than exposed as two separate namespaces.
  */
-const CROSS_PROJECT_NAMESPACES = new Set<string>([
+export const CROSS_PROJECT_NAMESPACES = new Set<string>([
   'linked-projects',
   'linked-candidate-projects',
 ])
@@ -54,7 +54,7 @@ const CROSS_PROJECT_NAMESPACES = new Set<string>([
 /**
  * Display name overrides for hosted namespaces.
  */
-const HOSTED_NAMESPACE_RENAMES = new Map<string, string>([
+export const HOSTED_NAMESPACE_RENAMES = new Map<string, string>([
   ['deployments-traffic-filter', 'traffic-filters'],
 ])
 
@@ -63,7 +63,7 @@ const HOSTED_NAMESPACE_RENAMES = new Map<string, string>([
  * from the serverless definitions so callers passing synthetic definitions to
  * `registerCloudCommands` still partition deterministically.
  */
-const SERVERLESS_NAMESPACES = new Set<string>([
+export const SERVERLESS_NAMESPACES = new Set<string>([
   'elasticsearch-projects',
   'observability-projects',
   'security-projects',

@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get domain claims (GET /api/v1/organizations/{organization_id}/domains)
+# Id for {organization_id} is derived from organizations.list-organizations.
+# TODO: verify the response path in the `set` step against a live API.
+---
+"organizations domain-claim-get-domain-claims":
+  - do:
+      organizations.list-organizations: {}
+  - set: {organizations.0.id: organization_id}
+  - do:
+      organizations.domain-claim-get-domain-claims:
+        organization_id: $organization_id

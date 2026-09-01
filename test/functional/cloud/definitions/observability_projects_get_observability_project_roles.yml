@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get roles for an Observability project (GET /api/v1/serverless/projects/observability/{id}/roles)
+# Id for {id} is derived from observability-projects.list-observability-projects.
+# TODO: verify the response path in the `set` step against a live API.
+---
+"observability-projects get-observability-project-roles":
+  - do:
+      observability-projects.list-observability-projects: {}
+  - set: {projects.0.id: id}
+  - do:
+      observability-projects.get-observability-project-roles:
+        id: $id

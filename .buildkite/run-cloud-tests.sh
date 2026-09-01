@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Buildkite entry point for Cloud functional tests.
-# Sets up credentials from Vault, builds the CLI and runs smoke tests.
+# Sets up credentials from Vault, builds the CLI, generates and runs the functional tests.
 
 set -euo pipefail
 
@@ -35,5 +35,8 @@ npm run build
 echo "--- Setting up Cloud credentials"
 source .buildkite/setup-env.sh
 
-echo "+++ Running Cloud smoke tests"
-npm run test:functional:cloud
+echo "--- Generating Cloud functional tests"
+npm run codegen:functional:cloud
+
+echo "+++ Running Cloud functional tests"
+bash test/functional/cloud/generated/run.sh

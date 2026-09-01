@@ -1,0 +1,7 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: List traffic filter rulesets (GET /api/v1/deployments/traffic-filter/rulesets)
+---
+"deployments-traffic-filter get-traffic-filter-rulesets":
+  - do:
+      deployments-traffic-filter.get-traffic-filter-rulesets: {}

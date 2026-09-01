@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Retrieves the ruleset by ID. (GET /api/v1/deployments/traffic-filter/rulesets/{ruleset_id})
+# Id for {ruleset_id} is derived from deployments-traffic-filter.get-traffic-filter-rulesets.
+# TODO: verify the response path in the `set` step against a live API.
+---
+"deployments-traffic-filter get-traffic-filter-ruleset":
+  - do:
+      deployments-traffic-filter.get-traffic-filter-rulesets: {}
+  - set: {rulesets.0.id: ruleset_id}
+  - do:
+      deployments-traffic-filter.get-traffic-filter-ruleset:
+        ruleset_id: $ruleset_id

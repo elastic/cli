@@ -1,0 +1,7 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get trusted environments (GET /api/v1/trusted-environments)
+---
+"trusted-environments get-trusted-envs":
+  - do:
+      trusted-environments.get-trusted-envs: {}

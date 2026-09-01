@@ -6,7 +6,9 @@ End-to-end tests that run the CLI against real services.
 
 ```
 test/functional/
-  cloud/          Cloud & Serverless control plane smoke tests
+  cloud/          Cloud & Serverless control plane API tests
+    definitions/  YAML test specs generated from @elastic/schemas (committed)
+    generated/    bash scripts generated from the definitions (gitignored)
   es/             Elasticsearch API tests (run against a Docker container)
 ```
 
@@ -30,14 +32,17 @@ exists after the codegen step above has run.
 ### Cloud tests
 
 Requires a `.elasticrc.yml` with a `cloud` context configured. The tests are
-read-only — they only call `list` and `get` endpoints.
+read-only — they only call `list` and `get` endpoints. Test specs are generated
+from `@elastic/schemas` (one YAML definition per GET endpoint); `npm run
+test:functional:cloud` regenerates the bash scripts and runs them.
 
 ```bash
 npm run build
 npm run test:functional:cloud
 ```
 
-If no Cloud credentials are found the test suite exits 0 and skips all tests.
+Regenerate the committed YAML definitions after an `@elastic/schemas` bump with
+`npm run codegen:functional:cloud:definitions`.
 
 #### Setting up Cloud credentials
 
@@ -61,7 +66,7 @@ not in the GitHub Actions CI workflow.
 | Step | What it does |
 |------|-------------|
 | **ES functional tests** | Spins up an Elasticsearch Docker container, generates bash test scripts from YAML specs, runs them. Matrix: Node 22 + 24. |
-| **Cloud smoke tests** | Reads Cloud API credentials from Vault (`secret/ci/elastic-cli/cloud-access`), writes a `.elasticrc.yml`, runs read-only smoke tests. Matrix: Node 22 + 24. `soft_fail: true` so flaky Cloud API responses don't block builds. |
+| **Cloud functional tests** | Reads Cloud API credentials from Vault (`secret/ci/elastic-cli/cloud-access`), writes a `.elasticrc.yml`, generates bash scripts from the YAML definitions, runs read-only tests. Matrix: Node 22 + 24. `soft_fail: true` so flaky Cloud API responses don't block builds. |
 
 ### Required Vault secret
 
