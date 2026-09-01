@@ -390,6 +390,13 @@ const skippedFilesServerless = new Set<string>([
   "elastic_agent_policies_get_fleet_kubernetes_download.yml",
   "elastic_agents_get_fleet_agent_status_data.yml",
 
+  // Not fixed by empty-body normalisation: mcp_post needs a JSON-RPC payload and
+  // returns an event-stream (-32700 Parse error); consumption 404s (route absent);
+  // security_role_query returns total 0 (no queryable roles in this env).
+  "agent_builder_mcp_post.yml",
+  "agent_builder_consumption.yml",
+  "misc_post_security_role_query.yml",
+
   // @elastic/schemas defect:
   // Upstream bugs tracked at:
   // https://github.com/elastic/schemas-js/issues/77
@@ -491,6 +498,15 @@ const skippedFilesStack = new Set<string>([
   "security_osquery_api_osquery_get_saved_query_details.yml",
   "security_osquery_api_osquery_update_packs.yml",
   "security_osquery_api_osquery_update_saved_query.yml",
+
+  // Not fixed by empty-body normalisation: mcp_post needs a JSON-RPC payload and
+  // returns an event-stream (-32700 Parse error); consumption 404s (route absent);
+  // security_role_query returns total 0 (no queryable roles in this env);
+  // search_alerts rejects an empty body ("value must have at least 1 children").
+  "agent_builder_mcp_post.yml",
+  "agent_builder_consumption.yml",
+  "misc_post_security_role_query.yml",
+  "security_detections_api_search_alerts.yml",
 
   // Array/oneOf query or body fields are mis-serialized (emitted as null or an
   // unparseable string), failing input validation before the request.
