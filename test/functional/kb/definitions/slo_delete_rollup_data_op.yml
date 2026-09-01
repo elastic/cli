@@ -44,5 +44,5 @@ teardown:
           list:
             - cli-ft-delete-rollup-slo
           purgePolicy:
-            purgeType: fixed-age
+            purgeType: fixed_age
             age: 7d

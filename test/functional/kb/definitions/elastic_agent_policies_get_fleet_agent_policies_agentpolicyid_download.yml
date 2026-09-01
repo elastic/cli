@@ -12,7 +12,7 @@ setup:
       elastic-agent-policies.post_fleet_agent_policies:
         body:
           name: cli-ft-ea-policy-download
-          namespace: default
+          namespace: testprefix
   - set: {"item.id": policy_id}
 ---
 teardown:

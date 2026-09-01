@@ -14,7 +14,7 @@ setup:
       security-entity-analytics-api.create_watchlist:
         body:
           name: cli-ft-update-watchlist-test
-          riskModifier: 10
+          riskModifier: 2
   - set: {id: watchlist_id}
 ---
 "security-entity-analytics-api update watchlist":
@@ -23,7 +23,7 @@ setup:
         id: $watchlist_id
         body:
           name: cli-ft-update-watchlist-updated
-          riskModifier: 20
+          riskModifier: 1
   - match: {id: $watchlist_id}
   - match: {name: cli-ft-update-watchlist-updated}
-  - match: {risk_modifier: 20}
+  - match: {risk_modifier: 1}

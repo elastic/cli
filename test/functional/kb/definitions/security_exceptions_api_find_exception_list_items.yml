@@ -9,34 +9,51 @@ requires:
 ---
 setup:
   - do:
+      security-exceptions-api.delete_exception_list:
+        list_id: cli-ft-sec-exc-find-parent
+        namespace_type: single
+        ignore: [404]
+  - do:
+      security-exceptions-api.create_exception_list:
+        body:
+          name: CLI FT Exception List Find Parent
+          description: Parent list for find items test
+          type: detection
+          list_id: cli-ft-sec-exc-find-parent
+          namespace_type: single
+  - do:
       security-exceptions-api.create_exception_list_item:
         body:
           item_id: cli-ft-sec-exc-find-list-item
           name: CLI FT Find Exception List Item
           description: Created by functional test
           type: simple
-          list_id: endpoint_blocklists
-          namespace_type: agnostic
+          list_id: cli-ft-sec-exc-find-parent
+          namespace_type: single
           entries:
-            - field: file.hash.sha256
-              type: match_any
+            - field: host.name
+              type: match
               operator: included
-              value:
-                - "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
+              value: test-host
 ---
 teardown:
   - do:
       security-exceptions-api.delete_exception_list_item:
         item_id: cli-ft-sec-exc-find-list-item
-        namespace_type: agnostic
+        namespace_type: single
+        ignore: [404]
+  - do:
+      security-exceptions-api.delete_exception_list:
+        list_id: cli-ft-sec-exc-find-parent
+        namespace_type: single
         ignore: [404]
 ---
 "security-exceptions-api find exception list items":
   - do:
       security-exceptions-api.find_exception_list_items:
         list_id:
-          - endpoint_blocklists
+          - cli-ft-sec-exc-find-parent
         namespace_type:
-          - agnostic
+          - single
   - is_true: data
   - gt: {total: 0}

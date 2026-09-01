@@ -14,7 +14,7 @@ setup:
       security-entity-analytics-api.create_watchlist:
         body:
           name: cli-ft-get-watchlist-test
-          riskModifier: 10
+          riskModifier: 2
   - set: {id: watchlist_id}
 ---
 "security-entity-analytics-api get watchlist":

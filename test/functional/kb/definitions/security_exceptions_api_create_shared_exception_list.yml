@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Kibana security-exceptions-api: create a shared exception list.
+# list_id is auto-generated; set it right after create for reliable teardown.
 ---
 requires:
   serverless: true
@@ -20,8 +21,8 @@ teardown:
         body:
           name: CLI FT Shared Exception List
           description: Created by functional test
+  - set: {list_id: list_id}
   - is_true: id
   - is_true: list_id
-  - set: {list_id: list_id}
   - match: {name: CLI FT Shared Exception List}
   - match: {namespace_type: agnostic}

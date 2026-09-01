@@ -316,11 +316,6 @@ const skippedFilesServerless = new Set<string>([
   "elastic_agent_actions_post_fleet_agents_bulk_upgrade.yml",
   "elastic_agents_post_fleet_agents_bulk_privilege_level_change.yml",
 
-  // Serverless env only permits the `testprefix` namespace; test payloads use another.
-  "elastic_agent_actions_post_fleet_agents_bulk_reassign.yml",
-  "elastic_agent_actions_reassign.yml",
-  "elastic_agent_policies_get_fleet_agent_policies_agentpolicyid_download.yml",
-
   // `.fleet-*` indices are absent in the serverless env (nothing enrolled),
   // so the op 404s with index_not_found_exception.
   "elastic_agent_actions_post_fleet_agents_bulk_update_agent_tags.yml",
@@ -554,20 +549,6 @@ const skippedFilesStack = new Set<string>([
   "elastic_agent_actions_post_fleet_agents_bulk_upgrade.yml",
   "elastic_agents_post_fleet_agents_bulk_privilege_level_change.yml",
 
-  // Stack env only permits the `testprefix` namespace; test payloads use another.
-  "elastic_agent_actions_post_fleet_agents_bulk_reassign.yml",
-  "elastic_agent_actions_reassign.yml",
-  "elastic_agent_policies_get_fleet_agent_policies_agentpolicyid_download.yml",
-
-  // Watchlist schema mismatch: upstream caps riskModifier at 2, but the test
-  // payload exceeds it (too_big: expected number to be <=2).
-  "security_entity_analytics_api_create_watchlist.yml",
-  "security_entity_analytics_api_get_watchlist.yml",
-  "security_entity_analytics_api_list_watchlists.yml",
-  "security_entity_analytics_api_unassign_watchlist_entities.yml",
-  "security_entity_analytics_api_update_watchlist.yml",
-  "security_entity_analytics_api_upload_watchlist_csv.yml",
-
   // Entity Store is not installed in the stack env; every entity-store op 400s
   // asking for POST /api/security/entity_store/install first.
   "security_entity_store_delete_security_entity_store_entities.yml",
@@ -584,20 +565,6 @@ const skippedFilesStack = new Set<string>([
   "security_entity_analytics_api_clean_up_risk_engine.yml",
   "security_entity_analytics_api_configure_risk_engine_saved_object.yml",
   "security_entity_analytics_api_schedule_risk_engine_now.yml",
-
-  // Prerequisite exception lists are never created (endpoint_blocklists / shared
-  // list id), so every dependent op 404s.
-  "security_exceptions_api_create_exception_list_item.yml",
-  "security_exceptions_api_create_rule_exception_list_items.yml",
-  "security_exceptions_api_create_shared_exception_list.yml",
-  "security_exceptions_api_delete_exception_list_item.yml",
-  "security_exceptions_api_find_exception_list_items.yml",
-  "security_exceptions_api_read_exception_list_item.yml",
-  "security_exceptions_api_update_exception_list_item.yml",
-
-  // Test supplies a non-UUID rule id, rejected by body validation (Invalid UUID).
-  "security_detections_api_patch_rule.yml",
-  "security_detections_api_update_rule.yml",
 
   // Significant events feature is disabled (403); requires enabling
   // observability:streamsEnableSignificantEvents in Advanced Settings.
@@ -624,25 +591,15 @@ const skippedFilesStack = new Set<string>([
   "streams_put_streams_name_query.yml",
   "streams_put_streams_streamname_attachments_attachmenttype_attachmentid.yml",
 
-  // No SLO definitions exist in the env (404) or the op sends unsupported args
-  // (purgePolicy validation, cannot delete instance '*').
+  // No SLO definitions exist in the env (404); slo_bulk_snapshot and slo_get_snapshot
+  // depend on data that is never provisioned.
   "slo_bulk_snapshot_op.yml",
-  "slo_delete_rollup_data_op.yml",
-  "slo_delete_slo_instances_op.yml",
   "slo_get_definitions_op.yml",
   "slo_get_snapshot_op.yml",
-
-  // APM setup state: config already exists / expected settings missing /
-  // annotation body fails upstream validation.
-  "apm_agent_configuration_get_environments_for_service.yml",
-  "apm_agent_configuration_search_single_configuration.yml",
-  "apm_annotations_get_annotation.yml",
 
   // Feature or route gated off in this stack config (404 / not available with
   // current configuration).
   "agent_builder_get_plugins.yml",
-  "alerting_get_alerting_rule_id_query_inspector.yml",
-  "elastic_package_manager_epm_delete_fleet_epm_packages_pkgname_pkgversion_kibana_assets.yml",
   "security_timeline_api_copy_timeline.yml",
 
   // Assertions fail or the response is unparseable: required objects were never
