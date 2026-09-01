@@ -296,15 +296,15 @@ describe('generateScript', () => {
     const result = generateScript(testFile, testDefs, { skipNotFound: true })
     assert.ok(result.script.includes('set +e'))
     assert.ok(result.script.includes('elastic-cli-do-err.$$'))
-    assert.ok(result.script.includes('returned 404'))
-    assert.ok(result.script.includes('test("404")'))
+    assert.ok(result.script.includes('not available'))
+    assert.ok(result.script.includes('Could not determine the version'))
   })
 
   it('does not wrap do-steps for 404 by default', () => {
     const content = readFileSync(join(fixturesDir, 'get.yml'), 'utf-8')
     const testFile = parseTestFile(content, 'get.yml')
     const result = generateScript(testFile, testDefs)
-    assert.equal(result.script.includes('returned 404'), false)
+    assert.equal(result.script.includes('not available'), false)
     assert.equal(result.script.includes('elastic-cli-do-err.$$'), false)
   })
 

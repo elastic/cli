@@ -53,9 +53,9 @@ export interface GenerateOptions {
    */
   skipEmptySet?: boolean
   /**
-   * If a do-step exits non-zero and the JSON error mentions 404, skip the
-   * script. Used by Cloud tests for endpoints the org or public QA API
-   * does not expose (stack versions, org IdP).
+   * If a do-step exits non-zero and the JSON error mentions 404 (or a
+   * hosted deployment with no version yet), skip the script. Used by Cloud
+   * tests for endpoints the org or public QA API does not expose.
    */
   skipNotFound?: boolean
 }
@@ -410,8 +410,8 @@ function renderDo (
     lines.push(`${indent}_ec=$?`)
     lines.push(`${indent}set -e`)
     lines.push(`${indent}if [ "$_ec" -ne 0 ]; then`)
-    lines.push(`${indent}  if jq -e '(.error.message | tostring | test("404"))' ${errFile} >/dev/null 2>&1; then`)
-    lines.push(`${indent}    echo "SKIP: ${step.action} returned 404"`)
+    lines.push(`${indent}  if jq -e '(.error.message | tostring | test("404|Could not determine the version"))' ${errFile} >/dev/null 2>&1; then`)
+    lines.push(`${indent}    echo "SKIP: ${step.action} not available"`)
     lines.push(`${indent}    exit 0`)
     lines.push(`${indent}  fi`)
     lines.push(`${indent}  cat ${errFile} >&2`)
