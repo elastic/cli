@@ -553,7 +553,8 @@ function renderSet (step: SetStep, lines: string[], indent: string, skipEmptySet
       // array with a string).
       lines.push(`${indent}${bashVar}=$(echo "$RESPONSE" | jq -r 'try (${jqPath} // empty) catch empty')`)
       lines.push(`${indent}if [ -z "$${bashVar}" ] || [ "$${bashVar}" = "null" ]; then`)
-      lines.push(`${indent}  ${bashVar}=$(echo "$RESPONSE" | jq -r 'if type=="array" then .[0].id // empty else empty end')`)
+      // Serverless lists wrap items in `.items`; regions return a bare array.
+      lines.push(`${indent}  ${bashVar}=$(echo "$RESPONSE" | jq -r 'if type=="array" then .[0].id // empty else .items[0].id // empty end')`)
       lines.push(`${indent}fi`)
       lines.push(`${indent}if [ -z "$${bashVar}" ] || [ "$${bashVar}" = "null" ]; then`)
       lines.push(`${indent}  echo "SKIP: no ${varName} in list response"`)

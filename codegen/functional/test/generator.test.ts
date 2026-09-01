@@ -243,7 +243,7 @@ describe('generateScript', () => {
     }
     const result = generateScript(testFile, testDefs, { skipEmptySet: true })
     assert.ok(result.script.includes('try (.regions[0].id // empty) catch empty'))
-    assert.ok(result.script.includes('if type=="array" then .[0].id // empty else empty end'))
+    assert.ok(result.script.includes('if type=="array" then .[0].id // empty else .items[0].id // empty end'))
     assert.ok(result.script.includes('SKIP: no id in list response'))
     assert.ok(result.script.includes('exit 0'))
     assert.equal(
@@ -253,12 +253,14 @@ describe('generateScript', () => {
       }).trim(),
       ''
     )
+    const fallback = 'if type=="array" then .[0].id // empty else .items[0].id // empty end'
     assert.equal(
-      execFileSync('jq', ['-r', 'if type=="array" then .[0].id // empty else empty end'], {
-        input: '[{"id":"r1"}]',
-        encoding: 'utf8'
-      }).trim(),
+      execFileSync('jq', ['-r', fallback], { input: '[{"id":"r1"}]', encoding: 'utf8' }).trim(),
       'r1'
+    )
+    assert.equal(
+      execFileSync('jq', ['-r', fallback], { input: '{"items":[{"id":"p1"}]}', encoding: 'utf8' }).trim(),
+      'p1'
     )
     assert.equal(
       execFileSync('jq', ['-r', 'try (.deployments[0].id // empty) catch empty'], {
