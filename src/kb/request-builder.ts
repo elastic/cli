@@ -66,12 +66,22 @@ export function buildKibanaRequestParams (
   // because these endpoints require siblings alongside the file (e.g. saved-objects
   // resolve-import-errors needs `retries`).
   const fields = isPlainObject(body) ? body : undefined
-  if (fields != null && MULTIPART_ENDPOINTS.has(`${def.namespace} ${def.name}`)) {
+  const isMultipart = MULTIPART_ENDPOINTS.has(`${def.namespace} ${def.name}`)
+  if (fields != null && isMultipart) {
     params.multipartFields = Object.fromEntries(
       Object.entries(fields).map(([key, value]) => [key, typeof value === 'string' ? value : String(value)])
     )
   } else if (body !== undefined) {
     params.body = body
+  } else if (
+    // POST/PUT/PATCH/DELETE with schema-defined body properties must send at minimum `{}`.
+    // Kibana treats a missing body as `null` for these endpoints and rejects with
+    // "expected a plain object value, but found [null]". GET/HEAD never carry a body.
+    def.method !== 'GET' && def.method !== 'HEAD' &&
+    !isMultipart &&
+    Object.values(props).some((p) => p['x-found-in'] === 'body' || p['x-found-in'] === undefined)
+  ) {
+    params.body = {}
   }
 
   return params

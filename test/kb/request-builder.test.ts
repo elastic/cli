@@ -117,6 +117,128 @@ describe('buildKibanaRequestParams', () => {
   })
 })
 
+describe('buildKibanaRequestParams empty-body normalisation (CLI-1)', () => {
+  it('sends {} for a POST with optional body fields when none are provided', () => {
+    const def: KbApiDefinition = {
+      name: 'post-thing',
+      namespace: 'widgets',
+      description: 'Post a thing',
+      method: 'POST',
+      path: '/api/widgets',
+      input: {
+        type: 'object',
+        properties: {
+          note: { type: 'string', 'x-found-in': 'body' },
+        },
+      },
+    }
+    const result = buildKibanaRequestParams(def, parsed())
+    assert.deepEqual(result.body, {}, 'POST with no body args must send {} not null/undefined')
+  })
+
+  it('sends {} for a DELETE with optional body fields when none are provided', () => {
+    const def: KbApiDefinition = {
+      name: 'delete-thing',
+      namespace: 'widgets',
+      description: 'Delete things',
+      method: 'DELETE',
+      path: '/api/widgets',
+      input: {
+        type: 'object',
+        properties: {
+          excludedIds: { type: 'array', items: { type: 'string' }, 'x-found-in': 'body' },
+        },
+      },
+    }
+    const result = buildKibanaRequestParams(def, parsed())
+    assert.deepEqual(result.body, {}, 'DELETE with optional body must send {} not omit')
+  })
+
+  it('sends {} for a PATCH with optional body fields when none are provided', () => {
+    const def: KbApiDefinition = {
+      name: 'patch-thing',
+      namespace: 'widgets',
+      description: 'Patch a thing',
+      method: 'PATCH',
+      path: '/api/widgets/1',
+      input: {
+        type: 'object',
+        properties: {
+          note: { type: 'string', 'x-found-in': 'body' },
+        },
+      },
+    }
+    const result = buildKibanaRequestParams(def, parsed())
+    assert.deepEqual(result.body, {}, 'PATCH with no body args must send {}')
+  })
+
+  it('does not set body for a GET with body-routed properties', () => {
+    // GET requests must never carry a body regardless of property routing
+    const def: KbApiDefinition = {
+      name: 'get-thing',
+      namespace: 'widgets',
+      description: 'Get a thing',
+      method: 'GET',
+      path: '/api/widgets',
+      input: {
+        type: 'object',
+        properties: {
+          note: { type: 'string', 'x-found-in': 'body' },
+        },
+      },
+    }
+    const result = buildKibanaRequestParams(def, parsed())
+    assert.equal(result.body, undefined, 'GET must not send a body')
+  })
+
+  it('does not set body for a multipart endpoint with no body fields provided', () => {
+    const def: KbApiDefinition = {
+      name: 'post-saved-objects-import',
+      namespace: 'saved-objects',
+      description: 'Import saved objects',
+      method: 'POST',
+      path: '/api/saved_objects/_import',
+      input: {
+        type: 'object',
+        properties: {
+          file: { type: 'string', 'x-found-in': 'body' },
+        },
+      },
+    }
+    // With no file provided, multipart endpoints should have neither body nor multipartFields
+    const result = buildKibanaRequestParams(def, parsed())
+    assert.equal(result.body, undefined, 'empty multipart endpoint must not send JSON body')
+    assert.equal(result.multipartFields, undefined, 'empty multipart endpoint must not send empty form')
+  })
+
+  it('sends {} for a POST with x-body-root field and no input, using a real definition', async () => {
+    const { loadAllKbApis } = await import('../../src/kb/apis.ts')
+    const apis = await loadAllKbApis()
+    const def = apis.find((d) => d.namespace === 'misc' && d.name === 'post-security-role-query')
+    assert.ok(def != null, 'expected misc post-security-role-query in manifest')
+    const result = buildKibanaRequestParams(def, parsed())
+    assert.deepEqual(result.body, {}, 'bodyless misc POST must send {} not null/undefined')
+  })
+
+  it('sends {} for search-alerts with no args, using a real definition', async () => {
+    const { loadAllKbApis } = await import('../../src/kb/apis.ts')
+    const apis = await loadAllKbApis()
+    const def = apis.find((d) => d.namespace === 'security-detections-api' && d.name === 'search-alerts')
+    assert.ok(def != null, 'expected security-detections-api search-alerts in manifest')
+    const result = buildKibanaRequestParams(def, parsed())
+    assert.deepEqual(result.body, {}, 'search-alerts with no args must send {} not null/undefined')
+  })
+
+  it('sends {} for delete-all-conversations (DELETE with optional body) using a real definition', async () => {
+    const { loadAllKbApis } = await import('../../src/kb/apis.ts')
+    const apis = await loadAllKbApis()
+    const def = apis.find((d) => d.namespace === 'security-ai-assistant-api' && d.name === 'delete-all-conversations')
+    assert.ok(def != null, 'expected security-ai-assistant-api delete-all-conversations in manifest')
+    const result = buildKibanaRequestParams(def, parsed())
+    assert.deepEqual(result.body, {}, 'DELETE with optional body must send {} not null/undefined')
+  })
+})
+
 describe('buildKibanaRequestParams path param requiredness (BUG A regression)', () => {
   // ponytail: no real Kibana definition currently has an optional path param
   // (0 of 555 upstream definitions exercise this — see test/kb/register.test.ts),

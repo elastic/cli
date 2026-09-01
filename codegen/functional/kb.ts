@@ -385,13 +385,10 @@ const skippedFilesServerless = new Set<string>([
   "fleet_uninstall_tokens_post_fleet_uninstall_tokens_agentpolicyid_rotate.yml",
   "message_signing_service_post_fleet_message_signing_service_rotate_key_pair.yml",
 
-  // CLI (de)serialization defects: empty body sent as null, array param not
-  // serialized as an array, or a non-JSON response the client cannot parse.
-  "agent_builder_consumption.yml",
-  "agent_builder_mcp_post.yml",
+  // CLI (de)serialization defects: array param not serialized as an array,
+  // or a non-JSON response the client cannot parse.
   "elastic_agent_policies_get_fleet_kubernetes_download.yml",
   "elastic_agents_get_fleet_agent_status_data.yml",
-  "misc_post_security_role_query.yml",
 
   // @elastic/schemas defect:
   // Upstream bugs tracked at:
@@ -494,14 +491,6 @@ const skippedFilesStack = new Set<string>([
   "security_osquery_api_osquery_get_saved_query_details.yml",
   "security_osquery_api_osquery_update_packs.yml",
   "security_osquery_api_osquery_update_saved_query.yml",
-
-  // CLI serializes an empty/optional request body as `null`; Kibana rejects it
-  // ("expected a plain object value, but found [null]").
-  "agent_builder_consumption.yml",
-  "agent_builder_mcp_post.yml",
-  "misc_post_security_role_query.yml",
-  "security_ai_assistant_api_delete_all_conversations.yml",
-  "security_detections_api_search_alerts.yml",
 
   // Array/oneOf query or body fields are mis-serialized (emitted as null or an
   // unparseable string), failing input validation before the request.
