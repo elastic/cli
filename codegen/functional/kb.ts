@@ -121,6 +121,13 @@ const skippedFilesServerless = new Set<string>([
   "security_osquery_api_osquery_update_packs.yml",
   "security_osquery_api_osquery_update_saved_query.yml",
 
+  // File is bound; create-script still errors and dependents need a created id.
+  "security_endpoint_management_api_endpoint_script_library_create_script.yml",
+  "security_endpoint_management_api_endpoint_script_library_delete_script.yml",
+  "security_endpoint_management_api_endpoint_script_library_download_script.yml",
+  "security_endpoint_management_api_endpoint_script_library_get_one_script.yml",
+  "security_endpoint_management_api_endpoint_script_library_patch_update_script.yml",
+
   // No Fleet agents/hosts enrolled in the serverless env; null id substituted
   // into the path yields 404 ("Agent null not found" / "host id null").
   "elastic_agent_actions_cancel_action.yml",
@@ -317,6 +324,13 @@ const skippedFilesStack = new Set<string>([
   "security_osquery_api_osquery_get_saved_query_details.yml",
   "security_osquery_api_osquery_update_packs.yml",
   "security_osquery_api_osquery_update_saved_query.yml",
+
+  // File is bound; create-script still errors and dependents need a created id.
+  "security_endpoint_management_api_endpoint_script_library_create_script.yml",
+  "security_endpoint_management_api_endpoint_script_library_delete_script.yml",
+  "security_endpoint_management_api_endpoint_script_library_download_script.yml",
+  "security_endpoint_management_api_endpoint_script_library_get_one_script.yml",
+  "security_endpoint_management_api_endpoint_script_library_patch_update_script.yml",
 
   // Not fixed by empty-body normalisation: mcp_post needs a JSON-RPC payload and
   // returns an event-stream (-32700 Parse error); consumption 404s (route absent);
