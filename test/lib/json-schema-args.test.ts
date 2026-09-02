@@ -177,6 +177,18 @@ describe('extractSchemaArgs', () => {
     assert.notEqual(args[0]?.acceptsArrayForm, true)
   })
 
+  it('treats oneOf(array, null) as array', () => {
+    const s = schema({
+      ids: {
+        oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'null' }],
+        'x-found-in': 'body',
+      },
+    })
+    const args = extractSchemaArgs(s)
+    assert.equal(args[0]?.type, 'array')
+    assert.notEqual(args[0]?.acceptsArrayForm, true)
+  })
+
   it('resolves $ref-only type to "string" as safe default', () => {
     const s: Record<string, unknown> = {
       type: 'object',
