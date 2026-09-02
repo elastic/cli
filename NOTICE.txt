@@ -1289,7 +1289,7 @@ SOFTWARE.
 
 
 ------------------------------------------------------------------------
-marked@14.1.4
+marked@18.0.11
 License: MIT
 Repository: https://github.com/markedjs/marked
 Publisher: Christopher Jeffrey
