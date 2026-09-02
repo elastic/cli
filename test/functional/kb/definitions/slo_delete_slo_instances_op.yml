@@ -43,4 +43,4 @@ teardown:
         body:
           list:
             - sloId: cli-ft-delete-slo-instances
-              instanceId: "*"
+              instanceId: cli-ft-delete-slo-instances

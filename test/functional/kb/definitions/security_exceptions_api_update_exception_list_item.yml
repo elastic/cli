@@ -9,26 +9,43 @@ requires:
 ---
 setup:
   - do:
+      security-exceptions-api.delete_exception_list:
+        list_id: cli-ft-sec-exc-update-parent
+        namespace_type: single
+        ignore: [404]
+  - do:
+      security-exceptions-api.create_exception_list:
+        body:
+          name: CLI FT Exception List Update Parent
+          description: Parent list for update item test
+          type: detection
+          list_id: cli-ft-sec-exc-update-parent
+          namespace_type: single
+  - do:
       security-exceptions-api.create_exception_list_item:
         body:
           item_id: cli-ft-sec-exc-update-list-item
           name: CLI FT Update Exception List Item
           description: Created by functional test
           type: simple
-          list_id: endpoint_blocklists
-          namespace_type: agnostic
+          list_id: cli-ft-sec-exc-update-parent
+          namespace_type: single
           entries:
-            - field: file.hash.sha256
-              type: match_any
+            - field: host.name
+              type: match
               operator: included
-              value:
-                - "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
+              value: test-host
 ---
 teardown:
   - do:
       security-exceptions-api.delete_exception_list_item:
         item_id: cli-ft-sec-exc-update-list-item
-        namespace_type: agnostic
+        namespace_type: single
+        ignore: [404]
+  - do:
+      security-exceptions-api.delete_exception_list:
+        list_id: cli-ft-sec-exc-update-parent
+        namespace_type: single
         ignore: [404]
 ---
 "security-exceptions-api update exception list item":
@@ -39,14 +56,13 @@ teardown:
           name: CLI FT Update Exception List Item Updated
           description: Updated by functional test
           type: simple
-          list_id: endpoint_blocklists
-          namespace_type: agnostic
+          list_id: cli-ft-sec-exc-update-parent
+          namespace_type: single
           entries:
-            - field: file.hash.sha256
-              type: match_any
+            - field: host.name
+              type: match
               operator: included
-              value:
-                - "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
+              value: test-host
   - is_true: item_id
   - match: {item_id: cli-ft-sec-exc-update-list-item}
   - match: {name: CLI FT Update Exception List Item Updated}

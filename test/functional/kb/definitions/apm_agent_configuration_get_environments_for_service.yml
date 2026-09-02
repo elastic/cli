@@ -2,30 +2,40 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Kibana apm-agent-configuration API: get environments for a service.
+# Deletes any stale config first, creates one, then verifies environments are returned.
 ---
 requires:
   serverless: true
   stack: true
+---
+setup:
+  - do:
+      apm-agent-configuration.delete_agent_configuration:
+        body:
+          service:
+            name: cli-ft-apm-env-svc
+            environment: production
+        ignore: [404]
+  - do:
+      apm-agent-configuration.create_update_agent_configuration:
+        body:
+          service:
+            name: cli-ft-apm-env-svc
+            environment: production
+          settings:
+            transaction_sample_rate: "0.5"
 ---
 teardown:
   - do:
       apm-agent-configuration.delete_agent_configuration:
         body:
           service:
-            name: cli-ft-apm-svc
+            name: cli-ft-apm-env-svc
+            environment: production
         ignore: [404]
 ---
 "apm-agent-configuration get environments for service":
   - do:
-      apm-agent-configuration.create_update_agent_configuration:
-        body:
-          service:
-            name: cli-ft-apm-svc
-            environment: production
-          settings:
-            transaction_sample_rate: "0.5"
-
-  - do:
       apm-agent-configuration.get_environments_for_service:
-        service_name: cli-ft-apm-svc
+        service_name: cli-ft-apm-env-svc
   - is_true: ""

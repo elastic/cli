@@ -1,7 +1,7 @@
 # Copyright Elasticsearch B.V. and contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Kibana apm-annotations API: create an annotation then search for it by service name.
+# Kibana apm-annotations API: create an annotation then retrieve it by service name and time range.
 ---
 requires:
   serverless: true
@@ -19,4 +19,7 @@ requires:
   - do:
       apm-annotations.get_annotation:
         service_name: cli-ft-apm-svc
+        start: "2024-01-01T00:00:00.000Z"
+        end: "2024-01-02T00:00:00.000Z"
+        environment: all
   - is_true: ""

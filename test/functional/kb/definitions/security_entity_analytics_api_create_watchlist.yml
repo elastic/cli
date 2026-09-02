@@ -14,7 +14,7 @@ requires:
       security-entity-analytics-api.create_watchlist:
         body:
           name: cli-ft-create-watchlist-test
-          riskModifier: 10
+          riskModifier: 2
   - is_true: id
   - match: {name: cli-ft-create-watchlist-test}
-  - match: {risk_modifier: 10}
+  - match: {risk_modifier: 2}

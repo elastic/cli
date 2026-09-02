@@ -9,10 +9,16 @@ requires:
 ---
 setup:
   - do:
+      apm-agent-configuration.delete_agent_configuration:
+        body:
+          service:
+            name: cli-ft-apm-search-svc
+        ignore: [404]
+  - do:
       apm-agent-configuration.create_update_agent_configuration:
         body:
           service:
-            name: cli-ft-apm-svc
+            name: cli-ft-apm-search-svc
           settings:
             transaction_sample_rate: "0.5"
 ---
@@ -21,12 +27,12 @@ teardown:
       apm-agent-configuration.delete_agent_configuration:
         body:
           service:
-            name: cli-ft-apm-svc
+            name: cli-ft-apm-search-svc
         ignore: [404]
 ---
 "apm-agent-configuration search single configuration":
   - do:
       apm-agent-configuration.search_single_configuration:
         service:
-          name: cli-ft-apm-svc
+          name: cli-ft-apm-search-svc
   - is_true: settings

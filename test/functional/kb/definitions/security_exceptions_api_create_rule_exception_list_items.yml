@@ -39,4 +39,5 @@ teardown:
                   field: host.name
                   value: test-host
                   operator: included
-  - is_true: id
+  # Response is an array of created exception list items, not an object.
+  - is_true: 0.id
