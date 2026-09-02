@@ -4405,4 +4405,16 @@ describe('YAML response rendering', () => {
       { list_id: 'a', value: '2' },
     ])
   })
+
+  it('prints a multi-doc yaml body as a json string under --json with exit 0', async () => {
+    const multiDoc = '---\napiVersion: v1\nkind: ConfigMap\n---\napiVersion: apps/v1\nkind: DaemonSet\n'
+    const cmd = defineCommand({
+      name: 'download',
+      description: 'Download',
+      handler: () => new YamlResponse(multiDoc),
+    })
+    const { stdout, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.equal(exitCode, 0)
+    assert.equal(JSON.parse(stdout), multiDoc)
+  })
 })

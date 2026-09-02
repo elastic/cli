@@ -341,6 +341,23 @@ describe('KibanaClient.request non-JSON bodies', () => {
     ])
   })
 
+  it('keeps non-JSON ndjson lines as strings (lists export is value per line)', async () => {
+    const client = makeClient()
+    const ndjson = '127.0.0.1\n127.0.0.2\n'
+    client._testSetFetch(rawFetch(ndjson, 'application/ndjson'))
+
+    const result = await client.request({ method: 'POST', path: '/api/lists/items/_export' }, 'ndjson')
+    assert.deepEqual(result, ['127.0.0.1', '127.0.0.2'])
+  })
+
+  it('keeps a dotted IP as a string, not a failed JSON number', async () => {
+    const client = makeClient()
+    client._testSetFetch(rawFetch('192.0.2.1\n', 'application/x-ndjson'))
+
+    const result = await client.request({ method: 'POST', path: '/api/lists/items/_export' }, 'ndjson')
+    assert.deepEqual(result, ['192.0.2.1'])
+  })
+
   it('decodes ndjson when Content-Type is application/json but responseType is ndjson (#588)', async () => {
     const client = makeClient()
     const ndjson = '{"list_id":"a"}\n{"list_id":"b"}\n'
