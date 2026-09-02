@@ -67,7 +67,9 @@ for (const file of yamlFiles) {
 
   const result = generateScript(testFile, apis, {
     clientArgs: ['cloud'],
-    preamble: CLOUD_PREAMBLE
+    preamble: CLOUD_PREAMBLE,
+    skipEmptySet: true,
+    skipNotFound: true
   })
 
   for (const action of result.skippedActions) allSkippedActions.add(action)

@@ -35,6 +35,9 @@ npm run build
 echo "--- Setting up Cloud credentials"
 source .buildkite/setup-env.sh
 
+echo "--- Ensuring Cloud fixtures"
+.buildkite/ensure-cloud-fixtures.sh
+
 echo "--- Generating Cloud functional tests"
 npm run codegen:functional:cloud
 

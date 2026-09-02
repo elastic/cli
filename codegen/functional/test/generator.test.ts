@@ -5,6 +5,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseTestFile } from '../parser.ts'
@@ -224,6 +225,87 @@ describe('generateScript', () => {
     const testFile = parseTestFile(content, 'get.yml')
     const result = generateScript(testFile, testDefs)
     assert.ok(result.script.includes('echo "PASS: get.yml"'))
+  })
+
+  it('skipEmptySet retries bare array id then skips when empty', () => {
+    const testFile: TestFile = {
+      sourceFile: 'list.yml',
+      requires: { serverless: true, stack: true },
+      setup: [],
+      teardown: [],
+      tests: [{
+        name: 'get item',
+        steps: [
+          { kind: 'do', action: 'count', params: { index: 'x' }, body: undefined },
+          { kind: 'set', assignments: { 'regions.0.id': 'id' } }
+        ]
+      }]
+    }
+    const result = generateScript(testFile, testDefs, { skipEmptySet: true })
+    assert.ok(result.script.includes('try (.regions[0].id // empty) catch empty'))
+    assert.ok(result.script.includes('if type=="array" then .[0].id // empty else .items[0].id // empty end'))
+    assert.ok(result.script.includes('SKIP: no id in list response'))
+    assert.ok(result.script.includes('exit 0'))
+    assert.equal(
+      execFileSync('jq', ['-r', 'try (.regions[0].id // empty) catch empty'], {
+        input: '[{"id":"r1"}]',
+        encoding: 'utf8'
+      }).trim(),
+      ''
+    )
+    const fallback = 'if type=="array" then .[0].id // empty else .items[0].id // empty end'
+    assert.equal(
+      execFileSync('jq', ['-r', fallback], { input: '[{"id":"r1"}]', encoding: 'utf8' }).trim(),
+      'r1'
+    )
+    assert.equal(
+      execFileSync('jq', ['-r', fallback], { input: '{"items":[{"id":"p1"}]}', encoding: 'utf8' }).trim(),
+      'p1'
+    )
+    assert.equal(
+      execFileSync('jq', ['-r', 'try (.deployments[0].id // empty) catch empty'], {
+        input: '{"deployments":[]}',
+        encoding: 'utf8'
+      }).trim(),
+      ''
+    )
+  })
+
+  it('does not skip empty set extractions by default', () => {
+    const testFile: TestFile = {
+      sourceFile: 'list.yml',
+      requires: { serverless: true, stack: true },
+      setup: [],
+      teardown: [],
+      tests: [{
+        name: 'get item',
+        steps: [
+          { kind: 'do', action: 'count', params: { index: 'x' }, body: undefined },
+          { kind: 'set', assignments: { 'regions.0.id': 'id' } }
+        ]
+      }]
+    }
+    const result = generateScript(testFile, testDefs)
+    assert.equal(result.script.includes('SKIP: no id in list response'), false)
+    assert.equal(result.script.includes('.[0].id // empty'), false)
+  })
+
+  it('skipNotFound wraps do-steps to skip 404 errors', () => {
+    const content = readFileSync(join(fixturesDir, 'get.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'get.yml')
+    const result = generateScript(testFile, testDefs, { skipNotFound: true })
+    assert.ok(result.script.includes('set +e'))
+    assert.ok(result.script.includes('elastic-cli-do-err.$$'))
+    assert.ok(result.script.includes('not available'))
+    assert.ok(result.script.includes('Could not determine the version'))
+  })
+
+  it('does not wrap do-steps for 404 by default', () => {
+    const content = readFileSync(join(fixturesDir, 'get.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'get.yml')
+    const result = generateScript(testFile, testDefs)
+    assert.equal(result.script.includes('not available'), false)
+    assert.equal(result.script.includes('elastic-cli-do-err.$$'), false)
   })
 
   it('tracks skipped actions for unregistered APIs', () => {

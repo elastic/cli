@@ -46,6 +46,18 @@ export interface GenerateOptions {
   clientArgs?: string[]
   /** Preamble lines defining the `$ELASTIC` invocation and `$RESPONSE` (default: the `elastic` binary). */
   preamble?: string[]
+  /**
+   * If a `set` extraction is empty or `null`, try `.[0].id` (bare-array list
+   * responses) and skip the script when still empty. Used by Cloud tests
+   * against orgs that have no deployments or projects.
+   */
+  skipEmptySet?: boolean
+  /**
+   * If a do-step exits non-zero and the JSON error mentions 404 (or a
+   * hosted deployment with no version yet), skip the script. Used by Cloud
+   * tests for endpoints the org or public QA API does not expose.
+   */
+  skipNotFound?: boolean
 }
 
 const DEFAULT_PREAMBLE = ['exec < /dev/null', 'ELASTIC="elastic --json"', 'RESPONSE=""']
@@ -57,6 +69,8 @@ export function generateScript (
 ): GenerateResult {
   const clientArgs = opts.clientArgs ?? ['stack', 'es']
   const preamble = opts.preamble ?? DEFAULT_PREAMBLE
+  const skipEmptySet = opts.skipEmptySet === true
+  const skipNotFound = opts.skipNotFound === true
   const actionMap = buildActionMap(definitions)
   const skippedActions: string[] = []
   const lines: string[] = []
@@ -70,7 +84,7 @@ export function generateScript (
 
   if (testFile.teardown.length > 0) {
     const teardownBody: string[] = []
-    renderSteps(testFile.teardown, actionMap, clientArgs, teardownBody, skippedActions, '  ')
+    renderSteps(testFile.teardown, actionMap, clientArgs, teardownBody, skippedActions, '  ', false, skipEmptySet, skipNotFound)
     if (!hasExecutableLine(teardownBody)) {
       teardownBody.push('  :')
     }
@@ -98,13 +112,13 @@ export function generateScript (
 
   if (testFile.setup.length > 0) {
     lines.push('# --- Setup ---')
-    hadSkippedDo = renderSteps(testFile.setup, actionMap, clientArgs, lines, skippedActions, '')
+    hadSkippedDo = renderSteps(testFile.setup, actionMap, clientArgs, lines, skippedActions, '', false, skipEmptySet, skipNotFound)
     lines.push('')
   }
 
   for (const section of testFile.tests) {
     lines.push(`# --- Test: ${section.name} ---`)
-    renderSteps(section.steps, actionMap, clientArgs, lines, skippedActions, '', hadSkippedDo)
+    renderSteps(section.steps, actionMap, clientArgs, lines, skippedActions, '', hadSkippedDo, skipEmptySet, skipNotFound)
     lines.push('')
   }
 
@@ -255,7 +269,9 @@ function renderSteps (
   lines: string[],
   skippedActions: string[],
   indent: string,
-  initialHadSkippedDo = false
+  initialHadSkippedDo = false,
+  skipEmptySet = false,
+  skipNotFound = false
 ): boolean {
   // Assertions and set-steps read $RESPONSE, which is written by the most
   // recent successful `do`. If the last `do` was skipped (unmapped action,
@@ -279,7 +295,7 @@ function renderSteps (
       }
       // Only pass allowFailure from the setup→test propagation, not from
       // prior skipped steps within the same section (those are unrelated).
-      const result = renderDo(step, actionMap, clientArgs, lines, skippedActions, indent, initialHadSkippedDo)
+      const result = renderDo(step, actionMap, clientArgs, lines, skippedActions, indent, initialHadSkippedDo, skipNotFound)
       if (result === 'skipped') {
         responseFromLastDo = false
         hadSkippedDo = true
@@ -310,7 +326,7 @@ function renderSteps (
 
     switch (step.kind) {
       case 'set':
-        renderSet(step, lines, indent)
+        renderSet(step, lines, indent, skipEmptySet)
         // If a variable was previously unset, it's now set
         for (const varName of Object.values(step.assignments)) {
           unsetVars.delete(varName.toUpperCase().replace(/[^A-Z0-9]/g, '_'))
@@ -360,7 +376,8 @@ function renderDo (
   lines: string[],
   skippedActions: string[],
   indent: string,
-  allowFailure = false
+  allowFailure = false,
+  skipNotFound = false
 ): 'executed' | 'optional' | 'skipped' {
   if (step.catch != null) {
     lines.push(`${indent}# SKIPPED: catch not supported in MVP (catch: ${step.catch})`)
@@ -384,9 +401,25 @@ function renderDo (
   if (optional) {
     lines.push(`${indent}RESPONSE=$(${cmd}) || true`)
     return 'optional'
-  } else {
-    lines.push(`${indent}RESPONSE=$(${cmd})`)
   }
+  if (skipNotFound) {
+    // Handler errors go to stderr (`writeErr`); keep them out of $RESPONSE.
+    const errFile = '"${TMPDIR:-/tmp}/elastic-cli-do-err.$$"'
+    lines.push(`${indent}set +e`)
+    lines.push(`${indent}RESPONSE=$(${cmd} 2>${errFile})`)
+    lines.push(`${indent}_ec=$?`)
+    lines.push(`${indent}set -e`)
+    lines.push(`${indent}if [ "$_ec" -ne 0 ]; then`)
+    lines.push(`${indent}  if jq -e '(.error.message | tostring | test("404|Could not determine the version"))' ${errFile} >/dev/null 2>&1; then`)
+    lines.push(`${indent}    echo "SKIP: ${step.action} not available"`)
+    lines.push(`${indent}    exit 0`)
+    lines.push(`${indent}  fi`)
+    lines.push(`${indent}  cat ${errFile} >&2`)
+    lines.push(`${indent}  exit $_ec`)
+    lines.push(`${indent}fi`)
+    return 'executed'
+  }
+  lines.push(`${indent}RESPONSE=$(${cmd})`)
   return 'executed'
 }
 
@@ -510,11 +543,26 @@ function buildCommand (mapped: MappedAction, step: DoStep): string {
   return base
 }
 
-function renderSet (step: SetStep, lines: string[], indent: string): void {
+function renderSet (step: SetStep, lines: string[], indent: string, skipEmptySet = false): void {
   for (const [responsePath, varName] of Object.entries(step.assignments)) {
     const bashVar = varName.toUpperCase().replace(/[^A-Z0-9]/g, '_')
     const jqPath = toJqPath(responsePath)
-    lines.push(`${indent}${bashVar}=$(echo "$RESPONSE" | jq -r '${jqPath}')`)
+    if (skipEmptySet) {
+      // `try` so a nested path like `.regions[0].id` against a bare array
+      // yields empty instead of aborting the script (jq cannot index an
+      // array with a string).
+      lines.push(`${indent}${bashVar}=$(echo "$RESPONSE" | jq -r 'try (${jqPath} // empty) catch empty')`)
+      lines.push(`${indent}if [ -z "$${bashVar}" ] || [ "$${bashVar}" = "null" ]; then`)
+      // Serverless lists wrap items in `.items`; regions return a bare array.
+      lines.push(`${indent}  ${bashVar}=$(echo "$RESPONSE" | jq -r 'if type=="array" then .[0].id // empty else .items[0].id // empty end')`)
+      lines.push(`${indent}fi`)
+      lines.push(`${indent}if [ -z "$${bashVar}" ] || [ "$${bashVar}" = "null" ]; then`)
+      lines.push(`${indent}  echo "SKIP: no ${varName} in list response"`)
+      lines.push(`${indent}  exit 0`)
+      lines.push(`${indent}fi`)
+    } else {
+      lines.push(`${indent}${bashVar}=$(echo "$RESPONSE" | jq -r '${jqPath}')`)
+    }
   }
 }
 
