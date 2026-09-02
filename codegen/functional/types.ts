@@ -82,6 +82,7 @@ export type Step =
   | ContainsStep
   | SkipStep
   | WriteNdjsonTempStep
+  | WriteTempStep
 
 export interface DoStep {
   kind: 'do'
@@ -171,4 +172,18 @@ export interface WriteNdjsonTempStep {
   kind: 'write_ndjson_temp'
   /** Variable name to bind the temp file path to (e.g. "export_file"). */
   varName: string
+}
+
+/**
+ * Writes declared fixture content to a temp file and binds its path to a
+ * variable, so a later multipart upload can pass it via `--file`.
+ */
+export interface WriteTempStep {
+  kind: 'write_temp'
+  /** Variable name to bind the temp file path to (e.g. "items_file"). */
+  varName: string
+  /** Fixture bytes written to the temp file. */
+  content: string
+  /** Optional filename suffix including the dot (e.g. ".csv"). */
+  suffix?: string
 }

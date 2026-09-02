@@ -8,7 +8,7 @@ import {
   YamlFloat,
   type TestFile, type Requires, type ServerlessProject, type TestSection, type Step,
   type DoStep, type SetStep, type MatchStep, type IsTrueStep, type IsFalseStep, type LengthStep,
-  type GtStep, type GteStep, type LtStep, type LteStep, type ContainsStep
+  type GtStep, type GteStep, type LtStep, type LteStep, type ContainsStep, type WriteTempStep
 } from './types.ts'
 
 const RESERVED_KEYS = new Set(['requires', 'setup', 'teardown'])
@@ -157,6 +157,18 @@ function parseSteps (raw: unknown[]): Step[] {
       steps.push({ kind: 'skip' })
     } else if ('write_ndjson_temp' in obj) {
       steps.push({ kind: 'write_ndjson_temp', varName: String(obj.write_ndjson_temp) })
+    } else if ('write_temp' in obj) {
+      const raw = obj.write_temp
+      const wt = (raw != null && typeof raw === 'object' && !Array.isArray(raw))
+        ? raw as Record<string, unknown>
+        : {}
+      const step: WriteTempStep = {
+        kind: 'write_temp',
+        varName: String(wt.variable ?? ''),
+        content: String(wt.content ?? ''),
+      }
+      if (wt.suffix != null) step.suffix = String(wt.suffix)
+      steps.push(step)
     }
   }
   return steps
