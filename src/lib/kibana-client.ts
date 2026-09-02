@@ -51,13 +51,17 @@ function looksLikeSse (text: string): boolean {
 }
 
 function parseNdjson (text: string): unknown[] {
-  return text.split('\n').filter((l) => l.trim().length > 0).map((l) => JSON.parse(l))
+  return text.split(/\r?\n/).filter((l) => l.trim().length > 0).map((l) => {
+    try { return JSON.parse(l) } catch { return l }
+  })
 }
 
 function acceptFor (responseType?: KibanaResponseType): string {
-  if (responseType === 'ndjson') return 'application/x-ndjson'
-  if (responseType === 'text') return 'text/plain'
-  return 'application/json'
+  switch (responseType) {
+    case 'ndjson': return 'application/x-ndjson'
+    case 'text': return 'text/plain'
+    default: return 'application/json'
+  }
 }
 
 function decodeBody (text: string, contentType: string, responseType?: KibanaResponseType): unknown {
