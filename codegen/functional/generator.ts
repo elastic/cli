@@ -409,7 +409,15 @@ function renderDo (
 
   const optional = allowFailure || (step.ignore != null && step.ignore.length > 0)
   if (optional) {
-    lines.push(`${indent}RESPONSE=$(${cmd}) || true`)
+    const refs = collectStepVarRefs(step)
+    if (refs.length > 0) {
+      const cond = refs.map((v) => `[ -n "$${v}" ]`).join(' && ')
+      lines.push(`${indent}if ${cond}; then`)
+      lines.push(`${indent}  RESPONSE=$(${cmd}) || true`)
+      lines.push(`${indent}fi`)
+    } else {
+      lines.push(`${indent}RESPONSE=$(${cmd}) || true`)
+    }
     return 'optional'
   }
   if (skipNotFound) {
@@ -821,6 +829,27 @@ function expandBulkDataFields (items: unknown[]): unknown[] {
  * Recursively check if any string value in `val` is a bash variable reference
  * (starts with `$`) pointing to a variable in `unsetVars`.
  */
+function collectStepVarRefs (step: DoStep): string[] {
+  const names: string[] = []
+  const seen = new Set<string>()
+  const walk = (val: unknown): void => {
+    if (typeof val === 'string' && val.startsWith('$')) {
+      const v = val.slice(1).toUpperCase().replace(/[^A-Z0-9]/g, '_')
+      if (!seen.has(v)) {
+        seen.add(v)
+        names.push(v)
+      }
+    } else if (Array.isArray(val)) {
+      for (const item of val) walk(item)
+    } else if (val !== null && typeof val === 'object') {
+      for (const item of Object.values(val)) walk(item)
+    }
+  }
+  walk(step.params)
+  if (step.body != null) walk(step.body)
+  return names
+}
+
 function valueReferencesUnset (val: unknown, unsetVars: Set<string>): boolean {
   if (typeof val === 'string' && val.startsWith('$')) {
     const varName = val.slice(1).toUpperCase().replace(/[^A-Z0-9]/g, '_')
