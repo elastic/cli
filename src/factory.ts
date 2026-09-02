@@ -157,6 +157,33 @@ function stringAccumulator (cmd: Command, attrName: string): (value: string, pre
   }
 }
 
+/** Parses one `--flag` occurrence into array elements: JSON arrays as-is, anything else as a single element. */
+function coerceToArray (raw: string): unknown[] {
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : [parsed]
+  } catch {
+    return [raw]
+  }
+}
+
+/**
+ * Accumulates repeated array-typed flags into a JSON array string.
+ * First occurrence wraps a scalar (`abc` → `["abc"]`); later ones append.
+ */
+function arrayAccumulator (cmd: Command, attrName: string): (value: string, previous: string | undefined) => string {
+  return (value: string, previous: string | undefined): string => {
+    const items = coerceToArray(value)
+    if (cmd.getOptionValueSource(attrName) === 'cli' && previous != null) {
+      try {
+        const prev = JSON.parse(previous)
+        if (Array.isArray(prev)) return JSON.stringify([...prev, ...items])
+      } catch { /* previous wasn't our JSON array; start fresh */ }
+    }
+    return JSON.stringify(items)
+  }
+}
+
 /**
  * Creates a parseArg function that rejects repeated flag occurrences for singular-value options.
  * Wraps an optional inner parser (e.g. number coercion) and errors via Commander
@@ -428,9 +455,12 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
           return n!
         }
         cmd.option(`--${arg.cliFlag} <number>`, desc, singleValueGuard(cmd, attrName, `--${arg.cliFlag}`, parseNum))
-      } else if (arg.type === 'object' || arg.type === 'array') {
+      } else if (arg.type === 'object') {
         const attrName = camelCase(arg.cliFlag)
         cmd.option(`--${arg.cliFlag} <json>`, desc, singleValueGuard<string>(cmd, attrName, `--${arg.cliFlag}`))
+      } else if (arg.type === 'array') {
+        const attrName = camelCase(arg.cliFlag)
+        cmd.option(`--${arg.cliFlag} <value>`, desc, arrayAccumulator(cmd, attrName))
       } else if (arg.type === 'enum') {
         const attrName = camelCase(arg.cliFlag)
         cmd.option(`--${arg.cliFlag} <value>`, desc, singleValueGuard<string>(cmd, attrName, `--${arg.cliFlag}`))
@@ -546,7 +576,18 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
         // boolean coercion: --flag (no value) -> true, --flag false -> false
         if (arg.type === 'boolean') {
           cliInput[arg.schemaKey] = raw !== 'false'
-        } else if (arg.type === 'object' || arg.type === 'array') {
+        } else if (arg.type === 'array') {
+          try {
+            const parsed = JSON.parse(raw as string)
+            cliInput[arg.schemaKey] = Array.isArray(parsed) ? parsed : [parsed]
+          } catch {
+            cliInput[arg.schemaKey] = [raw]
+          }
+          const value = cliInput[arg.schemaKey]
+          if (arg.foundIn === 'body' || arg.foundIn === undefined) {
+            rawBodyValues[arg.schemaKey] = new RawJsonValue(JSON.stringify(value), value)
+          }
+        } else if (arg.type === 'object') {
           try {
             const parsed = JSON.parse(raw as string)
             cliInput[arg.schemaKey] = parsed
