@@ -59,6 +59,14 @@ const testDefs: EsApiDefinition[] = [
     method: 'POST',
     path: '/_bulk',
     input: { type: 'object', properties: { refresh: { type: 'boolean', 'x-found-in': 'query' }, operations: { type: 'array', 'x-found-in': 'body' } } }
+  },
+  {
+    name: 'import-list-items',
+    namespace: 'security-lists-api',
+    description: 'Import list items',
+    method: 'POST',
+    path: '/api/lists/items/_import',
+    input: { type: 'object', properties: { file: { type: 'string', 'x-found-in': 'body' } }, required: ['file'] }
   }
 ]
 
@@ -330,6 +338,29 @@ describe('generateScript', () => {
     const result = generateScript(testFile, [])
     assert.ok(result.skippedActions.length > 0)
     assert.ok(result.skippedActions.includes('indices.create'))
+  })
+
+  it('binds write_temp before the upload flag and the file exists', () => {
+    const content = readFileSync(join(fixturesDir, 'write-temp.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'write-temp.yml')
+    const result = generateScript(testFile, testDefs)
+    const writeAt = result.script.indexOf('ITEMS_FILE=')
+    const flagAt = result.script.indexOf('--file "$ITEMS_FILE"')
+    assert.ok(writeAt >= 0, 'must assign ITEMS_FILE')
+    assert.ok(flagAt > writeAt, 'assignment must precede --file "$ITEMS_FILE"')
+    assert.match(result.script, /ITEMS_FILE=\$\(mktemp -d\)\/fixture\.txt/)
+    assert.match(result.script, /cat > "\$ITEMS_FILE" <<'CLI_FT_WRITE_TEMP_EOF'/)
+    assert.match(result.script, /test-import-value/)
+    assert.match(result.script, /\[ -n "\$ITEMS_FILE" \] && rm -f -- "\$ITEMS_FILE"/)
+
+    const start = result.script.indexOf('ITEMS_FILE=$(mktemp')
+    const end = result.script.indexOf('CLI_FT_WRITE_TEMP_EOF', start)
+    const heredocEnd = result.script.indexOf('\n', end)
+    const snippet = 'set -euo pipefail\n' + result.script.slice(start, heredocEnd + 1) +
+      '[ -n "$ITEMS_FILE" ] || exit 2\n[ -f "$ITEMS_FILE" ] || exit 3\n' +
+      'grep -qx "test-import-value" "$ITEMS_FILE" || exit 4\n'
+    const ran = execFileSync('bash', ['-c', snippet], { encoding: 'utf8' })
+    assert.equal(ran, '')
   })
 
   it('throws UnmappedBodyKeyError when a body key has no matching CLI flag', () => {

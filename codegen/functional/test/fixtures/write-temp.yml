@@ -1,0 +1,20 @@
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - write_temp:
+      variable: items_file
+      content: "test-import-value\n"
+      suffix: .txt
+---
+teardown:
+  - do:
+      indices.delete: { index: 'import_test' }
+---
+"import list items":
+  - do:
+      security-lists-api.import_list_items:
+        body:
+          file: $items_file
