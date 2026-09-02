@@ -15,11 +15,10 @@
 # unavailable (known issue with some rootless/userns Docker configurations).
 #
 # Startup order:
-#   1. Start ES early so it is fully ready before Kibana connects.
-#   2. Build the CLI while ES boots. Do not pull Kibana/node images yet:
-#      overlapping those extracts with npm ci fills the agent disk (ENOSPC).
-#   3. Pull Kibana + test-runner after the build, then start Kibana.
-#   4. Run the test-runner container for health checks + tests.
+#   1. Start ES, then pull Kibana while the disk is still empty of node_modules.
+#      Pulling Kibana after npm ci ENOSPCs the agent (GetImageBlob).
+#   2. Build the CLI while ES boots.
+#   3. Pull the test-runner image, start Kibana, run tests.
 
 set -euo pipefail
 
@@ -55,6 +54,16 @@ KIBANA_ENCRYPTION_KEY="xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj" # gitleaks:allow
 
 ES_IMAGE="docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}"
 KB_IMAGE="docker.elastic.co/kibana/kibana:${STACK_VERSION}"
+
+disk_report () {
+  echo "--- Disk"
+  df -h / /var/lib/docker 2>/dev/null || df -h /
+  docker system df 2>/dev/null || true
+}
+
+echo "--- Pruning unused Docker data"
+docker system prune -af --volumes || true
+disk_report
 
 # ── Docker network ───────────────────────────────────────────────────────────
 echo "--- Creating Docker network"
@@ -92,7 +101,11 @@ docker run \
   --rm \
   "$ES_IMAGE"
 
-# ── Build CLI (concurrent with ES startup; image pulls wait until after) ──
+echo "--- Pulling Kibana image"
+docker pull "$KB_IMAGE"
+disk_report
+
+# ── Build CLI (concurrent with ES startup) ──
 
 echo "--- Setting up Node.js ${NODE_VERSION}"
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
@@ -145,9 +158,6 @@ docker run \
   node /workspace/.buildkite/setup-kibana.cjs
 
 # ── Start Kibana ─────────────────────────────────────────────────────────────
-
-echo "--- Pulling Kibana image"
-docker pull "$KB_IMAGE"
 
 echo "--- Starting Kibana ${STACK_VERSION}"
 # Intentionally no --rm so crash logs are always available in cleanup.
