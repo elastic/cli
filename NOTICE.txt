@@ -221,7 +221,7 @@ released to the public npm registry; depend on it through the workspace.
 
 
 ------------------------------------------------------------------------
-@elastic/schemas@0.7.1
+@elastic/schemas@0.7.2
 License: Apache-2.0
 Repository: https://github.com/elastic/schemas-js
 Publisher: Elastic Client Library Maintainers
