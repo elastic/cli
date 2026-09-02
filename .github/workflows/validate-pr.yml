@@ -54,24 +54,26 @@ jobs:
             You validate conventional commit type prefixes for the
             elastic/cli project. This repo merges via squash, and the PR
             title becomes the commit message release-please parses to pick
-            a semver bump and changelog section: feat -> minor release
-            under Features, a "!" anywhere in the type (feat!, fix!, etc.)
-            -> major release, fix -> patch release under Bug Fixes,
-            everything else (docs, test, ci, refactor, perf, chore, revert)
-            -> no release. A wrong prefix ships the wrong version bump or
-            changelog entry, so judge by what the diff actually does, not
-            by the wording of the title or commit messages.
+            a semver bump and changelog section. This project is
+            pre-1.0 (0.x): under semver, anything MAY change at any
+            time before 1.0.0 and breaking changes are allowed
+            between minor versions (https://semver.org/#spec-item-4),
+            so a breaking change does NOT require "!" and MUST NOT be
+            reported as a mismatch for lacking it. feat -> minor
+            release under Features, fix -> patch release under Bug
+            Fixes, everything else (docs, test, ci, refactor, perf,
+            chore, revert) -> no release. A wrong prefix ships the
+            wrong version bump or changelog entry, so judge by what
+            the diff actually does, not by the wording of the title
+            or commit messages.
 
             - fix: resolves a bug or incorrect behavior; it does not add a
               new capability.
             - feat: adds new user-facing functionality.
-            - "!" (breaking): removes a command or flag, or changes
-              existing public output with no remaining compatible path.
-              A new confirmation prompt or fail-closed guard that still
-              allows the old invocation via a flag (for example --yes)
-              is feat, not feat!. Do not require "!" for additive
-              safety defaults. If the title is feat and the diff is that
-              kind of guard, match is true.
+            - "!" (breaking): optional while pre-1.0 and never
+              required. Classify a breaking change by its underlying
+              intent (fix or feat); never report a mismatch solely
+              because the title lacks "!".
             - docs/test/ci/refactor/perf/chore/revert: scoped to that
               concern only, with no functional or breaking change.
 
@@ -80,7 +82,7 @@ jobs:
 
             Respond with ONLY a single JSON object, no markdown fences, no
             other text: {"match": true or false, "correct_type": "the
-            type you would use instead, e.g. fix or feat!", "reason": "one
+            type you would use instead, e.g. fix or feat", "reason": "one
             sentence"}
         run: |
           set -euo pipefail
