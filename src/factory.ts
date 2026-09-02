@@ -157,14 +157,11 @@ function stringAccumulator (cmd: Command, attrName: string): (value: string, pre
   }
 }
 
-/** Parses one `--flag` occurrence into array elements: JSON arrays as-is, objects as one element, anything else as the raw string. */
+/** Parses one `--flag` occurrence into array elements: JSON arrays as-is, anything else as a single element. */
 function coerceToArray (raw: string): unknown[] {
   try {
     const parsed = JSON.parse(raw)
-    if (Array.isArray(parsed)) return parsed
-    if (typeof parsed === 'string') return [parsed]
-    if (parsed !== null && typeof parsed === 'object') return [parsed]
-    return [raw]
+    return Array.isArray(parsed) ? parsed : [parsed]
   } catch {
     return [raw]
   }

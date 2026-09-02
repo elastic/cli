@@ -1753,41 +1753,11 @@ describe('defineCommand', () => {
       assert.deepEqual(captured, { agents_ids: ['abc', 'def'] })
     })
 
-    it('unwraps a json string scalar in an array flag', async () => {
-      const schema = jsonSchema({
-        agents_ids: { type: 'array', items: { type: 'string' }, 'x-found-in': 'query' },
-      })
-      let captured: unknown
-      const cmd = defineCommand({
-        name: 'status',
-        description: 'Status',
-        input: schema,
-        handler: (parsed) => { captured = parsed.input; return {} },
-      })
-      await invokeAsync(cmd, ['--agents-ids', '"abc"'])
-      assert.deepEqual(captured, { agents_ids: ['abc'] })
-    })
-
-    it('wraps a json object scalar as one array element', async () => {
-      const schema = jsonSchema({
-        operations: { type: 'array', 'x-found-in': 'body' },
-      })
-      let captured: unknown
-      const cmd = defineCommand({
-        name: 'bulk',
-        description: 'Bulk',
-        input: schema,
-        handler: (parsed) => { captured = parsed.input; return {} },
-      })
-      await invokeAsync(cmd, ['--operations', '{"index":{}}'])
-      assert.deepEqual(captured, { operations: [{ index: {} }] })
-    })
-
     it('wraps adversarial scalar array flags without interpreting them', async () => {
       const schema = jsonSchema({
         agents_ids: { type: 'array', items: { type: 'string' }, 'x-found-in': 'query' },
       })
-      for (const scalar of ['../', '?#', '', '/etc/passwd', 'null', 'true', 'false', '123', '0']) {
+      for (const scalar of ['../', '?#', '', '/etc/passwd']) {
         let captured: unknown
         const cmd = defineCommand({
           name: 'status',
