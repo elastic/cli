@@ -4376,4 +4376,33 @@ describe('YAML response rendering', () => {
     const out = await capture([], cmd)
     assert.equal(out, 'key: value\n')
   })
+
+  it('returns the yaml body under --json with exit 0 (#588)', async () => {
+    const cmd = defineCommand({
+      name: 'download',
+      description: 'Download',
+      handler: () => new YamlResponse(yamlBody),
+    })
+    const { stdout, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.equal(exitCode, 0)
+    assert.deepEqual(JSON.parse(stdout), {
+      apiVersion: 'v1',
+      kind: 'ConfigMap',
+      metadata: { name: 'agent' },
+    })
+  })
+
+  it('returns an ndjson body as a json array under --json with exit 0 (#588)', async () => {
+    const cmd = defineCommand({
+      name: 'export-list-items',
+      description: 'Export',
+      handler: () => [{ list_id: 'a', value: '1' }, { list_id: 'a', value: '2' }],
+    })
+    const { stdout, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.equal(exitCode, 0)
+    assert.deepEqual(JSON.parse(stdout), [
+      { list_id: 'a', value: '1' },
+      { list_id: 'a', value: '2' },
+    ])
+  })
 })

@@ -319,6 +319,58 @@ describe('KibanaClient.request non-JSON bodies', () => {
     assert.equal(result.text, yaml)
   })
 
+  it('wraps a text/yaml body in a YamlResponse (#588)', async () => {
+    const client = makeClient()
+    const yaml = 'kind: ConfigMap\n'
+    client._testSetFetch(rawFetch(yaml, 'text/yaml'))
+
+    const result = await client.request({ method: 'GET', path: '/api/fleet/kubernetes/download' })
+    assert.ok(result instanceof YamlResponse)
+    assert.equal(result.text, yaml)
+  })
+
+  it('parses application/x-ndjson into an array of objects (#588)', async () => {
+    const client = makeClient()
+    const ndjson = '{"list_id":"a","value":"1"}\n{"list_id":"a","value":"2"}\n'
+    client._testSetFetch(rawFetch(ndjson, 'application/x-ndjson'))
+
+    const result = await client.request({ method: 'POST', path: '/api/lists/items/_export' })
+    assert.deepEqual(result, [
+      { list_id: 'a', value: '1' },
+      { list_id: 'a', value: '2' },
+    ])
+  })
+
+  it('decodes ndjson when Content-Type is application/json but responseType is ndjson (#588)', async () => {
+    const client = makeClient()
+    const ndjson = '{"list_id":"a"}\n{"list_id":"b"}\n'
+    client._testSetFetch(rawFetch(ndjson, 'application/json'))
+
+    const result = await client.request({ method: 'POST', path: '/api/lists/items/_export' }, 'ndjson')
+    assert.deepEqual(result, [{ list_id: 'a' }, { list_id: 'b' }])
+  })
+
+  it('returns a yaml body advertised as application/json as raw text (#588)', async () => {
+    const client = makeClient()
+    const yaml = 'apiVersion: v1\nkind: ConfigMap\n'
+    client._testSetFetch(rawFetch(yaml, 'application/json'))
+
+    const result = await client.request({ method: 'GET', path: '/api/fleet/kubernetes/download' })
+    assert.equal(result, yaml)
+  })
+
+  it('sends Accept: application/x-ndjson when responseType is ndjson', async () => {
+    const client = makeClient()
+    let captured: Record<string, string> = {}
+    client._testSetFetch(((url: string, init: RequestInit) => {
+      captured = init.headers as Record<string, string>
+      return Promise.resolve(new Response('{"id":"1"}\n', { status: 200, headers: { 'content-type': 'application/x-ndjson' } }))
+    }) as typeof fetch)
+
+    await client.request({ method: 'POST', path: '/api/lists/items/_export' }, 'ndjson')
+    assert.equal(captured['Accept'], 'application/x-ndjson')
+  })
+
   it('returns a raw JavaScript body verbatim (oauth callback script)', async () => {
     const client = makeClient()
     const js = '(() => { window.location = "/" })()'

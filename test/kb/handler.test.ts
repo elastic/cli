@@ -112,4 +112,20 @@ describe('createKbHandler', () => {
     await handler(parsed())
     assert.deepEqual(captured, [{ method: 'POST', path: '/api/spaces/space', body: { name: 'x' } }])
   })
+
+  it('forwards definition responseType to client.request (#588)', async () => {
+    const captured: Array<string | undefined> = []
+    const def: KbApiDefinition = { ...listDef(), name: 'export-list-items', responseType: 'ndjson' }
+    const handler = createKbHandler(def, {
+      getKibanaClient: () => ({
+        request: async (_params: KibanaRequestParams, responseType?: string) => {
+          captured.push(responseType)
+          return []
+        },
+      } as unknown as KibanaClient),
+      buildKibanaRequestParams: () => ({ method: 'POST', path: '/api/lists/items/_export' }),
+    })
+    await handler(parsed())
+    assert.deepEqual(captured, ['ndjson'])
+  })
 })
