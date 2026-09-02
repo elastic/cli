@@ -14,7 +14,8 @@
     },
     "packages/config-resolver": {
         "component": "config-resolver",
-        "release-type": "node"
+        "release-type": "node",
+        "exclude-paths": ["src", "test", "codegen", "scripts", "docs", ".github"]
     }
   },
   "plugins": [
