@@ -177,7 +177,8 @@
                   "role": "flag",
                   "name": "operations",
                   "type": "array",
-                  "required": false
+                  "required": false,
+                  "repeatable": true
                 },
                 {
                   "role": "flag",
@@ -739,6 +740,7 @@
                   "type": "array",
                   "required": false,
                   "summary": "The specific `tag` of the request for logging and statistical purposes.",
+                  "repeatable": true,
                   "elementType": "string"
                 },
                 {
@@ -1703,7 +1705,8 @@
                   "name": "docs",
                   "type": "array",
                   "required": false,
-                  "summary": "The documents you want to retrieve. Required if no index is specified in the request URI."
+                  "summary": "The documents you want to retrieve. Required if no index is specified in the request URI.",
+                  "repeatable": true
                 },
                 {
                   "role": "flag",
@@ -2330,6 +2333,7 @@
                   "type": "array",
                   "required": false,
                   "summary": "A comma-separated list of <field>:<direction> pairs.",
+                  "repeatable": true,
                   "elementType": "string"
                 },
                 {
@@ -2338,6 +2342,7 @@
                   "type": "array",
                   "required": false,
                   "summary": "The specific `tag` of the request for logging and statistical purposes.",
+                  "repeatable": true,
                   "elementType": "string"
                 },
                 {
@@ -2731,7 +2736,8 @@
                   "role": "flag",
                   "name": "searches",
                   "type": "array",
-                  "required": false
+                  "required": false,
+                  "repeatable": true
                 },
                 {
                   "role": "flag",
@@ -2835,7 +2841,8 @@
                   "role": "flag",
                   "name": "search-templates",
                   "type": "array",
-                  "required": false
+                  "required": false,
+                  "repeatable": true
                 },
                 {
                   "role": "flag",
@@ -3264,7 +3271,8 @@
                   "name": "docvalue-fields",
                   "type": "array",
                   "required": false,
-                  "summary": "An array of wildcard (`*`) field patterns.\nThe request returns doc values for field names matching these patterns in the `hits.fields` property of the response."
+                  "summary": "An array of wildcard (`*`) field patterns.\nThe request returns doc values for field names matching these patterns in the `hits.fields` property of the response.",
+                  "repeatable": true
                 },
                 {
                   "role": "flag",
@@ -3376,6 +3384,7 @@
                   "type": "array",
                   "required": false,
                   "summary": "The stats groups to associate with the search.\nEach group maintains a statistics aggregation for its associated searches.\nYou can retrieve these stats using the indices stats API.",
+                  "repeatable": true,
                   "elementType": "string"
                 },
                 {
@@ -3569,7 +3578,8 @@
                   "name": "indices-boost",
                   "type": "array",
                   "required": false,
-                  "summary": "Boost the `_score` of documents from specified indices.\nThe boost value is the factor by which scores are multiplied.\nA boost value greater than `1.0` increases the score.\nA boost value between `0` and `1.0` decreases the score."
+                  "summary": "Boost the `_score` of documents from specified indices.\nThe boost value is the factor by which scores are multiplied.\nA boost value greater than `1.0` increases the score.\nA boost value between `0` and `1.0` decreases the score.",
+                  "repeatable": true
                 },
                 {
                   "role": "flag",
@@ -3644,6 +3654,7 @@
                   "type": "array",
                   "required": false,
                   "summary": "Used to retrieve the next page of hits using a set of sort values from the previous page.",
+                  "repeatable": true,
                   "elementType": "number"
                 },
                 {
@@ -3658,7 +3669,8 @@
                   "name": "fields",
                   "type": "array",
                   "required": false,
-                  "summary": "An array of wildcard (`*`) field patterns.\nThe request returns values for field names matching these patterns in the `hits.fields` property of the response."
+                  "summary": "An array of wildcard (`*`) field patterns.\nThe request returns values for field names matching these patterns in the `hits.fields` property of the response.",
+                  "repeatable": true
                 },
                 {
                   "role": "flag",
@@ -4689,6 +4701,7 @@
                   "type": "array",
                   "required": false,
                   "summary": "A comma-separated list of field types to include.\nAny fields that do not match one of these types will be excluded from the results.\nIt defaults to empty, meaning that all field types are returned.",
+                  "repeatable": true,
                   "elementType": "string"
                 },
                 {
@@ -4785,6 +4798,7 @@
                   "type": "array",
                   "required": false,
                   "summary": "A simplified syntax to specify documents by their ID if they're in the same index.",
+                  "repeatable": true,
                   "elementType": "string"
                 },
                 {
@@ -4876,7 +4890,8 @@
                   "name": "docs",
                   "type": "array",
                   "required": false,
-                  "summary": "An array of existing or artificial documents."
+                  "summary": "An array of existing or artificial documents.",
+                  "repeatable": true
                 },
                 {
                   "role": "flag",
@@ -4989,7 +5004,8 @@
                   "name": "requests",
                   "type": "array",
                   "required": true,
-                  "summary": "A set of typical search requests, together with their provided ratings."
+                  "summary": "A set of typical search requests, together with their provided ratings.",
+                  "repeatable": true
                 },
                 {
                   "role": "flag",
@@ -5187,6 +5203,7 @@
                   "type": "array",
                   "required": false,
                   "summary": "A list of fields to include in the statistics.\nIt is used as the default list unless a specific field list is provided in the `completion_fields` or `fielddata_fields` parameters.",
+                  "repeatable": true,
                   "elementType": "string"
                 },
                 {
@@ -6816,7 +6833,8 @@
                       "name": "docvalue-fields",
                       "type": "array",
                       "required": false,
-                      "summary": "Array of wildcard (*) patterns. The request returns doc values for field\nnames matching these patterns in the hits.fields property of the response."
+                      "summary": "Array of wildcard (*) patterns. The request returns doc values for field\nnames matching these patterns in the hits.fields property of the response.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -6907,6 +6925,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Stats groups to associate with the search. Each group maintains a statistics\naggregation for its associated searches. You can retrieve these stats using\nthe indices stats API.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -7089,7 +7108,8 @@
                       "name": "indices-boost",
                       "type": "array",
                       "required": false,
-                      "summary": "Boosts the _score of documents from specified indices."
+                      "summary": "Boosts the _score of documents from specified indices.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -7146,6 +7166,7 @@
                       "name": "search-after",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "number"
                     },
                     {
@@ -7159,7 +7180,8 @@
                       "name": "fields",
                       "type": "array",
                       "required": false,
-                      "summary": "Array of wildcard (*) patterns. The request returns values for field names\nmatching these patterns in the hits.fields property of the response."
+                      "summary": "Array of wildcard (*) patterns. The request returns values for field names\nmatching these patterns in the hits.fields property of the response.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -10622,6 +10644,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The task action names, which are used to limit the response.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -10637,6 +10660,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Unique node identifiers, which are used to limit the response.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -12042,6 +12066,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "An array of simple index patterns to match against indices in the remote cluster specified by the remote_cluster field.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -12050,6 +12075,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "An array of simple index patterns that can be used to exclude indices from being auto-followed. Indices in the remote cluster whose names are matching one or more leader_index_patterns and one or more leader_index_exclusion_patterns won’t be followed.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -13830,7 +13856,8 @@
                       "name": "commands",
                       "type": "array",
                       "required": false,
-                      "summary": "Defines the commands to perform."
+                      "summary": "Defines the commands to perform.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -15710,13 +15737,15 @@
                       "role": "flag",
                       "name": "filtering",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "rules",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -19267,6 +19296,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A comma separated list of previous global checkpoints. When used in combination with `wait_for_advance`,\nthe API will only return once the global checkpoints advances past the checkpoints. Providing an empty list\nwill cause Elasticsearch to immediately return the current global checkpoints.",
+                      "repeatable": true,
                       "elementType": "number"
                     },
                     {
@@ -19438,6 +19468,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A comma separated list of checkpoints. When configured, the search API will only be executed on a shard\nafter the relevant checkpoint has become visible for search. Defaults to an empty list which will cause\nElasticsearch to immediately execute the search.",
+                      "repeatable": true,
                       "elementType": "number"
                     },
                     {
@@ -19451,7 +19482,8 @@
                       "role": "flag",
                       "name": "searches",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -19572,7 +19604,8 @@
                       "name": "docvalue-fields",
                       "type": "array",
                       "required": false,
-                      "summary": "Array of wildcard (*) patterns. The request returns doc values for field\nnames matching these patterns in the hits.fields property of the response."
+                      "summary": "Array of wildcard (*) patterns. The request returns doc values for field\nnames matching these patterns in the hits.fields property of the response.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -19667,6 +19700,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Stats groups to associate with the search. Each group maintains a statistics\naggregation for its associated searches. You can retrieve these stats using\nthe indices stats API.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -19818,6 +19852,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A comma separated list of checkpoints. When configured, the search API will only be executed on a shard\nafter the relevant checkpoint has become visible for search. Defaults to an empty list which will cause\nElasticsearch to immediately execute the search.",
+                      "repeatable": true,
                       "elementType": "number"
                     },
                     {
@@ -19857,7 +19892,8 @@
                       "name": "indices-boost",
                       "type": "array",
                       "required": false,
-                      "summary": "Boosts the _score of documents from specified indices."
+                      "summary": "Boosts the _score of documents from specified indices.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -19905,6 +19941,7 @@
                       "name": "search-after",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "number"
                     },
                     {
@@ -19918,7 +19955,8 @@
                       "name": "fields",
                       "type": "array",
                       "required": false,
-                      "summary": "Array of wildcard (*) patterns. The request returns values for field names\nmatching these patterns in the hits.fields property of the response."
+                      "summary": "Array of wildcard (*) patterns. The request returns values for field names\nmatching these patterns in the hits.fields property of the response.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -20055,7 +20093,8 @@
                       "name": "vertices",
                       "type": "array",
                       "required": false,
-                      "summary": "Specifies one or more fields that contain the terms you want to include in the graph as vertices."
+                      "summary": "Specifies one or more fields that contain the terms you want to include in the graph as vertices.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -21105,6 +21144,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Array of token attributes used to filter the output of the `explain` parameter.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -21113,6 +21153,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Array of character filters used to preprocess characters before the tokenizer.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -21135,6 +21176,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Array of token filters used to apply after the tokenizer.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -25196,7 +25238,8 @@
                       "name": "actions",
                       "type": "array",
                       "required": true,
-                      "summary": "Actions to perform."
+                      "summary": "Actions to perform.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -25606,7 +25649,8 @@
                       "name": "downsampling",
                       "type": "array",
                       "required": false,
-                      "summary": "The downsampling configuration to execute for the managed backing index after rollover."
+                      "summary": "The downsampling configuration to execute for the managed backing index after rollover.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -26010,6 +26054,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "An ordered list of component template names.\nComponent templates are merged in the order specified, meaning that the last component template specified has the highest precedence.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -26060,6 +26105,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The configuration option ignore_missing_component_templates can be used when an index template\nreferences a component template that might not exist",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -26212,6 +26258,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "If date detection is enabled then new string fields are checked\nagainst 'dynamic_date_formats' and if the value matches then\na new date field is added instead of string.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -26219,7 +26266,8 @@
                       "name": "dynamic-templates",
                       "type": "array",
                       "required": false,
-                      "summary": "Specify dynamic templates for the mapping."
+                      "summary": "Specify dynamic templates for the mapping.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -27862,6 +27910,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "An ordered list of component template names.\nComponent templates are merged in the order specified, meaning that the last component template specified has the highest precedence.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -27905,6 +27954,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The configuration option ignore_missing_component_templates can be used when an index template\nreferences a component template that might not exist",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -28286,7 +28336,8 @@
                       "name": "actions",
                       "type": "array",
                       "required": false,
-                      "summary": "Actions to perform."
+                      "summary": "Actions to perform.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -33606,14 +33657,16 @@
                       "name": "on-failure",
                       "type": "array",
                       "required": false,
-                      "summary": "Processors to run immediately after a processor failure. Each processor supports a processor-level `on_failure` value. If a processor without an `on_failure` value fails, Elasticsearch uses this pipeline-level parameter as a fallback. The processors in this parameter run sequentially in the order specified. Elasticsearch will not attempt to run the pipeline's remaining processors."
+                      "summary": "Processors to run immediately after a processor failure. Each processor supports a processor-level `on_failure` value. If a processor without an `on_failure` value fails, Elasticsearch uses this pipeline-level parameter as a fallback. The processors in this parameter run sequentially in the order specified. Elasticsearch will not attempt to run the pipeline's remaining processors.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "processors",
                       "type": "array",
                       "required": false,
-                      "summary": "Processors used to perform transformations on documents before indexing. Processors run sequentially in the order specified."
+                      "summary": "Processors used to perform transformations on documents before indexing. Processors run sequentially in the order specified.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -33719,7 +33772,8 @@
                       "name": "docs",
                       "type": "array",
                       "required": true,
-                      "summary": "Sample documents to test in the pipeline."
+                      "summary": "Sample documents to test in the pipeline.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -34109,7 +34163,8 @@
                       "name": "licenses",
                       "type": "array",
                       "required": false,
-                      "summary": "A sequence of one or more JSON documents containing the license information."
+                      "summary": "A sequence of one or more JSON documents containing the license information.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -38272,7 +38327,8 @@
                       "name": "docs",
                       "type": "array",
                       "required": true,
-                      "summary": "An array of objects to pass to the model for inference. The objects should contain a fields matching your\nconfigured trained model input. Typically, for NLP models, the field name is `text_field`.\nCurrently, for NLP models, only a single value is allowed."
+                      "summary": "An array of objects to pass to the model for inference. The objects should contain a fields matching your\nconfigured trained model input. Typically, for NLP models, the field name is `text_field`.\nCurrently, for NLP models, only a single value is allowed.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -38481,7 +38537,8 @@
                       "name": "events",
                       "type": "array",
                       "required": true,
-                      "summary": "A list of one of more scheduled events. The event’s start and end times can be specified as integer milliseconds since the epoch or as a string in ISO 8601 format."
+                      "summary": "A list of one of more scheduled events. The event’s start and end times can be specified as integer milliseconds since the epoch or as a string in ISO 8601 format.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -38565,7 +38622,8 @@
                       "role": "flag",
                       "name": "data",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -38806,6 +38864,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "An array of anomaly detection job identifiers.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -39313,6 +39372,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The items of the filter. A wildcard `*` can be used at the beginning or the end of an item.\nUp to 10000 items are allowed in each filter.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -39494,6 +39554,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A list of job groups. A job can belong to no groups or many.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -39679,6 +39740,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "An array of tags to organize the model.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -39937,6 +39999,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "The model vocabulary, which must not be empty.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -39945,6 +40008,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The optional model merges if required by the tokenizer.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -39953,6 +40017,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The optional vocabulary value scores if required by the tokenizer.",
+                      "repeatable": true,
                       "elementType": "number"
                     },
                     {
@@ -40965,6 +41030,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "An array of index names. Wildcards are supported. If any of the indices are in remote clusters, the machine\nlearning nodes must have the `remote_cluster_client` role.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -41092,6 +41158,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The items to add to the filter.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -41107,6 +41174,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The items to remove from the filter.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -41205,6 +41273,7 @@
                       "name": "categorization-filters",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -41260,6 +41329,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A list of job groups. A job can belong to no groups or many.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -41267,7 +41337,8 @@
                       "name": "detectors",
                       "type": "array",
                       "required": false,
-                      "summary": "An array of detector update objects."
+                      "summary": "An array of detector update objects.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -42124,6 +42195,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A comma-separated list of document types for the indexing index metric.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -43696,7 +43768,8 @@
                       "name": "metrics",
                       "type": "array",
                       "required": false,
-                      "summary": "Defines the metrics to collect for each grouping tuple. By default, only the doc_counts are collected for each\ngroup. To make rollup useful, you will often add metrics like averages, mins, maxes, etc. Metrics are defined\non a per-field basis and for each field you configure which metric should be collected."
+                      "summary": "Defines the metrics to collect for each grouping tuple. By default, only the doc_counts are collected for each\ngroup. To make rollup useful, you will often add metrics like averages, mins, maxes, etc. Metrics are defined\non a per-field basis and for each field you configure which metric should be collected.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -44265,6 +44338,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A list of analytics collections to limit the returned information",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -45016,6 +45090,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The names of settings that should be removed from the index when it is mounted.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -45343,6 +45418,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "An array of role names to delete",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -45804,6 +45880,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A comma-separated list of the users to clear from the cache.\nIf you do not specify this parameter, the API evicts all users from the user cache.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -46403,6 +46480,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "The X509Certificate chain, which is represented as an ordered string array.\nEach string in the array is a base64-encoded (Section 4 of RFC4648 - not base64url-encoded) of the certificate's DER encoding.\n\nThe first element is the target certificate that contains the subject distinguished name that is requesting access.\nThis may be followed by additional certificates; each subsequent certificate is used to certify the previous one.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -48454,20 +48532,23 @@
                       "role": "flag",
                       "name": "application",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "cluster",
                       "type": "array",
                       "required": false,
-                      "summary": "A list of the cluster privileges that you want to check."
+                      "summary": "A list of the cluster privileges that you want to check.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "index",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -48542,6 +48623,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "A list of profile IDs. The privileges are checked for associated users of the profiles.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -48623,6 +48705,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A list of API key ids.\nThis parameter cannot be used with any of `name`, `realm_name`, or `username`.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -49158,14 +49241,16 @@
                       "name": "applications",
                       "type": "array",
                       "required": false,
-                      "summary": "A list of application privilege entries."
+                      "summary": "A list of application privilege entries.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "cluster",
                       "type": "array",
                       "required": false,
-                      "summary": "A list of cluster privileges. These privileges define the cluster-level actions for users with this role."
+                      "summary": "A list of cluster privileges. These privileges define the cluster-level actions for users with this role.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -49179,21 +49264,24 @@
                       "name": "indices",
                       "type": "array",
                       "required": false,
-                      "summary": "A list of indices permissions entries."
+                      "summary": "A list of indices permissions entries.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "remote-indices",
                       "type": "array",
                       "required": false,
-                      "summary": "A list of remote indices permissions entries.\n\nNOTE: Remote indices are effective for remote clusters configured with the API key based model.\nThey have no effect for remote clusters configured with the certificate based model."
+                      "summary": "A list of remote indices permissions entries.\n\nNOTE: Remote indices are effective for remote clusters configured with the API key based model.\nThey have no effect for remote clusters configured with the certificate based model.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "remote-cluster",
                       "type": "array",
                       "required": false,
-                      "summary": "A list of remote cluster permissions entries."
+                      "summary": "A list of remote cluster permissions entries.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -49208,6 +49296,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A list of users that the owners of this role can impersonate. *Note*: in Serverless, the run-as feature is disabled. For API compatibility, you can still specify an empty `run_as` field, but a non-empty list will be rejected.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -49323,6 +49412,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A list of role names that are granted to the users that match the role mapping rules.\nExactly one of `roles` or `role_templates` must be specified.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -49330,7 +49420,8 @@
                       "name": "role-templates",
                       "type": "array",
                       "required": false,
-                      "summary": "A list of Mustache templates that will be evaluated to determine the roles names that should granted to the users that match the role mapping rules.\nExactly one of `roles` or `role_templates` must be specified."
+                      "summary": "A list of Mustache templates that will be evaluated to determine the roles names that should granted to the users that match the role mapping rules.\nExactly one of `roles` or `role_templates` must be specified.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -49344,6 +49435,7 @@
                       "name": "run-as",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -49473,6 +49565,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A set of roles the user has.\nThe roles determine the user's access permissions.\nTo create a user without any roles, specify an empty list (`[]`).",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -49606,6 +49699,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The search after definition.",
+                      "repeatable": true,
                       "elementType": "number"
                     },
                     {
@@ -49704,6 +49798,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The search after definition.",
+                      "repeatable": true,
                       "elementType": "number"
                     },
                     {
@@ -49809,6 +49904,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The search after definition",
+                      "repeatable": true,
                       "elementType": "number"
                     },
                     {
@@ -50837,7 +50933,8 @@
                       "name": "docs",
                       "type": "array",
                       "required": true,
-                      "summary": "Sample documents to test in the pipeline."
+                      "summary": "Sample documents to test in the pipeline.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -51884,6 +51981,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The feature states to include in the snapshot.\nEach feature state includes one or more system indices containing related data.\nYou can view a list of eligible features using the get features API.\n\nIf `include_global_state` is `true`, all current feature states are included by default.\nIf `include_global_state` is `false`, no feature states are included by default.\n\nNote that specifying an empty array will result in the default behavior.\nTo exclude all feature states, regardless of the `include_global_state` value, specify an array with only the value `none` (`[\"none\"]`).",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -52842,6 +52940,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The feature states to restore.\nIf `include_global_state` is `true`, the request restores all feature states in the snapshot by default.\nIf `include_global_state` is `false`, the request restores no feature states by default.\nNote that specifying an empty array will result in the default behavior.\nTo restore no feature states, regardless of the `include_global_state` value, specify an array containing only the value `none` (`[\"none\"]`).",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -52850,6 +52949,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The index settings to not restore from the snapshot.\nYou can't use this option to ignore `index.number_of_shards`.\n\nFor data streams, this option applies only to restored backing indices.\nNew backing indices are configured using the data stream's matching index template.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -53553,7 +53653,8 @@
                       "name": "params",
                       "type": "array",
                       "required": false,
-                      "summary": "The values for parameters in the query."
+                      "summary": "The values for parameters in the query.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -54643,6 +54744,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A comma-separated list of node IDs or names that is used to limit the request.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -55204,6 +55306,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "The list of messages you want to analyze.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -55389,7 +55492,8 @@
                       "role": "flag",
                       "name": "text-files",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -55439,6 +55543,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "The lines of text to run the Grok pattern on.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -57485,6 +57590,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Retrieve the next page of hits using a set of sort values from the previous page.",
+                      "repeatable": true,
                       "elementType": "number"
                     },
                     {
@@ -57854,7 +57960,8 @@
                       "name": "categories",
                       "type": "array",
                       "required": false,
-                      "summary": "A comma-separated list of the information categories to include in the response.\nFor example, `build,license,features`."
+                      "summary": "A comma-separated list of the information categories to include in the response.\nFor example, `build,license,features`.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -58154,6 +58261,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Optional labels for categorizing and organizing agents.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -58217,7 +58325,8 @@
                       "name": "search-after",
                       "type": "array",
                       "required": false,
-                      "summary": "Cursor for pagination. Pass the search_after value from the previous response."
+                      "summary": "Cursor for pagination. Pass the search_after value from the previous response.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -58255,6 +58364,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Filter results to conversations by these usernames.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -58415,6 +58525,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Updated labels for categorizing and organizing agents.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -58505,7 +58616,8 @@
                       "name": "entries",
                       "type": "array",
                       "required": true,
-                      "summary": "Access-control entries to apply to the agent. Each entry has a `type` (currently only `user` is supported), a `name` (the principal username), and a `role`."
+                      "summary": "Access-control entries to apply to the agent. Each entry has a `type` (currently only `user` is supported), a `name` (the principal username), and a `role`.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -58738,7 +58850,8 @@
                       "name": "entries",
                       "type": "array",
                       "required": true,
-                      "summary": "Members to share the conversation with. The list replaces the stored one; submit an empty list to unshare. Entries naming the owner are ignored. Must be empty when `access_mode` is `public`; repeated ids are rejected."
+                      "summary": "Members to share the conversation with. The list replaces the stored one; submit an empty list to unshare. Entries naming the owner are ignored. Must be empty when `access_mode` is `public`; repeated ids are rejected.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -59232,14 +59345,16 @@
                       "name": "attachments",
                       "type": "array",
                       "required": false,
-                      "summary": "Optional attachments to send with the message."
+                      "summary": "Optional attachments to send with the message.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "browser-api-tools",
                       "type": "array",
                       "required": false,
-                      "summary": "Optional browser API tools to be registered as LLM tools with browser.* namespace. These tools execute on the client side."
+                      "summary": "Optional browser API tools to be registered as LLM tools with browser.* namespace. These tools execute on the client side.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -59372,14 +59487,16 @@
                       "name": "attachments",
                       "type": "array",
                       "required": false,
-                      "summary": "Optional attachments to send with the message."
+                      "summary": "Optional attachments to send with the message.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "browser-api-tools",
                       "type": "array",
                       "required": false,
-                      "summary": "Optional browser API tools to be registered as LLM tools with browser.* namespace. These tools execute on the client side."
+                      "summary": "Optional browser API tools to be registered as LLM tools with browser.* namespace. These tools execute on the client side.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -59739,7 +59856,8 @@
                       "role": "flag",
                       "name": "referenced-content",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -59747,6 +59865,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Tool IDs from the tool registry that this skill references.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -59899,7 +60018,8 @@
                       "role": "flag",
                       "name": "referenced-content",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -59907,6 +60027,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Updated tool IDs from the tool registry.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -59998,6 +60119,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Optional tags for categorizing and organizing tools.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -60214,6 +60336,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Updated tags for categorizing and organizing tools.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -60348,7 +60471,8 @@
                       "role": "flag",
                       "name": "actions",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -60429,6 +60553,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The tags for the rule.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -60484,7 +60609,8 @@
                       "role": "flag",
                       "name": "actions",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -60542,6 +60668,7 @@
                       "name": "tags",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -60946,7 +61073,8 @@
                       "name": "conditions",
                       "type": "array",
                       "required": false,
-                      "summary": "One or more conditions that, when met, automatically expire the snooze. Supported types: `field_change`, `severity_change`, `severity_equals`."
+                      "summary": "One or more conditions that, when met, automatically expire the snooze. Supported types: `field_change`, `severity_change`, `severity_equals`.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -61157,6 +61285,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The fields to perform the simple_query_string parsed query against.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -61190,6 +61319,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The fields to return in the `attributes` key of the response.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -61205,6 +61335,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Filters the returned rules by the consumer (Kibana application) that owns them, for example: `siem`, `apm`, `infrastructure`.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -61472,6 +61603,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Filter by tags. Accepts a single string or an array.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -61551,7 +61683,8 @@
                       "name": "destinations",
                       "type": "array",
                       "required": true,
-                      "summary": "The list of destinations. At least one is required."
+                      "summary": "The list of destinations. At least one is required.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -61559,6 +61692,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The fields used to group alerts.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -61588,6 +61722,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Tags for categorizing the action policy.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -61631,6 +61766,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Explicit list of IDs to operate on.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -61667,6 +61803,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Explicit list of IDs to operate on.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -61703,6 +61840,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Explicit list of IDs to operate on.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -61739,6 +61877,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Explicit list of IDs to operate on.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -61782,6 +61921,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Explicit list of IDs to operate on.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -61818,6 +61958,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Explicit list of IDs to operate on.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -61984,16 +62125,16 @@
                       "name": "destinations",
                       "type": "array",
                       "required": false,
-                      "summary": "The list of destinations. At least one is required."
+                      "summary": "The list of destinations. At least one is required.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "group-by",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
                       "summary": "The fields used to group alerts.",
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -62019,11 +62160,10 @@
                     {
                       "role": "flag",
                       "name": "tags",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
                       "summary": "Tags for categorizing the action policy.",
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -62086,7 +62226,8 @@
                       "name": "destinations",
                       "type": "array",
                       "required": true,
-                      "summary": "The list of destinations. At least one is required."
+                      "summary": "The list of destinations. At least one is required.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -62094,6 +62235,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The fields used to group alerts.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -62123,6 +62265,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Tags for categorizing the action policy.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -62634,6 +62777,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "List of tags to add to the alert.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -62768,6 +62912,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Episode filter. Narrows events to those referencing at least one of the provided episode ids.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -62783,6 +62928,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Explicit rule filter. Narrows events to those referencing at least one of the provided rule ids. Also unions with the search filter if both are provided.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -62790,7 +62936,8 @@
                       "name": "outcome",
                       "type": "array",
                       "required": false,
-                      "summary": "Outcome filter. When omitted matches all outcomes. Pass one or more of \"dispatched\", \"throttled\", \"dispatch_failed\" to narrow."
+                      "summary": "Outcome filter. When omitted matches all outcomes. Pass one or more of \"dispatched\", \"throttled\", \"dispatch_failed\" to narrow.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -62829,6 +62976,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Rule id filter. ",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -62836,7 +62984,8 @@
                       "name": "outcome",
                       "type": "array",
                       "required": false,
-                      "summary": "Outcome filter. "
+                      "summary": "Outcome filter. ",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -63006,7 +63155,8 @@
                       "name": "artifacts",
                       "type": "array",
                       "required": false,
-                      "summary": "Artifacts attached to the rule, each shaped as `{ id, type, data }`. `data` is a type-specific object (for example a `runbook` may carry `content`, a `dashboard` may carry `dashboardId`). Per-type shape is validated by the artifact-type registry when the type is registered; unregistered types pass through with envelope bounds only."
+                      "summary": "Artifacts attached to the rule, each shaped as `{ id, type, data }`. `data` is a type-specific object (for example a `runbook` may carry `content`, a `dashboard` may carry `dashboardId`). Per-type shape is validated by the artifact-type registry when the type is registered; unregistered types pass through with envelope bounds only.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -63101,6 +63251,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Explicit list of IDs to operate on.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -63137,6 +63288,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Explicit list of IDs to operate on.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -63173,6 +63325,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Explicit list of IDs to operate on.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -63209,6 +63362,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Rule identifiers to retrieve. The response preserved this order.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -63245,6 +63399,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Explicit list of IDs to operate on.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -63604,11 +63759,10 @@
                     {
                       "role": "flag",
                       "name": "artifacts",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
                       "summary": "Artifacts attached to the rule, each shaped as `{ id, type, data }`. `data` is a type-specific object (for example a `runbook` may carry `content`, a `dashboard` may carry `dashboardId`). Per-type shape is validated by the artifact-type registry when the type is registered; unregistered types pass through with envelope bounds only.",
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -63705,7 +63859,8 @@
                       "name": "artifacts",
                       "type": "array",
                       "required": false,
-                      "summary": "Artifacts attached to the rule, each shaped as `{ id, type, data }`. `data` is a type-specific object (for example a `runbook` may carry `content`, a `dashboard` may carry `dashboardId`). Per-type shape is validated by the artifact-type registry when the type is registered; unregistered types pass through with envelope bounds only."
+                      "summary": "Artifacts attached to the rule, each shaped as `{ id, type, data }`. `data` is a type-specific object (for example a `runbook` may carry `content`, a `dashboard` may carry `dashboardId`). Per-type shape is validated by the artifact-type registry when the type is registered; unregistered types pass through with envelope bounds only.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -64409,7 +64564,8 @@
                       "name": "privileges",
                       "type": "array",
                       "required": true,
-                      "summary": "The APM agent key privileges. It can take one or more of the following values:\n* `event:write`, which is required for ingesting APM agent events. * `config_agent:read`, which is required for APM agents to read agent configuration remotely.\n"
+                      "summary": "The APM agent key privileges. It can take one or more of the following values:\n* `event:write`, which is required for ingesting APM agent events. * `config_agent:read`, which is required for APM agents to read agent configuration remotely.\n",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -64480,6 +64636,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Tags are used by the Applications UI to distinguish APM annotations from other annotations. Tags may have additional functionality in future releases. It defaults to `[apm]`. While you can add additional tags, you cannot remove the `apm` tag.\n",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -64654,7 +64811,8 @@
                       "name": "cases",
                       "type": "array",
                       "required": true,
-                      "summary": "An array containing one or more case objects."
+                      "summary": "An array containing one or more case objects.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -64687,10 +64845,9 @@
                     {
                       "role": "flag",
                       "name": "assignees",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -64709,7 +64866,8 @@
                       "name": "custom-fields",
                       "type": "array",
                       "required": false,
-                      "summary": "Custom field values for a case. Any optional custom fields that are not specified in the request are set to null.\n"
+                      "summary": "Custom field values for a case. Any optional custom fields that are not specified in the request are set to null.\n",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -64751,6 +64909,7 @@
                       "name": "tags",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -65353,7 +65512,8 @@
                       "name": "types",
                       "type": "array",
                       "required": false,
-                      "summary": "Determines the types of user actions to return."
+                      "summary": "Determines the types of user actions to return.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -65478,7 +65638,8 @@
                       "name": "custom-fields",
                       "type": "array",
                       "required": false,
-                      "summary": "Custom fields case configuration."
+                      "summary": "Custom fields case configuration.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -65495,7 +65656,8 @@
                       "role": "flag",
                       "name": "templates",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -65554,13 +65716,15 @@
                       "name": "custom-fields",
                       "type": "array",
                       "required": false,
-                      "summary": "Custom fields case configuration."
+                      "summary": "Custom fields case configuration.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "templates",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -65789,6 +65953,7 @@
                       "name": "tags",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -65960,6 +66125,7 @@
                       "name": "tags",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -67913,7 +68079,8 @@
                       "role": "flag",
                       "name": "additional-metrics",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -68096,6 +68263,7 @@
                       "name": "tags-to-add",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -68103,6 +68271,7 @@
                       "name": "tags-to-remove",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -68620,7 +68789,8 @@
                       "role": "flag",
                       "name": "agent-features",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -68663,7 +68833,8 @@
                       "name": "global-data-tags",
                       "type": "array",
                       "required": false,
-                      "summary": "User defined data tags that are added to all of the inputs. The values can be strings or numbers."
+                      "summary": "User defined data tags that are added to all of the inputs. The values can be strings or numbers.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -68722,7 +68893,7 @@
                     {
                       "role": "flag",
                       "name": "keep-monitoring-alive",
-                      "type": "string",
+                      "type": "boolean",
                       "required": false,
                       "summary": "When set to true, monitoring will be enabled but logs/metrics collection will be disabled"
                     },
@@ -68742,7 +68913,8 @@
                       "role": "flag",
                       "name": "monitoring-enabled",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -68784,30 +68956,29 @@
                     {
                       "role": "flag",
                       "name": "package-agent-version-conditions",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "required-versions",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "space-ids",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
                       "role": "flag",
                       "name": "supports-agentless",
-                      "type": "string",
+                      "type": "boolean",
                       "required": false,
                       "summary": "Indicates whether the agent policy supports agentless integrations. Deprecated in favor of the Fleet managed integrations API."
                     },
@@ -68869,6 +69040,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "list of package policy ids",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -68982,7 +69154,8 @@
                       "role": "flag",
                       "name": "agent-features",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -69031,7 +69204,8 @@
                       "name": "global-data-tags",
                       "type": "array",
                       "required": false,
-                      "summary": "User defined data tags that are added to all of the inputs. The values can be strings or numbers."
+                      "summary": "User defined data tags that are added to all of the inputs. The values can be strings or numbers.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -69090,7 +69264,7 @@
                     {
                       "role": "flag",
                       "name": "keep-monitoring-alive",
-                      "type": "string",
+                      "type": "boolean",
                       "required": false,
                       "summary": "When set to true, monitoring will be enabled but logs/metrics collection will be disabled"
                     },
@@ -69110,7 +69284,8 @@
                       "role": "flag",
                       "name": "monitoring-enabled",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -69152,30 +69327,29 @@
                     {
                       "role": "flag",
                       "name": "package-agent-version-conditions",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "required-versions",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "space-ids",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
                       "role": "flag",
                       "name": "supports-agentless",
-                      "type": "string",
+                      "type": "boolean",
                       "required": false,
                       "summary": "Indicates whether the agent policy supports agentless integrations. Deprecated in favor of the Fleet managed integrations API."
                     },
@@ -69530,6 +69704,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "list of package policy ids",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -69684,6 +69859,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Filter by one or more agent policy IDs",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -69737,6 +69913,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Agent IDs to check data for, as an array or comma-separated string",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -69929,6 +70106,7 @@
                       "name": "action-ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -70061,6 +70239,7 @@
                       "name": "tags",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -70591,7 +70770,8 @@
                       "role": "flag",
                       "name": "asset-ids",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -70670,7 +70850,8 @@
                       "role": "flag",
                       "name": "datasets",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -70724,6 +70905,7 @@
                       "name": "categories",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -70888,7 +71070,8 @@
                       "role": "flag",
                       "name": "packages",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -70924,6 +71107,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Namespaces to disable namespace-level customization for on each package.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -70932,6 +71116,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Namespaces to enable namespace-level customization for on each package.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -70940,6 +71125,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Package names to apply the customization changes to.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -70974,7 +71160,8 @@
                       "role": "flag",
                       "name": "packages",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -71052,7 +71239,8 @@
                       "role": "flag",
                       "name": "packages",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -71130,7 +71318,8 @@
                       "role": "flag",
                       "name": "packages",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -71416,6 +71605,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Namespaces for which namespace-level customization is enabled on this package.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -71690,6 +71880,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Namespaces for which namespace-level customization is enabled on this package.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -72059,7 +72250,8 @@
                       "role": "flag",
                       "name": "transforms",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -72247,7 +72439,8 @@
                       "name": "search-after",
                       "type": "array",
                       "required": false,
-                      "summary": "Sort values from the previous page for `search_after` pagination"
+                      "summary": "Sort values from the previous page for `search_after` pagination",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -72497,11 +72690,10 @@
                     {
                       "role": "flag",
                       "name": "additional-datastreams-permissions",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
                       "summary": "Additional data stream permissions that will be added to the agent policy.",
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -72534,7 +72726,8 @@
                       "role": "flag",
                       "name": "global-data-tags",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -72625,6 +72818,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "IDs of the managed integrations to upgrade to their installed package version.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -72668,6 +72862,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "IDs of the managed integrations to preview upgrading.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -72798,11 +72993,10 @@
                     {
                       "role": "flag",
                       "name": "additional-datastreams-permissions",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
                       "summary": "Additional data stream permissions that will be added to the agent policy.",
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -72835,7 +73029,8 @@
                       "role": "flag",
                       "name": "global-data-tags",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -73383,6 +73578,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "List of enrollment token IDs to delete.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -73648,6 +73844,7 @@
                       "name": "kibana-urls",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -73737,6 +73934,7 @@
                       "name": "allowed-namespace-prefixes",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -73850,11 +74048,10 @@
                     {
                       "role": "flag",
                       "name": "additional-datastreams-permissions",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
                       "summary": "Additional data stream permissions that will be added to the agent policy.",
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -73887,7 +74084,8 @@
                       "role": "flag",
                       "name": "global-data-tags",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -73978,6 +74176,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "IDs of the managed integrations to upgrade to their installed package version.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -74021,6 +74220,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "IDs of the managed integrations to preview upgrading.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -74151,11 +74351,10 @@
                     {
                       "role": "flag",
                       "name": "additional-datastreams-permissions",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
                       "summary": "Additional data stream permissions that will be added to the agent policy.",
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -74188,7 +74387,8 @@
                       "role": "flag",
                       "name": "global-data-tags",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -74333,6 +74533,7 @@
                       "name": "allow-edit",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -74358,6 +74559,7 @@
                       "name": "hosts",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -74399,7 +74601,7 @@
                     {
                       "role": "flag",
                       "name": "otel-disable-beatsauth",
-                      "type": "string",
+                      "type": "boolean",
                       "required": false
                     },
                     {
@@ -74458,7 +74660,7 @@
                     {
                       "role": "flag",
                       "name": "write-to-logs-streams",
-                      "type": "string",
+                      "type": "boolean",
                       "required": false
                     },
                     {
@@ -74530,7 +74732,7 @@
                     {
                       "role": "flag",
                       "name": "compression-level",
-                      "type": "string",
+                      "type": "number",
                       "required": false
                     },
                     {
@@ -74553,7 +74755,8 @@
                       "role": "flag",
                       "name": "headers",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -74754,6 +74957,7 @@
                       "name": "allow-edit",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -74779,6 +74983,7 @@
                       "name": "hosts",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -74820,7 +75025,7 @@
                     {
                       "role": "flag",
                       "name": "otel-disable-beatsauth",
-                      "type": "string",
+                      "type": "boolean",
                       "required": false
                     },
                     {
@@ -74879,7 +75084,7 @@
                     {
                       "role": "flag",
                       "name": "write-to-logs-streams",
-                      "type": "string",
+                      "type": "boolean",
                       "required": false
                     },
                     {
@@ -74951,7 +75156,7 @@
                     {
                       "role": "flag",
                       "name": "compression-level",
-                      "type": "string",
+                      "type": "number",
                       "required": false
                     },
                     {
@@ -74974,7 +75179,8 @@
                       "role": "flag",
                       "name": "headers",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -75237,11 +75443,10 @@
                     {
                       "role": "flag",
                       "name": "additional-datastreams-permissions",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
                       "summary": "Additional data stream permissions that will be added to the agent policy.",
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -75294,10 +75499,9 @@
                     {
                       "role": "flag",
                       "name": "global-data-tags",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -75371,6 +75575,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "IDs of the agent policies that the package policy will be added to.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -75378,19 +75583,20 @@
                       "name": "space-ids",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
                       "role": "flag",
                       "name": "supports-agentless",
-                      "type": "string",
+                      "type": "boolean",
                       "required": false,
                       "summary": "Indicates whether the package policy belongs to an agentless agent policy. Deprecated in favor of the Fleet managed integrations API."
                     },
                     {
                       "role": "flag",
                       "name": "supports-cloud-connector",
-                      "type": "string",
+                      "type": "boolean",
                       "required": false,
                       "summary": "Indicates whether the package policy supports cloud connectors."
                     },
@@ -75453,6 +75659,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "list of package policy ids",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -75611,11 +75818,10 @@
                     {
                       "role": "flag",
                       "name": "additional-datastreams-permissions",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
                       "summary": "Additional data stream permissions that will be added to the agent policy.",
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -75661,10 +75867,9 @@
                     {
                       "role": "flag",
                       "name": "global-data-tags",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -75731,6 +75936,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "IDs of the agent policies that the package policy will be added to.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -75738,19 +75944,20 @@
                       "name": "space-ids",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
                       "role": "flag",
                       "name": "supports-agentless",
-                      "type": "string",
+                      "type": "boolean",
                       "required": false,
                       "summary": "Indicates whether the package policy belongs to an agentless agent policy. Deprecated in favor of the Fleet managed integrations API."
                     },
                     {
                       "role": "flag",
                       "name": "supports-cloud-connector",
-                      "type": "string",
+                      "type": "boolean",
                       "required": false,
                       "summary": "Indicates whether the package policy supports cloud connectors."
                     },
@@ -75830,6 +76037,7 @@
                       "name": "package-policy-ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -75865,6 +76073,7 @@
                       "name": "package-policy-ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -75900,6 +76109,7 @@
                       "name": "package-policy-ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -76236,6 +76446,7 @@
                       "name": "allow-edit",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -76243,6 +76454,7 @@
                       "name": "host-urls",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -76416,6 +76628,7 @@
                       "name": "allow-edit",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -76423,6 +76636,7 @@
                       "name": "host-urls",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -76706,6 +76920,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A tag ID to include. Accepts a single tag ID or multiple tag IDs. When multiple are specified, library items matching any of the tag IDs are included.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -76714,6 +76929,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A tag ID to exclude. Accepts a single tag ID or multiple tag IDs. When multiple are specified, library items matching any of the tag IDs are excluded.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -76722,6 +76938,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A tag name to include. Accepts a single tag name or multiple tag names. When multiple are specified, library items matching any of the tag names are included. If the same name is shared by multiple tags, items matching any of those tags are included.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -76730,6 +76947,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A tag name to exclude. Accepts a single tag name or multiple tag names. When multiple are specified, library items matching any of the tag names are excluded. If the same name is shared by multiple tags, items matching any of those tags are excluded.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -76785,7 +77003,8 @@
                       "name": "links",
                       "type": "array",
                       "required": true,
-                      "summary": "The list of links to display."
+                      "summary": "The list of links to display.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -76793,6 +77012,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Tag IDs associated with this library item.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -76941,7 +77161,8 @@
                       "name": "links",
                       "type": "array",
                       "required": true,
-                      "summary": "The list of links to display."
+                      "summary": "The list of links to display.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -76949,6 +77170,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Tag IDs associated with this library item.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -77068,7 +77290,8 @@
                       "name": "status",
                       "type": "array",
                       "required": false,
-                      "summary": "The status of the maintenance window. It can be \"running\", \"upcoming\", \"finished\", \"archived\", or \"disabled\"."
+                      "summary": "The status of the maintenance window. It can be \"running\", \"upcoming\", \"finished\", \"archived\", or \"disabled\".",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -77833,7 +78056,8 @@
                       "role": "flag",
                       "name": "actions",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -77861,14 +78085,16 @@
                       "name": "instructions",
                       "type": "array",
                       "required": false,
-                      "summary": "An array of instruction objects, which can be either simple strings or detailed objects."
+                      "summary": "An array of instruction objects, which can be either simple strings or detailed objects.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "messages",
                       "type": "array",
                       "required": true,
-                      "summary": "An array of message objects containing the conversation history."
+                      "summary": "An array of message objects containing the conversation history.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -78078,7 +78304,8 @@
                       "role": "flag",
                       "name": "kibana",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -78185,7 +78412,8 @@
                       "name": "objects",
                       "type": "array",
                       "required": false,
-                      "summary": "A list of objects to export. NOTE: this optional parameter cannot be combined with the `types` option"
+                      "summary": "A list of objects to export. NOTE: this optional parameter cannot be combined with the `types` option",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -78353,7 +78581,8 @@
                       "name": "create",
                       "type": "array",
                       "required": false,
-                      "summary": "Array of anonymization fields to create."
+                      "summary": "Array of anonymization fields to create.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -78367,7 +78596,8 @@
                       "name": "update",
                       "type": "array",
                       "required": false,
-                      "summary": "Array of anonymization fields to update."
+                      "summary": "Array of anonymization fields to update.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -78403,6 +78633,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Fields to return",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -78536,7 +78767,8 @@
                       "name": "messages",
                       "type": "array",
                       "required": true,
-                      "summary": "List of chat messages exchanged so far."
+                      "summary": "List of chat messages exchanged so far.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -78600,6 +78832,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Optional list of conversation IDs to delete.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -78677,7 +78910,8 @@
                       "name": "messages",
                       "type": "array",
                       "required": false,
-                      "summary": "The conversation messages."
+                      "summary": "The conversation messages.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -78726,6 +78960,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A list of fields to include in the response. If omitted, all fields are returned.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -79129,7 +79364,8 @@
                       "name": "create",
                       "type": "array",
                       "required": false,
-                      "summary": "List of Knowledge Base Entries to create."
+                      "summary": "List of Knowledge Base Entries to create.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -79142,7 +79378,8 @@
                       "name": "update",
                       "type": "array",
                       "required": false,
-                      "summary": "List of Knowledge Base Entries to update."
+                      "summary": "List of Knowledge Base Entries to update.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -79178,6 +79415,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A list of fields to include in the response. If not provided, all fields will be included.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -79388,7 +79626,8 @@
                       "name": "create",
                       "type": "array",
                       "required": false,
-                      "summary": "List of prompts to be created."
+                      "summary": "List of prompts to be created.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -79402,7 +79641,8 @@
                       "name": "update",
                       "type": "array",
                       "required": false,
-                      "summary": "List of prompts to be updated."
+                      "summary": "List of prompts to be updated.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -79438,6 +79678,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "List of specific fields to include in each returned prompt.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -79564,6 +79805,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Filter results to Attack discoveries that include any of the provided alert IDs",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -79572,6 +79814,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Filter results to Attack discoveries created by any of the provided human readable connector names. Note that values must match the human readable `connector_name` property of an Attack discovery, e.g. \"GPT-5 Chat\", which are distinct from `connector_id` values used to generate Attack discoveries.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -79594,6 +79837,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Filter results to the Attack discoveries with the specified IDs",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -79678,7 +79922,8 @@
                       "name": "status",
                       "type": "array",
                       "required": false,
-                      "summary": "Filter by alert workflow status. Provide one or more of the allowed workflow states."
+                      "summary": "Filter by alert workflow status. Provide one or more of the allowed workflow states.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -79730,7 +79975,8 @@
                       "name": "anonymization-fields",
                       "type": "array",
                       "required": true,
-                      "summary": "The list of fields, and whether or not they are anonymized, allowed to be sent to LLMs. Consider using the output of the `/api/security_ai_assistant/anonymization_fields/_find` API (for a specific Kibana space) to provide this value."
+                      "summary": "The list of fields, and whether or not they are anonymized, allowed to be sent to LLMs. Consider using the output of the `/api/security_ai_assistant/anonymization_fields/_find` API (for a specific Kibana space) to provide this value.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -79971,7 +80217,8 @@
                       "name": "actions",
                       "type": "array",
                       "required": false,
-                      "summary": "The Attack Discovery schedule actions"
+                      "summary": "The Attack Discovery schedule actions",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -80035,6 +80282,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "The unique identifiers of the Attack Discovery schedules to update.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -80071,6 +80319,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "The unique identifiers of the Attack Discovery schedules to update.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -80107,6 +80356,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "The unique identifiers of the Attack Discovery schedules to update.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -80295,7 +80545,8 @@
                       "name": "actions",
                       "type": "array",
                       "required": true,
-                      "summary": "The Attack Discovery schedule actions"
+                      "summary": "The Attack Discovery schedule actions",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -80437,6 +80688,7 @@
                       "name": "ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -80492,6 +80744,7 @@
                       "name": "fields",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -80593,6 +80846,7 @@
                       "name": "ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -80889,7 +81143,8 @@
                       "name": "gap-fill-statuses",
                       "type": "array",
                       "required": false,
-                      "summary": "Gap fill statuses to filter rules with gaps by status (used together with gaps_range_*)."
+                      "summary": "Gap fill statuses to filter rules with gaps by status (used together with gaps_range_*).",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -80911,6 +81166,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Array of rule `id`s to which a bulk action will be applied. Do not use rule's `rule_id` here.\nOnly valid when query property is undefined.\n",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -80946,7 +81202,8 @@
                       "name": "edit",
                       "type": "array",
                       "required": false,
-                      "summary": "Array of objects containing the edit operations"
+                      "summary": "Array of objects containing the edit operations",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -81023,6 +81280,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "List of `alert.attributes` field names to return for each rule (for example `name`, `enabled`).\nIf omitted, the default field set is returned. Repeat the parameter to pass multiple field names, or\nuse comma-separated values when supported by your client.\n",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -81099,7 +81357,8 @@
                       "name": "gap-fill-statuses",
                       "type": "array",
                       "required": false,
-                      "summary": "Gap fill statuses"
+                      "summary": "Gap fill statuses",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -81214,7 +81473,8 @@
                       "name": "actions",
                       "type": "array",
                       "required": false,
-                      "summary": "Array defining the automated actions (notifications) taken when alerts are generated."
+                      "summary": "Array defining the automated actions (notifications) taken when alerts are generated.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -81237,6 +81497,7 @@
                       "name": "author",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -81261,13 +81522,15 @@
                       "role": "flag",
                       "name": "exceptions-list",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "false-positives",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -81346,26 +81609,30 @@
                       "name": "references",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
                       "role": "flag",
                       "name": "related-integrations",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "required-fields",
                       "type": "array",
                       "required": false,
-                      "summary": "Elasticsearch fields and their types that need to be present for the rule to function.\n> info\n> The value of `required_fields` does not affect the rule’s behavior, and specifying it incorrectly won’t cause the rule to fail. Use `required_fields` as an informational property to document the fields that the rule expects to be present in the data.\n"
+                      "summary": "Elasticsearch fields and their types that need to be present for the rule to function.\n> info\n> The value of `required_fields` does not affect the rule’s behavior, and specifying it incorrectly won’t cause the rule to fail. Use `required_fields` as an informational property to document the fields that the rule expects to be present in the data.\n",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "response-actions",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -81377,7 +81644,8 @@
                       "role": "flag",
                       "name": "risk-score-mapping",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -81413,20 +81681,23 @@
                       "role": "flag",
                       "name": "severity-mapping",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "tags",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
                       "role": "flag",
                       "name": "threat",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -81517,13 +81788,15 @@
                       "role": "flag",
                       "name": "filters",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "index",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -81567,13 +81840,15 @@
                       "name": "threat-index",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
                       "role": "flag",
                       "name": "threat-mapping",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -81597,7 +81872,8 @@
                       "role": "flag",
                       "name": "threat-filters",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -81640,6 +81916,7 @@
                       "name": "new-terms-fields",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -81682,6 +81959,7 @@
                       "name": "ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -81731,6 +82009,7 @@
                       "name": "fields",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -81805,6 +82084,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "List of alert ids. Use field `_id` on alert document or `kibana.alert.uuid`. Note: signals are a deprecated term for alerts.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -81874,6 +82154,7 @@
                       "name": "ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82063,7 +82344,8 @@
                       "role": "flag",
                       "name": "comments",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -82075,7 +82357,8 @@
                       "role": "flag",
                       "name": "entries",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -82099,13 +82382,15 @@
                       "role": "flag",
                       "name": "os-types",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "tags",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82156,7 +82441,8 @@
                       "role": "flag",
                       "name": "comments",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -82168,7 +82454,8 @@
                       "role": "flag",
                       "name": "entries",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -82200,13 +82487,15 @@
                       "role": "flag",
                       "name": "os-types",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "tags",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82345,7 +82634,8 @@
                       "name": "commands",
                       "type": "array",
                       "required": false,
-                      "summary": "A list of response action command names to filter by."
+                      "summary": "A list of response action command names to filter by.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -82403,7 +82693,8 @@
                       "name": "types",
                       "type": "array",
                       "required": false,
-                      "summary": "A list of response action types to filter by (`automated`, `manual`)."
+                      "summary": "A list of response action types to filter by (`automated`, `manual`).",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -82621,6 +82912,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82629,6 +82921,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82642,6 +82935,7 @@
                       "name": "endpoint-ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82696,6 +82990,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82704,6 +82999,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82717,6 +83013,7 @@
                       "name": "endpoint-ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82771,6 +83068,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82779,6 +83077,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82792,6 +83091,7 @@
                       "name": "endpoint-ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82846,6 +83146,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82854,6 +83155,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82867,6 +83169,7 @@
                       "name": "endpoint-ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82921,6 +83224,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82929,6 +83233,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82942,6 +83247,7 @@
                       "name": "endpoint-ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -82996,6 +83302,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83004,6 +83311,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83017,6 +83325,7 @@
                       "name": "endpoint-ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83071,6 +83380,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83079,6 +83389,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83092,6 +83403,7 @@
                       "name": "endpoint-ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83147,6 +83459,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83155,6 +83468,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83168,6 +83482,7 @@
                       "name": "endpoint-ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83222,6 +83537,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83230,6 +83546,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83243,6 +83560,7 @@
                       "name": "endpoint-ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83321,6 +83639,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83329,6 +83648,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83342,6 +83662,7 @@
                       "name": "endpoint-ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83396,6 +83717,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "If this action is associated with any alerts, they can be specified here. The action will be logged in any cases associated with the specified alerts. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83404,6 +83726,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The IDs of cases where the action taken will be logged. Max of 50.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83417,6 +83740,7 @@
                       "name": "endpoint-ids",
                       "type": "array",
                       "required": true,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -83500,7 +83824,8 @@
                       "name": "host-statuses",
                       "type": "array",
                       "required": true,
-                      "summary": "A set of host statuses to filter the results by (for example, `healthy`, `updating`)."
+                      "summary": "A set of host statuses to filter the results by (for example, `healthy`, `updating`).",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -84327,7 +84652,8 @@
                       "role": "flag",
                       "name": "records",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -84849,7 +85175,8 @@
                       "name": "entity-sources",
                       "type": "array",
                       "required": false,
-                      "summary": "Optional entity sources to create and link to the watchlist"
+                      "summary": "Optional entity sources to create and link to the watchlist",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -85059,6 +85386,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "The EUIDs of the entities to assign",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -85102,6 +85430,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "The EUIDs of the entities to unassign",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -85198,6 +85527,7 @@
                       "name": "exclude-alert-statuses",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -85205,13 +85535,15 @@
                       "name": "exclude-alert-tags",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
                       "role": "flag",
                       "name": "filters",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -85430,6 +85762,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Fields to include in the response source.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -85438,6 +85771,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Fields to include in the response.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -85484,7 +85818,8 @@
                       "name": "entity-types",
                       "type": "array",
                       "required": false,
-                      "summary": "Entity types to include in the results."
+                      "summary": "Entity types to include in the results.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -85604,6 +85939,7 @@
                       "name": "tags",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -85713,6 +86049,7 @@
                       "name": "tags",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -85788,7 +86125,8 @@
                       "name": "entities",
                       "type": "array",
                       "required": true,
-                      "summary": "The entities to update."
+                      "summary": "The entities to update.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -85825,7 +86163,8 @@
                       "role": "flag",
                       "name": "entity-types",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -85911,6 +86250,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Entity identifiers to link to the target entity. Minimum 1, maximum 1000.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -86054,6 +86394,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Entity identifiers to unlink from their resolution group. Minimum 1, maximum 1000.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -86089,7 +86430,8 @@
                       "name": "entity-types",
                       "type": "array",
                       "required": false,
-                      "summary": "Entity types to start. Defaults to all installed types."
+                      "summary": "Entity types to start. Defaults to all installed types.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -86165,7 +86507,8 @@
                       "name": "entity-types",
                       "type": "array",
                       "required": false,
-                      "summary": "Entity types to stop. Defaults to all running types."
+                      "summary": "Entity types to stop. Defaults to all running types.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -86203,7 +86546,8 @@
                       "name": "entity-types",
                       "type": "array",
                       "required": false,
-                      "summary": "Entity types to uninstall. Defaults to all installed types."
+                      "summary": "Entity types to uninstall. Defaults to all installed types.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -86251,7 +86595,8 @@
                       "role": "flag",
                       "name": "items",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -86438,13 +86783,15 @@
                       "role": "flag",
                       "name": "os-types",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "tags",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -86549,13 +86896,15 @@
                       "role": "flag",
                       "name": "os-types",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "tags",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -86745,7 +87094,8 @@
                       "name": "namespace-type",
                       "type": "array",
                       "required": false,
-                      "summary": "Determines whether the returned containers are Kibana associated with a Kibana space\nor available in all spaces (`agnostic` or `single`)\n"
+                      "summary": "Determines whether the returned containers are Kibana associated with a Kibana space\nor available in all spaces (`agnostic` or `single`)\n",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -86982,7 +87332,8 @@
                       "role": "flag",
                       "name": "comments",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -87038,7 +87389,8 @@
                       "name": "entries",
                       "type": "array",
                       "required": false,
-                      "summary": "**Validation rules:**\n* Hash entries: up to 3 (one for each hash type: md5, sha1, sha256)\n* Path entry: only 1 allowed\n"
+                      "summary": "**Validation rules:**\n* Hash entries: up to 3 (one for each hash type: md5, sha1, sha256)\n* Path entry: only 1 allowed\n",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -87054,13 +87406,15 @@
                       "name": "os-types",
                       "type": "array",
                       "required": false,
-                      "summary": "macOS-only"
+                      "summary": "macOS-only",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "tags",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -87102,7 +87456,8 @@
                       "role": "flag",
                       "name": "comments",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -87166,7 +87521,8 @@
                       "name": "entries",
                       "type": "array",
                       "required": false,
-                      "summary": "**Validation rules:**\n* Hash entries: up to 3 (one for each hash type: md5, sha1, sha256)\n* Path entry: only 1 allowed\n"
+                      "summary": "**Validation rules:**\n* Hash entries: up to 3 (one for each hash type: md5, sha1, sha256)\n* Path entry: only 1 allowed\n",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -87182,13 +87538,15 @@
                       "name": "os-types",
                       "type": "array",
                       "required": false,
-                      "summary": "macOS-only"
+                      "summary": "macOS-only",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "tags",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -87228,6 +87586,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "The `list_id`s of the items to fetch.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -87236,6 +87595,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Filters the returned results according to the value of the specified field,\nusing the `<field name>:<field value>` syntax.\n",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -87243,7 +87603,8 @@
                       "name": "namespace-type",
                       "type": "array",
                       "required": false,
-                      "summary": "Determines whether the returned containers are Kibana associated with a Kibana space\nor available in all spaces (`agnostic` or `single`)\n"
+                      "summary": "Determines whether the returned containers are Kibana associated with a Kibana space\nor available in all spaces (`agnostic` or `single`)\n",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -88497,14 +88858,14 @@
                     {
                       "role": "flag",
                       "name": "page",
-                      "type": "string",
+                      "type": "number",
                       "required": false,
                       "summary": "The page number to return."
                     },
                     {
                       "role": "flag",
                       "name": "page-size",
-                      "type": "string",
+                      "type": "number",
                       "required": false,
                       "summary": "The number of results to return per page."
                     },
@@ -88570,6 +88931,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A list of agent IDs to run the query on.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -88578,6 +88940,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A list of agent platforms to run the query on.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -88586,6 +88949,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A list of agent policy IDs to run the query on.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -88594,6 +88958,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A list of alert IDs associated with the live query.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -88602,6 +88967,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A list of case IDs associated with the live query.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -88616,6 +88982,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "A list of event IDs associated with the live query.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -88635,7 +89002,8 @@
                       "role": "flag",
                       "name": "queries",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -88739,14 +89107,14 @@
                     {
                       "role": "flag",
                       "name": "page",
-                      "type": "string",
+                      "type": "number",
                       "required": false,
                       "summary": "The page number to return."
                     },
                     {
                       "role": "flag",
                       "name": "page-size",
-                      "type": "string",
+                      "type": "number",
                       "required": false,
                       "summary": "The number of results to return per page."
                     },
@@ -88862,14 +89230,14 @@
                     {
                       "role": "flag",
                       "name": "page",
-                      "type": "string",
+                      "type": "number",
                       "required": false,
                       "summary": "The page number to return."
                     },
                     {
                       "role": "flag",
                       "name": "page-size",
-                      "type": "string",
+                      "type": "number",
                       "required": false,
                       "summary": "The number of results to return per page."
                     },
@@ -88951,6 +89319,7 @@
                       "name": "policy-ids",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -89128,6 +89497,7 @@
                       "name": "policy-ids",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -89227,14 +89597,14 @@
                     {
                       "role": "flag",
                       "name": "page",
-                      "type": "string",
+                      "type": "number",
                       "required": false,
                       "summary": "The page number to return."
                     },
                     {
                       "role": "flag",
                       "name": "page-size",
-                      "type": "string",
+                      "type": "number",
                       "required": false,
                       "summary": "The number of results to return per page."
                     },
@@ -89555,14 +89925,14 @@
                     {
                       "role": "flag",
                       "name": "page",
-                      "type": "string",
+                      "type": "number",
                       "required": false,
                       "summary": "The page number to return. The default is 1."
                     },
                     {
                       "role": "flag",
                       "name": "page-size",
-                      "type": "string",
+                      "type": "number",
                       "required": false,
                       "summary": "The number of results to return per page. The default is 20."
                     },
@@ -89699,14 +90069,14 @@
                     {
                       "role": "flag",
                       "name": "page",
-                      "type": "string",
+                      "type": "number",
                       "required": false,
                       "summary": "The page number to return. The default is 1."
                     },
                     {
                       "role": "flag",
                       "name": "page-size",
-                      "type": "string",
+                      "type": "number",
                       "required": false,
                       "summary": "The number of results to return per page. The default is 20."
                     },
@@ -89777,7 +90147,8 @@
                       "role": "flag",
                       "name": "flows",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -89824,11 +90195,10 @@
                     {
                       "role": "flag",
                       "name": "note-ids",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
                       "summary": "Saved object IDs of the notes to delete.",
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -90082,6 +90452,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "The list of IDs of the Timelines or Timeline templates to delete",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -90090,6 +90461,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Saved search IDs that should be deleted alongside the timelines",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -90245,7 +90617,7 @@
                     {
                       "role": "flag",
                       "name": "template-timeline-version",
-                      "type": "string",
+                      "type": "number",
                       "required": false,
                       "summary": "Timeline template version number."
                     },
@@ -90437,10 +90809,9 @@
                     {
                       "role": "flag",
                       "name": "ids",
-                      "type": "string",
+                      "type": "array",
                       "required": false,
-                      "repeatable": true,
-                      "separator": ","
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -90479,7 +90850,7 @@
                     {
                       "role": "flag",
                       "name": "template-timeline-version",
-                      "type": "string",
+                      "type": "number",
                       "required": true
                     },
                     {
@@ -90575,19 +90946,22 @@
                       "role": "flag",
                       "name": "prepackaged-timelines",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "timelines-to-install",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "timelines-to-update",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -90828,7 +91202,8 @@
                       "role": "flag",
                       "name": "operations",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -90941,6 +91316,7 @@
                       "name": "evidence",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -91105,6 +91481,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "The cursor to use for fetching the results from, when using a cursor-base pagination.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -91259,6 +91636,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "List of tags",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -91308,6 +91686,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "An array of SLO Definition id",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -91396,6 +91775,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "An array of slo ids",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -91452,7 +91832,8 @@
                       "name": "requests",
                       "type": "array",
                       "required": true,
-                      "summary": "The list of SLO instances to compute. Limited to 100 entries."
+                      "summary": "The list of SLO instances to compute. Limited to 100 entries.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -91494,7 +91875,8 @@
                       "name": "list",
                       "type": "array",
                       "required": true,
-                      "summary": "An array of slo id and instance id"
+                      "summary": "An array of slo id and instance id",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -91704,6 +92086,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "List of tags",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -92090,6 +92473,7 @@
                       "name": "disabled-features",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -92843,7 +93227,8 @@
                       "name": "attachment-types",
                       "type": "array",
                       "required": false,
-                      "summary": "Filter by attachment types (single value or array)"
+                      "summary": "Filter by attachment types (single value or array)",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -92851,6 +93236,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Filter by tags (single value or array)",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -92895,7 +93281,8 @@
                       "role": "flag",
                       "name": "operations",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -93581,6 +93968,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Array of workflow IDs to delete.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -93648,6 +94036,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Filter by enabled state.",
+                      "repeatable": true,
                       "elementType": "boolean"
                     },
                     {
@@ -93656,6 +94045,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Filter by creator.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -93664,6 +94054,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Filter by tags.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -93684,6 +94075,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "When managed workflows are included, only return managed workflows visible in these contexts.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -93757,7 +94149,8 @@
                       "role": "flag",
                       "name": "workflows",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -93786,6 +94179,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Field or fields to aggregate on.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -94316,6 +94710,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Array of workflow IDs to export.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -94376,6 +94771,7 @@
                       "name": "tags",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -94421,6 +94817,7 @@
                       "type": "array",
                       "required": true,
                       "summary": "Array of workflow IDs to look up.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -94429,6 +94826,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Array of source fields to include.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -94793,6 +95191,7 @@
                       "name": "tags",
                       "type": "array",
                       "required": false,
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -94928,14 +95327,16 @@
                       "name": "statuses",
                       "type": "array",
                       "required": false,
-                      "summary": "Filter by execution status."
+                      "summary": "Filter by execution status.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "execution-types",
                       "type": "array",
                       "required": false,
-                      "summary": "Filter by execution type."
+                      "summary": "Filter by execution type.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -94943,6 +95344,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Filter by the user who triggered the execution.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -95201,14 +95603,16 @@
                       "name": "statuses",
                       "type": "array",
                       "required": false,
-                      "summary": "Filter by execution status."
+                      "summary": "Filter by execution status.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
                       "name": "execution-types",
                       "type": "array",
                       "required": false,
-                      "summary": "Filter by execution type."
+                      "summary": "Filter by execution type.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -95216,6 +95620,7 @@
                       "type": "array",
                       "required": false,
                       "summary": "Filter by the user who triggered the execution.",
+                      "repeatable": true,
                       "elementType": "string"
                     },
                     {
@@ -95546,6 +95951,7 @@
                   "name": "keys",
                   "type": "array",
                   "required": true,
+                  "repeatable": true,
                   "elementType": "string"
                 },
                 {
@@ -96112,6 +96518,7 @@
                   "name": "notifications-allowed-email-domains",
                   "type": "array",
                   "required": false,
+                  "repeatable": true,
                   "elementType": "string"
                 },
                 {
@@ -96119,6 +96526,7 @@
                   "name": "billing-contacts",
                   "type": "array",
                   "required": false,
+                  "repeatable": true,
                   "elementType": "string"
                 },
                 {
@@ -96126,6 +96534,7 @@
                   "name": "operational-contacts",
                   "type": "array",
                   "required": false,
+                  "repeatable": true,
                   "elementType": "string"
                 },
                 {
@@ -96561,6 +96970,7 @@
                   "name": "emails",
                   "type": "array",
                   "required": true,
+                  "repeatable": true,
                   "elementType": "string"
                 },
                 {
@@ -96789,7 +97199,8 @@
                   "role": "flag",
                   "name": "mappings",
                   "type": "array",
-                  "required": true
+                  "required": true,
+                  "repeatable": true
                 },
                 {
                   "role": "flag",
@@ -96837,7 +97248,8 @@
                   "role": "flag",
                   "name": "mappings",
                   "type": "array",
-                  "required": true
+                  "required": true,
+                  "repeatable": true
                 },
                 {
                   "role": "flag",
@@ -97038,19 +97450,22 @@
                   "role": "flag",
                   "name": "platform",
                   "type": "array",
-                  "required": false
+                  "required": false,
+                  "repeatable": true
                 },
                 {
                   "role": "flag",
                   "name": "organization",
                   "type": "array",
-                  "required": false
+                  "required": false,
+                  "repeatable": true
                 },
                 {
                   "role": "flag",
                   "name": "deployment",
                   "type": "array",
-                  "required": false
+                  "required": false,
+                  "repeatable": true
                 },
                 {
                   "role": "flag",
@@ -97104,19 +97519,22 @@
                   "role": "flag",
                   "name": "platform",
                   "type": "array",
-                  "required": false
+                  "required": false,
+                  "repeatable": true
                 },
                 {
                   "role": "flag",
                   "name": "organization",
                   "type": "array",
-                  "required": false
+                  "required": false,
+                  "repeatable": true
                 },
                 {
                   "role": "flag",
                   "name": "deployment",
                   "type": "array",
-                  "required": false
+                  "required": false,
+                  "repeatable": true
                 },
                 {
                   "role": "flag",
@@ -97454,7 +97872,8 @@
                       "role": "flag",
                       "name": "sort",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -97527,7 +97946,8 @@
                       "role": "flag",
                       "name": "sort",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -98484,7 +98904,8 @@
                       "role": "flag",
                       "name": "index-patterns",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -98827,7 +99248,8 @@
                       "role": "flag",
                       "name": "sort",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -99032,7 +99454,8 @@
                       "role": "flag",
                       "name": "resources",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -99734,7 +100157,8 @@
                       "role": "flag",
                       "name": "tags",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -100182,7 +100606,8 @@
                       "name": "instance-ids",
                       "type": "array",
                       "required": true,
-                      "summary": "A comma-separated list of instance identifiers."
+                      "summary": "A comma-separated list of instance identifiers.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -100253,7 +100678,8 @@
                       "name": "instance-ids",
                       "type": "array",
                       "required": true,
-                      "summary": "A comma-separated list of instance identifiers."
+                      "summary": "A comma-separated list of instance identifiers.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -100324,7 +100750,8 @@
                       "name": "instance-ids",
                       "type": "array",
                       "required": true,
-                      "summary": "A comma-separated list of instance identifiers."
+                      "summary": "A comma-separated list of instance identifiers.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -100395,7 +100822,8 @@
                       "name": "instance-ids",
                       "type": "array",
                       "required": true,
-                      "summary": "A comma-separated list of instance identifiers."
+                      "summary": "A comma-separated list of instance identifiers.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -101056,7 +101484,8 @@
                       "role": "flag",
                       "name": "rules",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -101171,7 +101600,8 @@
                       "role": "flag",
                       "name": "rules",
                       "type": "array",
-                      "required": true
+                      "required": true,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -101876,7 +102306,8 @@
                           "role": "flag",
                           "name": "traffic-filters",
                           "type": "array",
-                          "required": false
+                          "required": false,
+                          "repeatable": true
                         },
                         {
                           "role": "flag",
@@ -102078,7 +102509,7 @@
                         {
                           "role": "flag",
                           "name": "traffic-filters",
-                          "type": "string",
+                          "type": "array",
                           "required": false,
                           "repeatable": true
                         },
@@ -102415,7 +102846,8 @@
                           "role": "flag",
                           "name": "traffic-filters",
                           "type": "array",
-                          "required": false
+                          "required": false,
+                          "repeatable": true
                         },
                         {
                           "role": "flag",
@@ -102621,7 +103053,7 @@
                         {
                           "role": "flag",
                           "name": "traffic-filters",
-                          "type": "string",
+                          "type": "array",
                           "required": false,
                           "repeatable": true
                         },
@@ -102978,7 +103410,8 @@
                           "role": "flag",
                           "name": "product-types",
                           "type": "array",
-                          "required": false
+                          "required": false,
+                          "repeatable": true
                         },
                         {
                           "role": "flag",
@@ -102990,7 +103423,8 @@
                           "role": "flag",
                           "name": "traffic-filters",
                           "type": "array",
-                          "required": false
+                          "required": false,
+                          "repeatable": true
                         },
                         {
                           "role": "flag",
@@ -103192,7 +103626,7 @@
                         {
                           "role": "flag",
                           "name": "product-types",
-                          "type": "string",
+                          "type": "array",
                           "required": false,
                           "repeatable": true
                         },
@@ -103205,7 +103639,7 @@
                         {
                           "role": "flag",
                           "name": "traffic-filters",
-                          "type": "string",
+                          "type": "array",
                           "required": false,
                           "repeatable": true
                         },
@@ -103476,7 +103910,8 @@
                       "name": "types",
                       "type": "array",
                       "required": false,
-                      "summary": "One or more types of projects to return as link candidates."
+                      "summary": "One or more types of projects to return as link candidates.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -103554,7 +103989,8 @@
                       "name": "types",
                       "type": "array",
                       "required": false,
-                      "summary": "One or more types of projects to return as link candidates."
+                      "summary": "One or more types of projects to return as link candidates.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -103632,7 +104068,8 @@
                       "name": "types",
                       "type": "array",
                       "required": false,
-                      "summary": "One or more types of projects to return as link candidates."
+                      "summary": "One or more types of projects to return as link candidates.",
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -103952,7 +104389,8 @@
                       "role": "flag",
                       "name": "rules",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",
@@ -104141,7 +104579,8 @@
                       "role": "flag",
                       "name": "rules",
                       "type": "array",
-                      "required": false
+                      "required": false,
+                      "repeatable": true
                     },
                     {
                       "role": "flag",

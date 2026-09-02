@@ -239,6 +239,64 @@ describe('buildKibanaRequestParams empty-body normalisation (CLI-1)', () => {
   })
 })
 
+describe('buildKibanaRequestParams query arrays', () => {
+  function defWithQueryArray (): KbApiDefinition {
+    return {
+      name: 'get-fleet-agent-status-data',
+      namespace: 'elastic-agents',
+      description: 'Agent status data',
+      method: 'GET',
+      path: '/api/fleet/agent_status/data',
+      input: {
+        type: 'object',
+        properties: {
+          agentsIds: { type: 'array', items: { type: 'string' }, 'x-found-in': 'query' },
+        },
+        required: ['agentsIds'],
+      },
+    }
+  }
+
+  it('serializes a query array as JSON', () => {
+    const result = buildKibanaRequestParams(defWithQueryArray(), parsed({ agentsIds: ['abc'] }))
+    assert.deepEqual(result.querystring, { agentsIds: '["abc"]' })
+  })
+
+  it('serializes an empty query array as []', () => {
+    const result = buildKibanaRequestParams(defWithQueryArray(), parsed({ agentsIds: [] }))
+    assert.deepEqual(result.querystring, { agentsIds: '[]' })
+  })
+
+  it('serializes a multi-value query array as JSON', () => {
+    const result = buildKibanaRequestParams(defWithQueryArray(), parsed({ agentsIds: ['abc', 'def'] }))
+    assert.deepEqual(result.querystring, { agentsIds: '["abc","def"]' })
+  })
+
+  it('JSON-encodes adversarial query array elements', () => {
+    const result = buildKibanaRequestParams(defWithQueryArray(), parsed({ agentsIds: ['../', '?#', ''] }))
+    assert.deepEqual(result.querystring, { agentsIds: JSON.stringify(['../', '?#', '']) })
+  })
+
+  it('still stringifies scalar query values', () => {
+    const def: KbApiDefinition = {
+      name: 'find',
+      namespace: 'saved-objects',
+      description: 'Find',
+      method: 'GET',
+      path: '/api/saved_objects/_find',
+      input: {
+        type: 'object',
+        properties: {
+          type: { type: 'string', 'x-found-in': 'query' },
+          perPage: { type: 'number', 'x-found-in': 'query' },
+        },
+      },
+    }
+    const result = buildKibanaRequestParams(def, parsed({ type: 'lens', perPage: 20 }))
+    assert.deepEqual(result.querystring, { type: 'lens', perPage: '20' })
+  })
+})
+
 describe('buildKibanaRequestParams path param requiredness (BUG A regression)', () => {
   // ponytail: no real Kibana definition currently has an optional path param
   // (0 of 555 upstream definitions exercise this — see test/kb/register.test.ts),

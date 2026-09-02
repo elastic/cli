@@ -119,8 +119,15 @@ function resolveType (
   }
 
   // anyOf / oneOf: resolve all non-array branches; prefer string over number-with-const (e.g. Duration | -1 | 0)
-  const variants = prop.anyOf ?? prop.oneOf
-  if (variants != null && variants.length > 0) {
+  const rawVariants = prop.anyOf ?? prop.oneOf
+  if (rawVariants != null && rawVariants.length > 0) {
+    // Drop `null` so oneOf(array, null) is a plain array, not a string-with-array-form.
+    const variants = rawVariants.filter((v) => {
+      const t = Array.isArray(v.type) ? v.type[0] : v.type
+      return t !== 'null'
+    })
+    if (variants.length === 1) return resolveType(variants[0]!, defs)
+    if (variants.length === 0) return { type: 'string', acceptsArrayForm: false }
     let hasArray = false
     let resolvedType: SchemaArgDefinition['type'] = 'string'
     let hasExplicitString = false

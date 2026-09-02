@@ -265,7 +265,7 @@ function buildCommandParams (cmd: OpaqueCommandHandle): CliParameter[] {
         required: arg.required,
         ...(arg.description && { summary: arg.description }),
         ...(arg.defaultValue != null && { defaultValue: String(arg.defaultValue) }),
-        ...(arg.acceptsArrayForm === true && { repeatable: true }),
+        ...((arg.acceptsArrayForm === true || arg.type === 'array') && { repeatable: true }),
         // `acceptsArrayForm` fields routed to the request body need a CSV separator in their
         // help text: ES does not split comma-separated values inside JSON bodies, only in
         // querystrings and paths.

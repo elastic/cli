@@ -121,7 +121,7 @@ function buildQuerystring (
   for (const [key, prop] of Object.entries(props)) {
     if (prop['x-found-in'] !== 'query') continue
     const value = input[key]
-    if (value !== undefined) qs[key] = String(value)
+    if (value !== undefined) qs[key] = Array.isArray(value) ? JSON.stringify(value) : String(value)
   }
   return qs
 }

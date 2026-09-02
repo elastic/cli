@@ -319,6 +319,7 @@ const skippedFilesServerless = new Set<string>([
   // `.fleet-*` indices are absent in the serverless env (nothing enrolled),
   // so the op 404s with index_not_found_exception.
   "elastic_agent_actions_post_fleet_agents_bulk_update_agent_tags.yml",
+  "elastic_agents_get_fleet_agent_status_data.yml",
   "elastic_agents_get_fleet_agents_agentid_effective_config.yml",
 
   // Wired streams are not enabled in the serverless env (422: "Streams are not
@@ -380,10 +381,8 @@ const skippedFilesServerless = new Set<string>([
   "fleet_uninstall_tokens_post_fleet_uninstall_tokens_agentpolicyid_rotate.yml",
   "message_signing_service_post_fleet_message_signing_service_rotate_key_pair.yml",
 
-  // CLI (de)serialization defects: array param not serialized as an array,
-  // or a non-JSON response the client cannot parse.
+  // CLI (de)serialization defects: a non-JSON response the client cannot parse.
   "elastic_agent_policies_get_fleet_kubernetes_download.yml",
-  "elastic_agents_get_fleet_agent_status_data.yml",
 
   // Not fixed by empty-body normalisation: mcp_post needs a JSON-RPC payload and
   // returns an event-stream (-32700 Parse error); consumption 404s (route absent);
@@ -505,11 +504,8 @@ const skippedFilesStack = new Set<string>([
 
   // Array/oneOf query or body fields are mis-serialized (emitted as null or an
   // unparseable string), failing input validation before the request.
-  "elastic_agents_get_fleet_agent_status_data.yml",
   "security_detections_api_export_rules.yml",
   "security_detections_api_import_rules.yml",
-  "security_endpoint_management_api_get_endpoint_metadata_list.yml",
-  "security_timeline_api_export_timelines.yml",
   "security_timeline_api_import_timelines.yml",
   "security_timeline_api_persist_favorite_route.yml",
 
@@ -532,6 +528,7 @@ const skippedFilesStack = new Set<string>([
   "elastic_agent_actions_post_fleet_agents_bulk_reassign.yml",
   "elastic_agents_delete_fleet_agents_agentid.yml",
   "elastic_agents_delete_fleet_agents_files_fileid.yml",
+  "elastic_agents_get_fleet_agent_status_data.yml",
   "elastic_agents_get_fleet_agents_agentid.yml",
   "elastic_agents_get_fleet_agents_agentid_effective_config.yml",
   "elastic_agents_get_fleet_agents_files_fileid_filename.yml",
