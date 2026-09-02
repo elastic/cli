@@ -7,7 +7,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { parseTestFile, isServerless } from '../parser.ts'
+import { parseTestFile, isServerless, shouldSkipServerlessProject } from '../parser.ts'
 
 const fixturesDir = join(import.meta.dirname, 'fixtures')
 
@@ -113,6 +113,47 @@ describe('parseTestFile', () => {
       assert.deepStrictEqual(teardownDo.ignore, [404])
     }
   })
+
+  it('parses serverless_project as a string', () => {
+    const file = parseTestFile(
+      '---\nrequires:\n  serverless: true\n  stack: true\n  serverless_project: security\n---\n"t":\n  - do:\n      info: {}\n',
+      'string.yml'
+    )
+    assert.deepStrictEqual(file.requires.serverlessProject, ['security'])
+  })
+
+  it('parses serverless_project as an array', () => {
+    const file = parseTestFile(
+      '---\nrequires:\n  serverless: true\n  stack: true\n  serverless_project:\n    - security\n    - observability\n---\n"t":\n  - do:\n      info: {}\n',
+      'array.yml'
+    )
+    assert.deepStrictEqual(file.requires.serverlessProject, ['security', 'observability'])
+  })
+
+  it('omits serverless_project when absent', () => {
+    const file = loadFixture('get.yml')
+    assert.equal(file.requires.serverlessProject, undefined)
+  })
+
+  it('rejects an unknown serverless_project value', () => {
+    assert.throws(
+      () => parseTestFile(
+        '---\nrequires:\n  serverless: true\n  serverless_project: search\n---\n"t":\n  - do:\n      info: {}\n',
+        'bad.yml'
+      ),
+      /serverless_project must be security, observability, or elasticsearch/
+    )
+  })
+
+  it('rejects an unknown value inside a serverless_project array', () => {
+    assert.throws(
+      () => parseTestFile(
+        '---\nrequires:\n  serverless: true\n  serverless_project:\n    - security\n    - search\n---\n"t":\n  - do:\n      info: {}\n',
+        'bad-array.yml'
+      ),
+      /serverless_project must be security, observability, or elasticsearch/
+    )
+  })
 })
 
 describe('isServerless', () => {
@@ -124,5 +165,37 @@ describe('isServerless', () => {
   it('returns false for stack-only tests', () => {
     const file = loadFixture('stack-only.yml')
     assert.equal(isServerless(file), false)
+  })
+})
+
+describe('shouldSkipServerlessProject', () => {
+  const gated = { serverless: true, stack: true, serverlessProject: ['security'] }
+  const open = { serverless: true, stack: true }
+
+  it('does not skip on stack', () => {
+    assert.equal(shouldSkipServerlessProject(gated, 'stack', 'elasticsearch'), false)
+  })
+
+  it('does not skip when serverless_project is absent', () => {
+    assert.equal(shouldSkipServerlessProject(open, 'serverless', 'elasticsearch'), false)
+  })
+
+  it('does not skip when the configured project is listed', () => {
+    assert.equal(shouldSkipServerlessProject(gated, 'serverless', 'security'), false)
+  })
+
+  it('skips when the configured project is not listed', () => {
+    assert.equal(shouldSkipServerlessProject(gated, 'serverless', 'elasticsearch'), true)
+  })
+
+  it('skips when serverless_project is set and project type is unset', () => {
+    assert.equal(shouldSkipServerlessProject(gated, 'serverless', undefined), true)
+  })
+
+  it('skips when serverless_project is an empty list', () => {
+    assert.equal(
+      shouldSkipServerlessProject({ serverless: true, stack: true, serverlessProject: [] }, 'serverless', 'security'),
+      true
+    )
   })
 })
