@@ -44,7 +44,7 @@ export function createKbHandler (
     const params = deps.buildKibanaRequestParams(def, parsed)
 
     try {
-      const body = await client.request(params)
+      const body = await client.request(params, def.responseType)
       return body as HandlerResult
     } catch (err) {
       return kibanaApiError(err)
