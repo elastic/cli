@@ -670,7 +670,9 @@ for (const file of yamlFiles) {
 
   const result = generateScript(testFile, apis, {
     clientArgs: ['stack', 'kb'],
-    preamble: KB_PREAMBLE
+    preamble: KB_PREAMBLE,
+    // CI Kibana has no enrolled agents; jq prints "null" for items.0.id.
+    skipEmptySet: file === 'elastic_agents_get_fleet_agent_status_data.yml',
   })
 
   for (const action of result.skippedActions) allSkippedActions.add(action)
