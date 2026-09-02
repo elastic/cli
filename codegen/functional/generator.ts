@@ -9,7 +9,7 @@ import {
   type TestFile, type Step, type DoStep, type SetStep, type MatchStep,
   type IsTrueStep, type IsFalseStep, type LengthStep,
   type GtStep, type GteStep, type LtStep, type LteStep, type ContainsStep,
-  type WriteNdjsonTempStep
+  type WriteNdjsonTempStep, type WriteTempStep
 } from './types.ts'
 import { buildActionMap, mapAction } from './mapper.ts'
 import type { MappedAction } from './mapper.ts'
@@ -82,9 +82,15 @@ export function generateScript (
   for (const line of preamble) lines.push(line)
   lines.push('')
 
-  if (testFile.teardown.length > 0) {
+  const tempFileVars = collectWriteTempVars(testFile)
+  if (testFile.teardown.length > 0 || tempFileVars.length > 0) {
     const teardownBody: string[] = []
-    renderSteps(testFile.teardown, actionMap, clientArgs, teardownBody, skippedActions, '  ', false, skipEmptySet, skipNotFound)
+    if (testFile.teardown.length > 0) {
+      renderSteps(testFile.teardown, actionMap, clientArgs, teardownBody, skippedActions, '  ', false, skipEmptySet, skipNotFound)
+    }
+    for (const v of tempFileVars) {
+      teardownBody.push(`  [ -n "$${v}" ] && rm -f -- "$${v}"`)
+    }
     if (!hasExecutableLine(teardownBody)) {
       teardownBody.push('  :')
     }
@@ -309,6 +315,10 @@ function renderSteps (
       continue
     }
     if (step.kind === 'skip') continue
+    if (step.kind === 'write_temp') {
+      renderWriteTemp(step, lines, indent)
+      continue
+    }
 
     if (!responseFromLastDo) {
       if (step.kind === 'set') {
@@ -579,6 +589,30 @@ function renderWriteNdjsonTemp (step: WriteNdjsonTempStep, lines: string[], inde
   // dir with an explicit .ndjson name.
   lines.push(`${indent}${bashVar}=$(mktemp -d)/export.ndjson`)
   lines.push(`${indent}echo "$RESPONSE" | jq -c '.[]' > "$${bashVar}"`)
+}
+
+function renderWriteTemp (step: WriteTempStep, lines: string[], indent: string): void {
+  const bashVar = step.varName.toUpperCase().replace(/[^A-Z0-9]/g, '_')
+  const suffix = step.suffix ?? ''
+  lines.push(`${indent}${bashVar}=$(mktemp -d)/fixture${suffix}`)
+  lines.push(`${indent}cat > "$${bashVar}" <<'CLI_FT_WRITE_TEMP_EOF'`)
+  for (const line of step.content.replace(/\n$/, '').split('\n')) lines.push(line)
+  lines.push('CLI_FT_WRITE_TEMP_EOF')
+}
+
+function collectWriteTempVars (file: TestFile): string[] {
+  const steps = [...file.setup, ...file.teardown, ...file.tests.flatMap((t) => t.steps)]
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const step of steps) {
+    if (step.kind !== 'write_temp' || step.varName === '') continue
+    const v = step.varName.toUpperCase().replace(/[^A-Z0-9]/g, '_')
+    if (!seen.has(v)) {
+      seen.add(v)
+      out.push(v)
+    }
+  }
+  return out
 }
 
 function renderMatch (step: MatchStep, lines: string[], indent: string): void {
