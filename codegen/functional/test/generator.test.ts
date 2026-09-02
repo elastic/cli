@@ -340,6 +340,27 @@ describe('generateScript', () => {
     assert.ok(result.skippedActions.includes('indices.create'))
   })
 
+  it('skips an optional teardown do when its stash var is empty', () => {
+    const testFile: TestFile = {
+      sourceFile: 'teardown-empty.yml',
+      requires: { serverless: true, stack: true },
+      setup: [],
+      teardown: [{
+        kind: 'do',
+        action: 'indices.delete',
+        params: { index: '$id' },
+        ignore: [404]
+      }],
+      tests: [{
+        name: 'create',
+        steps: [{ kind: 'do', action: 'indices.create', params: { index: 'x' } }]
+      }]
+    }
+    const result = generateScript(testFile, testDefs)
+    assert.match(result.script, /if \[ -n "\$ID" \]; then/)
+    assert.match(result.script, /RESPONSE=\$\(.*indices delete.*\) \|\| true/)
+  })
+
   it('binds write_temp before the upload flag and the file exists', () => {
     const content = readFileSync(join(fixturesDir, 'write-temp.yml'), 'utf-8')
     const testFile = parseTestFile(content, 'write-temp.yml')
