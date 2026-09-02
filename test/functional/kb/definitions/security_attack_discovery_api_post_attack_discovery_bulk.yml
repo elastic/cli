@@ -10,6 +10,7 @@
 requires:
   serverless: true
   stack: true
+  serverless_project: security
 ---
 setup:
   - do:

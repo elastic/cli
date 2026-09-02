@@ -6,6 +6,7 @@
 requires:
   serverless: true
   stack: true
+  serverless_project: security
 ---
 "security-ai-assistant-api find prompts":
   - do:
