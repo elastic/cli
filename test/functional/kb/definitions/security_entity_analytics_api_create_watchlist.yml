@@ -8,6 +8,7 @@
 requires:
   serverless: true
   stack: true
+  serverless_project: security
 ---
 "security-entity-analytics-api create watchlist":
   - do:

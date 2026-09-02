@@ -6,6 +6,7 @@
 requires:
   serverless: true
   stack: true
+  serverless_project: security
 ---
 "security-timeline-api install prepacked timelines":
   - do:

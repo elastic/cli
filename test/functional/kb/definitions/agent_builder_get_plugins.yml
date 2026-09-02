@@ -6,6 +6,7 @@
 requires:
   serverless: true
   stack: true
+  serverless_project: elasticsearch
 ---
 "agent-builder list plugins":
   - do:

@@ -6,6 +6,7 @@
 requires:
   serverless: true
   stack: true
+  serverless_project: observability
 ---
 "significantevents get streams name significant events":
   - do:

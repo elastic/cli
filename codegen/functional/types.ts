@@ -28,10 +28,14 @@ export interface TestFile {
   tests: TestSection[]
 }
 
+export type ServerlessProject = 'security' | 'observability' | 'elasticsearch'
+
 export interface Requires {
   serverless: boolean
   /** true = runs on stack, false = explicitly excluded from stack, null = not specified */
   stack: boolean | null
+  /** Serverless project types this definition may run against. Absent means any. */
+  serverlessProject?: ServerlessProject[]
 }
 
 /**
