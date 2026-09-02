@@ -16,8 +16,9 @@
 #
 # Startup order:
 #   1. Start ES early so it is fully ready before Kibana connects.
-#   2. Pull Kibana + test-runner images while the CLI builds.
-#   3. Start Kibana only after the build completes (~3 min buffer for ES).
+#   2. Build the CLI while ES boots. Do not pull Kibana/node images yet:
+#      overlapping those extracts with npm ci fills the agent disk (ENOSPC).
+#   3. Pull Kibana + test-runner after the build, then start Kibana.
 #   4. Run the test-runner container for health checks + tests.
 
 set -euo pipefail
@@ -91,16 +92,7 @@ docker run \
   --rm \
   "$ES_IMAGE"
 
-# Pull Kibana and the test-runner images while ES boots and the CLI builds.
-echo "--- Pulling Kibana image (background)"
-docker pull "$KB_IMAGE" &
-KB_PULL_PID=$!
-
-echo "--- Pulling test-runner image (background)"
-docker pull "$NODE_RUNNER_IMAGE" &
-NODE_PULL_PID=$!
-
-# ── Build CLI (concurrent with ES startup + image pulls) ────────────────────
+# ── Build CLI (concurrent with ES startup; image pulls wait until after) ──
 
 echo "--- Setting up Node.js ${NODE_VERSION}"
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
@@ -140,8 +132,8 @@ npm run build
 # ES API. A one-shot Node.js container on the same network handles this without
 # needing the host to reach ES directly.
 
-echo "--- Waiting for node runner image pull to finish"
-wait "$NODE_PULL_PID"
+echo "--- Pulling test-runner image"
+docker pull "$NODE_RUNNER_IMAGE"
 
 echo "--- Configuring kibana_system user"
 docker run \
@@ -154,8 +146,8 @@ docker run \
 
 # ── Start Kibana ─────────────────────────────────────────────────────────────
 
-echo "--- Waiting for Kibana image pull to finish"
-wait "$KB_PULL_PID"
+echo "--- Pulling Kibana image"
+docker pull "$KB_IMAGE"
 
 echo "--- Starting Kibana ${STACK_VERSION}"
 # Intentionally no --rm so crash logs are always available in cleanup.
