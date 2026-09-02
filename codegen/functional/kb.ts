@@ -381,9 +381,6 @@ const skippedFilesServerless = new Set<string>([
   "fleet_uninstall_tokens_post_fleet_uninstall_tokens_agentpolicyid_rotate.yml",
   "message_signing_service_post_fleet_message_signing_service_rotate_key_pair.yml",
 
-  // CLI (de)serialization defects: a non-JSON response the client cannot parse.
-  "elastic_agent_policies_get_fleet_kubernetes_download.yml",
-
   // Not fixed by empty-body normalisation: mcp_post needs a JSON-RPC payload and
   // returns an event-stream (-32700 Parse error); consumption 404s (route absent);
   // security_role_query returns total 0 (no queryable roles in this env).
@@ -616,11 +613,9 @@ const skippedFilesStack = new Set<string>([
   // Assertions fail or the response is unparseable: required objects were never
   // provisioned in the stack env, or the body isn't the JSON/YAML the check expects.
   "agent_builder_converse_async.yml",
-  "elastic_agent_policies_get_fleet_kubernetes_download.yml",
   "elastic_agents_get_fleet_agents_setup.yml",
   "security_attack_discovery_api_get_attack_discovery_generations.yml",
   "security_entity_analytics_api_bulk_upsert_asset_criticality_records.yml",
-  "security_lists_api_export_list_items.yml",
   "security_timeline_api_resolve_timeline.yml",
   "apm_agent_configuration_search_single_configuration.yml",
   "security_exceptions_api_create_shared_exception_list.yml",

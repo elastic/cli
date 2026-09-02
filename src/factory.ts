@@ -768,7 +768,12 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
         return
       }
       const { parse: parseYaml } = await import('yaml')
-      result = parseYaml(handlerResult.text) as JsonValue
+      try {
+        result = parseYaml(handlerResult.text) as JsonValue
+      } catch {
+        // Multi-doc manifests (k8s `---` separators) throw; keep the raw body so --json still exits 0.
+        result = handlerResult.text
+      }
     } else {
       result = handlerResult
     }
