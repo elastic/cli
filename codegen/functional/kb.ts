@@ -319,6 +319,7 @@ const skippedFilesServerless = new Set<string>([
   // `.fleet-*` indices are absent in the serverless env (nothing enrolled),
   // so the op 404s with index_not_found_exception.
   "elastic_agent_actions_post_fleet_agents_bulk_update_agent_tags.yml",
+  "elastic_agents_get_fleet_agent_status_data.yml",
   "elastic_agents_get_fleet_agents_agentid_effective_config.yml",
 
   // Wired streams are not enabled in the serverless env (422: "Streams are not
@@ -527,6 +528,7 @@ const skippedFilesStack = new Set<string>([
   "elastic_agent_actions_post_fleet_agents_bulk_reassign.yml",
   "elastic_agents_delete_fleet_agents_agentid.yml",
   "elastic_agents_delete_fleet_agents_files_fileid.yml",
+  "elastic_agents_get_fleet_agent_status_data.yml",
   "elastic_agents_get_fleet_agents_agentid.yml",
   "elastic_agents_get_fleet_agents_agentid_effective_config.yml",
   "elastic_agents_get_fleet_agents_files_fileid_filename.yml",
@@ -670,9 +672,7 @@ for (const file of yamlFiles) {
 
   const result = generateScript(testFile, apis, {
     clientArgs: ['stack', 'kb'],
-    preamble: KB_PREAMBLE,
-    // CI Kibana has no enrolled agents; jq prints "null" for items.0.id.
-    skipEmptySet: file === 'elastic_agents_get_fleet_agent_status_data.yml',
+    preamble: KB_PREAMBLE
   })
 
   for (const action of result.skippedActions) allSkippedActions.add(action)
