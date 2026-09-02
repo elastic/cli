@@ -9900,7 +9900,7 @@
                       "name": "active-only",
                       "type": "boolean",
                       "required": false,
-                      "summary": "If `true`, the response only includes ongoing shard recoveries."
+                      "summary": "If `true`, the response only includes shard recoveries that have not yet completed (excludes `done` stage)."
                     },
                     {
                       "role": "flag",
@@ -26661,7 +26661,7 @@
                       "name": "active-only",
                       "type": "boolean",
                       "required": false,
-                      "summary": "If `true`, the response only includes ongoing shard recoveries."
+                      "summary": "If `true`, the response only includes shard recoveries that have not yet completed (excludes `DONE` stage)."
                     },
                     {
                       "role": "flag",
@@ -52195,7 +52195,7 @@
                       "name": "wait-for-completion",
                       "type": "boolean",
                       "required": false,
-                      "summary": "If `true`, the request returns a response when the matching snapshots are all deleted.\nIf `false`, the request returns a response as soon as the deletes are scheduled."
+                      "summary": "If `false`, the request returns a response as soon as the deletes are scheduled.\nIf `true`, the request returns a response when the matching snapshots are all deleted, and the post-deletion cleanup work associated with the request has completed.\nIf you make several requests to the delete-snapshots API targetting overlapping collections of snapshots then some of those requests may perform different parts of the associated post-deletion cleanup work, returning their responses at different times.\nFor example, if you make two requests to delete the same snapshot then sometimes all of the post-deletion cleanup work will be associated with the first request, delaying its response, while the second request has no associated post-deletion cleanup work and receives its response as soon as the snapshot has been deleted."
                     },
                     {
                       "role": "flag",
@@ -58659,6 +58659,38 @@
                     },
                     {
                       "role": "flag",
+                      "name": "page",
+                      "type": "number",
+                      "required": false,
+                      "summary": "Page number, 1-based."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "per-page",
+                      "type": "number",
+                      "required": false,
+                      "summary": "Number of results per page. Maximum 1000."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "sort-order",
+                      "type": "enum",
+                      "required": false,
+                      "summary": "Sort direction for results, ordered by updated_at.",
+                      "enumValues": [
+                        "asc",
+                        "desc"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "pinned",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Filter to pinned (true) or unpinned (false) conversations. Omit to return all."
+                    },
+                    {
+                      "role": "flag",
                       "name": "input-file",
                       "type": "string",
                       "required": false,
@@ -64773,7 +64805,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "delete-case-default-space",
+                  "name": "delete-case",
                   "parameters": [
                     {
                       "role": "dryRun",
@@ -64804,7 +64836,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "update-case-default-space",
+                  "name": "update-case",
                   "parameters": [
                     {
                       "role": "flag",
@@ -64840,7 +64872,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "create-case-default-space",
+                  "name": "create-case",
                   "parameters": [
                     {
                       "role": "flag",
@@ -64874,6 +64906,12 @@
                       "name": "description",
                       "type": "string",
                       "required": true
+                    },
+                    {
+                      "role": "flag",
+                      "name": "extended-fields",
+                      "type": "string",
+                      "required": false
                     },
                     {
                       "role": "flag",
@@ -64951,7 +64989,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "find-cases-default-space",
+                  "name": "find-cases",
                   "parameters": [
                     {
                       "role": "dryRun",
@@ -64975,7 +65013,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case-default-space",
+                  "name": "get-case",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65013,7 +65051,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case-alerts-default-space",
+                  "name": "get-case-alerts",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65051,7 +65089,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "delete-case-comments-default-space",
+                  "name": "delete-case-comments",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65096,7 +65134,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "update-case-comment-default-space",
+                  "name": "update-case-comment",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65137,7 +65175,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "add-case-comment-default-space",
+                  "name": "add-case-comment",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65178,7 +65216,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "find-case-comments-default-space",
+                  "name": "find-case-comments",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65241,7 +65279,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "delete-case-comment-default-space",
+                  "name": "delete-case-comment",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65293,7 +65331,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case-comment-default-space",
+                  "name": "get-case-comment",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65338,7 +65376,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "push-case-default-space",
+                  "name": "push-case",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65386,7 +65424,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case-applicable-fields-default-space",
+                  "name": "get-case-applicable-fields",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65424,7 +65462,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "add-case-file-default-space",
+                  "name": "add-case-file",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65473,7 +65511,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "find-case-activity-default-space",
+                  "name": "find-case-activity",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65544,7 +65582,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-cases-by-alert-default-space",
+                  "name": "get-cases-by-alert",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65590,7 +65628,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case-configuration-default-space",
+                  "name": "get-case-configuration",
                   "parameters": [
                     {
                       "role": "dryRun",
@@ -65614,7 +65652,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "set-case-configuration-default-space",
+                  "name": "set-case-configuration",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65685,7 +65723,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "update-case-configuration-default-space",
+                  "name": "update-case-configuration",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65759,7 +65797,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "find-case-connectors-default-space",
+                  "name": "find-case-connectors",
                   "parameters": [
                     {
                       "role": "dryRun",
@@ -65783,7 +65821,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-applicable-fields-default-space",
+                  "name": "get-applicable-fields",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65828,7 +65866,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case-reporters-default-space",
+                  "name": "get-case-reporters",
                   "parameters": [
                     {
                       "role": "dryRun",
@@ -65852,7 +65890,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case-tags-default-space",
+                  "name": "get-case-tags",
                   "parameters": [
                     {
                       "role": "dryRun",
@@ -65876,7 +65914,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case-templates-default-space",
+                  "name": "get-case-templates",
                   "parameters": [
                     {
                       "role": "dryRun",
@@ -65900,7 +65938,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "create-case-template-default-space",
+                  "name": "create-case-template",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65975,7 +66013,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "delete-case-template-default-space",
+                  "name": "delete-case-template",
                   "parameters": [
                     {
                       "role": "flag",
@@ -66020,7 +66058,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case-template-default-space",
+                  "name": "get-case-template",
                   "parameters": [
                     {
                       "role": "flag",
@@ -66065,7 +66103,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "update-case-template-default-space",
+                  "name": "update-case-template",
                   "parameters": [
                     {
                       "role": "flag",
@@ -66777,6 +66815,51 @@
                     }
                   ],
                   "summary": "Get data streams",
+                  "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
+                    "requiresAuth": true
+                  }
+                },
+                {
+                  "path": [
+                    "stack",
+                    "kb",
+                    "data-streams"
+                  ],
+                  "name": "get-fleet-data-streams-data",
+                  "parameters": [
+                    {
+                      "role": "flag",
+                      "name": "data-streams",
+                      "type": "string",
+                      "required": true,
+                      "summary": "A comma-separated list of data stream index patterns to check. Each pattern must be of the form `logs-<dataset>-*` or `metrics-<dataset>-*`."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "start",
+                      "type": "string",
+                      "required": true,
+                      "summary": "An ISO 8601 timestamp. Only documents with an `@timestamp` at or after this time are considered."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
+                    }
+                  ],
+                  "summary": "Check if data streams have data",
                   "intent": {
                     "destructive": false,
                     "idempotent": true,
@@ -74558,7 +74641,7 @@
                       "role": "flag",
                       "name": "hosts",
                       "type": "array",
-                      "required": true,
+                      "required": false,
                       "repeatable": true,
                       "elementType": "string"
                     },
@@ -74654,7 +74737,7 @@
                       "type": "enum",
                       "required": true,
                       "enumValues": [
-                        "kafka"
+                        "otlp"
                       ]
                     },
                     {
@@ -74831,6 +74914,12 @@
                     {
                       "role": "flag",
                       "name": "version",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "otlp-exporter",
                       "type": "string",
                       "required": false
                     },
@@ -75078,7 +75167,7 @@
                       "type": "enum",
                       "required": false,
                       "enumValues": [
-                        "kafka"
+                        "otlp"
                       ]
                     },
                     {
@@ -75255,6 +75344,12 @@
                     {
                       "role": "flag",
                       "name": "version",
+                      "type": "string",
+                      "required": false
+                    },
+                    {
+                      "role": "flag",
+                      "name": "otlp-exporter",
                       "type": "string",
                       "required": false
                     },
@@ -104323,6 +104418,13 @@
                     },
                     {
                       "role": "flag",
+                      "name": "organization-id",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The Organization ID to scope the request to."
+                    },
+                    {
+                      "role": "flag",
                       "name": "input-file",
                       "type": "string",
                       "required": false,
@@ -104444,6 +104546,13 @@
                     },
                     {
                       "role": "flag",
+                      "name": "organization-id",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The Organization ID to scope the request to."
+                    },
+                    {
+                      "role": "flag",
                       "name": "input-file",
                       "type": "string",
                       "required": false,
@@ -104477,6 +104586,13 @@
                       "type": "string",
                       "required": true,
                       "summary": "The traffic filter ID."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "organization-id",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The Organization ID to scope the request to."
                     },
                     {
                       "role": "flag",

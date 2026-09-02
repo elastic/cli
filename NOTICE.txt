@@ -221,7 +221,7 @@ released to the public npm registry; depend on it through the workspace.
 
 
 ------------------------------------------------------------------------
-@elastic/schemas@0.7.1
+@elastic/schemas@0.7.2
 License: Apache-2.0
 Repository: https://github.com/elastic/schemas-js
 Publisher: Elastic Client Library Maintainers
@@ -1047,7 +1047,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 ------------------------------------------------------------------------
-fast-uri@3.1.5
+fast-uri@3.1.7
 License: BSD-3-Clause
 Repository: https://github.com/fastify/fast-uri
 Publisher: Vincent Le Goff <vince.legoff@gmail.com> (https://github.com/zekth)
