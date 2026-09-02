@@ -29,5 +29,5 @@ teardown:
       security-entity-analytics-api.privmon_bulk_upload_users_c_s_v:
         body:
           file: $csv_file
-  - is_false: errors
+  - length: {errors: 0}
   - match: {stats.uploaded: 1}
