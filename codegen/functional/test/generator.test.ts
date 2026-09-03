@@ -361,6 +361,31 @@ describe('generateScript', () => {
     assert.match(result.script, /RESPONSE=\$\(.*indices delete.*\) \|\| true/)
   })
 
+  it('does not guard an optional do on a ref bound to an optional field', () => {
+    // Required `index` is a literal (always present); `document` is optional and
+    // references an unset var. The optional ref must not gate the call — the
+    // delete/index should still run, matching the ignore-404 + `$routing` case.
+    const testFile: TestFile = {
+      sourceFile: 'optional-ref.yml',
+      requires: { serverless: true, stack: true },
+      setup: [],
+      teardown: [],
+      tests: [{
+        name: 'index',
+        steps: [{
+          kind: 'do',
+          action: 'index',
+          params: { index: 'real_index' },
+          body: { document: '$doc' },
+          ignore: [404]
+        }]
+      }]
+    }
+    const result = generateScript(testFile, testDefs)
+    assert.doesNotMatch(result.script, /\[ -n "\$DOC" \]/)
+    assert.match(result.script, /RESPONSE=\$\(.*index.*\) \|\| true/)
+  })
+
   it('binds write_temp before the upload flag and the file exists', () => {
     const content = readFileSync(join(fixturesDir, 'write-temp.yml'), 'utf-8')
     const testFile = parseTestFile(content, 'write-temp.yml')
@@ -372,7 +397,7 @@ describe('generateScript', () => {
     assert.match(result.script, /ITEMS_FILE=\$\(mktemp -d\)\/fixture\.txt/)
     assert.match(result.script, /cat > "\$ITEMS_FILE" <<'CLI_FT_WRITE_TEMP_EOF'/)
     assert.match(result.script, /test-import-value/)
-    assert.match(result.script, /\[ -n "\$ITEMS_FILE" \] && rm -f -- "\$ITEMS_FILE"/)
+    assert.match(result.script, /\[ -n "\$ITEMS_FILE" \] && rm -rf -- "\$\(dirname -- "\$ITEMS_FILE"\)"/)
 
     const start = result.script.indexOf('ITEMS_FILE=$(mktemp')
     const end = result.script.indexOf('CLI_FT_WRITE_TEMP_EOF', start)

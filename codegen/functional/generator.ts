@@ -89,7 +89,7 @@ export function generateScript (
       renderSteps(testFile.teardown, actionMap, clientArgs, teardownBody, skippedActions, '  ', false, skipEmptySet, skipNotFound)
     }
     for (const v of tempFileVars) {
-      teardownBody.push(`  [ -n "$${v}" ] && rm -f -- "$${v}"`)
+      teardownBody.push(`  [ -n "$${v}" ] && rm -rf -- "$(dirname -- "$${v}")"`)
     }
     if (!hasExecutableLine(teardownBody)) {
       teardownBody.push('  :')
@@ -409,7 +409,7 @@ function renderDo (
 
   const optional = allowFailure || (step.ignore != null && step.ignore.length > 0)
   if (optional) {
-    const refs = collectStepVarRefs(step)
+    const refs = collectRequiredStepVarRefs(step, mapped)
     if (refs.length > 0) {
       const cond = refs.map((v) => `[ -n "$${v}" ]`).join(' && ')
       lines.push(`${indent}if ${cond}; then`)
@@ -826,27 +826,37 @@ function expandBulkDataFields (items: unknown[]): unknown[] {
 }
 
 /**
- * Recursively check if any string value in `val` is a bash variable reference
- * (starts with `$`) pointing to a variable in `unsetVars`.
+ * Collect the bash variable names (`$foo` -> `FOO`) referenced by a do-step's
+ * top-level params or body fields that map to a *required* schema field.
+ *
+ * Optional `do`-steps are wrapped in a `[ -n "$VAR" ]` guard so a missing
+ * fixture (e.g. an unbound write_temp upload path) skips the call instead of
+ * sending a broken request. The guard is limited to required fields so an
+ * unset *optional* param (e.g. `$routing` on a delete of a real index) does
+ * not suppress a call that should still run.
  */
-function collectStepVarRefs (step: DoStep): string[] {
+function collectRequiredStepVarRefs (step: DoStep, mapped: MappedAction): string[] {
+  const canon = (k: string): string => k.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const requiredByCanon = new Map<string, SchemaArgDefinition>()
+  for (const arg of mapped.bodyArgsByKey.values()) {
+    if (arg.required) requiredByCanon.set(canon(arg.schemaKey), arg)
+  }
   const names: string[] = []
   const seen = new Set<string>()
-  const walk = (val: unknown): void => {
-    if (typeof val === 'string' && val.startsWith('$')) {
-      const v = val.slice(1).toUpperCase().replace(/[^A-Z0-9]/g, '_')
-      if (!seen.has(v)) {
-        seen.add(v)
-        names.push(v)
-      }
-    } else if (Array.isArray(val)) {
-      for (const item of val) walk(item)
-    } else if (val !== null && typeof val === 'object') {
-      for (const item of Object.values(val)) walk(item)
+  const add = (key: string, val: unknown): void => {
+    if (typeof val !== 'string' || !val.startsWith('$')) return
+    const arg = mapped.bodyArgsByKey.get(key) ?? requiredByCanon.get(canon(key))
+    if (arg?.required !== true) return
+    const v = val.slice(1).toUpperCase().replace(/[^A-Z0-9]/g, '_')
+    if (!seen.has(v)) {
+      seen.add(v)
+      names.push(v)
     }
   }
-  walk(step.params)
-  if (step.body != null) walk(step.body)
+  for (const [key, val] of Object.entries(step.params)) add(key, val)
+  if (step.body != null && typeof step.body === 'object' && !Array.isArray(step.body)) {
+    for (const [key, val] of Object.entries(step.body as Record<string, unknown>)) add(key, val)
+  }
   return names
 }
 
