@@ -37,7 +37,7 @@ describe('checkElasticsearch', () => {
       { url: 'http://localhost:9200', auth: { api_key: 'k' } },
       fetchFn,
     )
-    assert.deepEqual(result, { ok: true, url: 'http://localhost:9200', status: 'green', nodes: 3 })
+    assert.deepEqual(result, { ok: true, url: 'http://localhost:9200', flavor: 'stateful', status: 'green', nodes: 3 })
     assert.equal(calls.length, 1)
     assert.equal(calls[0]!.url, 'http://localhost:9200/_cluster/health')
     const headers = calls[0]!.init.headers as Record<string, string>
@@ -144,6 +144,50 @@ describe('checkElasticsearch', () => {
       fetchFn,
     )
     assert.deepEqual(result, { ok: false, url: 'http://localhost:9200', error: 'unexpected response' })
+  })
+
+  it('falls back to the root endpoint on a 410 (serverless) and reports the version', async () => {
+    const { fetch: fetchFn, calls } = recordingFetch((url) => {
+      if (url.endsWith('/_cluster/health')) return new Response('gone', { status: 410 })
+      return new Response(
+        JSON.stringify({ name: 'serverless', version: { number: '9.5.0', build_flavor: 'serverless' } }),
+        { status: 200 },
+      )
+    })
+    const result = await checkElasticsearch(
+      { url: 'https://x.es.cloud', auth: { username: 'admin', password: 'p' } },
+      fetchFn,
+    )
+    assert.deepEqual(result, { ok: true, url: 'https://x.es.cloud', flavor: 'serverless', version: '9.5.0' })
+    assert.equal(calls.length, 2)
+    assert.equal(calls[0]!.url, 'https://x.es.cloud/_cluster/health')
+    assert.equal(calls[1]!.url, 'https://x.es.cloud/')
+  })
+
+  it('reports unexpected response when the serverless root lacks version.number', async () => {
+    const { fetch: fetchFn } = recordingFetch((url) =>
+      url.endsWith('/_cluster/health')
+        ? new Response('gone', { status: 410 })
+        : new Response(JSON.stringify({ name: 'serverless', version: {} }), { status: 200 })
+    )
+    const result = await checkElasticsearch(
+      { url: 'https://x.es.cloud', auth: { api_key: 'k' } },
+      fetchFn,
+    )
+    assert.deepEqual(result, { ok: false, url: 'https://x.es.cloud', error: 'unexpected response' })
+  })
+
+  it('propagates a serverless root failure', async () => {
+    const { fetch: fetchFn } = recordingFetch((url) =>
+      url.endsWith('/_cluster/health')
+        ? new Response('gone', { status: 410 })
+        : new Response('nope', { status: 401 })
+    )
+    const result = await checkElasticsearch(
+      { url: 'https://x.es.cloud', auth: { api_key: 'bad' } },
+      fetchFn,
+    )
+    assert.deepEqual(result, { ok: false, url: 'https://x.es.cloud', error: 'auth failed (401)' })
   })
 
 })
