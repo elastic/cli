@@ -523,6 +523,25 @@ describe('ConfigFileSchema', () => {
     if (result.success) assert.equal(result.data.default_profile, 'serverless')
   })
 
+  it('accepts telemetry:false at root level', () => {
+    const result = ConfigFileSchema.safeParse({
+      'current_context': 'production',
+      contexts: { production: { elasticsearch: esBlock } },
+      telemetry: false,
+    })
+    assert.equal(result.success, true)
+    if (result.success) assert.equal(result.data.telemetry, false)
+  })
+
+  it('rejects a non-boolean telemetry value', () => {
+    const result = ConfigFileSchema.safeParse({
+      'current_context': 'production',
+      contexts: { production: { elasticsearch: esBlock } },
+      telemetry: 'nope',
+    })
+    assert.equal(result.success, false)
+  })
+
   it('rejects an invalid default_profile value', () => {
     const result = ConfigFileSchema.safeParse({
       'current_context': 'production',

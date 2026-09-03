@@ -190,6 +190,7 @@ export function resolveContext (config: ConfigFile, contextName: string, profile
   if (effectiveCommandsResult.commands != null) result.commands = effectiveCommandsResult.commands
 
   if (config.banner != null) result.banner = config.banner
+  if (config.telemetry != null) result.telemetry = config.telemetry
   return result
 }
 
@@ -390,6 +391,7 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     ...(commands != null && { commands }),
     ...(defaultProfile != null && { default_profile: defaultProfile }),
     ...(structural.data.banner != null && { banner: structural.data.banner }),
+    ...(structural.data.telemetry != null && { telemetry: structural.data.telemetry }),
   }
   let result: LoadConfigResult
   try {
