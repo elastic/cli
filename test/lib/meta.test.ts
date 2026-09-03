@@ -3,11 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it } from 'node:test'
+import { describe, it, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { clientHeaders, toMetaVersion } from '../../src/lib/meta.ts'
 import os from 'node:os'
 import { createRequire } from 'node:module'
+import { setResolvedConfig, _testResetConfig } from '../../src/config/store.ts'
+import type { ResolvedConfig } from '../../src/config/types.ts'
 
 const pkgVersion = (createRequire(import.meta.url)('../../package.json') as { version: string }).version
 
@@ -102,5 +104,53 @@ describe('clientHeaders', () => {
         assert.match(value, specRegex, `value "${value}" in "${part}" does not match spec regex`)
       }
     })
+  })
+})
+
+describe('clientHeaders telemetry toggle', () => {
+  const ORIGINAL_ENV = process.env.ELASTIC_CLI_TELEMETRY
+
+  afterEach(() => {
+    _testResetConfig()
+    if (ORIGINAL_ENV === undefined) delete process.env.ELASTIC_CLI_TELEMETRY
+    else process.env.ELASTIC_CLI_TELEMETRY = ORIGINAL_ENV
+  })
+
+  it('includes x-elastic-client-meta by default (opt-out, no config)', () => {
+    delete process.env.ELASTIC_CLI_TELEMETRY
+    _testResetConfig()
+    assert.ok('x-elastic-client-meta' in clientHeaders())
+  })
+
+  it('includes x-elastic-client-meta when config telemetry is true', () => {
+    delete process.env.ELASTIC_CLI_TELEMETRY
+    setResolvedConfig({ context: {}, telemetry: true } as ResolvedConfig)
+    assert.ok('x-elastic-client-meta' in clientHeaders())
+  })
+
+  it('omits x-elastic-client-meta when config telemetry is false', () => {
+    delete process.env.ELASTIC_CLI_TELEMETRY
+    setResolvedConfig({ context: {}, telemetry: false } as ResolvedConfig)
+    const headers = clientHeaders()
+    assert.ok(!('x-elastic-client-meta' in headers))
+    assert.ok('user-agent' in headers)
+  })
+
+  it('env ELASTIC_CLI_TELEMETRY=false disables regardless of config', () => {
+    process.env.ELASTIC_CLI_TELEMETRY = 'false'
+    setResolvedConfig({ context: {}, telemetry: true } as ResolvedConfig)
+    assert.ok(!('x-elastic-client-meta' in clientHeaders()))
+  })
+
+  it('env ELASTIC_CLI_TELEMETRY=0 disables', () => {
+    process.env.ELASTIC_CLI_TELEMETRY = '0'
+    _testResetConfig()
+    assert.ok(!('x-elastic-client-meta' in clientHeaders()))
+  })
+
+  it('env ELASTIC_CLI_TELEMETRY=true overrides config telemetry:false', () => {
+    process.env.ELASTIC_CLI_TELEMETRY = 'true'
+    setResolvedConfig({ context: {}, telemetry: false } as ResolvedConfig)
+    assert.ok('x-elastic-client-meta' in clientHeaders())
   })
 })

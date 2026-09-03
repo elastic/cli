@@ -20,6 +20,7 @@ See [Configure the Elastic CLI](./configuration.md) for details on where to stor
 | `commands` | object | no | - | The root-level command allow/deny policy. Overridden by a context's own `commands` policy when present. See [command policy](#commands-command-policy). |
 | `default_profile` | string (`serverless` \| `stack` \| `default`) | no | - | Fallback built-in profile applied to any context that does not set its own `commands.profile`. Overridden by a per-context `commands.profile` and by the `--profile` CLI flag. |
 | `banner` | boolean | no | `true` | Whether to show the startup banner. |
+| `telemetry` | boolean | no | `true` | Whether to collect anonymous usage telemetry. Set to `false` to turn off collection of anonymous telemetry. Overridden by the `ELASTIC_CLI_TELEMETRY` environment variable. |
 
 ### `contexts.<name>`
 

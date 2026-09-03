@@ -37,7 +37,7 @@ type CliNamespace = SpecNamespace & { commands: CliCommand[], namespaces: CliNam
 
 // ---------------------------------------------------------------------------
 // Environment declaration (sources: src/config/loader.ts, src/lib/logo.ts,
-//                                   src/lib/cloud-client.ts)
+//                                   src/lib/cloud-client.ts, src/lib/meta.ts)
 // ---------------------------------------------------------------------------
 
 const ENVIRONMENT: CliEnvironment = {
@@ -56,6 +56,11 @@ const ENVIRONMENT: CliEnvironment = {
       name: 'ELASTIC_CLOUD_ADMIN_API',
       required: false,
       description: 'Override the Elastic Cloud admin API base URL',
+    },
+    {
+      name: 'ELASTIC_CLI_TELEMETRY',
+      required: false,
+      description: 'Set to a falsey value (false/0/no/off) to turn off collection of anonymous telemetry; overrides the config telemetry field',
     },
   ],
   configFiles: [
