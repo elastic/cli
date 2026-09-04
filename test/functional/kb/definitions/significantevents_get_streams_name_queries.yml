@@ -8,30 +8,54 @@ requires:
   stack: true
   serverless_project: observability
 ---
+setup:
+  - do:
+      streams.put_streams_name:
+        name: cli-ft-se-getq
+        body:
+          dashboards: []
+          rules: []
+          stream:
+            description: ""
+            type: wired
+            ingest:
+              lifecycle: {inherit: {}}
+              processing:
+                steps: []
+              settings: {}
+              failure_store: {inherit: {}}
+              wired:
+                fields: {}
+                routing: []
+---
 teardown:
   - do:
       significantevents.delete_streams_name_queries_queryid:
-        name: cli-ft-se-stream
+        name: cli-ft-se-getq
         query_id: cli-ft-se-query
+        ignore: [404]
+  - do:
+      streams.delete_streams_name:
+        name: cli-ft-se-getq
         ignore: [404]
 ---
 "significantevents get stream queries":
   - do:
       significantevents.put_streams_name_queries_queryid:
-        name: cli-ft-se-stream
+        name: cli-ft-se-getq
         query_id: cli-ft-se-query
         body:
           title: CLI FT Significant Events Query
           esql:
-            query: "FROM cli-ft-se-stream | LIMIT 10"
+            query: "FROM cli-ft-se-getq | LIMIT 10"
   - is_true: ""
 
   - do:
       significantevents.get_streams_name_queries:
-        name: cli-ft-se-stream
+        name: cli-ft-se-getq
   - is_true: ""
 
   - do:
       significantevents.delete_streams_name_queries_queryid:
-        name: cli-ft-se-stream
+        name: cli-ft-se-getq
         query_id: cli-ft-se-query

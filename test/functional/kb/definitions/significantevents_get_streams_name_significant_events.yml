@@ -8,10 +8,49 @@ requires:
   stack: true
   serverless_project: observability
 ---
+setup:
+  - do:
+      streams.put_streams_name:
+        name: cli-ft-se-events
+        body:
+          dashboards: []
+          rules: []
+          stream:
+            description: ""
+            type: wired
+            ingest:
+              lifecycle: {inherit: {}}
+              processing:
+                steps: []
+              settings: {}
+              failure_store: {inherit: {}}
+              wired:
+                fields: {}
+                routing: []
+  - do:
+      significantevents.put_streams_name_queries_queryid:
+        name: cli-ft-se-events
+        query_id: cli-ft-se-events-query
+        body:
+          title: CLI FT Events Query
+          esql:
+            query: "FROM cli-ft-se-events | LIMIT 10"
+---
+teardown:
+  - do:
+      significantevents.delete_streams_name_queries_queryid:
+        name: cli-ft-se-events
+        query_id: cli-ft-se-events-query
+        ignore: [404]
+  - do:
+      streams.delete_streams_name:
+        name: cli-ft-se-events
+        ignore: [404]
+---
 "significantevents get streams name significant events":
   - do:
       significantevents.get_streams_name_significant_events:
-        name: cli-ft-se-stream
+        name: cli-ft-se-events
         from: "2024-01-01T00:00:00.000Z"
         to: "2024-01-02T00:00:00.000Z"
         bucket_size: "1h"
