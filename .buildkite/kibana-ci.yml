@@ -1,0 +1,28 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# CI-only Kibana config. Mounted over the image default because colon-keyed
+# uiSettings and experimental arrays cannot be set via Kibana Docker env vars.
+
+server.host: "0.0.0.0"
+server.shutdownTimeout: "5s"
+
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+elasticsearch.username: "kibana_system"
+elasticsearch.password: "${ELASTICSEARCH_PASSWORD}"
+
+xpack.encryptedSavedObjects.encryptionKey: "${XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY}"
+xpack.reporting.encryptionKey: "${XPACK_REPORTING_ENCRYPTIONKEY}"
+xpack.security.encryptionKey: "${XPACK_SECURITY_ENCRYPTIONKEY}"
+
+# 9.3.0 registers these as Advanced Settings; uiSettings.overrides is the
+# only way to turn them on at boot. Discovery is a separate key.
+uiSettings.overrides:
+  "observability:streamsEnableSignificantEvents": true
+  "observability:streamsEnableSignificantEventsDiscovery": true
+
+# 9.3.0 fleet experimental keys. agentlessPoliciesAPI already defaults true;
+# listing it keeps the route registered if the image default flips.
+xpack.fleet.enableExperimental:
+  - agentlessPoliciesAPI
+  - useAgentlessAPIInUI
