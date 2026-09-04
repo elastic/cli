@@ -16,7 +16,8 @@ setup:
       security-entity-analytics-api.init_monitoring_engine: {}
   - write_temp:
       variable: csv_file
-      content: "username\ncli-ft-priv-mon-csv-user\n"
+      # Kibana parses with header: false; each row is a user (col 1 name).
+      content: "cli-ft-priv-mon-csv-user\n"
       suffix: .csv
 ---
 teardown:
@@ -29,5 +30,6 @@ teardown:
       security-entity-analytics-api.privmon_bulk_upload_users_c_s_v:
         body:
           file: $csv_file
-  - is_false: errors
-  - match: {stats.uploaded: 1}
+  - length: {errors: 0}
+  # 9.3.0 (CI stack) returns stats.successful; stats.uploaded landed later.
+  - match: {stats.successful: 1}

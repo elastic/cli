@@ -154,6 +154,16 @@ describe('parseTestFile', () => {
       /serverless_project must be security, observability, or elasticsearch/
     )
   })
+
+  it('parses write_temp with variable, content, and suffix', () => {
+    const file = loadFixture('write-temp.yml')
+    assert.equal(file.setup.length, 1)
+    assert.equal(file.setup[0].kind, 'write_temp')
+    const step = file.setup[0] as { kind: 'write_temp', varName: string, content: string, suffix?: string }
+    assert.equal(step.varName, 'items_file')
+    assert.equal(step.content, 'test-import-value\n')
+    assert.equal(step.suffix, '.txt')
+  })
 })
 
 describe('isServerless', () => {

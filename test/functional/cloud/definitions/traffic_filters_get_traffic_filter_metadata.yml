@@ -2,6 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # Cloud control plane API: List PrivateLink region metadata (GET /api/v1/serverless/traffic-filters/metadata)
 ---
+setup:
+  - do:
+      organizations.list-organizations: {}
+  - set: {organizations.0.id: organization_id}
+---
 "traffic-filters get-traffic-filter-metadata":
   - do:
-      traffic-filters.get-traffic-filter-metadata: {}
+      traffic-filters.get-traffic-filter-metadata:
+        organization_id: $organization_id

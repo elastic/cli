@@ -1,7 +1,14 @@
 # Copyright Elasticsearch B.V. and contributors
 # SPDX-License-Identifier: Apache-2.0
 # Cloud control plane API: List traffic filters (GET /api/v1/serverless/traffic-filters)
+# organization_id is a required query param injected by the generator, not in the path.
+---
+setup:
+  - do:
+      organizations.list-organizations: {}
+  - set: {organizations.0.id: organization_id}
 ---
 "traffic-filters list-traffic-filters":
   - do:
-      traffic-filters.list-traffic-filters: {}
+      traffic-filters.list-traffic-filters:
+        organization_id: $organization_id

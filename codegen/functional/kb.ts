@@ -109,11 +109,6 @@ const skippedFilesServerless = new Set<string>([
   "security_attack_discovery_api_enable_attack_discovery_schedules.yml",
   "security_attack_discovery_api_get_attack_discovery_schedules.yml",
   "security_attack_discovery_api_update_attack_discovery_schedules.yml",
-  "security_endpoint_management_api_endpoint_script_library_create_script.yml",
-  "security_endpoint_management_api_endpoint_script_library_delete_script.yml",
-  "security_endpoint_management_api_endpoint_script_library_download_script.yml",
-  "security_endpoint_management_api_endpoint_script_library_get_one_script.yml",
-  "security_endpoint_management_api_endpoint_script_library_patch_update_script.yml",
   "security_entity_analytics_api_assign_watchlist_entities.yml",
   "security_osquery_api_osquery_copy_packs.yml",
   "security_osquery_api_osquery_copy_saved_query.yml",
@@ -125,6 +120,13 @@ const skippedFilesServerless = new Set<string>([
   "security_osquery_api_osquery_get_saved_query_details.yml",
   "security_osquery_api_osquery_update_packs.yml",
   "security_osquery_api_osquery_update_saved_query.yml",
+
+  // File is bound; create-script still errors and dependents need a created id.
+  "security_endpoint_management_api_endpoint_script_library_create_script.yml",
+  "security_endpoint_management_api_endpoint_script_library_delete_script.yml",
+  "security_endpoint_management_api_endpoint_script_library_download_script.yml",
+  "security_endpoint_management_api_endpoint_script_library_get_one_script.yml",
+  "security_endpoint_management_api_endpoint_script_library_patch_update_script.yml",
 
   // No Fleet agents/hosts enrolled in the serverless env; null id substituted
   // into the path yields 404 ("Agent null not found" / "host id null").
@@ -311,11 +313,6 @@ const skippedFilesStack = new Set<string>([
   "security_attack_discovery_api_disable_attack_discovery_schedules.yml",
   "security_attack_discovery_api_get_attack_discovery_schedules.yml",
   "security_attack_discovery_api_update_attack_discovery_schedules.yml",
-  "security_endpoint_management_api_endpoint_script_library_create_script.yml",
-  "security_endpoint_management_api_endpoint_script_library_delete_script.yml",
-  "security_endpoint_management_api_endpoint_script_library_download_script.yml",
-  "security_endpoint_management_api_endpoint_script_library_get_one_script.yml",
-  "security_endpoint_management_api_endpoint_script_library_patch_update_script.yml",
   "security_entity_analytics_api_assign_watchlist_entities.yml",
   "security_osquery_api_osquery_copy_packs.yml",
   "security_osquery_api_osquery_copy_saved_query.yml",
@@ -327,6 +324,13 @@ const skippedFilesStack = new Set<string>([
   "security_osquery_api_osquery_get_saved_query_details.yml",
   "security_osquery_api_osquery_update_packs.yml",
   "security_osquery_api_osquery_update_saved_query.yml",
+
+  // File is bound; create-script still errors and dependents need a created id.
+  "security_endpoint_management_api_endpoint_script_library_create_script.yml",
+  "security_endpoint_management_api_endpoint_script_library_delete_script.yml",
+  "security_endpoint_management_api_endpoint_script_library_download_script.yml",
+  "security_endpoint_management_api_endpoint_script_library_get_one_script.yml",
+  "security_endpoint_management_api_endpoint_script_library_patch_update_script.yml",
 
   // Not fixed by empty-body normalisation: mcp_post needs a JSON-RPC payload and
   // returns an event-stream (-32700 Parse error); consumption 404s (route absent);
@@ -343,11 +347,6 @@ const skippedFilesStack = new Set<string>([
   "security_detections_api_import_rules.yml",
   "security_timeline_api_import_timelines.yml",
   "security_timeline_api_persist_favorite_route.yml",
-
-  // Generated script references an unbound file-upload variable
-  // (CSV_FILE / ITEMS_FILE); codegen emits no binding for multipart/file bodies.
-  "security_entity_analytics_api_privmon_bulk_upload_users_c_s_v.yml",
-  "security_lists_api_import_list_items.yml",
 
   // No Fleet resources provisioned in the stack env: null agent/host ids and
   // missing `.fleet-*` indices (nothing enrolled) produce 404/500.

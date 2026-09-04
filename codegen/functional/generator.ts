@@ -9,7 +9,7 @@ import {
   type TestFile, type Step, type DoStep, type SetStep, type MatchStep,
   type IsTrueStep, type IsFalseStep, type LengthStep,
   type GtStep, type GteStep, type LtStep, type LteStep, type ContainsStep,
-  type WriteNdjsonTempStep
+  type WriteNdjsonTempStep, type WriteTempStep
 } from './types.ts'
 import { buildActionMap, mapAction } from './mapper.ts'
 import type { MappedAction } from './mapper.ts'
@@ -82,9 +82,15 @@ export function generateScript (
   for (const line of preamble) lines.push(line)
   lines.push('')
 
-  if (testFile.teardown.length > 0) {
+  const tempFileVars = collectWriteTempVars(testFile)
+  if (testFile.teardown.length > 0 || tempFileVars.length > 0) {
     const teardownBody: string[] = []
-    renderSteps(testFile.teardown, actionMap, clientArgs, teardownBody, skippedActions, '  ', false, skipEmptySet, skipNotFound)
+    if (testFile.teardown.length > 0) {
+      renderSteps(testFile.teardown, actionMap, clientArgs, teardownBody, skippedActions, '  ', false, skipEmptySet, skipNotFound)
+    }
+    for (const v of tempFileVars) {
+      teardownBody.push(`  [ -n "$${v}" ] && rm -rf -- "$(dirname -- "$${v}")"`)
+    }
     if (!hasExecutableLine(teardownBody)) {
       teardownBody.push('  :')
     }
@@ -309,6 +315,10 @@ function renderSteps (
       continue
     }
     if (step.kind === 'skip') continue
+    if (step.kind === 'write_temp') {
+      renderWriteTemp(step, lines, indent)
+      continue
+    }
 
     if (!responseFromLastDo) {
       if (step.kind === 'set') {
@@ -399,7 +409,15 @@ function renderDo (
 
   const optional = allowFailure || (step.ignore != null && step.ignore.length > 0)
   if (optional) {
-    lines.push(`${indent}RESPONSE=$(${cmd}) || true`)
+    const refs = collectRequiredStepVarRefs(step, mapped)
+    if (refs.length > 0) {
+      const cond = refs.map((v) => `[ -n "$${v}" ]`).join(' && ')
+      lines.push(`${indent}if ${cond}; then`)
+      lines.push(`${indent}  RESPONSE=$(${cmd}) || true`)
+      lines.push(`${indent}fi`)
+    } else {
+      lines.push(`${indent}RESPONSE=$(${cmd}) || true`)
+    }
     return 'optional'
   }
   if (skipNotFound) {
@@ -579,6 +597,30 @@ function renderWriteNdjsonTemp (step: WriteNdjsonTempStep, lines: string[], inde
   // dir with an explicit .ndjson name.
   lines.push(`${indent}${bashVar}=$(mktemp -d)/export.ndjson`)
   lines.push(`${indent}echo "$RESPONSE" | jq -c '.[]' > "$${bashVar}"`)
+}
+
+function renderWriteTemp (step: WriteTempStep, lines: string[], indent: string): void {
+  const bashVar = step.varName.toUpperCase().replace(/[^A-Z0-9]/g, '_')
+  const suffix = step.suffix ?? ''
+  lines.push(`${indent}${bashVar}=$(mktemp -d)/fixture${suffix}`)
+  lines.push(`${indent}cat > "$${bashVar}" <<'CLI_FT_WRITE_TEMP_EOF'`)
+  for (const line of step.content.replace(/\n$/, '').split('\n')) lines.push(line)
+  lines.push('CLI_FT_WRITE_TEMP_EOF')
+}
+
+function collectWriteTempVars (file: TestFile): string[] {
+  const steps = [...file.setup, ...file.teardown, ...file.tests.flatMap((t) => t.steps)]
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const step of steps) {
+    if (step.kind !== 'write_temp' || step.varName === '') continue
+    const v = step.varName.toUpperCase().replace(/[^A-Z0-9]/g, '_')
+    if (!seen.has(v)) {
+      seen.add(v)
+      out.push(v)
+    }
+  }
+  return out
 }
 
 function renderMatch (step: MatchStep, lines: string[], indent: string): void {
@@ -784,9 +826,40 @@ function expandBulkDataFields (items: unknown[]): unknown[] {
 }
 
 /**
- * Recursively check if any string value in `val` is a bash variable reference
- * (starts with `$`) pointing to a variable in `unsetVars`.
+ * Collect the bash variable names (`$foo` -> `FOO`) referenced by a do-step's
+ * top-level params or body fields that map to a *required* schema field.
+ *
+ * Optional `do`-steps are wrapped in a `[ -n "$VAR" ]` guard so a missing
+ * fixture (e.g. an unbound write_temp upload path) skips the call instead of
+ * sending a broken request. The guard is limited to required fields so an
+ * unset *optional* param (e.g. `$routing` on a delete of a real index) does
+ * not suppress a call that should still run.
  */
+function collectRequiredStepVarRefs (step: DoStep, mapped: MappedAction): string[] {
+  const canon = (k: string): string => k.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const requiredByCanon = new Map<string, SchemaArgDefinition>()
+  for (const arg of mapped.bodyArgsByKey.values()) {
+    if (arg.required) requiredByCanon.set(canon(arg.schemaKey), arg)
+  }
+  const names: string[] = []
+  const seen = new Set<string>()
+  const add = (key: string, val: unknown): void => {
+    if (typeof val !== 'string' || !val.startsWith('$')) return
+    const arg = mapped.bodyArgsByKey.get(key) ?? requiredByCanon.get(canon(key))
+    if (arg?.required !== true) return
+    const v = val.slice(1).toUpperCase().replace(/[^A-Z0-9]/g, '_')
+    if (!seen.has(v)) {
+      seen.add(v)
+      names.push(v)
+    }
+  }
+  for (const [key, val] of Object.entries(step.params)) add(key, val)
+  if (step.body != null && typeof step.body === 'object' && !Array.isArray(step.body)) {
+    for (const [key, val] of Object.entries(step.body as Record<string, unknown>)) add(key, val)
+  }
+  return names
+}
+
 function valueReferencesUnset (val: unknown, unsetVars: Set<string>): boolean {
   if (typeof val === 'string' && val.startsWith('$')) {
     const varName = val.slice(1).toUpperCase().replace(/[^A-Z0-9]/g, '_')

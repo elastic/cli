@@ -59,6 +59,14 @@ const testDefs: EsApiDefinition[] = [
     method: 'POST',
     path: '/_bulk',
     input: { type: 'object', properties: { refresh: { type: 'boolean', 'x-found-in': 'query' }, operations: { type: 'array', 'x-found-in': 'body' } } }
+  },
+  {
+    name: 'import-list-items',
+    namespace: 'security-lists-api',
+    description: 'Import list items',
+    method: 'POST',
+    path: '/api/lists/items/_import',
+    input: { type: 'object', properties: { file: { type: 'string', 'x-found-in': 'body' } }, required: ['file'] }
   }
 ]
 
@@ -330,6 +338,76 @@ describe('generateScript', () => {
     const result = generateScript(testFile, [])
     assert.ok(result.skippedActions.length > 0)
     assert.ok(result.skippedActions.includes('indices.create'))
+  })
+
+  it('skips an optional teardown do when its stash var is empty', () => {
+    const testFile: TestFile = {
+      sourceFile: 'teardown-empty.yml',
+      requires: { serverless: true, stack: true },
+      setup: [],
+      teardown: [{
+        kind: 'do',
+        action: 'indices.delete',
+        params: { index: '$id' },
+        ignore: [404]
+      }],
+      tests: [{
+        name: 'create',
+        steps: [{ kind: 'do', action: 'indices.create', params: { index: 'x' } }]
+      }]
+    }
+    const result = generateScript(testFile, testDefs)
+    assert.match(result.script, /if \[ -n "\$ID" \]; then/)
+    assert.match(result.script, /RESPONSE=\$\(.*indices delete.*\) \|\| true/)
+  })
+
+  it('does not guard an optional do on a ref bound to an optional field', () => {
+    // Required `index` is a literal (always present); `document` is optional and
+    // references an unset var. The optional ref must not gate the call — the
+    // delete/index should still run, matching the ignore-404 + `$routing` case.
+    const testFile: TestFile = {
+      sourceFile: 'optional-ref.yml',
+      requires: { serverless: true, stack: true },
+      setup: [],
+      teardown: [],
+      tests: [{
+        name: 'index',
+        steps: [{
+          kind: 'do',
+          action: 'index',
+          params: { index: 'real_index' },
+          body: { document: '$doc' },
+          ignore: [404]
+        }]
+      }]
+    }
+    const result = generateScript(testFile, testDefs)
+    assert.doesNotMatch(result.script, /\[ -n "\$DOC" \]/)
+    assert.match(result.script, /RESPONSE=\$\(.*index.*\) \|\| true/)
+  })
+
+  it('binds write_temp before the upload flag and the file exists', () => {
+    const content = readFileSync(join(fixturesDir, 'write-temp.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'write-temp.yml')
+    const result = generateScript(testFile, testDefs)
+    const writeAt = result.script.indexOf('ITEMS_FILE=')
+    const flagAt = result.script.indexOf('--file "$ITEMS_FILE"')
+    assert.ok(writeAt >= 0, 'must assign ITEMS_FILE')
+    assert.ok(flagAt > writeAt, 'assignment must precede --file "$ITEMS_FILE"')
+    assert.match(result.script, /ITEMS_FILE=\$\(mktemp -d\)\/fixture\.txt/)
+    assert.match(result.script, /cat > "\$ITEMS_FILE" <<'CLI_FT_WRITE_TEMP_EOF'/)
+    assert.match(result.script, /test-import-value/)
+    assert.match(result.script, /\[ -n "\$ITEMS_FILE" \] && rm -rf -- "\$\(dirname -- "\$ITEMS_FILE"\)"/)
+
+    const start = result.script.indexOf('ITEMS_FILE=$(mktemp')
+    const closeAt = result.script.indexOf('\nCLI_FT_WRITE_TEMP_EOF\n', start)
+    assert.ok(closeAt > start, 'must find the closing heredoc delimiter')
+    const heredocEnd = closeAt + '\nCLI_FT_WRITE_TEMP_EOF'.length
+    const snippet = 'set -euo pipefail\n' + result.script.slice(start, heredocEnd + 1) +
+      '[ -n "$ITEMS_FILE" ] || exit 2\n[ -f "$ITEMS_FILE" ] || exit 3\n' +
+      'grep -qx "test-import-value" "$ITEMS_FILE" || exit 4\n'
+    const ran = execFileSync('bash', ['-c', snippet], { encoding: 'utf8' })
+    assert.equal(ran, '')
   })
 
   it('throws UnmappedBodyKeyError when a body key has no matching CLI flag', () => {

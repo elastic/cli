@@ -15,6 +15,14 @@ ELASTIC=(node "$REPO_ROOT/dist/cli.js" --json)
 REGION="${CLOUD_FIXTURE_REGION:-gcp-us-central1}"
 RULES='[{"source":"192.0.2.1"}]'
 
+# listTrafficFilters (and get) require organization_id as a query param. The
+# generator injects it; the published OpenAPI path does not declare it.
+ORG_ID="$("${ELASTIC[@]}" cloud orgs list-organizations | jq -r '.organizations[0].id // empty')"
+if [ -z "$ORG_ID" ] || [ "$ORG_ID" = "null" ]; then
+  echo "could not resolve organization id from list-organizations" >&2
+  exit 1
+fi
+
 first_id () {
   jq -r '
     if type == "array" then .[0].id // empty
@@ -73,7 +81,7 @@ ensure "security project" \
   --yes
 
 ensure "serverless traffic filter" \
-  cloud serverless traffic-filters list-traffic-filters -- \
+  cloud serverless traffic-filters list-traffic-filters --organization-id "$ORG_ID" -- \
   cloud serverless traffic-filters create-traffic-filter \
   --name cli-functional-filter \
   --type ip \
