@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.5.0](https://github.com/elastic/cli/compare/v0.4.0...v0.5.0) (2026-09-04)
+
+
+### Features
+
+* Add optional config to disable anonymous telemetry ([#607](https://github.com/elastic/cli/issues/607)) ([fef4082](https://github.com/elastic/cli/commit/fef4082bd8a850a3d8e0b2279a9daf3cffd2f7f6))
+* Upgrade @elastic/schemas to 0.7.2 ([#605](https://github.com/elastic/cli/issues/605)) ([eb991a6](https://github.com/elastic/cli/commit/eb991a6b1fa51eb0529d6d010db69f4f33970cbc))
+
+
+### Bug Fixes
+
+* Add missing organization_id param to some Kibana APIs ([eb991a6](https://github.com/elastic/cli/commit/eb991a6b1fa51eb0529d6d010db69f4f33970cbc))
+* Bump @elastic/schemas to 0.7.1 ([#571](https://github.com/elastic/cli/issues/571)) ([75f7f6a](https://github.com/elastic/cli/commit/75f7f6a5a4511166228ec0154c237d4904398114))
+* Decode yaml and ndjson kb responses ([#602](https://github.com/elastic/cli/issues/602)) ([763634d](https://github.com/elastic/cli/commit/763634dcec05a592196759576368c03bf0077061))
+* Fail fast on empty captured setup vars ([#608](https://github.com/elastic/cli/issues/608)) ([39812a9](https://github.com/elastic/cli/commit/39812a97e16cd46316acba47c7165922c23fbb9b))
+* **kibana:** Allow same-origin request redirects ([#565](https://github.com/elastic/cli/issues/565)) ([f892744](https://github.com/elastic/cli/commit/f892744f10985b7824e9dd158f1fc5cfb9b1a40e))
+* **kibana:** Send an empty object when no body is provided on POST, PUT, PATCH and DELETE ([#586](https://github.com/elastic/cli/issues/586)) ([8917ae5](https://github.com/elastic/cli/commit/8917ae599ddb916953128b75991ae7c988a3d5cb))
+* Point cloud ci at public qa api ([#583](https://github.com/elastic/cli/issues/583)) ([a1f92bd](https://github.com/elastic/cli/commit/a1f92bdc1db4c7d90b8ecd234215d896afd6c175))
+* Support YAML as a possible response content-type ([#565](https://github.com/elastic/cli/issues/565)) ([f892744](https://github.com/elastic/cli/commit/f892744f10985b7824e9dd158f1fc5cfb9b1a40e))
+* Use correct names for Kibana Cases API commands ([eb991a6](https://github.com/elastic/cli/commit/eb991a6b1fa51eb0529d6d010db69f4f33970cbc))
+* Wrap scalar array flags ([#598](https://github.com/elastic/cli/issues/598)) ([e52eae8](https://github.com/elastic/cli/commit/e52eae8375467e97acad8fb591f1f14df8da6152))
+
 ## [0.4.0](https://github.com/elastic/cli/compare/v0.3.0...v0.4.0) (2026-08-21)
 
 
