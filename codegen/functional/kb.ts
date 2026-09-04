@@ -162,8 +162,8 @@ const skippedFilesServerless = new Set<string>([
   "elastic_agents_get_fleet_agent_status_data.yml",
   "elastic_agents_get_fleet_agents_agentid_effective_config.yml",
 
-  // Wired streams are not enabled in the serverless env (422: "Streams are not
-  // enabled for Wired streams"), so no stream can be created or read.
+  // Wired streams are not enabled in the serverless env (422). Stack CI
+  // provisions POST /api/streams/_enable; serverless has no equivalent yet.
   "streams_delete_streams_name.yml",
   "streams_delete_streams_streamname_attachments_attachmenttype_attachmentid.yml",
   "streams_get_streams_name.yml",
@@ -179,8 +179,8 @@ const skippedFilesServerless = new Set<string>([
   "streams_put_streams_name_query.yml",
   "streams_put_streams_streamname_attachments_attachmenttype_attachmentid.yml",
 
-  // Entity Store is not installed in the serverless env; every entity-store op
-  // 400s asking for POST /api/security/entity_store/install first.
+  // Entity Store V2 (/api/security/entity_store/*) is not on 9.3.0. Install
+  // is POST /api/security/entity_store/install on 9.5+.
   "security_entity_store_delete_security_entity_store_entities.yml",
   "security_entity_store_get_security_entity_store_resolution_group.yml",
   "security_entity_store_post_security_entity_store_entities_entitytype.yml",
@@ -388,8 +388,8 @@ const skippedFilesStack = new Set<string>([
   "elastic_agent_actions_post_fleet_agents_bulk_upgrade.yml",
   "elastic_agents_post_fleet_agents_bulk_privilege_level_change.yml",
 
-  // Entity Store is not installed in the stack env; every entity-store op 400s
-  // asking for POST /api/security/entity_store/install first.
+  // Entity Store V2 (/api/security/entity_store/*) is not on 9.3.0. Install
+  // is POST /api/security/entity_store/install on 9.5+.
   "security_entity_store_delete_security_entity_store_entities.yml",
   "security_entity_store_get_security_entity_store_resolution_group.yml",
   "security_entity_store_post_security_entity_store_entities_entitytype.yml",
@@ -399,19 +399,20 @@ const skippedFilesStack = new Set<string>([
   "security_entity_store_put_security_entity_store_entities_bulk.yml",
   "security_entity_store_put_security_entity_store_entities_entitytype.yml",
 
-  // Risk engine unavailable: Entity Store V2 is enabled (legacy risk API 400s)
-  // and the risk-engine routes 404 in this env.
+  // Legacy risk engine is not provisionable: V2 is on by default (init/enable
+  // 400). schedule_now is registered at /internal/risk_score/engine/schedule_now
+  // but the CLI hits /api/risk_score/engine/schedule_now. configure is PUT;
+  // the schema sends PATCH.
   "security_entity_analytics_api_clean_up_risk_engine.yml",
   "security_entity_analytics_api_configure_risk_engine_saved_object.yml",
   "security_entity_analytics_api_schedule_risk_engine_now.yml",
 
-  // Wired streams are not enabled in the stack env (422: "Streams are not"
-  // enabled for Wired streams"), so no stream can be created or read.
+  // 9.3 PUT /api/streams/{name} requires body.queries. Fixtures omit it
+  // (9.5 moved queries off the upsert contract). Enable itself works.
   "streams_delete_streams_name.yml",
   "streams_delete_streams_streamname_attachments_attachmenttype_attachmentid.yml",
   "streams_get_streams_name.yml",
   "streams_get_streams_name_ingest.yml",
-  "streams_get_streams_name_query.yml",
   "streams_get_streams_streamname_attachments.yml",
   "streams_post_streams_name_content_export.yml",
   "streams_post_streams_name_content_import.yml",
@@ -419,8 +420,10 @@ const skippedFilesStack = new Set<string>([
   "streams_post_streams_streamname_attachments_bulk.yml",
   "streams_put_streams_name.yml",
   "streams_put_streams_name_ingest.yml",
-  "streams_put_streams_name_query.yml",
   "streams_put_streams_streamname_attachments_attachmenttype_attachmentid.yml",
+  // 9.3 PUT query requires body.kql; fixtures and the CLI schema send esql.
+  "streams_get_streams_name_query.yml",
+  "streams_put_streams_name_query.yml",
 
   // No SLO definitions exist in the env (404); slo_bulk_snapshot and slo_get_snapshot
   // depend on data that is never provisioned.

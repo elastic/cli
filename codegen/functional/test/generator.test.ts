@@ -67,6 +67,14 @@ const testDefs: EsApiDefinition[] = [
     method: 'POST',
     path: '/api/lists/items/_import',
     input: { type: 'object', properties: { file: { type: 'string', 'x-found-in': 'body' } }, required: ['file'] }
+  },
+  {
+    name: 'bulk-remove',
+    namespace: 'agents',
+    description: 'Bulk remove agents',
+    method: 'POST',
+    path: '/agents/_bulk_remove',
+    input: { type: 'object', properties: { agents: { type: 'array', 'x-found-in': 'body' } }, required: ['agents'] }
   }
 ]
 
@@ -312,6 +320,79 @@ describe('generateScript', () => {
     const result = generateScript(testFile, testDefs)
     assert.equal(result.script.includes('SKIP: no id in list response'), false)
     assert.equal(result.script.includes('.[0].id // empty'), false)
+    assert.equal(result.script.includes('FAIL: setup produced empty ID'), false)
+  })
+
+  it('fails fast when a reused set capture is empty or null', () => {
+    const content = readFileSync(join(fixturesDir, 'get.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'get.yml')
+    const result = generateScript(testFile, testDefs)
+    const guard = '[ -n "$ID" ] && [ "$ID" != "null" ] || { echo "FAIL: setup produced empty ID"; exit 1; }'
+    assert.ok(result.script.includes(guard), 'must emit a fail-fast guard for reused $id')
+
+    const setLine = "ID=$(echo \"$RESPONSE\" | jq -r '._id')"
+    assert.ok(result.script.includes(setLine))
+    const snippet = `set -euo pipefail\n${setLine}\n${guard}\n`
+    const run = (response: string): { status: number, out: string } => {
+      try {
+        const out = execFileSync('bash', ['-c', snippet], {
+          encoding: 'utf8',
+          env: { ...process.env, RESPONSE: response },
+          stdio: ['ignore', 'pipe', 'pipe']
+        })
+        return { status: 0, out }
+      } catch (err) {
+        const e = err as { status?: number, stdout?: string, stderr?: string }
+        return { status: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}` }
+      }
+    }
+    assert.equal(run('{"_id":"abc"}').status, 0)
+    const empty = run('{}')
+    assert.equal(empty.status, 1)
+    assert.match(empty.out, /FAIL: setup produced empty ID/)
+    const nul = run('{"_id":null}')
+    assert.equal(nul.status, 1)
+    assert.match(nul.out, /FAIL: setup produced empty ID/)
+  })
+
+  it('emits the empty set guard for a var reused in a nested body', () => {
+    const testFile: TestFile = {
+      sourceFile: 'fleet.yml',
+      requires: { serverless: true, stack: true },
+      setup: [
+        { kind: 'do', action: 'count', params: { index: 'x' }, body: undefined },
+        { kind: 'set', assignments: { 'items.0.id': 'agent_id' } }
+      ],
+      teardown: [],
+      tests: [{
+        name: 'bulk',
+        steps: [
+          { kind: 'do', action: 'agents.bulk-remove', params: {}, body: { agents: ['$agent_id'] } }
+        ]
+      }]
+    }
+    const result = generateScript(testFile, testDefs)
+    assert.ok(result.script.includes('FAIL: setup produced empty AGENT_ID'))
+  })
+
+  it('does not emit a fail-fast set guard when skipEmptySet skips instead', () => {
+    const testFile: TestFile = {
+      sourceFile: 'list.yml',
+      requires: { serverless: true, stack: true },
+      setup: [],
+      teardown: [],
+      tests: [{
+        name: 'get item',
+        steps: [
+          { kind: 'do', action: 'count', params: { index: 'x' }, body: undefined },
+          { kind: 'set', assignments: { 'regions.0.id': 'id' } },
+          { kind: 'do', action: 'get', params: { index: 'x', id: '$id' }, body: undefined }
+        ]
+      }]
+    }
+    const result = generateScript(testFile, testDefs, { skipEmptySet: true })
+    assert.equal(result.script.includes('FAIL: setup produced empty ID'), false)
+    assert.ok(result.script.includes('SKIP: no id in list response'))
   })
 
   it('skipNotFound wraps do-steps to skip 404 errors', () => {

@@ -72,6 +72,7 @@ export function generateScript (
   const skipEmptySet = opts.skipEmptySet === true
   const skipNotFound = opts.skipNotFound === true
   const actionMap = buildActionMap(definitions)
+  const reusedSetVars = collectDoStepVarRefs(testFile)
   const skippedActions: string[] = []
   const lines: string[] = []
 
@@ -86,7 +87,7 @@ export function generateScript (
   if (testFile.teardown.length > 0 || tempFileVars.length > 0) {
     const teardownBody: string[] = []
     if (testFile.teardown.length > 0) {
-      renderSteps(testFile.teardown, actionMap, clientArgs, teardownBody, skippedActions, '  ', false, skipEmptySet, skipNotFound)
+      renderSteps(testFile.teardown, actionMap, clientArgs, teardownBody, skippedActions, '  ', false, skipEmptySet, skipNotFound, reusedSetVars)
     }
     for (const v of tempFileVars) {
       teardownBody.push(`  [ -n "$${v}" ] && rm -rf -- "$(dirname -- "$${v}")"`)
@@ -118,13 +119,13 @@ export function generateScript (
 
   if (testFile.setup.length > 0) {
     lines.push('# --- Setup ---')
-    hadSkippedDo = renderSteps(testFile.setup, actionMap, clientArgs, lines, skippedActions, '', false, skipEmptySet, skipNotFound)
+    hadSkippedDo = renderSteps(testFile.setup, actionMap, clientArgs, lines, skippedActions, '', false, skipEmptySet, skipNotFound, reusedSetVars)
     lines.push('')
   }
 
   for (const section of testFile.tests) {
     lines.push(`# --- Test: ${section.name} ---`)
-    renderSteps(section.steps, actionMap, clientArgs, lines, skippedActions, '', hadSkippedDo, skipEmptySet, skipNotFound)
+    renderSteps(section.steps, actionMap, clientArgs, lines, skippedActions, '', hadSkippedDo, skipEmptySet, skipNotFound, reusedSetVars)
     lines.push('')
   }
 
@@ -277,7 +278,8 @@ function renderSteps (
   indent: string,
   initialHadSkippedDo = false,
   skipEmptySet = false,
-  skipNotFound = false
+  skipNotFound = false,
+  reusedSetVars = new Set<string>()
 ): boolean {
   // Assertions and set-steps read $RESPONSE, which is written by the most
   // recent successful `do`. If the last `do` was skipped (unmapped action,
@@ -336,7 +338,7 @@ function renderSteps (
 
     switch (step.kind) {
       case 'set':
-        renderSet(step, lines, indent, skipEmptySet)
+        renderSet(step, lines, indent, skipEmptySet, reusedSetVars)
         // If a variable was previously unset, it's now set
         for (const varName of Object.values(step.assignments)) {
           unsetVars.delete(varName.toUpperCase().replace(/[^A-Z0-9]/g, '_'))
@@ -565,7 +567,7 @@ function buildCommand (mapped: MappedAction, step: DoStep): string {
   return base
 }
 
-function renderSet (step: SetStep, lines: string[], indent: string, skipEmptySet = false): void {
+function renderSet (step: SetStep, lines: string[], indent: string, skipEmptySet = false, reusedSetVars = new Set<string>()): void {
   for (const [responsePath, varName] of Object.entries(step.assignments)) {
     const bashVar = varName.toUpperCase().replace(/[^A-Z0-9]/g, '_')
     const jqPath = toJqPath(responsePath)
@@ -584,6 +586,10 @@ function renderSet (step: SetStep, lines: string[], indent: string, skipEmptySet
       lines.push(`${indent}fi`)
     } else {
       lines.push(`${indent}${bashVar}=$(echo "$RESPONSE" | jq -r '${jqPath}')`)
+      // jq -r prints "null" for a missing path; -n alone would not fail.
+      if (reusedSetVars.has(bashVar)) {
+        lines.push(`${indent}[ -n "$${bashVar}" ] && [ "$${bashVar}" != "null" ] || { echo "FAIL: setup produced empty ${bashVar}"; exit 1; }`)
+      }
     }
   }
 }
@@ -658,12 +664,12 @@ function renderMatchValue (path: string, expected: unknown, lines: string[], ind
 
   if (Array.isArray(expected)) {
     const expectedJson = jsonStringify(expected)
-    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq -Sc '${jqPath}')" = '${escapeSingleQuotes(expectedJson)}' ] || { echo "FAIL: expected ${safeLabel} = ${escapeSingleQuotes(expectedJson)}"; exit 1; }`)
+    lines.push(`${indent}ACTUAL=$(echo "$RESPONSE" | jq -Sc '${jqPath}'); [ "$ACTUAL" = '${escapeSingleQuotes(expectedJson)}' ] || { echo "FAIL: expected ${safeLabel} = ${escapeSingleQuotes(expectedJson)}; got $ACTUAL"; echo "  response: $RESPONSE"; exit 1; }`)
     return
   }
 
   if (expected === null) {
-    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "null" ] || { echo "FAIL: expected ${safeLabel} = null"; exit 1; }`)
+    lines.push(`${indent}ACTUAL=$(echo "$RESPONSE" | jq '${jqPath}'); [ "$ACTUAL" = "null" ] || { echo "FAIL: expected ${safeLabel} = null; got $ACTUAL"; echo "  response: $RESPONSE"; exit 1; }`)
     return
   }
 
@@ -671,16 +677,16 @@ function renderMatchValue (path: string, expected: unknown, lines: string[], ind
 
   if (expected instanceof YamlFloat) {
     // YamlFloat wraps integer-valued YAML floats (e.g. 100.0) — exact match
-    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "${expected.value}" ] || { echo "FAIL: expected ${safeLabel} = ${expected.value}"; exit 1; }`)
+    lines.push(`${indent}ACTUAL=$(echo "$RESPONSE" | jq '${jqPath}'); [ "$ACTUAL" = "${expected.value}" ] || { echo "FAIL: expected ${safeLabel} = ${expected.value}; got $ACTUAL"; echo "  response: $RESPONSE"; exit 1; }`)
   } else if (typeof expected === 'number' && !Number.isInteger(expected)) {
     // Non-integer float: use approximate comparison to avoid IEEE 754 precision issues
-    lines.push(`${indent}echo "$RESPONSE" | jq -e '(((${jqPath}) - ${expected}) | fabs) < 1e-6' > /dev/null || { echo "FAIL: expected ${safeLabel} ≈ ${expected}"; exit 1; }`)
+    lines.push(`${indent}ACTUAL=$(echo "$RESPONSE" | jq '${jqPath}'); echo "$RESPONSE" | jq -e '(((${jqPath}) - ${expected}) | fabs) < 1e-6' > /dev/null || { echo "FAIL: expected ${safeLabel} ≈ ${expected}; got $ACTUAL"; echo "  response: $RESPONSE"; exit 1; }`)
   } else if (typeof expected === 'number') {
-    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "${expected}" ] || { echo "FAIL: expected ${safeLabel} = ${expected}"; exit 1; }`)
+    lines.push(`${indent}ACTUAL=$(echo "$RESPONSE" | jq '${jqPath}'); [ "$ACTUAL" = "${expected}" ] || { echo "FAIL: expected ${safeLabel} = ${expected}; got $ACTUAL"; echo "  response: $RESPONSE"; exit 1; }`)
   } else if (typeof expected === 'boolean') {
-    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "${String(expected)}" ] || { echo "FAIL: expected ${safeLabel} = ${String(expected)}"; exit 1; }`)
+    lines.push(`${indent}ACTUAL=$(echo "$RESPONSE" | jq '${jqPath}'); [ "$ACTUAL" = "${String(expected)}" ] || { echo "FAIL: expected ${safeLabel} = ${String(expected)}; got $ACTUAL"; echo "  response: $RESPONSE"; exit 1; }`)
   } else {
-    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq -r '${jqPath}')" = ${expectedStr} ] || { echo "FAIL: expected ${safeLabel} = ${expectedStr}"; exit 1; }`)
+    lines.push(`${indent}ACTUAL=$(echo "$RESPONSE" | jq -r '${jqPath}'); [ "$ACTUAL" = ${expectedStr} ] || { echo "FAIL: expected ${safeLabel} = ${expectedStr}; got $ACTUAL"; echo "  response: $RESPONSE"; exit 1; }`)
   }
 }
 
@@ -858,6 +864,35 @@ function collectRequiredStepVarRefs (step: DoStep, mapped: MappedAction): string
     for (const [key, val] of Object.entries(step.body as Record<string, unknown>)) add(key, val)
   }
   return names
+}
+
+function collectDoStepVarRefs (file: TestFile): Set<string> {
+  const out = new Set<string>()
+  const walk = (steps: Step[]): void => {
+    for (const step of steps) {
+      if (step.kind !== 'do') continue
+      collectStringVarRefs(step.params, out)
+      if (step.body != null) collectStringVarRefs(step.body, out)
+    }
+  }
+  walk(file.setup)
+  walk(file.teardown)
+  for (const t of file.tests) walk(t.steps)
+  return out
+}
+
+function collectStringVarRefs (val: unknown, out: Set<string>): void {
+  if (typeof val === 'string' && val.startsWith('$')) {
+    out.add(val.slice(1).toUpperCase().replace(/[^A-Z0-9]/g, '_'))
+    return
+  }
+  if (Array.isArray(val)) {
+    for (const v of val) collectStringVarRefs(v, out)
+    return
+  }
+  if (val !== null && typeof val === 'object') {
+    for (const v of Object.values(val as Record<string, unknown>)) collectStringVarRefs(v, out)
+  }
 }
 
 function valueReferencesUnset (val: unknown, unsetVars: Set<string>): boolean {

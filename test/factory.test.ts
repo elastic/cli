@@ -2045,9 +2045,8 @@ describe('defineCommand', () => {
   describe('handler return value and output', () => {
     async function captureOutput(fn: () => Promise<void>): Promise<string> {
       let out = ''
-      const orig = process.stdout.write.bind(process.stdout)
-      process.stdout.write = (chunk: unknown) => { if (typeof chunk === 'string') out += chunk; return true }
-      try { await fn() } finally { process.stdout.write = orig }
+      const restore = patchWrite(process.stdout, (s) => { out += s })
+      try { await fn() } finally { restore() }
       return out
     }
 
@@ -2232,9 +2231,8 @@ describe('defineCommand', () => {
 describe('text output rendering', () => {
   async function captureOutput(fn: () => Promise<unknown>): Promise<string> {
     let out = ''
-    const orig = process.stdout.write.bind(process.stdout)
-    process.stdout.write = (chunk: unknown) => { if (typeof chunk === 'string') out += chunk; return true }
-    try { await fn() } finally { process.stdout.write = orig }
+    const restore = patchWrite(process.stdout, (s) => { out += s })
+    try { await fn() } finally { restore() }
     return out
   }
 
@@ -4027,12 +4025,26 @@ async function captureErrAsync(handle: OpaqueCommandHandle, argv: string[]): Pro
   return err
 }
 
+/**
+ * Temporarily captures string writes to a process stream, returning a restore fn.
+ * Non-string chunks (e.g. the node:test v8 reporter's serialized Buffers) are
+ * forwarded to the real stream so the test-runner IPC channel is never corrupted
+ * when this runs inside a spawned test subprocess.
+ */
+function patchWrite (stream: NodeJS.WriteStream, sink: (s: string) => void): () => void {
+  const orig = stream.write.bind(stream)
+  stream.write = (chunk: unknown, ...args: unknown[]) => {
+    if (typeof chunk === 'string') { sink(chunk); return true }
+    return Reflect.apply(orig, stream, [chunk, ...args]) as boolean
+  }
+  return () => { stream.write = orig }
+}
+
 /** captures everything written to process.stdout during fn(), even if fn throws */
 async function captureStdout(fn: () => Promise<unknown>): Promise<string> {
   let out = ''
-  const orig = process.stdout.write.bind(process.stdout)
-  process.stdout.write = (chunk: unknown) => { if (typeof chunk === 'string') out += chunk; return true }
-  try { await fn() } catch { /* swallow — caller inspects captured output */ } finally { process.stdout.write = orig }
+  const restore = patchWrite(process.stdout, (s) => { out += s })
+  try { await fn() } catch { /* swallow — caller inspects captured output */ } finally { restore() }
   return out
 }
 
@@ -4052,20 +4064,18 @@ async function captureStreams(fn: () => Promise<void>): Promise<{ stdout: string
   let stdout = ''
   let stderr = ''
   let exitCode: number
-  const origOut = process.stdout.write.bind(process.stdout)
-  const origErr = process.stderr.write.bind(process.stderr)
   const origExitCode = process.exitCode
   process.exitCode = 0
-  process.stdout.write = (chunk: unknown) => { if (typeof chunk === 'string') stdout += chunk; return true }
-  process.stderr.write = (chunk: unknown) => { if (typeof chunk === 'string') stderr += chunk; return true }
+  const restoreOut = patchWrite(process.stdout, (s) => { stdout += s })
+  const restoreErr = patchWrite(process.stderr, (s) => { stderr += s })
   try {
     await fn()
   } catch {
     /* swallow -- caller inspects captured output */
   } finally {
     exitCode = process.exitCode ?? 0
-    process.stdout.write = origOut
-    process.stderr.write = origErr
+    restoreOut()
+    restoreErr()
     process.exitCode = origExitCode as typeof process.exitCode
   }
   return { stdout, stderr, exitCode }
@@ -4331,12 +4341,11 @@ describe('YAML response rendering', () => {
     prog.exitOverride()
     cmd.exitOverride()
     let out = ''
-    const orig = process.stdout.write.bind(process.stdout)
-    process.stdout.write = (chunk: unknown) => { if (typeof chunk === 'string') out += chunk; return true }
+    const restore = patchWrite(process.stdout, (s) => { out += s })
     try {
       await prog.parseAsync([...rootArgv, cmd.name()], { from: 'user' })
     } finally {
-      process.stdout.write = orig
+      restore()
     }
     return out
   }
