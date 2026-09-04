@@ -47,6 +47,20 @@ const KB_PREAMBLE = [
   'RESPONSE=""'
 ]
 
+// Legacy risk engine init/schedule_now/cleanup 400 while
+// securitySolution:entityStoreEnableV2 is on. Disable it, init, restore on exit
+// so entity store V2 defs in the same suite still see the default.
+const RISK_ENGINE_DEFS = new Set([
+  'security_entity_analytics_api_clean_up_risk_engine.yml',
+  'security_entity_analytics_api_configure_risk_engine_saved_object.yml',
+  'security_entity_analytics_api_schedule_risk_engine_now.yml',
+])
+
+const RISK_ENGINE_PREAMBLE = [
+  ...KB_PREAMBLE,
+  'source "$SCRIPT_DIR/../risk-engine-provision.sh"'
+]
+
 const apis = await loadAllKbApis()
 
 mkdirSync(OUT_DIR, { recursive: true })
@@ -399,14 +413,6 @@ const skippedFilesStack = new Set<string>([
   "security_entity_store_put_security_entity_store_entities_bulk.yml",
   "security_entity_store_put_security_entity_store_entities_entitytype.yml",
 
-  // Legacy risk engine is not provisionable: V2 is on by default (init/enable
-  // 400). schedule_now is registered at /internal/risk_score/engine/schedule_now
-  // but the CLI hits /api/risk_score/engine/schedule_now. configure is PUT;
-  // the schema sends PATCH.
-  "security_entity_analytics_api_clean_up_risk_engine.yml",
-  "security_entity_analytics_api_configure_risk_engine_saved_object.yml",
-  "security_entity_analytics_api_schedule_risk_engine_now.yml",
-
   // Significant events feature is disabled (403); requires enabling
   // observability:streamsEnableSignificantEvents in Advanced Settings.
   "significantevents_delete_streams_name_queries_queryid.yml",
@@ -513,7 +519,7 @@ for (const file of yamlFiles) {
 
   const result = generateScript(testFile, apis, {
     clientArgs: ['stack', 'kb'],
-    preamble: KB_PREAMBLE
+    preamble: RISK_ENGINE_DEFS.has(file) ? RISK_ENGINE_PREAMBLE : KB_PREAMBLE
   })
 
   for (const action of result.skippedActions) allSkippedActions.add(action)
