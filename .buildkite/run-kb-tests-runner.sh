@@ -111,7 +111,7 @@ done
 echo "Kibana is ready"
 
 # Wired stream CRUD 422s until this runs. Already enabled is 200 with result noop.
-# 409 is a root stream name conflict, not success.
+# 409 is a root stream name conflict (often an existing logs data stream), not success.
 echo "--- Enabling wired streams"
 STREAMS_CODE=$(curl -sS -o /tmp/kb-streams-enable.json -w "%{http_code}" \
   -u "elastic:${ES_PASSWORD}" \
@@ -119,12 +119,49 @@ STREAMS_CODE=$(curl -sS -o /tmp/kb-streams-enable.json -w "%{http_code}" \
   -H "elastic-api-version: 2023-10-31" \
   -H "Content-Type: application/json" \
   -X POST "http://${KB_HOST}:5601/api/streams/_enable")
+if [ "$STREAMS_CODE" = "409" ]; then
+  echo "POST /api/streams/_enable returned 409"
+  cat /tmp/kb-streams-enable.json
+  echo
+  echo "--- Clearing conflicting logs data streams"
+  curl -sS -u "elastic:${ES_PASSWORD}" \
+    -X DELETE "http://${ES_HOST}:9200/_data_stream/logs,logs.otel,logs.ecs" || true
+  echo
+  STREAMS_CODE=$(curl -sS -o /tmp/kb-streams-enable.json -w "%{http_code}" \
+    -u "elastic:${ES_PASSWORD}" \
+    -H "kbn-xsrf: true" \
+    -H "elastic-api-version: 2023-10-31" \
+    -H "Content-Type: application/json" \
+    -X POST "http://${KB_HOST}:5601/api/streams/_enable")
+fi
 if [ "$STREAMS_CODE" != "200" ]; then
   echo "FAIL: POST /api/streams/_enable returned ${STREAMS_CODE}"
   cat /tmp/kb-streams-enable.json
+  echo
+  curl -sS -u "elastic:${ES_PASSWORD}" \
+    -H "kbn-xsrf: true" \
+    -H "x-elastic-internal-origin: kibana" \
+    "http://${KB_HOST}:5601/api/streams/_status" || true
+  echo
   exit 1
 fi
 echo "Wired streams enabled (${STREAMS_CODE})"
+
+echo "--- Enabling query streams"
+QUERY_STREAMS_CODE=$(curl -sS -o /tmp/kb-query-streams.json -w "%{http_code}" \
+  -u "elastic:${ES_PASSWORD}" \
+  -H "kbn-xsrf: true" \
+  -H "x-elastic-internal-origin: kibana" \
+  -H "Content-Type: application/json" \
+  -X POST "http://${KB_HOST}:5601/internal/kibana/settings" \
+  -d '{"changes":{"observability:streamsEnableQueryStreams":true}}')
+if [ "$QUERY_STREAMS_CODE" != "200" ]; then
+  echo "WARN: query streams setting returned ${QUERY_STREAMS_CODE}"
+  cat /tmp/kb-query-streams.json
+  echo
+else
+  echo "Query streams enabled"
+fi
 
 echo "--- Generating CLI config file"
 cat > /tmp/elastic-rc.yml <<EOF
