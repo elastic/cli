@@ -47,6 +47,17 @@ const KB_PREAMBLE = [
   'RESPONSE=""'
 ]
 
+// Cleanup only. configure stays skipped (schema is PATCH, route is PUT).
+// schedule_now stays skipped (9.5.3 registers /internal only).
+const RISK_ENGINE_DEFS = new Set([
+  'security_entity_analytics_api_clean_up_risk_engine.yml',
+])
+
+const RISK_ENGINE_PREAMBLE = [
+  ...KB_PREAMBLE,
+  'source "$SCRIPT_DIR/../risk-engine-provision.sh"'
+]
+
 const apis = await loadAllKbApis()
 
 mkdirSync(OUT_DIR, { recursive: true })
@@ -388,6 +399,12 @@ const skippedFilesStack = new Set<string>([
   "elastic_agent_actions_post_fleet_agents_bulk_upgrade.yml",
   "elastic_agents_post_fleet_agents_bulk_privilege_level_change.yml",
 
+  // configure: published schema is PATCH; Kibana route is PUT.
+  // schedule_now: CLI hits /api/risk_score/engine/schedule_now; 9.5.3
+  // registers /internal/risk_score/engine/schedule_now only.
+  "security_entity_analytics_api_configure_risk_engine_saved_object.yml",
+  "security_entity_analytics_api_schedule_risk_engine_now.yml",
+
   // Entity Store V2 (/api/security/entity_store/*) is not on 9.3.0. Install
   // is POST /api/security/entity_store/install on 9.5+.
   "security_entity_store_delete_security_entity_store_entities.yml",
@@ -398,14 +415,6 @@ const skippedFilesStack = new Set<string>([
   "security_entity_store_put_security_entity_store.yml",
   "security_entity_store_put_security_entity_store_entities_bulk.yml",
   "security_entity_store_put_security_entity_store_entities_entitytype.yml",
-
-  // Legacy risk engine is not provisionable: V2 is on by default (init/enable
-  // 400). schedule_now is registered at /internal/risk_score/engine/schedule_now
-  // but the CLI hits /api/risk_score/engine/schedule_now. configure is PUT;
-  // the schema sends PATCH.
-  "security_entity_analytics_api_clean_up_risk_engine.yml",
-  "security_entity_analytics_api_configure_risk_engine_saved_object.yml",
-  "security_entity_analytics_api_schedule_risk_engine_now.yml",
 
   // Significant events feature is disabled (403); requires enabling
   // observability:streamsEnableSignificantEvents in Advanced Settings.
@@ -513,7 +522,7 @@ for (const file of yamlFiles) {
 
   const result = generateScript(testFile, apis, {
     clientArgs: ['stack', 'kb'],
-    preamble: KB_PREAMBLE
+    preamble: RISK_ENGINE_DEFS.has(file) ? RISK_ENGINE_PREAMBLE : KB_PREAMBLE
   })
 
   for (const action of result.skippedActions) allSkippedActions.add(action)

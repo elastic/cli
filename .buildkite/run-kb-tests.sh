@@ -167,6 +167,7 @@ docker run \
   --name "$KB_CONTAINER_NAME" \
   --network "$NETWORK_NAME" \
   --network-alias kibana \
+  --volume "$(pwd)/.buildkite/kibana-ci.yml:/usr/share/kibana/config/kibana.yml:ro" \
   --env "ELASTICSEARCH_HOSTS=http://elasticsearch:9200" \
   --env "ELASTICSEARCH_USERNAME=kibana_system" \
   --env "ELASTICSEARCH_PASSWORD=${ES_PASSWORD}" \
