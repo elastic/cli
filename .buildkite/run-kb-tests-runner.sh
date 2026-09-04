@@ -125,6 +125,43 @@ if [ "$STREAMS_CODE" != "200" ] && [ "$STREAMS_CODE" != "409" ]; then
 fi
 echo "Wired streams enabled (${STREAMS_CODE})"
 
+# Entity Store V2 400s until this runs. 409 means it was already installed.
+echo "--- Installing entity store"
+ENTITY_STORE_CODE=$(curl -sS -o /tmp/kb-entity-store-install.json -w "%{http_code}" \
+  -u "elastic:${ES_PASSWORD}" \
+  -H "kbn-xsrf: true" \
+  -H "elastic-api-version: 2023-10-31" \
+  -H "Content-Type: application/json" \
+  -X POST "http://${KB_HOST}:5601/api/security/entity_store/install" \
+  -d '{"entityTypes":["user","host","service","generic"]}')
+if [ "$ENTITY_STORE_CODE" != "200" ] && [ "$ENTITY_STORE_CODE" != "409" ]; then
+  echo "FAIL: POST /api/security/entity_store/install returned ${ENTITY_STORE_CODE}"
+  cat /tmp/kb-entity-store-install.json
+  exit 1
+fi
+echo "Entity store installed (${ENTITY_STORE_CODE})"
+
+echo "--- Waiting for entity store engines"
+RETRIES=0
+MAX_RETRIES=30
+until curl -sf -u "elastic:${ES_PASSWORD}" \
+      -H "kbn-xsrf: true" \
+      -H "elastic-api-version: 2023-10-31" \
+      "http://${KB_HOST}:5601/api/security/entity_store/status" \
+      | jq -e '.engines | length > 0 and all(.status == "started")' > /dev/null 2>&1; do
+  RETRIES=$((RETRIES + 1))
+  if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
+    echo "Entity store engines did not start in time"
+    curl -sS -u "elastic:${ES_PASSWORD}" \
+      -H "kbn-xsrf: true" \
+      -H "elastic-api-version: 2023-10-31" \
+      "http://${KB_HOST}:5601/api/security/entity_store/status" || true
+    exit 1
+  fi
+  sleep 2
+done
+echo "Entity store engines started"
+
 echo "--- Generating CLI config file"
 cat > /tmp/elastic-rc.yml <<EOF
 contexts:
