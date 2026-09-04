@@ -10,7 +10,7 @@ requires:
 setup:
   - do:
       streams.put_streams_name:
-        name: cli-ft-streams-content-export
+        name: logs.otel.cli-ft-streams-content-export
         body:
           dashboards: []
           rules: []
@@ -30,13 +30,13 @@ setup:
 teardown:
   - do:
       streams.delete_streams_name:
-        name: cli-ft-streams-content-export
+        name: logs.otel.cli-ft-streams-content-export
         ignore: [404]
 ---
 "streams post streams name content export":
   - do:
       streams.post_streams_name_content_export:
-        name: cli-ft-streams-content-export
+        name: logs.otel.cli-ft-streams-content-export
         body:
           name: cli-ft-content-pack
           description: "test export"

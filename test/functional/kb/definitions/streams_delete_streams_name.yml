@@ -10,7 +10,7 @@ requires:
 setup:
   - do:
       streams.put_streams_name:
-        name: cli-ft-streams-delete
+        name: logs.otel.cli-ft-streams-delete
         body:
           dashboards: []
           rules: []
@@ -30,11 +30,11 @@ setup:
 teardown:
   - do:
       streams.delete_streams_name:
-        name: cli-ft-streams-delete
+        name: logs.otel.cli-ft-streams-delete
         ignore: [404]
 ---
 "streams delete streams name":
   - do:
       streams.delete_streams_name:
-        name: cli-ft-streams-delete
+        name: logs.otel.cli-ft-streams-delete
   - is_true: ""

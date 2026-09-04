@@ -10,7 +10,7 @@ requires:
 setup:
   - do:
       streams.put_streams_name:
-        name: cli-ft-streams-att-put
+        name: logs.otel.cli-ft-streams-att-put
         body:
           dashboards: []
           rules: []
@@ -30,13 +30,13 @@ setup:
 teardown:
   - do:
       streams.delete_streams_name:
-        name: cli-ft-streams-att-put
+        name: logs.otel.cli-ft-streams-att-put
         ignore: [404]
 ---
 "streams put streams streamname attachments attachmenttype attachmentid":
   - do:
       streams.put_streams_streamname_attachments_attachmenttype_attachmentid:
-        stream_name: cli-ft-streams-att-put
+        stream_name: logs.otel.cli-ft-streams-att-put
         attachment_type: dashboard
         attachment_id: cli-ft-dashboard-id
   - is_true: ""

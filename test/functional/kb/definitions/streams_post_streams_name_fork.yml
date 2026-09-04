@@ -10,7 +10,7 @@ requires:
 setup:
   - do:
       streams.put_streams_name:
-        name: cli-ft-streams-fork-parent
+        name: logs.otel.cli-ft-streams-fork-parent
         body:
           dashboards: []
           rules: []
@@ -30,20 +30,20 @@ setup:
 teardown:
   - do:
       streams.delete_streams_name:
-        name: cli-ft-streams-fork-parent.child
+        name: logs.otel.cli-ft-streams-fork-parent.child
         ignore: [404]
   - do:
       streams.delete_streams_name:
-        name: cli-ft-streams-fork-parent
+        name: logs.otel.cli-ft-streams-fork-parent
         ignore: [404]
 ---
 "streams post streams name fork":
   - do:
       streams.post_streams_name_fork:
-        name: cli-ft-streams-fork-parent
+        name: logs.otel.cli-ft-streams-fork-parent
         body:
           stream:
-            name: cli-ft-streams-fork-parent.child
+            name: logs.otel.cli-ft-streams-fork-parent.child
           where:
             always: {}
   - is_true: ""
