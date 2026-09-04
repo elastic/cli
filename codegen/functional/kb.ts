@@ -414,6 +414,20 @@ const skippedFilesStack = new Set<string>([
   "significantevents_post_streams_name_queries_bulk.yml",
   "significantevents_put_streams_name_queries_queryid.yml",
 
+  // 9.3 PUT /api/streams/{name} requires body.queries. Fixtures omit it
+  // (9.5 moved queries off the upsert contract). Enable itself works.
+  "streams_delete_streams_name.yml",
+  "streams_delete_streams_streamname_attachments_attachmenttype_attachmentid.yml",
+  "streams_get_streams_name.yml",
+  "streams_get_streams_name_ingest.yml",
+  "streams_get_streams_streamname_attachments.yml",
+  "streams_post_streams_name_content_export.yml",
+  "streams_post_streams_name_content_import.yml",
+  "streams_post_streams_name_fork.yml",
+  "streams_post_streams_streamname_attachments_bulk.yml",
+  "streams_put_streams_name.yml",
+  "streams_put_streams_name_ingest.yml",
+  "streams_put_streams_streamname_attachments_attachmenttype_attachmentid.yml",
   // 9.3 PUT query requires body.kql; fixtures and the CLI schema send esql.
   "streams_get_streams_name_query.yml",
   "streams_put_streams_name_query.yml",
