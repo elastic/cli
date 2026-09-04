@@ -1,0 +1,25 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# CI-only Kibana config. Mounted over the image default because colon-keyed
+# uiSettings cannot be set via Kibana Docker env vars.
+
+server.host: "0.0.0.0"
+server.shutdownTimeout: "5s"
+
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+elasticsearch.username: "kibana_system"
+elasticsearch.password: "${ELASTICSEARCH_PASSWORD}"
+
+xpack.encryptedSavedObjects.encryptionKey: "${XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY}"
+xpack.reporting.encryptionKey: "${XPACK_REPORTING_ENCRYPTIONKEY}"
+xpack.security.encryptionKey: "${XPACK_SECURITY_ENCRYPTIONKEY}"
+
+# V2 on at boot skips registering risk_engine:risk_scoring. Runtime uiSettings
+# toggle does not register the task type. Entity store V2 defs stay skipped.
+uiSettings.overrides:
+  "securitySolution:entityStoreEnableV2": false
+
+xpack.fleet.enableExperimental:
+  - agentlessPoliciesAPI
+  - useAgentlessAPIInUI

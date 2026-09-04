@@ -143,6 +143,7 @@ contexts:
 current_context: ci
 EOF
 export ELASTIC_CLI_CONFIG_FILE="/tmp/elastic-rc.yml"
+export KB_URL="http://${KB_HOST}:5601"
 
 echo "+++ Running KB functional tests"
 # this setup only runs against stack Kibana
