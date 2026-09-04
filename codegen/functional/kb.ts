@@ -388,21 +388,11 @@ const skippedFilesStack = new Set<string>([
   "elastic_agent_actions_post_fleet_agents_bulk_upgrade.yml",
   "elastic_agents_post_fleet_agents_bulk_privilege_level_change.yml",
 
-  // Entity Store V2 (/api/security/entity_store/*) is not on 9.3.0. Install
-  // is POST /api/security/entity_store/install on 9.5+.
-  "security_entity_store_delete_security_entity_store_entities.yml",
-  "security_entity_store_get_security_entity_store_resolution_group.yml",
-  "security_entity_store_post_security_entity_store_entities_entitytype.yml",
-  "security_entity_store_post_security_entity_store_resolution_link.yml",
-  "security_entity_store_post_security_entity_store_resolution_unlink.yml",
-  "security_entity_store_put_security_entity_store.yml",
-  "security_entity_store_put_security_entity_store_entities_bulk.yml",
-  "security_entity_store_put_security_entity_store_entities_entitytype.yml",
-
-  // Legacy risk engine is not provisionable: V2 is on by default (init/enable
-  // 400). schedule_now is registered at /internal/risk_score/engine/schedule_now
-  // but the CLI hits /api/risk_score/engine/schedule_now. configure is PUT;
-  // the schema sends PATCH.
+  // Legacy risk engine cannot share this Kibana with Entity Store V2. V2 is
+  // on at boot, so risk_engine:risk_scoring is not registered (init 400).
+  // A runtime uiSettings toggle does not register the task type. schedule_now
+  // public path is missing on 9.5.3. configure is PUT; published schema is
+  // still PATCH until the schemas-js override ships.
   "security_entity_analytics_api_clean_up_risk_engine.yml",
   "security_entity_analytics_api_configure_risk_engine_saved_object.yml",
   "security_entity_analytics_api_schedule_risk_engine_now.yml",
