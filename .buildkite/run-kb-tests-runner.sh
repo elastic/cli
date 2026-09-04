@@ -28,6 +28,7 @@ if ! getent hosts kibana > /dev/null 2>&1; then
 fi
 
 echo "ES_HOST=${ES_HOST}  KB_HOST=${KB_HOST}"
+export KB_URL="http://${KB_HOST}:5601"
 
 # ── Wait for Elasticsearch ───────────────────────────────────────────────────
 echo "--- Waiting for Elasticsearch to be healthy"
