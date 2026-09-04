@@ -22,7 +22,7 @@
 
 set -euo pipefail
 
-STACK_VERSION="${STACK_VERSION:-9.3.0}"
+STACK_VERSION="${STACK_VERSION:-9.5.3}"
 ES_CONTAINER_NAME="elastic-cli-kb-es"
 KB_CONTAINER_NAME="elastic-cli-kb"
 TEST_RUNNER_NAME="elastic-cli-kb-runner"
