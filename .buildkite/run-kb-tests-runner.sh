@@ -147,20 +147,8 @@ if [ "$STREAMS_CODE" != "200" ]; then
 fi
 echo "Wired streams enabled (${STREAMS_CODE})"
 
-echo "--- Enabling significant events"
-SE_CODE=$(curl -sS -o /tmp/kb-se-settings.json -w "%{http_code}" \
-  -u "elastic:${ES_PASSWORD}" \
-  -H "kbn-xsrf: true" \
-  -H "x-elastic-internal-origin: kibana" \
-  -H "Content-Type: application/json" \
-  -X POST "http://${KB_HOST}:5601/internal/kibana/settings" \
-  -d '{"changes":{"observability:streamsEnableSignificantEvents":true,"observability:streamsEnableSignificantEventsDiscovery":true,"observability:streamsEnableQueryStreams":true}}')
-if [ "$SE_CODE" != "200" ]; then
-  echo "FAIL: significant events settings returned ${SE_CODE}"
-  cat /tmp/kb-se-settings.json
-  exit 1
-fi
-echo "Significant events settings applied"
+# uiSettings.overrides in kibana-ci.yml already set the flags. POST
+# /internal/kibana/settings 400s ("because it is overridden") for those keys.
 
 echo "--- Waiting for significant events availability"
 RETRIES=0
