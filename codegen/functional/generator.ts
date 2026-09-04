@@ -658,12 +658,12 @@ function renderMatchValue (path: string, expected: unknown, lines: string[], ind
 
   if (Array.isArray(expected)) {
     const expectedJson = jsonStringify(expected)
-    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq -Sc '${jqPath}')" = '${escapeSingleQuotes(expectedJson)}' ] || { echo "FAIL: expected ${safeLabel} = ${escapeSingleQuotes(expectedJson)}"; exit 1; }`)
+    lines.push(`${indent}ACTUAL=$(echo "$RESPONSE" | jq -Sc '${jqPath}'); [ "$ACTUAL" = '${escapeSingleQuotes(expectedJson)}' ] || { echo "FAIL: expected ${safeLabel} = ${escapeSingleQuotes(expectedJson)}; got $ACTUAL"; echo "  response: $RESPONSE"; exit 1; }`)
     return
   }
 
   if (expected === null) {
-    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "null" ] || { echo "FAIL: expected ${safeLabel} = null"; exit 1; }`)
+    lines.push(`${indent}ACTUAL=$(echo "$RESPONSE" | jq '${jqPath}'); [ "$ACTUAL" = "null" ] || { echo "FAIL: expected ${safeLabel} = null; got $ACTUAL"; echo "  response: $RESPONSE"; exit 1; }`)
     return
   }
 
@@ -671,16 +671,16 @@ function renderMatchValue (path: string, expected: unknown, lines: string[], ind
 
   if (expected instanceof YamlFloat) {
     // YamlFloat wraps integer-valued YAML floats (e.g. 100.0) — exact match
-    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "${expected.value}" ] || { echo "FAIL: expected ${safeLabel} = ${expected.value}"; exit 1; }`)
+    lines.push(`${indent}ACTUAL=$(echo "$RESPONSE" | jq '${jqPath}'); [ "$ACTUAL" = "${expected.value}" ] || { echo "FAIL: expected ${safeLabel} = ${expected.value}; got $ACTUAL"; echo "  response: $RESPONSE"; exit 1; }`)
   } else if (typeof expected === 'number' && !Number.isInteger(expected)) {
     // Non-integer float: use approximate comparison to avoid IEEE 754 precision issues
-    lines.push(`${indent}echo "$RESPONSE" | jq -e '(((${jqPath}) - ${expected}) | fabs) < 1e-6' > /dev/null || { echo "FAIL: expected ${safeLabel} ≈ ${expected}"; exit 1; }`)
+    lines.push(`${indent}ACTUAL=$(echo "$RESPONSE" | jq '${jqPath}'); echo "$RESPONSE" | jq -e '(((${jqPath}) - ${expected}) | fabs) < 1e-6' > /dev/null || { echo "FAIL: expected ${safeLabel} ≈ ${expected}; got $ACTUAL"; echo "  response: $RESPONSE"; exit 1; }`)
   } else if (typeof expected === 'number') {
-    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "${expected}" ] || { echo "FAIL: expected ${safeLabel} = ${expected}"; exit 1; }`)
+    lines.push(`${indent}ACTUAL=$(echo "$RESPONSE" | jq '${jqPath}'); [ "$ACTUAL" = "${expected}" ] || { echo "FAIL: expected ${safeLabel} = ${expected}; got $ACTUAL"; echo "  response: $RESPONSE"; exit 1; }`)
   } else if (typeof expected === 'boolean') {
-    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq '${jqPath}')" = "${String(expected)}" ] || { echo "FAIL: expected ${safeLabel} = ${String(expected)}"; exit 1; }`)
+    lines.push(`${indent}ACTUAL=$(echo "$RESPONSE" | jq '${jqPath}'); [ "$ACTUAL" = "${String(expected)}" ] || { echo "FAIL: expected ${safeLabel} = ${String(expected)}; got $ACTUAL"; echo "  response: $RESPONSE"; exit 1; }`)
   } else {
-    lines.push(`${indent}[ "$(echo "$RESPONSE" | jq -r '${jqPath}')" = ${expectedStr} ] || { echo "FAIL: expected ${safeLabel} = ${expectedStr}"; exit 1; }`)
+    lines.push(`${indent}ACTUAL=$(echo "$RESPONSE" | jq -r '${jqPath}'); [ "$ACTUAL" = ${expectedStr} ] || { echo "FAIL: expected ${safeLabel} = ${expectedStr}; got $ACTUAL"; echo "  response: $RESPONSE"; exit 1; }`)
   }
 }
 
