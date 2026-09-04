@@ -111,40 +111,58 @@ done
 echo "Kibana is ready"
 
 # Wired stream CRUD 422s until this runs. Already enabled is 200 with result noop.
-# 409 is a root stream name conflict (often an existing logs data stream), not success.
+# 409 "Could not acquire lock" means another enable is in progress. Retry.
+# 409 name conflict is an existing logs data stream. Delete those, then retry.
 echo "--- Enabling wired streams"
-STREAMS_CODE=$(curl -sS -o /tmp/kb-streams-enable.json -w "%{http_code}" \
-  -u "elastic:${ES_PASSWORD}" \
-  -H "kbn-xsrf: true" \
-  -H "elastic-api-version: 2023-10-31" \
-  -H "Content-Type: application/json" \
-  -X POST "http://${KB_HOST}:5601/api/streams/_enable")
-if [ "$STREAMS_CODE" = "409" ]; then
-  echo "POST /api/streams/_enable returned 409"
-  cat /tmp/kb-streams-enable.json
-  echo
-  echo "--- Clearing conflicting logs data streams"
-  curl -sS -u "elastic:${ES_PASSWORD}" \
-    -X DELETE "http://${ES_HOST}:9200/_data_stream/logs,logs.otel,logs.ecs" || true
-  echo
+STREAMS_CODE=""
+CLEARED_LOGS=0
+RETRIES=0
+MAX_RETRIES=30
+while true; do
   STREAMS_CODE=$(curl -sS -o /tmp/kb-streams-enable.json -w "%{http_code}" \
     -u "elastic:${ES_PASSWORD}" \
     -H "kbn-xsrf: true" \
     -H "elastic-api-version: 2023-10-31" \
     -H "Content-Type: application/json" \
     -X POST "http://${KB_HOST}:5601/api/streams/_enable")
-fi
-if [ "$STREAMS_CODE" != "200" ]; then
-  echo "FAIL: POST /api/streams/_enable returned ${STREAMS_CODE}"
+  if [ "$STREAMS_CODE" = "200" ]; then
+    break
+  fi
+  echo "POST /api/streams/_enable returned ${STREAMS_CODE}"
   cat /tmp/kb-streams-enable.json
   echo
+  RETRIES=$((RETRIES + 1))
+  if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
+    echo "FAIL: POST /api/streams/_enable returned ${STREAMS_CODE}"
+    curl -sS -u "elastic:${ES_PASSWORD}" \
+      -H "kbn-xsrf: true" \
+      -H "x-elastic-internal-origin: kibana" \
+      "http://${KB_HOST}:5601/api/streams/_status" || true
+    echo
+    exit 1
+  fi
+  if [ "$STREAMS_CODE" = "409" ] && \
+     jq -e '.message | test("lock"; "i")' /tmp/kb-streams-enable.json >/dev/null; then
+    sleep 2
+    continue
+  fi
+  if [ "$STREAMS_CODE" = "409" ] && [ "$CLEARED_LOGS" -eq 0 ]; then
+    echo "--- Clearing conflicting logs data streams"
+    curl -sS -u "elastic:${ES_PASSWORD}" \
+      -X DELETE "http://${ES_HOST}:9200/_data_stream/logs,logs.otel,logs.ecs" || true
+    echo
+    CLEARED_LOGS=1
+    sleep 1
+    continue
+  fi
+  echo "FAIL: POST /api/streams/_enable returned ${STREAMS_CODE}"
   curl -sS -u "elastic:${ES_PASSWORD}" \
     -H "kbn-xsrf: true" \
     -H "x-elastic-internal-origin: kibana" \
     "http://${KB_HOST}:5601/api/streams/_status" || true
   echo
   exit 1
-fi
+done
 echo "Wired streams enabled (${STREAMS_CODE})"
 
 # uiSettings.overrides in kibana-ci.yml already set the flags. POST
