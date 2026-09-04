@@ -125,7 +125,7 @@ if [ "$STREAMS_CODE" != "200" ] && [ "$STREAMS_CODE" != "409" ]; then
 fi
 echo "Wired streams enabled (${STREAMS_CODE})"
 
-# Entity Store V2 400s until this runs. 409 means it was already installed.
+# Entity Store V2 400s until this runs. 201 is created; 409 is already installed.
 echo "--- Installing entity store"
 ENTITY_STORE_CODE=$(curl -sS -o /tmp/kb-entity-store-install.json -w "%{http_code}" \
   -u "elastic:${ES_PASSWORD}" \
@@ -134,7 +134,7 @@ ENTITY_STORE_CODE=$(curl -sS -o /tmp/kb-entity-store-install.json -w "%{http_cod
   -H "Content-Type: application/json" \
   -X POST "http://${KB_HOST}:5601/api/security/entity_store/install" \
   -d '{"entityTypes":["user","host","service","generic"]}')
-if [ "$ENTITY_STORE_CODE" != "200" ] && [ "$ENTITY_STORE_CODE" != "409" ]; then
+if [ "$ENTITY_STORE_CODE" != "200" ] && [ "$ENTITY_STORE_CODE" != "201" ] && [ "$ENTITY_STORE_CODE" != "409" ]; then
   echo "FAIL: POST /api/security/entity_store/install returned ${ENTITY_STORE_CODE}"
   cat /tmp/kb-entity-store-install.json
   exit 1
