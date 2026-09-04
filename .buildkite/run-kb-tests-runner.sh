@@ -110,7 +110,8 @@ until curl -sf -u "elastic:${ES_PASSWORD}" "http://${KB_HOST}:5601/api/status" \
 done
 echo "Kibana is ready"
 
-# Wired stream CRUD 422s until this runs. 409 means it was already enabled.
+# Wired stream CRUD 422s until this runs. Already enabled is 200 with result noop.
+# 409 is a root stream name conflict, not success.
 echo "--- Enabling wired streams"
 STREAMS_CODE=$(curl -sS -o /tmp/kb-streams-enable.json -w "%{http_code}" \
   -u "elastic:${ES_PASSWORD}" \
@@ -118,7 +119,7 @@ STREAMS_CODE=$(curl -sS -o /tmp/kb-streams-enable.json -w "%{http_code}" \
   -H "elastic-api-version: 2023-10-31" \
   -H "Content-Type: application/json" \
   -X POST "http://${KB_HOST}:5601/api/streams/_enable")
-if [ "$STREAMS_CODE" != "200" ] && [ "$STREAMS_CODE" != "409" ]; then
+if [ "$STREAMS_CODE" != "200" ]; then
   echo "FAIL: POST /api/streams/_enable returned ${STREAMS_CODE}"
   cat /tmp/kb-streams-enable.json
   exit 1
