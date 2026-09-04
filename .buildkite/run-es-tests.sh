@@ -71,6 +71,8 @@ docker run \
   --env "xpack.security.enabled=false" \
   --env "xpack.license.self_generated.type=trial" \
   --env "action.destructive_requires_name=false" \
+  --env "ingest.geoip.downloader.enabled=false" \
+  --env "cluster.deprecation_indexing.enabled=false" \
   --env "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
   --detach \
   --rm \

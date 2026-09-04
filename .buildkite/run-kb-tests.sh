@@ -96,6 +96,8 @@ docker run \
   --env "xpack.security.http.ssl.enabled=false" \
   --env "xpack.security.transport.ssl.enabled=false" \
   --env "cluster.routing.allocation.disk.threshold_enabled=false" \
+  --env "ingest.geoip.downloader.enabled=false" \
+  --env "cluster.deprecation_indexing.enabled=false" \
   --env "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
   --detach \
   --rm \
