@@ -16,9 +16,8 @@ setup:
       security-entity-analytics-api.init_monitoring_engine: {}
   - write_temp:
       variable: csv_file
-      # Kibana requires a header row (columns: username, is_privileged); the first
-      # line is consumed as the header, so a data row must follow it.
-      content: "username,is_privileged\ncli-ft-priv-mon-csv-user,true\n"
+      # Kibana parses with header: false; each row is a user (col 1 name).
+      content: "cli-ft-priv-mon-csv-user\n"
       suffix: .csv
 ---
 teardown:
@@ -32,4 +31,5 @@ teardown:
         body:
           file: $csv_file
   - length: {errors: 0}
-  - match: {stats.uploaded: 1}
+  # 9.3.0 (CI stack) returns stats.successful; stats.uploaded landed later.
+  - match: {stats.successful: 1}
