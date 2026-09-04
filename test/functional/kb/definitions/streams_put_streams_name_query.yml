@@ -10,7 +10,7 @@ requires:
 setup:
   - do:
       streams.put_streams_name:
-        name: cli-ft-streams-put-query
+        name: logs.otel.cli-ft-streams-put-query
         body:
           dashboards: []
           rules: []
@@ -30,14 +30,14 @@ setup:
 teardown:
   - do:
       streams.delete_streams_name:
-        name: cli-ft-streams-put-query
+        name: logs.otel.cli-ft-streams-put-query
         ignore: [404]
 ---
 "streams put streams name query":
   - do:
       streams.put_streams_name_query:
-        name: cli-ft-streams-put-query
+        name: logs.otel.cli-ft-streams-put-query
         body:
           query:
-            esql: "FROM cli-ft-streams-put-query | LIMIT 10"
+            esql: "FROM logs.otel.cli-ft-streams-put-query | LIMIT 10"
   - is_true: ""

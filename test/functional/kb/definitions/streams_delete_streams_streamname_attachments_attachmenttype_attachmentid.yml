@@ -10,7 +10,7 @@ requires:
 setup:
   - do:
       streams.put_streams_name:
-        name: cli-ft-streams-att-delete
+        name: logs.otel.cli-ft-streams-att-delete
         body:
           dashboards: []
           rules: []
@@ -28,20 +28,20 @@ setup:
                 routing: []
   - do:
       streams.put_streams_streamname_attachments_attachmenttype_attachmentid:
-        stream_name: cli-ft-streams-att-delete
+        stream_name: logs.otel.cli-ft-streams-att-delete
         attachment_type: dashboard
         attachment_id: cli-ft-dashboard-id
 ---
 teardown:
   - do:
       streams.delete_streams_name:
-        name: cli-ft-streams-att-delete
+        name: logs.otel.cli-ft-streams-att-delete
         ignore: [404]
 ---
 "streams delete streams streamname attachments attachmenttype attachmentid":
   - do:
       streams.delete_streams_streamname_attachments_attachmenttype_attachmentid:
-        stream_name: cli-ft-streams-att-delete
+        stream_name: logs.otel.cli-ft-streams-att-delete
         attachment_type: dashboard
         attachment_id: cli-ft-dashboard-id
   - is_true: ""
