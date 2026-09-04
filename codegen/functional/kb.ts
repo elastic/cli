@@ -407,14 +407,6 @@ const skippedFilesStack = new Set<string>([
   "security_entity_analytics_api_configure_risk_engine_saved_object.yml",
   "security_entity_analytics_api_schedule_risk_engine_now.yml",
 
-  // Significant events feature is disabled (403); requires enabling
-  // observability:streamsEnableSignificantEvents in Advanced Settings.
-  "significantevents_delete_streams_name_queries_queryid.yml",
-  "significantevents_get_streams_name_queries.yml",
-  "significantevents_get_streams_name_significant_events.yml",
-  "significantevents_post_streams_name_queries_bulk.yml",
-  "significantevents_put_streams_name_queries_queryid.yml",
-
   // 9.3 PUT /api/streams/{name} requires body.queries. Fixtures omit it
   // (9.5 moved queries off the upsert contract). Enable itself works.
   "streams_delete_streams_name.yml",
