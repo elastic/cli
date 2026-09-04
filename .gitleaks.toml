@@ -9,7 +9,3 @@ regexes = [
   # Dummy Kibana encryption key in run-kb-tests.sh
   '''xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj''',
 ]
-paths = [
-  # Another branch's provision script; fetch-depth 0 makes gitleaks see it.
-  '''test/functional/kb/risk-engine-provision\.sh''',
-]
