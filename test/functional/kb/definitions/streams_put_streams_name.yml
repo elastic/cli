@@ -10,13 +10,13 @@ requires:
 teardown:
   - do:
       streams.delete_streams_name:
-        name: cli-ft-streams-put
+        name: logs.otel.cli-ft-streams-put
         ignore: [404]
 ---
 "streams put streams name":
   - do:
       streams.put_streams_name:
-        name: cli-ft-streams-put
+        name: logs.otel.cli-ft-streams-put
         body:
           dashboards: []
           rules: []

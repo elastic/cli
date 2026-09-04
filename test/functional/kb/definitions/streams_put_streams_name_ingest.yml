@@ -10,7 +10,7 @@ requires:
 setup:
   - do:
       streams.put_streams_name:
-        name: cli-ft-streams-put-ingest
+        name: logs.otel.cli-ft-streams-put-ingest
         body:
           dashboards: []
           rules: []
@@ -30,13 +30,13 @@ setup:
 teardown:
   - do:
       streams.delete_streams_name:
-        name: cli-ft-streams-put-ingest
+        name: logs.otel.cli-ft-streams-put-ingest
         ignore: [404]
 ---
 "streams put streams name ingest":
   - do:
       streams.put_streams_name_ingest:
-        name: cli-ft-streams-put-ingest
+        name: logs.otel.cli-ft-streams-put-ingest
         body:
           ingest:
             lifecycle: {inherit: {}}

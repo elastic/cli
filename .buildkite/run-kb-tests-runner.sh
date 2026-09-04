@@ -110,20 +110,85 @@ until curl -sf -u "elastic:${ES_PASSWORD}" "http://${KB_HOST}:5601/api/status" \
 done
 echo "Kibana is ready"
 
-# Wired stream CRUD 422s until this runs. 409 means it was already enabled.
+# Wired stream CRUD 422s until enabled. 200 (including result noop) is done.
+# 409 lock: another apply is in progress; wait for _status, do not re-POST.
+# 409 name conflict: leftover logs data stream; delete once, POST once.
+streams_post_enable () {
+  curl -sS -o /tmp/kb-streams-enable.json -w "%{http_code}" \
+    -u "elastic:${ES_PASSWORD}" \
+    -H "kbn-xsrf: true" \
+    -H "elastic-api-version: 2023-10-31" \
+    -H "Content-Type: application/json" \
+    -X POST "http://${KB_HOST}:5601/api/streams/_enable"
+}
+
+streams_logs_enabled () {
+  curl -sf -u "elastic:${ES_PASSWORD}" \
+    -H "kbn-xsrf: true" \
+    -H "x-elastic-internal-origin: kibana" \
+    "http://${KB_HOST}:5601/api/streams/_status" \
+    | jq -e '.logs == true' > /dev/null 2>&1
+}
+
 echo "--- Enabling wired streams"
-STREAMS_CODE=$(curl -sS -o /tmp/kb-streams-enable.json -w "%{http_code}" \
-  -u "elastic:${ES_PASSWORD}" \
-  -H "kbn-xsrf: true" \
-  -H "elastic-api-version: 2023-10-31" \
-  -H "Content-Type: application/json" \
-  -X POST "http://${KB_HOST}:5601/api/streams/_enable")
-if [ "$STREAMS_CODE" != "200" ] && [ "$STREAMS_CODE" != "409" ]; then
+STREAMS_CODE=$(streams_post_enable)
+if [ "$STREAMS_CODE" != "200" ]; then
+  echo "POST /api/streams/_enable returned ${STREAMS_CODE}"
+  cat /tmp/kb-streams-enable.json
+  echo
+fi
+if [ "$STREAMS_CODE" = "409" ] && \
+   jq -e '.message | test("lock"; "i")' /tmp/kb-streams-enable.json >/dev/null; then
+  echo "--- Waiting for in-progress streams enable"
+  WAIT=0
+  until streams_logs_enabled; do
+    WAIT=$((WAIT + 1))
+    if [ "$WAIT" -ge 30 ]; then
+      STREAMS_CODE=$(streams_post_enable)
+      break
+    fi
+    sleep 2
+  done
+  if streams_logs_enabled; then
+    STREAMS_CODE=200
+  fi
+fi
+if [ "$STREAMS_CODE" = "409" ] && \
+   ! jq -e '.message | test("lock"; "i")' /tmp/kb-streams-enable.json >/dev/null; then
+  echo "--- Clearing conflicting logs data streams"
+  curl -sS -u "elastic:${ES_PASSWORD}" \
+    -X DELETE "http://${ES_HOST}:9200/_data_stream/logs,logs.otel,logs.ecs" || true
+  echo
+  STREAMS_CODE=$(streams_post_enable)
+fi
+if [ "$STREAMS_CODE" != "200" ] && ! streams_logs_enabled; then
   echo "FAIL: POST /api/streams/_enable returned ${STREAMS_CODE}"
   cat /tmp/kb-streams-enable.json
+  echo
+  curl -sS -u "elastic:${ES_PASSWORD}" \
+    -H "kbn-xsrf: true" \
+    -H "x-elastic-internal-origin: kibana" \
+    "http://${KB_HOST}:5601/api/streams/_status" || true
+  echo
   exit 1
 fi
-echo "Wired streams enabled (${STREAMS_CODE})"
+echo "Wired streams enabled"
+
+echo "--- Enabling query streams"
+QUERY_STREAMS_CODE=$(curl -sS -o /tmp/kb-query-streams.json -w "%{http_code}" \
+  -u "elastic:${ES_PASSWORD}" \
+  -H "kbn-xsrf: true" \
+  -H "x-elastic-internal-origin: kibana" \
+  -H "Content-Type: application/json" \
+  -X POST "http://${KB_HOST}:5601/internal/kibana/settings" \
+  -d '{"changes":{"observability:streamsEnableQueryStreams":true}}')
+if [ "$QUERY_STREAMS_CODE" != "200" ]; then
+  echo "WARN: query streams setting returned ${QUERY_STREAMS_CODE}"
+  cat /tmp/kb-query-streams.json
+  echo
+else
+  echo "Query streams enabled"
+fi
 
 echo "--- Generating CLI config file"
 cat > /tmp/elastic-rc.yml <<EOF

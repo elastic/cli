@@ -10,7 +10,7 @@ requires:
 setup:
   - do:
       streams.put_streams_name:
-        name: cli-ft-streams-get-query
+        name: logs.otel.cli-ft-streams-get-query
         body:
           dashboards: []
           rules: []
@@ -28,19 +28,19 @@ setup:
                 routing: []
   - do:
       streams.put_streams_name_query:
-        name: cli-ft-streams-get-query
+        name: logs.otel.cli-ft-streams-get-query
         body:
           query:
-            esql: "FROM cli-ft-streams-get-query | LIMIT 10"
+            esql: "FROM logs.otel.cli-ft-streams-get-query | LIMIT 10"
 ---
 teardown:
   - do:
       streams.delete_streams_name:
-        name: cli-ft-streams-get-query
+        name: logs.otel.cli-ft-streams-get-query
         ignore: [404]
 ---
 "streams get streams name query":
   - do:
       streams.get_streams_name_query:
-        name: cli-ft-streams-get-query
+        name: logs.otel.cli-ft-streams-get-query
   - is_true: query
