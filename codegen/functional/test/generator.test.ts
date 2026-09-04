@@ -400,8 +400,9 @@ describe('generateScript', () => {
     assert.match(result.script, /\[ -n "\$ITEMS_FILE" \] && rm -rf -- "\$\(dirname -- "\$ITEMS_FILE"\)"/)
 
     const start = result.script.indexOf('ITEMS_FILE=$(mktemp')
-    const end = result.script.indexOf('CLI_FT_WRITE_TEMP_EOF', start)
-    const heredocEnd = result.script.indexOf('\n', end)
+    const closeAt = result.script.indexOf('\nCLI_FT_WRITE_TEMP_EOF\n', start)
+    assert.ok(closeAt > start, 'must find the closing heredoc delimiter')
+    const heredocEnd = closeAt + '\nCLI_FT_WRITE_TEMP_EOF'.length
     const snippet = 'set -euo pipefail\n' + result.script.slice(start, heredocEnd + 1) +
       '[ -n "$ITEMS_FILE" ] || exit 2\n[ -f "$ITEMS_FILE" ] || exit 3\n' +
       'grep -qx "test-import-value" "$ITEMS_FILE" || exit 4\n'
