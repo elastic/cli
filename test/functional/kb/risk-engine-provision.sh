@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright Elasticsearch B.V. and contributors
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -5,12 +6,13 @@
 # return 400 while securitySolution:entityStoreEnableV2 is on.
 
 KB_PROVISION_URL="${KB_URL:-http://127.0.0.1:5601}"
+KB_AUTH="elastic:${ES_PASSWORD}"
 
 kb_set_entity_store_v2() {
   local value="$1"
   local code
   code=$(curl -sS -o /tmp/kb-v2.json -w "%{http_code}" \
-    -u "elastic:${ES_PASSWORD:-changeme}" \
+    -u "${KB_AUTH}" \
     -H "kbn-xsrf: true" \
     -H "x-elastic-internal-origin: kibana" \
     -H "Content-Type: application/json" \
@@ -26,7 +28,7 @@ kb_set_entity_store_v2() {
 kb_init_legacy_risk_engine() {
   local code
   code=$(curl -sS -o /tmp/kb-risk-init.json -w "%{http_code}" \
-    -u "elastic:${ES_PASSWORD:-changeme}" \
+    -u "${KB_AUTH}" \
     -H "kbn-xsrf: true" \
     -H "x-elastic-internal-origin: kibana" \
     -H "elastic-api-version: 1" \

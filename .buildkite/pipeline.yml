@@ -46,7 +46,7 @@ steps:
           diskSizeGb: 130
         env:
           NODE_VERSION: "{{matrix.node}}"
-          STACK_VERSION: "9.3.0"
+          STACK_VERSION: "9.5.3"
         command: ".buildkite/run-kb-tests.sh"
 
   - group: "Cloud Functional Tests"
