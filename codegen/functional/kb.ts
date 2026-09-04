@@ -365,6 +365,7 @@ const skippedFilesStack = new Set<string>([
   "elastic_agents_get_fleet_agent_status_data.yml",
   "elastic_agents_get_fleet_agents_agentid.yml",
   "elastic_agents_get_fleet_agents_agentid_effective_config.yml",
+  "elastic_agents_get_fleet_agents_agentid_uploads.yml",
   "elastic_agents_get_fleet_agents_files_fileid_filename.yml",
   "elastic_agents_post_fleet_agents.yml",
   "elastic_agents_post_fleet_agents_agentid_privilege_level_change.yml",
