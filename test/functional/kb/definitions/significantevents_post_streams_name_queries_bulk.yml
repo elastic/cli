@@ -11,7 +11,7 @@ requires:
 setup:
   - do:
       streams.put_streams_name:
-        name: cli-ft-se-bulk
+        name: logs.otel.cli-ft-se-bulk
         body:
           dashboards: []
           rules: []
@@ -31,23 +31,23 @@ setup:
 teardown:
   - do:
       significantevents.delete_streams_name_queries_queryid:
-        name: cli-ft-se-bulk
+        name: logs.otel.cli-ft-se-bulk
         query_id: cli-ft-se-bulk-query
         ignore: [404]
   - do:
       streams.delete_streams_name:
-        name: cli-ft-se-bulk
+        name: logs.otel.cli-ft-se-bulk
         ignore: [404]
 ---
 "significantevents post streams name queries bulk":
   - do:
       significantevents.post_streams_name_queries_bulk:
-        name: cli-ft-se-bulk
+        name: logs.otel.cli-ft-se-bulk
         body:
           operations:
             - index:
                 id: cli-ft-se-bulk-query
                 title: CLI FT Bulk Query
                 esql:
-                  query: "FROM cli-ft-se-bulk | LIMIT 10"
+                  query: "FROM logs.otel.cli-ft-se-bulk | LIMIT 10"
   - is_true: ""

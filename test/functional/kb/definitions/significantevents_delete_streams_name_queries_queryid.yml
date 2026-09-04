@@ -11,7 +11,7 @@ requires:
 setup:
   - do:
       streams.put_streams_name:
-        name: cli-ft-se-del
+        name: logs.otel.cli-ft-se-del
         body:
           dashboards: []
           rules: []
@@ -29,27 +29,27 @@ setup:
                 routing: []
   - do:
       significantevents.put_streams_name_queries_queryid:
-        name: cli-ft-se-del
+        name: logs.otel.cli-ft-se-del
         query_id: cli-ft-se-del-query
         body:
           title: CLI FT Delete Query Test
           esql:
-            query: "FROM cli-ft-se-del | LIMIT 10"
+            query: "FROM logs.otel.cli-ft-se-del | LIMIT 10"
 ---
 teardown:
   - do:
       significantevents.delete_streams_name_queries_queryid:
-        name: cli-ft-se-del
+        name: logs.otel.cli-ft-se-del
         query_id: cli-ft-se-del-query
         ignore: [404]
   - do:
       streams.delete_streams_name:
-        name: cli-ft-se-del
+        name: logs.otel.cli-ft-se-del
         ignore: [404]
 ---
 "significantevents delete streams name queries queryid":
   - do:
       significantevents.delete_streams_name_queries_queryid:
-        name: cli-ft-se-del
+        name: logs.otel.cli-ft-se-del
         query_id: cli-ft-se-del-query
   - is_true: ""

@@ -11,7 +11,7 @@ requires:
 setup:
   - do:
       streams.put_streams_name:
-        name: cli-ft-se-put
+        name: logs.otel.cli-ft-se-put
         body:
           dashboards: []
           rules: []
@@ -31,21 +31,21 @@ setup:
 teardown:
   - do:
       significantevents.delete_streams_name_queries_queryid:
-        name: cli-ft-se-put
+        name: logs.otel.cli-ft-se-put
         query_id: cli-ft-se-put-query
         ignore: [404]
   - do:
       streams.delete_streams_name:
-        name: cli-ft-se-put
+        name: logs.otel.cli-ft-se-put
         ignore: [404]
 ---
 "significantevents put streams name queries queryid":
   - do:
       significantevents.put_streams_name_queries_queryid:
-        name: cli-ft-se-put
+        name: logs.otel.cli-ft-se-put
         query_id: cli-ft-se-put-query
         body:
           title: CLI FT Put Query Test
           esql:
-            query: "FROM cli-ft-se-put | LIMIT 10"
+            query: "FROM logs.otel.cli-ft-se-put | LIMIT 10"
   - is_true: ""
