@@ -404,7 +404,15 @@ const skippedFilesStack = new Set<string>([
   "security_entity_analytics_api_configure_risk_engine_saved_object.yml",
   "security_entity_analytics_api_schedule_risk_engine_now.yml",
 
-  // Wired streams are not enabled in the stack env (422: "Streams are not
+  // Significant events uiSettings are on (kibana-ci.yml). 9.3.0 still requires
+  // body.kql; the CLI schema (serverless spec) sends body.esql, so PUT 400s.
+  "significantevents_delete_streams_name_queries_queryid.yml",
+  "significantevents_get_streams_name_queries.yml",
+  "significantevents_get_streams_name_significant_events.yml",
+  "significantevents_post_streams_name_queries_bulk.yml",
+  "significantevents_put_streams_name_queries_queryid.yml",
+
+  // Wired streams are not enabled in the stack env (422: "Streams are not"
   // enabled for Wired streams"), so no stream can be created or read.
   "streams_delete_streams_name.yml",
   "streams_delete_streams_streamname_attachments_attachmenttype_attachmentid.yml",
