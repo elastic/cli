@@ -2,28 +2,19 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Kibana security-attack-discovery-api: bulk update attack discovery workflow status.
-# Finds an existing attack discovery in setup (if any), then bulk-updates its
-# workflow status to "open". The response always contains a `data` array
-# (required by the response schema), so the assertion passes even when no
-# matching discovery is found.
+# CI has no attack discoveries. The bulk route still returns a `data` array
+# when ids is empty, which is what this assertion checks.
 ---
 requires:
   serverless: true
   stack: true
   serverless_project: security
 ---
-setup:
-  - do:
-      security-attack-discovery-api.attack_discovery_find:
-        per_page: 1
-  - set: {"data.0.id": discovery_id}
----
 "security-attack-discovery-api post attack discovery bulk":
   - do:
       security-attack-discovery-api.post_attack_discovery_bulk:
         body:
           update:
-            ids:
-              - $discovery_id
+            ids: []
             kibana_alert_workflow_status: open
   - is_true: data
