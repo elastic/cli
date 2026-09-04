@@ -20,6 +20,7 @@ xpack.security.encryptionKey: "${XPACK_SECURITY_ENCRYPTIONKEY}"
 uiSettings.overrides:
   "observability:streamsEnableSignificantEvents": true
   "observability:streamsEnableSignificantEventsDiscovery": true
+  "observability:streamsEnableQueryStreams": true
 
 feature_flags.overrides:
   streams.significantEventsAvailable: true

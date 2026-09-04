@@ -110,7 +110,8 @@ until curl -sf -u "elastic:${ES_PASSWORD}" "http://${KB_HOST}:5601/api/status" \
 done
 echo "Kibana is ready"
 
-# Wired stream CRUD 422s until this runs. 409 means it was already enabled.
+# Wired stream CRUD 422s until this runs. Already enabled is 200 with result noop.
+# 409 is a root stream name conflict (often an existing logs data stream), not success.
 echo "--- Enabling wired streams"
 STREAMS_CODE=$(curl -sS -o /tmp/kb-streams-enable.json -w "%{http_code}" \
   -u "elastic:${ES_PASSWORD}" \
@@ -118,12 +119,70 @@ STREAMS_CODE=$(curl -sS -o /tmp/kb-streams-enable.json -w "%{http_code}" \
   -H "elastic-api-version: 2023-10-31" \
   -H "Content-Type: application/json" \
   -X POST "http://${KB_HOST}:5601/api/streams/_enable")
-if [ "$STREAMS_CODE" != "200" ] && [ "$STREAMS_CODE" != "409" ]; then
+if [ "$STREAMS_CODE" = "409" ]; then
+  echo "POST /api/streams/_enable returned 409"
+  cat /tmp/kb-streams-enable.json
+  echo
+  echo "--- Clearing conflicting logs data streams"
+  curl -sS -u "elastic:${ES_PASSWORD}" \
+    -X DELETE "http://${ES_HOST}:9200/_data_stream/logs,logs.otel,logs.ecs" || true
+  echo
+  STREAMS_CODE=$(curl -sS -o /tmp/kb-streams-enable.json -w "%{http_code}" \
+    -u "elastic:${ES_PASSWORD}" \
+    -H "kbn-xsrf: true" \
+    -H "elastic-api-version: 2023-10-31" \
+    -H "Content-Type: application/json" \
+    -X POST "http://${KB_HOST}:5601/api/streams/_enable")
+fi
+if [ "$STREAMS_CODE" != "200" ]; then
   echo "FAIL: POST /api/streams/_enable returned ${STREAMS_CODE}"
   cat /tmp/kb-streams-enable.json
+  echo
+  curl -sS -u "elastic:${ES_PASSWORD}" \
+    -H "kbn-xsrf: true" \
+    -H "x-elastic-internal-origin: kibana" \
+    "http://${KB_HOST}:5601/api/streams/_status" || true
+  echo
   exit 1
 fi
 echo "Wired streams enabled (${STREAMS_CODE})"
+
+echo "--- Enabling significant events"
+SE_CODE=$(curl -sS -o /tmp/kb-se-settings.json -w "%{http_code}" \
+  -u "elastic:${ES_PASSWORD}" \
+  -H "kbn-xsrf: true" \
+  -H "x-elastic-internal-origin: kibana" \
+  -H "Content-Type: application/json" \
+  -X POST "http://${KB_HOST}:5601/internal/kibana/settings" \
+  -d '{"changes":{"observability:streamsEnableSignificantEvents":true,"observability:streamsEnableSignificantEventsDiscovery":true,"observability:streamsEnableQueryStreams":true}}')
+if [ "$SE_CODE" != "200" ]; then
+  echo "FAIL: significant events settings returned ${SE_CODE}"
+  cat /tmp/kb-se-settings.json
+  exit 1
+fi
+echo "Significant events settings applied"
+
+echo "--- Waiting for significant events availability"
+RETRIES=0
+MAX_RETRIES=30
+until curl -sf -u "elastic:${ES_PASSWORD}" \
+      -H "kbn-xsrf: true" \
+      -H "x-elastic-internal-origin: kibana" \
+      "http://${KB_HOST}:5601/internal/significant_events/availability" \
+      | jq -e '.available == true' > /dev/null 2>&1; do
+  RETRIES=$((RETRIES + 1))
+  if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
+    echo "Significant events did not become available"
+    curl -sS -u "elastic:${ES_PASSWORD}" \
+      -H "kbn-xsrf: true" \
+      -H "x-elastic-internal-origin: kibana" \
+      "http://${KB_HOST}:5601/internal/significant_events/availability" || true
+    echo
+    exit 1
+  fi
+  sleep 1
+done
+echo "Significant events available"
 
 echo "--- Generating CLI config file"
 cat > /tmp/elastic-rc.yml <<EOF
