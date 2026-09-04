@@ -2,47 +2,22 @@
 # Copyright Elasticsearch B.V. and contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Sourced by the three legacy risk engine functional scripts. Those APIs
-# return 400 while securitySolution:entityStoreEnableV2 is on.
+# Sourced by the legacy risk engine cleanup script. Init needs
+# risk_engine:risk_scoring, which is only registered when Entity Store V2
+# is off at Kibana boot (kibana-ci.yml).
 
 KB_PROVISION_URL="${KB_URL:-http://127.0.0.1:5601}"
-KB_AUTH="elastic:${ES_PASSWORD}"
+KB_USER=elastic
 
-kb_set_entity_store_v2() {
-  local value="$1"
-  local code
-  code=$(curl -sS -o /tmp/kb-v2.json -w "%{http_code}" \
-    -u "${KB_AUTH}" \
-    -H "kbn-xsrf: true" \
-    -H "x-elastic-internal-origin: kibana" \
-    -H "Content-Type: application/json" \
-    -X POST "${KB_PROVISION_URL}/internal/kibana/settings" \
-    -d "{\"changes\":{\"securitySolution:entityStoreEnableV2\":${value}}}")
-  if [ "$code" != "200" ]; then
-    echo "FAIL: set entityStoreEnableV2=${value} returned ${code}"
-    cat /tmp/kb-v2.json
-    return 1
-  fi
-}
-
-kb_init_legacy_risk_engine() {
-  local code
-  code=$(curl -sS -o /tmp/kb-risk-init.json -w "%{http_code}" \
-    -u "${KB_AUTH}" \
-    -H "kbn-xsrf: true" \
-    -H "x-elastic-internal-origin: kibana" \
-    -H "elastic-api-version: 1" \
-    -H "Content-Type: application/json" \
-    -X POST "${KB_PROVISION_URL}/internal/risk_score/engine/init")
-  if [ "$code" != "200" ] && [ "$code" != "409" ]; then
-    echo "FAIL: POST /internal/risk_score/engine/init returned ${code}"
-    cat /tmp/kb-risk-init.json
-    return 1
-  fi
-}
-
-kb_restore_entity_store_v2() { kb_set_entity_store_v2 true || true; }
-
-kb_set_entity_store_v2 false
-kb_init_legacy_risk_engine
-trap kb_restore_entity_store_v2 EXIT
+code=$(curl -sS -o /tmp/kb-risk-init.json -w "%{http_code}" \
+  -u "${KB_USER}:${ES_PASSWORD}" \
+  -H "kbn-xsrf: true" \
+  -H "x-elastic-internal-origin: kibana" \
+  -H "elastic-api-version: 1" \
+  -H "Content-Type: application/json" \
+  -X POST "${KB_PROVISION_URL}/internal/risk_score/engine/init")
+if [ "$code" != "200" ] && [ "$code" != "409" ]; then
+  echo "FAIL: POST /internal/risk_score/engine/init returned ${code}"
+  cat /tmp/kb-risk-init.json
+  return 1
+fi
