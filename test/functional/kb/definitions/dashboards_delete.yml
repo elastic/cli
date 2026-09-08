@@ -4,8 +4,8 @@
 # Kibana dashboards API: delete a dashboard by id.
 ---
 requires:
-  serverless: false
-  stack: false
+  serverless: true
+  stack: true
 ---
 teardown:
   - do:
@@ -17,6 +17,8 @@ teardown:
   - do:
       dashboards.upsert_dashboard:
         id: cli-ft-dashboard-delete
+        body:
+          title: cli-ft-dashboard-delete
 
   - do:
       dashboards.delete_dashboard:
