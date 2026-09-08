@@ -9,3 +9,9 @@ regexes = [
   # Dummy Kibana encryption key in run-kb-tests.sh
   '''xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj''',
 ]
+commits = [
+  # risk-engine-provision.sh on the ci/provision-risk-engine branch used the well-known
+  # "elastic:changeme" CI default before a follow-up commit switched to env-var-only form.
+  # gitleaks flags this historical commit when scanning the full repository history.
+  "050c857c2c1090bedd0c7a3c5df316edb000b099",
+]
