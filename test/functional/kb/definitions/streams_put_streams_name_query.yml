@@ -2,42 +2,23 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Kibana streams API: upsert query stream settings by name.
+# Query streams are created via PUT /_query, not by converting a wired stream.
 ---
 requires:
   serverless: true
   stack: true
 ---
-setup:
-  - do:
-      streams.put_streams_name:
-        name: logs.otel.cli-ft-streams-put-query
-        body:
-          dashboards: []
-          rules: []
-          stream:
-            description: ""
-            type: wired
-            ingest:
-              lifecycle: {inherit: {}}
-              processing:
-                steps: []
-              settings: {}
-              failure_store: {inherit: {}}
-              wired:
-                fields: {}
-                routing: []
----
 teardown:
   - do:
       streams.delete_streams_name:
-        name: logs.otel.cli-ft-streams-put-query
+        name: cli-ft-streams-put-query
         ignore: [404]
 ---
 "streams put streams name query":
   - do:
       streams.put_streams_name_query:
-        name: logs.otel.cli-ft-streams-put-query
+        name: cli-ft-streams-put-query
         body:
           query:
-            esql: "FROM logs.otel.cli-ft-streams-put-query | LIMIT 10"
+            esql: "FROM logs* | LIMIT 10"
   - is_true: ""
