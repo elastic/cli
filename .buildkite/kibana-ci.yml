@@ -25,6 +25,12 @@ uiSettings.overrides:
 feature_flags.overrides:
   streams.significantEventsAvailable: true
 
+# V2 defaults on in 9.5.3. That path registers the V2 maintainer, not
+# risk_engine:risk_scoring. uiSettings.entityStoreEnableV2 does not change
+# this; the experimental flag is read at plugin setup.
+xpack.securitySolution.enableExperimental:
+  - "disable:entityAnalyticsEntityStoreV2"
+
 xpack.fleet.enableExperimental:
   - agentlessPoliciesAPI
   - useAgentlessAPIInUI

@@ -60202,6 +60202,13 @@
                   "parameters": [
                     {
                       "role": "flag",
+                      "name": "approvals",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Actions the tool run may take that would otherwise need a live user to approve them. Applies to this run and any sub-agents it spawns."
+                    },
+                    {
+                      "role": "flag",
                       "name": "connector-id",
                       "type": "string",
                       "required": false,
@@ -85675,6 +85682,9 @@
                   ],
                   "summary": "Configure the Risk Engine Saved Object",
                   "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -104457,6 +104467,13 @@
                   ],
                   "name": "create-traffic-filter",
                   "parameters": [
+                    {
+                      "role": "flag",
+                      "name": "organization-id",
+                      "type": "string",
+                      "required": true,
+                      "summary": "The Organization ID to scope the request to."
+                    },
                     {
                       "role": "flag",
                       "name": "name",
