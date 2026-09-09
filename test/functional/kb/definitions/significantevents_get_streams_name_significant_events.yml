@@ -34,7 +34,7 @@ setup:
         body:
           title: CLI FT Events Query
           esql:
-            query: 'FROM logs.otel.cli-ft-se-events,logs.otel.cli-ft-se-events.* | WHERE KQL("message:\"irrelevant\"")'
+            query: "FROM logs.otel.cli-ft-se-events, logs.otel.cli-ft-se-events.* METADATA _id, _source"
 ---
 teardown:
   - do:

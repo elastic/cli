@@ -34,7 +34,7 @@ setup:
         body:
           title: CLI FT Delete Query Test
           esql:
-            query: 'FROM logs.otel.cli-ft-se-del,logs.otel.cli-ft-se-del.* | WHERE KQL("message:\"irrelevant\"")'
+            query: "FROM logs.otel.cli-ft-se-del, logs.otel.cli-ft-se-del.* METADATA _id, _source"
 ---
 teardown:
   - do:
