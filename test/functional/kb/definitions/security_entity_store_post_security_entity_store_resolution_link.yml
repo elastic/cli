@@ -10,13 +10,13 @@ requires:
 ---
 setup:
   - do:
-      security-entity-store.put_security_entity_store_entities_entitytype:
+      security-entity-store.post_security_entity_store_entities_entitytype:
         entity_type: host
         body:
           host:
             name: cli-ft-resolution-link-source
   - do:
-      security-entity-store.put_security_entity_store_entities_entitytype:
+      security-entity-store.post_security_entity_store_entities_entitytype:
         entity_type: host
         body:
           host:
