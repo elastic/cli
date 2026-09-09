@@ -47,5 +47,5 @@ teardown:
         body:
           title: CLI FT Put Query Test
           esql:
-            query: "FROM logs.otel.cli-ft-se-put | LIMIT 10"
+            query: "FROM logs.otel.cli-ft-se-put, logs.otel.cli-ft-se-put.* METADATA _id, _source"
   - is_true: ""

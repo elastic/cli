@@ -47,7 +47,7 @@ teardown:
         body:
           title: CLI FT Significant Events Query
           esql:
-            query: "FROM logs.otel.cli-ft-se-getq | LIMIT 10"
+            query: "FROM logs.otel.cli-ft-se-getq, logs.otel.cli-ft-se-getq.* METADATA _id, _source"
   - is_true: ""
 
   - do:

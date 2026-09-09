@@ -49,5 +49,5 @@ teardown:
                 id: cli-ft-se-bulk-query
                 title: CLI FT Bulk Query
                 esql:
-                  query: "FROM logs.otel.cli-ft-se-bulk | LIMIT 10"
+                  query: "FROM logs.otel.cli-ft-se-bulk, logs.otel.cli-ft-se-bulk.* METADATA _id, _source"
   - is_true: ""
