@@ -47,7 +47,7 @@ teardown:
         body:
           title: CLI FT Significant Events Query
           esql:
-            query: "FROM logs.otel.cli-ft-se-getq, logs.otel.cli-ft-se-getq.* METADATA _id, _source"
+            query: 'FROM logs.otel.cli-ft-se-getq,logs.otel.cli-ft-se-getq.* | WHERE KQL("message:\"irrelevant\"")'
   - is_true: ""
 
   - do:
