@@ -163,6 +163,33 @@ if [ "$STREAMS_CODE" = "409" ] && \
   STREAMS_CODE=$(streams_post_enable)
 fi
 if [ "$STREAMS_CODE" != "200" ] && ! streams_logs_enabled; then
+  if [ "$STREAMS_CODE" = "500" ] || [ "$STREAMS_CODE" = "503" ]; then
+    echo "--- Retrying streams enable after ${STREAMS_CODE}"
+    WAIT=0
+    until [ "$WAIT" -ge 30 ]; do
+      sleep 2
+      WAIT=$((WAIT + 1))
+      STREAMS_CODE=$(streams_post_enable)
+      if [ "$STREAMS_CODE" = "200" ] || streams_logs_enabled; then
+        STREAMS_CODE=200
+        break
+      fi
+      if [ "$STREAMS_CODE" = "409" ] && \
+         ! jq -e '.message | test("lock"; "i")' /tmp/kb-streams-enable.json >/dev/null; then
+        echo "--- Clearing conflicting logs data streams"
+        curl -sS -u "elastic:${ES_PASSWORD}" \
+          -X DELETE "http://${ES_HOST}:9200/_data_stream/logs,logs.otel,logs.ecs" || true
+        echo
+        STREAMS_CODE=$(streams_post_enable)
+        if [ "$STREAMS_CODE" = "200" ] || streams_logs_enabled; then
+          STREAMS_CODE=200
+          break
+        fi
+      fi
+    done
+  fi
+fi
+if [ "$STREAMS_CODE" != "200" ] && ! streams_logs_enabled; then
   echo "FAIL: POST /api/streams/_enable returned ${STREAMS_CODE}"
   cat /tmp/kb-streams-enable.json
   echo
