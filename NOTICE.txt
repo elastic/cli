@@ -862,7 +862,7 @@ THE SOFTWARE.
 
 
 ------------------------------------------------------------------------
-csv-parse@7.0.1
+csv-parse@7.0.2
 License: MIT
 Repository: https://github.com/adaltas/node-csv
 Publisher: David Worms <david@adaltas.com> (https://www.adaltas.com)
