@@ -17,16 +17,19 @@ xpack.security.encryptionKey: "${XPACK_SECURITY_ENCRYPTIONKEY}"
 
 # 9.5 still registers these Advanced Settings. 9.6 removes them in favor of
 # streams.significantEventsAvailable; uiSettings keys become inert.
-# V2 on at boot skips registering risk_engine:risk_scoring. Runtime uiSettings
-# toggle does not register the task type. Entity store V2 defs stay skipped.
 uiSettings.overrides:
   "observability:streamsEnableSignificantEvents": true
   "observability:streamsEnableSignificantEventsDiscovery": true
   "observability:streamsEnableQueryStreams": true
-  "securitySolution:entityStoreEnableV2": false
 
 feature_flags.overrides:
   streams.significantEventsAvailable: true
+
+# V2 defaults on in 9.5.3. That path registers the V2 maintainer, not
+# risk_engine:risk_scoring. uiSettings.entityStoreEnableV2 does not change
+# this; the experimental flag is read at plugin setup.
+xpack.securitySolution.enableExperimental:
+  - "disable:entityAnalyticsEntityStoreV2"
 
 xpack.fleet.enableExperimental:
   - agentlessPoliciesAPI

@@ -2,9 +2,9 @@
 # Copyright Elasticsearch B.V. and contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Sourced by the legacy risk engine cleanup script. Init needs
-# risk_engine:risk_scoring, which is only registered when Entity Store V2
-# is off at Kibana boot (kibana-ci.yml).
+# Sourced by the legacy risk engine cleanup and configure scripts. Init
+# needs risk_engine:risk_scoring, registered when
+# entityAnalyticsEntityStoreV2 is disabled at boot (kibana-ci.yml).
 
 KB_PROVISION_URL="${KB_URL:-http://127.0.0.1:5601}"
 KB_USER=elastic
