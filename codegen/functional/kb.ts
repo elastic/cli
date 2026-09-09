@@ -47,10 +47,11 @@ const KB_PREAMBLE = [
   'RESPONSE=""'
 ]
 
-// Cleanup only. configure stays skipped (schema is PATCH, route is PUT).
-// schedule_now stays skipped (9.5.3 registers /internal only).
+// Cleanup and configure. schedule_now stays skipped (9.5.3
+// registers /internal only).
 const RISK_ENGINE_DEFS = new Set([
   'security_entity_analytics_api_clean_up_risk_engine.yml',
+  'security_entity_analytics_api_configure_risk_engine_saved_object.yml',
 ])
 
 const RISK_ENGINE_PREAMBLE = [
@@ -399,10 +400,8 @@ const skippedFilesStack = new Set<string>([
   "elastic_agent_actions_post_fleet_agents_bulk_upgrade.yml",
   "elastic_agents_post_fleet_agents_bulk_privilege_level_change.yml",
 
-  // configure: published schema is PATCH; Kibana route is PUT.
   // schedule_now: CLI hits /api/risk_score/engine/schedule_now; 9.5.3
   // registers /internal/risk_score/engine/schedule_now only.
-  "security_entity_analytics_api_configure_risk_engine_saved_object.yml",
   "security_entity_analytics_api_schedule_risk_engine_now.yml",
 
   // Entity Store V2 (/api/security/entity_store/*) is not on 9.3.0. Install
