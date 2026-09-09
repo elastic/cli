@@ -11,33 +11,31 @@ requires:
 setup:
   - do:
       security-entity-store.put_security_entity_store_entities_entitytype:
-        entity_type: user
+        entity_type: host
         body:
-          user:
+          host:
             name: cli-ft-resolution-unlink-source
-  - set: {entity.id: entity_id_source}
   - do:
       security-entity-store.put_security_entity_store_entities_entitytype:
-        entity_type: user
+        entity_type: host
         body:
-          user:
+          host:
             name: cli-ft-resolution-unlink-target
-  - set: {entity.id: entity_id_target}
   - do:
       security-entity-store.post_security_entity_store_resolution_link:
         body:
           entity_ids:
-            - $entity_id_source
-          target_id: $entity_id_target
+            - host:cli-ft-resolution-unlink-source
+          target_id: host:cli-ft-resolution-unlink-target
 ---
 teardown:
   - do:
       security-entity-store.delete_security_entity_store_entities:
-        entity_id: $entity_id_source
+        entity_id: host:cli-ft-resolution-unlink-source
         ignore: [404]
   - do:
       security-entity-store.delete_security_entity_store_entities:
-        entity_id: $entity_id_target
+        entity_id: host:cli-ft-resolution-unlink-target
         ignore: [404]
 ---
 "security-entity-store post security entity store resolution unlink":
@@ -45,5 +43,5 @@ teardown:
       security-entity-store.post_security_entity_store_resolution_unlink:
         body:
           entity_ids:
-            - $entity_id_source
+            - host:cli-ft-resolution-unlink-source
   - is_true: ""

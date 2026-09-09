@@ -11,20 +11,19 @@ requires:
 setup:
   - do:
       security-entity-store.put_security_entity_store_entities_entitytype:
-        entity_type: user
+        entity_type: host
         body:
-          user:
+          host:
             name: cli-ft-entity-resolution-group
-  - set: {entity.id: entity_id}
 ---
 teardown:
   - do:
       security-entity-store.delete_security_entity_store_entities:
-        entity_id: $entity_id
+        entity_id: host:cli-ft-entity-resolution-group
         ignore: [404]
 ---
 "security-entity-store get security entity store resolution group":
   - do:
       security-entity-store.get_security_entity_store_resolution_group:
-        entity_id: $entity_id
+        entity_id: host:cli-ft-entity-resolution-group
   - is_true: ""
