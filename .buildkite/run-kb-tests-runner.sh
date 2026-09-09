@@ -239,6 +239,24 @@ until curl -sf -u "elastic:${ES_PASSWORD}" \
 done
 echo "Entity store engines started"
 
+# Stream attachment tests link a dashboard by id. Dashboard CLI defs are
+# skipped (schemas-js body bugs), so create the SO here.
+echo "--- Creating stream attachment dashboard"
+DASH_CODE=$(curl -sS -o /tmp/kb-dashboard.json -w "%{http_code}" \
+  -u "elastic:${ES_PASSWORD}" \
+  -H "kbn-xsrf: true" \
+  -H "elastic-api-version: 2023-10-31" \
+  -H "Content-Type: application/json" \
+  -X POST "http://${KB_HOST}:5601/api/saved_objects/dashboard/cli-ft-dashboard-id?overwrite=true" \
+  -d '{"attributes":{"title":"cli-ft-dashboard","description":"","panelsJSON":"[]","optionsJSON":"{}","version":1,"timeRestore":false,"kibanaSavedObjectMeta":{"searchSourceJSON":"{}"}}}')
+if [ "$DASH_CODE" != "200" ] && [ "$DASH_CODE" != "201" ]; then
+  echo "FAIL: POST /api/saved_objects/dashboard/cli-ft-dashboard-id returned ${DASH_CODE}"
+  cat /tmp/kb-dashboard.json
+  echo
+  exit 1
+fi
+echo "Stream attachment dashboard created"
+
 echo "--- Generating CLI config file"
 cat > /tmp/elastic-rc.yml <<EOF
 contexts:
