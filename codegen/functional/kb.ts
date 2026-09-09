@@ -59,6 +59,26 @@ const RISK_ENGINE_PREAMBLE = [
   'source "$SCRIPT_DIR/../risk-engine-provision.sh"'
 ]
 
+const STREAM_CRUD_DEFS = new Set([
+  'streams_delete_streams_name.yml',
+  'streams_delete_streams_streamname_attachments_attachmenttype_attachmentid.yml',
+  'streams_get_streams_name.yml',
+  'streams_get_streams_name_ingest.yml',
+  'streams_get_streams_streamname_attachments.yml',
+  'streams_post_streams_name_content_export.yml',
+  'streams_post_streams_name_content_import.yml',
+  'streams_post_streams_name_fork.yml',
+  'streams_post_streams_streamname_attachments_bulk.yml',
+  'streams_put_streams_name.yml',
+  'streams_put_streams_name_ingest.yml',
+  'streams_put_streams_streamname_attachments_attachmenttype_attachmentid.yml',
+])
+
+const STREAM_CRUD_PREAMBLE = [
+  ...KB_PREAMBLE,
+  'source "$SCRIPT_DIR/../streams-ensure-enabled.sh"'
+]
+
 const apis = await loadAllKbApis()
 
 mkdirSync(OUT_DIR, { recursive: true })
@@ -481,7 +501,11 @@ for (const file of yamlFiles) {
 
   const result = generateScript(testFile, apis, {
     clientArgs: ['stack', 'kb'],
-    preamble: RISK_ENGINE_DEFS.has(file) ? RISK_ENGINE_PREAMBLE : KB_PREAMBLE
+    preamble: RISK_ENGINE_DEFS.has(file)
+      ? RISK_ENGINE_PREAMBLE
+      : STREAM_CRUD_DEFS.has(file)
+        ? STREAM_CRUD_PREAMBLE
+        : KB_PREAMBLE
   })
 
   for (const action of result.skippedActions) allSkippedActions.add(action)
