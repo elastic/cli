@@ -22,7 +22,7 @@
 
 set -euo pipefail
 
-STACK_VERSION="${STACK_VERSION:-9.3.0}"
+STACK_VERSION="${STACK_VERSION:-9.5.3}"
 ES_CONTAINER_NAME="elastic-cli-kb-es"
 KB_CONTAINER_NAME="elastic-cli-kb"
 TEST_RUNNER_NAME="elastic-cli-kb-runner"
@@ -167,6 +167,7 @@ docker run \
   --name "$KB_CONTAINER_NAME" \
   --network "$NETWORK_NAME" \
   --network-alias kibana \
+  --volume "$(pwd)/.buildkite/kibana-ci.yml:/usr/share/kibana/config/kibana.yml:ro" \
   --env "ELASTICSEARCH_HOSTS=http://elasticsearch:9200" \
   --env "ELASTICSEARCH_USERNAME=kibana_system" \
   --env "ELASTICSEARCH_PASSWORD=${ES_PASSWORD}" \

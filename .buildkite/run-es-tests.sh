@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-STACK_VERSION="${STACK_VERSION:-9.3.0}"
+STACK_VERSION="${STACK_VERSION:-9.5.3}"
 ES_CONTAINER_NAME="elastic-cli-es-test"
 NETWORK_NAME="elastic-cli-test-net"
 TESTS_REPO="https://github.com/elastic/elasticsearch-clients-tests.git"

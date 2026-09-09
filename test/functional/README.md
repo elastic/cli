@@ -22,7 +22,7 @@ generates bash test scripts from the YAML specs, starts an Elasticsearch contain
 and runs them. The simplest way to run locally is the Buildkite entry point:
 
 ```bash
-STACK_VERSION=9.3.0 NODE_VERSION=22 .buildkite/run-es-tests.sh
+STACK_VERSION=9.5.3 NODE_VERSION=22 .buildkite/run-es-tests.sh
 ```
 
 This handles codegen, Docker, and cleanup automatically. The `npm run test:functional:es`
@@ -79,5 +79,5 @@ CI config file automatically.
 | Variable | Default | Used by |
 |----------|---------|---------|
 | `NODE_VERSION` | `22` | Both pipelines — which Node.js version to install via nvm |
-| `STACK_VERSION` | `9.3.0` | ES tests — which Elasticsearch Docker image to run |
+| `STACK_VERSION` | `9.5.3` | ES tests — which Elasticsearch Docker image to run |
 | `CLOUD_CREDENTIALS_PATH` | `secret/ci/elastic-cli/cloud-access` | Cloud tests — Vault path for the API key |

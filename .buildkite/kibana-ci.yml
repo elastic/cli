@@ -1,0 +1,30 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# CI-only Kibana config. Mounted over the image default because colon-keyed
+# uiSettings and experimental arrays cannot be set via Kibana Docker env vars.
+
+server.host: "0.0.0.0"
+server.shutdownTimeout: "5s"
+
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+elasticsearch.username: "kibana_system"
+elasticsearch.password: "${ELASTICSEARCH_PASSWORD}"
+
+xpack.encryptedSavedObjects.encryptionKey: "${XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY}"
+xpack.reporting.encryptionKey: "${XPACK_REPORTING_ENCRYPTIONKEY}"
+xpack.security.encryptionKey: "${XPACK_SECURITY_ENCRYPTIONKEY}"
+
+# 9.5 still registers these Advanced Settings. 9.6 removes them in favor of
+# streams.significantEventsAvailable; uiSettings keys become inert.
+uiSettings.overrides:
+  "observability:streamsEnableSignificantEvents": true
+  "observability:streamsEnableSignificantEventsDiscovery": true
+  "observability:streamsEnableQueryStreams": true
+
+feature_flags.overrides:
+  streams.significantEventsAvailable: true
+
+xpack.fleet.enableExperimental:
+  - agentlessPoliciesAPI
+  - useAgentlessAPIInUI

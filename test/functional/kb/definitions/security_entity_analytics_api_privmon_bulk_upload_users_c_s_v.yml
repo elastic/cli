@@ -31,5 +31,5 @@ teardown:
         body:
           file: $csv_file
   - length: {errors: 0}
-  # 9.3.0 (CI stack) returns stats.successful; stats.uploaded landed later.
-  - match: {stats.successful: 1}
+  # 9.5+ returns stats.uploaded (user count). 9.3 used stats.successful.
+  - match: {stats.uploaded: 1}

@@ -197,7 +197,7 @@ export function generateRunner (scripts: Array<string | RunnerScript>): string {
     lines.push('    FAILED=$((FAILED + 1))')
     lines.push(`    ERRORS="$ERRORS\\n  FAIL: ${p}"`)
     lines.push(`    echo "FAIL: ${p}"`)
-    lines.push('    echo "$OUTPUT" | tail -5')
+    lines.push('    echo "$OUTPUT"')
     lines.push('    if [ "$BAIL" -eq 1 ]; then exit 1; fi')
     lines.push('  fi')
     lines.push('fi')
