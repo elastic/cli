@@ -13,7 +13,7 @@ setup:
 ---
 teardown:
   - do:
-      streams.post_streams_disable: {}
+      streams.post_streams_enable: {}
 ---
 "streams post streams enable":
   - do:
