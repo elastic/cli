@@ -79,6 +79,11 @@ const STREAM_CRUD_PREAMBLE = [
   'source "$SCRIPT_DIR/../streams-ensure-enabled.sh"'
 ]
 
+const STREAM_IMPORT_PREAMBLE = [
+  ...STREAM_CRUD_PREAMBLE,
+  'source "$SCRIPT_DIR/../streams-content-pack.sh"'
+]
+
 const apis = await loadAllKbApis()
 
 mkdirSync(OUT_DIR, { recursive: true })
@@ -503,9 +508,11 @@ for (const file of yamlFiles) {
     clientArgs: ['stack', 'kb'],
     preamble: RISK_ENGINE_DEFS.has(file)
       ? RISK_ENGINE_PREAMBLE
-      : STREAM_CRUD_DEFS.has(file)
-        ? STREAM_CRUD_PREAMBLE
-        : KB_PREAMBLE
+      : file === 'streams_post_streams_name_content_import.yml'
+        ? STREAM_IMPORT_PREAMBLE
+        : STREAM_CRUD_DEFS.has(file)
+          ? STREAM_CRUD_PREAMBLE
+          : KB_PREAMBLE
   })
 
   for (const action of result.skippedActions) allSkippedActions.add(action)
