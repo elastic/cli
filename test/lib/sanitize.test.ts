@@ -376,3 +376,55 @@ describe('sanitizeRepositoryName', () => {
     assert.equal(r.sanitized, 'myrepo')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Empty-after-sanitization vs empty-input branches
+//
+// Exercises both arms of the shared `s.length === 0 && value.length > 0`
+// guard: a non-empty input reduced to nothing (flags the change) and an
+// already-empty input (no change flagged).
+// ---------------------------------------------------------------------------
+
+describe('empty results across sanitizers', () => {
+  it('does not flag an already-empty index name', () => {
+    const r = sanitizeIndexName('')
+    assert.equal(r.sanitized, '')
+    assert.deepEqual(r.changes, [])
+  })
+
+  it('flags a snapshot name reduced to empty', () => {
+    const r = sanitizeSnapshotName('***')
+    assert.equal(r.sanitized, '')
+    assert.ok(r.changes.some(c => /empty/i.test(c)))
+  })
+
+  it('does not flag an already-empty snapshot name', () => {
+    const r = sanitizeSnapshotName('')
+    assert.equal(r.sanitized, '')
+    assert.deepEqual(r.changes, [])
+  })
+
+  it('flags a data stream type reduced to empty', () => {
+    const r = sanitizeDataStreamType('***')
+    assert.equal(r.sanitized, '')
+    assert.ok(r.changes.some(c => /empty/i.test(c)))
+  })
+
+  it('does not flag an already-empty data stream namespace', () => {
+    const r = sanitizeDataStreamNamespace('')
+    assert.equal(r.sanitized, '')
+    assert.deepEqual(r.changes, [])
+  })
+
+  it('flags a repository name reduced to empty', () => {
+    const r = sanitizeRepositoryName('///')
+    assert.equal(r.sanitized, '')
+    assert.ok(r.changes.some(c => /empty/i.test(c)))
+  })
+
+  it('does not flag an already-empty repository name', () => {
+    const r = sanitizeRepositoryName('')
+    assert.equal(r.sanitized, '')
+    assert.deepEqual(r.changes, [])
+  })
+})

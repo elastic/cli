@@ -150,6 +150,7 @@ After every implementation change:
 9. Never add special cases or dead code in production code solely to satisfy a bad test. Fix the test instead.
 10. Test all code paths: missing input, empty input, null, wrong types, boundary values, HTTP error codes, redirects, timeouts.
 11. Run the code you wrote. For a CLI command, run it. For a request builder, trace the actual HTTP request.
+12. In CI, all tests must pass on all JS runtime versions declared in the package.json `engines` field. If you have access `mise`, `nvm`, `asdf`, etc. to validate your changes by running tests on multiple versions of Node, do that during your final pass. If you do not, make a best-effort attempt to support them all using whatever knowledge you have access to about them.
 
 ## Security Checklist
 

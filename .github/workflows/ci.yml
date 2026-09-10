@@ -30,7 +30,11 @@ jobs:
     # but tsc build still peaks around 3.7 GB locally; keep headroom above
     # the 2 GB Node default for slower/smaller CI runners.
     env:
-      NODE_OPTIONS: --max-old-space-size=6144
+      # `--test-isolation=none` sidesteps a flaky node:test parent/child IPC
+      # deserialize crash (nodejs/node#64061). The flag only exists on Node 24+,
+      # so it is omitted on 22.x, which still passes under default (process)
+      # isolation.
+      NODE_OPTIONS: --max-old-space-size=6144 ${{ matrix.node-version != '22.x' && '--test-isolation=none' || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
