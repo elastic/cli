@@ -18,7 +18,12 @@
  * read back by the corresponding resolver.
  */
 
-import { execSync, type ExecSyncOptionsWithStringEncoding } from 'node:child_process'
+import {
+  execSync,
+  spawnSync,
+  type ExecSyncOptionsWithStringEncoding,
+  type SpawnSyncOptionsWithStringEncoding,
+} from 'node:child_process'
 
 /** Distinguishes between the supported secret-store implementations. */
 export type SecretStoreKind =
@@ -89,11 +94,36 @@ function psEncodedCommand (expression: string): string {
   return `powershell -NoProfile -NonInteractive -EncodedCommand ${utf16le.toString('base64')}`
 }
 
+function redactSecret (message: string, secret: string): string {
+  return secret.length === 0 ? message : message.split(secret).join('[redacted]')
+}
+
+/**
+ * `security -w` with no password prompts (enter + retype). If the process has
+ * a controlling TTY it reads `/dev/tty` and ignores stdin. Drop the session
+ * with `setsid` so `/dev/tty` fails, then feed both prompt lines on stdin.
+ * The secret stays off argv (`ps` / `execSync` error text).
+ */
+const SETSID_PERL = '/usr/bin/perl'
+const SETSID_SCRIPT = 'use POSIX; POSIX::setsid(); exec { $ARGV[0] } @ARGV;'
+
+function spawnOpts (timeoutMs: number, input?: string): SpawnSyncOptionsWithStringEncoding & { input?: string } {
+  const opts: SpawnSyncOptionsWithStringEncoding & { input?: string } = {
+    encoding: 'utf-8',
+    timeout: timeoutMs,
+    stdio: ['pipe', 'pipe', 'pipe'],
+    windowsHide: true,
+  }
+  if (input !== undefined) opts.input = input
+  return opts
+}
+
 // ---------------------------------------------------------------------------
 // Test seams
 // ---------------------------------------------------------------------------
 
 let _execSync: typeof execSync = execSync
+let _spawnSync: typeof spawnSync = spawnSync
 let _platform: string = process.platform
 
 /** @internal */
@@ -101,6 +131,13 @@ export function _testSetExecSync (fn: typeof execSync): () => void {
   const prev = _execSync
   _execSync = fn
   return () => { _execSync = prev }
+}
+
+/** @internal */
+export function _testSetSpawnSync (fn: typeof spawnSync): () => void {
+  const prev = _spawnSync
+  _spawnSync = fn
+  return () => { _spawnSync = prev }
 }
 
 /** @internal */
@@ -145,16 +182,28 @@ class MacOSKeychainStore extends ShellSecretStore {
   async put (service: string, account: string, secret: string): Promise<void> {
     validateServiceAccount(service, account, this.kind)
     try {
-      // -U updates an existing entry in-place instead of failing.
-      // -w with no argument reads the password from stdin, keeping the secret
-      // out of the process argument list.
-      _execSync(
-        `security add-generic-password -U -s ${shellEscape(service)} -a ${shellEscape(account)} -w`,
-        execOpts(5_000, secret)
+      const result = _spawnSync(
+        SETSID_PERL,
+        [
+          '-e', SETSID_SCRIPT,
+          'security', 'add-generic-password', '-U',
+          '-s', service,
+          '-a', account,
+          '-w',
+        ],
+        spawnOpts(5_000, `${secret}\n${secret}\n`)
       )
+      if (result.error != null) throw result.error
+      if (result.status !== 0) {
+        const detail = String(result.stderr || result.stdout || `exit ${result.status}`).trim()
+        throw new Error(detail)
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      throw new Error(`Keychain write failed for service="${service}", account="${account}": ${message}`, { cause: err })
+      throw new Error(
+        `Keychain write failed for service="${service}", account="${account}": ${redactSecret(message, secret)}`,
+        { cause: err }
+      )
     }
   }
 
