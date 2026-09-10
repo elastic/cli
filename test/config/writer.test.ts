@@ -18,6 +18,8 @@ import {
   extractContext,
   emptyConfig,
   serializeConfig,
+  hasInlineSecrets,
+  resolveConfigPath,
   type RawConfig,
 } from '../../src/config/writer.ts'
 
@@ -201,5 +203,107 @@ describe('readRawConfig', () => {
     })
     const raw = await readRawConfig(path)
     assert.deepEqual(raw.commands, { allowed: ['cloud.*'] })
+  })
+})
+
+describe('hasInlineSecrets', () => {
+  it('returns true for an inline api_key', () => {
+    assert.equal(hasInlineSecrets(SAMPLE), true)
+  })
+
+  it('returns false when secrets use $(...) resolver expressions', () => {
+    const cfg: RawConfig = {
+      current_context: 'x',
+      contexts: { x: { elasticsearch: { auth: { api_key: '$(keychain:elastic-cli/x:es.api_key)' } } } },
+    }
+    assert.equal(hasInlineSecrets(cfg), false)
+  })
+
+  it('returns false when no auth secrets are present', () => {
+    const cfg: RawConfig = {
+      current_context: 'x',
+      contexts: { x: { elasticsearch: { url: 'http://localhost:9200' } } },
+    }
+    assert.equal(hasInlineSecrets(cfg), false)
+  })
+
+  it('ignores non-secret auth fields', () => {
+    const cfg: RawConfig = {
+      current_context: 'x',
+      contexts: { x: { elasticsearch: { auth: { username: 'elastic' } } } },
+    }
+    assert.equal(hasInlineSecrets(cfg), false)
+  })
+
+  it('skips malformed context/block/auth shapes without throwing', () => {
+    const cfg = {
+      current_context: 'x',
+      contexts: {
+        a: null,
+        b: { elasticsearch: null },
+        c: { elasticsearch: { auth: 'not-an-object' } },
+        d: { elasticsearch: { auth: { api_key: '' } } },
+      },
+    } as unknown as RawConfig
+    assert.equal(hasInlineSecrets(cfg), false)
+  })
+})
+
+describe('resolveConfigPath', () => {
+  it('prefers an explicit non-empty path', () => {
+    assert.equal(resolveConfigPath('/tmp/explicit.yml'), '/tmp/explicit.yml')
+  })
+
+  it('falls back to ELASTIC_CLI_CONFIG_FILE when no explicit path is given', () => {
+    const prev = process.env.ELASTIC_CLI_CONFIG_FILE
+    process.env.ELASTIC_CLI_CONFIG_FILE = '/tmp/from-env.yml'
+    try {
+      assert.equal(resolveConfigPath(), '/tmp/from-env.yml')
+      assert.equal(resolveConfigPath(''), '/tmp/from-env.yml')
+    } finally {
+      if (prev === undefined) delete process.env.ELASTIC_CLI_CONFIG_FILE
+      else process.env.ELASTIC_CLI_CONFIG_FILE = prev
+    }
+  })
+
+  it('defaults to ~/.elasticrc.yml when nothing else is set', () => {
+    const prev = process.env.ELASTIC_CLI_CONFIG_FILE
+    delete process.env.ELASTIC_CLI_CONFIG_FILE
+    try {
+      assert.match(resolveConfigPath(), /\.elasticrc\.yml$/)
+    } finally {
+      if (prev !== undefined) process.env.ELASTIC_CLI_CONFIG_FILE = prev
+    }
+  })
+})
+
+describe('serializeConfig — optional top-level keys', () => {
+  it('includes banner and telemetry when set and passes through extra keys', () => {
+    const cfg = {
+      current_context: 'x',
+      contexts: {},
+      banner: false,
+      telemetry: true,
+      custom_extra: { note: 'kept' },
+    } as unknown as RawConfig
+    const parsed = parseYaml(serializeConfig(cfg)) as Record<string, unknown>
+    assert.equal(parsed.banner, false)
+    assert.equal(parsed.telemetry, true)
+    assert.deepEqual(parsed.custom_extra, { note: 'kept' })
+  })
+})
+
+describe('readRawConfig — coercion', () => {
+  let dir: string
+  before(async () => { dir = await mkdtemp(join(tmpdir(), 'elastic-cli-coerce-')) })
+  after(async () => rm(dir, { recursive: true, force: true }))
+
+  it('preserves banner/telemetry booleans and defaults a non-string current_context', async () => {
+    const path = join(dir, 'coerce.yml')
+    await writeFile(path, 'current_context: 123\nbanner: false\ntelemetry: true\ncontexts: {}\n')
+    const raw = await readRawConfig(path)
+    assert.equal(raw.current_context, '')
+    assert.equal(raw.banner, false)
+    assert.equal(raw.telemetry, true)
   })
 })
