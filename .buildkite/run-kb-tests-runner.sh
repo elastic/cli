@@ -123,12 +123,13 @@ streams_post_enable () {
     -X POST "http://${KB_HOST}:5601/api/streams/_enable"
 }
 
+# Fresh enable creates logs.otel + logs.ecs. .logs is the legacy root.
 streams_logs_enabled () {
   curl -sf -u "elastic:${ES_PASSWORD}" \
     -H "kbn-xsrf: true" \
     -H "x-elastic-internal-origin: kibana" \
     "http://${KB_HOST}:5601/api/streams/_status" \
-    | jq -e '.logs == true' > /dev/null 2>&1
+    | jq -e '.["logs.otel"] == true and .["logs.ecs"] == true' > /dev/null 2>&1
 }
 
 echo "--- Enabling wired streams"
