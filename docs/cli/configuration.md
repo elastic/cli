@@ -8,13 +8,21 @@ type: how-to
 
 # Configure the Elastic CLI
 
-This guide covers the configuration file format, managing connection contexts with `elastic config`, and using external credential resolvers to keep secrets out of your config file.
+This guide covers the configuration file format, managing connection contexts with `elastic config`, and using external credential resolvers to keep secrets out of your configuration file.
 
 ## Before you begin
 
 [Install the Elastic CLI](./installation.md) before continuing.
 
-## Set up the config file
+## Configure contexts
+
+The CLI organizes connection settings into named contexts. Each context can contain connection and authentication details for one {{es}} endpoint, one {{kib}} endpoint, and one {{ecloud}} endpoint.
+
+One context can be set as the current context. The CLI uses it when a command doesn't specify another context with `--use-context <name>`.
+
+Contexts are stored in the CLI configuration file. You can edit this file directly or use `elastic config` to update it.
+
+### Edit the configuration file
 
 The CLI looks for a config file in your home directory. The following file names are checked in order:
 
@@ -26,7 +34,7 @@ The CLI looks for a config file in your home directory. The following file names
 Place your config at `~/.elasticrc.yml` (recommended). To use a file in a different location, pass `--config-file <path>` or set the `ELASTIC_CLI_CONFIG_FILE` environment variable. The flag takes precedence over the environment variable.
 
 ```yaml
-current_context: local
+current_context: local <1>
 
 contexts:
   local:
@@ -48,16 +56,18 @@ contexts:
       auth:
         api_key: your-cloud-api-key-here
 ```
+1. Sets `local` as the context used when `--use-context` is not specified.
 
-Multiple contexts are supported. Override `current_context` for a single command with `--use-context <name>`.
+A context can contain any combination of the `elasticsearch`, `kibana`, and `cloud` service blocks. Each block specifies an endpoint URL and optional authentication details. {{es}} and {{kib}} support API key or username and password authentication; {{ecloud}} requires an API key.
 
-Each context can have any combination of service blocks (`elasticsearch`, `kibana`, and `cloud`). Authentication supports `api_key` or `username` + `password`.
+:::{include} _snippets/api-key-types.md
+:::
 
-See the [CLI configuration reference](./configuration_reference.md) documentation for all available config options.
+Refer to the [CLI configuration reference](./configuration_reference.md) for all available config options.
 
-## Authoring the config from the CLI
+### Use `elastic config`
 
-Instead of hand-editing YAML, the `elastic config` command group creates and maintains contexts and stores secrets in the OS keychain when available (macOS Keychain, Linux libsecret, `pass`, Windows Credential Manager). The YAML then holds a resolver expression like `$(keychain:...)` rather than the raw secret.
+The `elastic config` command group creates and maintains contexts and stores secrets in the operating system's credential store when available (macOS Keychain, Linux libsecret, `pass`, Windows Credential Manager). In that case, the configuration file contains a resolver expression such as `$(keychain:...)` instead of the secret value.
 
 ```bash
 # Add a new context (API key goes to the keychain)
@@ -81,32 +91,41 @@ elastic config context edit local
 elastic config context remove old-lab
 ```
 
-If no OS keychain is available or you pass `--inline-secrets`, the secret is written inline and the file is `chmod 0600`. The CLI emits a warning when a loaded config has inline secrets at looser-than-0600 permissions.
+If no operating system credential store is available or you pass `--inline-secrets`, the CLI writes secrets directly to the configuration file and restricts access to the current user (file mode `0600` on Linux and macOS). It warns you if a configuration file containing inline secrets has broader permissions.
 
 ## Verify your configuration
 
-Run `elastic status` to check connectivity and authentication for all services in the active context:
+Run `elastic status` to check connectivity and authentication for the services configured in the current context:
 
 ```bash
 elastic status
 ```
 
-The command reports the result for each configured service (`elasticsearch`, `kibana`, `cloud`). Services not present in the active context are skipped, not treated as failures.
+To check another context without making it the current context, pass `--use-context`:
+
+```bash
+elastic --use-context staging status
+```
+
+The command reports a result for each configured service (`elasticsearch`, `kibana`, or `cloud`) in the selected context.
 
 ## Credential-safe project creation
+```{applies_to}
+serverless: preview
+```
 
 For agent and LLM workflows, `serverless projects create` and `reset-credentials` accept `--save-as <context>` to avoid leaking admin credentials through stdout:
 
 ```bash
-elastic cloud serverless es projects create --wait --save-as scratch \
+elastic cloud serverless projects search create --wait --save-as scratch \
   --name scratch-es --region-id aws-us-east-1
 
 # stdout has endpoints + a `savedAs: scratch` marker, password is redacted.
 # The keychain now holds scratch:elasticsearch.auth.password etc.
-elastic --use-context scratch stack es indices list
+elastic --use-context scratch es info
 
 # Rotate credentials; URL stays, only the password moves.
-elastic cloud serverless es projects reset-credentials --id <id> \
+elastic cloud serverless projects search reset-credentials --id <id> \
   --save-as scratch --force
 ```
 
@@ -196,6 +215,5 @@ elasticsearch:
 ## Next steps
 
 - Run `elastic --help` to explore available commands.
-- Use `elastic cloud serverless` or `elastic cloud hosted` to manage Elastic Cloud resources.
-- See the [CLI command reference](./index.md) for the full list of available commands.
-- See the [CLI configuration reference](./configuration_reference.md) documentation for all available config options.
+- Refer to the [CLI command reference](./index.md) for the full list of available commands.
+- Follow [Manage {{ecloud}} resources with the Elastic CLI](./manage-elastic-cloud.md) to configure an {{ecloud}} connection and manage {{ech}} deployments and {{serverless-full}} projects.

@@ -1,0 +1,1 @@
+To install the CLI, you need to [install Node.js](https://nodejs.org/en/download) 22.12.0 or later. Node.js includes npm. Run `node --version` to check your installed version. The Elastic CLI is tested on Linux, macOS, and Windows, and the installation command is the same on every platform.

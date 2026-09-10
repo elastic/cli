@@ -1,12 +1,30 @@
 project: elastic-cli
 dev_docs: true
 
+cross_links:
+  - docs-content
+  - elasticsearch
+
+# Keys and display names mirror elastic/docs-content so product naming stays
+# identical across Elastic documentation sets.
+subs:
+  stack: "Elastic Stack"
+  es: "Elasticsearch"
+  kib: "Kibana"
+  ecloud: "Elastic Cloud"
+  ece: "Elastic Cloud Enterprise"
+  eck: "Elastic Cloud on Kubernetes"
+  ech: "Elastic Cloud Hosted"
+  serverless-full: "Elastic Cloud Serverless"
+
 toc:
   - file: index.md
+  - file: cli/quickstart.md
   - file: cli/installation.md
   - file: cli/configuration.md
     children:
       - file: configuration_reference.md
+  - file: cli/manage-elastic-cloud.md
   - cli: cli/schema.json
     folder: cli
     title: Elastic CLI command reference
