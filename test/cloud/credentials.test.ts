@@ -20,6 +20,7 @@ import {
 import type { JsonValue } from '../../src/factory.ts'
 import {
   _testSetExecSync as setSecretStoreExec,
+  _testSetSpawnSync as setSecretStoreSpawn,
   _testSetPlatform as setSecretStorePlatform,
 } from '../../src/config/secret-store.ts'
 
@@ -148,6 +149,10 @@ describe('applyCredentialPolicy', () => {
         calls.push({ cmd, options })
         return ''
       }) as unknown as typeof import('node:child_process').execSync))
+      restores.push(setSecretStoreSpawn(((file: string, args?: readonly string[], options?: unknown) => {
+        calls.push({ cmd: [file, ...(args ?? [])].join(' '), options })
+        return { status: 0, stdout: '', stderr: '', error: undefined, pid: 0, output: [null, '', ''], signal: null }
+      }) as unknown as typeof import('node:child_process').spawnSync))
     } else {
       restores.push(setSecretStorePlatform('linux'))
       restores.push(setSecretStoreExec(((cmd: string, options?: unknown) => {
