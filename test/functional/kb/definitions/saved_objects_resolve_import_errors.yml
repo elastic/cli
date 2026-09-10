@@ -1,0 +1,27 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana saved-objects API: resolve-import-errors. Exports the built-in 'config'
+# saved-object type to a temp file, then resolves import errors against it with
+# an empty retries list. No actual errors to resolve, so success is true and
+# successCount is 0.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      saved-objects.post_saved_objects_export:
+        body:
+          type: config
+          excludeExportDetails: true
+  - write_ndjson_temp: export_file
+---
+"saved objects resolve import errors":
+  - do:
+      saved-objects.post_saved_objects_resolve_import_errors:
+        body:
+          file: $export_file
+          retries: "[]"
+  - is_true: success

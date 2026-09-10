@@ -25,13 +25,28 @@ export const BUILT_IN_PROFILES = ['serverless', 'stack', 'default'] as const
 /** Union of valid built-in profile name strings. */
 export type BuiltInProfile = typeof BUILT_IN_PROFILES[number]
 
+/** ES namespaces unavailable on Elasticsearch Serverless. */
+const STACK_ONLY_ES_NAMESPACES = [
+  'ccr',
+  'dangling-indices',
+  'ilm',
+  'license',
+  'logstash',
+  'rollup',
+  'searchable-snapshots',
+  'slm',
+  'snapshot',
+  'ssl',
+  'watcher',
+] as const
+
 /**
- * Resolves a built-in profile to an effective allow-list.
+ * Resolves a built-in profile to an effective allow/block policy.
  *
  * Returns `null` for `stack`, which means "no restriction" (allow everything).
- * Returns an object with `allowed` patterns for all other profiles.
+ * Returns an object with `allowed` and `blocked` patterns for all other profiles.
  */
-export function resolveBuiltinProfile (name: BuiltInProfile): { allowed: readonly string[] } | null {
+export function resolveBuiltinProfile (name: BuiltInProfile): { allowed: readonly string[]; blocked?: readonly string[] } | null {
   if (name === 'stack') return null
 
   // `default` is an alias for `serverless`
@@ -48,9 +63,6 @@ export function resolveBuiltinProfile (name: BuiltInProfile): { allowed: readonl
       'kb',
 
       // All stack commands (Elasticsearch + Kibana)
-      // Individual serverless-incompatible ES endpoints will be filtered in a
-      // future iteration once per-command availability metadata is added to the
-      // API manifest (see issue #283 for tracking).
       'stack.*',
 
       // Cloud cross-cutting namespaces (apply to both Hosted and Serverless)
@@ -65,5 +77,6 @@ export function resolveBuiltinProfile (name: BuiltInProfile): { allowed: readonl
 
       // cloud.hosted.* is intentionally excluded from serverless/default profiles
     ],
+    blocked: STACK_ONLY_ES_NAMESPACES.map(ns => `stack.es.${ns}.*`),
   }
 }

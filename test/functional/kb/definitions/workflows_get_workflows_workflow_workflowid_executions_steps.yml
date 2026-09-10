@@ -1,0 +1,41 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: list step executions for a workflow.
+---
+requires:
+  serverless: true
+---
+setup:
+  - do:
+      workflows.post_workflows_workflow:
+        body:
+          id: cli-ft-workflow-list-steps
+          yaml: |
+            version: '1'
+            name: CLI FT Workflow List Steps
+            triggers:
+              - type: manual
+            steps:
+              - id: wait-step
+                type: waitForInput
+                configuration:
+                  inputSchema: {}
+  - do:
+      workflows.post_workflows_workflow_id_run:
+        id: cli-ft-workflow-list-steps
+        body:
+          inputs: {}
+---
+teardown:
+  - do:
+      workflows.delete_workflows_workflow_id:
+        id: cli-ft-workflow-list-steps
+        force: true
+        ignore: [404]
+---
+"workflows get workflows workflow workflowid executions steps":
+  - do:
+      workflows.get_workflows_workflow_workflowid_executions_steps:
+        workflow_id: cli-ft-workflow-list-steps
+  - is_true: results.0.id

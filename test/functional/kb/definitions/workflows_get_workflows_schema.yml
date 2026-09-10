@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: get workflow JSON schema.
+---
+requires:
+  serverless: true
+---
+"workflows get workflows schema":
+  - do:
+      workflows.get_workflows_schema:
+        loose: false
+  - is_true: type

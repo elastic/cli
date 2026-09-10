@@ -48,8 +48,8 @@ async function captured (run: () => Promise<void>): Promise<CapturedOutput> {
   const origStdout = process.stdout.write.bind(process.stdout)
   const origStderr = process.stderr.write.bind(process.stderr)
   const origExit = process.exitCode
-  process.stdout.write = ((chunk: string) => { stdoutChunks.push(chunk); return true }) as typeof process.stdout.write
-  process.stderr.write = ((chunk: string) => { stderrChunks.push(chunk); return true }) as typeof process.stderr.write
+  process.stdout.write = ((chunk: unknown) => { if (typeof chunk === 'string') stdoutChunks.push(chunk); return true }) as typeof process.stdout.write
+  process.stderr.write = ((chunk: unknown) => { if (typeof chunk === 'string') stderrChunks.push(chunk); return true }) as typeof process.stderr.write
   process.exitCode = undefined
   try {
     await run()

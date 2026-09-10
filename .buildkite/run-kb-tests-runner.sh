@@ -28,6 +28,7 @@ if ! getent hosts kibana > /dev/null 2>&1; then
 fi
 
 echo "ES_HOST=${ES_HOST}  KB_HOST=${KB_HOST}"
+export KB_URL="http://${KB_HOST}:5601"
 
 # ── Wait for Elasticsearch ───────────────────────────────────────────────────
 echo "--- Waiting for Elasticsearch to be healthy"
@@ -110,6 +111,134 @@ until curl -sf -u "elastic:${ES_PASSWORD}" "http://${KB_HOST}:5601/api/status" \
 done
 echo "Kibana is ready"
 
+# Wired stream CRUD 422s until enabled. 200 (including result noop) is done.
+# 409 lock: another apply is in progress; wait for _status, do not re-POST.
+# 409 name conflict: leftover logs data stream; delete once, POST once.
+streams_post_enable () {
+  curl -sS -o /tmp/kb-streams-enable.json -w "%{http_code}" \
+    -u "elastic:${ES_PASSWORD}" \
+    -H "kbn-xsrf: true" \
+    -H "elastic-api-version: 2023-10-31" \
+    -H "Content-Type: application/json" \
+    -X POST "http://${KB_HOST}:5601/api/streams/_enable"
+}
+
+streams_logs_enabled () {
+  curl -sf -u "elastic:${ES_PASSWORD}" \
+    -H "kbn-xsrf: true" \
+    -H "x-elastic-internal-origin: kibana" \
+    "http://${KB_HOST}:5601/api/streams/_status" \
+    | jq -e '.logs == true' > /dev/null 2>&1
+}
+
+echo "--- Enabling wired streams"
+STREAMS_CODE=$(streams_post_enable)
+if [ "$STREAMS_CODE" != "200" ]; then
+  echo "POST /api/streams/_enable returned ${STREAMS_CODE}"
+  cat /tmp/kb-streams-enable.json
+  echo
+fi
+if [ "$STREAMS_CODE" = "409" ] && \
+   jq -e '.message | test("lock"; "i")' /tmp/kb-streams-enable.json >/dev/null; then
+  echo "--- Waiting for in-progress streams enable"
+  WAIT=0
+  until streams_logs_enabled; do
+    WAIT=$((WAIT + 1))
+    if [ "$WAIT" -ge 30 ]; then
+      STREAMS_CODE=$(streams_post_enable)
+      break
+    fi
+    sleep 2
+  done
+  if streams_logs_enabled; then
+    STREAMS_CODE=200
+  fi
+fi
+if [ "$STREAMS_CODE" = "409" ] && \
+   ! jq -e '.message | test("lock"; "i")' /tmp/kb-streams-enable.json >/dev/null; then
+  echo "--- Clearing conflicting logs data streams"
+  curl -sS -u "elastic:${ES_PASSWORD}" \
+    -X DELETE "http://${ES_HOST}:9200/_data_stream/logs,logs.otel,logs.ecs" || true
+  echo
+  STREAMS_CODE=$(streams_post_enable)
+fi
+if [ "$STREAMS_CODE" != "200" ] && ! streams_logs_enabled; then
+  if [ "$STREAMS_CODE" = "500" ] || [ "$STREAMS_CODE" = "503" ]; then
+    echo "--- Retrying streams enable after ${STREAMS_CODE}"
+    WAIT=0
+    until [ "$WAIT" -ge 30 ]; do
+      sleep 2
+      WAIT=$((WAIT + 1))
+      STREAMS_CODE=$(streams_post_enable)
+      if [ "$STREAMS_CODE" = "200" ] || streams_logs_enabled; then
+        STREAMS_CODE=200
+        break
+      fi
+      if [ "$STREAMS_CODE" = "409" ] && \
+         ! jq -e '.message | test("lock"; "i")' /tmp/kb-streams-enable.json >/dev/null; then
+        echo "--- Clearing conflicting logs data streams"
+        curl -sS -u "elastic:${ES_PASSWORD}" \
+          -X DELETE "http://${ES_HOST}:9200/_data_stream/logs,logs.otel,logs.ecs" || true
+        echo
+        STREAMS_CODE=$(streams_post_enable)
+        if [ "$STREAMS_CODE" = "200" ] || streams_logs_enabled; then
+          STREAMS_CODE=200
+          break
+        fi
+      fi
+    done
+  fi
+fi
+if [ "$STREAMS_CODE" != "200" ] && ! streams_logs_enabled; then
+  echo "FAIL: POST /api/streams/_enable returned ${STREAMS_CODE}"
+  cat /tmp/kb-streams-enable.json
+  echo
+  curl -sS -u "elastic:${ES_PASSWORD}" \
+    -H "kbn-xsrf: true" \
+    -H "x-elastic-internal-origin: kibana" \
+    "http://${KB_HOST}:5601/api/streams/_status" || true
+  echo
+  exit 1
+fi
+echo "Wired streams enabled"
+
+# Entity Store V2 400s until this runs. 201 is created; 409 is already installed.
+echo "--- Installing entity store"
+ENTITY_STORE_CODE=$(curl -sS -o /tmp/kb-entity-store-install.json -w "%{http_code}" \
+  -u "elastic:${ES_PASSWORD}" \
+  -H "kbn-xsrf: true" \
+  -H "elastic-api-version: 2023-10-31" \
+  -H "Content-Type: application/json" \
+  -X POST "http://${KB_HOST}:5601/api/security/entity_store/install" \
+  -d '{"entityTypes":["user","host","service","generic"]}')
+if [ "$ENTITY_STORE_CODE" != "200" ] && [ "$ENTITY_STORE_CODE" != "201" ] && [ "$ENTITY_STORE_CODE" != "409" ]; then
+  echo "FAIL: POST /api/security/entity_store/install returned ${ENTITY_STORE_CODE}"
+  cat /tmp/kb-entity-store-install.json
+  exit 1
+fi
+echo "Entity store installed (${ENTITY_STORE_CODE})"
+
+echo "--- Waiting for entity store engines"
+RETRIES=0
+MAX_RETRIES=30
+until curl -sf -u "elastic:${ES_PASSWORD}" \
+      -H "kbn-xsrf: true" \
+      -H "elastic-api-version: 2023-10-31" \
+      "http://${KB_HOST}:5601/api/security/entity_store/status" \
+      | jq -e '.engines | length > 0 and all(.status == "started")' > /dev/null 2>&1; do
+  RETRIES=$((RETRIES + 1))
+  if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
+    echo "Entity store engines did not start in time"
+    curl -sS -u "elastic:${ES_PASSWORD}" \
+      -H "kbn-xsrf: true" \
+      -H "elastic-api-version: 2023-10-31" \
+      "http://${KB_HOST}:5601/api/security/entity_store/status" || true
+    exit 1
+  fi
+  sleep 2
+done
+echo "Entity store engines started"
+
 echo "--- Generating CLI config file"
 cat > /tmp/elastic-rc.yml <<EOF
 contexts:
@@ -127,6 +256,9 @@ contexts:
 current_context: ci
 EOF
 export ELASTIC_CLI_CONFIG_FILE="/tmp/elastic-rc.yml"
+export KB_URL="http://${KB_HOST}:5601"
 
 echo "+++ Running KB functional tests"
-npm run test:functional:kb
+# this setup only runs against stack Kibana
+env ELASTIC_ENVIRONMENT=stack \
+  npm run test:functional:kb

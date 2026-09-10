@@ -1,0 +1,46 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana streams API: get query stream settings by name.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      streams.put_streams_name:
+        name: cli-ft-streams-get-query
+        body:
+          dashboards: []
+          rules: []
+          stream:
+            description: ""
+            type: wired
+            ingest:
+              lifecycle: {inherit: {}}
+              processing:
+                steps: []
+              settings: {}
+              failure_store: {inherit: {}}
+              wired:
+                fields: {}
+                routing: []
+  - do:
+      streams.put_streams_name_query:
+        name: cli-ft-streams-get-query
+        body:
+          query:
+            esql: "FROM cli-ft-streams-get-query | LIMIT 10"
+---
+teardown:
+  - do:
+      streams.delete_streams_name:
+        name: cli-ft-streams-get-query
+        ignore: [404]
+---
+"streams get streams name query":
+  - do:
+      streams.get_streams_name_query:
+        name: cli-ft-streams-get-query
+  - is_true: query

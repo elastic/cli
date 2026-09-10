@@ -1,0 +1,38 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agents API: migrate a single agent to a Fleet server.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agents.get_fleet_agents: {}
+  - set: {"items.0.id": agent_id}
+  - set: {"items.0.policy_id": policy_id}
+  - do:
+      fleet-enrollment-api-keys.post_fleet_enrollment_api_keys:
+        body:
+          policy_id: $policy_id
+  - set: {"item.api_key": enrollment_token}
+  - set: {"item.id": enrollment_key_id}
+  - do:
+      fleet-server-hosts.get_fleet_fleet_server_hosts: {}
+  - set: {"items.0.host_urls.0": fleet_uri}
+---
+teardown:
+  - do:
+      fleet-enrollment-api-keys.delete_fleet_enrollment_api_keys_keyid:
+        key_id: $enrollment_key_id
+        ignore: [404]
+---
+"elastic-agents post fleet agents agentid migrate":
+  - do:
+      elastic-agents.post_fleet_agents_agentid_migrate:
+        agent_id: $agent_id
+        body:
+          enrollment_token: $enrollment_token
+          uri: $fleet_uri
+  - is_true: ""

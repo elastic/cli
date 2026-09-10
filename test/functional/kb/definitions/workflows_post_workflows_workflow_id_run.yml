@@ -1,0 +1,34 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: run a workflow by ID.
+---
+requires:
+  serverless: true
+---
+setup:
+  - do:
+      workflows.post_workflows_workflow:
+        body:
+          id: cli-ft-workflow-run
+          yaml: |
+            version: '1'
+            name: CLI FT Workflow Run
+            triggers:
+              - type: manual
+            steps: []
+---
+teardown:
+  - do:
+      workflows.delete_workflows_workflow_id:
+        id: cli-ft-workflow-run
+        force: true
+        ignore: [404]
+---
+"workflows post workflows workflow id run":
+  - do:
+      workflows.post_workflows_workflow_id_run:
+        id: cli-ft-workflow-run
+        body:
+          inputs: {}
+  - is_true: executionId

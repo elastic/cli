@@ -6,12 +6,13 @@
 import { parseAllDocuments, visit } from 'yaml'
 import {
   YamlFloat,
-  type TestFile, type Requires, type TestSection, type Step,
+  type TestFile, type Requires, type ServerlessProject, type TestSection, type Step,
   type DoStep, type SetStep, type MatchStep, type IsTrueStep, type IsFalseStep, type LengthStep,
-  type GtStep, type GteStep, type LtStep, type LteStep, type ContainsStep
+  type GtStep, type GteStep, type LtStep, type LteStep, type ContainsStep, type WriteTempStep
 } from './types.ts'
 
 const RESERVED_KEYS = new Set(['requires', 'setup', 'teardown'])
+const SERVERLESS_PROJECTS = new Set<string>(['security', 'observability', 'elasticsearch'])
 
 /**
  * Parse a YAML test file from elasticsearch-clients-tests into a typed AST.
@@ -56,6 +57,8 @@ export function parseTestFile (yamlContent: string, sourceFile: string): TestFil
         serverless: r.serverless === true,
         stack: 'stack' in r ? r.stack === true : null
       }
+      const serverlessProject = parseServerlessProject(r.serverless_project)
+      if (serverlessProject != null) requires.serverlessProject = serverlessProject
       continue
     }
 
@@ -87,6 +90,35 @@ export function parseTestFile (yamlContent: string, sourceFile: string): TestFil
  */
 export function isServerless (file: TestFile): boolean {
   return file.requires.serverless
+}
+
+/**
+ * Skip when running serverless and the definition lists project types that
+ * do not include the configured project. Absent `serverless_project` never skips.
+ * Unset project type skips any definition that lists one.
+ */
+export function shouldSkipServerlessProject (
+  requires: Requires,
+  env: string,
+  projectType: string | undefined
+): boolean {
+  if (env !== 'serverless') return false
+  const allowed = requires.serverlessProject
+  if (allowed == null) return false
+  return projectType == null || !allowed.includes(projectType as ServerlessProject)
+}
+
+function parseServerlessProject (raw: unknown): ServerlessProject[] | undefined {
+  if (raw == null) return undefined
+  const values = Array.isArray(raw) ? raw : [raw]
+  const projects: ServerlessProject[] = []
+  for (const v of values) {
+    if (typeof v !== 'string' || !SERVERLESS_PROJECTS.has(v)) {
+      throw new Error(`requires.serverless_project must be security, observability, or elasticsearch (got ${JSON.stringify(v)})`)
+    }
+    projects.push(v as ServerlessProject)
+  }
+  return projects
 }
 
 // ---------------------------------------------------------------------------
@@ -123,6 +155,20 @@ function parseSteps (raw: unknown[]): Step[] {
       steps.push(parseContains(obj.contains as Record<string, unknown>))
     } else if ('skip' in obj) {
       steps.push({ kind: 'skip' })
+    } else if ('write_ndjson_temp' in obj) {
+      steps.push({ kind: 'write_ndjson_temp', varName: String(obj.write_ndjson_temp) })
+    } else if ('write_temp' in obj) {
+      const raw = obj.write_temp
+      const wt = (raw != null && typeof raw === 'object' && !Array.isArray(raw))
+        ? raw as Record<string, unknown>
+        : {}
+      const step: WriteTempStep = {
+        kind: 'write_temp',
+        varName: String(wt.variable ?? ''),
+        content: String(wt.content ?? ''),
+      }
+      if (wt.suffix != null) step.suffix = String(wt.suffix)
+      steps.push(step)
     }
   }
   return steps

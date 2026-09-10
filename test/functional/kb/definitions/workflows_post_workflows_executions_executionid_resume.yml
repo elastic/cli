@@ -1,0 +1,43 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: resume a paused workflow execution.
+---
+requires:
+  serverless: true
+---
+setup:
+  - do:
+      workflows.post_workflows_workflow:
+        body:
+          id: cli-ft-workflow-resume-exec
+          yaml: |
+            version: '1'
+            name: CLI FT Workflow Resume Exec
+            triggers:
+              - type: manual
+            steps:
+              - id: wait-for-input
+                type: waitForInput
+                configuration:
+                  inputSchema: {}
+  - do:
+      workflows.post_workflows_workflow_id_run:
+        id: cli-ft-workflow-resume-exec
+        body:
+          inputs: {}
+  - set: {executionId: execution_id}
+---
+teardown:
+  - do:
+      workflows.delete_workflows_workflow_id:
+        id: cli-ft-workflow-resume-exec
+        force: true
+        ignore: [404]
+---
+"workflows post workflows executions executionid resume":
+  - do:
+      workflows.post_workflows_executions_executionid_resume:
+        execution_id: $execution_id
+        body:
+          input: {}

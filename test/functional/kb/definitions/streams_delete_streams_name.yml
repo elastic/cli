@@ -1,0 +1,40 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana streams API: delete a stream by name.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      streams.put_streams_name:
+        name: cli-ft-streams-delete
+        body:
+          dashboards: []
+          rules: []
+          stream:
+            description: ""
+            type: wired
+            ingest:
+              lifecycle: {inherit: {}}
+              processing:
+                steps: []
+              settings: {}
+              failure_store: {inherit: {}}
+              wired:
+                fields: {}
+                routing: []
+---
+teardown:
+  - do:
+      streams.delete_streams_name:
+        name: cli-ft-streams-delete
+        ignore: [404]
+---
+"streams delete streams name":
+  - do:
+      streams.delete_streams_name:
+        name: cli-ft-streams-delete
+  - is_true: ""

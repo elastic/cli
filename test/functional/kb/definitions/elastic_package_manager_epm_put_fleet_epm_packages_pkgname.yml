@@ -1,0 +1,27 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-package-manager-epm API: update package settings.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-package-manager-epm.post_fleet_epm_packages_pkgname:
+        pkg_name: apache
+---
+teardown:
+  - do:
+      elastic-package-manager-epm.delete_fleet_epm_packages_pkgname:
+        pkg_name: apache
+        ignore: [404]
+---
+"elastic-package-manager-epm put fleet epm packages pkgname":
+  - do:
+      elastic-package-manager-epm.put_fleet_epm_packages_pkgname:
+        pkg_name: apache
+        body:
+          keepPoliciesUpToDate: false
+  - is_true: ""

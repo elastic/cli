@@ -14,10 +14,11 @@
 
 import { describe, it, before, after, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { mkdtemp, rm, mkdir, readFile, stat, writeFile, symlink, chmod } from 'node:fs/promises'
+import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { createLocalExtension, installExtension, uninstallExtension, upgradeExtension, upgradeAllExtensions, _testSetExtensionsDir } from '../../src/extension/installer.ts'
+import { createLocalExtension, installExtension, uninstallExtension, upgradeExtension, upgradeAllExtensions, _testSetExtensionsDir, _testSetRun } from '../../src/extension/installer.ts'
 import { readExtensions, writeExtensions, _testSetRegistryPath } from '../../src/extension/store.ts'
 import type { InstalledExtension } from '../../src/extension/store.ts'
 
@@ -92,6 +93,11 @@ describe('installer', () => {
       await assert.doesNotReject(uninstallExtension('nonexistent'))
     })
 
+    it('rejects traversal names', async () => {
+      await assert.rejects(uninstallExtension('../../../target'), /invalid characters/)
+      await assert.rejects(uninstallExtension('..'), /invalid characters/)
+    })
+
     it('removes the registry entry even when the directory is already gone', async () => {
       const entry: InstalledExtension = {
         name: 'gone',
@@ -145,11 +151,106 @@ describe('installer', () => {
     it('rejects names with path traversal characters', async () => {
       await assert.rejects(createLocalExtension('../escape'), /invalid characters/)
     })
+
+    it('rejects a --path entrypoint that is a symlink escaping the install directory (#500)', async () => {
+      const outsideDir = await mkdtemp(join(tmpdir(), 'elastic-outside-'))
+      try {
+        const payload = join(outsideDir, 'payload.sh')
+        await writeFile(payload, '#!/bin/sh\necho PAYLOAD RAN FROM OUTSIDE\n', { mode: 0o755 })
+
+        const targetDir = join(tmpDir, 'symlink-escape-ext')
+        await mkdir(targetDir, { recursive: true })
+        await symlink(payload, join(targetDir, 'elastic-symlinktest'))
+
+        await assert.rejects(
+          createLocalExtension('symlinktest', targetDir),
+          /outside the install directory/
+        )
+
+        // Refusing to register also means the store stays empty.
+        assert.deepEqual(await readExtensions(), [])
+      } finally {
+        await rm(outsideDir, { recursive: true, force: true })
+      }
+    })
+
+    it('accepts a --path entrypoint that is a real (non-symlink) file inside the install directory', async () => {
+      const targetDir = join(tmpDir, 'real-entrypoint-ext')
+      await mkdir(targetDir, { recursive: true })
+      const entrypointPath = join(targetDir, 'elastic-realtest')
+      await writeFile(entrypointPath, '#!/bin/sh\necho hi\n', { mode: 0o755 })
+      await chmod(entrypointPath, 0o755)
+
+      const { entry } = await createLocalExtension('realtest', targetDir)
+      assert.equal(entry.entrypoint, entrypointPath)
+      const extensions = await readExtensions()
+      assert.equal(extensions.length, 1)
+      assert.equal(extensions[0]!.entrypoint, entrypointPath)
+    })
   })
 
   describe('upgradeExtension', () => {
     it('throws when the extension is not installed', async () => {
       await assert.rejects(upgradeExtension('nonexistent'), /not installed/)
+    })
+
+    it('rejects a post-pull entrypoint that is a symlink escaping the install directory (#500)', async () => {
+      const remoteDir = await mkdtemp(join(tmpdir(), 'elastic-remote-'))
+      const outsideDir = await mkdtemp(join(tmpdir(), 'elastic-outside-'))
+      const extPath = join(extDir, 'elastic-symupgrade')
+      try {
+        // Bootstrap a local git remote so git pull --ff-only succeeds (already up to date).
+        const gitEnv = { ...process.env, GIT_AUTHOR_NAME: 'test', GIT_AUTHOR_EMAIL: 't@t.com', GIT_COMMITTER_NAME: 'test', GIT_COMMITTER_EMAIL: 't@t.com' }
+        const gitOpts = { encoding: 'utf-8' as const, env: gitEnv }
+        spawnSync('git', ['init', remoteDir], { encoding: 'utf-8' })
+        spawnSync('git', ['-C', remoteDir, '-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-m', 'init'], gitOpts)
+        spawnSync('git', ['clone', remoteDir, extPath], { encoding: 'utf-8' })
+
+        // Place a symlink whose target is outside the install dir — simulates a
+        // malicious commit pulled in by git pull.
+        const payload = join(outsideDir, 'elastic-symupgrade')
+        await writeFile(payload, '#!/bin/sh\necho PAYLOAD\n', { mode: 0o755 })
+        await symlink(payload, join(extPath, 'elastic-symupgrade'))
+
+        const entry: InstalledExtension = {
+          name: 'symupgrade',
+          source: 'github:elastic/elastic-symupgrade',
+          path: extPath,
+          entrypoint: join(extPath, 'elastic-symupgrade'),
+        }
+        await writeExtensions([entry])
+
+        await assert.rejects(upgradeExtension('symupgrade'), /outside the install directory/)
+      } finally {
+        await rm(remoteDir, { recursive: true, force: true })
+        await rm(outsideDir, { recursive: true, force: true })
+      }
+    })
+
+    it('rejects a stored entrypoint that is a symlink escaping the install directory after npm update (#500)', async () => {
+      const outsideDir = await mkdtemp(join(tmpdir(), 'elastic-outside-'))
+      const extPath = join(extDir, 'elastic-npmupgrade')
+      try {
+        await mkdir(extPath, { recursive: true })
+        await writeFile(join(extPath, 'package.json'), JSON.stringify({ name: 'elastic-npmupgrade', version: '1.0.0' }), 'utf-8')
+
+        // Simulates a symlink left behind under node_modules/.bin by npm update.
+        const payload = join(outsideDir, 'payload.sh')
+        await writeFile(payload, '#!/bin/sh\necho PAYLOAD\n', { mode: 0o755 })
+        await symlink(payload, join(extPath, 'elastic-npmupgrade'))
+
+        const entry: InstalledExtension = {
+          name: 'npmupgrade',
+          source: 'npm:elastic-npmupgrade',
+          path: extPath,
+          entrypoint: join(extPath, 'elastic-npmupgrade'),
+        }
+        await writeExtensions([entry])
+
+        await assert.rejects(upgradeExtension('npmupgrade'), /outside the install directory/)
+      } finally {
+        await rm(outsideDir, { recursive: true, force: true })
+      }
     })
   })
 
@@ -157,6 +258,142 @@ describe('installer', () => {
     it('returns empty array when no extensions are installed', async () => {
       const results = await upgradeAllExtensions()
       assert.deepEqual(results, [])
+    })
+  })
+
+  describe('installExtension -- --ignore-scripts', () => {
+    afterEach(() => _testSetRun(undefined))
+
+    it('passes --ignore-scripts and a scrubbed env when installing a github extension that has package.json', async () => {
+      const captured: Array<{ cmd: string, args: string[], env?: Record<string, string> }> = []
+      _testSetRun((cmd, args, _cwd, env) => { captured.push({ cmd, args, env }) })
+
+      // Pre-populate installDir so git-clone mock + entrypoint discovery work without network
+      const installDir = join(extDir, 'elastic-ghpkg')
+      await mkdir(installDir, { recursive: true })
+      await writeFile(join(installDir, 'package.json'), JSON.stringify({ name: 'elastic-ghpkg', version: '1.0.0' }), 'utf-8')
+      const ep = join(installDir, 'elastic-ghpkg')
+      await writeFile(ep, '#!/bin/sh\necho hi', 'utf-8')
+      await chmod(ep, 0o755)
+
+      const originalEnv = process.env
+      ;(process as NodeJS.Process).env = { ...process.env, GITHUB_TOKEN: 'leak-me-not' }
+      try {
+        await installExtension('github:test-org/elastic-ghpkg')
+      } finally {
+        ;(process as NodeJS.Process).env = originalEnv
+      }
+
+      const npmInstall = captured.find(c => c.cmd === 'npm' && c.args.includes('install'))
+      assert.ok(npmInstall != null, 'expected npm install to be called')
+      assert.ok(npmInstall.args.includes('--ignore-scripts'), '--ignore-scripts should be in npm install args')
+      assert.ok(npmInstall.env != null, 'expected npm install to receive an env object')
+      assert.ok(!('GITHUB_TOKEN' in npmInstall.env), 'GITHUB_TOKEN must not reach npm install')
+
+      const gitClone = captured.find(c => c.cmd === 'git' && c.args.includes('clone'))
+      assert.ok(gitClone?.env != null, 'expected git clone to receive an env object')
+      assert.ok(!('GITHUB_TOKEN' in gitClone.env), 'GITHUB_TOKEN must not reach git clone')
+    })
+
+    it('passes --ignore-scripts and a scrubbed env when installing an npm extension', async () => {
+      const captured: Array<{ cmd: string, args: string[], env?: Record<string, string> }> = []
+      _testSetRun((cmd, args, _cwd, env) => { captured.push({ cmd, args, env }) })
+
+      // Pre-populate the binary so entrypoint discovery succeeds without a real npm install
+      const installDir = join(extDir, 'elastic-npmpkg')
+      const binDir = join(installDir, 'node_modules', '.bin')
+      await mkdir(binDir, { recursive: true })
+      const bin = join(binDir, 'elastic-npmpkg')
+      await writeFile(bin, '#!/bin/sh\necho hi', 'utf-8')
+      await chmod(bin, 0o755)
+
+      const originalEnv = process.env
+      ;(process as NodeJS.Process).env = { ...process.env, NPM_TOKEN: 'leak-me-not' }
+      try {
+        await installExtension('npm:elastic-npmpkg')
+      } finally {
+        ;(process as NodeJS.Process).env = originalEnv
+      }
+
+      const npmInstall = captured.find(c => c.cmd === 'npm' && c.args.includes('install'))
+      assert.ok(npmInstall != null, 'expected npm install to be called')
+      assert.ok(npmInstall.args.includes('--ignore-scripts'), '--ignore-scripts should be in npm install args')
+      assert.ok(npmInstall.env != null, 'expected npm install to receive an env object')
+      assert.ok(!('NPM_TOKEN' in npmInstall.env), 'NPM_TOKEN must not reach npm install')
+    })
+  })
+
+  describe('upgradeExtension -- --ignore-scripts', () => {
+    afterEach(() => _testSetRun(undefined))
+
+    it('passes --ignore-scripts and a scrubbed env when upgrading a github extension that has package.json', async () => {
+      const captured: Array<{ cmd: string, args: string[], env?: Record<string, string> }> = []
+      _testSetRun((cmd, args, _cwd, env) => { captured.push({ cmd, args, env }) })
+
+      const extPath = join(extDir, 'elastic-ghupgrade')
+      await mkdir(extPath, { recursive: true })
+      const ep = join(extPath, 'elastic-ghupgrade')
+      await writeFile(ep, '#!/bin/sh\necho hi', 'utf-8')
+      await chmod(ep, 0o755)
+      await writeFile(join(extPath, 'package.json'), JSON.stringify({ name: 'elastic-ghupgrade', version: '1.0.0' }), 'utf-8')
+
+      const entry: InstalledExtension = {
+        name: 'ghupgrade',
+        source: 'github:test-org/elastic-ghupgrade',
+        path: extPath,
+        entrypoint: ep,
+      }
+      await writeExtensions([entry])
+
+      const originalEnv = process.env
+      ;(process as NodeJS.Process).env = { ...process.env, GITHUB_TOKEN: 'leak-me-not' }
+      try {
+        await upgradeExtension('ghupgrade')
+      } finally {
+        ;(process as NodeJS.Process).env = originalEnv
+      }
+
+      const npmInstall = captured.find(c => c.cmd === 'npm' && c.args.includes('install'))
+      assert.ok(npmInstall != null, 'expected npm install to be called')
+      assert.ok(npmInstall.args.includes('--ignore-scripts'), '--ignore-scripts should be in npm install args')
+      assert.ok(npmInstall.env != null, 'expected npm install to receive an env object')
+      assert.ok(!('GITHUB_TOKEN' in npmInstall.env), 'GITHUB_TOKEN must not reach npm install')
+
+      const gitPull = captured.find(c => c.cmd === 'git' && c.args.includes('pull'))
+      assert.ok(gitPull?.env != null, 'expected git pull to receive an env object')
+      assert.ok(!('GITHUB_TOKEN' in gitPull.env), 'GITHUB_TOKEN must not reach git pull')
+    })
+
+    it('passes --ignore-scripts and a scrubbed env when upgrading an npm extension', async () => {
+      const captured: Array<{ cmd: string, args: string[], env?: Record<string, string> }> = []
+      _testSetRun((cmd, args, _cwd, env) => { captured.push({ cmd, args, env }) })
+
+      const extPath = join(extDir, 'elastic-npmupgrade')
+      await mkdir(extPath, { recursive: true })
+      const ep = join(extPath, 'index.js')
+      await writeFile(ep, '#!/usr/bin/env node\n', 'utf-8')
+
+      const entry: InstalledExtension = {
+        name: 'npmupgrade',
+        source: 'npm:elastic-npmupgrade',
+        path: extPath,
+        entrypoint: ep,
+      }
+      await writeExtensions([entry])
+
+      const originalEnv = process.env
+      ;(process as NodeJS.Process).env = { ...process.env, NPM_TOKEN: 'leak-me-not' }
+      try {
+        await upgradeExtension('npmupgrade')
+      } finally {
+        ;(process as NodeJS.Process).env = originalEnv
+      }
+
+      const npmUpdate = captured.find(c => c.cmd === 'npm' && c.args.includes('update'))
+      assert.ok(npmUpdate != null, 'expected npm update to be called')
+      assert.ok(npmUpdate.args.includes('--ignore-scripts'), '--ignore-scripts should be in npm update args')
+      assert.ok(npmUpdate.env != null, 'expected npm update to receive an env object')
+      assert.ok(!('NPM_TOKEN' in npmUpdate.env), 'NPM_TOKEN must not reach npm update')
     })
   })
 })

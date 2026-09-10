@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agent-policies API: get a full Kubernetes agent manifest.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"elastic-agent-policies get fleet kubernetes manifest":
+  - do:
+      elastic-agent-policies.get_fleet_kubernetes: {}
+  - is_true: item

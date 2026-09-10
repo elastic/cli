@@ -1,0 +1,15 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-agentless-policies API: bulk upgrade managed integrations (deprecated).
+---
+requires:
+  serverless: false
+  stack: false
+---
+"fleet-agentless-policies post fleet agentless policies upgrade":
+  - do:
+      fleet-agentless-policies.post_fleet_agentless_policies_upgrade:
+        body:
+          policyIds: []
+  - is_true: ""

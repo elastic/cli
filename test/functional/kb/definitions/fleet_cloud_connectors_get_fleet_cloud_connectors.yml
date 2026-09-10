@@ -1,0 +1,12 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-cloud-connectors API: list Fleet cloud connectors.
+---
+requires:
+  serverless: true
+---
+"fleet-cloud-connectors get fleet cloud connectors":
+  - do:
+      fleet-cloud-connectors.get_fleet_cloud_connectors: {}
+  - is_true: ""

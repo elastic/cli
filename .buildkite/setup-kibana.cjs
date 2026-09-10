@@ -42,30 +42,39 @@ function request(method, path, body) {
 
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+function summarize(body) {
+  const s = typeof body === 'string' ? body : JSON.stringify(body);
+  return s.length > 200 ? `${s.slice(0, 200)}...` : s;
+}
+
 async function retry(fn, label, maxRetries = 180, intervalMs = 2000) {
+  let lastReason = '(no response observed)';
   for (let i = 0; i < maxRetries; i++) {
     try {
-      const ok = await fn();
-      if (ok) return;
-    } catch { /* not ready yet */ }
-    if (i > 0 && i % 15 === 0) console.log(`  still waiting for ${label}... (${i}/${maxRetries})`);
+      await fn();
+      return;
+    } catch (e) {
+      lastReason = e.message;
+    }
+    if (i > 0 && i % 15 === 0) console.log(`  still waiting for ${label}... (${i}/${maxRetries}) — last: ${lastReason}`);
     await delay(intervalMs);
   }
-  throw new Error(`${label} did not become ready in time`);
+  throw new Error(`${label} did not become ready in time. Last seen: ${lastReason}`);
 }
 
 async function main() {
   console.log('Waiting for Elasticsearch cluster health...');
   await retry(async () => {
-    const { body } = await request('GET', '/_cluster/health');
-    return ['green', 'yellow'].includes(body.status);
+    const { status, body } = await request('GET', '/_cluster/health');
+    if (status < 200 || status >= 300) throw new Error(`HTTP ${status}: ${summarize(body)}`);
+    if (!['green', 'yellow'].includes(body.status)) throw new Error(`cluster status=${body.status || 'unknown'}`);
   }, 'ES cluster health');
   console.log('ES cluster is up');
 
   console.log('Waiting for ES security index...');
   await retry(async () => {
-    const { status } = await request('POST', '/_security/api_key', { name: 'setup-check', expiration: '1m' });
-    return status >= 200 && status < 300;
+    const { status, body } = await request('POST', '/_security/api_key', { name: 'setup-check', expiration: '1m' });
+    if (status < 200 || status >= 300) throw new Error(`HTTP ${status}: ${summarize(body)}`);
   }, 'ES security index', 60);
   console.log('ES security index is ready');
 

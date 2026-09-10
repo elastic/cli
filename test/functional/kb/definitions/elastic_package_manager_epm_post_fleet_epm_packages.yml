@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-package-manager-epm API: install a package by upload.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"elastic-package-manager-epm post fleet epm packages":
+  - do:
+      catch: bad_request
+      elastic-package-manager-epm.post_fleet_epm_packages: {}

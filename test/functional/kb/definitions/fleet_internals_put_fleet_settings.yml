@@ -1,0 +1,15 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-internals API: update Fleet settings.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"fleet-internals put fleet settings":
+  - do:
+      fleet-internals.put_fleet_settings:
+        body:
+          has_seen_add_data_notice: true
+  - is_true: item

@@ -1,0 +1,31 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-ai-assistant-api: update conversation.
+# Creates a conversation in setup, updates its title, then verifies the change.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-ai-assistant-api.create_conversation:
+        body:
+          title: CLI FT update-conversation original
+  - set: {id: conv_id}
+---
+teardown:
+  - do:
+      security-ai-assistant-api.delete_conversation:
+        id: $conv_id
+        ignore: [404]
+---
+"security-ai-assistant-api update conversation":
+  - do:
+      security-ai-assistant-api.update_conversation:
+        id: $conv_id
+        body:
+          id: $conv_id
+          title: CLI FT update-conversation updated
+  - is_true: id

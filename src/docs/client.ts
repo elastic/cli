@@ -188,7 +188,7 @@ export async function* docsAskStream (message: string, conversationId: string): 
  * Strip simple HTML tags (e.g. `<mark>`) from a string.
  */
 export function stripHtmlTags (s: string): string {
-  return s.replace(/<[^>]*>/g, '')
+  return s.replace(/<[^>]*>|[<>]/g, '')
 }
 
 /**

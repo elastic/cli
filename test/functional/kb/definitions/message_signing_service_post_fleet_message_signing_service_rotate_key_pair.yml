@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana message-signing-service API: rotate the Fleet message signing key pair.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"message-signing-service post fleet message signing service rotate key pair":
+  - do:
+      message-signing-service.post_fleet_message_signing_service_rotate_key_pair:
+        acknowledge: true
+  - is_true: message

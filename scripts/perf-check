@@ -1,0 +1,114 @@
+#!/usr/bin/env node
+
+/*
+ * Copyright Elasticsearch B.V. and contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+// Benchmark CLI startup time against recorded baselines from PR #400.
+// Fails if any command's mean runtime exceeds its baseline by more than 20%.
+//
+// Usage: scripts/perf-check
+//        scripts/perf-check --binary ./elastic-linux-x64
+// The recorded baselines only describe `node dist/cli.js`; with --binary the means
+// are reported without a pass/fail verdict (a pkg binary pays extra snapshot startup).
+// Override warmup/runs for local profiling:
+//   PERF_WARMUP=5 PERF_RUNS=30 scripts/perf-check
+
+import { execFileSync } from "node:child_process"
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join, dirname, resolve } from "node:path"
+import { fileURLToPath } from "node:url"
+import { parseArgs } from "node:util"
+
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
+
+const { binary } = parseArgs({ options: { binary: { type: "string" } } }).values
+// hyperfine gets one command string; a binary runs directly, the JS build needs `node`.
+const CLI = binary != null ? resolve(binary) : `node ${join(REPO_ROOT, "dist", "cli.js")}`
+
+// Tuned for CI: fast enough to finish in ~60 s on a shared runner while still
+// producing a stable mean. Override with env vars for local profiling.
+const WARMUP = Number(process.env.PERF_WARMUP ?? 10)
+const MIN_RUNS = Number(process.env.PERF_RUNS ?? 50)
+
+// Baselines (mean ms) recorded after the optimisations in PR #400.
+// Measured with: hyperfine -w 10 -m 100 <command>
+// Hardware: Lenovo ThinkPad X1 Carbon, i7-1365U, 16 GB RAM, Arch Linux
+const BASELINES_MS = {
+  "elastic":              51.1,
+  "elastic --help":       48.5,
+  "elastic es --help":    59.0,
+  "elastic es":           58.2,
+  "elastic cloud --help": 62.3,
+  "elastic cloud":        42.4,
+  "elastic kb --help":    83.7,
+  "elastic kb":           76.9,
+  "elastic es indices --help": 102.4,
+  "elastic es indices update-aliases --help": 273.0,
+}
+
+
+
+const THRESHOLD = 1.75 // fail if mean performance is 75% slower than baseline
+
+const tmpDir = mkdtempSync(join(tmpdir(), "elastic-cli-bench-"))
+try {
+  // Use a minimal static config so benchmarks measure CLI startup, not secret-store latency.
+  const staticConfig = join(tmpDir, ".elasticrc.yml")
+  writeFileSync(staticConfig, [
+    'current_context: bench',
+    'contexts:',
+    '  bench:',
+    '    elasticsearch:',
+    '      url: http://localhost:9200',
+    '      auth:',
+    '        api_key: static-key',
+    '',
+  ].join('\n'))
+
+  let failed = false
+
+  for (const [label, baseline] of Object.entries(BASELINES_MS)) {
+    const args = label.slice("elastic".length).trim()
+    const cmd = args.length > 0 ? `${CLI} ${args}` : CLI
+    const jsonOut = join(tmpDir, `result-${encodeURIComponent(label)}.json`)
+
+    const env = { ...process.env, ELASTIC_CLI_CONFIG_FILE: staticConfig }
+    const argv = cmd.split(" ")
+    execFileSync(argv[0], argv.slice(1), { stdio: "inherit", env })
+
+    execFileSync(
+      "hyperfine",
+      ["--warmup", String(WARMUP), "--min-runs", String(MIN_RUNS), "--export-json", jsonOut, "--shell=none", cmd],
+      { stdio: "inherit", env },
+    )
+
+    const meanMs = JSON.parse(readFileSync(jsonOut, "utf8")).results[0].mean * 1000
+    if (binary != null) {
+      console.log(`   ${label.padEnd(24)}  mean ${meanMs.toFixed(1)} ms`)
+      continue
+    }
+    const limit = baseline * THRESHOLD
+    const pct = ((meanMs / baseline - 1) * 100).toFixed(1)
+    const sign = meanMs > baseline ? "+" : ""
+    const ok = meanMs <= limit
+    console.log(
+      `${ok ? "✓" : "✗"}  ${label.padEnd(24)}  mean ${meanMs.toFixed(1)} ms  ` +
+      `(baseline ${baseline} ms, ${sign}${pct}%, limit ${limit.toFixed(1)} ms)`,
+    )
+    if (!ok) failed = true
+  }
+
+  if (failed) {
+    console.error("\nPerformance regression detected. One or more commands exceeded their baseline by more than 75%.")
+    process.exit(1)
+  }
+
+  console.log(binary != null
+    ? `\nReported means for ${CLI}. Baselines describe the JS build, so no verdict is given.`
+    : "\nAll commands within the 75% regression threshold.")
+} finally {
+  rmSync(tmpDir, { recursive: true, force: true })
+}

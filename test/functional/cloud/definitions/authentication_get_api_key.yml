@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get API key (GET /api/v1/users/auth/keys/{api_key_id})
+# Id for {api_key_id} is derived from authentication.get-api-keys.
+# TODO: verify the response path in the `set` step against a live API.
+---
+"authentication get-api-key":
+  - do:
+      authentication.get-api-keys: {}
+  - set: {keys.0.id: api_key_id}
+  - do:
+      authentication.get-api-key:
+        api_key_id: $api_key_id

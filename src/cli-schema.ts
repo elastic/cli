@@ -4,98 +4,40 @@
  */
 
 import { Command } from 'commander'
-import { z } from 'zod'
 import { defineCommand } from './factory.ts'
 import { stripTransportMeta } from './factory.ts'
 import type { OpaqueCommandHandle, CommandConfig, CommandIntent, JsonValue } from './factory.ts'
-import type { SchemaArgDefinition } from './lib/schema-args.ts'
-import type { NamespaceEntry, NamespaceShortcut } from './namespaces.ts'
+import type { SchemaArgDefinition } from './lib/json-schema-args.ts'
+import type { NamespaceEntry } from './namespaces.ts'
+import { SCHEMA_VERSION } from '@cli-schema/spec'
+import type {
+  CliSchema,
+  Command as SpecCommand,
+  Constraint,
+  Environment as CliEnvironment,
+  Namespace as SpecNamespace,
+  Parameter,
+  ParameterElementType,
+  ParameterType,
+} from '@cli-schema/spec'
 
 // ---------------------------------------------------------------------------
 // CLI schema types
 // ---------------------------------------------------------------------------
+//
+// All shapes come from @cli-schema/spec so the emitted `schemaVersion` cannot
+// drift from the types used to build the document. The two local aliases below
+// only tighten optional spec fields that this emitter always populates and
+// mutates in place (hoisting, stripping); they add no new fields.
 
-interface CliValidation {
-  kind: string
-  min?: string
-  max?: string
-  pattern?: string
-  values?: string[]
-}
-
-interface CliParameter {
-  role: string
-  name: string
-  type: string
-  required: boolean
-  shortName?: string
-  summary?: string
-  defaultValue?: string
-  repeatable?: boolean
-  separator?: string
-  aliases?: string[]
-  enumValues?: string[]
-  elementType?: string
-  hidden?: boolean
-  validations?: CliValidation[]
-}
-
-interface CliCommand {
-  path: string[]
-  name: string
-  parameters: CliParameter[]
-  summary?: string
-  aliases?: string[]
-  hidden?: boolean
-  intent?: CommandIntent
-}
-
-interface CliNamespace {
-  segment: string
-  commands: CliCommand[]
-  namespaces: CliNamespace[]
-  summary?: string
-  options?: CliParameter[]
-}
-
-interface CliEnvVar {
-  name: string
-  required: boolean
-  description?: string
-}
-
-interface CliConfigFile {
-  path: string
-  required: boolean
-  description?: string
-}
-
-interface CliEnvironment {
-  variables: CliEnvVar[]
-  configFiles: CliConfigFile[]
-}
-
-interface CliShortcut {
-  from: string
-  to: string[]
-}
-
-interface CliSchema {
-  schemaVersion: number
-  name: string
-  version: string
-  reservedMetaCommands: string[]
-  globalOptions: CliParameter[]
-  environment: CliEnvironment
-  commands: CliCommand[]
-  namespaces: CliNamespace[]
-  shortcuts?: CliShortcut[]
-  description?: string
-}
+type CliValidation = Constraint
+type CliParameter = Parameter
+type CliCommand = SpecCommand & { path: string[], parameters: Parameter[] }
+type CliNamespace = SpecNamespace & { commands: CliCommand[], namespaces: CliNamespace[] }
 
 // ---------------------------------------------------------------------------
 // Environment declaration (sources: src/config/loader.ts, src/lib/logo.ts,
-//                                   src/lib/cloud-client.ts)
+//                                   src/lib/cloud-client.ts, src/lib/meta.ts)
 // ---------------------------------------------------------------------------
 
 const ENVIRONMENT: CliEnvironment = {
@@ -114,6 +56,11 @@ const ENVIRONMENT: CliEnvironment = {
       name: 'ELASTIC_CLOUD_ADMIN_API',
       required: false,
       description: 'Override the Elastic Cloud admin API base URL',
+    },
+    {
+      name: 'ELASTIC_CLI_TELEMETRY',
+      required: false,
+      description: 'Set to a falsey value (false/0/no/off) to turn off collection of anonymous telemetry; overrides the config telemetry field',
     },
   ],
   configFiles: [
@@ -228,7 +175,7 @@ function extractValidations (node: JsonSchemaNode, root: JsonSchemaNode): CliVal
 // ---------------------------------------------------------------------------
 
 /** Map SchemaArgDefinition.type to a spec-compliant type string. */
-function schemaArgType (arg: SchemaArgDefinition, enumValues: string[] | undefined): string {
+function schemaArgType (arg: SchemaArgDefinition, enumValues: string[] | undefined): ParameterType {
   if (enumValues != null && enumValues.length > 0) return 'enum'
   switch (arg.type) {
     case 'boolean':
@@ -243,6 +190,13 @@ function schemaArgType (arg: SchemaArgDefinition, enumValues: string[] | undefin
   }
 }
 
+/**
+ * Builds the schema parameters for the root program's global options.
+ *
+ * Only `--dry-run` gets a dedicated role; every other option stays a plain `flag`.
+ * Broader heuristics (treating `--force`/`--yes` as a confirmation-skip role) would
+ * change the emitted output for hand-declared flags such as `config`'s `--force`.
+ */
 function buildGlobalParams (rootCmd: Command): CliParameter[] {
   return rootCmd.options.map((opt) => {
     const isFlag = !opt.required && !opt.optional
@@ -264,10 +218,8 @@ function buildCommandParams (cmd: OpaqueCommandHandle): CliParameter[] {
 
   let jsonSchema: JsonSchemaNode | undefined
   let schemaRoot: JsonSchemaNode | undefined
-  if (attached?.config.input instanceof z.ZodType) {
-    const raw = stripTransportMeta(
-      z.toJSONSchema(attached.config.input, { reused: 'ref' }) as JsonValue
-    )
+  if (attached?.config.input != null && typeof attached.config.input === 'object') {
+    const raw = stripTransportMeta(attached.config.input as JsonValue)
     jsonSchema = raw as unknown as JsonSchemaNode
     schemaRoot = jsonSchema
   }
@@ -318,10 +270,13 @@ function buildCommandParams (cmd: OpaqueCommandHandle): CliParameter[] {
         required: arg.required,
         ...(arg.description && { summary: arg.description }),
         ...(arg.defaultValue != null && { defaultValue: String(arg.defaultValue) }),
-        ...(arg.acceptsArrayForm === true && { repeatable: true }),
+        ...((arg.acceptsArrayForm === true || arg.type === 'array') && { repeatable: true }),
+        // `acceptsArrayForm` fields routed to the request body need a CSV separator in their
+        // help text: ES does not split comma-separated values inside JSON bodies, only in
+        // querystrings and paths.
         ...(arg.acceptsArrayForm === true && arg.foundIn === 'body' && { separator: ',' }),
         ...(enumValues != null && { enumValues }),
-        ...(arg.type === 'array' && node != null && extractElementType(node, root) != null && { elementType: extractElementType(node, root) as string }),
+        ...(arg.type === 'array' && node != null && extractElementType(node, root) != null && { elementType: extractElementType(node, root) as ParameterElementType }),
         ...(node != null && extractValidations(node, root) != null && { validations: extractValidations(node, root) as CliValidation[] }),
       })
     }
@@ -524,7 +479,6 @@ export function buildCliSchema (
   globalOptions: CliParameter[],
   version: string,
   noContextNames: ReadonlySet<string> = new Set(),
-  shortcuts: NamespaceShortcut[] = [],
 ): CliSchema {
   const allCommands: CliCommand[] = []
   const namespaces: CliNamespace[] = []
@@ -548,10 +502,8 @@ export function buildCliSchema (
   }
   const promoted = promoteToGlobalOptions(namespaces, allCommands)
 
-  const cliShortcuts: CliShortcut[] = shortcuts.map(s => ({ from: s.from, to: s.to }))
-
   return {
-    schemaVersion: 1,
+    schemaVersion: SCHEMA_VERSION,
     name: root.name() || 'elastic',
     version,
     reservedMetaCommands: ['cli-schema'],
@@ -559,7 +511,6 @@ export function buildCliSchema (
     environment: ENVIRONMENT,
     commands: allCommands,
     namespaces,
-    ...(cliShortcuts.length > 0 && { shortcuts: cliShortcuts }),
     ...(root.description() && { description: root.description() }),
   }
 }
@@ -580,11 +531,7 @@ export async function registerCliSchemaCommand (
       const schemaRoot = new Command(rootProgram?.name() ?? 'elastic')
       schemaRoot.description(rootProgram?.description() ?? '')
 
-      schemaRoot.addCommand(defineCommand({
-        name: 'version',
-        description: 'Print the elastic CLI version',
-        handler: () => ({ version }),
-      }))
+      schemaRoot.addCommand(new Command('version').description('Print the elastic CLI version'))
 
       const loaded = await Promise.all(namespaces.map((ns) => ns.load({ eager: true })))
       for (const ns of loaded) schemaRoot.addCommand(ns)
@@ -597,8 +544,7 @@ export async function registerCliSchemaCommand (
         'version', // root-level version command needs no auth
       ])
 
-      const allShortcuts = namespaces.flatMap(ns => ns.shortcuts ?? [])
-      return buildCliSchema(schemaRoot, globalOptions, version, noContextNames, allShortcuts) as unknown as JsonValue
+      return buildCliSchema(schemaRoot, globalOptions, version, noContextNames) as unknown as JsonValue
     },
     formatOutput: (result) => JSON.stringify(result, null, 2) + '\n',
   })

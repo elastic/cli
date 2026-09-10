@@ -1,0 +1,15 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-attack-discovery-api: get a single attack discovery generation by UUID.
+# Uses a non-existent UUID to verify the CLI correctly routes the request.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-attack-discovery-api get attack discovery generation":
+  - do:
+      catch: missing
+      security-attack-discovery-api.get_attack_discovery_generation:
+        execution_uuid: "non-existent-execution-uuid"

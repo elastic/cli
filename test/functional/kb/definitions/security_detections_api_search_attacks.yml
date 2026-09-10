@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-detections-api: search attack discovery alerts (no body, all fields optional).
+# An empty POST returns successfully with a hits envelope; no setup or teardown required.
+---
+requires:
+  serverless: false
+  stack: false
+---
+"security-detections-api search attacks":
+  - do:
+      security-detections-api.search_attacks: {}
+  - is_true: ""

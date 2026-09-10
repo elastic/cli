@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-managed-integrations API: list managed integrations.
+---
+requires:
+  serverless: false
+  stack: false
+---
+"fleet-managed-integrations get fleet managed integrations":
+  - do:
+      fleet-managed-integrations.get_fleet_managed_integrations: {}
+  - is_true: ""

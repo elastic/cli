@@ -1,0 +1,16 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-management-api: get policy response for an agent.
+# No real agent exists in a test environment, so a fake UUID is used and a
+# 404 is expected.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-endpoint-management-api get policy response":
+  - do:
+      catch: missing
+      security-endpoint-management-api.get_policy_response:
+        agent_id: "00000000-0000-0000-0000-000000000000"

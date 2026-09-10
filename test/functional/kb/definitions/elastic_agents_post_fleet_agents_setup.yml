@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agents API: initiate Fleet setup.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"elastic-agents post fleet agents setup":
+  - do:
+      elastic-agents.post_fleet_agents_setup: {}
+  - is_true: isInitialized

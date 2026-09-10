@@ -8,6 +8,9 @@ import assert from 'node:assert/strict'
 import { KibanaClient, getKibanaClient, _testResetKibanaClient } from '../../src/lib/kibana-client.ts'
 import { setResolvedConfig, _testResetConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 
 afterEach(() => {
   _testResetKibanaClient()
@@ -52,7 +55,7 @@ function makeCapturingFetch (status = 200, body = '{}'): {
 // Constructor / auth header
 // ---------------------------------------------------------------------------
 
-describe('KibanaClient — no auth', () => {
+describe('KibanaClient -- no auth', () => {
   it('omits Authorization header when no auth is provided', async () => {
     const { fetch, calls } = makeCapturingFetch()
     const client = new KibanaClient('https://kb.example.com')
@@ -62,7 +65,7 @@ describe('KibanaClient — no auth', () => {
   })
 })
 
-describe('KibanaClient — API key auth', () => {
+describe('KibanaClient -- API key auth', () => {
   it('sets Authorization header to ApiKey <key>', async () => {
     const { fetch, calls } = makeCapturingFetch()
     const client = new KibanaClient('https://kb.example.com', { api_key: 'my-key' })
@@ -72,7 +75,7 @@ describe('KibanaClient — API key auth', () => {
   })
 })
 
-describe('KibanaClient — basic auth', () => {
+describe('KibanaClient -- basic auth', () => {
   it('sets Authorization header to Basic <base64>', async () => {
     const { fetch, calls } = makeCapturingFetch()
     const client = new KibanaClient('https://kb.example.com', { username: 'elastic', password: 'changeme' })
@@ -87,7 +90,7 @@ describe('KibanaClient — basic auth', () => {
 // kbn-xsrf header
 // ---------------------------------------------------------------------------
 
-describe('KibanaClient — kbn-xsrf header', () => {
+describe('KibanaClient -- kbn-xsrf header', () => {
   it('adds kbn-xsrf: true for POST', async () => {
     const { fetch, calls } = makeCapturingFetch()
     const client = new KibanaClient('https://kb.example.com', { api_key: 'k' })
@@ -133,7 +136,7 @@ describe('KibanaClient — kbn-xsrf header', () => {
 // URL construction
 // ---------------------------------------------------------------------------
 
-describe('KibanaClient — URL construction', () => {
+describe('KibanaClient -- URL construction', () => {
   it('appends path to baseUrl', async () => {
     const { fetch, calls } = makeCapturingFetch()
     const client = new KibanaClient('https://kb.example.com', { api_key: 'k' })
@@ -173,7 +176,7 @@ describe('KibanaClient — URL construction', () => {
 // Request body
 // ---------------------------------------------------------------------------
 
-describe('KibanaClient — request body', () => {
+describe('KibanaClient -- request body', () => {
   it('serializes body as JSON', async () => {
     const { fetch, calls } = makeCapturingFetch()
     const client = new KibanaClient('https://kb.example.com', { api_key: 'k' })
@@ -192,10 +195,60 @@ describe('KibanaClient — request body', () => {
 })
 
 // ---------------------------------------------------------------------------
+// multipartFields -- file upload
+// ---------------------------------------------------------------------------
+
+describe('KibanaClient -- multipartFields', () => {
+  it('sends a FormData body without setting Content-Type manually', async () => {
+    const { fetch, calls } = makeCapturingFetch()
+    const client = new KibanaClient('https://kb.example.com', { api_key: 'k' })
+    client._testSetFetch(fetch)
+    await client.request({ method: 'POST', path: '/api/saved_objects/_import', multipartFields: { file: 'nonexistent.ndjson' } })
+    assert.ok(calls[0]!.init.body instanceof FormData)
+    assert.equal((calls[0]!.init.headers as Record<string, string>)['Content-Type'], undefined)
+  })
+
+  it('appends a literal string field when the value does not resolve to a file', async () => {
+    const { fetch, calls } = makeCapturingFetch()
+    const client = new KibanaClient('https://kb.example.com', { api_key: 'k' })
+    client._testSetFetch(fetch)
+    await client.request({ method: 'POST', path: '/api/saved_objects/_import', multipartFields: { overwrite: 'true' } })
+    const form = calls[0]!.init.body as FormData
+    assert.equal(form.get('overwrite'), 'true')
+  })
+
+  it('reads file contents and sends them as a named Blob when the value resolves to an existing file', async () => {
+    const tmpFile = path.join(os.tmpdir(), `kibana-client-test-${Date.now()}.ndjson`)
+    fs.writeFileSync(tmpFile, '{"type":"index-pattern"}\n')
+    try {
+      const { fetch, calls } = makeCapturingFetch()
+      const client = new KibanaClient('https://kb.example.com', { api_key: 'k' })
+      client._testSetFetch(fetch)
+      await client.request({ method: 'POST', path: '/api/saved_objects/_import', multipartFields: { file: tmpFile } })
+      const form = calls[0]!.init.body as FormData
+      const entry = form.get('file') as File
+      assert.equal(entry.name, path.basename(tmpFile))
+      assert.equal(await entry.text(), '{"type":"index-pattern"}\n')
+    } finally {
+      fs.rmSync(tmpFile)
+    }
+  })
+
+  it('treats a directory at the given path as a literal string instead of crashing on EISDIR', async () => {
+    const { fetch, calls } = makeCapturingFetch()
+    const client = new KibanaClient('https://kb.example.com', { api_key: 'k' })
+    client._testSetFetch(fetch)
+    await client.request({ method: 'POST', path: '/api/saved_objects/_import', multipartFields: { file: os.tmpdir() } })
+    const form = calls[0]!.init.body as FormData
+    assert.equal(form.get('file'), os.tmpdir())
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Error handling
 // ---------------------------------------------------------------------------
 
-describe('KibanaClient — error responses', () => {
+describe('KibanaClient -- error responses', () => {
   it('throws on non-2xx response', async () => {
     const client = new KibanaClient('https://kb.example.com', { api_key: 'k' })
     client._testSetFetch(makeFetchStub(404, '{"statusCode":404,"error":"Not Found"}'))
@@ -217,7 +270,7 @@ describe('KibanaClient — error responses', () => {
 })
 
 // ---------------------------------------------------------------------------
-// getKibanaClient — factory
+// getKibanaClient -- factory
 // ---------------------------------------------------------------------------
 
 describe('getKibanaClient', () => {

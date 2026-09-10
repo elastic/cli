@@ -1,0 +1,37 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana agent-builder API: create skill / update skill / verify updated fields / delete skill.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      agent-builder.delete_agent_builder_skills_skillid:
+        skillId: cli-ft-ab-skill-put
+        ignore: [404]
+---
+"agent-builder update skill":
+  - do:
+      agent-builder.post_agent_builder_skills:
+        body:
+          id: cli-ft-ab-skill-put
+          name: CLI FT Skill Put
+          description: Created by functional test
+          content: "# Skill\nDo something useful."
+  - match: {id: cli-ft-ab-skill-put}
+
+  - do:
+      agent-builder.put_agent_builder_skills_skillid:
+        skillId: cli-ft-ab-skill-put
+        name: CLI FT Skill Put Updated
+        description: Updated by functional test
+  - match: {id: cli-ft-ab-skill-put}
+  - match: {name: CLI FT Skill Put Updated}
+  - match: {description: Updated by functional test}
+
+  - do:
+      agent-builder.delete_agent_builder_skills_skillid:
+        skillId: cli-ft-ab-skill-put

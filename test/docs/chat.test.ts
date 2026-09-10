@@ -115,10 +115,38 @@ describe('createChatCommand', () => {
     }
   })
 
+  it('interactive follow-up loop never writes to the real process.stderr', async () => {
+    const prevIsTTY = process.stderr.isTTY
+    Object.defineProperty(process.stderr, 'isTTY', { value: true, configurable: true })
+    const origErrWrite = process.stderr.write
+    const realWrites: string[] = []
+    process.stderr.write = ((s: string) => { realWrites.push(s); return true }) as typeof process.stderr.write
+    try {
+      const stdinStream = Readable.from(['follow up?\n', '\n'])
+      const cmd = createChatCommand({
+        docsAskStream: streamFrom(['answer']),
+        stdout: { write: () => true },
+        stderr: { write: () => true },
+        getStdin: () => stdinStream,
+      })
+      cmd.exitOverride()
+      cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
+      const restoreStdin = _testSetStdinReader(() => '')
+      try {
+        await cmd.parseAsync(['--question', 'opening'], { from: 'user' })
+      } finally { restoreStdin() }
+
+      assert.deepEqual(realWrites, [])
+    } finally {
+      process.stderr.write = origErrWrite
+      Object.defineProperty(process.stderr, 'isTTY', { value: prevIsTTY, configurable: true })
+    }
+  })
+
   it('returns structured JSON with buffered answer when --json is active', async () => {
     const captured: string[] = []
     const origWrite = process.stdout.write
-    process.stdout.write = ((s: string) => { captured.push(s); return true }) as typeof process.stdout.write
+    process.stdout.write = ((s: unknown) => { if (typeof s === 'string') captured.push(s); return true }) as typeof process.stdout.write
     try {
       const cmd = createChatCommand({
         docsAskStream: streamFrom(['chunk1', ' chunk2']),
@@ -139,6 +167,42 @@ describe('createChatCommand', () => {
       assert.equal(parsed.answer, 'chunk1 chunk2')
     } finally {
       process.stdout.write = origWrite
+    }
+  })
+
+  it('returns structured error JSON when --json stream throws', async () => {
+    const captured: string[] = []
+    const origStdout = process.stdout.write
+    const origStderr = process.stderr.write
+    process.stdout.write = ((s: string) => { captured.push(s); return true }) as typeof process.stdout.write
+    process.stderr.write = ((s: string) => { captured.push(s); return true }) as typeof process.stderr.write
+    try {
+      const cmd = createChatCommand({
+        docsAskStream: async function* () {
+          throw new Error('network down')
+          yield { kind: 'chunk', text: '' }
+        },
+        stdout: { write: (s) => { captured.push(s); return true } },
+        stderr: { write: (s) => { captured.push(s); return true } },
+        getStdin: () => Readable.from([]),
+      })
+      cmd.option('--json', 'output as JSON')
+      cmd.exitOverride()
+      cmd.configureOutput({ writeOut: (s) => { captured.push(s) }, writeErr: (s) => { captured.push(s) } })
+      const restoreStdin = _testSetStdinReader(() => '')
+      try {
+        await cmd.parseAsync(['--question', 'test', '--json'], { from: 'user' })
+      } finally { restoreStdin() }
+
+      const jsonChunk = captured.find(s => s.includes('"docs_error"'))
+      assert.ok(jsonChunk != null, `Expected JSON error output, got: ${captured.join('')}`)
+      const parsed = JSON.parse(jsonChunk)
+      assert.equal(parsed.error.code, 'docs_error')
+      assert.equal(parsed.error.message, 'network down')
+    } finally {
+      process.stdout.write = origStdout
+      process.stderr.write = origStderr
+      process.exitCode = 0
     }
   })
 

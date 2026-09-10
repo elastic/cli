@@ -16,7 +16,7 @@ CONNECTOR_ID=""
 
 teardown() {
   if [ -n "$CONNECTOR_ID" ]; then
-    $CLI stack kb connectors delete-actions-connector-id --id "$CONNECTOR_ID" --json >/dev/null 2>&1 || true
+    $CLI stack kb connectors delete-actions-connector-id --id "$CONNECTOR_ID" --yes --json >/dev/null 2>&1 || true
   fi
 }
 trap teardown EXIT
@@ -43,7 +43,7 @@ output=$($CLI stack kb connectors post-actions-connector-id \
   --id "$CONNECTOR_UUID" \
   --connector-type-id ".index" \
   --name "CLI FT Index Connector" \
-  --kb-config '{"index":"cli-ft-connector-*"}' \
+  --config '{"index":"cli-ft-connector-*"}' \
   --json 2>/tmp/cli-err.txt) \
   || { echo "FAIL: connectors create — command failed"; cat /tmp/cli-err.txt; exit 1; }
 [ "$(echo "$output" | jq -r '.id')" = "$CONNECTOR_UUID" ] \
@@ -69,7 +69,7 @@ count=$(echo "$output" | jq '[.[] | select(.id == "'"$CONNECTOR_ID"'")] | length
 
 # ── delete ────────────────────────────────────────────────────────────
 
-$CLI stack kb connectors delete-actions-connector-id --id "$CONNECTOR_ID" --json >/dev/null 2>/dev/null
+$CLI stack kb connectors delete-actions-connector-id --id "$CONNECTOR_ID" --yes --json >/dev/null 2>/dev/null
 CONNECTOR_ID=""
 
 output=$($CLI stack kb connectors get-actions-connectors --json 2>/dev/null)

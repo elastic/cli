@@ -1,0 +1,37 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: get child executions of a workflow execution.
+---
+requires:
+  serverless: true
+---
+setup:
+  - do:
+      workflows.post_workflows_workflow:
+        body:
+          id: cli-ft-workflow-get-exec-children
+          yaml: |
+            version: '1'
+            name: CLI FT Workflow Get Exec Children
+            triggers:
+              - type: manual
+            steps: []
+  - do:
+      workflows.post_workflows_workflow_id_run:
+        id: cli-ft-workflow-get-exec-children
+        body:
+          inputs: {}
+  - set: {executionId: execution_id}
+---
+teardown:
+  - do:
+      workflows.delete_workflows_workflow_id:
+        id: cli-ft-workflow-get-exec-children
+        force: true
+        ignore: [404]
+---
+"workflows get workflows executions executionid children":
+  - do:
+      workflows.get_workflows_executions_executionid_children:
+        execution_id: $execution_id

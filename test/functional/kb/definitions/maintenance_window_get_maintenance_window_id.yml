@@ -1,0 +1,33 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana maintenance-window API: create a maintenance window then retrieve it by ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      maintenance-window.post_maintenance_window:
+        body:
+          title: CLI FT Get Maintenance Window
+          schedule:
+            custom:
+              start: "2030-01-01T00:00:00.000Z"
+              duration: 1h
+  - set: {id: mw_id}
+---
+teardown:
+  - do:
+      maintenance-window.delete_maintenance_window_id:
+        id: $mw_id
+        ignore: [404]
+---
+"maintenance-window get by id":
+  - do:
+      maintenance-window.get_maintenance_window_id:
+        id: $mw_id
+  - match: {id: $mw_id}
+  - match: {title: CLI FT Get Maintenance Window}
+  - is_true: schedule

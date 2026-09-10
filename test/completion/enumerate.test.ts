@@ -245,6 +245,61 @@ describe('enumerate -- value-taking flag walk', () => {
   })
 })
 
+describe('enumerate -- positional completer registry', () => {
+  function buildProgramWithLeaf (): Command {
+    const program = buildSampleProgram()
+    const setCmd = defineCommand({
+      name: 'set',
+      description: 'Set current context',
+      positionalArg: { name: 'name', description: 'context name', required: true },
+      handler: () => ({}),
+    })
+    const currentCtx = defineGroup({ name: 'current-context', description: 'View or change current context' }, setCmd)
+    const config = defineGroup({ name: 'config', description: 'Config' }, currentCtx)
+    program.addCommand(config)
+    return program
+  }
+
+  it('invokes a positional completer for a leaf command', async () => {
+    const registry: DynamicCompleterRegistry = {
+      get: () => undefined,
+      getPositional: (path) => path === 'config current-context set' ? () => ['local', 'staging', 'prod'] : undefined,
+    }
+    const result = await enumerate(buildProgramWithLeaf(), ['config', 'current-context', 'set', ''], registry)
+    assert.deepEqual(result.candidates, ['local', 'staging', 'prod'])
+  })
+
+  it('prefix-filters positional candidates against the incomplete word', async () => {
+    const registry: DynamicCompleterRegistry = {
+      get: () => undefined,
+      getPositional: () => () => ['local', 'staging', 'prod'],
+    }
+    const result = await enumerate(buildProgramWithLeaf(), ['config', 'current-context', 'set', 'st'], registry)
+    assert.deepEqual(result.candidates, ['staging'])
+  })
+
+  it('returns empty (not throw) when positional completer rejects', async () => {
+    const registry: DynamicCompleterRegistry = {
+      get: () => undefined,
+      getPositional: () => () => { throw new Error('boom') },
+    }
+    const result = await enumerate(buildProgramWithLeaf(), ['config', 'current-context', 'set', ''], registry)
+    assert.deepEqual(result.candidates, [])
+  })
+
+  it('does not call getPositional when the command has children', async () => {
+    const calls: string[] = []
+    const registry: DynamicCompleterRegistry = {
+      get: () => undefined,
+      getPositional: (path) => { calls.push(path); return undefined },
+    }
+    // 'config' has children — should return children, not invoke positional
+    const result = await enumerate(buildProgramWithLeaf(), ['config', ''], registry)
+    assert.ok(result.candidates.includes('current-context'))
+    assert.deepEqual(calls, [])
+  })
+})
+
 describe('enumerate -- edge cases', () => {
   it('treats an unmatched prefix word as the current incomplete word', async () => {
     const result = await enumerate(buildSampleProgram(), ['zzz'])

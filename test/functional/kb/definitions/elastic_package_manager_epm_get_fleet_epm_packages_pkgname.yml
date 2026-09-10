@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-package-manager-epm API: get a package by name.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"elastic-package-manager-epm get fleet epm packages pkgname":
+  - do:
+      elastic-package-manager-epm.get_fleet_epm_packages_pkgname:
+        pkg_name: system
+  - is_true: item

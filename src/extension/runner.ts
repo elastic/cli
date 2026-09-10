@@ -19,6 +19,19 @@
 
 import { spawn } from 'node:child_process'
 import type { InstalledExtension } from './store.ts'
+import { buildExtensionEnvironment } from './env.ts'
+
+// ---------------------------------------------------------------------------
+// Test seam
+// ---------------------------------------------------------------------------
+
+type SpawnFn = typeof spawn
+let _spawn: SpawnFn = spawn
+
+/** @internal Override the spawn implementation. Pass undefined to restore default. */
+export function _testSetSpawn (fn: SpawnFn | undefined): void {
+  _spawn = fn ?? spawn
+}
 
 /**
  * Spawns the extension's entrypoint with `args`, merging `contextEnv` into
@@ -32,10 +45,10 @@ export function runExtension (
   contextEnv: Record<string, string>,
 ): Promise<number> {
   return new Promise((resolve, reject) => {
-    const child = spawn(ext.entrypoint, args, {
+    const child = _spawn(ext.entrypoint, args, {
       stdio: 'inherit',
       shell: false,
-      env: { ...process.env, ...contextEnv },
+      env: { ...buildExtensionEnvironment(process.env), ...contextEnv },
     })
     child.on('error', (err) => {
       reject(new Error(`Failed to start extension "${ext.name}" (${ext.entrypoint}): ${err.message}`))

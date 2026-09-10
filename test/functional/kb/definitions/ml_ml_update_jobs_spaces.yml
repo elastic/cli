@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana ML saved-objects API: updates jobs spaces in the default space.
+# No-arg POST; no setup or teardown required.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"ml ml-update-jobs-spaces":
+  - do:
+      ml.ml_update_jobs_spaces: {}
+  - is_true: ""

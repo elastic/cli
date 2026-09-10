@@ -1,0 +1,15 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana misc API: get the OAuth callback script.
+# Returns the JavaScript payload Kibana injects into the OAuth redirect page.
+# No parameters; just verify the endpoint responds successfully.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"misc get actions connector oauth callback script":
+  - do:
+      misc.get_actions_connector_oauth_callback_script: {}
+  - is_true: ""

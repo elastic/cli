@@ -1,5 +1,77 @@
 # Changelog
 
+## [0.4.0](https://github.com/elastic/cli/compare/v0.3.0...v0.4.0) (2026-08-21)
+
+
+### Features
+
+* **factory:** Add --yes confirmation guard for destructive commands ([#537](https://github.com/elastic/cli/issues/537)) ([07d27ac](https://github.com/elastic/cli/commit/07d27ac284c83439969cf65c12f68dcf6f871f11))
+* Load json filenames from schema manifests ([#557](https://github.com/elastic/cli/issues/557)) ([4cf1a22](https://github.com/elastic/cli/commit/4cf1a22a6d0f91d74d92658e78ec89029237a50c))
+
+
+### Bug Fixes
+
+* Binaries ([#556](https://github.com/elastic/cli/issues/556)) ([db973d9](https://github.com/elastic/cli/commit/db973d9d448a0d3c3e53d5d56fe2d3af4b0bc1ed))
+* **ci:** Write Cloud config to 0600 temp file with cleanup trap ([#536](https://github.com/elastic/cli/issues/536)) ([e4f407c](https://github.com/elastic/cli/commit/e4f407c9c728db7f1a79e6729da8b3f534a6bb2f))
+* **cli:** Parse `post-agent-builder-converse-async` SSE responses ([#548](https://github.com/elastic/cli/issues/548)) ([f09b10e](https://github.com/elastic/cli/commit/f09b10ee6e9a365dcd786258ed073caf6f83eacd))
+* **cli:** Report mistyped subcommand before options ([#504](https://github.com/elastic/cli/issues/504)) ([477bbd9](https://github.com/elastic/cli/commit/477bbd92318c641407b147187f85579569efd085))
+* **cloud:** Redact credential responses unless --show-credentials is passed ([#533](https://github.com/elastic/cli/issues/533)) ([759470b](https://github.com/elastic/cli/commit/759470b4c70e35bc300272bce411452426d0b4a4))
+* Disambiguate colliding version schema flags ([#561](https://github.com/elastic/cli/issues/561)) ([749bcb9](https://github.com/elastic/cli/commit/749bcb9ce2447c51ef5caab5cc1c6f111bfbb04c))
+* **docs:** Correct version command schema and config nav hierarchy ([#555](https://github.com/elastic/cli/issues/555)) ([8103cd4](https://github.com/elastic/cli/commit/8103cd48940d468491c610b9852842f7d7fbc86e))
+* **docs:** Remove frontmatter from cli/index.md rendered as body text ([#558](https://github.com/elastic/cli/issues/558)) ([5018375](https://github.com/elastic/cli/commit/501837557df208a2e3b3cf8e25d3d7854ea6eccc))
+* **es:** Clarify bulk ingest source format is decorative ([#521](https://github.com/elastic/cli/issues/521)) ([91f261c](https://github.com/elastic/cli/commit/91f261cab75cd2ad32bcba4286f98d12de2ef341))
+* **es:** Reject empty, dot, dotdot path segments ([#522](https://github.com/elastic/cli/issues/522)) ([1a317ce](https://github.com/elastic/cli/commit/1a317ce98d91e707fe1fb74485c7b21d7e99822c))
+* **extension:** Add --ignore-scripts to npm install and update calls ([#539](https://github.com/elastic/cli/issues/539)) ([4dc87ca](https://github.com/elastic/cli/commit/4dc87caadee30b665bcca442afa6a6fbd88744bf))
+* **extension:** Resolve symlinks in containment check ([#523](https://github.com/elastic/cli/issues/523)) ([db5fea8](https://github.com/elastic/cli/commit/db5fea8d75c2d078acd625f24f9d201ea31a1632))
+* **extension:** Scrub ambient credentials from extension subprocess environment ([#538](https://github.com/elastic/cli/issues/538)) ([7950cb0](https://github.com/elastic/cli/commit/7950cb078ff01cb2e45cde58aeee7be30c74e96c))
+* **release:** Pin packaging tools and remove cache from release workflow ([#526](https://github.com/elastic/cli/issues/526)) ([7db2ce3](https://github.com/elastic/cli/commit/7db2ce3a5f2a22efe8c42442e9ff5b1cd86f7dd7))
+* **secret-store:** Pass secrets via stdin instead of argv on macOS and Windows ([#534](https://github.com/elastic/cli/issues/534)) ([0d304a2](https://github.com/elastic/cli/commit/0d304a239277a4f4eb09db16cbc6126edb4bd321))
+* Tolerate sigpipe truncating large ai review diffs ([#547](https://github.com/elastic/cli/issues/547)) ([abcfcee](https://github.com/elastic/cli/commit/abcfcee4aaaf3e83a48d3c1c56bde9cf07c4608f))
+* Upgrade @elastic/schemas to 0.6.2 ([#531](https://github.com/elastic/cli/issues/531)) ([a9c1a64](https://github.com/elastic/cli/commit/a9c1a64a32f4266e6f133102b2296d29a69bb98c))
+* Validate name and use registry path in uninstallExtension ([#527](https://github.com/elastic/cli/issues/527)) ([e7db6ae](https://github.com/elastic/cli/commit/e7db6aec069c38a884fe59c679efcaac63d22ec6))
+* Warn to stderr when secrets passed as CLI flags ([#535](https://github.com/elastic/cli/issues/535)) ([82cae94](https://github.com/elastic/cli/commit/82cae944a53ff3e2bbfb971b3bf6d78420c19c38))
+
+## [0.3.0](https://github.com/elastic/cli/compare/v0.2.0...v0.3.0) (2026-08-10)
+
+
+### Features
+
+* **completion:** Complete context names for positional args ([#424](https://github.com/elastic/cli/issues/424)) ([3883800](https://github.com/elastic/cli/commit/388380053e4b56c15b7b18efda83d9a539ea6438))
+* **docs:** Experimental gate for search/ask, positional args, remove chat ([#457](https://github.com/elastic/cli/issues/457)) ([ef2fbdb](https://github.com/elastic/cli/commit/ef2fbdbe48d6f79e08180ec68c6a753c213065bc))
+* **helpers:** Streaming bulk-ingest with bounded memory ([#495](https://github.com/elastic/cli/issues/495)) ([4a39007](https://github.com/elastic/cli/commit/4a39007ea3b6de3c03f98af9f80469e11bd75524))
+
+
+### Bug Fixes
+
+* Add explicit permissions to GitHub Actions workflows ([#414](https://github.com/elastic/cli/issues/414)) ([252fd44](https://github.com/elastic/cli/commit/252fd44953ffe86ae19a1af8f78fd65c07b3da04))
+* **ci:** Switch ai workflows to openrouter ([#506](https://github.com/elastic/cli/issues/506)) ([4b0534c](https://github.com/elastic/cli/commit/4b0534c7bec0f20e11dd2851f30a64144b523b4f))
+* **ci:** Use node-version instead of missing .nvmrc ([8d84d45](https://github.com/elastic/cli/commit/8d84d4500e0e6a293da6357f0ecd63bc1ecdfbb7))
+* **cli:** Show banner on --help to match bare `elastic` output ([#391](https://github.com/elastic/cli/issues/391)) ([cb4becd](https://github.com/elastic/cli/commit/cb4becd1ef7818dbff23fe240e302402ee4e37aa))
+* **deps:** Update dependency commander to v15 ([#410](https://github.com/elastic/cli/issues/410)) ([7a8056f](https://github.com/elastic/cli/commit/7a8056ffd4c6d2b0ab3f81bd23658744cff97662))
+* **deps:** Update dependency csv-parse to v7 ([#469](https://github.com/elastic/cli/issues/469)) ([b23be14](https://github.com/elastic/cli/commit/b23be144ecb1a7996deb39e98319e9f41ecbb095))
+* **es:** Accept REST-style bodies for index and create ([#493](https://github.com/elastic/cli/issues/493)) ([2f2ac2f](https://github.com/elastic/cli/commit/2f2ac2fb5a645fd14918fafa67bf0bc0ac8e7f13))
+* Expose --name and --region-id flags on project create ([#476](https://github.com/elastic/cli/issues/476)) ([f8a7869](https://github.com/elastic/cli/commit/f8a7869af3c92dae3e2b8c0e61ac33e5b4adb870))
+* **factory:** Handle EAGAIN/EBADF from stdin in non-blocking environments ([#318](https://github.com/elastic/cli/issues/318)) ([14a22ef](https://github.com/elastic/cli/commit/14a22ef8c8fa5f66508b36f0bdfa8d5cf37b60cd)), closes [#311](https://github.com/elastic/cli/issues/311)
+* **factory:** Route JSON validation error through commander writeErr on Node.js 22 ([#444](https://github.com/elastic/cli/issues/444)) ([38fdb26](https://github.com/elastic/cli/commit/38fdb2647cd3a76bfeaa1016c29b34a9682b7c8d))
+* **factory:** Route stderr writes through configureOutput ([#502](https://github.com/elastic/cli/issues/502)) ([ea9a7df](https://github.com/elastic/cli/commit/ea9a7dfe977ebc4bfb90ceadb434172641c20958))
+* Hide --input-file and --dry-run on no-input read-only commands ([#487](https://github.com/elastic/cli/issues/487)) ([c98f210](https://github.com/elastic/cli/commit/c98f21047a52fd3cd0d36e98e3818292ec05e53e))
+* Human-readable text output for simple commands ([#419](https://github.com/elastic/cli/issues/419)) ([c35bce4](https://github.com/elastic/cli/commit/c35bce42e42ba164bfdd022f7a2c460f47b53d3a))
+* Improve performance of config resolver ([#478](https://github.com/elastic/cli/issues/478)) ([bddf491](https://github.com/elastic/cli/commit/bddf491670410c8fe439ec5f1b12cb99b2a74498))
+* Migrate internal schemas package to npm-hosted package ([#472](https://github.com/elastic/cli/issues/472)) ([906150b](https://github.com/elastic/cli/commit/906150b77d4e2c913376515623756696fc5c710c))
+* Wire up serverless profile to block stack-only ES namespaces ([#475](https://github.com/elastic/cli/issues/475)) ([77c7369](https://github.com/elastic/cli/commit/77c73691c5310e49bbd47dfab6eb8de2eb428eeb))
+
+
+### Performance Improvements
+
+* Small tweaks and lazy-loading to improve --help performance ([#400](https://github.com/elastic/cli/issues/400)) ([223fdd3](https://github.com/elastic/cli/commit/223fdd345852e09e816f0d75feb87285a8335fb4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @elastic/config-resolver bumped from * to 0.1.1
+
 ## [0.2.0](https://github.com/elastic/cli/compare/v0.1.1...v0.2.0) (2026-05-29)
 
 

@@ -18,16 +18,29 @@
  *   If the repo/package is not prefixed with `elastic-`, the full name is used.
  *
  * Security:
- *   All child processes are spawned with shell: false and an explicit args array.
+ *   All child processes are spawned with an explicit args array, never a shell-
+ *   interpreted string. On Windows, npm is a `.cmd` shim that Node's own
+ *   spawnSync cannot invoke without shell:true, so `run()` uses `cross-spawn`,
+ *   which resolves `.cmd`/`.bat` shims and escapes arguments itself instead of
+ *   relying on unsafe shell string concatenation.
  *   The derived entrypoint is validated to sit within the install directory.
  */
 
 import { access, chmod, constants, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { realpath as realpathCb } from 'node:fs'
 import { homedir } from 'node:os'
-import { join, isAbsolute, resolve } from 'node:path'
-import { spawnSync } from 'node:child_process'
+import { join, isAbsolute, resolve, relative } from 'node:path'
+import { sync as spawnSync } from 'cross-spawn'
+import { promisify } from 'node:util'
 import { readExtensions, upsertExtension, findExtension, removeExtension as removeFromStore } from './store.ts'
 import type { InstalledExtension } from './store.ts'
+import { buildExtensionEnvironment } from './env.ts'
+
+// fs.promises.realpath does not expand Windows 8.3 short names (e.g. `RUNNER~1`),
+// so two paths that are the same directory can resolve to different strings and
+// fail a containment check that should pass. realpath.native calls
+// GetFinalPathNameByHandle on Windows, which does expand them.
+const realpath = promisify(realpathCb.native)
 
 // ---------------------------------------------------------------------------
 // Test seams
@@ -38,6 +51,14 @@ let _extensionsDir: string | undefined
 /** @internal Override the base extensions directory. Pass undefined to restore default. */
 export function _testSetExtensionsDir (dir: string | undefined): void {
   _extensionsDir = dir
+}
+
+type RunFn = (cmd: string, args: string[], cwd: string, env?: Record<string, string>) => void
+let _runImpl: RunFn | undefined
+
+/** @internal Override the run implementation for testing. Pass undefined to restore default. */
+export function _testSetRun (impl: RunFn | undefined): void {
+  _runImpl = impl
 }
 
 // ---------------------------------------------------------------------------
@@ -109,16 +130,22 @@ function parseSource (source: string): ParsedSource {
 }
 
 /**
- * Runs a command with an explicit args array (never shell: true).
+ * Runs a command with an explicit args array. Uses `cross-spawn` so `.cmd`/`.bat`
+ * shims (e.g. npm on Windows) resolve correctly without falling back to an
+ * unescaped shell string.
  * Throws a descriptive error if the process exits non-zero or fails to start.
  */
-function run (cmd: string, args: string[], cwd: string): void {
+function run (cmd: string, args: string[], cwd: string, env?: Record<string, string>): void {
+  if (_runImpl != null) {
+    _runImpl(cmd, args, cwd, env)
+    return
+  }
   const result = spawnSync(cmd, args, {
     cwd,
     stdio: ['pipe', 'pipe', 'pipe'],
     encoding: 'utf-8',
     windowsHide: true,
-    shell: false,
+    ...(env != null ? { env } : {}),
   })
   if (result.error != null) {
     throw new Error(`Failed to run ${cmd}: ${result.error.message}`)
@@ -189,12 +216,44 @@ async function discoverGithubEntrypoint (installDir: string, baseName: string): 
   )
 }
 
-/** Asserts the entrypoint path is within the install directory (prevents symlink/config injection). */
-function assertWithinInstallDir (entrypoint: string, installDir: string): void {
-  const rel = entrypoint.startsWith(installDir + '/')
-  if (!rel) {
+/**
+ * Asserts the entrypoint path is within the install directory (prevents symlink/config
+ * injection). `resolve()` alone only normalizes `.`/`..` segments and does not follow
+ * symlinks, so a symlinked entrypoint pointing outside the install directory would pass
+ * a plain string-prefix check while still executing arbitrary code from elsewhere on
+ * disk. Both paths are resolved with `realpath` (which does follow symlinks) before the
+ * comparison so the check reflects what will actually run.
+ *
+ * Not airtight: this only checks the target at call time. Nothing prevents the
+ * entrypoint from being replaced with a symlink between this check and the
+ * later execution (TOCTOU). It closes the specific bypasses covered by the
+ * tests here, not every possible race.
+ */
+async function assertWithinInstallDir (entrypoint: string, installDir: string): Promise<void> {
+  let realEntrypoint: string
+  let realInstallDir: string
+  try {
+    [realEntrypoint, realInstallDir] = await Promise.all([
+      realpath(entrypoint),
+      realpath(installDir),
+    ])
+  } catch (err) {
+    // Both callers create installDir and write/verify the entrypoint before reaching
+    // this check, so ENOENT here means a caller invariant broke, not a normal outcome.
+    // Surface a clear message instead of letting a raw ENOENT bubble up.
+    const path = (err as NodeJS.ErrnoException).path ?? entrypoint
+    throw new Error(`Cannot verify entrypoint containment: "${path}" does not exist.`, { cause: err })
+  }
+  // Use path.relative rather than a hardcoded "/" separator so this works on
+  // Windows too, where realpath returns backslash-separated paths. A target
+  // is contained when the relative path doesn't escape upward (doesn't start
+  // with "..") and isn't absolute (which relative() returns when the paths
+  // are on different drives on Windows, i.e. no relative path exists).
+  const rel = relative(realInstallDir, realEntrypoint)
+  const within = rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
+  if (!within) {
     throw new Error(
-      `Resolved entrypoint "${entrypoint}" is outside the install directory "${installDir}". ` +
+      `Entrypoint "${entrypoint}" resolves to "${realEntrypoint}", which is outside the install directory "${realInstallDir}". ` +
       'Refusing to register this extension.'
     )
   }
@@ -218,19 +277,21 @@ export async function installExtension (source: string): Promise<{ entry: Instal
 
   let entrypoint: string
 
+  const npmEnv = buildExtensionEnvironment(process.env)
+
   if (parsed.type === 'github') {
-    run('git', ['clone', '--depth', '1', parsed.cloneUrl!, installDir], extensionsDir())
+    run('git', ['clone', '--depth', '1', parsed.cloneUrl!, installDir], extensionsDir(), npmEnv)
 
     // Build if package.json present
     const hasPkg = await readFile(join(installDir, 'package.json'), 'utf-8').then(() => true).catch(() => false)
     if (hasPkg) {
-      run('npm', ['install', '--production', '--no-fund', '--no-audit'], installDir)
+      run('npm', ['install', '--production', '--no-fund', '--no-audit', '--ignore-scripts'], installDir, npmEnv)
     }
 
     entrypoint = await discoverGithubEntrypoint(installDir, parsed.baseName)
   } else {
     // npm source
-    run('npm', ['install', '--prefix', installDir, '--no-fund', '--no-audit', parsed.package!], extensionsDir())
+    run('npm', ['install', '--prefix', installDir, '--no-fund', '--no-audit', '--ignore-scripts', parsed.package!], extensionsDir(), npmEnv)
     const binDir = join(installDir, 'node_modules', '.bin')
     const binName = parsed.baseName.startsWith('elastic-') ? parsed.baseName : `elastic-${parsed.name}`
     const candidates = [join(binDir, parsed.baseName), join(binDir, binName)]
@@ -249,7 +310,7 @@ export async function installExtension (source: string): Promise<{ entry: Instal
     entrypoint = found
   }
 
-  assertWithinInstallDir(resolve(entrypoint), resolve(installDir))
+  await assertWithinInstallDir(resolve(entrypoint), resolve(installDir))
 
   const entry: InstalledExtension = {
     name: parsed.name,
@@ -317,6 +378,8 @@ export async function createLocalExtension (name: string, targetPath?: string): 
     entrypoint = defaultEntrypoint
   }
 
+  await assertWithinInstallDir(resolve(entrypoint), resolve(installDir))
+
   const entry: InstalledExtension = {
     name,
     source: `local:${installDir}`,
@@ -332,8 +395,10 @@ export async function createLocalExtension (name: string, targetPath?: string): 
  * and deletes its entry from the registry. No-ops if the extension is not installed.
  */
 export async function uninstallExtension (name: string): Promise<void> {
-  const installDir = join(extensionsDir(), `elastic-${name}`)
-  await rm(installDir, { recursive: true, force: true })
+  assertSafeName(name)
+  const ext = await findExtension(name)
+  if (ext == null) return
+  await rm(ext.path, { recursive: true, force: true })
   await removeFromStore(name)
 }
 
@@ -354,18 +419,24 @@ export async function upgradeExtension (name: string): Promise<InstalledExtensio
 
   const parsed = parseSource(ext.source)
 
+  const npmEnv = buildExtensionEnvironment(process.env)
+
   if (parsed.type === 'github') {
-    run('git', ['pull', '--ff-only'], ext.path)
+    run('git', ['pull', '--ff-only'], ext.path, npmEnv)
     const hasPkg = await readFile(join(ext.path, 'package.json'), 'utf-8').then(() => true).catch(() => false)
     if (hasPkg) {
-      run('npm', ['install', '--production', '--no-fund', '--no-audit'], ext.path)
+      run('npm', ['install', '--production', '--no-fund', '--no-audit', '--ignore-scripts'], ext.path, npmEnv)
     }
     const entrypoint = await discoverGithubEntrypoint(ext.path, parsed.baseName)
+    await assertWithinInstallDir(resolve(entrypoint), resolve(ext.path))
     const updated: InstalledExtension = { ...ext, entrypoint: resolve(entrypoint) }
     await upsertExtension(updated)
     return updated
   } else {
-    run('npm', ['update', '--prefix', ext.path, '--no-fund', '--no-audit'], extensionsDir())
+    run('npm', ['update', '--prefix', ext.path, '--no-fund', '--no-audit', '--ignore-scripts'], extensionsDir(), npmEnv)
+    // npm update can rewrite node_modules/.bin symlinks; re-verify the stored
+    // entrypoint still resolves inside the extension's directory.
+    await assertWithinInstallDir(resolve(ext.entrypoint), resolve(ext.path))
     await upsertExtension(ext)
     return ext
   }

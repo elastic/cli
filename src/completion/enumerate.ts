@@ -32,14 +32,17 @@ export interface CompletionResult {
 export type DynamicCompleter = () => string[] | Promise<string[]>
 
 /**
- * Lookup table for dynamic completers keyed by flag long name (including `--`).
+ * Lookup table for dynamic completers keyed by flag long name (including `--`)
+ * or by command path (e.g. `"config current-context set"`).
  *
- * Returning `undefined` for an unknown flag is mandatory: the completion path
+ * Returning `undefined` for an unknown key is mandatory: the completion path
  * MUST NOT throw or block, so completers that are unavailable for the current
  * environment simply do not register themselves.
  */
 export interface DynamicCompleterRegistry {
   get(flagLong: string): DynamicCompleter | undefined
+  /** Returns a positional-argument completer for the given space-joined command path, if any. */
+  getPositional?(commandPath: string): DynamicCompleter | undefined
 }
 
 // Commander stores hidden state on an internal `_hidden` field that is not
@@ -110,6 +113,21 @@ function optionTakesArg (current: Command, root: Command, word: string): boolean
   return false
 }
 
+/**
+ * Builds a space-joined path for `cmd` excluding the root program name.
+ * e.g. the `set` subcommand under `elastic config current-context` → `"config current-context set"`.
+ */
+function getCommandPath (cmd: Command): string {
+  const parts: string[] = []
+  let c: Command | null = cmd
+  while (c != null && c.parent != null) {
+    parts.push(c.name())
+    c = c.parent
+  }
+  parts.reverse()
+  return parts.join(' ')
+}
+
 function prefixFilter (candidates: readonly string[], prefix: string): string[] {
   if (prefix === '') return [...candidates]
   return candidates.filter((c) => c.startsWith(prefix))
@@ -146,8 +164,9 @@ async function safeRun (fn: DynamicCompleter): Promise<string[]> {
  * 4. If the immediately previous token is a registered dynamic flag (e.g.
  *    `--use-context`), return that completer's candidates filtered by the
  *    current word.
- * 5. Otherwise, return the subcommand names and aliases of the deepest matched
- *    command/group, filtered by the current word.
+ * 5. Otherwise, if the deepest command is a leaf (no subcommands) and a
+ *    positional completer is registered for its path, return those candidates.
+ *    Falls back to subcommand names and aliases (empty for leaf commands).
  *
  * Result is always returned (never thrown). `directive` always carries
  * `DIRECTIVE_NO_FILE_COMP` so the shell does not fall back to filename
@@ -219,9 +238,22 @@ export async function enumerate (
     return { candidates: [], directive: DIRECTIVE_NO_FILE_COMP }
   }
 
-  const cands = collectChildren(current)
+  const children = collectChildren(current)
+  // Leaf command (no subcommands): offer a registered positional completer.
+  // Note: this fires regardless of how many positional args are already typed,
+  // so a single-positional command re-offers candidates after the first.
+  if (children.length === 0 && registry != null) {
+    const positionalCompleter = registry.getPositional?.(getCommandPath(current))
+    if (positionalCompleter != null) {
+      const cands = await safeRun(positionalCompleter)
+      return {
+        candidates: prefixFilter(cands, incomplete),
+        directive: DIRECTIVE_NO_FILE_COMP,
+      }
+    }
+  }
   return {
-    candidates: prefixFilter(cands, incomplete),
+    candidates: prefixFilter(children, incomplete),
     directive: DIRECTIVE_NO_FILE_COMP,
   }
 }

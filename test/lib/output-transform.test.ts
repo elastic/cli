@@ -71,6 +71,32 @@ describe('pickFields — dot-notation', () => {
 })
 
 // ---------------------------------------------------------------------------
+
+describe('pickFields — prototype pollution guard', () => {
+  it('ignores __proto__ path segments', () => {
+    const input = { ['__proto__']: { polluted: true } }
+    const result = pickFields(input, ['__proto__.polluted'])
+    assert.deepEqual(result, {})
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    assert.equal((({}) as any).polluted, undefined, 'Object.prototype must not be polluted')
+  })
+
+  it('ignores constructor path segments', () => {
+    const input = { constructor: { prototype: { polluted: true } } }
+    const result = pickFields(input, ['constructor.prototype.polluted'])
+    assert.deepEqual(result, {})
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    assert.equal((({}) as any).polluted, undefined, 'Object.prototype must not be polluted')
+  })
+
+  it('ignores prototype path segments', () => {
+    const input = { prototype: { polluted: true } }
+    const result = pickFields(input, ['prototype.polluted'])
+    assert.deepEqual(result, {})
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    assert.equal((({}) as any).polluted, undefined, 'Object.prototype must not be polluted')
+  })
+})
 // pickFields — literal-dotted keys (cat API style)
 // ---------------------------------------------------------------------------
 

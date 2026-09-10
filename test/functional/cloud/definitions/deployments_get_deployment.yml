@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get Deployment (GET /api/v1/deployments/{deployment_id})
+# Id for {deployment_id} is derived from deployments.list-deployments.
+# TODO: verify the response path in the `set` step against a live API.
+---
+"deployments get-deployment":
+  - do:
+      deployments.list-deployments: {}
+  - set: {deployments.0.id: deployment_id}
+  - do:
+      deployments.get-deployment:
+        deployment_id: $deployment_id

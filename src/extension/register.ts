@@ -155,6 +155,7 @@ export function registerExtensionCommands (): OpaqueCommandHandle {
       description: 'Short extension name (e.g. "local" for elastic-local)',
       required: true,
     },
+    intent: { destructive: true },
     handler: async (parsed) => handleRemove(parsed),
   })
 

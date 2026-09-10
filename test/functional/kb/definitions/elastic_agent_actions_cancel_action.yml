@@ -1,0 +1,24 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agent-actions API: cancel an in-progress agent action.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agents.get_fleet_agents: {}
+  - set: {"items.0.id": agent_id}
+  - do:
+      elastic-agent-actions.post_fleet_agents_agentid_request_diagnostics:
+        agent_id: $agent_id
+  - set: {actionId: action_id}
+---
+"elastic-agent-actions post fleet agents actions actionid cancel":
+  - do:
+      elastic-agent-actions.post_fleet_agents_actions_actionid_cancel:
+        action_id: $action_id
+  - is_true: item.id
+  - match: {item.type: CANCEL}

@@ -6,7 +6,9 @@
 import { getResolvedConfig } from '../config/store.ts'
 import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
 import { clientHeaders } from './meta.ts'
+import { YamlResponse, isYamlContentType } from './yaml-response.ts'
 
+/** Parameters for a single Elasticsearch API request. */
 export interface EsRequestParams {
   method: string
   path: string
@@ -17,6 +19,7 @@ export interface EsRequestParams {
   bulkBody?: string
 }
 
+/** Thrown when Elasticsearch responds with a non-2xx status; carries the status code and body. */
 export class EsResponseError extends Error {
   statusCode: number
   body: unknown
@@ -32,6 +35,7 @@ export class EsResponseError extends Error {
   }
 }
 
+/** Thrown when the request never reached Elasticsearch (DNS, TLS, refused connection). */
 export class EsConnectionError extends Error {
   constructor (message: string) {
     super(message)
@@ -134,6 +138,11 @@ export class EsClient {
     if (contentType.includes('application/json') || contentType.includes('application/x-ndjson')) {
       return JSON.parse(text) as T
     }
+    // YAML bodies are wrapped so the output layer prints them verbatim by default and parses
+    // them to JSON only under `--json`.
+    if (isYamlContentType(contentType)) {
+      return new YamlResponse(text) as unknown as T
+    }
     return text as unknown as T
   }
 
@@ -165,13 +174,10 @@ export function getEsClient (): EsClient {
   }
 
   const { url, auth } = es
-  const authRecord = auth != null ? auth as Record<string, unknown> : undefined
 
   let typedAuth: { api_key: string } | { username: string; password: string } | undefined
-  if (typeof authRecord?.['api_key'] === 'string') {
-    typedAuth = { api_key: authRecord['api_key'] as string }
-  } else if (typeof authRecord?.['username'] === 'string' && typeof authRecord?.['password'] === 'string') {
-    typedAuth = { username: authRecord['username'] as string, password: authRecord['password'] as string }
+  if (auth != null) {
+    typedAuth = 'api_key' in auth ? { api_key: auth.api_key } : { username: auth.username, password: auth.password }
   }
 
   _client = new EsClient(url, typedAuth)

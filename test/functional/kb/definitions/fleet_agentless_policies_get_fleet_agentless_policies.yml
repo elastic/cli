@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-agentless-policies API: list Fleet agentless policies.
+---
+requires:
+  serverless: false
+  stack: false
+---
+"fleet-agentless-policies get fleet agentless policies":
+  - do:
+      fleet-agentless-policies.get_fleet_agentless_policies: {}
+  - is_true: ""

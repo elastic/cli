@@ -26,3 +26,23 @@ describe('defaultRegistry', () => {
     for (const name of result) assert.equal(typeof name, 'string')
   })
 })
+
+describe('defaultRegistry -- positional completers', () => {
+  it('registers a completer for config current-context set', () => {
+    assert.equal(typeof defaultRegistry.getPositional?.('config current-context set'), 'function')
+  })
+
+  it('registers a completer for config context edit', () => {
+    assert.equal(typeof defaultRegistry.getPositional?.('config context edit'), 'function')
+  })
+
+  it('registers a completer for config context remove', () => {
+    assert.equal(typeof defaultRegistry.getPositional?.('config context remove'), 'function')
+  })
+
+  it('returns undefined for unregistered command paths', () => {
+    assert.equal(defaultRegistry.getPositional?.('config context add'), undefined)
+    assert.equal(defaultRegistry.getPositional?.('config context list'), undefined)
+    assert.equal(defaultRegistry.getPositional?.(''), undefined)
+  })
+})

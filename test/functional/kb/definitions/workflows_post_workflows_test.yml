@@ -1,0 +1,21 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: test a full workflow in isolation using inline YAML.
+# No persistent state is created; no teardown required.
+---
+requires:
+  serverless: true
+---
+"workflows post workflows test":
+  - do:
+      workflows.post_workflows_test:
+        body:
+          inputs: {}
+          workflowYaml: |
+            version: '1'
+            name: CLI FT Workflow Test
+            triggers:
+              - type: manual
+            steps: []
+  - is_true: ""

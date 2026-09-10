@@ -15,14 +15,14 @@
 # unavailable (known issue with some rootless/userns Docker configurations).
 #
 # Startup order:
-#   1. Start ES early so it is fully ready before Kibana connects.
-#   2. Pull Kibana + test-runner images while the CLI builds.
-#   3. Start Kibana only after the build completes (~3 min buffer for ES).
-#   4. Run the test-runner container for health checks + tests.
+#   1. Start ES, then pull Kibana while the disk is still empty of node_modules.
+#      Pulling Kibana after npm ci ENOSPCs the agent (GetImageBlob).
+#   2. Build the CLI while ES boots.
+#   3. Pull the test-runner image, start Kibana, run tests.
 
 set -euo pipefail
 
-STACK_VERSION="${STACK_VERSION:-9.3.0}"
+STACK_VERSION="${STACK_VERSION:-9.5.3}"
 ES_CONTAINER_NAME="elastic-cli-kb-es"
 KB_CONTAINER_NAME="elastic-cli-kb"
 TEST_RUNNER_NAME="elastic-cli-kb-runner"
@@ -31,13 +31,19 @@ NODE_RUNNER_IMAGE="node:${NODE_VERSION}-bookworm-slim"
 
 cleanup() {
   echo "--- ES logs (last 50 lines)"
-  docker logs "$ES_CONTAINER_NAME" 2>&1 | tail -50 || true
+  if docker inspect "$ES_CONTAINER_NAME" >/dev/null 2>&1; then
+    docker logs "$ES_CONTAINER_NAME" 2>&1 | tail -50 || true
+  else
+    echo "(container never started)"
+  fi
   echo "--- Kibana logs (last 50 lines)"
-  docker logs "$KB_CONTAINER_NAME" 2>&1 | tail -50 || true
+  if docker inspect "$KB_CONTAINER_NAME" >/dev/null 2>&1; then
+    docker logs "$KB_CONTAINER_NAME" 2>&1 | tail -50 || true
+  else
+    echo "(container never started)"
+  fi
   echo "--- Cleaning up"
-  docker rm -f "$TEST_RUNNER_NAME" 2>/dev/null || true
-  docker rm -f "$KB_CONTAINER_NAME" 2>/dev/null || true
-  docker rm -f "$ES_CONTAINER_NAME" 2>/dev/null || true
+  docker rm -f "$TEST_RUNNER_NAME" "$KB_CONTAINER_NAME" "$ES_CONTAINER_NAME" 2>/dev/null || true
   docker network rm "$NETWORK_NAME" 2>/dev/null || true
 }
 trap cleanup EXIT
@@ -48,6 +54,16 @@ KIBANA_ENCRYPTION_KEY="xP9mfMqnRrNHmSmzPoBtLQvLFzYdHxKj" # gitleaks:allow
 
 ES_IMAGE="docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}"
 KB_IMAGE="docker.elastic.co/kibana/kibana:${STACK_VERSION}"
+
+disk_report () {
+  echo "--- Disk"
+  df -h / /var/lib/docker 2>/dev/null || df -h /
+  docker system df 2>/dev/null || true
+}
+
+echo "--- Pruning unused Docker data"
+docker system prune -af --volumes || true
+disk_report
 
 # ── Docker network ───────────────────────────────────────────────────────────
 echo "--- Creating Docker network"
@@ -62,7 +78,8 @@ echo "--- Loading Elasticsearch image"
 ES_CACHE_DIR="${ES_CACHE_DIR:-}"
 if [[ -n "$ES_CACHE_DIR" ]] && compgen -G "$ES_CACHE_DIR/elasticsearch-$STACK_VERSION*.tar.gz" > /dev/null 2>&1; then
   echo "  Loading from agent cache: $ES_CACHE_DIR"
-  docker load < "$(ls "$ES_CACHE_DIR/elasticsearch-$STACK_VERSION"*.tar.gz | head -1)"
+  ES_TARBALLS=("$ES_CACHE_DIR/elasticsearch-$STACK_VERSION"*.tar.gz)
+  docker load < "${ES_TARBALLS[0]}"
 else
   docker pull "$ES_IMAGE"
 fi
@@ -78,21 +95,19 @@ docker run \
   --env "ELASTIC_PASSWORD=${ES_PASSWORD}" \
   --env "xpack.security.http.ssl.enabled=false" \
   --env "xpack.security.transport.ssl.enabled=false" \
+  --env "cluster.routing.allocation.disk.threshold_enabled=false" \
+  --env "ingest.geoip.downloader.enabled=false" \
+  --env "cluster.deprecation_indexing.enabled=false" \
   --env "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
   --detach \
   --rm \
   "$ES_IMAGE"
 
-# Pull Kibana and the test-runner images while ES boots and the CLI builds.
-echo "--- Pulling Kibana image (background)"
-docker pull "$KB_IMAGE" &
-KB_PULL_PID=$!
+echo "--- Pulling Kibana image"
+docker pull "$KB_IMAGE"
+disk_report
 
-echo "--- Pulling test-runner image (background)"
-docker pull "$NODE_RUNNER_IMAGE" &
-NODE_PULL_PID=$!
-
-# ── Build CLI (concurrent with ES startup + image pulls) ────────────────────
+# ── Build CLI (concurrent with ES startup) ──
 
 echo "--- Setting up Node.js ${NODE_VERSION}"
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
@@ -132,8 +147,8 @@ npm run build
 # ES API. A one-shot Node.js container on the same network handles this without
 # needing the host to reach ES directly.
 
-echo "--- Waiting for node runner image pull to finish"
-wait "$NODE_PULL_PID"
+echo "--- Pulling test-runner image"
+docker pull "$NODE_RUNNER_IMAGE"
 
 echo "--- Configuring kibana_system user"
 docker run \
@@ -146,15 +161,13 @@ docker run \
 
 # ── Start Kibana ─────────────────────────────────────────────────────────────
 
-echo "--- Waiting for Kibana image pull to finish"
-wait "$KB_PULL_PID"
-
 echo "--- Starting Kibana ${STACK_VERSION}"
 # Intentionally no --rm so crash logs are always available in cleanup.
 docker run \
   --name "$KB_CONTAINER_NAME" \
   --network "$NETWORK_NAME" \
   --network-alias kibana \
+  --volume "$(pwd)/.buildkite/kibana-ci.yml:/usr/share/kibana/config/kibana.yml:ro" \
   --env "ELASTICSEARCH_HOSTS=http://elasticsearch:9200" \
   --env "ELASTICSEARCH_USERNAME=kibana_system" \
   --env "ELASTICSEARCH_PASSWORD=${ES_PASSWORD}" \

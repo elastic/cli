@@ -5,10 +5,11 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { z } from 'zod'
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseTestFile } from '../parser.ts'
+import type { TestFile } from '../types.ts'
 import { generateScript, generateRunner } from '../generator.ts'
 import type { EsApiDefinition } from '../../../src/es/types.ts'
 
@@ -21,9 +22,7 @@ const testDefs: EsApiDefinition[] = [
     description: 'Create an index',
     method: 'PUT',
     path: '/{index}',
-    input: z.object({
-      index: z.string().meta({ found_in: 'path' })
-    })
+    input: { type: 'object', properties: { index: { type: 'string', 'x-found-in': 'path' } }, required: ['index'] }
   },
   {
     name: 'delete',
@@ -31,46 +30,51 @@ const testDefs: EsApiDefinition[] = [
     description: 'Delete an index',
     method: 'DELETE',
     path: '/{index}',
-    input: z.object({
-      index: z.string().meta({ found_in: 'path' })
-    })
+    input: { type: 'object', properties: { index: { type: 'string', 'x-found-in': 'path' } }, required: ['index'] }
   },
   {
     name: 'get',
     description: 'Get a document',
     method: 'GET',
     path: '/{index}/_doc/{id}',
-    input: z.object({
-      id: z.string().meta({ found_in: 'path' }),
-      index: z.string().meta({ found_in: 'path' })
-    })
+    input: { type: 'object', properties: { id: { type: 'string', 'x-found-in': 'path' }, index: { type: 'string', 'x-found-in': 'path' } }, required: ['id', 'index'] }
   },
   {
     name: 'index',
     description: 'Index a document',
     method: 'POST',
     path: '/{index}/_doc',
-    input: z.object({
-      index: z.string().meta({ found_in: 'path' })
-    })
+    input: { type: 'object', properties: { index: { type: 'string', 'x-found-in': 'path' }, document: { type: 'object', 'x-found-in': 'body' } }, required: ['index'] }
   },
   {
     name: 'count',
     description: 'Count documents',
     method: 'GET',
     path: '/{index}/_count',
-    input: z.object({
-      index: z.string().meta({ found_in: 'path' })
-    })
+    input: { type: 'object', properties: { index: { type: 'string', 'x-found-in': 'path' } }, required: ['index'] }
   },
   {
     name: 'bulk',
     description: 'Bulk operations',
     method: 'POST',
     path: '/_bulk',
-    input: z.object({
-      refresh: z.boolean().optional().meta({ found_in: 'query' })
-    })
+    input: { type: 'object', properties: { refresh: { type: 'boolean', 'x-found-in': 'query' }, operations: { type: 'array', 'x-found-in': 'body' } } }
+  },
+  {
+    name: 'import-list-items',
+    namespace: 'security-lists-api',
+    description: 'Import list items',
+    method: 'POST',
+    path: '/api/lists/items/_import',
+    input: { type: 'object', properties: { file: { type: 'string', 'x-found-in': 'body' } }, required: ['file'] }
+  },
+  {
+    name: 'bulk-remove',
+    namespace: 'agents',
+    description: 'Bulk remove agents',
+    method: 'POST',
+    path: '/agents/_bulk_remove',
+    input: { type: 'object', properties: { agents: { type: 'array', 'x-found-in': 'body' } }, required: ['agents'] }
   }
 ]
 
@@ -134,8 +138,8 @@ describe('generateScript', () => {
     const testFile = parseTestFile(content, 'get.yml')
     const result = generateScript(testFile, testDefs)
     assert.ok(
-      result.script.includes('$ELASTIC stack es index --index get_test'),
-      'should emit the index command even when body has no matching schema args'
+      result.script.includes('$ELASTIC stack es index --index get_test --document'),
+      'should emit the index command with the body routed to the document flag'
     )
   })
 
@@ -144,6 +148,22 @@ describe('generateScript', () => {
     const testFile = parseTestFile(content, 'catch.yml')
     const result = generateScript(testFile, testDefs)
     assert.ok(result.script.includes('# SKIPPED: catch not supported'))
+  })
+
+  it('expands $var references inside a whole-body arg', () => {
+    const content = readFileSync(join(fixturesDir, 'body-var.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'body-var.yml')
+    const result = generateScript(testFile, testDefs)
+    // The body maps to the single --document flag; the $doc_id reference must
+    // be emitted as an expanding "$DOC_ID" break-out, not a literal $doc_id.
+    assert.ok(
+      result.script.includes('"$DOC_ID"'),
+      'whole-body $var must expand to the bash variable'
+    )
+    assert.ok(
+      !result.script.includes('$doc_id'),
+      'literal $doc_id must not survive into the generated script'
+    )
   })
 
   it('generates comparison assertions', () => {
@@ -177,6 +197,17 @@ describe('generateScript', () => {
     assert.ok(
       body.some((l) => l === ':'),
       'teardown body with only skipped steps must contain a ":" no-op'
+    )
+  })
+
+  it('initializes teardown stash vars so the EXIT trap cannot abort on set -u', () => {
+    const content = readFileSync(join(fixturesDir, 'teardown-var.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'teardown-var.yml')
+    const result = generateScript(testFile, testDefs)
+    const beforeFn = result.script.split('teardown() {')[0]
+    assert.ok(
+      beforeFn.includes('ID=""'),
+      'stash vars referenced by teardown must be initialized before the trap'
     )
   })
 
@@ -228,12 +259,264 @@ describe('generateScript', () => {
     assert.ok(result.script.includes('echo "PASS: get.yml"'))
   })
 
+  it('skipEmptySet retries bare array id then skips when empty', () => {
+    const testFile: TestFile = {
+      sourceFile: 'list.yml',
+      requires: { serverless: true, stack: true },
+      setup: [],
+      teardown: [],
+      tests: [{
+        name: 'get item',
+        steps: [
+          { kind: 'do', action: 'count', params: { index: 'x' }, body: undefined },
+          { kind: 'set', assignments: { 'regions.0.id': 'id' } }
+        ]
+      }]
+    }
+    const result = generateScript(testFile, testDefs, { skipEmptySet: true })
+    assert.ok(result.script.includes('try (.regions[0].id // empty) catch empty'))
+    assert.ok(result.script.includes('if type=="array" then .[0].id // empty else .items[0].id // empty end'))
+    assert.ok(result.script.includes('SKIP: no id in list response'))
+    assert.ok(result.script.includes('exit 0'))
+    assert.equal(
+      execFileSync('jq', ['-r', 'try (.regions[0].id // empty) catch empty'], {
+        input: '[{"id":"r1"}]',
+        encoding: 'utf8'
+      }).trim(),
+      ''
+    )
+    const fallback = 'if type=="array" then .[0].id // empty else .items[0].id // empty end'
+    assert.equal(
+      execFileSync('jq', ['-r', fallback], { input: '[{"id":"r1"}]', encoding: 'utf8' }).trim(),
+      'r1'
+    )
+    assert.equal(
+      execFileSync('jq', ['-r', fallback], { input: '{"items":[{"id":"p1"}]}', encoding: 'utf8' }).trim(),
+      'p1'
+    )
+    assert.equal(
+      execFileSync('jq', ['-r', 'try (.deployments[0].id // empty) catch empty'], {
+        input: '{"deployments":[]}',
+        encoding: 'utf8'
+      }).trim(),
+      ''
+    )
+  })
+
+  it('does not skip empty set extractions by default', () => {
+    const testFile: TestFile = {
+      sourceFile: 'list.yml',
+      requires: { serverless: true, stack: true },
+      setup: [],
+      teardown: [],
+      tests: [{
+        name: 'get item',
+        steps: [
+          { kind: 'do', action: 'count', params: { index: 'x' }, body: undefined },
+          { kind: 'set', assignments: { 'regions.0.id': 'id' } }
+        ]
+      }]
+    }
+    const result = generateScript(testFile, testDefs)
+    assert.equal(result.script.includes('SKIP: no id in list response'), false)
+    assert.equal(result.script.includes('.[0].id // empty'), false)
+    assert.equal(result.script.includes('FAIL: setup produced empty ID'), false)
+  })
+
+  it('fails fast when a reused set capture is empty or null', () => {
+    const content = readFileSync(join(fixturesDir, 'get.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'get.yml')
+    const result = generateScript(testFile, testDefs)
+    const guard = '[ -n "$ID" ] && [ "$ID" != "null" ] || { echo "FAIL: setup produced empty ID"; exit 1; }'
+    assert.ok(result.script.includes(guard), 'must emit a fail-fast guard for reused $id')
+
+    const setLine = "ID=$(echo \"$RESPONSE\" | jq -r '._id')"
+    assert.ok(result.script.includes(setLine))
+    const snippet = `set -euo pipefail\n${setLine}\n${guard}\n`
+    const run = (response: string): { status: number, out: string } => {
+      try {
+        const out = execFileSync('bash', ['-c', snippet], {
+          encoding: 'utf8',
+          env: { ...process.env, RESPONSE: response },
+          stdio: ['ignore', 'pipe', 'pipe']
+        })
+        return { status: 0, out }
+      } catch (err) {
+        const e = err as { status?: number, stdout?: string, stderr?: string }
+        return { status: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}` }
+      }
+    }
+    assert.equal(run('{"_id":"abc"}').status, 0)
+    const empty = run('{}')
+    assert.equal(empty.status, 1)
+    assert.match(empty.out, /FAIL: setup produced empty ID/)
+    const nul = run('{"_id":null}')
+    assert.equal(nul.status, 1)
+    assert.match(nul.out, /FAIL: setup produced empty ID/)
+  })
+
+  it('emits the empty set guard for a var reused in a nested body', () => {
+    const testFile: TestFile = {
+      sourceFile: 'fleet.yml',
+      requires: { serverless: true, stack: true },
+      setup: [
+        { kind: 'do', action: 'count', params: { index: 'x' }, body: undefined },
+        { kind: 'set', assignments: { 'items.0.id': 'agent_id' } }
+      ],
+      teardown: [],
+      tests: [{
+        name: 'bulk',
+        steps: [
+          { kind: 'do', action: 'agents.bulk-remove', params: {}, body: { agents: ['$agent_id'] } }
+        ]
+      }]
+    }
+    const result = generateScript(testFile, testDefs)
+    assert.ok(result.script.includes('FAIL: setup produced empty AGENT_ID'))
+  })
+
+  it('does not emit a fail-fast set guard when skipEmptySet skips instead', () => {
+    const testFile: TestFile = {
+      sourceFile: 'list.yml',
+      requires: { serverless: true, stack: true },
+      setup: [],
+      teardown: [],
+      tests: [{
+        name: 'get item',
+        steps: [
+          { kind: 'do', action: 'count', params: { index: 'x' }, body: undefined },
+          { kind: 'set', assignments: { 'regions.0.id': 'id' } },
+          { kind: 'do', action: 'get', params: { index: 'x', id: '$id' }, body: undefined }
+        ]
+      }]
+    }
+    const result = generateScript(testFile, testDefs, { skipEmptySet: true })
+    assert.equal(result.script.includes('FAIL: setup produced empty ID'), false)
+    assert.ok(result.script.includes('SKIP: no id in list response'))
+  })
+
+  it('skipNotFound wraps do-steps to skip 404 errors', () => {
+    const content = readFileSync(join(fixturesDir, 'get.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'get.yml')
+    const result = generateScript(testFile, testDefs, { skipNotFound: true })
+    assert.ok(result.script.includes('set +e'))
+    assert.ok(result.script.includes('elastic-cli-do-err.$$'))
+    assert.ok(result.script.includes('not available'))
+    assert.ok(result.script.includes('Could not determine the version'))
+  })
+
+  it('does not wrap do-steps for 404 by default', () => {
+    const content = readFileSync(join(fixturesDir, 'get.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'get.yml')
+    const result = generateScript(testFile, testDefs)
+    assert.equal(result.script.includes('not available'), false)
+    assert.equal(result.script.includes('elastic-cli-do-err.$$'), false)
+  })
+
   it('tracks skipped actions for unregistered APIs', () => {
     const content = readFileSync(join(fixturesDir, 'get.yml'), 'utf-8')
     const testFile = parseTestFile(content, 'get.yml')
     const result = generateScript(testFile, [])
     assert.ok(result.skippedActions.length > 0)
     assert.ok(result.skippedActions.includes('indices.create'))
+  })
+
+  it('skips an optional teardown do when its stash var is empty', () => {
+    const testFile: TestFile = {
+      sourceFile: 'teardown-empty.yml',
+      requires: { serverless: true, stack: true },
+      setup: [],
+      teardown: [{
+        kind: 'do',
+        action: 'indices.delete',
+        params: { index: '$id' },
+        ignore: [404]
+      }],
+      tests: [{
+        name: 'create',
+        steps: [{ kind: 'do', action: 'indices.create', params: { index: 'x' } }]
+      }]
+    }
+    const result = generateScript(testFile, testDefs)
+    assert.match(result.script, /if \[ -n "\$ID" \]; then/)
+    assert.match(result.script, /RESPONSE=\$\(.*indices delete.*\) \|\| true/)
+  })
+
+  it('does not guard an optional do on a ref bound to an optional field', () => {
+    // Required `index` is a literal (always present); `document` is optional and
+    // references an unset var. The optional ref must not gate the call — the
+    // delete/index should still run, matching the ignore-404 + `$routing` case.
+    const testFile: TestFile = {
+      sourceFile: 'optional-ref.yml',
+      requires: { serverless: true, stack: true },
+      setup: [],
+      teardown: [],
+      tests: [{
+        name: 'index',
+        steps: [{
+          kind: 'do',
+          action: 'index',
+          params: { index: 'real_index' },
+          body: { document: '$doc' },
+          ignore: [404]
+        }]
+      }]
+    }
+    const result = generateScript(testFile, testDefs)
+    assert.doesNotMatch(result.script, /\[ -n "\$DOC" \]/)
+    assert.match(result.script, /RESPONSE=\$\(.*index.*\) \|\| true/)
+  })
+
+  it('binds write_temp before the upload flag and the file exists', () => {
+    const content = readFileSync(join(fixturesDir, 'write-temp.yml'), 'utf-8')
+    const testFile = parseTestFile(content, 'write-temp.yml')
+    const result = generateScript(testFile, testDefs)
+    const writeAt = result.script.indexOf('ITEMS_FILE=')
+    const flagAt = result.script.indexOf('--file "$ITEMS_FILE"')
+    assert.ok(writeAt >= 0, 'must assign ITEMS_FILE')
+    assert.ok(flagAt > writeAt, 'assignment must precede --file "$ITEMS_FILE"')
+    assert.match(result.script, /ITEMS_FILE=\$\(mktemp -d\)\/fixture\.txt/)
+    assert.match(result.script, /cat > "\$ITEMS_FILE" <<'CLI_FT_WRITE_TEMP_EOF'/)
+    assert.match(result.script, /test-import-value/)
+    assert.match(result.script, /\[ -n "\$ITEMS_FILE" \] && rm -rf -- "\$\(dirname -- "\$ITEMS_FILE"\)"/)
+
+    const start = result.script.indexOf('ITEMS_FILE=$(mktemp')
+    const closeAt = result.script.indexOf('\nCLI_FT_WRITE_TEMP_EOF\n', start)
+    assert.ok(closeAt > start, 'must find the closing heredoc delimiter')
+    const heredocEnd = closeAt + '\nCLI_FT_WRITE_TEMP_EOF'.length
+    const snippet = 'set -euo pipefail\n' + result.script.slice(start, heredocEnd + 1) +
+      '[ -n "$ITEMS_FILE" ] || exit 2\n[ -f "$ITEMS_FILE" ] || exit 3\n' +
+      'grep -qx "test-import-value" "$ITEMS_FILE" || exit 4\n'
+    const ran = execFileSync('bash', ['-c', snippet], { encoding: 'utf8' })
+    assert.equal(ran, '')
+  })
+
+  it('throws UnmappedBodyKeyError when a body key has no matching CLI flag', () => {
+    // 'document' routes to index's body-typed arg; 'legacy_alias_field' has
+    // no schema-derived match — a partial mapping, matching the real-world
+    // gap where ES accepts a deprecated field alias the current schema
+    // doesn't declare.
+    const testFile: TestFile = {
+      sourceFile: 'unmapped-body.yml',
+      requires: { serverless: true, stack: true },
+      setup: [],
+      teardown: [],
+      tests: [{
+        name: 'unmapped body key',
+        steps: [
+          {
+            kind: 'do',
+            action: 'index',
+            params: { index: 'x' },
+            body: { document: { name: 'test' }, legacy_alias_field: ['a'] }
+          }
+        ]
+      }]
+    }
+    assert.throws(
+      () => generateScript(testFile, testDefs),
+      /unmapped body key\(s\) \[legacy_alias_field\]/
+    )
   })
 })
 
@@ -250,5 +533,45 @@ describe('generateRunner', () => {
   it('exits 1 on failures', () => {
     const runner = generateRunner(['test.sh'])
     assert.ok(runner.includes('exit 1'))
+  })
+
+  it('bare string paths always run (guard true true)', () => {
+    const runner = generateRunner(['plain.sh'])
+    assert.ok(runner.includes('if should_run false false; then'))
+  })
+})
+
+describe('shell injection prevention in match assertions', () => {
+  it('escapes shell metacharacters in assertion path labels', () => {
+    const testFile = {
+      sourceFile: 'injection.yml',
+      requires: { serverless: true, stack: true },
+      setup: [],
+      teardown: [],
+      tests: [{
+        name: 'injection test',
+        steps: [
+          { kind: 'do' as const, action: 'get', params: { index: 'x', id: '1' }, body: undefined },
+          { kind: 'match' as const, assertions: { '$(whoami)': 'safe' } },
+          { kind: 'match' as const, assertions: { '`rm -rf /`': 'safe' } },
+          { kind: 'match' as const, assertions: { 'field"$(id)': 'safe' } },
+        ]
+      }]
+    }
+    const result = generateScript(testFile, testDefs)
+    assert.ok(
+      result.script.includes('expected \\$\\(whoami\\)'),
+      'should contain escaped \\$\\(whoami\\) in FAIL message label'
+    )
+
+    assert.ok(
+      result.script.includes('expected \\`rm'),
+      'should contain escaped backtick in FAIL message label'
+    )
+
+    assert.ok(
+      result.script.includes('expected field\\"\\$\\(id\\)'),
+      'should contain escaped double quote and $ in FAIL message label'
+    )
   })
 })

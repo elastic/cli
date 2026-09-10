@@ -170,6 +170,16 @@ describe('resolveContext', () => {
     assert.ok(!('contexts' in resolved), 'resolved output must not contain other contexts')
     assert.ok(!('current_context' in resolved), 'resolved output must not contain current_context')
   })
+
+  it('propagates root-level telemetry:false into the ResolvedConfig', () => {
+    const resolved = resolveContext({ ...VALID_CONFIG_OBJECT, telemetry: false }, 'local')
+    assert.equal(resolved.telemetry, false)
+  })
+
+  it('omits telemetry when absent (defaults to enabled downstream)', () => {
+    const resolved = resolveContext(VALID_CONFIG_OBJECT, 'local')
+    assert.ok(!('telemetry' in resolved))
+  })
 })
 
 // ---------------------------------------------------------------------------

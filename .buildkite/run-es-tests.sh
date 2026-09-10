@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-STACK_VERSION="${STACK_VERSION:-9.3.0}"
+STACK_VERSION="${STACK_VERSION:-9.5.3}"
 ES_CONTAINER_NAME="elastic-cli-es-test"
 NETWORK_NAME="elastic-cli-test-net"
 TESTS_REPO="https://github.com/elastic/elasticsearch-clients-tests.git"
@@ -48,8 +48,9 @@ echo "Using jq $(jq --version)"
 echo "--- Installing dependencies"
 npm ci
 
-# Per-endpoint Zod schemas (#171) make tsc's declaration emit exceed the 2 GB
-# default Node heap. Match the GitHub Actions ceiling so build and tests agree.
+# Per-endpoint Zod schemas (#171) that once required this are gone, but tsc
+# build still peaks around 3.7 GB locally; match the GitHub Actions ceiling
+# so build and tests agree.
 export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=6144"
 
 echo "--- Building CLI"
@@ -70,6 +71,8 @@ docker run \
   --env "xpack.security.enabled=false" \
   --env "xpack.license.self_generated.type=trial" \
   --env "action.destructive_requires_name=false" \
+  --env "ingest.geoip.downloader.enabled=false" \
+  --env "cluster.deprecation_indexing.enabled=false" \
   --env "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
   --detach \
   --rm \
@@ -105,7 +108,7 @@ EOF
 export ELASTIC_CLI_CONFIG_FILE="$CI_CONFIG_FILE"
 
 echo "--- Generating functional test scripts"
-npx tsx codegen/functional/index.ts --tests-dir elasticsearch-clients-tests/tests
+npx tsx codegen/functional/es.ts --tests-dir elasticsearch-clients-tests/tests
 
 echo "+++ Running ES functional tests"
 npm run test:functional:es

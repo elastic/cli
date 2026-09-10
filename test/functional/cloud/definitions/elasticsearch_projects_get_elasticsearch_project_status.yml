@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get the status of an Elasticsearch project (GET /api/v1/serverless/projects/elasticsearch/{id}/status)
+# Id for {id} is derived from elasticsearch-projects.list-elasticsearch-projects.
+# TODO: verify the response path in the `set` step against a live API.
+---
+"elasticsearch-projects get-elasticsearch-project-status":
+  - do:
+      elasticsearch-projects.list-elasticsearch-projects: {}
+  - set: {projects.0.id: id}
+  - do:
+      elasticsearch-projects.get-elasticsearch-project-status:
+        id: $id

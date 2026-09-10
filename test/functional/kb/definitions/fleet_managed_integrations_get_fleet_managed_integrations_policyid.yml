@@ -1,0 +1,35 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-managed-integrations API: get a managed integration by policy ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-package-manager-epm.get_fleet_epm_packages_pkgname:
+        pkg_name: system
+  - set: {"item.version": pkg_version}
+  - do:
+      fleet-managed-integrations.post_fleet_managed_integrations:
+        body:
+          name: cli-ft-managed-integration-get
+          package:
+            name: system
+            version: $pkg_version
+  - set: {"item.id": policy_id}
+---
+teardown:
+  - do:
+      fleet-managed-integrations.delete_fleet_managed_integrations_policyid:
+        policy_id: $policy_id
+        ignore: [404]
+---
+"fleet-managed-integrations get fleet managed integrations policyid":
+  - do:
+      fleet-managed-integrations.get_fleet_managed_integrations_policyid:
+        policy_id: $policy_id
+  - is_true: item.id
+  - is_true: item.name

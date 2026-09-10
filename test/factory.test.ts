@@ -14,11 +14,21 @@ import type {
   CommandConfig,
   GroupConfig,
   OpaqueCommandHandle,
-} from '../src/factory.ts'
-import { defineCommand, defineGroup, _testSetStdinReader, isCommandAllowed, hideBlockedCommands, configureJsonHelp } from '../src/factory.ts'
+} from '../src/factory-core.ts'
+import { defineGroup, isCommandAllowed, hideBlockedCommands, configureJsonHelp } from '../src/factory-core.ts'
+import { defineCommand, _testSetStdinReader } from '../src/factory.ts'
 import { setResolvedConfig, _testResetConfig } from '../src/config/store.ts'
+import { YamlResponse } from '../src/lib/yaml-response.ts'
 import { Command } from 'commander'
-import { z } from 'zod'
+
+/** Build a JSON Schema for test use. */
+function jsonSchema(
+  properties: Record<string, Record<string, unknown>>,
+  required: string[] = []
+): Record<string, unknown> {
+  return { type: 'object', properties, ...(required.length > 0 ? { required } : {}) }
+}
+
 describe('factory types', () => {
   it('OptionDefinition accepts required fields', () => {
     const opt: OptionDefinition = {
@@ -909,11 +919,11 @@ describe('defineCommand', () => {
   })
 
   describe('JSON input support', () => {
-    it('registers --input-file <path> option when input is a Zod schema', () => {
+    it('registers --input-file <path> option when input is a JSON Schema', () => {
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
-        input: z.object({ q: z.string() }),
+        input: jsonSchema({ q: { type: 'string' } }, ['q']),
         handler: () => ({}),
       })
       const helpText = cmd.helpInformation()
@@ -935,7 +945,7 @@ describe('defineCommand', () => {
         () => defineCommand({
           name: 'query',
           description: 'Run a query',
-          input: z.object({ q: z.string() }),
+          input: jsonSchema({ q: { type: 'string' } }, ['q']),
           options: [{ long: 'input-file', description: 'A conflicting option' }],
           handler: () => ({}),
         }),
@@ -954,13 +964,15 @@ describe('defineCommand', () => {
   })
 
   describe('invalid input config', () => {
-    it('throws when input is a plain object (not a ZodType)', () => {
+    it('throws when input is a plain object without type or properties (not a JSON Schema)', () => {
+      // { index: 'my-index' } looks like a properties map but is not a valid JSON Schema.
+      // Without this guard it would silently accept any input.
       assert.throws(
         // @ts-expect-error intentional bad input for runtime validation test
-        () => defineCommand({ name: 'search', description: 'Search', input: { index: 'my-index' }, handler: () => ({}) }),
+        () => defineCommand({ name: 'search', description: 'Search', input: { index: 'my-index' } as never, handler: () => ({}) }),
         (e: unknown) => {
           assert.ok(e instanceof Error)
-          assert.match(e.message, /command "search": input must be a Zod schema/)
+          assert.match((e as Error).message, /input must be a JSON Schema object/)
           return true
         },
       )
@@ -972,7 +984,7 @@ describe('defineCommand', () => {
         () => defineCommand({ name: 'search', description: 'Search', input: 'schema' as never, handler: () => ({}) }),
         (e: unknown) => {
           assert.ok(e instanceof Error)
-          assert.match(e.message, /command "search": input must be a Zod schema/)
+          assert.match(e.message, /command "search": input must be a JSON Schema object/)
           return true
         },
       )
@@ -984,7 +996,7 @@ describe('defineCommand', () => {
         () => defineCommand({ name: 'search', description: 'Search', input: 42 as never, handler: () => ({}) }),
         (e: unknown) => {
           assert.ok(e instanceof Error)
-          assert.match(e.message, /command "search": input must be a Zod schema/)
+          assert.match(e.message, /command "search": input must be a JSON Schema object/)
           return true
         },
       )
@@ -1017,7 +1029,7 @@ describe('defineCommand', () => {
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
-        input: z.object({ cluster: z.string(), shards: z.number() }),
+        input: jsonSchema({ cluster: { type: 'string' }, shards: { type: 'number' } }, ['cluster', 'shards']),
         handler: (parsed) => { received.push(parsed); return {} },
       })
       await invokeAsync(cmd, ['--input-file', filePath])
@@ -1030,7 +1042,7 @@ describe('defineCommand', () => {
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
-        input: z.object({ q: z.string() }),
+        input: jsonSchema({ q: { type: 'string' } }, ['q']),
         handler: () => ({}),
       })
       const err = await captureErrAsync(cmd, ['--input-file', nonexistent])
@@ -1043,7 +1055,7 @@ describe('defineCommand', () => {
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
-        input: z.object({ q: z.string() }),
+        input: jsonSchema({ q: { type: 'string' } }, ['q']),
         handler: () => ({}),
       })
       const err = await captureErrAsync(cmd, ['--input-file', filePath])
@@ -1056,7 +1068,7 @@ describe('defineCommand', () => {
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
-        input: z.object({ q: z.string() }),
+        input: jsonSchema({ q: { type: 'string' } }, ['q']),
         handler: () => ({}),
       })
       const err = await captureErrAsync(cmd, ['--input-file', filePath])
@@ -1067,7 +1079,7 @@ describe('defineCommand', () => {
       const cmd = defineCommand({
         name: 'query',
         description: 'Run a query',
-        input: z.object({ q: z.string() }),
+        input: jsonSchema({ q: { type: 'string' } }, ['q']),
         handler: () => ({}),
       })
       const err = await captureErrAsync(cmd, [])
@@ -1081,7 +1093,7 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'query',
           description: 'Run a query',
-          input: z.object({ cluster: z.string(), shards: z.number() }),
+          input: jsonSchema({ cluster: { type: 'string' }, shards: { type: 'number' } }, ['cluster', 'shards']),
           handler: (parsed) => { received.push(parsed); return {} },
         })
         await invokeAsync(cmd, ['--input-file', '-'])
@@ -1098,7 +1110,7 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'query',
           description: 'Run a query',
-          input: z.object({ q: z.string() }),
+          input: jsonSchema({ q: { type: 'string' } }, ['q']),
           handler: () => ({}),
         })
         const err = await captureErrAsync(cmd, ['--input-file', '-'])
@@ -1114,7 +1126,7 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'query',
           description: 'Run a query',
-          input: z.object({ q: z.string() }),
+          input: jsonSchema({ q: { type: 'string' } }, ['q']),
           handler: () => ({}),
         })
         const err = await captureErrAsync(cmd, ['--input-file', '-'])
@@ -1142,7 +1154,7 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'search',
           description: 'Run a search',
-        input: z.object({ index: z.string(), size: z.number() }),
+        input: jsonSchema({ index: { type: 'string' }, size: { type: 'number' } }, ['index', 'size']),
           handler: (parsed) => { received.push(parsed); return {} },
         })
         await invokeAsync(cmd, [])
@@ -1159,7 +1171,7 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'search',
           description: 'Run a search',
-        input: z.object({ q: z.string() }),
+        input: jsonSchema({ q: { type: 'string' } }, ['q']),
           handler: () => ({}),
         })
         const err = await captureErrAsync(cmd, [])
@@ -1176,12 +1188,64 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'search',
           description: 'Run a search',
-          input: z.object({ q: z.string().optional() }),
+          input: jsonSchema({ q: { type: 'string' } }),
           handler: (p) => { received.push(p.input); return {} },
         })
         // empty stdin should not error; handler should be called with no input
         await invokeAsync(cmd, [])
         assert.equal(received.length, 1)
+      } finally {
+        restore()
+      }
+    })
+
+    it('treats EAGAIN from stdin as no input (non-blocking fd in IDE terminals)', async () => {
+      const eagainErr = Object.assign(new Error('EAGAIN'), { code: 'EAGAIN' })
+      const restore = _testSetStdinReader(() => { throw eagainErr })
+      try {
+        const received: unknown[] = []
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Run a search',
+          input: { type: 'object', properties: { q: { type: 'string' } } },
+          handler: (p) => { received.push(p.input); return {} },
+        })
+        await invokeAsync(cmd, [])
+        assert.equal(received.length, 1)
+      } finally {
+        restore()
+      }
+    })
+
+    it('treats EBADF from stdin as no input', async () => {
+      const ebadfErr = Object.assign(new Error('EBADF'), { code: 'EBADF' })
+      const restore = _testSetStdinReader(() => { throw ebadfErr })
+      try {
+        const received: unknown[] = []
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Run a search',
+          input: { type: 'object', properties: { q: { type: 'string' } } },
+          handler: (p) => { received.push(p.input); return {} },
+        })
+        await invokeAsync(cmd, [])
+        assert.equal(received.length, 1)
+      } finally {
+        restore()
+      }
+    })
+
+    it('re-throws unexpected stdin errors (not EAGAIN/EBADF)', async () => {
+      const ioErr = Object.assign(new Error('EIO'), { code: 'EIO' })
+      const restore = _testSetStdinReader(() => { throw ioErr })
+      try {
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Run a search',
+          input: { type: 'object', properties: { q: { type: 'string' } } },
+          handler: () => ({}),
+        })
+        await assert.rejects(() => invokeAsync(cmd, []), { code: 'EIO' })
       } finally {
         restore()
       }
@@ -1215,7 +1279,7 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'search',
           description: 'Run a search',
-          input: z.object({ index: z.string() }),
+          input: jsonSchema({ index: { type: 'string' } }, ['index']),
           handler: (parsed) => { received.push(parsed); return {} },
         })
         await invokeAsync(cmd, ['--input-file', filePath])
@@ -1227,9 +1291,65 @@ describe('defineCommand', () => {
     })
 
   })
+  describe('inputTransform', () => {
+    let origIsTTY: boolean | undefined
+    beforeEach(() => {
+      origIsTTY = process.stdin.isTTY
+      Object.defineProperty(process.stdin, 'isTTY', { value: undefined, configurable: true, writable: true })
+    })
+    afterEach(() => {
+      Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+    })
+
+    it('wraps stdin input before validation when transform is provided', async () => {
+      const restore = _testSetStdinReader(() => JSON.stringify({ name: 'test' }))
+      try {
+        const received: ParsedResult[] = []
+        const cmd = defineCommand({
+          name: 'index',
+          description: 'Index a document',
+          input: { type: 'object', properties: { document: {} } },
+          inputTransform: (input) => {
+            if (input != null && typeof input === 'object' && !Array.isArray(input) && !('document' in (input as object))) {
+              return { document: input }
+            }
+            return input
+          },
+          handler: (parsed) => { received.push(parsed); return {} },
+        })
+        await invokeAsync(cmd, [])
+        assert.deepEqual(received[0]!.input, { document: { name: 'test' } })
+      } finally {
+        restore()
+      }
+    })
+
+    it('does not wrap when the root key is already present', async () => {
+      const restore = _testSetStdinReader(() => JSON.stringify({ document: { name: 'test' } }))
+      try {
+        const received: ParsedResult[] = []
+        const cmd = defineCommand({
+          name: 'index',
+          description: 'Index a document',
+          input: { type: 'object', properties: { document: {} } },
+          inputTransform: (input) => {
+            if (input != null && typeof input === 'object' && !Array.isArray(input) && !('document' in (input as object))) {
+              return { document: input }
+            }
+            return input
+          },
+          handler: (parsed) => { received.push(parsed); return {} },
+        })
+        await invokeAsync(cmd, [])
+        assert.deepEqual(received[0]!.input, { document: { name: 'test' } })
+      } finally {
+        restore()
+      }
+    })
+  })
   describe('schema input - type acceptance', () => {
-    it('accepts a Zod object schema as input without throwing', () => {
-      const schema = z.object({ index: z.string() })
+    it('accepts a JSON Schema object as input without throwing', () => {
+      const schema = jsonSchema({ index: { type: 'string' } }, ['index'])
       assert.doesNotThrow(() => {
         defineCommand({
           name: 'search',
@@ -1269,8 +1389,8 @@ describe('defineCommand', () => {
       Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
     })
 
-    it('handler receives Zod-parsed input when valid JSON is provided via --input-file', async () => {
-      const schema = z.object({ index: z.string(), size: z.number() })
+    it('handler receives parsed input when valid JSON is provided via --input-file', async () => {
+      const schema = jsonSchema({ index: { type: 'string' }, size: { type: 'number' } }, ['index', 'size'])
       const filePath = join(tmpDir, 'valid.json')
       writeFileSync(filePath, JSON.stringify({ index: 'logs', size: 10 }))
       const received: unknown[] = []
@@ -1284,8 +1404,8 @@ describe('defineCommand', () => {
       assert.deepEqual(received[0], { index: 'logs', size: 10 })
     })
 
-    it('handler receives Zod-parsed input when valid JSON is piped via stdin', async () => {
-      const schema = z.object({ index: z.string(), size: z.number() })
+    it('handler receives parsed input when valid JSON is piped via stdin', async () => {
+      const schema = jsonSchema({ index: { type: 'string' }, size: { type: 'number' } }, ['index', 'size'])
       const restore = _testSetStdinReader(() => JSON.stringify({ index: 'logs', size: 10 }))
       Object.defineProperty(process.stdin, 'isTTY', { value: undefined, configurable: true, writable: true })
       try {
@@ -1303,8 +1423,8 @@ describe('defineCommand', () => {
       }
     })
 
-    it('Zod default values are applied to missing optional fields', async () => {
-      const schema = z.object({ index: z.string(), size: z.number().default(10) })
+    it('JSON Schema default values are applied to missing optional fields', async () => {
+      const schema = jsonSchema({ index: { type: 'string' }, size: { type: 'number', default: 10 } }, ['index'])
       const filePath = join(tmpDir, 'no-size.json')
       writeFileSync(filePath, JSON.stringify({ index: 'logs' }))
       const received: unknown[] = []
@@ -1319,7 +1439,7 @@ describe('defineCommand', () => {
     })
 
     it('extra properties in JSON are passed through (passthrough mode)', async () => {
-      const schema = z.object({ index: z.string() })
+      const schema = jsonSchema({ index: { type: 'string' } }, ['index'])
       const filePath = join(tmpDir, 'extra.json')
       writeFileSync(filePath, JSON.stringify({ index: 'logs', unexpected: 'field' }))
       const received: unknown[] = []
@@ -1337,7 +1457,7 @@ describe('defineCommand', () => {
     })
 
     it('validation fails when schema has required fields but no input is provided', async () => {
-      const schema = z.object({ index: z.string() })
+      const schema = jsonSchema({ index: { type: 'string' } }, ['index'])
       const cmd = defineCommand({
         name: 'search',
         description: 'Search',
@@ -1351,7 +1471,7 @@ describe('defineCommand', () => {
     })
 
     it('handler is NOT invoked when required schema fields are missing and no input is provided', async () => {
-      const schema = z.object({ index: z.string() })
+      const schema = jsonSchema({ index: { type: 'string' } }, ['index'])
       let handlerCalled = false
       const cmd = defineCommand({
         name: 'search',
@@ -1364,7 +1484,7 @@ describe('defineCommand', () => {
     })
 
     it('all-optional schema succeeds with no input provided', async () => {
-      const schema = z.object({ size: z.number().default(10), verbose: z.boolean().default(false) })
+      const schema = jsonSchema({ size: { type: 'number', default: 10 }, verbose: { type: 'boolean', default: false } })
       const received: unknown[] = []
       const cmd = defineCommand({
         name: 'search',
@@ -1396,7 +1516,7 @@ describe('defineCommand', () => {
     })
 
     it('type mismatch error includes field path and expected type', async () => {
-      const schema = z.object({ name: z.string() })
+      const schema = jsonSchema({ name: { type: 'string' } }, ['name'])
       const filePath = join(tmpDir, 'bad-type.json')
       writeFileSync(filePath, JSON.stringify({ name: 42 }))
       const cmd = defineCommand({
@@ -1408,11 +1528,11 @@ describe('defineCommand', () => {
       const err = await captureErrAsync(cmd, ['--input-file', filePath])
       assert.match(err, /input validation failed/)
       assert.match(err, /name/)
-      assert.match(err, /expected string/)
+      assert.match(err, /should be string/)
     })
 
     it('missing required field error identifies the field name', async () => {
-      const schema = z.object({ index: z.string() })
+      const schema = jsonSchema({ index: { type: 'string' } }, ['index'])
       const filePath = join(tmpDir, 'missing-field.json')
       writeFileSync(filePath, JSON.stringify({}))
       const cmd = defineCommand({
@@ -1427,7 +1547,7 @@ describe('defineCommand', () => {
     })
 
     it('multiple validation errors are all reported', async () => {
-      const schema = z.object({ name: z.string(), count: z.number() })
+      const schema = jsonSchema({ name: { type: 'string' }, count: { type: 'number' } }, ['name', 'count'])
       const filePath = join(tmpDir, 'multi-error.json')
       writeFileSync(filePath, JSON.stringify({ name: 42, count: 'oops' }))
       const cmd = defineCommand({
@@ -1443,7 +1563,7 @@ describe('defineCommand', () => {
     })
 
     it('handler is NOT invoked when validation fails', async () => {
-      const schema = z.object({ index: z.string() })
+      const schema = jsonSchema({ index: { type: 'string' } }, ['index'])
       const filePath = join(tmpDir, 'invalid-for-handler.json')
       writeFileSync(filePath, JSON.stringify({ index: 99 }))
       let handlerCalled = false
@@ -1458,7 +1578,7 @@ describe('defineCommand', () => {
     })
 
     it('nested schema validation errors include full dot-separated path', async () => {
-      const schema = z.object({ address: z.object({ zipCode: z.string() }) })
+      const schema = jsonSchema({ address: { type: 'object', properties: { zipCode: { type: 'string' } }, required: ['zipCode'] } }, ['address'])
       const filePath = join(tmpDir, 'nested-error.json')
       writeFileSync(filePath, JSON.stringify({ address: { zipCode: 99999 } }))
       const cmd = defineCommand({
@@ -1472,48 +1592,31 @@ describe('defineCommand', () => {
       assert.match(err, /address\.zipCode/)
     })
 
-    it('union-typed field surfaces the matching variant instead of all variants (#172)', async () => {
-      // Mirrors QueryDslQueryContainer-style validation: many variants, only
-      // one of which the user's input aligns with.
-      const schema = z.object({
-        query: z.union([
-          z.object({ bool: z.object({ must: z.array(z.unknown()) }) }),
-          z.object({ match_all: z.object({}) }),
-          z.object({ term: z.object({ category: z.object({ value: z.string() }) }) }),
-          z.object({ range: z.object({ field: z.string() }) }),
-        ])
-      })
-      const filePath = join(tmpDir, 'union-error.json')
-      writeFileSync(filePath, JSON.stringify({ query: { term: { category: 'canyon' } } }))
+    it('union-typed field resolves cleanly with type: object — no multi-variant noise (#172)', async () => {
+      // Issue #172: with Zod union schemas (61 variants like QueryDslQueryContainer),
+      // validation errors listed every non-matching variant. With AJV + JSON Schema,
+      // ES schema union fields are modelled as type: 'object' which accepts any valid
+      // object and only errors with a single clean message if not an object.
+      const schema = jsonSchema({
+        query: { type: 'object', description: 'Query DSL' },
+      }, ['query'])
+      const received: unknown[] = []
       const cmd = defineCommand({
         name: 'search',
         description: 'Search',
         input: schema,
-        handler: () => ({}),
+        handler: (parsed) => { received.push(parsed.input); return {} },
       })
-      const err = await captureErrAsync(cmd, ['--input-file', filePath])
-      assert.match(err, /input validation failed/)
-      assert.match(err, /query\.term\.category/)
-      assert.match(err, /expected object/i)
-      // None of the shallow "received undefined" discriminator noise leaks out
-      assert.ok(!/received undefined/.test(err),
-        `discriminator noise leaked: ${err}`)
-      // And none of the non-matching variant keys surface as errors
-      assert.ok(!/bool|match_all|range/.test(err),
-        `non-matching variants leaked: ${err}`)
+      await invokeAsync(cmd, ['--query', '{"term":{"category":"canyon"}}'])
+      assert.equal(received.length, 1)
     })
 
-    it('JSON mode emits a single actionable issue for union failures (#172)', async () => {
-      const schema = z.object({
-        query: z.union([
-          z.object({ bool: z.object({ must: z.array(z.unknown()) }) }),
-          z.object({ match_all: z.object({}) }),
-          z.object({ term: z.object({ category: z.object({ value: z.string() }) }) }),
-          z.object({ range: z.object({ field: z.string() }) }),
-        ])
-      })
+    it('JSON mode emits structured error for type validation failure (#172)', async () => {
+      const schema = jsonSchema({
+        query: { type: 'object', description: 'Query DSL' },
+      }, ['query'])
       const filePath = join(tmpDir, 'union-json-error.json')
-      writeFileSync(filePath, JSON.stringify({ query: { term: { category: 'canyon' } } }))
+      writeFileSync(filePath, JSON.stringify({ query: 'not-an-object' }))
       const cmd = defineCommand({
         name: 'search',
         description: 'Search',
@@ -1532,9 +1635,9 @@ describe('defineCommand', () => {
       assert.equal(parsed.error.issues.length, 1,
         `expected exactly one issue, got ${parsed.error.issues.length}: ${JSON.stringify(parsed.error.issues)}`)
       const [issue] = parsed.error.issues
-      assert.equal(issue.code, 'invalid_type')
-      assert.deepEqual(issue.path, ['query', 'term', 'category'])
-      assert.match(issue.message, /expected object/i)
+      assert.equal(issue.code, 'type')
+      assert.deepEqual(issue.path, ['query'])
+      assert.match(issue.message, /object/i)
     })
   })
 
@@ -1549,13 +1652,10 @@ describe('defineCommand', () => {
       Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
     })
 
-    it('accepts object-typed body fields that fail strict Zod validation', async () => {
-      const strictQuery = z.object({
-        term: z.object({ value: z.string() })
-      })
-      const schema = z.object({
-        index: z.string().optional().meta({ found_in: 'path' }),
-        query: strictQuery.optional().meta({ found_in: 'body' }),
+    it('accepts object-typed body fields with any valid JSON', async () => {
+      const schema = jsonSchema({
+        index: { type: 'string', 'x-found-in': 'path' },
+        query: { type: 'object', 'x-found-in': 'body' },
       })
       const received: unknown[] = []
       const cmd = defineCommand({
@@ -1573,10 +1673,10 @@ describe('defineCommand', () => {
     })
 
     it('still validates path and query params strictly', async () => {
-      const schema = z.object({
-        index: z.string().meta({ found_in: 'path' }),
-        size: z.number().optional().meta({ found_in: 'query' }),
-      })
+      const schema = jsonSchema({
+        index: { type: 'string', 'x-found-in': 'path' },
+        size: { type: 'number', 'x-found-in': 'query' },
+      }, ['index'])
       const received: unknown[] = []
       const cmd = defineCommand({
         name: 'search',
@@ -1590,10 +1690,9 @@ describe('defineCommand', () => {
       assert.equal(input.size, 5)
     })
 
-    it('relaxes array-typed body fields too', async () => {
-      const strictItem = z.object({ action: z.string() })
-      const schema = z.object({
-        operations: z.array(strictItem).optional().meta({ found_in: 'body' }),
+    it('accepts array-typed body fields with any valid JSON', async () => {
+      const schema = jsonSchema({
+        operations: { type: 'array', 'x-found-in': 'body' },
       })
       const received: unknown[] = []
       const cmd = defineCommand({
@@ -1609,16 +1708,107 @@ describe('defineCommand', () => {
       assert.deepEqual(input.operations, [{ index: {} }, { name: 'doc' }])
     })
 
-    // Regression: in Zod >=4.4, `.extend({ key: z.any() })` drops `.optional()`
-    // from the replaced field, turning previously-optional JSON body fields
-    // into required keys. The factory must re-apply `.optional()` on its
-    // body-field overrides so omitted optional fields still validate.
-    it('omitting an optional object body field still validates', async () => {
-      const schema = z.object({
-        index: z.string().meta({ found_in: 'path' }),
-        aliases: z.record(z.string(), z.any()).optional().meta({ found_in: 'body' }),
-        mappings: z.object({ properties: z.record(z.string(), z.any()) }).optional().meta({ found_in: 'body' }),
+    it('wraps a scalar array flag in an array (#587)', async () => {
+      const schema = jsonSchema({
+        agents_ids: { type: 'array', items: { type: 'string' }, 'x-found-in': 'query' },
+      }, ['agents_ids'])
+      let captured: unknown
+      const cmd = defineCommand({
+        name: 'get-fleet-agent-status-data',
+        description: 'Status',
+        input: schema,
+        handler: (parsed) => { captured = parsed.input; return {} },
       })
+      await invokeAsync(cmd, ['--agents-ids', 'abc'])
+      assert.deepEqual(captured, { agents_ids: ['abc'] })
+    })
+
+    it('repeats an array flag into one array', async () => {
+      const schema = jsonSchema({
+        agents_ids: { type: 'array', items: { type: 'string' }, 'x-found-in': 'query' },
+      })
+      let captured: unknown
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        input: schema,
+        handler: (parsed) => { captured = parsed.input; return {} },
+      })
+      await invokeAsync(cmd, ['--agents-ids', 'abc', '--agents-ids', 'def'])
+      assert.deepEqual(captured, { agents_ids: ['abc', 'def'] })
+    })
+
+    it('keeps a JSON array flag as an array', async () => {
+      const schema = jsonSchema({
+        agents_ids: { type: 'array', items: { type: 'string' }, 'x-found-in': 'query' },
+      })
+      let captured: unknown
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        input: schema,
+        handler: (parsed) => { captured = parsed.input; return {} },
+      })
+      await invokeAsync(cmd, ['--agents-ids', '["abc","def"]'])
+      assert.deepEqual(captured, { agents_ids: ['abc', 'def'] })
+    })
+
+    it('wraps adversarial scalar array flags without interpreting them', async () => {
+      const schema = jsonSchema({
+        agents_ids: { type: 'array', items: { type: 'string' }, 'x-found-in': 'query' },
+      })
+      for (const scalar of ['../', '?#', '', '/etc/passwd']) {
+        let captured: unknown
+        const cmd = defineCommand({
+          name: 'status',
+          description: 'Status',
+          input: schema,
+          handler: (parsed) => { captured = parsed.input; return {} },
+        })
+        await invokeAsync(cmd, ['--agents-ids', scalar])
+        assert.deepEqual(captured, { agents_ids: [scalar] }, `scalar ${JSON.stringify(scalar)}`)
+      }
+    })
+
+    it('wraps a scalar for oneOf(array, null) body flags', async () => {
+      const schema = jsonSchema({
+        ids: {
+          oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'null' }],
+          'x-found-in': 'body',
+        },
+      })
+      let captured: unknown
+      const cmd = defineCommand({
+        name: 'export-timelines',
+        description: 'Export',
+        input: schema,
+        handler: (parsed) => { captured = parsed.input; return {} },
+      })
+      await invokeAsync(cmd, ['--ids', 'abc'])
+      assert.deepEqual(captured, { ids: ['abc'] })
+    })
+
+    it('keeps an empty JSON array as empty', async () => {
+      const schema = jsonSchema({
+        host_statuses: { type: 'array', items: { type: 'string' }, 'x-found-in': 'query' },
+      }, ['host_statuses'])
+      let captured: unknown
+      const cmd = defineCommand({
+        name: 'metadata',
+        description: 'Metadata',
+        input: schema,
+        handler: (parsed) => { captured = parsed.input; return {} },
+      })
+      await invokeAsync(cmd, ['--host-statuses', '[]'])
+      assert.deepEqual(captured, { host_statuses: [] })
+    })
+
+    it('omitting an optional object body field still validates', async () => {
+      const schema = jsonSchema({
+        index: { type: 'string', 'x-found-in': 'path' },
+        aliases: { type: 'object', 'x-found-in': 'body' },
+        mappings: { type: 'object', 'x-found-in': 'body' },
+      }, ['index'])
       const received: unknown[] = []
       const cmd = defineCommand({
         name: 'create',
@@ -1632,11 +1822,11 @@ describe('defineCommand', () => {
       assert.equal(input.index, 'foo')
     })
 
-    it('required object body fields remain required after relaxation', async () => {
-      const schema = z.object({
-        service: z.string().meta({ found_in: 'body' }),
-        service_settings: z.object({ api_key: z.string() }).meta({ found_in: 'body' }),
-      })
+    it('required object body fields remain required', async () => {
+      const schema = jsonSchema({
+        service: { type: 'string', 'x-found-in': 'body' },
+        service_settings: { type: 'object', 'x-found-in': 'body' },
+      }, ['service', 'service_settings'])
       const cmd = defineCommand({
         name: 'put',
         description: 'Put inference',
@@ -1670,7 +1860,7 @@ describe('defineCommand', () => {
         () => defineCommand({ name: 'ping', description: 'Ping', input: false, handler: () => ({}) }),
         (e: unknown) => {
           assert.ok(e instanceof Error)
-          assert.match(e.message, /input must be a Zod schema/)
+          assert.match(e.message, /input must be a JSON Schema object/)
           return true
         },
       )
@@ -1705,19 +1895,12 @@ describe('defineCommand', () => {
       prog.exitOverride()
       cmd.exitOverride()
       let out = ''
-      const origOut = process.stdout.write.bind(process.stdout)
-      const origErr = process.stderr.write.bind(process.stderr)
-      process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
-      process.stderr.write = (chunk: unknown) => { out += String(chunk); return true }
       prog.configureOutput({ writeOut: (s) => { out += s }, writeErr: (s) => { out += s } })
       cmd.configureOutput({ writeOut: (s) => { out += s }, writeErr: (s) => { out += s } })
       try {
         await prog.parseAsync(['--json', cmd.name(), ...argv], { from: 'user' })
       } catch {
         // exitOverride throws on cmd.error(); that's expected
-      } finally {
-        process.stdout.write = origOut
-        process.stderr.write = origErr
       }
       let parsed: unknown = null
       try { parsed = JSON.parse(out) } catch { /* not JSON - test will fail on assertion */ }
@@ -1725,7 +1908,7 @@ describe('defineCommand', () => {
     }
 
     it('emits structured JSON error to stdout when --json and validation fails', async () => {
-      const schema = z.object({ index: z.string() })
+      const schema = jsonSchema({ index: { type: 'string' } }, ['index'])
       const filePath = join(tmpDir, 'bad.json')
       writeFileSync(filePath, JSON.stringify({ index: 42 }))
       const cmd = defineCommand({
@@ -1745,7 +1928,7 @@ describe('defineCommand', () => {
     })
 
     it('error issues array contains field path and message', async () => {
-      const schema = z.object({ index: z.string() })
+      const schema = jsonSchema({ index: { type: 'string' } }, ['index'])
       const filePath = join(tmpDir, 'bad2.json')
       writeFileSync(filePath, JSON.stringify({ index: 42 }))
       const cmd = defineCommand({
@@ -1763,7 +1946,7 @@ describe('defineCommand', () => {
     })
 
     it('handler is NOT invoked when --json and validation fails', async () => {
-      const schema = z.object({ index: z.string() })
+      const schema = jsonSchema({ index: { type: 'string' } }, ['index'])
       const filePath = join(tmpDir, 'bad3.json')
       writeFileSync(filePath, JSON.stringify({ index: 42 }))
       let handlerCalled = false
@@ -1778,7 +1961,7 @@ describe('defineCommand', () => {
     })
 
     it('text mode (no --json flag) still uses cmd.error() with prettified output', async () => {
-      const schema = z.object({ index: z.string() })
+      const schema = jsonSchema({ index: { type: 'string' } }, ['index'])
       const filePath = join(tmpDir, 'bad4.json')
       writeFileSync(filePath, JSON.stringify({ index: 42 }))
       const cmd = defineCommand({
@@ -1793,7 +1976,7 @@ describe('defineCommand', () => {
     })
 
     it('emits structured JSON error when --json and no input provided for required schema', async () => {
-      const schema = z.object({ index: z.string() })
+      const schema = jsonSchema({ index: { type: 'string' } }, ['index'])
       const cmd = defineCommand({
         name: 'search',
         description: 'Search',
@@ -1862,9 +2045,8 @@ describe('defineCommand', () => {
   describe('handler return value and output', () => {
     async function captureOutput(fn: () => Promise<void>): Promise<string> {
       let out = ''
-      const orig = process.stdout.write.bind(process.stdout)
-      process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
-      try { await fn() } finally { process.stdout.write = orig }
+      const restore = patchWrite(process.stdout, (s) => { out += s })
+      try { await fn() } finally { restore() }
       return out
     }
 
@@ -1888,14 +2070,14 @@ describe('defineCommand', () => {
       assert.deepEqual(JSON.parse(out), { ok: true, count: 3 })
     })
 
-    it('factory writes handler return value as pretty-printed JSON in text mode', async () => {
+    it('factory writes flat object handler result as key:value lines in text mode', async () => {
       const cmd = defineCommand({
         name: 'status',
         description: 'Get status',
         handler: () => ({ ok: true }),
       })
       const out = await invokeUnderRoot(cmd, [], [])
-      assert.equal(out, JSON.stringify({ ok: true }, null, 2) + '\n')
+      assert.equal(out, 'ok: true\n')
     })
 
     it('factory handles async handler return value', async () => {
@@ -1910,13 +2092,51 @@ describe('defineCommand', () => {
   })
 
   describe('--dry-run', () => {
-    it('appears in help text for every command', () => {
+    it('appears in help text for commands without an input schema', () => {
       const cmd = defineCommand({
         name: 'ping',
         description: 'Ping',
         handler: () => ({}),
       })
       assert.match(cmd.helpInformation(), /--dry-run/)
+    })
+
+    it('is hidden together with --input-file for read-only commands with an empty input schema (#378)', () => {
+      const cmd = defineCommand({
+        name: 'info',
+        description: 'Get cluster info',
+        input: { type: 'object', properties: {} },
+        readOnly: true,
+        handler: () => ({}),
+      })
+      const help = cmd.helpInformation()
+      assert.doesNotMatch(help, /--dry-run/)
+      assert.doesNotMatch(help, /--input-file/)
+    })
+
+    it('stays visible for read-only commands whose input schema has fields', () => {
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: { type: 'object', properties: { index: { type: 'string' } } },
+        readOnly: true,
+        handler: () => ({}),
+      })
+      const help = cmd.helpInformation()
+      assert.match(help, /--dry-run/)
+      assert.match(help, /--input-file/)
+    })
+
+    it('stays visible for write commands with an empty input schema (body via --input-file)', () => {
+      const cmd = defineCommand({
+        name: 'create',
+        description: 'Create a thing',
+        input: { type: 'object', properties: {} },
+        handler: () => ({}),
+      })
+      const help = cmd.helpInformation()
+      assert.match(help, /--dry-run/)
+      assert.match(help, /--input-file/)
     })
 
     it('outputs {"success":true} when --json and skips the handler', async () => {
@@ -1954,7 +2174,7 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'search',
           description: 'Search',
-          input: z.object({ index: z.string() }),
+          input: jsonSchema({ index: { type: 'string' } }, ['index']),
           handler: () => { handlerCalled = true; return {} },
         })
         const out = await invokeUnderRoot(cmd, ['--json'], ['--dry-run', '--input-file', filePath])
@@ -1977,7 +2197,7 @@ describe('defineCommand', () => {
         const cmd = defineCommand({
           name: 'search',
           description: 'Search',
-          input: z.object({ index: z.string() }),
+          input: jsonSchema({ index: { type: 'string' } }, ['index']),
           handler: () => { handlerCalled = true; return {} },
         })
         const err = await captureErrAsync(cmd, ['--dry-run', '--input-file', filePath])
@@ -2011,9 +2231,8 @@ describe('defineCommand', () => {
 describe('text output rendering', () => {
   async function captureOutput(fn: () => Promise<unknown>): Promise<string> {
     let out = ''
-    const orig = process.stdout.write.bind(process.stdout)
-    process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
-    try { await fn() } finally { process.stdout.write = orig }
+    const restore = patchWrite(process.stdout, (s) => { out += s })
+    try { await fn() } finally { restore() }
     return out
   }
 
@@ -2151,14 +2370,14 @@ describe('text output rendering', () => {
       assert.match(out, /[─├┤┼]/)
     })
 
-    it('falls back to pretty-printed JSON for a plain object', async () => {
+    it('renders a flat object as key:value lines', async () => {
       const cmd = defineCommand({
         name: 'status',
         description: 'Status',
         handler: () => ({ ok: true, count: 3 }),
       })
       const out = await invokeText(cmd)
-      assert.equal(out, JSON.stringify({ ok: true, count: 3 }, null, 2) + '\n')
+      assert.equal(out, 'ok: true\ncount: 3\n')
     })
 
     it('falls back to pretty-printed JSON for nested arrays', async () => {
@@ -2583,6 +2802,18 @@ describe('isCommandAllowed', () => {
     assert.equal(isCommandAllowed('cloud.hosted.traffic-filters.list', { profile: 'serverless' }), false)
   })
 
+  it('profile serverless: blocks stack-only ES namespaces', () => {
+    for (const ns of ['ilm', 'watcher', 'snapshot', 'slm', 'ccr', 'rollup', 'license', 'logstash', 'searchable-snapshots', 'dangling-indices', 'ssl']) {
+      assert.equal(isCommandAllowed(`stack.es.${ns}.get`, { profile: 'serverless' }), false, `expected stack.es.${ns}.* to be blocked under serverless`)
+    }
+  })
+
+  it('profile serverless: still allows non-stack-only ES namespaces', () => {
+    assert.equal(isCommandAllowed('stack.es.indices.create', { profile: 'serverless' }), true)
+    assert.equal(isCommandAllowed('stack.es.ml.get-records', { profile: 'serverless' }), true)
+    assert.equal(isCommandAllowed('stack.es.search', { profile: 'serverless' }), true)
+  })
+
   it('profile serverless: allows version and config commands', () => {
     assert.equal(isCommandAllowed('version', { profile: 'serverless' }), true)
     assert.equal(isCommandAllowed('config.context.list', { profile: 'serverless' }), true)
@@ -2791,7 +3022,7 @@ describe('no Commander API leaks', () => {
   it('factory module exports only public API and test seam at runtime', async () => {
     const factory = await import('../src/factory.ts')
     const exported = Object.keys(factory)
-    assert.deepEqual(exported.sort(), ['RawJsonValue', '_testSetStdinReader', 'configureJsonHelp', 'defineCommand', 'defineGroup', 'hideBlockedCommands', 'isCommandAllowed', 'stripTransportMeta'])
+    assert.deepEqual(exported.sort(), ['RawJsonValue', '_testSetConfirmReader', '_testSetIsTTY', '_testSetStdinReader', 'commandPath', 'configureErrorOutput', 'configureJsonHelp', 'defineCommand', 'defineGroup', 'hideBlockedCommands', 'isCommandAllowed', 'isHidden', 'setHidden', 'stripTransportMeta', 'validateName'])
   })
 
   it('defineCommand return value requires no Commander import to use', () => {
@@ -2835,7 +3066,7 @@ describe('defineCommand schema input - CLI arguments', () => {
   })
 
   it('string schema field accepts --index and handler receives { index: value }', async () => {
-    const schema = z.object({ index: z.string().describe('Index name') })
+    const schema = jsonSchema({ index: { type: 'string', description: 'Index name' } }, ['index'])
     let captured: unknown
     const cmd = defineCommand({
       name: 'search',
@@ -2848,7 +3079,7 @@ describe('defineCommand schema input - CLI arguments', () => {
   })
 
   it('number schema field accepts --num-shards and coerces to number', async () => {
-    const schema = z.object({ num_shards: z.number().describe('Shard count') })
+    const schema = jsonSchema({ num_shards: { type: 'number', description: 'Shard count' } }, ['num_shards'])
     let captured: unknown
     const cmd = defineCommand({
       name: 'create',
@@ -2861,7 +3092,7 @@ describe('defineCommand schema input - CLI arguments', () => {
   })
 
   it('boolean schema field accepts --verbose (no value) as true', async () => {
-    const schema = z.object({ verbose: z.boolean().default(false).describe('Verbose mode') })
+    const schema = jsonSchema({ verbose: { type: 'boolean', description: 'Verbose mode', default: false } })
     let captured: unknown
     const cmd = defineCommand({
       name: 'run',
@@ -2874,7 +3105,7 @@ describe('defineCommand schema input - CLI arguments', () => {
   })
 
   it('boolean schema field accepts --verbose false as false', async () => {
-    const schema = z.object({ verbose: z.boolean().default(true).describe('Verbose mode') })
+    const schema = jsonSchema({ verbose: { type: 'boolean', description: 'Verbose mode', default: true } })
     let captured: unknown
     const cmd = defineCommand({
       name: 'run',
@@ -2887,7 +3118,7 @@ describe('defineCommand schema input - CLI arguments', () => {
   })
 
   it('camelCase schema key refreshInterval accessible as --refresh-interval', async () => {
-    const schema = z.object({ refreshInterval: z.number().describe('Refresh ms') })
+    const schema = jsonSchema({ refreshInterval: { type: 'number', description: 'Refresh ms' } }, ['refreshInterval'])
     let captured: unknown
     const cmd = defineCommand({
       name: 'poll',
@@ -2900,7 +3131,7 @@ describe('defineCommand schema input - CLI arguments', () => {
   })
 
   it('snake_case schema key api_key accessible as --api-key', async () => {
-    const schema = z.object({ api_key: z.string().describe('API key') })
+    const schema = jsonSchema({ api_key: { type: 'string', description: 'API key' } }, ['api_key'])
     let captured: unknown
     const cmd = defineCommand({
       name: 'auth',
@@ -2912,8 +3143,24 @@ describe('defineCommand schema input - CLI arguments', () => {
     assert.deepEqual(captured, { api_key: 'secret123' })
   })
 
+  it('maps --version to _version and --x-version to version', async () => {
+    const schema = jsonSchema({
+      _version: { type: 'string' },
+      version: { type: 'number' },
+    })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'update-list',
+      description: 'Update list',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    await invokeAsync(cmd, ['--version', 'WzEsbnVsbF0=', '--x-version', '2'])
+    assert.deepEqual(captured, { _version: 'WzEsbnVsbF0=', version: 2 })
+  })
+
   it('string schema field passes value through as-is without coercion', async () => {
-    const schema = z.object({ name: z.string().describe('Name') })
+    const schema = jsonSchema({ name: { type: 'string', description: 'Name' } }, ['name'])
     let captured: unknown
     const cmd = defineCommand({
       name: 'label',
@@ -2926,9 +3173,9 @@ describe('defineCommand schema input - CLI arguments', () => {
   })
 
   it('schema field default is applied when that CLI arg is not provided', async () => {
-    const schema = z.object({
-      index: z.string().describe('Index'),
-      size: z.number().default(10).describe('Result size'),
+    const schema = jsonSchema({
+      index: { type: 'string', description: 'Index' },
+      size: { type: 'number', description: 'Result size', default: 10 },
     })
     let captured: unknown
     const cmd = defineCommand({
@@ -3038,7 +3285,7 @@ describe('repeated flags', () => {
   })
 
   it('schema-derived string accumulates repeated values', async () => {
-    const schema = z.object({ index: z.string().describe('Index name') })
+    const schema = jsonSchema({ index: { type: 'string', description: 'Index name' } }, ['index'])
     let captured: unknown
     const cmd = defineCommand({
       name: 'search',
@@ -3051,7 +3298,7 @@ describe('repeated flags', () => {
   })
 
   it('schema-derived number rejects repeated values', async () => {
-    const schema = z.object({ size: z.number().describe('Result size') })
+    const schema = jsonSchema({ size: { type: 'number', description: 'Result size' } }, ['size'])
     const cmd = defineCommand({
       name: 'search',
       description: 'Search',
@@ -3063,7 +3310,7 @@ describe('repeated flags', () => {
   })
 
   it('schema-derived enum rejects repeated values', async () => {
-    const schema = z.object({ mode: z.enum(['fast', 'slow']).describe('Mode') })
+    const schema = jsonSchema({ mode: { type: 'string', enum: ['fast', 'slow'], description: 'Mode' } }, ['mode'])
     const cmd = defineCommand({
       name: 'run',
       description: 'Run',
@@ -3074,8 +3321,8 @@ describe('repeated flags', () => {
     assert.match(err, /cannot be specified more than once/)
   })
 
-  it('schema-derived string with Zod default does not accumulate default into CLI value', async () => {
-    const schema = z.object({ index: z.string().default('default-idx').describe('Index name') })
+  it('schema-derived string with default does not accumulate default into CLI value', async () => {
+    const schema = jsonSchema({ index: { type: 'string', description: 'Index name', default: 'default-idx' } })
     let captured: unknown
     const cmd = defineCommand({
       name: 'search',
@@ -3087,8 +3334,8 @@ describe('repeated flags', () => {
     assert.deepEqual(captured, { index: 'my-idx' })
   })
 
-  it('schema-derived string with Zod default accumulates repeated CLI values', async () => {
-    const schema = z.object({ index: z.string().default('default-idx').describe('Index name') })
+  it('schema-derived string with default accumulates repeated CLI values', async () => {
+    const schema = jsonSchema({ index: { type: 'string', description: 'Index name', default: 'default-idx' } })
     let captured: unknown
     const cmd = defineCommand({
       name: 'search',
@@ -3101,7 +3348,7 @@ describe('repeated flags', () => {
   })
 
   it('schema-derived object rejects repeated values', async () => {
-    const schema = z.object({ mappings: z.object({}).passthrough().describe('Mappings') })
+    const schema = jsonSchema({ mappings: { type: 'object', description: 'Mappings' } }, ['mappings'])
     const cmd = defineCommand({
       name: 'create',
       description: 'Create',
@@ -3113,8 +3360,8 @@ describe('repeated flags', () => {
   })
 
   it('schema-derived union(string, array) body arg splits CSV into an array (#167)', async () => {
-    const schema = z.object({
-      fields: z.union([z.string(), z.array(z.string())]).optional().meta({ found_in: 'body' }),
+    const schema = jsonSchema({
+      fields: { anyOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }], 'x-found-in': 'body' },
     })
     let captured: unknown
     const cmd = defineCommand({
@@ -3128,8 +3375,8 @@ describe('repeated flags', () => {
   })
 
   it('single-value union(string, array) body arg stays a string', async () => {
-    const schema = z.object({
-      fields: z.union([z.string(), z.array(z.string())]).optional().meta({ found_in: 'body' }),
+    const schema = jsonSchema({
+      fields: { anyOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }], 'x-found-in': 'body' },
     })
     let captured: unknown
     const cmd = defineCommand({
@@ -3143,8 +3390,8 @@ describe('repeated flags', () => {
   })
 
   it('repeated --fields flags accumulate and then split into an array', async () => {
-    const schema = z.object({
-      fields: z.union([z.string(), z.array(z.string())]).optional().meta({ found_in: 'body' }),
+    const schema = jsonSchema({
+      fields: { anyOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }], 'x-found-in': 'body' },
     })
     let captured: unknown
     const cmd = defineCommand({
@@ -3158,8 +3405,8 @@ describe('repeated flags', () => {
   })
 
   it('union(string, array) query arg keeps CSV as a string (ES splits server-side)', async () => {
-    const schema = z.object({
-      filters: z.union([z.string(), z.array(z.string())]).optional().meta({ found_in: 'query' }),
+    const schema = jsonSchema({
+      filters: { anyOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }], 'x-found-in': 'query' },
     })
     let captured: unknown
     const cmd = defineCommand({
@@ -3173,8 +3420,8 @@ describe('repeated flags', () => {
   })
 
   it('--help mentions --input-file fallback for body-routed union(string, array) args', () => {
-    const schema = z.object({
-      fields: z.union([z.string(), z.array(z.string())]).optional().describe('Fields list').meta({ found_in: 'body' }),
+    const schema = jsonSchema({
+      fields: { anyOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }], description: 'Fields list', 'x-found-in': 'body' },
     })
     const cmd = defineCommand({
       name: 'field-caps',
@@ -3187,8 +3434,8 @@ describe('repeated flags', () => {
   })
 
   it('--help does not mention the CSV fallback for query-routed union args', () => {
-    const schema = z.object({
-      filters: z.union([z.string(), z.array(z.string())]).optional().describe('Filters').meta({ found_in: 'query' }),
+    const schema = jsonSchema({
+      filters: { anyOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }], description: 'Filters', 'x-found-in': 'query' },
     })
     const cmd = defineCommand({
       name: 'field-caps',
@@ -3200,15 +3447,11 @@ describe('repeated flags', () => {
     assert.doesNotMatch(help, /--input-file with a JSON array/)
   })
 
-  describe('Sort body args (id="Sort") -- field:direction parsing (#330)', () => {
-    // Mirrors the ES `Sort` schema shape: union(union(Field, SortOptions), array(...)) tagged with id="Sort".
-    const SortOptions = z.object({ _score: z.string().optional() }).meta({ id: 'SortOptions' })
-    const SortCombinations = z.union([z.string(), SortOptions]).meta({ id: 'SortCombinations' })
-    const Sort = z.union([SortCombinations, z.array(SortCombinations)]).meta({ id: 'Sort' })
-
+  describe('Sort body args -- field:direction parsing (#330)', () => {
+    // The sort field named "sort" with x-found-in: "body" triggers the sort-pairs heuristic.
     function makeCmd (captured: { value?: unknown }): OpaqueCommandHandle {
-      const schema = z.object({
-        sort: z.lazy(() => Sort).describe('A comma-separated list of <field>:<direction> pairs.').optional().meta({ found_in: 'body' }),
+      const schema = jsonSchema({
+        sort: { type: 'string', description: 'A comma-separated list of <field>:<direction> pairs.', 'x-found-in': 'body' },
       })
       return defineCommand({
         name: 'search',
@@ -3250,8 +3493,8 @@ describe('repeated flags', () => {
 
     it('non-Sort string fields are unaffected by the colon transform', async () => {
       let captured: unknown
-      const schema = z.object({
-        q: z.string().optional().describe('Query').meta({ found_in: 'query' }),
+      const schema = jsonSchema({
+        q: { type: 'string', description: 'Query', 'x-found-in': 'query' },
       })
       const cmd = defineCommand({
         name: 'search',
@@ -3284,9 +3527,9 @@ describe('defineCommand schema input - passthrough validation', () => {
   })
 
   it('valid JSON via --input-file is accepted when schema has registered CLI args', async () => {
-    const schema = z.object({
-      index: z.string().describe('Index'),
-      num_shards: z.number().default(1).describe('Shards'),
+    const schema = jsonSchema({
+      index: { type: 'string', description: 'Index' },
+      num_shards: { type: 'number', description: 'Shards', default: 1 },
     })
     const filePath = join(tmpDir, 'valid.json')
     writeFileSync(filePath, JSON.stringify({ index: 'logs', num_shards: 3 }))
@@ -3302,7 +3545,7 @@ describe('defineCommand schema input - passthrough validation', () => {
   })
 
   it('JSON via --input-file with an unknown key passes it through', async () => {
-    const schema = z.object({ index: z.string().describe('Index') })
+    const schema = jsonSchema({ index: { type: 'string', description: 'Index' } }, ['index'])
     const filePath = join(tmpDir, 'unknown-key.json')
     writeFileSync(filePath, JSON.stringify({ index: 'foo', bogus: 1 }))
     let captured: unknown
@@ -3319,7 +3562,7 @@ describe('defineCommand schema input - passthrough validation', () => {
   })
 
   it('JSON via stdin with an unknown key passes it through', async () => {
-    const schema = z.object({ index: z.string().describe('Index') })
+    const schema = jsonSchema({ index: { type: 'string', description: 'Index' } }, ['index'])
     const restore = _testSetStdinReader(() => JSON.stringify({ index: 'foo', bogus: 1 }))
     Object.defineProperty(process.stdin, 'isTTY', { value: undefined, configurable: true, writable: true })
     try {
@@ -3358,9 +3601,9 @@ describe('defineCommand schema input - JSON + CLI merge', () => {
   })
 
   it('JSON + CLI --num-shards 5 merges to CLI value winning', async () => {
-    const schema = z.object({
-      index: z.string().describe('Index'),
-      num_shards: z.number().describe('Shards'),
+    const schema = jsonSchema({
+      index: { type: 'string', description: 'Index' },
+      num_shards: { type: 'number', description: 'Shards' },
     })
     const filePath = join(tmpDir, 't027.json')
     writeFileSync(filePath, JSON.stringify({ index: 'logs', num_shards: 1 }))
@@ -3376,9 +3619,9 @@ describe('defineCommand schema input - JSON + CLI merge', () => {
   })
 
   it('CLI adds a key absent from JSON', async () => {
-    const schema = z.object({
-      index: z.string().describe('Index'),
-      num_shards: z.number().describe('Shards'),
+    const schema = jsonSchema({
+      index: { type: 'string', description: 'Index' },
+      num_shards: { type: 'number', description: 'Shards' },
     })
     const filePath = join(tmpDir, 't028.json')
     writeFileSync(filePath, JSON.stringify({ index: 'logs' }))
@@ -3394,9 +3637,9 @@ describe('defineCommand schema input - JSON + CLI merge', () => {
   })
 
   it('JSON only passes through as-is', async () => {
-    const schema = z.object({
-      index: z.string().describe('Index'),
-      num_shards: z.number().default(1).describe('Shards'),
+    const schema = jsonSchema({
+      index: { type: 'string', description: 'Index' },
+      num_shards: { type: 'number', description: 'Shards', default: 1 },
     })
     const filePath = join(tmpDir, 't029.json')
     writeFileSync(filePath, JSON.stringify({ index: 'logs', num_shards: 3 }))
@@ -3412,9 +3655,9 @@ describe('defineCommand schema input - JSON + CLI merge', () => {
   })
 
   it('CLI only passes through as-is', async () => {
-    const schema = z.object({
-      index: z.string().describe('Index'),
-      num_shards: z.number().default(1).describe('Shards'),
+    const schema = jsonSchema({
+      index: { type: 'string', description: 'Index' },
+      num_shards: { type: 'number', description: 'Shards', default: 1 },
     })
     let captured: unknown
     const cmd = defineCommand({
@@ -3428,9 +3671,9 @@ describe('defineCommand schema input - JSON + CLI merge', () => {
   })
 
   it('unknown key from JSON is passed through after merging with CLI args', async () => {
-    const schema = z.object({
-      index: z.string().describe('Index'),
-      num_shards: z.number().default(1).describe('Shards'),
+    const schema = jsonSchema({
+      index: { type: 'string', description: 'Index' },
+      num_shards: { type: 'number', description: 'Shards', default: 1 },
     })
     const filePath = join(tmpDir, 't031.json')
     writeFileSync(filePath, JSON.stringify({ index: 'logs', unknown_key: 'extra' }))
@@ -3509,7 +3752,7 @@ describe('JSON schema in help output', () => {
       const cmd = defineCommand({
         name: 'search',
         description: 'Search an index',
-        input: z.object({ index: z.string() }),
+        input: jsonSchema({ index: { type: 'string' } }, ['index']),
         handler: () => ({}),
       })
       const help = cmd.helpInformation()
@@ -3520,7 +3763,7 @@ describe('JSON schema in help output', () => {
       const cmd = defineCommand({
         name: 'search',
         description: 'Search an index',
-        input: z.object({ index: z.string(), size: z.number() }),
+        input: jsonSchema({ index: { type: 'string' }, size: { type: 'number' } }, ['index', 'size']),
         handler: () => ({}),
       })
       const help = cmd.helpInformation()
@@ -3561,7 +3804,7 @@ describe('JSON schema in help output', () => {
       const cmd = defineCommand({
         name: 'search',
         description: 'Search an index',
-        input: z.object({ index: z.string() }),
+        input: jsonSchema({ index: { type: 'string' } }, ['index']),
         handler: () => ({}),
       })
       const { parsed } = await captureJsonHelp(cmd)
@@ -3572,7 +3815,7 @@ describe('JSON schema in help output', () => {
       const cmd = defineCommand({
         name: 'search',
         description: 'Search an index',
-        input: z.object({ index: z.string(), size: z.number() }),
+        input: jsonSchema({ index: { type: 'string' }, size: { type: 'number' } }, ['index', 'size']),
         handler: () => ({}),
       })
       const { parsed } = await captureJsonHelp(cmd)
@@ -3587,7 +3830,7 @@ describe('JSON schema in help output', () => {
       const cmd = defineCommand({
         name: 'search',
         description: 'Search an index',
-        input: z.object({ index: z.string() }),
+        input: jsonSchema({ index: { type: 'string' } }, ['index']),
         handler: () => ({}),
       })
       const { parsed } = await captureJsonHelp(cmd)
@@ -3611,7 +3854,7 @@ describe('JSON schema in help output', () => {
       const cmd = defineCommand({
         name: 'search',
         description: 'Search an index',
-        input: z.object({ index: z.string() }),
+        input: jsonSchema({ index: { type: 'string' } }, ['index']),
         handler: () => ({}),
       })
       const { parsed } = await captureJsonHelp(cmd)
@@ -3625,7 +3868,7 @@ describe('JSON schema in help output', () => {
       const cmd = defineCommand({
         name: 'create',
         description: 'Create a resource',
-        input: z.object({ address: z.object({ zipCode: z.string() }) }),
+        input: jsonSchema({ address: { type: 'object', properties: { zipCode: { type: 'string' } }, required: ['zipCode'] } }, ['address']),
         handler: () => ({}),
       })
       const { parsed } = await captureJsonHelp(cmd)
@@ -3640,12 +3883,12 @@ describe('JSON schema in help output', () => {
       // Build a schema large enough to exceed the 64 KB pipe buffer (~65 536 bytes).
       // Each field contributes ~30 bytes to the serialised JSON schema, so 3000
       // fields comfortably exceeds the threshold.
-      const fields: Record<string, z.ZodType> = {}
-      for (let i = 0; i < 3000; i++) fields[`field_${i}`] = z.string().optional()
+      const fields: Record<string, Record<string, unknown>> = {}
+      for (let i = 0; i < 3000; i++) fields[`field_${i}`] = { type: 'string' }
       const cmd = defineCommand({
         name: 'bulk',
         description: 'Large schema command',
-        input: z.object(fields),
+        input: { type: 'object', properties: fields },
         handler: () => ({}),
       })
       const { out } = await captureJsonHelp(cmd)
@@ -3671,44 +3914,93 @@ describe('JSON schema in help output -- transport meta stripping', () => {
     return JSON.parse(out) as Record<string, unknown>
   }
 
-  it('found_in is not present in JSON schema output for a schema with found_in metadata', async () => {
+  it('x-found-in is not present in JSON schema output for a schema with x-found-in metadata', async () => {
     const cmd = defineCommand({
       name: 'create',
       description: 'Create an index',
-      input: z.looseObject({
-        index: z.string().describe('Target index').meta({ found_in: 'path' }),
-        master_timeout: z.string().optional().describe('Timeout').meta({ found_in: 'query' }),
-        settings: z.record(z.string(), z.unknown()).optional().describe('Settings').meta({ found_in: 'body' }),
-      }),
+      input: jsonSchema({
+        index: { type: 'string', description: 'Target index', 'x-found-in': 'path' },
+        master_timeout: { type: 'string', description: 'Timeout', 'x-found-in': 'query' },
+        settings: { type: 'object', description: 'Settings', 'x-found-in': 'body' },
+      }, ['index']),
       handler: () => ({}),
     })
     const schema = await captureJsonHelp(cmd)
     const props = schema['properties'] as Record<string, Record<string, unknown>>
-    assert.ok(!('found_in' in (props['index'] ?? {})), 'found_in must not appear in index property')
-    assert.ok(!('found_in' in (props['master_timeout'] ?? {})), 'found_in must not appear in master_timeout property')
-    assert.ok(!('found_in' in (props['settings'] ?? {})), 'found_in must not appear in settings property')
+    assert.ok(!('x-found-in' in (props['index'] ?? {})), 'x-found-in must not appear in index property')
+    assert.ok(!('x-found-in' in (props['master_timeout'] ?? {})), 'x-found-in must not appear in master_timeout property')
+    assert.ok(!('x-found-in' in (props['settings'] ?? {})), 'x-found-in must not appear in settings property')
   })
 
-  it('found_in is stripped from nested schema objects too', async () => {
+  it('routing metadata beyond x-found-in is not present in JSON schema output', async () => {
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Run a search',
+      input: {
+        type: 'object',
+        title: 'search',
+        'x-api': { id: 'search', name: 'search', namespace: null },
+        'x-method': 'GET',
+        'x-path': '/{index}/_search',
+        'x-urls': [{ path: '/_search', methods: ['GET', 'POST'] }],
+        'x-body-format': 'ndjson',
+        properties: {
+          index: { type: 'string', description: 'Target index', 'x-found-in': 'path' },
+          operations: { type: 'array', description: 'Ops', 'x-found-in': 'body', 'x-body-root': true },
+        },
+        required: ['index'],
+      },
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    for (const key of ['x-api', 'x-method', 'x-path', 'x-urls', 'x-body-format']) {
+      assert.ok(!(key in schema), `${key} must not appear at the schema root`)
+    }
+    const props = schema['properties'] as Record<string, Record<string, unknown>>
+    assert.ok(!('x-body-root' in (props['operations'] ?? {})), 'x-body-root must not appear in operations property')
+  })
+
+  it('preserves non-routing annotations that users should see', async () => {
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Run a search',
+      input: {
+        type: 'object',
+        'x-availability': { stack: { stability: 'stable' } },
+        properties: {
+          knn: { type: 'object', description: 'kNN', 'x-found-in': 'body', 'x-availability': { stack: { since: '8.4.0' } } },
+          ignore_throttled: { type: 'boolean', description: 'Ignore', 'x-found-in': 'query', 'x-deprecated': { since: '7.16.0' } },
+        },
+      },
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    assert.ok('x-availability' in schema, 'root x-availability must survive')
+    const props = schema['properties'] as Record<string, Record<string, unknown>>
+    assert.ok('x-availability' in (props['knn'] ?? {}), 'property x-availability must survive')
+    assert.ok('x-deprecated' in (props['ignore_throttled'] ?? {}), 'property x-deprecated must survive')
+  })
+
+  it('x-found-in is stripped from nested schema objects too', async () => {
     const cmd = defineCommand({
       name: 'search',
       description: 'Search',
-      input: z.looseObject({
-        index: z.string().meta({ found_in: 'path' }),
-      }),
+      input: jsonSchema({
+        index: { type: 'string', 'x-found-in': 'path' },
+      }, ['index']),
       handler: () => ({}),
     })
     const schemaStr = JSON.stringify(await captureJsonHelp(cmd))
-    assert.ok(!schemaStr.includes('found_in'), `found_in must not appear anywhere in schema output; got: ${schemaStr}`)
+    assert.ok(!schemaStr.includes('x-found-in'), `x-found-in must not appear anywhere in schema output; got: ${schemaStr}`)
   })
 
-  it('stripping found_in does not remove other metadata (description, type, etc.)', async () => {
+  it('stripping x-found-in does not remove other metadata (description, type, etc.)', async () => {
     const cmd = defineCommand({
       name: 'create',
       description: 'Create',
-      input: z.looseObject({
-        index: z.string().describe('Target index').meta({ found_in: 'path' }),
-      }),
+      input: jsonSchema({
+        index: { type: 'string', description: 'Target index', 'x-found-in': 'path' },
+      }, ['index']),
       handler: () => ({}),
     })
     const schema = await captureJsonHelp(cmd)
@@ -3733,12 +4025,26 @@ async function captureErrAsync(handle: OpaqueCommandHandle, argv: string[]): Pro
   return err
 }
 
+/**
+ * Temporarily captures string writes to a process stream, returning a restore fn.
+ * Non-string chunks (e.g. the node:test v8 reporter's serialized Buffers) are
+ * forwarded to the real stream so the test-runner IPC channel is never corrupted
+ * when this runs inside a spawned test subprocess.
+ */
+function patchWrite (stream: NodeJS.WriteStream, sink: (s: string) => void): () => void {
+  const orig = stream.write.bind(stream)
+  stream.write = (chunk: unknown, ...args: unknown[]) => {
+    if (typeof chunk === 'string') { sink(chunk); return true }
+    return Reflect.apply(orig, stream, [chunk, ...args]) as boolean
+  }
+  return () => { stream.write = orig }
+}
+
 /** captures everything written to process.stdout during fn(), even if fn throws */
 async function captureStdout(fn: () => Promise<unknown>): Promise<string> {
   let out = ''
-  const orig = process.stdout.write.bind(process.stdout)
-  process.stdout.write = (chunk: unknown) => { out += String(chunk); return true }
-  try { await fn() } catch { /* swallow — caller inspects captured output */ } finally { process.stdout.write = orig }
+  const restore = patchWrite(process.stdout, (s) => { out += s })
+  try { await fn() } catch { /* swallow — caller inspects captured output */ } finally { restore() }
   return out
 }
 
@@ -3758,20 +4064,18 @@ async function captureStreams(fn: () => Promise<void>): Promise<{ stdout: string
   let stdout = ''
   let stderr = ''
   let exitCode: number
-  const origOut = process.stdout.write.bind(process.stdout)
-  const origErr = process.stderr.write.bind(process.stderr)
   const origExitCode = process.exitCode
   process.exitCode = 0
-  process.stdout.write = (chunk: unknown) => { stdout += String(chunk); return true }
-  process.stderr.write = (chunk: unknown) => { stderr += String(chunk); return true }
+  const restoreOut = patchWrite(process.stdout, (s) => { stdout += s })
+  const restoreErr = patchWrite(process.stderr, (s) => { stderr += s })
   try {
     await fn()
   } catch {
     /* swallow -- caller inspects captured output */
   } finally {
     exitCode = process.exitCode ?? 0
-    process.stdout.write = origOut
-    process.stderr.write = origErr
+    restoreOut()
+    restoreErr()
     process.exitCode = origExitCode as typeof process.exitCode
   }
   return { stdout, stderr, exitCode }
@@ -4026,5 +4330,100 @@ describe('configureJsonHelp', () => {
     } catch { /* exitOverride on --help */ }
     const parsed = JSON.parse(out) as { name: string }
     assert.equal(parsed.name, 'sanitize')
+  })
+})
+
+describe('YAML response rendering', () => {
+  async function capture (rootArgv: string[], cmd: OpaqueCommandHandle): Promise<string> {
+    const prog = new Command('elastic')
+    prog.option('--json', 'output as JSON')
+    prog.addCommand(cmd)
+    prog.exitOverride()
+    cmd.exitOverride()
+    let out = ''
+    const restore = patchWrite(process.stdout, (s) => { out += s })
+    try {
+      await prog.parseAsync([...rootArgv, cmd.name()], { from: 'user' })
+    } finally {
+      restore()
+    }
+    return out
+  }
+
+  const yamlBody = 'apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: agent\n'
+
+  it('prints the raw YAML body verbatim by default', async () => {
+    const cmd = defineCommand({
+      name: 'download',
+      description: 'Download',
+      handler: () => new YamlResponse(yamlBody),
+    })
+    const out = await capture([], cmd)
+    assert.equal(out, yamlBody)
+  })
+
+  it('parses YAML into JSON when --json is passed', async () => {
+    const cmd = defineCommand({
+      name: 'download',
+      description: 'Download',
+      handler: () => new YamlResponse(yamlBody),
+    })
+    const out = await capture(['--json'], cmd)
+    assert.deepEqual(JSON.parse(out), {
+      apiVersion: 'v1',
+      kind: 'ConfigMap',
+      metadata: { name: 'agent' },
+    })
+  })
+
+  it('appends a trailing newline when the YAML body lacks one', async () => {
+    const cmd = defineCommand({
+      name: 'download',
+      description: 'Download',
+      handler: () => new YamlResponse('key: value'),
+    })
+    const out = await capture([], cmd)
+    assert.equal(out, 'key: value\n')
+  })
+
+  it('returns the yaml body under --json with exit 0 (#588)', async () => {
+    const cmd = defineCommand({
+      name: 'download',
+      description: 'Download',
+      handler: () => new YamlResponse(yamlBody),
+    })
+    const { stdout, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.equal(exitCode, 0)
+    assert.deepEqual(JSON.parse(stdout), {
+      apiVersion: 'v1',
+      kind: 'ConfigMap',
+      metadata: { name: 'agent' },
+    })
+  })
+
+  it('returns an ndjson body as a json array under --json with exit 0 (#588)', async () => {
+    const cmd = defineCommand({
+      name: 'export-list-items',
+      description: 'Export',
+      handler: () => [{ list_id: 'a', value: '1' }, { list_id: 'a', value: '2' }],
+    })
+    const { stdout, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.equal(exitCode, 0)
+    assert.deepEqual(JSON.parse(stdout), [
+      { list_id: 'a', value: '1' },
+      { list_id: 'a', value: '2' },
+    ])
+  })
+
+  it('prints a multi-doc yaml body as a json string under --json with exit 0', async () => {
+    const multiDoc = '---\napiVersion: v1\nkind: ConfigMap\n---\napiVersion: apps/v1\nkind: DaemonSet\n'
+    const cmd = defineCommand({
+      name: 'download',
+      description: 'Download',
+      handler: () => new YamlResponse(multiDoc),
+    })
+    const { stdout, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.equal(exitCode, 0)
+    assert.equal(JSON.parse(stdout), multiDoc)
   })
 })

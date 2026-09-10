@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-attack-discovery-api: find Attack Discovery schedules (default pagination).
+---
+requires:
+  serverless: true
+  stack: true
+  serverless_project: security
+---
+"security-attack-discovery-api find attack discovery schedules":
+  - do:
+      security-attack-discovery-api.find_attack_discovery_schedules: {}
+  - is_true: ""

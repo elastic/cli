@@ -1,0 +1,34 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: update a workflow by ID.
+---
+requires:
+  serverless: true
+---
+setup:
+  - do:
+      workflows.post_workflows_workflow:
+        body:
+          id: cli-ft-workflow-update
+          yaml: |
+            version: '1'
+            name: CLI FT Workflow Update
+            triggers:
+              - type: manual
+            steps: []
+---
+teardown:
+  - do:
+      workflows.delete_workflows_workflow_id:
+        id: cli-ft-workflow-update
+        force: true
+        ignore: [404]
+---
+"workflows put workflow by id":
+  - do:
+      workflows.put_workflows_workflow_id:
+        id: cli-ft-workflow-update
+        body:
+          name: CLI FT Workflow Updated
+  - match: {id: cli-ft-workflow-update}

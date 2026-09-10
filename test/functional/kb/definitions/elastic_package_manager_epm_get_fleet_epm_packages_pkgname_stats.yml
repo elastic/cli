@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-package-manager-epm API: get stats for a package by name.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"elastic-package-manager-epm get fleet epm packages pkgname stats":
+  - do:
+      elastic-package-manager-epm.get_fleet_epm_packages_pkgname_stats:
+        pkg_name: system
+  - is_true: response

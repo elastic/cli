@@ -9,59 +9,10 @@ import type { CommandIntent } from '../factory.ts'
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD'
 
 /**
- * Describes a path parameter that gets interpolated into the URL template.
- */
-export interface KbPathParam {
-  name: string
-  description: string
-  required: boolean
-}
-
-/**
- * Describes a query string parameter for a Kibana API request.
- *
- * The `name` field (snake_case) is used in the query string;
- * the `cliFlag` (kebab-case) is what users type on the command line.
- */
-export interface KbQueryParam {
-  name: string
-  cliFlag?: string
-  type: 'string' | 'number' | 'boolean'
-  description: string
-  required?: boolean
-}
-
-/**
- * Describes a request body parameter for a Kibana API request.
- */
-export interface KbBodyParam {
-  name: string
-  cliFlag?: string
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array'
-  description: string
-  required?: boolean
-}
-
-/**
  * Declarative description of a single Kibana API endpoint.
  *
- * Follows the same shape as `CloudApiDefinition` — path params, query params,
- * and body params are plain objects rather than Zod schemas. Zod is built at
- * registration time by `register.ts`.
- *
- * @example
- * ```ts
- * const getDef: KbApiDefinition = {
- *   name: 'get',
- *   namespace: 'data-views',
- *   description: 'Get a data view by ID.',
- *   method: 'GET',
- *   path: '/api/data_views/data_view/{viewId}',
- *   pathParams: [
- *     { name: 'viewId', description: 'Data view ID', required: true },
- *   ],
- * }
- * ```
+ * `input` is a plain JSON Schema object whose properties carry `x-found-in`
+ * routing metadata (`"path"`, `"query"`, or `"body"`).
  */
 export interface KbApiDefinition {
   name: string
@@ -69,13 +20,10 @@ export interface KbApiDefinition {
   description: string
   method: HttpMethod
   path: string
-  pathParams?: KbPathParam[]
-  queryParams?: KbQueryParam[]
-  bodyParams?: KbBodyParam[]
-  /** When 'multipart', the request body must be sent as multipart/form-data. */
-  requestType?: 'multipart'
-  /** When 'ndjson', the success response is newline-delimited JSON (parsed into an array). */
-  responseType?: 'ndjson'
+  /** JSON Schema object for request parameters (properties carry `x-found-in` routing). */
+  input?: Record<string, unknown>
+  /** When 'ndjson', the success response is newline-delimited JSON. */
+  responseType?: 'json' | 'ndjson' | 'text'
   /** optional intent override; takes precedence over HTTP-method inference in the CLI schema emitter */
   intent?: CommandIntent
 }
@@ -111,13 +59,20 @@ export function validateKbApiDefinition (def: KbApiDefinition): void {
     throw new Error(`path must start with "/" — got ${JSON.stringify(def.path)}`)
   }
 
+  if (def.input == null) return
+
   const tokens = extractPathTokens(def.path)
-  const paramNames = new Set((def.pathParams ?? []).map((p) => p.name))
+  const props = (def.input['properties'] as Record<string, Record<string, unknown>> | undefined) ?? {}
+  const pathFields = new Set(
+    Object.entries(props)
+      .filter(([, v]) => v['x-found-in'] === 'path')
+      .map(([k]) => k)
+  )
 
   for (const token of tokens) {
-    if (!paramNames.has(token)) {
+    if (!pathFields.has(token)) {
       throw new Error(
-        `path param {${token}} is not defined in pathParams for definition ${JSON.stringify(def.name)}`
+        `path param {${token}} is not defined in input for definition ${JSON.stringify(def.name)}`
       )
     }
   }

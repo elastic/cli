@@ -21,9 +21,18 @@ const DEFAULT_COMPLETERS: ReadonlyMap<string, DynamicCompleter> = new Map([
   ['--use-context', completeContextNames],
 ])
 
+const POSITIONAL_COMPLETERS: ReadonlyMap<string, DynamicCompleter> = new Map([
+  ['config current-context set', completeContextNames],
+  ['config context edit', completeContextNames],
+  ['config context remove', completeContextNames],
+])
+
 /** The shared registry used by the `__complete` command. */
 export const defaultRegistry: DynamicCompleterRegistry = {
   get (flagLong: string): DynamicCompleter | undefined {
     return DEFAULT_COMPLETERS.get(flagLong)
+  },
+  getPositional (commandPath: string): DynamicCompleter | undefined {
+    return POSITIONAL_COMPLETERS.get(commandPath)
   },
 }

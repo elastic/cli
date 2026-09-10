@@ -1,0 +1,21 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-package-manager-epm API: get a file from a specific package version.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"elastic-package-manager-epm get fleet epm packages pkgname pkgversion filepath":
+  - do:
+      elastic-package-manager-epm.get_fleet_epm_packages_pkgname:
+        pkg_name: system
+  - set: {"item.version": pkg_version}
+
+  - do:
+      elastic-package-manager-epm.get_fleet_epm_packages_pkgname_pkgversion_filepath:
+        pkg_name: system
+        pkg_version: $pkg_version
+        file_path: manifest.yml
+  - is_true: ""

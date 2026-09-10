@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana task-manager API: get task manager health.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"task-manager get task manager health":
+  - do:
+      task-manager.task_manager_health: {}
+  - is_true: ""

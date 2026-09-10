@@ -1,0 +1,29 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana saved-objects API: import. Exports the built-in 'config' saved-object
+# type (always present in every space), writes the NDJSON to a temp file, then
+# imports it with createNewCopies so IDs are regenerated and no conflict arises.
+# No teardown needed: orphaned config copies are inert and cleaned up by the OS.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      saved-objects.post_saved_objects_export:
+        body:
+          type: config
+          excludeExportDetails: true
+  - write_ndjson_temp: export_file
+---
+"saved objects import":
+  - do:
+      saved-objects.post_saved_objects_import:
+        body:
+          file: $export_file
+          createNewCopies: true
+  - is_true: success
+  - gt:
+      successCount: 0

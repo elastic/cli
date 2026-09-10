@@ -1,0 +1,17 @@
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      index:
+        index: 'bv_test'
+        body: { name: 'seed' }
+  - set: { _id: doc_id }
+---
+'body var':
+  - do:
+      index:
+        index: 'bv_test'
+        body: { id: $doc_id, name: 'updated' }

@@ -1,0 +1,16 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-package-manager-epm API: bulk enable/disable namespace-level customization for packages.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"elastic-package-manager-epm post fleet epm packages bulk namespace customization":
+  - do:
+      elastic-package-manager-epm.post_fleet_epm_packages_bulk_namespace_customization:
+        body:
+          packages:
+            - system
+  - is_true: items

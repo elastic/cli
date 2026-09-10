@@ -1,0 +1,14 @@
+---
+requires:
+  stack: true
+---
+teardown:
+  - do:
+      indices.delete: { index: $id }
+---
+'teardown references test-body stash var':
+  - do:
+      index:
+        index: 'tv_test'
+        body: { name: 'test' }
+  - set: { _id: id }

@@ -21,9 +21,9 @@ describe('createAskCommand', () => {
     assert.equal(cmd.name(), 'ask')
   })
 
-  it('has a required --question option', () => {
+  it('accepts question as a positional argument or --question option', () => {
     const cmd = createAskCommand()
-    assert.equal(cmd.registeredArguments.length, 0)
+    assert.equal(cmd.registeredArguments.length, 1)
     const optNames = cmd.options.map((o) => o.long)
     assert.ok(optNames.includes('--question'))
   })
@@ -110,7 +110,7 @@ describe('createAskCommand', () => {
   it('returns structured JSON with buffered answer when --json is active', async () => {
     const captured: string[] = []
     const origWrite = process.stdout.write
-    process.stdout.write = ((s: string) => { captured.push(s); return true }) as typeof process.stdout.write
+    process.stdout.write = ((s: unknown) => { if (typeof s === 'string') captured.push(s); return true }) as typeof process.stdout.write
     try {
       const cmd = createAskCommand({
         docsAskStream: streamFrom(['chunk1', ' chunk2']),

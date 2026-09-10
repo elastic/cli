@@ -5,8 +5,9 @@
 
 import type { EsRequestParams } from '../lib/es-client.ts'
 import type { EsApiDefinition } from './types.ts'
-import type { SchemaArgDefinition } from '../lib/schema-args.ts'
+import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
 import type { RawJsonValue, ParsedResult } from '../factory.ts'
+import { encodeMultiTargetPathParam } from '../lib/path-encoding.ts'
 
 /**
  * Builds a `TransportRequestParams` object from an API definition, parsed CLI input,
@@ -69,15 +70,6 @@ export function buildRequestParams (
  * The schema key is both the `{token}` name in the template and the lookup key in `input`.
  * For optional params that are absent, trailing `/{param}` segments are stripped.
  */
-/**
- * Encodes a single path parameter value. Splits on commas so ES multi-target
- * syntax (e.g. "idx1,idx2") is preserved, while special characters like `/`,
- * `?`, and `#` are percent-encoded to prevent path traversal (#106).
- */
-function encodePathParam (value: string): string {
-  return value.split(',').map((s) => encodeURIComponent(s.trim())).join(',')
-}
-
 function interpolatePath (
   path: string,
   schemaArgs: SchemaArgDefinition[],
@@ -86,7 +78,7 @@ function interpolatePath (
   for (const arg of schemaArgs.filter((a) => a.foundIn === 'path')) {
     const value = input[arg.schemaKey]
     if (value !== undefined) {
-      path = path.replace(`{${arg.schemaKey}}`, encodePathParam(String(value)))
+      path = path.replace(`{${arg.schemaKey}}`, encodeMultiTargetPathParam(String(value)))
     } else if (!arg.required) {
       // Strip the optional segment with its leading slash so the rest of the
       // path remains valid. E.g.:
@@ -132,14 +124,18 @@ function toNdjson (body: Record<string, unknown>): string {
   return JSON.stringify(body) + '\n'
 }
 
-// Fields whose value should replace the entire request body (not nested under the key).
-// Mapped per-field to the set of API paths where unwrapping applies, or '*' for all.
-const BODY_ROOT_FIELDS: Record<string, Set<string> | '*'> = {
-  document: '*',
-  inference_config: '*',
-  mappings: new Set(['/_data_stream/{name}/_mappings']),
-  settings: new Set(['/_data_stream/{name}/_settings']),
-  pipeline: new Set(['/_logstash/pipeline/{id}'])
+/**
+ * Returns true when `arg` is the sole body field carrying a value and upstream marked
+ * it `x-body-root`, meaning its value replaces the whole body.
+ *
+ * NDJSON bodies are excluded: `bulk`, `msearch`, and friends mark their array field
+ * `x-body-root`, but `toNdjson` needs the wrapper object to find the array.
+ */
+function isPromotableBodyRoot (
+  arg: SchemaArgDefinition | undefined,
+  bodyFormat: string | undefined
+): boolean {
+  return arg?.bodyRoot === true && bodyFormat !== 'ndjson'
 }
 
 /**
@@ -150,8 +146,8 @@ const BODY_ROOT_FIELDS: Record<string, Set<string> | '*'> = {
  * JSON string is preserved in the output so number formatting (e.g. `100.0`
  * for Painless floats) survives the round-trip.
  *
- * Special case: when the only body field with a value is in `BODY_ROOT_FIELDS`
- * (e.g. `document`), its value is promoted to be the entire body (#95).
+ * Special case: when the only body field with a value is marked `x-body-root` by
+ * `@elastic/schemas` (e.g. `document`), its value is promoted to be the entire body (#95).
  */
 function collectBody (
   schemaArgs: SchemaArgDefinition[],
@@ -173,8 +169,7 @@ function collectBody (
   const keys = Object.keys(body)
   if (keys.length === 1) {
     const key = keys[0]!
-    const rule = BODY_ROOT_FIELDS[key]
-    if (rule === '*' || (rule instanceof Set && rule.has(apiPath))) {
+    if (isPromotableBodyRoot(bodyArgs.find((a) => a.schemaKey === key), bodyFormat)) {
       if (key in rawBody) return rawBody[key]!.raw
       return body[key] as Record<string, unknown>
     }

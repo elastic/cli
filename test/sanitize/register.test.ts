@@ -46,7 +46,7 @@ describe('registerSanitizeCommands', () => {
     (indexCmd as import('commander').Command).exitOverride()
     const written: string[] = []
     const origWrite = process.stdout.write.bind(process.stdout)
-    process.stdout.write = ((chunk: string) => { written.push(chunk); return true }) as typeof process.stdout.write
+    process.stdout.write = ((chunk: unknown) => { if (typeof chunk === 'string') written.push(chunk); return true }) as typeof process.stdout.write
     try {
       await (indexCmd as import('commander').Command).parseAsync(['My\\Bad*Index'], { from: 'user' })
     } finally {
@@ -66,8 +66,8 @@ describe('registerSanitizeCommands', () => {
     const stderrChunks: string[] = []
     const origStdout = process.stdout.write.bind(process.stdout)
     const origStderr = process.stderr.write.bind(process.stderr)
-    process.stdout.write = ((chunk: string) => { stdoutChunks.push(chunk); return true }) as typeof process.stdout.write
-    process.stderr.write = ((chunk: string) => { stderrChunks.push(chunk); return true }) as typeof process.stderr.write
+    process.stdout.write = ((chunk: unknown) => { if (typeof chunk === 'string') stdoutChunks.push(chunk); return true }) as typeof process.stdout.write
+    process.stderr.write = ((chunk: unknown) => { if (typeof chunk === 'string') stderrChunks.push(chunk); return true }) as typeof process.stderr.write
     try {
       await (indexCmd as import('commander').Command).parseAsync(['My*Index'], { from: 'user' })
     } finally {
@@ -92,8 +92,8 @@ describe('registerSanitizeCommands', () => {
     const origStdout = process.stdout.write.bind(process.stdout)
     const origStderr = process.stderr.write.bind(process.stderr)
     const origExitCode = process.exitCode
-    process.stdout.write = ((chunk: string) => { stdoutChunks.push(chunk); return true }) as typeof process.stdout.write
-    process.stderr.write = ((chunk: string) => { stderrChunks.push(chunk); return true }) as typeof process.stderr.write
+    process.stdout.write = ((chunk: unknown) => { if (typeof chunk === 'string') stdoutChunks.push(chunk); return true }) as typeof process.stdout.write
+    process.stderr.write = ((chunk: unknown) => { if (typeof chunk === 'string') stderrChunks.push(chunk); return true }) as typeof process.stderr.write
     try {
       await (indexCmd as import('commander').Command).parseAsync(['***'], { from: 'user' })
     } finally {
@@ -116,7 +116,7 @@ describe('registerSanitizeCommands', () => {
     const origStdout = process.stdout.write.bind(process.stdout)
     const origStderr = process.stderr.write.bind(process.stderr)
     process.stdout.write = (() => true) as typeof process.stdout.write
-    process.stderr.write = ((chunk: string) => { stderrChunks.push(chunk); return true }) as typeof process.stderr.write
+    process.stderr.write = ((chunk: unknown) => { if (typeof chunk === 'string') stderrChunks.push(chunk); return true }) as typeof process.stderr.write
     try {
       await (indexCmd as import('commander').Command).parseAsync(['validname'], { from: 'user' })
     } finally {

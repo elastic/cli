@@ -1,0 +1,42 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-store: link entities for resolution.
+# Creates two entities in setup, links the source to the target, deletes both in teardown.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-entity-store.post_security_entity_store_entities_entitytype:
+        entity_type: host
+        body:
+          host:
+            name: cli-ft-resolution-link-source
+  - do:
+      security-entity-store.post_security_entity_store_entities_entitytype:
+        entity_type: host
+        body:
+          host:
+            name: cli-ft-resolution-link-target
+---
+teardown:
+  - do:
+      security-entity-store.delete_security_entity_store_entities:
+        entity_id: host:cli-ft-resolution-link-source
+        ignore: [404]
+  - do:
+      security-entity-store.delete_security_entity_store_entities:
+        entity_id: host:cli-ft-resolution-link-target
+        ignore: [404]
+---
+"security-entity-store post security entity store resolution link":
+  - do:
+      security-entity-store.post_security_entity_store_resolution_link:
+        body:
+          entity_ids:
+            - host:cli-ft-resolution-link-source
+          target_id: host:cli-ft-resolution-link-target
+  - is_true: ""

@@ -1,0 +1,16 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-management-api: upload a file to an endpoint host.
+# The API requires endpoint_ids and a multipart file upload, but no input
+# schema is defined for this command, so it is invoked with no params.
+# A 400 bad request is expected because required fields are absent.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-endpoint-management-api endpoint upload action":
+  - do:
+      catch: bad_request
+      security-endpoint-management-api.endpoint_upload_action: {}

@@ -1,0 +1,29 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: bulk create workflows.
+---
+requires:
+  serverless: true
+---
+teardown:
+  - do:
+      workflows.delete_workflows_workflow_id:
+        id: cli-ft-workflow-bulk-create
+        force: true
+        ignore: [404]
+---
+"workflows post workflows":
+  - do:
+      workflows.post_workflows:
+        body:
+          workflows:
+            - id: cli-ft-workflow-bulk-create
+              yaml: |
+                version: '1'
+                name: CLI FT Workflow Bulk Create
+                triggers:
+                  - type: manual
+                steps: []
+
+  - is_true: created

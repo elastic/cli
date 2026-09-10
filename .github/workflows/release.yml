@@ -11,12 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
+      pr: ${{ steps.release.outputs.pr }}
     permissions:
       id-token: write
     steps:
       - name: Fetch ephemeral Github token
         id: fetch-token
-        uses: elastic/ci-gh-actions/fetch-github-token@622f9dc1eecdd4af2e81dfb38028aacb1dae03e8 # v1.5.0
+        uses: elastic/ci-gh-actions/fetch-github-token@2feb1c6f5086cf8e06f61ef35e275abed3456f7b # v1.5.3
         with:
           vault-instance: "ci-prod"
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
@@ -25,6 +26,75 @@ jobs:
           config-file: .github/release-please-config.json
           manifest-file: .github/.release-please-manifest.json
           token: ${{ steps.fetch-token.outputs.token }}
+      # release-please exits 0 when it silently drops a merged release PR (e.g. the
+      # componentless-branch component check in googleapis/release-please#2214), leaving
+      # the PR labeled `autorelease: pending` forever and stalling every later run on
+      # "There are untagged, merged release PRs outstanding". Fail loudly instead.
+      - name: Fail if release-please produced nothing
+        if: ${{ steps.release.outputs.pr == '' && steps.release.outputs.release_created != 'true' }}
+        run: |
+          echo "::error title=release-please no-op::No release PR and no release created. Check the step log for a dropped merged release PR."
+          exit 1
+
+  # release-please's PR opens/updates a version-bump commit that can leave
+  # docs/cli/schema.json stale. Regenerate it immediately and push the fix
+  # to the same PR branch so reviewers never see (or approve) an out-of-date
+  # schema.
+  update-schema:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.pr != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - name: Fetch ephemeral Github token
+        id: fetch-token
+        uses: elastic/ci-gh-actions/fetch-github-token@2feb1c6f5086cf8e06f61ef35e275abed3456f7b # v1.5.3
+        with:
+          vault-instance: "ci-prod"
+
+      - name: Resolve release-please PR branch
+        id: pr
+        env:
+          PR_JSON: ${{ needs.release-please.outputs.pr }}
+        run: |
+          echo "$PR_JSON" | jq -r '"branch=" + .headBranchName' >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ steps.pr.outputs.branch }}
+          token: ${{ steps.fetch-token.outputs.token }}
+          persist-credentials: true
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.x
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Regenerate CLI schema
+        run: npm run build:schema
+
+      - name: Commit and push if schema changed
+        env:
+          BRANCH: ${{ steps.pr.outputs.branch }}
+        run: |
+          if git diff --quiet docs/cli/schema.json; then
+            echo "Schema already up to date."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add docs/cli/schema.json
+            git commit -m "chore: regenerate CLI schema"
+            git push origin "HEAD:refs/heads/$BRANCH"
+          fi
 
   publish:
     needs: release-please
@@ -34,8 +104,8 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           persist-credentials: false
           node-version: 24

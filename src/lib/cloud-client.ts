@@ -7,6 +7,7 @@ import type { HttpMethod } from '../cloud/types.ts'
 import { getResolvedConfig } from '../config/store.ts'
 import { isLoopbackUrl } from './is-loopback-host.ts'
 import { clientHeaders } from './meta.ts'
+import { YamlResponse, isYamlContentType } from './yaml-response.ts'
 
 /**
  * Parameters for a single Cloud API request.
@@ -76,8 +77,13 @@ export class CloudClient {
       throw new Error(`Cloud API error ${response.status}: ${text}`)
     }
 
+    const contentType = response.headers.get('content-type') ?? ''
     const text = await response.text()
-    return text.length > 0 ? JSON.parse(text) : {}
+    if (text.length === 0) return {}
+    // YAML bodies are wrapped so the output layer prints them verbatim by default and parses
+    // them to JSON only under `--json`.
+    if (isYamlContentType(contentType)) return new YamlResponse(text)
+    return JSON.parse(text)
   }
 
   /**
@@ -110,9 +116,8 @@ export function getCloudClient(): CloudClient {
   }
 
   const { url, auth } = cloud
-  const authRecord = auth as Record<string, unknown>
 
-  const apiKey = typeof authRecord['api_key'] === 'string' ? authRecord['api_key'] : undefined
+  const apiKey = auth != null && 'api_key' in auth ? auth.api_key : undefined
 
   if (apiKey == null) {
     throw new Error(

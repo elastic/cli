@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana streams API: list all streams.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"streams get streams":
+  - do:
+      streams.get_streams: {}
+  - is_true: streams

@@ -1,0 +1,20 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-internals API: check Fleet Server health.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agents.get_fleet_agents:
+        kuery: "type:FLEET_SERVER"
+  - set: {"items.0.id": fleet_server_id}
+---
+"fleet-internals post fleet health check":
+  - do:
+      fleet-internals.post_fleet_health_check:
+        id: $fleet_server_id
+  - is_true: ""

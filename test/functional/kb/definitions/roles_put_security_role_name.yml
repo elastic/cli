@@ -1,0 +1,22 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana roles API: create or update a role by name.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      roles.delete_security_role_name:
+        name: cli-ft-role-put
+        ignore: [404]
+---
+"roles put security role name":
+  - do:
+      roles.put_security_role_name:
+        name: cli-ft-role-put
+        body:
+          elasticsearch: {}
+  - is_true: ""

@@ -1,0 +1,54 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-package-policies API: update a package policy by ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-package-manager-epm.get_fleet_epm_packages_pkgname:
+        pkg_name: system
+  - set: {"item.version": pkg_version}
+  - do:
+      elastic-agent-policies.post_fleet_agent_policies:
+        body:
+          name: cli-ft-pkg-policy-put-agent-policy
+          namespace: testprefix
+  - set: {"item.id": agent_policy_id}
+  - do:
+      fleet-package-policies.post_fleet_package_policies:
+        body:
+          name: cli-ft-pkg-policy-put
+          policy_ids:
+            - $agent_policy_id
+          package:
+            name: system
+            version: $pkg_version
+  - set: {"item.id": policy_id}
+---
+teardown:
+  - do:
+      fleet-package-policies.delete_fleet_package_policies_packagepolicyid:
+        package_policy_id: $policy_id
+        ignore: [404]
+  - do:
+      elastic-agent-policies.post_fleet_agent_policies_delete:
+        body:
+          agentPolicyId: $agent_policy_id
+        ignore: [404]
+---
+"fleet-package-policies put fleet package policies packagepolicyid":
+  - do:
+      fleet-package-policies.put_fleet_package_policies_packagepolicyid:
+        package_policy_id: $policy_id
+        body:
+          name: cli-ft-pkg-policy-put
+          description: updated by cli functional test
+          package:
+            name: system
+            version: $pkg_version
+  - is_true: item.id
+  - match: {item.description: updated by cli functional test}

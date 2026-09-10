@@ -1,0 +1,26 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana apm-annotations API: create an annotation then retrieve it by service name and time range.
+---
+requires:
+  serverless: true
+  stack: true
+  serverless_project: observability
+---
+"apm-annotations get annotation":
+  - do:
+      apm-annotations.create_annotation:
+        body:
+          serviceName: cli-ft-apm-svc
+          "@timestamp": "2024-01-01T00:00:00.000Z"
+          service:
+            version: "1.0.0"
+
+  - do:
+      apm-annotations.get_annotation:
+        service_name: cli-ft-apm-svc
+        start: "2024-01-01T00:00:00.000Z"
+        end: "2024-01-02T00:00:00.000Z"
+        environment: all
+  - is_true: ""

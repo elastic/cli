@@ -1,0 +1,20 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-attack-discovery-api: bulk update attack discovery workflow status.
+# CI has no attack discoveries. The bulk route still returns a `data` array
+# when ids is empty, which is what this assertion checks.
+---
+requires:
+  serverless: true
+  stack: true
+  serverless_project: security
+---
+"security-attack-discovery-api post attack discovery bulk":
+  - do:
+      security-attack-discovery-api.post_attack_discovery_bulk:
+        body:
+          update:
+            ids: []
+            kibana_alert_workflow_status: open
+  - is_true: data

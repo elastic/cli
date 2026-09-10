@@ -1,6 +1,6 @@
 {
   "name": "@elastic/config-resolver",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Expression resolver for the Elastic CLI config pipeline. Resolves $(name:params) references from sources like env vars, files, and OS keychains.",
   "license": "Apache-2.0",
   "private": true,
@@ -19,6 +19,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "test": "tsx --test test/index.test.ts"
   }
 }

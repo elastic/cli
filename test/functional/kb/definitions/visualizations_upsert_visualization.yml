@@ -1,0 +1,20 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana visualizations API: upsert a visualization by id.
+---
+requires:
+  serverless: false
+  stack: false
+---
+teardown:
+  - do:
+      visualizations.delete_visualization:
+        id: cli-ft-visualization-upsert
+        ignore: [404]
+---
+"visualizations upsert visualization":
+  - do:
+      visualizations.upsert_visualization:
+        id: cli-ft-visualization-upsert
+  - is_true: id

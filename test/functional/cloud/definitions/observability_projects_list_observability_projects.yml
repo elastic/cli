@@ -1,0 +1,7 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get Observability projects (GET /api/v1/serverless/projects/observability)
+---
+"observability-projects list-observability-projects":
+  - do:
+      observability-projects.list-observability-projects: {}

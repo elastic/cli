@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { z } from 'zod'
 import { defineCommand } from '../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../factory.ts'
 import { docsSearch, stripHtmlTags } from './client.ts'
@@ -20,19 +19,44 @@ export interface SearchDeps {
 
 const defaultDeps: SearchDeps = { docsSearch, stderr: process.stderr }
 
-const inputSchema = z.object({
-  query: z.string().describe('Search terms'),
-  page: z.number().default(1).describe('Page number'),
-  size: z.number().default(5).describe('Results per page'),
-})
+const inputSchema: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    query: { type: 'string', description: 'Search terms' },
+    page: { type: 'integer', description: 'Page number', default: 1 },
+    size: { type: 'integer', description: 'Results per page', default: 5 },
+  },
+}
+
+function experimentalBanner (command: string, isTTY: boolean): string {
+  const text =
+    `Warning: "${command}" is experimental and in active development.\n` +
+    `         Not yet suited for scripts or automation. Pass --accept-experimental to suppress this warning.\n\n`
+  return isTTY ? `\x1b[33m${text}\x1b[0m` : text
+}
 
 export function createSearchCommand (deps: SearchDeps = defaultDeps): OpaqueCommandHandle {
   return defineCommand({
     name: 'search',
     description: 'Search Elastic documentation',
     input: inputSchema,
-    handler: async (parsed) => {
-      const { query, page, size } = parsed.input!
+    positionalArg: { name: 'query', description: 'Search terms', required: false },
+    options: [
+      {
+        long: 'accept-experimental',
+        type: 'boolean',
+        description: 'Acknowledge that this command is experimental and may be removed; suppresses the warning',
+      },
+    ],
+    handler: async (parsed): Promise<JsonValue> => {
+      if (parsed.options['accept-experimental'] !== true && parsed.options['json'] !== true) {
+        deps.stderr.write(experimentalBanner('docs search', process.stderr.isTTY === true))
+      }
+      const inp = parsed.input as { query?: string; page?: number; size?: number } | undefined
+      const query = (parsed.arg ?? inp?.query ?? '').trim()
+      if (query === '') return { error: { code: 'missing_input', message: 'query is required' } }
+      const page = inp?.page ?? 1
+      const size = inp?.size ?? 5
 
       try {
         const resp = await deps.docsSearch(query, page, size)
@@ -66,9 +90,7 @@ export function createSearchCommand (deps: SearchDeps = defaultDeps): OpaqueComm
       }
       const data = result as { results: Array<{ title: string; url: string; description: string; product: string | null }>; total: number; page: number; pageCount: number }
 
-      if (data.results.length === 0) {
-        return 'No results found.\n'
-      }
+      if (data.results.length === 0) return 'No results found.\n'
 
       let md = ''
       for (let i = 0; i < data.results.length; i++) {
@@ -81,8 +103,8 @@ export function createSearchCommand (deps: SearchDeps = defaultDeps): OpaqueComm
         if (i < data.results.length - 1) md += '\n---\n\n'
       }
 
-      deps.stderr.write(`Showing ${data.results.length} of ${data.total} results (page ${data.page} of ${data.pageCount})\n`)
-      return renderMarkdown(md) + '\n'
-    },
+      md += `\nPage ${data.page} of ${data.pageCount} (${data.total} results)\n`
+      return renderMarkdown(md)
+    }
   })
 }

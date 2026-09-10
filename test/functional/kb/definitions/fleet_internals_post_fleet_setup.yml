@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-internals API: initiate Fleet setup.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"fleet-internals post fleet setup":
+  - do:
+      fleet-internals.post_fleet_setup: {}
+  - is_true: isInitialized

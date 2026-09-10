@@ -48,17 +48,19 @@ async function runCommand (args: string[], deps: MsearchDeps): Promise<unknown> 
   const stdoutChunks: string[] = []
   const stderrChunks: string[] = []
   process.stdout.write = ((chunk: string) => {
-    stdoutChunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
+    if (typeof chunk === 'string') stdoutChunks.push(chunk)
     return true
   }) as typeof process.stdout.write
   process.stderr.write = ((chunk: string) => {
-    stderrChunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
+    if (typeof chunk === 'string') stderrChunks.push(chunk)
     return true
   }) as typeof process.stderr.write
 
   const restoreStdin = _testSetStdinReader(() => '')
   try {
     await program.parseAsync(['node', 'test', 'msearch', ...args])
+  } catch {
+    // Commander exitOverride throws on errors; output is already captured in stderr
   } finally {
     restoreStdin()
     process.stdout.write = origStdoutWrite
@@ -66,13 +68,21 @@ async function runCommand (args: string[], deps: MsearchDeps): Promise<unknown> 
     process.exitCode = 0
   }
 
-  // Prefer stderr (error results) over stdout; parse whichever has content
+  // The test runner may inject internal protocol bytes into stdout.
+  // Try each chunk individually (last-to-first) to find valid JSON.
   const errOutput = stderrChunks.join('')
-  const stdOutput = stdoutChunks.join('')
-  const output = errOutput.trim().length > 0 ? errOutput : stdOutput
-  if (output.trim().length > 0) {
-    try { return JSON.parse(output.trim()) } catch { return output.trim() }
+  if (errOutput.trim().length > 0) {
+    try { return JSON.parse(errOutput.trim()) } catch { return errOutput.trim() }
   }
+  // Search stdout chunks in reverse for a parseable JSON chunk
+  for (let i = stdoutChunks.length - 1; i >= 0; i--) {
+    const chunk = stdoutChunks[i]!.trim()
+    if (chunk.length > 0 && (chunk[0] === '{' || chunk[0] === '[')) {
+      try { return JSON.parse(chunk) } catch { /* continue */ }
+    }
+  }
+  const stdOutput = stdoutChunks.join('')
+  if (stdOutput.trim().length > 0) return stdOutput.trim()
   return undefined
 }
 
@@ -105,7 +115,9 @@ describe('msearch command', () => {
     ) as Record<string, unknown>
 
     assert.equal(requests.length, 1)
-    const responses = result.responses as unknown[]
+    assert.ok(result != null && typeof result === 'object', `Expected object result, got: ${JSON.stringify(result)}`)
+    assert.ok('responses' in (result as Record<string, unknown>), `Expected responses key in result, got: ${JSON.stringify(result)}`)
+    const responses = (result as Record<string, unknown>).responses as unknown[]
     assert.equal(responses.length, 2)
   })
 
@@ -129,7 +141,9 @@ describe('msearch command', () => {
     ) as Record<string, unknown>
 
     assert.equal(requests.length, 3, 'Expected 3 batches of 2')
-    assert.equal((result.responses as unknown[]).length, 6)
+    assert.ok(result != null && typeof result === 'object', `Expected object result, got: ${JSON.stringify(result)}`)
+    assert.ok('responses' in (result as Record<string, unknown>), `Expected responses key in result, got: ${JSON.stringify(result)}`)
+    assert.equal(((result as Record<string, unknown>).responses as unknown[]).length, 6)
   })
 
   it('applies default index from --index to items without header.index', async () => {
@@ -244,5 +258,70 @@ describe('msearch command', () => {
     ) as Record<string, unknown>
 
     assert.deepStrictEqual(result.responses, [])
+  })
+
+  it('uses root _msearch path when --index is not provided', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'msearch-test-'))
+    const filePath = join(tmpDir, 'searches.json')
+    writeFileSync(filePath, makeSearchInput([
+      { header: { index: 'explicit-idx' }, body: { query: { match_all: {} } } }
+    ]))
+
+    const { transport, requests } = mockTransport([{ responses: [{}] }])
+
+    await runCommand(['--query-file', filePath, '--json'], makeDeps(transport))
+
+    assert.equal(requests[0]!.params.path, '/_msearch')
+  })
+
+  it('returns input_error when query-file contains non-array JSON', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'msearch-test-'))
+    const filePath = join(tmpDir, 'searches.json')
+    writeFileSync(filePath, '{"not": "an array"}')
+
+    const { transport } = mockTransport([])
+
+    const result = await runCommand(
+      ['--query-file', filePath, '--json'],
+      makeDeps(transport)
+    ) as Record<string, unknown>
+
+    const error = result.error as Record<string, unknown>
+    assert.equal(error.code, 'input_error')
+    assert.ok((error.message as string).includes('JSON array'))
+  })
+
+  it('returns input_error when search item is missing body', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'msearch-test-'))
+    const filePath = join(tmpDir, 'searches.json')
+    writeFileSync(filePath, JSON.stringify([{ header: { index: 'x' } }]))
+
+    const { transport } = mockTransport([])
+
+    const result = await runCommand(
+      ['--query-file', filePath, '--json'],
+      makeDeps(transport)
+    ) as Record<string, unknown>
+
+    const error = result.error as Record<string, unknown>
+    assert.equal(error.code, 'input_error')
+    assert.ok((error.message as string).includes('body'))
+  })
+
+  it('returns input_error when search item is not an object', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'msearch-test-'))
+    const filePath = join(tmpDir, 'searches.json')
+    writeFileSync(filePath, JSON.stringify(['not an object']))
+
+    const { transport } = mockTransport([])
+
+    const result = await runCommand(
+      ['--query-file', filePath, '--json'],
+      makeDeps(transport)
+    ) as Record<string, unknown>
+
+    const error = result.error as Record<string, unknown>
+    assert.equal(error.code, 'input_error')
+    assert.ok((error.message as string).includes('must be an object'))
   })
 })

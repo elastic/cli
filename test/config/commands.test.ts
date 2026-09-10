@@ -176,4 +176,29 @@ describe('elastic config (integration)', () => {
     assert.equal(res.exitCode, 1)
     assert.equal((res.json as { error?: { code: string } }).error?.code, 'context_not_found')
   })
+
+  it('context add emits a stderr warning when a secret flag is supplied', async () => {
+    await writeFile(cfg, 'current_context: only\ncontexts:\n  only:\n    elasticsearch:\n      url: http://x:9200\n      auth:\n        api_key: k\n')
+    const res = run([
+      'config', 'context', 'add', 'withsecret',
+      '--config-file', cfg,
+      '--es-url', 'http://localhost:9200',
+      '--es-api-key', 'supersecret',
+      '--inline-secrets',
+    ])
+    assert.ok(res.stderr.includes('Warning:'), 'expected a Warning on stderr')
+    assert.ok(res.stderr.includes('--es-api-key'), 'expected --es-api-key in the warning')
+    assert.ok(res.stderr.includes('process listings'), 'expected visibility warning text')
+  })
+
+  it('context add does not emit a stderr warning when no secret flag is supplied', async () => {
+    await writeFile(cfg, 'current_context: only\ncontexts:\n  only:\n    elasticsearch:\n      url: http://x:9200\n      auth:\n        api_key: k\n')
+    const res = run([
+      'config', 'context', 'add', 'nosecret',
+      '--config-file', cfg,
+      '--es-url', 'http://localhost:9200',
+    ])
+    const secretWarning = res.stderr.split('\n').filter(l => l.startsWith('Warning:') && l.includes('process listings'))
+    assert.equal(secretWarning.length, 0, 'expected no secret-flag warning on stderr')
+  })
 })

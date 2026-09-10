@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana system API: get Kibana status.
+# No setup or teardown required — read-only endpoint, always present.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"system get-status":
+  - do:
+      system.get_status: {}
+  - is_true: status.overall.level

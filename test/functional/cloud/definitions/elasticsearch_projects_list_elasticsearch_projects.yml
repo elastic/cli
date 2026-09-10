@@ -1,0 +1,7 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get Elasticsearch projects (GET /api/v1/serverless/projects/elasticsearch)
+---
+"elasticsearch-projects list-elasticsearch-projects":
+  - do:
+      elasticsearch-projects.list-elasticsearch-projects: {}

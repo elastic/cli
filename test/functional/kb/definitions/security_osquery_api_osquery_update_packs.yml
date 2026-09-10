@@ -1,0 +1,38 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-osquery-api: update a pack.
+# Creates a pack in setup, updates it in the test, and verifies the change.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-osquery-api.osquery_create_packs:
+        body:
+          name: cli-ft-osquery-update-pack
+          enabled: false
+          interval: 3600
+          queries:
+            uptime:
+              query: SELECT * FROM uptime LIMIT 1
+  - set: {"data.id": pack_id}
+---
+teardown:
+  - do:
+      security-osquery-api.osquery_delete_packs:
+        id: $pack_id
+        ignore: [404]
+---
+"security-osquery-api update pack":
+  - do:
+      security-osquery-api.osquery_update_packs:
+        id: $pack_id
+        body:
+          name: cli-ft-osquery-update-pack
+          enabled: true
+          interval: 7200
+  - match: {data.enabled: true}
+  - match: {data.interval: 7200}

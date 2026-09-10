@@ -1,0 +1,31 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana maintenance-window API: create a maintenance window and verify response fields.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      maintenance-window.delete_maintenance_window_id:
+        id: $mw_id
+        ignore: [404]
+---
+"maintenance-window create":
+  - do:
+      maintenance-window.post_maintenance_window:
+        body:
+          title: CLI FT Maintenance Window
+          schedule:
+            custom:
+              start: "2030-01-01T00:00:00.000Z"
+              duration: 1h
+  - set: {id: mw_id}
+  - match: {title: CLI FT Maintenance Window}
+  - is_true: id
+
+  - do:
+      maintenance-window.delete_maintenance_window_id:
+        id: $mw_id

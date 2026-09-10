@@ -1,0 +1,20 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-management-api: scan a file or directory on an endpoint.
+# No real endpoint exists in a test environment, so a fake UUID is used and a
+# 404 is expected.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-endpoint-management-api endpoint scan action":
+  - do:
+      catch: missing
+      security-endpoint-management-api.endpoint_scan_action:
+        body:
+          endpoint_ids:
+            - "00000000-0000-0000-0000-000000000000"
+          parameters:
+            path: "/tmp"

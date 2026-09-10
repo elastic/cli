@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-package-policies API: list package policies.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"fleet-package-policies get fleet package policies":
+  - do:
+      fleet-package-policies.get_fleet_package_policies: {}
+  - is_true: items

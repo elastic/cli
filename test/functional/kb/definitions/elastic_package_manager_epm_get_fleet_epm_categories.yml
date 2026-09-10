@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-package-manager-epm API: get package categories.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"elastic-package-manager-epm get fleet epm categories":
+  - do:
+      elastic-package-manager-epm.get_fleet_epm_categories: {}
+  - is_true: items

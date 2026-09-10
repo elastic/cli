@@ -81,6 +81,12 @@ export function renderText(value: JsonValue): string {
     }
   }
 
+  if (isFlatObject(value)) {
+    return Object.entries(value)
+      .map(([k, v]) => `${k}: ${v ?? ''}`)
+      .join('\n') + '\n'
+  }
+
   return JSON.stringify(value, null, 2) + '\n'
 }
 

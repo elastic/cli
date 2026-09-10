@@ -35,14 +35,9 @@ import type { OpaqueCommandHandle } from '../factory.ts'
 import { rewriteTopLevelAliases } from './argv-aliases.ts'
 import { enumerate, DIRECTIVE_NO_FILE_COMP } from './enumerate.ts'
 import { defaultRegistry } from './registry.ts'
-import {
-  discoverConfigFile,
-  loadConfigFile,
-  resolveEffectiveCommands,
-} from '../config/loader.ts'
 import { StructuralConfigSchema, CommandPolicySchema } from '../config/schema.ts'
+import { BUILT_IN_PROFILES, type BuiltInProfile } from '../config/profiles.ts'
 import type { CommandPolicy } from '../config/types.ts'
-
 /** Words recognised as the user-facing form of the `stack es` subtree. */
 const ES_ALIASES = new Set(['es', 'elasticsearch'])
 /** Words recognised as the user-facing form of the `stack kb` subtree. */
@@ -59,6 +54,7 @@ const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
  * or invalid policy returns `undefined` so shell completion remains best-effort.
  */
 async function loadCompletionCommandPolicy (): Promise<CommandPolicy | undefined> {
+  const { discoverConfigFile, loadConfigFile, resolveEffectiveCommands } = await import('../config/loader.js')
   const envPath = process.env[ENV_CONFIG_FILE]
   const path = envPath != null && envPath.length > 0
     ? envPath
@@ -73,11 +69,10 @@ async function loadCompletionCommandPolicy (): Promise<CommandPolicy | undefined
   const rawContext = contexts[current_context]
   if (rawContext == null) return undefined
 
-  let defaultProfile
+  let defaultProfile: BuiltInProfile | undefined
   if (rawDefaultProfile != null) {
-    const defaultProfileParsed = CommandPolicySchema.shape.profile.safeParse(rawDefaultProfile)
-    if (!defaultProfileParsed.success) return undefined
-    defaultProfile = defaultProfileParsed.data
+    if (typeof rawDefaultProfile !== 'string' || !(BUILT_IN_PROFILES as readonly string[]).includes(rawDefaultProfile)) return undefined
+    defaultProfile = rawDefaultProfile as BuiltInProfile
   }
 
   let rootCommands: CommandPolicy | undefined
@@ -191,7 +186,7 @@ export async function buildCompletionTree (rewrittenWords: readonly string[]): P
   // `cloud` — deep-load on exact match, stub otherwise.
   if (firstWord === 'cloud') {
     const { registerCloudCommands } = await import('../cloud/register.ts')
-    root.addCommand(registerCloudCommands())
+    root.addCommand(await registerCloudCommands())
   } else {
     root.addCommand(defineGroup({ name: 'cloud', description: 'Manage Elastic Cloud (hosted deployments and serverless projects)' }))
   }
