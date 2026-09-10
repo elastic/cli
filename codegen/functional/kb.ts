@@ -244,11 +244,6 @@ const skippedFilesServerless = new Set<string>([
   // Upstream bugs tracked at:
   // https://github.com/elastic/schemas-js/issues/77
   // https://github.com/elastic/schemas-js/issues/78
-  'dashboards_create.yml',
-  'dashboards_delete.yml',
-  'dashboards_get.yml',
-  'dashboards_upsert.yml',
-  'dashboards_search.yml',
   'ml_ml_update_jobs_spaces.yml',
   'ml_ml_update_trained_models_spaces.yml',
   'visualizations_create_visualization.yml',
@@ -462,8 +457,8 @@ const skippedFilesStack = new Set<string>([
   'dashboards_create.yml',
   'dashboards_delete.yml',
   'dashboards_get.yml',
-  'dashboards_upsert.yml',
   'dashboards_search.yml',
+  'dashboards_upsert.yml',
   'ml_ml_update_jobs_spaces.yml',
   'ml_ml_update_trained_models_spaces.yml',
   'visualizations_create_visualization.yml',
@@ -489,9 +484,13 @@ for (const file of yamlFiles) {
   const content = readFileSync(join(DEFS_DIR, file), 'utf-8')
   const testFile = parseTestFile(content, file)
 
-  // Serverless-only tests cannot run against the stack Kibana used in CI.
-  if (testFile.requires.stack === false) {
+  if (env === 'stack' && testFile.requires.stack === false) {
     console.log(`  skipped (stack: false): ${file}`)
+    continue
+  }
+
+  if (env === 'serverless' && testFile.requires.serverless === false) {
+    console.log(`  skipped (serverless: false): ${file}`)
     continue
   }
 

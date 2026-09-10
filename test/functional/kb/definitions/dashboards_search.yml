@@ -4,8 +4,8 @@
 # Kibana dashboards API: search dashboards.
 ---
 requires:
-  serverless: false
-  stack: false
+  serverless: true
+  stack: true
 ---
 "dashboards search":
   - do:

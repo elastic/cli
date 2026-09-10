@@ -4,8 +4,8 @@
 # Kibana visualizations API: create a visualization.
 ---
 requires:
-  serverless: false
-  stack: false
+  serverless: true
+  stack: true
 ---
 teardown:
   - do:

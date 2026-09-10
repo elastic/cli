@@ -4,8 +4,8 @@
 # Kibana dashboards API: create a dashboard.
 ---
 requires:
-  serverless: false
-  stack: false
+  serverless: true
+  stack: true
 ---
 teardown:
   - do:
@@ -16,5 +16,7 @@ teardown:
 "dashboards create":
   - do:
       dashboards.create_dashboard:
+        body:
+          title: cli-ft-dashboard-create
   - set: {id: dashboard_id}
   - is_true: id
