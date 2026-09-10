@@ -55,6 +55,10 @@
     "dist",
     "NOTICE.txt"
   ],
+  "engines": {
+    "node": ">=22.0.0",
+    "bun": ">=1.2.0"
+  },
   "directories": {
     "test": "test"
   },
