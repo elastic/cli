@@ -10,7 +10,7 @@ requires:
 setup:
   - do:
       streams.put_streams_name:
-        name: cli-ft-streams-content-import
+        name: logs.otel.cli-ft-streams-content-import
         body:
           dashboards: []
           rules: []
@@ -26,29 +26,18 @@ setup:
               wired:
                 fields: {}
                 routing: []
-  - do:
-      streams.post_streams_name_content_export:
-        name: cli-ft-streams-content-import
-        body:
-          name: cli-ft-content-pack
-          description: "test"
-          version: "1.0.0"
-          include:
-            objects:
-              all: {}
-  - set: {"": content_pack}
 ---
 teardown:
   - do:
       streams.delete_streams_name:
-        name: cli-ft-streams-content-import
+        name: logs.otel.cli-ft-streams-content-import
         ignore: [404]
 ---
 "streams post streams name content import":
   - do:
       streams.post_streams_name_content_import:
-        name: cli-ft-streams-content-import
+        name: logs.otel.cli-ft-streams-content-import
         body:
-          content: $content_pack
+          content: $CONTENT_PACK
           include: '{"objects":{"all":{}}}'
   - is_true: ""

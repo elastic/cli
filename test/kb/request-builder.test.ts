@@ -65,6 +65,24 @@ describe('buildKibanaRequestParams', () => {
     assert.deepEqual(result.querystring, { createNewCopies: 'true' })
   })
 
+  it('sends streams content import as multipart not JSON', async () => {
+    const { loadKbApisInFile } = await import('../../src/kb/apis.ts')
+    const defs = await loadKbApisInFile('post_streams_name_content_import')
+    const def = defs.find((d) => d.name === 'post-streams-name-content-import')
+    assert.ok(def != null, 'expected post-streams-name-content-import to exist')
+    const result = buildKibanaRequestParams(def, parsed({
+      name: 'logs.otel.cli-ft',
+      content: '/tmp/pack.zip',
+      include: '{"objects":{"all":{}}}',
+    }))
+    assert.deepEqual(result.multipartFields, {
+      content: '/tmp/pack.zip',
+      include: '{"objects":{"all":{}}}',
+    })
+    assert.equal(result.body, undefined)
+    assert.equal(result.path, '/api/streams/logs.otel.cli-ft/content/import')
+  })
+
   it('every MULTIPART_ENDPOINTS entry matches a real definition', async () => {
     const { loadAllKbApis } = await import('../../src/kb/apis.ts')
     const { MULTIPART_ENDPOINTS } = await import('../../src/kb/request-builder.ts')

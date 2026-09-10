@@ -10,7 +10,7 @@ requires:
 setup:
   - do:
       streams.put_streams_name:
-        name: cli-ft-streams-att-bulk
+        name: logs.otel.cli-ft-streams-att-bulk
         body:
           dashboards: []
           rules: []
@@ -30,13 +30,13 @@ setup:
 teardown:
   - do:
       streams.delete_streams_name:
-        name: cli-ft-streams-att-bulk
+        name: logs.otel.cli-ft-streams-att-bulk
         ignore: [404]
 ---
 "streams post streams streamname attachments bulk":
   - do:
       streams.post_streams_streamname_attachments_bulk:
-        stream_name: cli-ft-streams-att-bulk
+        stream_name: logs.otel.cli-ft-streams-att-bulk
         body:
           operations:
             - index:

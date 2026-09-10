@@ -59,6 +59,31 @@ const RISK_ENGINE_PREAMBLE = [
   'source "$SCRIPT_DIR/../risk-engine-provision.sh"'
 ]
 
+const STREAM_CRUD_DEFS = new Set([
+  'streams_delete_streams_name.yml',
+  'streams_delete_streams_streamname_attachments_attachmenttype_attachmentid.yml',
+  'streams_get_streams_name.yml',
+  'streams_get_streams_name_ingest.yml',
+  'streams_get_streams_streamname_attachments.yml',
+  'streams_post_streams_name_content_export.yml',
+  'streams_post_streams_name_content_import.yml',
+  'streams_post_streams_name_fork.yml',
+  'streams_post_streams_streamname_attachments_bulk.yml',
+  'streams_put_streams_name.yml',
+  'streams_put_streams_name_ingest.yml',
+  'streams_put_streams_streamname_attachments_attachmenttype_attachmentid.yml',
+])
+
+const STREAM_CRUD_PREAMBLE = [
+  ...KB_PREAMBLE,
+  'source "$SCRIPT_DIR/../streams-ensure-enabled.sh"'
+]
+
+const STREAM_IMPORT_PREAMBLE = [
+  ...STREAM_CRUD_PREAMBLE,
+  'CONTENT_PACK="$SCRIPT_DIR/../cli-ft-content-pack.zip"'
+]
+
 const apis = await loadAllKbApis()
 
 mkdirSync(OUT_DIR, { recursive: true })
@@ -399,24 +424,6 @@ const skippedFilesStack = new Set<string>([
   // registers /internal/risk_score/engine/schedule_now only.
   "security_entity_analytics_api_schedule_risk_engine_now.yml",
 
-  // 9.3 PUT /api/streams/{name} requires body.queries. Fixtures omit it
-  // (9.5 moved queries off the upsert contract). Enable itself works.
-  "streams_delete_streams_name.yml",
-  "streams_delete_streams_streamname_attachments_attachmenttype_attachmentid.yml",
-  "streams_get_streams_name.yml",
-  "streams_get_streams_name_ingest.yml",
-  "streams_get_streams_streamname_attachments.yml",
-  "streams_post_streams_name_content_export.yml",
-  "streams_post_streams_name_content_import.yml",
-  "streams_post_streams_name_fork.yml",
-  "streams_post_streams_streamname_attachments_bulk.yml",
-  "streams_put_streams_name.yml",
-  "streams_put_streams_name_ingest.yml",
-  "streams_put_streams_streamname_attachments_attachmenttype_attachmentid.yml",
-  // 9.3 PUT query requires body.kql; fixtures and the CLI schema send esql.
-  "streams_get_streams_name_query.yml",
-  "streams_put_streams_name_query.yml",
-
   // 9.5.3 has no GET/POST /api/observability/slos/_snapshot routes (9.6).
   "slo_bulk_snapshot_op.yml",
   "slo_get_snapshot_op.yml",
@@ -499,7 +506,13 @@ for (const file of yamlFiles) {
 
   const result = generateScript(testFile, apis, {
     clientArgs: ['stack', 'kb'],
-    preamble: RISK_ENGINE_DEFS.has(file) ? RISK_ENGINE_PREAMBLE : KB_PREAMBLE
+    preamble: RISK_ENGINE_DEFS.has(file)
+      ? RISK_ENGINE_PREAMBLE
+      : file === 'streams_post_streams_name_content_import.yml'
+        ? STREAM_IMPORT_PREAMBLE
+        : STREAM_CRUD_DEFS.has(file)
+          ? STREAM_CRUD_PREAMBLE
+          : KB_PREAMBLE
   })
 
   for (const action of result.skippedActions) allSkippedActions.add(action)
