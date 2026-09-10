@@ -4,8 +4,8 @@
 # Kibana dashboards API: get a dashboard by id.
 ---
 requires:
-  serverless: false
-  stack: false
+  serverless: true
+  stack: true
 ---
 teardown:
   - do:
@@ -17,11 +17,13 @@ teardown:
   - do:
       dashboards.upsert_dashboard:
         id: cli-ft-dashboard-get
+        body:
+          title: cli-ft-dashboard-get
 
   - do:
       dashboards.get_dashboard:
         id: cli-ft-dashboard-get
-  - is_true: item.id
+  - is_true: id
 
   - do:
       dashboards.delete_dashboard:

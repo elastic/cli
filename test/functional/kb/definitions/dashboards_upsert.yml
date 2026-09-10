@@ -4,8 +4,8 @@
 # Kibana dashboards API: upsert a dashboard by id.
 ---
 requires:
-  serverless: false
-  stack: false
+  serverless: true
+  stack: true
 ---
 teardown:
   - do:
@@ -17,4 +17,6 @@ teardown:
   - do:
       dashboards.upsert_dashboard:
         id: cli-ft-dashboard-upsert
-  - is_true: item.id
+        body:
+          title: cli-ft-dashboard-upsert
+  - is_true: id

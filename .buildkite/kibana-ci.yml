@@ -21,6 +21,7 @@ uiSettings.overrides:
   "observability:streamsEnableSignificantEvents": true
   "observability:streamsEnableSignificantEventsDiscovery": true
   "observability:streamsEnableQueryStreams": true
+  "observability:streamsEnableContentPacks": true
 
 feature_flags.overrides:
   streams.significantEventsAvailable: true

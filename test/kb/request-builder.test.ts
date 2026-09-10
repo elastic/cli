@@ -65,12 +65,55 @@ describe('buildKibanaRequestParams', () => {
     assert.deepEqual(result.querystring, { createNewCopies: 'true' })
   })
 
+  it('sends streams content import as multipart not JSON', async () => {
+    const { loadKbApisInFile } = await import('../../src/kb/apis.ts')
+    const defs = await loadKbApisInFile('post_streams_name_content_import')
+    const def = defs.find((d) => d.name === 'post-streams-name-content-import')
+    assert.ok(def != null, 'expected post-streams-name-content-import to exist')
+    const result = buildKibanaRequestParams(def, parsed({
+      name: 'logs.otel.cli-ft',
+      content: '/tmp/pack.zip',
+      include: '{"objects":{"all":{}}}',
+    }))
+    assert.deepEqual(result.multipartFields, {
+      content: '/tmp/pack.zip',
+      include: '{"objects":{"all":{}}}',
+    })
+    assert.equal(result.body, undefined)
+    assert.equal(result.path, '/api/streams/logs.otel.cli-ft/content/import')
+  })
+
   it('every MULTIPART_ENDPOINTS entry matches a real definition', async () => {
     const { loadAllKbApis } = await import('../../src/kb/apis.ts')
     const { MULTIPART_ENDPOINTS } = await import('../../src/kb/request-builder.ts')
     const real = new Set((await loadAllKbApis()).map((d) => `${d.namespace} ${d.name}`))
     const stale = [...MULTIPART_ENDPOINTS].filter((key) => !real.has(key))
     assert.deepEqual(stale, [], 'stale multipart endpoint keys')
+  })
+
+  it('every PATH_OVERRIDES entry matches a real definition', async () => {
+    const { loadAllKbApis } = await import('../../src/kb/apis.ts')
+    const { PATH_OVERRIDES } = await import('../../src/kb/request-builder.ts')
+    const real = new Set((await loadAllKbApis()).map((d) => `${d.namespace} ${d.name}`))
+    const stale = [...PATH_OVERRIDES.keys()].filter((key) => !real.has(key))
+    assert.deepEqual(stale, [], 'stale path override keys')
+  })
+
+  it('sends get-definitions-op to /api not the schema /internal path', async () => {
+    const { loadAllKbApis } = await import('../../src/kb/apis.ts')
+    const def = (await loadAllKbApis()).find((d) => d.namespace === 'slo' && d.name === 'get-definitions-op')
+    assert.ok(def != null, 'expected slo get-definitions-op')
+    assert.match(def.path, /\/internal\//)
+    const result = buildKibanaRequestParams(def, parsed({ spaceId: 'default' }))
+    assert.equal(result.path, '/s/default/api/observability/slos/_definitions')
+  })
+
+  it('encodes adversarial spaceId on the get-definitions-op override', async () => {
+    const { loadAllKbApis } = await import('../../src/kb/apis.ts')
+    const def = (await loadAllKbApis()).find((d) => d.namespace === 'slo' && d.name === 'get-definitions-op')
+    assert.ok(def != null, 'expected slo get-definitions-op')
+    const result = buildKibanaRequestParams(def, parsed({ spaceId: '../?#/' }))
+    assert.equal(result.path, '/s/' + encodeURIComponent('../?#/') + '/api/observability/slos/_definitions')
   })
 
   it('upstream schemas still emit no multipart/binary signal (delete MULTIPART_ENDPOINTS when they do)', async () => {
