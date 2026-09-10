@@ -3,6 +3,7 @@ description: Configure the Elastic CLI to connect to Elastic Cloud and list Host
 applies_to:
   deployment:
     ech: preview
+    ece: unavailable
   serverless: preview
 type: tutorial
 ---
