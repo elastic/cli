@@ -81,7 +81,7 @@ const STREAM_CRUD_PREAMBLE = [
 
 const STREAM_IMPORT_PREAMBLE = [
   ...STREAM_CRUD_PREAMBLE,
-  'source "$SCRIPT_DIR/../streams-content-pack.sh"'
+  'CONTENT_PACK="$SCRIPT_DIR/../cli-ft-content-pack.zip"'
 ]
 
 const apis = await loadAllKbApis()
