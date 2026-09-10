@@ -146,7 +146,9 @@ export async function checkElasticsearch (
 
 /**
  * Probes a Serverless Elasticsearch project via `GET /`, reading `version.number`.
- * Reached only after `_cluster/health` returns 410, the Serverless signal.
+ * Reached only after `_cluster/health` returns 410. The 410 alone is treated as a
+ * hint, not proof: the root must self-identify with `version.build_flavor: serverless`
+ * before the project is reported as Serverless, guarding against a misrouted 410.
  */
 async function checkServerlessRoot (
   block: ServiceBlock,
@@ -162,7 +164,13 @@ async function checkServerlessRoot (
   if (versionObj == null || typeof versionObj !== 'object') {
     return { ok: false, url: block.url, error: 'unexpected response' }
   }
-  const version = (versionObj as Record<string, unknown>)['number']
+  const versionRec = versionObj as Record<string, unknown>
+  // Guard against a stateful/misrouted 410: only treat the root as Serverless
+  // when it self-identifies via build_flavor.
+  if (versionRec['build_flavor'] !== 'serverless') {
+    return { ok: false, url: block.url, error: 'unexpected response' }
+  }
+  const version = versionRec['number']
   if (typeof version !== 'string') {
     return { ok: false, url: block.url, error: 'unexpected response' }
   }

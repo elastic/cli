@@ -190,6 +190,22 @@ describe('checkElasticsearch', () => {
     assert.deepEqual(result, { ok: false, url: 'https://x.es.cloud', error: 'auth failed (401)' })
   })
 
+  it('rejects a non-serverless root behind a 410 (wrong build_flavor)', async () => {
+    const { fetch: fetchFn } = recordingFetch((url) =>
+      url.endsWith('/_cluster/health')
+        ? new Response('gone', { status: 410 })
+        : new Response(
+            JSON.stringify({ name: 'n', version: { number: '9.5.0', build_flavor: 'default' } }),
+            { status: 200 },
+          )
+    )
+    const result = await checkElasticsearch(
+      { url: 'https://x.es.cloud', auth: { api_key: 'k' } },
+      fetchFn,
+    )
+    assert.deepEqual(result, { ok: false, url: 'https://x.es.cloud', error: 'unexpected response' })
+  })
+
 })
 
 describe('checkKibana', () => {
