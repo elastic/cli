@@ -34,6 +34,15 @@ export const MULTIPART_ENDPOINTS = new Set([
 ])
 
 /**
+ * OAS still documents these at `/internal`; Kibana 9.5+ registers `/api`.
+ * Keyed by `"<namespace> <name>"`. Delete an entry when `@elastic/schemas`
+ * publishes the public path.
+ */
+export const PATH_OVERRIDES = new Map([
+  ['slo get-definitions-op', '/s/{spaceId}/api/observability/slos/_definitions'],
+])
+
+/**
  * Builds a `KibanaRequestParams` from an API definition and parsed CLI input.
  *
  * Routing is derived from `x-found-in` in the JSON Schema properties:
@@ -53,7 +62,12 @@ export function buildKibanaRequestParams (
   const props = ((def.input?.['properties'] ?? {}) as Record<string, Record<string, unknown>>)
 
   const required = new Set(Array.isArray(def.input?.['required']) ? def.input!['required'] as string[] : [])
-  const path = interpolatePath(def.path, props, required, input)
+  const path = interpolatePath(
+    PATH_OVERRIDES.get(`${def.namespace} ${def.name}`) ?? def.path,
+    props,
+    required,
+    input
+  )
   const querystring = buildQuerystring(props, input)
 
   const params: KibanaRequestParams = { method: def.method, path }

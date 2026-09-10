@@ -417,10 +417,8 @@ const skippedFilesStack = new Set<string>([
   "streams_get_streams_name_query.yml",
   "streams_put_streams_name_query.yml",
 
-  // No SLO definitions exist in the env (404); slo_bulk_snapshot and slo_get_snapshot
-  // depend on data that is never provisioned.
+  // 9.5.3 has no GET/POST /api/observability/slos/_snapshot routes (9.6).
   "slo_bulk_snapshot_op.yml",
-  "slo_get_definitions_op.yml",
   "slo_get_snapshot_op.yml",
 
   // Feature or route gated off in this stack config (404 / not available with
