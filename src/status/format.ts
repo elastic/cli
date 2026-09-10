@@ -29,6 +29,7 @@ interface Row {
 
 function esSummary (s: EsCheck): string {
   if (!s.ok) return s.error
+  if (s.flavor === 'serverless') return `serverless (${s.version})`
   const noun = s.nodes === 1 ? 'node' : 'nodes'
   return `${s.status} (${s.nodes} ${noun})`
 }
