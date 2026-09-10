@@ -31,6 +31,7 @@ export const MULTIPART_ENDPOINTS = new Set([
   'security-entity-analytics-api upload-watchlist-csv',
   'security-exceptions-api import-exception-list',
   'security-lists-api import-list-items',
+  'streams post-streams-name-content-import',
 ])
 
 /**
