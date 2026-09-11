@@ -107,7 +107,9 @@ export function createAskCommand (deps: AskDeps = defaultDeps): OpaqueCommandHan
         if (parsed.options['verbose'] === true && answer.steps !== undefined) {
           deps.stderr.write(`(${answer.steps} tool calls)\n`)
         }
-        deps.stderr.write(`conversation: ${answer.conversationId}\n`)
+        if (conversationId === undefined) {
+          deps.stderr.write(`conversation: ${answer.conversationId}\n`)
+        }
         return null
       } catch (err) {
         spinner?.stop()

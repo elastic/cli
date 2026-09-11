@@ -107,7 +107,7 @@ describe('createAskCommand — text mode', () => {
     assert.ok(deps.stdoutText.includes('Root cause is X.'), `stdout: ${deps.stdoutText}`)
   })
 
-  it('writes the conversation id to stderr', async () => {
+  it('writes the conversation id to stderr on the first turn (no input conversation_id)', async () => {
     const deps = makeDeps()
     const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
     Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
@@ -118,6 +118,26 @@ describe('createAskCommand — text mode', () => {
       else delete (process.stdout as { isTTY?: boolean }).isTTY
     }
     assert.ok(deps.stderrText.includes(`conversation: ${VALID_UUID}`), `stderr: ${deps.stderrText}`)
+  })
+
+  it('omits conversation id from stderr when caller already supplied it', async () => {
+    const { mkdtemp, writeFile, rm } = await import('node:fs/promises')
+    const { tmpdir } = await import('node:os')
+    const { join } = await import('node:path')
+    const dir = await mkdtemp(join(tmpdir(), 'nightshift-test-'))
+    const file = join(dir, 'input.json')
+    await writeFile(file, JSON.stringify({ prompt: 'follow-up', conversation_id: VALID_UUID }))
+    const deps = makeDeps()
+    const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
+    try {
+      await runCmd(deps, ['--input-file', file])
+    } finally {
+      if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
+      else delete (process.stdout as { isTTY?: boolean }).isTTY
+      await rm(dir, { recursive: true })
+    }
+    assert.ok(!deps.stderrText.includes('conversation:'), `stderr should be silent when id was supplied: ${deps.stderrText}`)
   })
 
   it('does not write the conversation id to stdout', async () => {
