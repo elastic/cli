@@ -1,5 +1,5 @@
 ---
-description: Install the Elastic CLI globally with npm, or run it without installing by using npx.
+description: Install, update, or uninstall the Elastic CLI with npm, or run it without installing by using npx.
 applies_to:
   stack: preview
   serverless: preview

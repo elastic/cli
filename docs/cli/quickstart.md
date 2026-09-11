@@ -10,7 +10,7 @@ type: tutorial
 
 The Elastic CLI lets you interact with Elastic services from the command line. Use it to explore APIs interactively, automate operations in scripts and CI/CD pipelines, or integrate Elastic operations into agent workflows.
 
-This tutorial helps you install and configure the CLI, connect to an existing {{es}} deployment or {{serverless-full}} project, and perform basic {{es}} operations.
+By the end of this tutorial, you'll have installed and configured the CLI, connected it to an existing {{es}} deployment or {{serverless-full}} project, and performed basic {{es}} operations.
 
 ## Before you begin
 
@@ -20,7 +20,7 @@ This tutorial helps you install and configure the CLI, connect to an existing {{
 To follow the steps in this tutorial, you also need:
 
 - The {{es}} endpoint for an existing cluster, regardless of deployment type, or an {{serverless-full}} project. If you're not sure which endpoint to use, refer to [Find your {{es}} endpoint](docs-content://solutions/elasticsearch-solution-project/search-connection-details.md#find-endpoint-cloud-self-managed).
-- An API key that can view cluster health and information.
+- An API key with permission to view cluster information and list indices for the example operations in this tutorial. For your own use cases, grant only the permissions required by the APIs you plan to call.
 
 :::{include} _snippets/api-key-types.md
 :::
@@ -107,4 +107,4 @@ The output displays index health, status, document counts, and storage sizes in 
 - Explore available {{es}} commands with `elastic es --help`.
 - Use the [Elastic CLI command reference](./index.md) to find commands, options, and input schemas.
 - Use the [configuration guide](./configuration.md) to add {{kib}} to the context and learn about external credential resolvers.
-- Follow [Manage {{ecloud}} resources with the Elastic CLI](./manage-elastic-cloud.md) to configure the Cloud API and list {{ech}} deployments or {{serverless-full}} projects in your {{ecloud}} account.
+- Follow [Connect to {{ecloud}} with the Elastic CLI](./manage-elastic-cloud.md) to configure a connection and run example operations against the {{ecloud}} API.

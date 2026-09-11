@@ -18,7 +18,7 @@ The CLI groups its API commands into two main namespaces:
 Use named contexts to save and switch between service connections. Commands support structured output for scripts, agents, and other tools.
 
 :::{note}
-The Elastic CLI is a technical preview and is under active development. Not all Elastic APIs are available as CLI commands. Refer to the [Elastic CLI command reference](./cli/index.md) for the currently available commands.
+The Elastic CLI is a technical preview and is under active development. Not all Elastic APIs are available as CLI commands. Refer to the [Elastic CLI command reference](./cli/index.md) for the available commands.
 :::
 
 ## Get started
@@ -32,4 +32,4 @@ The following resources help you start using the Elastic CLI:
 ## Learn more
 
 - Refer to the [Elastic CLI command reference](./cli/index.md) for commands, options, and input schemas.
-- Follow [Manage {{ecloud}} resources with the Elastic CLI](./cli/manage-elastic-cloud.md) to configure an {{ecloud}} connection and manage {{ech}} deployments and {{serverless-full}} projects.
+- Follow [Connect to {{ecloud}} with the Elastic CLI](./cli/manage-elastic-cloud.md) to configure a connection and run example operations against the {{ecloud}} API.

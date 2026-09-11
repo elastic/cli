@@ -2,6 +2,7 @@ project: elastic-cli
 dev_docs: true
 
 cross_links:
+  - cloud
   - docs-content
   - elasticsearch
 
@@ -16,6 +17,7 @@ subs:
   eck: "Elastic Cloud on Kubernetes"
   ech: "Elastic Cloud Hosted"
   serverless-full: "Elastic Cloud Serverless"
+  serverless-short: "Serverless"
 
 toc:
   - file: index.md

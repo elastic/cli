@@ -216,4 +216,4 @@ elasticsearch:
 
 - Run `elastic --help` to explore available commands.
 - Refer to the [CLI command reference](./index.md) for the full list of available commands.
-- Follow [Manage {{ecloud}} resources with the Elastic CLI](./manage-elastic-cloud.md) to configure an {{ecloud}} connection and manage {{ech}} deployments and {{serverless-full}} projects.
+- Follow [Connect to {{ecloud}} with the Elastic CLI](./manage-elastic-cloud.md) to configure a connection and run example operations against the {{ecloud}} API.
