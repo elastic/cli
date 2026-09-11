@@ -19,7 +19,7 @@ By the end of this tutorial, you'll have installed and configured the CLI, conne
 
 To follow the steps in this tutorial, you also need:
 
-- The {{es}} endpoint for an existing cluster, regardless of deployment type, or an {{serverless-full}} project. If you're not sure which endpoint to use, refer to [Find your {{es}} endpoint](docs-content://solutions/elasticsearch-solution-project/search-connection-details.md#find-endpoint-cloud-self-managed).
+- The {{es}} endpoint for an existing cluster, regardless of deployment type, or an {{serverless-full}} project. If you're not sure which endpoint to use, refer to [Find your {{es}} endpoint](docs-content://solutions/elasticsearch-solution-project/search-connection-details.md).
 - An API key with permission to view cluster information and list indices for the example operations in this tutorial. For your own use cases, grant only the permissions required by the APIs you plan to call.
 
 :::{include} _snippets/api-key-types.md
