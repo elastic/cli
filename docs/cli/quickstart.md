@@ -47,13 +47,11 @@ The following steps create a context named `quickstart` with the URL and credent
 
 If you use Bash or zsh, keep the API key out of your shell history by capturing it in a temporary variable:
 
-Run the following command, paste your API key at the hidden prompt, and press **Enter**:
-
 ```bash
 read -rs ELASTIC_API_KEY
 ```
 
-Create the context, replacing `<elasticsearch-url>` with your endpoint:
+Paste your API key at the hidden prompt, press **Enter**, and create the context, replacing `<elasticsearch-url>` with your endpoint:
 
 ```bash
 elastic config context add quickstart \
