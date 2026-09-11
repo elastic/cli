@@ -104783,13 +104783,6 @@
       "options": [
         {
           "role": "flag",
-          "name": "accept-experimental",
-          "type": "boolean",
-          "required": false,
-          "summary": "Acknowledge that this command is experimental and may be removed; suppresses the warning"
-        },
-        {
-          "role": "flag",
           "name": "timeout",
           "type": "string",
           "required": false,

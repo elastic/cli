@@ -38,13 +38,6 @@ const inputSchema: Record<string, unknown> = {
   },
 }
 
-function experimentalBanner (isTTY: boolean): string {
-  const text =
-    'Warning: "nightshift ask" is experimental and in active development.\n' +
-    '         Not yet suited for scripts or automation. Pass --accept-experimental to suppress this warning.\n\n'
-  return isTTY ? `\x1b[33m${text}\x1b[0m` : text
-}
-
 /**
  * Creates the `nightshift ask` command.
  *
@@ -61,11 +54,6 @@ export function createAskCommand (deps: AskDeps = defaultDeps): OpaqueCommandHan
     input: inputSchema,
     positionalArg: { name: 'prompt', description: 'Question or instruction', required: false },
     options: [
-      {
-        long: 'accept-experimental',
-        type: 'boolean',
-        description: 'Acknowledge that this command is experimental and may be removed; suppresses the warning',
-      },
       {
         long: 'timeout',
         type: 'string',
@@ -84,10 +72,6 @@ export function createAskCommand (deps: AskDeps = defaultDeps): OpaqueCommandHan
 
       // Auto-JSON when stdout is not a TTY so piped output is always machine-parseable.
       const useJson = parsed.options['json'] === true || process.stdout.isTTY !== true
-
-      if (parsed.options['accept-experimental'] !== true && !useJson) {
-        deps.stderr.write(experimentalBanner(process.stderr.isTTY === true))
-      }
 
       const conversationId = inp?.conversation_id
       const interactive = process.stderr.isTTY === true && !useJson

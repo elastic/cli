@@ -76,12 +76,6 @@ describe('createAskCommand — basics', () => {
     assert.ok(optLongs.includes('--conversation-id'), `expected --conversation-id, got: ${optLongs.join(',')}`)
   })
 
-  it('exposes --accept-experimental option', () => {
-    const cmd = createAskCommand()
-    const optLongs = cmd.options.map(o => o.long)
-    assert.ok(optLongs.includes('--accept-experimental'))
-  })
-
   it('exposes --timeout option', () => {
     const cmd = createAskCommand()
     const optLongs = cmd.options.map(o => o.long)
@@ -165,40 +159,12 @@ describe('createAskCommand — text mode', () => {
     assert.equal(deps.stdoutText, 'Already.\n')
   })
 
-  it('emits the experimental banner on stderr', async () => {
-    const deps = makeDeps()
-    const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
-    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
-    try {
-      await runCmd(deps, ['what?'])
-    } finally {
-      if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
-      else delete (process.stdout as { isTTY?: boolean }).isTTY
-    }
-    assert.ok(deps.stderrText.includes('experimental'), `expected banner in stderr: ${deps.stderrText}`)
-  })
-
-  it('suppresses the banner with --accept-experimental', async () => {
-    const deps = makeDeps()
-    const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
-    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
-    try {
-      await runCmd(deps, ['--accept-experimental', 'what?'])
-    } finally {
-      if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
-      else delete (process.stdout as { isTTY?: boolean }).isTTY
-    }
-    // Only the conversation id should be on stderr, no banner
-    const stderrWithoutId = deps.stderrText.replace(/conversation: .*\n/, '')
-    assert.ok(!stderrWithoutId.includes('experimental'), `banner should be suppressed: ${deps.stderrText}`)
-  })
-
   it('shows tool call count on stderr with --verbose when steps are present', async () => {
     const deps = makeDeps({ answer: { conversationId: VALID_UUID, message: 'Answer.', steps: 3 } })
     const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
     Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
     try {
-      await runCmd(deps, ['--accept-experimental', '--verbose', 'what?'])
+      await runCmd(deps, ['--verbose', 'what?'])
     } finally {
       if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
       else delete (process.stdout as { isTTY?: boolean }).isTTY
@@ -211,7 +177,7 @@ describe('createAskCommand — text mode', () => {
     const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
     Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
     try {
-      await runCmd(deps, ['--accept-experimental', 'what?'])
+      await runCmd(deps, ['what?'])
     } finally {
       if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
       else delete (process.stdout as { isTTY?: boolean }).isTTY
@@ -241,27 +207,7 @@ describe('createAskCommand — non-TTY stdout auto-JSON', () => {
     assert.ok(typeof (parsed as Record<string, unknown>)['message'] === 'string', 'expected message field')
   })
 
-  it('does not emit banner when auto-JSON mode is active', async () => {
-    const deps = makeDeps()
-    const origWrite = process.stdout.write
-    const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
-    Object.defineProperty(process.stdout, 'isTTY', { value: undefined, configurable: true })
-    process.stdout.write = (() => true) as typeof process.stdout.write
-    try {
-      const cmd = createAskCommand(deps)
-      cmd.exitOverride()
-      cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
-      const restoreStdin = _testSetStdinReader(() => '')
-      try {
-        await cmd.parseAsync(['what?'], { from: 'user' })
-      } finally { restoreStdin() }
-    } finally {
-      process.stdout.write = origWrite
-      if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
-      else delete (process.stdout as { isTTY?: boolean }).isTTY
-    }
-    assert.ok(!deps.stderrText.includes('experimental'), `banner should be suppressed in auto-JSON mode: ${deps.stderrText}`)
-  })
+
 })
 
 // ---------------------------------------------------------------------------
@@ -336,18 +282,7 @@ describe('createAskCommand — JSON mode', () => {
     }
   })
 
-  it('suppresses the banner under --json', async () => {
-    const deps = makeDeps()
-    const cmd = createAskCommand(deps)
-    cmd.exitOverride()
-    cmd.option('--json', 'output as JSON')
-    cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
-    const restoreStdin = _testSetStdinReader(() => '')
-    try {
-      await cmd.parseAsync(['--json', 'what?'], { from: 'user' })
-    } finally { restoreStdin() }
-    assert.ok(!deps.stderrText.includes('experimental'), `banner should not appear under --json: ${deps.stderrText}`)
-  })
+
 })
 
 // ---------------------------------------------------------------------------
@@ -365,7 +300,7 @@ describe('createAskCommand — timeout', () => {
     const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
     Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
     try {
-      await runCmd(deps, ['--accept-experimental', '--timeout', '30', 'what?'])
+      await runCmd(deps, ['--timeout', '30', 'what?'])
     } finally {
       if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
       else delete (process.stdout as { isTTY?: boolean }).isTTY
@@ -383,7 +318,7 @@ describe('createAskCommand — timeout', () => {
     const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
     Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
     try {
-      await runCmd(deps, ['--accept-experimental', 'what?'])
+      await runCmd(deps, ['what?'])
     } finally {
       if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
       else delete (process.stdout as { isTTY?: boolean }).isTTY
@@ -486,7 +421,7 @@ describe('createAskCommand — error handling', () => {
   it('exits 1 when converse throws a Kibana API error', async () => {
     const deps = makeDeps({ throws: new Error('Kibana API error 503: service unavailable') })
     const errText: string[] = []
-    await runCmd(deps, ['--accept-experimental', 'what?'], { text: errText })
+    await runCmd(deps, ['what?'], { text: errText })
     assert.equal(process.exitCode, 1)
     const combined = errText.join('')
     assert.ok(combined.includes('kibana_api_error') || combined.includes('503'), `error output: ${combined}`)
@@ -495,7 +430,7 @@ describe('createAskCommand — error handling', () => {
   it('exits 1 when Kibana is not configured (missing_config)', async () => {
     const deps = makeDeps({ throws: new Error('missing_config: No Kibana connection configured') })
     const errText: string[] = []
-    await runCmd(deps, ['--accept-experimental', 'what?'], { text: errText })
+    await runCmd(deps, ['what?'], { text: errText })
     assert.equal(process.exitCode, 1)
     const combined = errText.join('')
     assert.ok(combined.includes('missing_config'), `error output: ${combined}`)

@@ -491,8 +491,8 @@ elastic nightshift ask --verbose "why is checkout slow?"
 ```
 
 The command calls the agent builder converse endpoint (hardcoded to
-`significant-events.investigation`) and prints only the prose answer. When stdout is a TTY,
-the `conversation:` hint on stderr can be suppressed by redirecting stderr:
+`significant-events.investigation`) and prints only the prose answer. The `conversation:`
+hint on stderr can be suppressed by redirecting stderr:
 
 ```bash
 elastic nightshift ask "…" 2>/dev/null
