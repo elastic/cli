@@ -28,6 +28,8 @@ export interface KibanaRequestParams {
   body?: unknown
   /** When set, the request is sent as multipart/form-data. Keys map to form field names; string values that resolve to an existing file path are sent as file uploads. */
   multipartFields?: Record<string, string>
+  /** AbortSignal for request cancellation (e.g. timeout). */
+  signal?: AbortSignal
 }
 
 /** A decoded Server-Sent Event: the raw `data` value is JSON-parsed when possible. */
@@ -178,6 +180,7 @@ export class KibanaClient {
     // Authorization header on cross-origin redirects, and the same-origin check below rejects any
     // response that ended up on a different origin rather than trusting it.
     const init: RequestInit = { method, headers, redirect: 'follow' }
+    if (params.signal != null) init.signal = params.signal
 
     if (params.multipartFields != null) {
       // Send as multipart/form-data; do NOT set Content-Type manually (fetch sets it with the boundary)
