@@ -1,0 +1,28 @@
+name: Auto-Approve Renovate PRs
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [auto_merge_enabled]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  approve:
+    runs-on: ubuntu-latest
+    if: >
+      github.event.pull_request.user.login == 'elastic-renovate-prod[bot]' &&
+      contains(github.event.pull_request.labels.*.name, 'renovate-auto-approve')
+    steps:
+      - name: Approve Renovate PR
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              event: "APPROVE"
+            })
