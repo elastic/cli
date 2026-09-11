@@ -464,6 +464,37 @@ elastic cloud serverless cross-project get-elasticsearch-project-link-candidates
 
 Run `elastic cloud serverless --help` for all available groups.
 
+### `nightshift` - Nightshift Investigation Agent ⚠️ Experimental / POC
+
+Ask the [Nightshift investigation agent](https://www.elastic.co/guide/en/observability/current/nightshift.html)
+a question from the terminal. Requires a Kibana service block in the active context and an
+Enterprise license.
+
+```bash
+# First turn — starts a new conversation; the conversation id appears on stderr
+elastic nightshift ask "what significant events fired in the last hour?"
+
+# Continue an existing conversation
+elastic nightshift ask --conversation-id <uuid> "which service caused it?"
+
+# JSON output — emits { conversation_id, response }; safe to pipe
+elastic nightshift ask --json "why is checkout slow?" | jq '.response'
+```
+
+The command calls the agent builder converse endpoint (hardcoded to
+`significant-events.investigation`) and prints only the prose answer. The `conversation:`
+hint on stderr can be suppressed by redirecting stderr:
+
+```bash
+elastic nightshift ask "…" 2>/dev/null
+```
+
+Currently speaks to the agent builder `POST /api/agent_builder/converse` endpoint directly.
+A purpose-built `POST /api/nightshift/ask` will replace this once it lands server-side.
+
+> **Note:** This is an early POC. Output format and flags may change without notice.
+> Pass `--accept-experimental` to suppress the stability warning.
+
 ## Extensions
 
 Extensions add new top-level subcommands to the CLI. Once installed, an extension named `demo` is invoked as `elastic demo`.
