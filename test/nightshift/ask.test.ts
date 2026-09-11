@@ -21,8 +21,8 @@ function makeDeps (opts: { answer?: NightshiftAnswer; throws?: Error } = {}) {
   const stderrLines: string[] = []
 
   const converseImpl = opts.throws != null
-    ? (_prompt: string, _convId?: string): Promise<NightshiftAnswer> => Promise.reject(opts.throws)
-    : (_prompt: string, _convId?: string): Promise<NightshiftAnswer> =>
+    ? (_prompt: string, _convId?: string, _timeout?: number): Promise<NightshiftAnswer> => Promise.reject(opts.throws)
+    : (_prompt: string, _convId?: string, _timeout?: number): Promise<NightshiftAnswer> =>
         Promise.resolve(opts.answer ?? DEFAULT_ANSWER)
 
   return {
@@ -81,64 +81,195 @@ describe('createAskCommand — basics', () => {
     const optLongs = cmd.options.map(o => o.long)
     assert.ok(optLongs.includes('--accept-experimental'))
   })
+
+  it('exposes --timeout option', () => {
+    const cmd = createAskCommand()
+    const optLongs = cmd.options.map(o => o.long)
+    assert.ok(optLongs.includes('--timeout'), `expected --timeout, got: ${optLongs.join(',')}`)
+  })
+
+  it('exposes --verbose option', () => {
+    const cmd = createAskCommand()
+    const optLongs = cmd.options.map(o => o.long)
+    assert.ok(optLongs.includes('--verbose'), `expected --verbose, got: ${optLongs.join(',')}`)
+  })
 })
 
 // ---------------------------------------------------------------------------
-// Text mode (default)
+// Text mode (default — only when stdout is a TTY)
 // ---------------------------------------------------------------------------
 
 describe('createAskCommand — text mode', () => {
   it('writes the answer to stdout', async () => {
     const deps = makeDeps({ answer: { conversationId: VALID_UUID, message: 'Root cause is X.' } })
-    await runCmd(deps, ['why is checkout slow?'])
+    const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
+    try {
+      await runCmd(deps, ['why is checkout slow?'])
+    } finally {
+      if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
+      else delete (process.stdout as { isTTY?: boolean }).isTTY
+    }
     assert.ok(deps.stdoutText.includes('Root cause is X.'), `stdout: ${deps.stdoutText}`)
   })
 
   it('writes the conversation id to stderr', async () => {
     const deps = makeDeps()
-    await runCmd(deps, ['what happened?'])
+    const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
+    try {
+      await runCmd(deps, ['what happened?'])
+    } finally {
+      if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
+      else delete (process.stdout as { isTTY?: boolean }).isTTY
+    }
     assert.ok(deps.stderrText.includes(`conversation: ${VALID_UUID}`), `stderr: ${deps.stderrText}`)
   })
 
   it('does not write the conversation id to stdout', async () => {
     const deps = makeDeps()
-    await runCmd(deps, ['what happened?'])
+    const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
+    try {
+      await runCmd(deps, ['what happened?'])
+    } finally {
+      if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
+      else delete (process.stdout as { isTTY?: boolean }).isTTY
+    }
     assert.ok(!deps.stdoutText.includes('conversation:'), `stdout should not contain id: ${deps.stdoutText}`)
   })
 
   it('appends a trailing newline to the answer when missing', async () => {
     const deps = makeDeps({ answer: { conversationId: VALID_UUID, message: 'No newline' } })
-    await runCmd(deps, ['something'])
+    const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
+    try {
+      await runCmd(deps, ['something'])
+    } finally {
+      if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
+      else delete (process.stdout as { isTTY?: boolean }).isTTY
+    }
     assert.ok(deps.stdoutText.endsWith('\n'), `expected trailing newline, got: ${JSON.stringify(deps.stdoutText)}`)
   })
 
   it('does not double-add a newline when the message already ends with one', async () => {
     const deps = makeDeps({ answer: { conversationId: VALID_UUID, message: 'Already.\n' } })
-    await runCmd(deps, ['something'])
+    const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
+    try {
+      await runCmd(deps, ['something'])
+    } finally {
+      if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
+      else delete (process.stdout as { isTTY?: boolean }).isTTY
+    }
     assert.equal(deps.stdoutText, 'Already.\n')
   })
 
   it('emits the experimental banner on stderr', async () => {
     const deps = makeDeps()
-    await runCmd(deps, ['what?'])
+    const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
+    try {
+      await runCmd(deps, ['what?'])
+    } finally {
+      if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
+      else delete (process.stdout as { isTTY?: boolean }).isTTY
+    }
     assert.ok(deps.stderrText.includes('experimental'), `expected banner in stderr: ${deps.stderrText}`)
   })
 
   it('suppresses the banner with --accept-experimental', async () => {
     const deps = makeDeps()
-    await runCmd(deps, ['--accept-experimental', 'what?'])
+    const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
+    try {
+      await runCmd(deps, ['--accept-experimental', 'what?'])
+    } finally {
+      if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
+      else delete (process.stdout as { isTTY?: boolean }).isTTY
+    }
     // Only the conversation id should be on stderr, no banner
     const stderrWithoutId = deps.stderrText.replace(/conversation: .*\n/, '')
     assert.ok(!stderrWithoutId.includes('experimental'), `banner should be suppressed: ${deps.stderrText}`)
   })
+
+  it('shows tool call count on stderr with --verbose when steps are present', async () => {
+    const deps = makeDeps({ answer: { conversationId: VALID_UUID, message: 'Answer.', steps: 3 } })
+    const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
+    try {
+      await runCmd(deps, ['--accept-experimental', '--verbose', 'what?'])
+    } finally {
+      if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
+      else delete (process.stdout as { isTTY?: boolean }).isTTY
+    }
+    assert.ok(deps.stderrText.includes('3 tool calls'), `expected tool call count: ${deps.stderrText}`)
+  })
+
+  it('does not show tool call count without --verbose', async () => {
+    const deps = makeDeps({ answer: { conversationId: VALID_UUID, message: 'Answer.', steps: 3 } })
+    const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
+    try {
+      await runCmd(deps, ['--accept-experimental', 'what?'])
+    } finally {
+      if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
+      else delete (process.stdout as { isTTY?: boolean }).isTTY
+    }
+    assert.ok(!deps.stderrText.includes('tool calls'), `unexpected tool call count: ${deps.stderrText}`)
+  })
 })
 
 // ---------------------------------------------------------------------------
-// JSON mode
+// Non-TTY stdout — auto-JSON
+// ---------------------------------------------------------------------------
+
+describe('createAskCommand — non-TTY stdout auto-JSON', () => {
+  it('emits JSON when stdout is not a TTY (piped)', async () => {
+    const deps = makeDeps({ answer: { conversationId: VALID_UUID, message: 'The answer.' } })
+    const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
+    Object.defineProperty(process.stdout, 'isTTY', { value: undefined, configurable: true })
+    try {
+      await runCmd(deps, ['what happened?'])
+    } finally {
+      if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
+      else delete (process.stdout as { isTTY?: boolean }).isTTY
+    }
+    // Non-TTY auto-JSON writes via deps.stdout.write (not process.stdout.write)
+    const parsed = JSON.parse(deps.stdoutText) as unknown
+    assert.ok(typeof (parsed as Record<string, unknown>)['conversation_id'] === 'string', 'expected conversation_id')
+    assert.ok(typeof (parsed as Record<string, unknown>)['message'] === 'string', 'expected message field')
+  })
+
+  it('does not emit banner when auto-JSON mode is active', async () => {
+    const deps = makeDeps()
+    const origWrite = process.stdout.write
+    const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
+    Object.defineProperty(process.stdout, 'isTTY', { value: undefined, configurable: true })
+    process.stdout.write = (() => true) as typeof process.stdout.write
+    try {
+      const cmd = createAskCommand(deps)
+      cmd.exitOverride()
+      cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
+      const restoreStdin = _testSetStdinReader(() => '')
+      try {
+        await cmd.parseAsync(['what?'], { from: 'user' })
+      } finally { restoreStdin() }
+    } finally {
+      process.stdout.write = origWrite
+      if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
+      else delete (process.stdout as { isTTY?: boolean }).isTTY
+    }
+    assert.ok(!deps.stderrText.includes('experimental'), `banner should be suppressed in auto-JSON mode: ${deps.stderrText}`)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// JSON mode (explicit --json)
 // ---------------------------------------------------------------------------
 
 describe('createAskCommand — JSON mode', () => {
-  it('emits { conversation_id, response } as JSON under --json', async () => {
+  it('emits { conversation_id, message } as JSON under --json', async () => {
     const deps = makeDeps({ answer: { conversationId: VALID_UUID, message: 'The answer.' } })
     const captured: string[] = []
     const origWrite = process.stdout.write
@@ -155,7 +286,51 @@ describe('createAskCommand — JSON mode', () => {
       } finally { restoreStdin() }
 
       const parsed = JSON.parse(captured.join('')) as unknown
-      assert.deepEqual(parsed, { conversation_id: VALID_UUID, response: 'The answer.' })
+      assert.deepEqual(parsed, { conversation_id: VALID_UUID, message: 'The answer.' })
+    } finally {
+      process.stdout.write = origWrite
+    }
+  })
+
+  it('includes tool_calls in JSON when steps are present', async () => {
+    const deps = makeDeps({ answer: { conversationId: VALID_UUID, message: 'The answer.', steps: 5 } })
+    const captured: string[] = []
+    const origWrite = process.stdout.write
+    process.stdout.write = ((s: unknown) => { if (typeof s === 'string') captured.push(s); return true }) as typeof process.stdout.write
+    try {
+      const cmd = createAskCommand(deps)
+      cmd.exitOverride()
+      cmd.option('--json', 'output as JSON')
+      cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
+      const restoreStdin = _testSetStdinReader(() => '')
+      try {
+        await cmd.parseAsync(['--json', 'what happened?'], { from: 'user' })
+      } finally { restoreStdin() }
+
+      const parsed = JSON.parse(captured.join('')) as Record<string, unknown>
+      assert.equal(parsed['tool_calls'], 5)
+    } finally {
+      process.stdout.write = origWrite
+    }
+  })
+
+  it('omits tool_calls from JSON when steps are absent', async () => {
+    const deps = makeDeps({ answer: { conversationId: VALID_UUID, message: 'The answer.' } })
+    const captured: string[] = []
+    const origWrite = process.stdout.write
+    process.stdout.write = ((s: unknown) => { if (typeof s === 'string') captured.push(s); return true }) as typeof process.stdout.write
+    try {
+      const cmd = createAskCommand(deps)
+      cmd.exitOverride()
+      cmd.option('--json', 'output as JSON')
+      cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
+      const restoreStdin = _testSetStdinReader(() => '')
+      try {
+        await cmd.parseAsync(['--json', 'what happened?'], { from: 'user' })
+      } finally { restoreStdin() }
+
+      const parsed = JSON.parse(captured.join('')) as Record<string, unknown>
+      assert.ok(!('tool_calls' in parsed), 'tool_calls should be absent when steps not in response')
     } finally {
       process.stdout.write = origWrite
     }
@@ -172,6 +347,48 @@ describe('createAskCommand — JSON mode', () => {
       await cmd.parseAsync(['--json', 'what?'], { from: 'user' })
     } finally { restoreStdin() }
     assert.ok(!deps.stderrText.includes('experimental'), `banner should not appear under --json: ${deps.stderrText}`)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Timeout
+// ---------------------------------------------------------------------------
+
+describe('createAskCommand — timeout', () => {
+  it('passes timeoutSeconds to converse when --timeout is given', async () => {
+    let receivedTimeout: number | undefined
+    const deps = makeDeps()
+    deps.converse = (_p: string, _id?: string, timeout?: number) => {
+      receivedTimeout = timeout
+      return Promise.resolve(DEFAULT_ANSWER)
+    }
+    const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
+    try {
+      await runCmd(deps, ['--accept-experimental', '--timeout', '30', 'what?'])
+    } finally {
+      if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
+      else delete (process.stdout as { isTTY?: boolean }).isTTY
+    }
+    assert.equal(receivedTimeout, 30)
+  })
+
+  it('passes undefined timeout to converse when --timeout is not given', async () => {
+    let receivedTimeout: number | undefined = 999
+    const deps = makeDeps()
+    deps.converse = (_p: string, _id?: string, timeout?: number) => {
+      receivedTimeout = timeout
+      return Promise.resolve(DEFAULT_ANSWER)
+    }
+    const origIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
+    try {
+      await runCmd(deps, ['--accept-experimental', 'what?'])
+    } finally {
+      if (origIsTTY) Object.defineProperty(process.stdout, 'isTTY', origIsTTY)
+      else delete (process.stdout as { isTTY?: boolean }).isTTY
+    }
+    assert.equal(receivedTimeout, undefined)
   })
 })
 

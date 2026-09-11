@@ -29,6 +29,8 @@ const CONVERSE_PATH = '/api/agent_builder/converse'
 export interface NightshiftAnswer {
   conversationId: string
   message: string
+  /** Number of tool/step calls the agent made to produce the answer. */
+  steps?: number
 }
 
 /**
@@ -39,12 +41,14 @@ export interface NightshiftAnswer {
  * conversation. Pass the returned `conversationId` on subsequent turns to
  * continue the same conversation thread.
  *
- * @throws {Error} when Kibana is not configured, the request fails, or the
- *   response shape is unexpected (fields missing or wrong type).
+ * @param timeoutSeconds - abort the request after this many seconds (default: no timeout)
+ * @throws {Error} when Kibana is not configured, the request fails, times out,
+ *   or the response shape is unexpected (fields missing or wrong type).
  */
 export async function converse (
   prompt: string,
   conversationId?: string,
+  timeoutSeconds?: number,
 ): Promise<NightshiftAnswer> {
   const client = getKibanaClient()
 
@@ -56,9 +60,23 @@ export async function converse (
     body['conversation_id'] = conversationId
   }
 
-  const raw = await client.request({ method: 'POST', path: CONVERSE_PATH, body })
+  let signal: AbortSignal | undefined
+  let timer: ReturnType<typeof setTimeout> | undefined
+  if (timeoutSeconds !== undefined) {
+    const controller = new AbortController()
+    signal = controller.signal
+    timer = setTimeout(
+      () => controller.abort(new Error(`nightshift_timeout: timed out after ${timeoutSeconds}s`)),
+      timeoutSeconds * 1000,
+    )
+  }
 
-  return parseResponse(raw)
+  try {
+    const raw = await client.request({ method: 'POST', path: CONVERSE_PATH, body, ...(signal !== undefined ? { signal } : {}) })
+    return parseResponse(raw)
+  } finally {
+    if (timer !== undefined) clearTimeout(timer)
+  }
 }
 
 /**
@@ -90,5 +108,9 @@ export function parseResponse (raw: unknown): NightshiftAnswer {
     throw new Error('nightshift_api_error: response.response.message is not a string')
   }
 
+  const stepsArr = resp['steps']
+  const steps = Array.isArray(stepsArr) ? stepsArr.length : undefined
+
+  if (steps !== undefined) return { conversationId, message, steps }
   return { conversationId, message }
 }

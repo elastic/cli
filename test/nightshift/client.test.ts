@@ -19,9 +19,13 @@ const API_KEY = 'test-key'
 
 const VALID_UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
 
-function okResponse (conversationId: string, message: string): Response {
+function okResponse (conversationId: string, message: string, steps?: unknown[]): Response {
   return new Response(
-    JSON.stringify({ conversation_id: conversationId, response: { message } }),
+    JSON.stringify({
+      conversation_id: conversationId,
+      response: { message },
+      ...(steps !== undefined ? { steps } : {}),
+    }),
     { status: 200, headers: { 'Content-Type': 'application/json' } },
   )
 }
@@ -108,6 +112,34 @@ describe('converse', () => {
     assert.equal(answer.message, 'Root cause: payments.')
   })
 
+  it('returns steps count when response includes a steps array', async () => {
+    setResolvedConfig({ context: { kibana: { url: KIBANA_URL, auth: { api_key: API_KEY } } } } as unknown as ResolvedConfig)
+    const client = getKibanaClient() as KibanaClient
+    client._testSetFetch((() =>
+      Promise.resolve(okResponse(VALID_UUID, 'Answer.', [{ tool: 'search' }, { tool: 'lookup' }]))
+    ) as unknown as typeof fetch)
+    const answer = await converse('query')
+    assert.equal(answer.steps, 2)
+  })
+
+  it('returns undefined steps when response has no steps field', async () => {
+    setup()
+    const answer = await converse('query')
+    assert.equal(answer.steps, undefined)
+  })
+
+  it('forwards an AbortSignal when timeoutSeconds is supplied', async () => {
+    setResolvedConfig({ context: { kibana: { url: KIBANA_URL, auth: { api_key: API_KEY } } } } as unknown as ResolvedConfig)
+    const client = getKibanaClient() as KibanaClient
+    let capturedSignal: AbortSignal | null | undefined = null
+    client._testSetFetch(((url: string, init: RequestInit) => {
+      capturedSignal = init.signal ?? null
+      return Promise.resolve(okResponse(VALID_UUID, 'ok'))
+    }) as unknown as typeof fetch)
+    await converse('hello', undefined, 60)
+    assert.ok(capturedSignal instanceof AbortSignal, 'expected an AbortSignal to be passed to fetch')
+  })
+
   it('throws on a 403 response', async () => {
     setResolvedConfig({ context: { kibana: { url: KIBANA_URL, auth: { api_key: API_KEY } } } } as unknown as ResolvedConfig)
     const client = getKibanaClient() as KibanaClient
@@ -139,6 +171,25 @@ describe('parseResponse', () => {
     })
     assert.equal(result.conversationId, VALID_UUID)
     assert.equal(result.message, 'Root cause: payments service.')
+    assert.equal(result.steps, undefined)
+  })
+
+  it('parses steps as the length of the steps array', () => {
+    const result = parseResponse({
+      conversation_id: VALID_UUID,
+      response: { message: 'ok' },
+      steps: [{ tool: 'a' }, { tool: 'b' }, { tool: 'c' }],
+    })
+    assert.equal(result.steps, 3)
+  })
+
+  it('treats a non-array steps field as undefined', () => {
+    const result = parseResponse({
+      conversation_id: VALID_UUID,
+      response: { message: 'ok' },
+      steps: 'not-an-array',
+    })
+    assert.equal(result.steps, undefined)
   })
 
   it('throws when conversation_id is missing', () => {

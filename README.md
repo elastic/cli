@@ -477,13 +477,22 @@ elastic nightshift ask "what significant events fired in the last hour?"
 # Continue an existing conversation
 elastic nightshift ask --conversation-id <uuid> "which service caused it?"
 
-# JSON output — emits { conversation_id, response }; safe to pipe
-elastic nightshift ask --json "why is checkout slow?" | jq '.response'
+# JSON output — emits { conversation_id, message[, tool_calls] }; safe to pipe
+elastic nightshift ask --json "why is checkout slow?" | jq '.message'
+
+# Piped stdout (non-TTY) auto-switches to JSON without --json
+elastic nightshift ask "why is checkout slow?" | jq '.message'
+
+# Set a timeout (abort after 60 seconds)
+elastic nightshift ask --timeout 60 "why is checkout slow?"
+
+# Show tool call count in text mode
+elastic nightshift ask --verbose "why is checkout slow?"
 ```
 
 The command calls the agent builder converse endpoint (hardcoded to
-`significant-events.investigation`) and prints only the prose answer. The `conversation:`
-hint on stderr can be suppressed by redirecting stderr:
+`significant-events.investigation`) and prints only the prose answer. When stdout is a TTY,
+the `conversation:` hint on stderr can be suppressed by redirecting stderr:
 
 ```bash
 elastic nightshift ask "…" 2>/dev/null

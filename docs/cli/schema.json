@@ -104790,6 +104790,20 @@
         },
         {
           "role": "flag",
+          "name": "timeout",
+          "type": "string",
+          "required": false,
+          "summary": "Abort the request after this many seconds (default: no timeout)"
+        },
+        {
+          "role": "flag",
+          "name": "verbose",
+          "type": "boolean",
+          "required": false,
+          "summary": "Show agent tool call count after the answer"
+        },
+        {
+          "role": "flag",
           "name": "prompt",
           "type": "string",
           "required": false,

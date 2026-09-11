@@ -49,8 +49,8 @@ function experimentalBanner (isTTY: boolean): string {
  * Creates the `nightshift ask` command.
  *
  * Sends a prompt to the Nightshift investigation agent via the agent builder
- * converse endpoint and writes the prose answer to stdout. With `--json`,
- * emits `{ conversation_id, response }` instead.
+ * converse endpoint and writes the prose answer to stdout. With `--json` (or
+ * when stdout is not a TTY), emits `{ conversation_id, message }` instead.
  *
  * The `deps` parameter is a test seam — production callers omit it.
  */
@@ -66,30 +66,63 @@ export function createAskCommand (deps: AskDeps = defaultDeps): OpaqueCommandHan
         type: 'boolean',
         description: 'Acknowledge that this command is experimental and may be removed; suppresses the warning',
       },
+      {
+        long: 'timeout',
+        type: 'string',
+        description: 'Abort the request after this many seconds (default: no timeout)',
+      },
+      {
+        long: 'verbose',
+        type: 'boolean',
+        description: 'Show agent tool call count after the answer',
+      },
     ],
     handler: async (parsed): Promise<JsonValue> => {
       const inp = parsed.input as { prompt?: string; conversation_id?: string } | undefined
       const prompt = (parsed.arg ?? inp?.prompt ?? '').trim()
       if (prompt === '') return { error: { code: 'missing_input', message: 'prompt is required' } }
 
-      if (parsed.options['accept-experimental'] !== true && parsed.options['json'] !== true) {
+      // Auto-JSON when stdout is not a TTY so piped output is always machine-parseable.
+      const useJson = parsed.options['json'] === true || process.stdout.isTTY !== true
+
+      if (parsed.options['accept-experimental'] !== true && !useJson) {
         deps.stderr.write(experimentalBanner(process.stderr.isTTY === true))
       }
 
       const conversationId = inp?.conversation_id
-      const interactive = process.stderr.isTTY === true && parsed.options['json'] !== true
+      const interactive = process.stderr.isTTY === true && !useJson
       const spinner = interactive ? startSpinner(deps.stderr, 'Thinking…') : undefined
 
+      const rawTimeout = parsed.options['timeout']
+      const timeoutSeconds = typeof rawTimeout === 'string' && rawTimeout.length > 0
+        ? Number(rawTimeout)
+        : undefined
+
       try {
-        const answer = await deps.converse(prompt, conversationId)
+        const answer = await deps.converse(prompt, conversationId, timeoutSeconds)
         spinner?.stop()
 
-        if (parsed.options['json'] === true) {
-          return { conversation_id: answer.conversationId, response: answer.message }
+        if (useJson) {
+          const result: Record<string, unknown> = {
+            conversation_id: answer.conversationId,
+            message: answer.message,
+          }
+          if (answer.steps !== undefined) result['tool_calls'] = answer.steps
+
+          if (parsed.options['json'] === true) {
+            // Let the factory serialize and write JSON (it uses process.stdout.write directly).
+            return result as JsonValue
+          }
+          // Non-TTY auto-JSON: write ourselves so the factory doesn't swallow it.
+          deps.stdout.write(JSON.stringify(result) + '\n')
+          return null
         }
 
         const text = answer.message.endsWith('\n') ? answer.message : answer.message + '\n'
         deps.stdout.write(text)
+        if (parsed.options['verbose'] === true && answer.steps !== undefined) {
+          deps.stderr.write(`(${answer.steps} tool calls)\n`)
+        }
         deps.stderr.write(`conversation: ${answer.conversationId}\n`)
         return null
       } catch (err) {
