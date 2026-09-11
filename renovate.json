@@ -9,5 +9,14 @@
   "schedule": [
     "* 0-3 1 * *"
   ],
-  "prConcurrentLimit": 10
+  "prConcurrentLimit": 10,
+  "automergeStrategy": "squash",
+  "automergeType": "pr",
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["patch", "minor", "pin", "digest"],
+      "addLabels": ["renovate-auto-approve"],
+      "automerge": true
+    }
+  ]
 }
