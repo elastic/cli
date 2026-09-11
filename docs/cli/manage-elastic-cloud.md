@@ -98,52 +98,70 @@ elastic --use-context elastic-cloud \
 
 ### Create a {{serverless-short}} project
 
-List the available {{serverless-short}} regions:
+To create a {{serverless-short}} project and verify access, complete the following steps:
 
-```bash
-elastic --use-context elastic-cloud \
-  cloud serverless regions list-regions
-```
+1. List the available {{serverless-short}} regions:
 
-Create a {{serverless-short}} project using one of the regions returned by the previous command. The following example creates an Observability project named `cli-example` in the AWS `us-east-1` region, identified as `aws-us-east-1` by {{serverless-short}}:
+    ```bash
+    elastic --use-context elastic-cloud \
+      cloud serverless regions list-regions
+    ```
 
-```bash
-elastic --use-context elastic-cloud \
-  cloud serverless projects observability create \
-  --name "cli-example" \
-  --region-id "aws-us-east-1" \
-  --wait \
-  --save-as "cli-example"
-```
+2. Create a {{serverless-short}} project using one of the regions returned by the previous command. The following example creates an Observability project named `cli-example` in the AWS `us-east-1` region, identified as `aws-us-east-1` by {{serverless-short}}:
 
-The CLI asks you to confirm the operation. The `--wait` option waits for the project to initialize, and `--save-as` stores its endpoint and credentials in a context named `cli-example`. Refer to [credential-safe project creation](./configuration.md#credential-safe-project-creation) for more details.
+    ```bash
+    elastic --use-context elastic-cloud \
+      cloud serverless projects observability create \
+      --name "cli-example" \
+      --region-id "aws-us-east-1" \
+      --wait \
+      --save-as "cli-example"
+    ```
 
-:::{note}
-The {{ecloud}} API key used in this guide can also authenticate to the project's {{es}} API if it has **Cloud, {{es}}, and {{kib}} API** access and an appropriate role for the project. To use it instead of the default credentials, configure the project's {{es}} endpoint and the same API key in the `elasticsearch` block of a context.
-:::
+    The CLI asks you to confirm the operation. The `--wait` option waits for the project to initialize, and `--save-as` stores the project's {{es}} and {{kib}} endpoints and default credentials in a context named `cli-example`. Refer to [credential-safe project creation](./configuration.md#credential-safe-project-creation) for more details.
+
+    :::{note}
+    For ongoing programmatic access, we recommend using an API key with only the permissions required for your use case instead of the default credentials. The {{ecloud}} API key used in this guide can also authenticate to the new project's {{es}} and {{kib}} APIs when it has **Cloud, {{es}}, and {{kib}} API** access and a role that applies to all projects of the relevant type. To use it, configure the project's endpoints and the same API key in the corresponding `elasticsearch` and `kibana` blocks of a context.
+    :::
+
+3. Verify that the new context can access the project's {{es}} API:
+
+    ```bash
+    elastic --use-context cli-example es info
+    ```
+
+    A successful response confirms that the project is available and the saved credentials work.
+
 
 ### Create an {{ech}} deployment
 
-List the deployment templates available in your chosen region.
+To create an {{ech}} deployment, complete the following steps:
 
-```bash
-elastic --use-context elastic-cloud \
-  cloud hosted deployment-templates get-deployment-templates-v2 \
-  --region "<region-id>" <1>
-```
-1. Refer to [{{ech}} regions](cloud://reference/cloud/cloud-hosted/regions.md) for available region identifiers on ECH.
+1. List the deployment templates available in your chosen region:
 
-Create an {{ech}} deployment using one of the templates returned by the previous command. The following example creates a deployment named `cli-example` from the **General purpose** template in the AWS US East (N. Virginia) region (`us-east-1`):
+    ```bash
+    elastic --use-context elastic-cloud \
+      cloud hosted deployment-templates get-deployment-templates-v2 \
+      --region "<region-id>" <1>
+    ```
+    1. Refer to [{{ech}} regions](cloud://reference/cloud-hosted/regions.md) for available region identifiers on ECH.
 
-```bash
-elastic --use-context elastic-cloud \
-  cloud hosted deployments create-deployment \
-  --name "cli-example" \
-  --region "us-east-1" \
-  --template-id "aws-general-purpose"
-```
+2. Create an {{ech}} deployment using one of the templates returned by the previous command. The following example creates a deployment named `cli-example` from the **General purpose** template in the AWS US East (N. Virginia) region (`us-east-1`):
 
-The response contains the new deployment identifier and resource details. Refer to [Manage deployments using the {{ecloud}} API](docs-content://deploy-manage/deploy/elastic-cloud/manage-deployments-using-elastic-cloud-api.md#create-a-deployment-using-default-values) for more information about regions, templates, and custom deployment configurations.
+    ```bash
+    elastic --use-context elastic-cloud \
+      cloud hosted deployments create-deployment \
+      --name "cli-example" \
+      --region "us-east-1" \
+      --template-id "aws-general-purpose"
+    ```
+
+    The response contains the new deployment identifier and resource details. Refer to [Manage deployments using the {{ecloud}} API](docs-content://deploy-manage/deploy/elastic-cloud/manage-deployments-using-elastic-cloud-api.md#ec-api-examples-deployment-simple) for more information about regions, templates, and custom deployment configurations.
+
+
+    :::{note}
+    The {{ecloud}} API key used in this guide can't authenticate to {{es}} or {{kib}} APIs on {{ech}}. For ongoing programmatic access to the new deployment, create an [{{es}} API key](docs-content://deploy-manage/api-keys/elasticsearch-api-keys.md) with only the permissions required for your use case. Configure the deployment's endpoints and API key in the corresponding `elasticsearch` and `kibana` blocks of a context. You can add these blocks to `elastic-cloud` or create a separate context for the deployment.
+    :::
 
 ## Next steps
 

@@ -114,22 +114,58 @@ The command reports a result for each configured service (`elasticsearch`, `kiba
 serverless: preview
 ```
 
-For agent and LLM workflows, `serverless projects create` and `reset-credentials` accept `--save-as <context>` to avoid leaking admin credentials through stdout:
+When you create a {{serverless-short}} project, the {{ecloud}} API returns default administrator credentials for immediate access. The CLI redacts the password by default. You can access the project with either these credentials or an [API key](docs-content://deploy-manage/api-keys.md). For ongoing access, we recommend using an API key with only the permissions required for your use case.
+
+The CLI provides the following options for handling the default credentials:
+
+- `--save-as <context>` stores the project's endpoints and credentials in a named context. The CLI uses the operating system's credential store when available.
+- `--credentials-file <path>` writes a standalone YAML configuration file with file mode `0600` without modifying the main configuration file.
+- `--show-credentials` prints the credentials to standard output in plain text. Avoid this option unless you need to capture the password manually.
+
+:::{note}
+`--save-as` and `--credentials-file` retain the credentials while keeping the password redacted in standard output, making command output safe to capture in agent and LLM workflows.
+:::
+
+For example, create a project and store its endpoints and credentials in a context named `scratch`:
 
 ```bash
-elastic cloud serverless projects search create --wait --save-as scratch \
-  --name scratch-es --region-id aws-us-east-1
-
-# stdout has endpoints + a `savedAs: scratch` marker, password is redacted.
-# The keychain now holds scratch:elasticsearch.auth.password etc.
-elastic --use-context scratch es info
-
-# Rotate credentials; URL stays, only the password moves.
-elastic cloud serverless projects search reset-credentials --id <id> \
-  --save-as scratch --force
+elastic cloud serverless projects search create \
+  --name scratch-es \
+  --region-id aws-us-east-1 \
+  --wait \
+  --save-as scratch
 ```
 
-`--credentials-file <path>` writes a standalone YAML config fragment (0600) at `<path>` instead of mutating the main config. Both flags make stdout safe to capture into an LLM transcript.
+You can then use the context to access the project:
+
+```bash
+elastic --use-context scratch es info
+```
+
+To create a separate configuration file instead, use `--credentials-file`:
+
+```bash
+elastic cloud serverless projects search create \
+  --name scratch-es \
+  --region-id aws-us-east-1 \
+  --wait \
+  --credentials-file ./scratch.yml
+```
+
+You can then use the file as a standalone CLI configuration:
+
+```bash
+elastic --config-file ./scratch.yml es info
+```
+
+To rotate the default credentials and update an existing context, run:
+
+```bash
+elastic cloud serverless projects search reset-credentials \
+  --id <project-id> \
+  --save-as scratch \
+  --force
+```
 
 ## External credentials
 
