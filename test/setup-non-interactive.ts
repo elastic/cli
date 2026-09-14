@@ -21,3 +21,35 @@
 import { _testSetIsTTY } from '../src/factory.ts'
 
 _testSetIsTTY(false)
+
+// Node 22 + isolation=none writes TAP as strings through process.stdout.write.
+// Tests that capture string writes then see "# Subtest:" in JSON output.
+// Node 24 writes the same frames as Buffers, which those tests already pass through.
+const stdout = process.stdout
+const realWrite = stdout.write.bind(stdout)
+let inner: typeof stdout.write = realWrite
+
+function isRunnerTap(chunk: unknown): boolean {
+  return typeof chunk === 'string' &&
+    /^\s*(?:# Subtest:|(?:not )?ok \d+ |# (?:fail|tests|pass|cancelled|skipped|todo)\b|\d+\.\.\d+| {2}(?:---|\.\.\.|duration_ms:|type: |error: |location: ))/.test(chunk)
+}
+
+function tapAwareWrite(
+  chunk: unknown,
+  encoding?: BufferEncoding | ((err?: Error | null) => void),
+  cb?: (err?: Error | null) => void,
+): boolean {
+  if (isRunnerTap(chunk)) return realWrite(chunk as string, encoding as BufferEncoding, cb)
+  return inner.call(stdout, chunk as never, encoding as never, cb as never)
+}
+
+Object.defineProperty(stdout, 'write', {
+  configurable: true,
+  get: () => tapAwareWrite,
+  set(fn: typeof stdout.write) {
+    const name = typeof fn === 'function' ? fn.name : ''
+    inner = (typeof fn === 'function' && fn !== tapAwareWrite && name !== 'tapAwareWrite' && name !== 'bound tapAwareWrite')
+      ? fn
+      : realWrite
+  },
+})
