@@ -58,7 +58,7 @@ function isDirOrChild (n, dir) {
 export function isProtectedWritePath (file) {
   const n = canonicalPath(file)
   return n === null
-    || isDirOrChild(n, '.github/workflows')
+    || isDirOrChild(n, '.github')
     || isDirOrChild(n, '.git')
     || isDirOrChild(n, '.buildkite')
 }
@@ -149,7 +149,11 @@ export function pickSkillMemoryPr (prs, { defaultBranch } = {}) {
   const usable = (pr) => {
     if (!pr || pr.isCrossRepository) return false
     if (defaultBranch && pr.headRefName === defaultBranch) return false
-    return true
+    const labels = Array.isArray(pr.labels) ? pr.labels : []
+    const labeled = labels.some((label) => (typeof label === 'string' ? label : label?.name) === 'ai-review-memory')
+    const login = pr.author?.login ?? pr.user?.login
+    const bot = login === 'github-actions' || login === 'github-actions[bot]'
+    return labeled || bot
   }
   return prs.find((pr) => usable(pr) && pr.headRefName === 'ai/review-memory')
     ?? prs.find((pr) => usable(pr) && isSkillOnlyPr(pr))

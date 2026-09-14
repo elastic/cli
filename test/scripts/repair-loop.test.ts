@@ -95,6 +95,9 @@ describe('path guards', () => {
     assert.equal(isSafeWritePath('src/kb/api-manifest.ts'), false)
     assert.equal(isSafeWritePath('.github/workflows/ci.yml'), false)
     assert.equal(isSafeWritePath('.github/workflows'), false)
+    assert.equal(isSafeWritePath('.github/CODEOWNERS'), false)
+    assert.equal(isSafeWritePath('.github/skills/ai-review-memory.md'), false)
+    assert.equal(isSafeWritePath('.github'), false)
     assert.equal(isSafeWritePath('.git/config'), false)
     assert.equal(isSafeWritePath('.git'), false)
     assert.equal(isSafeWritePath('.buildkite/run-es-tests.sh'), false)
@@ -167,12 +170,14 @@ describe('review-no memory', () => {
   it('picks a skill-only PR and appends a new memory line', () => {
     assert.equal(pickSkillMemoryPr(null), null)
     assert.equal(pickSkillMemoryPr([]), null)
-    const skill = { number: 9, headRefName: 'docs/memory', files: [{ path: '.github/skills/ai-review-memory.md' }] }
-    const named = { number: 3, headRefName: 'ai/review-memory', files: [{ path: '.github/skills/ai-review-memory.md' }] }
+    const skill = { number: 9, headRefName: 'docs/memory', files: [{ path: '.github/skills/ai-review-memory.md' }], labels: [{ name: 'ai-review-memory' }] }
+    const named = { number: 3, headRefName: 'ai/review-memory', files: [{ path: '.github/skills/ai-review-memory.md' }], author: { login: 'github-actions' } }
     const other = { number: 8, headRefName: 'feat', files: [{ path: 'src/a.ts' }, { path: '.github/skills/ai-review-memory.md' }] }
+    const unlabeled = { number: 11, headRefName: 'docs/memory', files: [{ path: '.github/skills/ai-review-memory.md' }] }
     assert.equal(pickSkillMemoryPr([other, skill])?.number, 9)
     assert.equal(pickSkillMemoryPr([skill, named])?.number, 3)
     assert.equal(pickSkillMemoryPr([other]), null)
+    assert.equal(pickSkillMemoryPr([unlabeled]), null)
     assert.equal(pickSkillMemoryPr([{ ...skill, isCrossRepository: true }]), null)
     assert.equal(pickSkillMemoryPr([{ number: 2, headRefName: 'main', files: skill.files }], { defaultBranch: 'main' }), null)
     const first = appendMemorySkill('', '/bad Do not re-flag slash branches.')
@@ -216,6 +221,7 @@ describe('parseAgentResponse', () => {
     assert.throws(() => parseAgentResponse('{"changes":[{"file":"../x","content":"a"}]}'), /refusing path/)
     assert.throws(() => parseAgentResponse('{"changes":[{"file":"src/es/apis/search.ts","content":"a"}]}'), /refusing path/)
     assert.throws(() => parseAgentResponse('{"changes":[{"file":".github/workflows/ci.yml","content":"a"}]}'), /refusing path/)
+    assert.throws(() => parseAgentResponse('{"changes":[{"file":".github/CODEOWNERS","content":"a"}]}'), /refusing path/)
   })
 
   it('falls back when commit message is unsafe', () => {
@@ -302,6 +308,13 @@ describe('applyChangesGithub', () => {
     assert.throws(
       () => applyChangesGithub(
         [{ file: '.github/workflows/pwn.yml', content: 'x' }],
+        { repo: 'elastic/cli', branch: 'feat', message: 'fix: a', api },
+      ),
+      /refusing path/,
+    )
+    assert.throws(
+      () => applyChangesGithub(
+        [{ file: '.github/CODEOWNERS', content: 'x' }],
         { repo: 'elastic/cli', branch: 'feat', message: 'fix: a', api },
       ),
       /refusing path/,
