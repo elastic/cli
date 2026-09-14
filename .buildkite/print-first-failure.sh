@@ -58,8 +58,9 @@ BODY=$(printf '%s\n' \
   '```' \
   "$SUMMARY" \
   '```')
-EXISTING=$(gh api "repos/${GH_REPO}/issues/${PR}/comments" \
-  --jq "[.[]? | select(.user.login == \"github-actions[bot]\" or .user.login == \"elastic-vault-github-plugin-prod[bot]\") | select(.body | startswith(\"${COMMENT_TAG}\")) | .id][0] // empty" || true)
+EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+  --jq ".[] | select((.user.login == \"github-actions[bot]\" or .user.login == \"elastic-vault-github-plugin-prod[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \
+  | head -n 1 || true)
 if [ -n "$EXISTING" ]; then
   gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" -f body="$BODY"
 else
