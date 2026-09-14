@@ -67,11 +67,19 @@ export function hasReviewNoCommand (text) {
   return typeof text === 'string' && /(?:^|[\s])\/review-no(?:[\s]|$)/m.test(text)
 }
 
-export function memoryEntry (reason, finding, day = '1970-01-01') {
-  const r = String(reason ?? '').replace(/\s+/g, ' ').trim().slice(0, 200)
-  const f = String(finding ?? '').replace(/\s+/g, ' ').trim().slice(0, 400)
-  if (!r && !f) return ''
-  return `- ${day}: ${r}${f ? ` | ${f}` : ''}`
+export function memoryActionItem (reason) {
+  let r = String(reason ?? '').replace(/\s+/g, ' ').trim()
+  r = r.replace(/\/review-no\b/gi, ' ').replace(/\s+/g, ' ').trim()
+  r = r.replace(/^\d{4}-\d{2}-\d{2}:\s*/, '')
+  const pipe = r.indexOf(' | ')
+  if (pipe !== -1) r = r.slice(0, pipe).trim()
+  r = r.replace(/^[-*]\s+/, '').trim()
+  if (!r) return ''
+  return `- ${r.slice(0, 280)}`
+}
+
+export function memoryEntry (reason, _finding, _day) {
+  return memoryActionItem(reason)
 }
 
 export const MEMORY_SKILL_PATH = '.github/skills/ai-review-memory.md'
@@ -79,11 +87,14 @@ export const MEMORY_CURSOR_RE = /<!-- processed-through:\s*(\d+)\s*-->/
 
 const MEMORY_SKILL_HEADER = `# AI review memory
 
-Rejected findings. Do not repeat these.
+Action items for the next AI review. Follow these. Do not repeat the rejected findings.
 `
 
 export function isMemoryLine (text) {
-  return typeof text === 'string' && /^- \d{4}-\d{2}-\d{2}: /.test(text.trim())
+  if (typeof text !== 'string') return false
+  const line = text.trim().split('\n')[0]
+  if (/^Noted\b/i.test(line.replace(/^[-*]\s+/, ''))) return false
+  return memoryActionItem(line) !== ''
 }
 
 const TRUSTED_ASSOCIATION = new Set(['OWNER', 'MEMBER', 'COLLABORATOR'])
@@ -121,16 +132,16 @@ export function unprocessedMemoryComments (comments, cursor) {
 export function mergeMemorySkill (existing, comments) {
   const raw = typeof existing === 'string' ? existing : ''
   if (!Array.isArray(comments) || comments.length === 0) return raw
-  const have = new Set(raw.split('\n').map((line) => line.trim()).filter((line) => line.startsWith('- ')))
+  const have = new Set(raw.split('\n').map((line) => memoryActionItem(line)).filter(Boolean))
   const added = []
   let cursor = parseMemoryCursor(raw)
   for (const item of comments) {
     const id = Number(item?.id) || 0
     if (id > cursor) cursor = id
-    const line = String(item?.body ?? '').trim().split('\n')[0]
-    if (!isMemoryLine(line) || have.has(line)) continue
-    have.add(line)
-    added.push(line)
+    const action = memoryActionItem(item?.body)
+    if (!action || have.has(action)) continue
+    have.add(action)
+    added.push(action)
   }
   let body = raw.trim() === '' ? `${MEMORY_SKILL_HEADER}\n<!-- processed-through: 0 -->\n` : raw
   if (added.length > 0) body = body.replace(/\s*$/, '\n') + added.join('\n') + '\n'

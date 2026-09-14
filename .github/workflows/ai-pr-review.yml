@@ -252,7 +252,7 @@ jobs:
               max_tokens: 2048,
               messages: [
                 {role: "system", content: $system},
-                {role: "user", content: ("PR: " + $title + (if $memory == "" then "" else "\n\nRejected findings memory (do not repeat):\n" + $memory end) + "\n\nDiff:\n" + $diff)}
+                {role: "user", content: ("PR: " + $title + (if $memory == "" then "" else "\n\nReview lessons (follow these action items):\n" + $memory end) + "\n\nDiff:\n" + $diff)}
               ]
             }' > /tmp/payload.json
 

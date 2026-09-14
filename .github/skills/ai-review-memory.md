@@ -1,9 +1,10 @@
 # AI review memory
 
-Rejected findings. Do not repeat these.
+Action items for the next AI review. Follow these. Do not repeat the rejected findings.
 
-<!-- processed-through: 5666619416 -->
+<!-- processed-through: 5667056428 -->
 
-- 2026-09-14: /review-no already fixed. canonicalPath strips ., empty segments, and .. before prefix checks. Do not re-flag ./ or a double slash as a write bypass. | isGeneratedPath and isProtectedWritePath match the raw path, while isSafeReadPath only normalizes for the .. check. ./.github/workflows/pwn.yml therefore passes isSafeWritePath.
-- 2026-09-14: /review-no already fixed. Checkout is pinned to default_branch. Propose and apply are split; the apply job has no model key. | This step is named Checkout default branch tools but has no ref, so on pull_request_review it checks out the PR merge commit.
-- 2026-09-14: /review-no the ./ prefix claim. isGeneratedPath and isProtectedWritePath already run canonicalPath first. Do not repeat that. The symlink write through case is still open. | isGeneratedPath / isProtectedWritePath match the raw string and never normalize. ./.github/workflows/ci.yml passes isSafeWritePath.
+- Do not re-flag `./` or a double slash as a write-path bypass. `canonicalPath` strips `.`, empty segments, and `..` before the generated and protected prefix checks.
+- Do not re-flag checkout without `ref` on the review repair loop. Checkout is pinned to `default_branch`. Propose and apply are split; the apply job has no model key.
+- Do not re-flag `isGeneratedPath` / `isProtectedWritePath` as matching the raw path. They already run `canonicalPath` first.
+- Do not re-flag a missing author check on `promote-review-memory.yml`. The job requires OWNER, MEMBER, COLLABORATOR, or `github-actions[bot]`, and merge skips outsider lines.
