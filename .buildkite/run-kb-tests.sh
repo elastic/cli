@@ -189,6 +189,7 @@ echo "Container IPs — ES: ${ES_IP}, Kibana: ${KB_IP}"
 # ── Run health checks and tests inside the Docker network ───────────────────
 
 echo "--- Running tests inside Docker network"
+set +e
 docker run \
   --name "$TEST_RUNNER_NAME" \
   --network "$NETWORK_NAME" \
@@ -199,4 +200,12 @@ docker run \
   --env "ES_IP=${ES_IP}" \
   --env "KB_IP=${KB_IP}" \
   "$NODE_RUNNER_IMAGE" \
-  bash /workspace/.buildkite/run-kb-tests-runner.sh
+  bash /workspace/.buildkite/run-kb-tests-runner.sh | tee /tmp/kb-ft.log
+code=${PIPESTATUS[0]}
+set -e
+# shellcheck source=./record-failure.sh
+. "$(dirname "$0")/record-failure.sh"
+if [ "$code" -ne 0 ]; then
+  record_functional_failure /tmp/kb-ft.log
+fi
+exit "$code"

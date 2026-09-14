@@ -66,3 +66,14 @@ steps:
         command: ".buildkite/run-cloud-tests.sh"
         artifact_paths:
           - "test/functional/cloud/*.log"
+
+  - wait: ~
+    continue_on_failure: true
+
+  - label: "First failure summary"
+    key: first-failure
+    soft_fail: true
+    agents:
+      provider: gcp
+      image: family/core-ubuntu-2204
+    command: ".buildkite/print-first-failure.sh"
