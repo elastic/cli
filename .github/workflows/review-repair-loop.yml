@@ -25,8 +25,7 @@ jobs:
       !github.event.pull_request.draft &&
       github.event.review.user.login != 'github-actions[bot]' &&
       (github.event.review.author_association == 'OWNER' ||
-       github.event.review.author_association == 'MEMBER' ||
-       github.event.review.author_association == 'COLLABORATOR') &&
+       github.event.review.author_association == 'MEMBER') &&
       (github.event.review.state == 'changes_requested' || github.event.review.state == 'commented') &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
@@ -92,10 +91,10 @@ jobs:
           echo "fix=${FIX}" >> "$GITHUB_OUTPUT"
           if [ "$STOP_REPAIR" = 1 ] && [ "$SKIP_LOOP" = 0 ]; then
             gh pr edit "$PR" --add-label skip-auto-loop || true
-            gh pr comment "$PR" --body "Repair loop stopped (\`/stop-repair\`). Added \`skip-auto-loop\`."
+            gh pr comment "$PR" --body "Repair loop stopped (\`/stop\`). Added \`skip-auto-loop\`."
           fi
           gh api "repos/${GH_REPO}/pulls/${PR}/reviews/${REVIEW_ID}/comments" \
-            --jq '[.[]? | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR") | {path, line, body}]' \
+            --jq '[.[]? | select(.author_association == "OWNER" or .author_association == "MEMBER") | {path, line, body}]' \
             > /tmp/review-comments.json
           printf '%s\n' "${REVIEW_BODY:-}" > /tmp/review-body.txt
 

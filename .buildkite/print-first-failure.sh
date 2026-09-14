@@ -49,8 +49,8 @@ case ",$LABELS," in *,auto-loop,*) AUTO_LOOP=1 ;; esac
 
 if [ "$STOP_REPAIR" = 1 ] && [ "$SKIP_LOOP" = 0 ]; then
   gh pr edit "$PR" --add-label skip-auto-loop || true
-  gh pr comment "$PR" --body "Repair loop stopped (\`/stop-repair\`). Added \`skip-auto-loop\`."
-  echo "Stopped by /stop-repair"
+  gh pr comment "$PR" --body "Repair loop stopped (\`/stop\`). Added \`skip-auto-loop\`."
+  echo "Stopped by /stop"
   exit 0
 fi
 

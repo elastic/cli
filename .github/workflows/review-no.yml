@@ -17,8 +17,7 @@ jobs:
     if: >-
       github.event.comment.user.login != 'github-actions[bot]' &&
       (github.event.comment.author_association == 'OWNER' ||
-       github.event.comment.author_association == 'MEMBER' ||
-       github.event.comment.author_association == 'COLLABORATOR') &&
+       github.event.comment.author_association == 'MEMBER') &&
       github.event.issue.pull_request
     runs-on: ubuntu-latest
     permissions:

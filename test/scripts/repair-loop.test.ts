@@ -64,10 +64,12 @@ describe('firstFailedJob', () => {
 })
 
 describe('hasStopCommand', () => {
-  it('matches /stop-repair as its own token', () => {
+  it('matches /stop as its own token', () => {
+    assert.equal(hasStopCommand('/stop'), true)
+    assert.equal(hasStopCommand('please /stop now'), true)
+    assert.equal(hasStopCommand('ok\n/stop\n'), true)
     assert.equal(hasStopCommand('/stop-repair'), true)
-    assert.equal(hasStopCommand('please /stop-repair now'), true)
-    assert.equal(hasStopCommand('ok\n/stop-repair\n'), true)
+    assert.equal(hasStopCommand('do not /stopped'), false)
     assert.equal(hasStopCommand('do not /stop-repairing'), false)
     assert.equal(hasStopCommand(''), false)
     assert.equal(hasStopCommand(null), false)
@@ -141,6 +143,7 @@ describe('review-no memory', () => {
     assert.deepEqual(unprocessedMemoryComments(comments, 12).map((item) => item.id), [])
     assert.equal(isTrustedMemoryAuthor({ user: { login: 'github-actions[bot]' } }), true)
     assert.equal(isTrustedMemoryAuthor({ author_association: 'NONE', user: { login: 'outsider' } }), false)
+    assert.equal(isTrustedMemoryAuthor({ author_association: 'COLLABORATOR', user: { login: 'friend' } }), false)
   })
 
   it('merges new lines and advances the cursor without rewriting processed ones', () => {
@@ -226,7 +229,7 @@ describe('shouldAttemptFix', () => {
     assert.deepEqual(shouldAttemptFix({ sameRepo: true, autoLoop: true, botCommits: 0 }), { ok: true, reason: 'ok' })
     assert.equal(shouldAttemptFix({ sameRepo: false, autoLoop: true }).ok, false)
     assert.equal(shouldAttemptFix({ sameRepo: true, skipLoop: true, autoLoop: true }).reason, 'skip-auto-loop')
-    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, stopRepair: true }).reason, 'stop-repair')
+    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, stopRepair: true }).reason, 'stop')
     assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: false }).reason, 'no auto-loop')
     assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, botCommits: 2 }).reason, 'bot commit cap')
   })
@@ -399,7 +402,7 @@ describe('repair-loop CLI', () => {
     const skipped = execFileSync(process.execPath, [script, 'memory-merge', skill, commentsJson, issueBody], { encoding: 'utf8' })
     assert.equal(skipped, merged)
     const comments = join(dir, 'comments.txt')
-    writeFileSync(comments, 'looks wrong\n/stop-repair\n')
+    writeFileSync(comments, 'looks wrong\n/stop\n')
     execFileSync(process.execPath, [script, 'has-stop', comments], { encoding: 'utf8' })
     writeFileSync(comments, 'nope')
     try {

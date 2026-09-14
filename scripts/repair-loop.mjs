@@ -30,7 +30,7 @@ export function firstFailedJob (payload) {
 }
 
 export function hasStopCommand (text) {
-  return typeof text === 'string' && /(?:^|[\s])\/stop-repair(?:[\s]|$)/m.test(text)
+  return typeof text === 'string' && /(?:^|[\s])\/stop(?:-repair)?(?:[\s]|$)/m.test(text)
 }
 
 export function canonicalPath (file) {
@@ -106,7 +106,7 @@ export function isMemoryLine (text) {
   return memoryActionItem(line) !== ''
 }
 
-const TRUSTED_ASSOCIATION = new Set(['OWNER', 'MEMBER', 'COLLABORATOR'])
+const TRUSTED_ASSOCIATION = new Set(['OWNER', 'MEMBER'])
 
 export function isTrustedMemoryAuthor (comment) {
   const login = comment?.user?.login
@@ -261,7 +261,7 @@ export function shouldAttemptFix ({
   maxBotCommits = 2,
 } = {}) {
   if (!sameRepo) return { ok: false, reason: 'fork' }
-  if (stopRepair) return { ok: false, reason: 'stop-repair' }
+  if (stopRepair) return { ok: false, reason: 'stop' }
   if (skipLoop) return { ok: false, reason: 'skip-auto-loop' }
   if (!autoLoop) return { ok: false, reason: 'no auto-loop' }
   if (botCommits >= maxBotCommits) return { ok: false, reason: 'bot commit cap' }

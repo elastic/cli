@@ -191,7 +191,9 @@ When constructing URLs, sending credentials, or making HTTP requests:
 
 On a GitHub Actions `CI` failure or a Buildkite functional failure, take the first failed job only. Patch the same-repo PR if the fix is in this repo. Comment and stop if the cause is the spec, generator, CI infra, Cloud QA, or a flake.
 
-`auto-loop` opts a PR into automatic patches. `skip-auto-loop` turns it off. Comment `/stop-repair` on the PR to halt and pin `skip-auto-loop`. Comment `/bad` (optional reason) on the PR conversation to append a rejected bot finding to `.github/skills/ai-review-memory.md`. The bot reuses an open PR that only touches that file (or `ai/review-memory`) and adds a commit; it opens one if none exists. The AI review reads that skill file from the open memory PR, then `ai/review-memory`, then default. A top-level `/bad` dismisses the last bot review. `skip-ai-review` silences the bot on that PR. Same-repo PRs only. At most two bot commits per PR.
+`/bad` (optional reason) marks a bad bot review. Owners and maintainers only. That opens a bot PR that updates `.github/skills/ai-review-memory.md`, or adds a commit if that PR already exists.
+
+On CI failure the bot can push a fix on the same PR when `auto-loop` is set. Comment `/stop` to halt and pin `skip-auto-loop`. Same-repo PRs only. At most two bot commits per PR. `skip-ai-review` silences the review bot.
 
 Do not edit generated files: `src/es/apis/*.ts`, `src/es/api-manifest.ts`, `src/kb/apis.ts`, `src/kb/api-manifest.ts`. Do not edit `.github/workflows/`.
 
