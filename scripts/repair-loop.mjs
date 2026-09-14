@@ -51,9 +51,16 @@ export function isGeneratedPath (file) {
   return n !== null && GENERATED.some((re) => re.test(n))
 }
 
+function isDirOrChild (n, dir) {
+  return n === dir || n.startsWith(`${dir}/`)
+}
+
 export function isProtectedWritePath (file) {
   const n = canonicalPath(file)
-  return n === null || n.startsWith('.github/workflows/') || n.startsWith('.git/') || n.startsWith('.buildkite/')
+  return n === null
+    || isDirOrChild(n, '.github/workflows')
+    || isDirOrChild(n, '.git')
+    || isDirOrChild(n, '.buildkite')
 }
 
 export function isSafeReadPath (file) {

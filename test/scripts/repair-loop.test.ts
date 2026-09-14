@@ -92,8 +92,11 @@ describe('path guards', () => {
     assert.equal(isSafeWritePath('src/kb/apis.ts'), false)
     assert.equal(isSafeWritePath('src/kb/api-manifest.ts'), false)
     assert.equal(isSafeWritePath('.github/workflows/ci.yml'), false)
+    assert.equal(isSafeWritePath('.github/workflows'), false)
     assert.equal(isSafeWritePath('.git/config'), false)
+    assert.equal(isSafeWritePath('.git'), false)
     assert.equal(isSafeWritePath('.buildkite/run-es-tests.sh'), false)
+    assert.equal(isSafeWritePath('.buildkite'), false)
     for (const sneak of ['./.github/workflows/pwn.yml', '.github//workflows/pwn.yml', './src/es/apis/foo.ts']) {
       assert.equal(isSafeWritePath(sneak), false, sneak)
     }
