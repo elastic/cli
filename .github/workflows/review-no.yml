@@ -64,7 +64,7 @@ jobs:
             --jq '.[0].number // empty')
           if [ -z "$MEM" ]; then
             printf '%s\n' \
-              'Rejected bot review findings. The AI review reads `.github/skills/ai-review-memory.md`. New comments here are folded into that file.' \
+              'Rejected bot review findings. The AI review reads .github/skills/ai-review-memory.md. New comments here are folded into that file.' \
               '' \
               '<!-- processed-through: 0 -->' > /tmp/memory-issue-body.txt
             MEM=$(gh issue create --title "AI review memory" --label ai-review-memory \

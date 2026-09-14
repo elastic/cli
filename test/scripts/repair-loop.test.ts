@@ -226,13 +226,23 @@ describe('applyChanges', () => {
     mkdirSync(join(dir, 'src'))
     mkdirSync(join(dir, '.github', 'workflows'), { recursive: true })
     writeFileSync(join(dir, '.github/workflows/ci.yml'), 'old\n')
-    symlinkSync(join(dir, '.github/workflows/ci.yml'), join(dir, 'src/foo.ts'))
+    try {
+      symlinkSync(join(dir, '.github/workflows/ci.yml'), join(dir, 'src/foo.ts'))
+    } catch (err) {
+      if (err && (err.code === 'EPERM' || err.code === 'EACCES')) return
+      throw err
+    }
     assert.throws(
       () => applyChanges([{ file: 'src/foo.ts', content: 'pwn\n' }], dir),
       /symlink/,
     )
     assert.equal(readFileSync(join(dir, '.github/workflows/ci.yml'), 'utf8'), 'old\n')
-    symlinkSync(join(dir, '.github'), join(dir, 'src/evil'))
+    try {
+      symlinkSync(join(dir, '.github'), join(dir, 'src/evil'))
+    } catch (err) {
+      if (err && (err.code === 'EPERM' || err.code === 'EACCES')) return
+      throw err
+    }
     assert.throws(
       () => applyChanges([{ file: 'src/evil/workflows/ci.yml', content: 'pwn\n' }], dir),
       /symlink/,

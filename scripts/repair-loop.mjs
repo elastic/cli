@@ -7,7 +7,7 @@
 import { execFileSync } from 'node:child_process'
 import { lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { basename, dirname, join, relative, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const GENERATED = [
@@ -255,6 +255,12 @@ export function refuseSymlinkChain (root, dest) {
   }
 }
 
+function posixRel (from, to) {
+  const rel = relative(from, to)
+  if (rel === '' || isAbsolute(rel) || rel.split(sep)[0] === '..') return null
+  return rel.split(sep).join('/')
+}
+
 export function applyChanges (changes, cwd) {
   const root = resolve(cwd)
   for (const change of changes) {
@@ -262,17 +268,16 @@ export function applyChanges (changes, cwd) {
     if (relFile === null || !isSafeWritePath(relFile)) {
       throw new Error(`refusing path: ${change.file}`)
     }
-    const dest = resolve(root, relFile)
-    const rel = relative(root, dest)
-    if (rel.startsWith('..') || rel === '' || (!dest.startsWith(root + '/') && dest !== root)) {
+    const dest = resolve(root, ...relFile.split('/'))
+    if (posixRel(root, dest) !== relFile) {
       throw new Error(`path escapes cwd: ${change.file}`)
     }
     refuseSymlinkChain(root, dest)
     try {
+      const rootReal = realpathSync(root)
       const realDest = resolve(realpathSync(dirname(dest)), basename(dest))
-      const relReal = relative(root, realDest)
-      const canonReal = canonicalPath(relReal)
-      if (canonReal === null || !isSafeWritePath(canonReal) || relReal.startsWith('..')) {
+      const relReal = posixRel(rootReal, realDest)
+      if (relReal === null || !isSafeWritePath(relReal)) {
         throw new Error(`realpath escapes cwd: ${change.file}`)
       }
     } catch (err) {
