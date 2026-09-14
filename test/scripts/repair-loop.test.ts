@@ -173,6 +173,8 @@ describe('review-no memory', () => {
     assert.equal(pickSkillMemoryPr([other, skill])?.number, 9)
     assert.equal(pickSkillMemoryPr([skill, named])?.number, 3)
     assert.equal(pickSkillMemoryPr([other]), null)
+    assert.equal(pickSkillMemoryPr([{ ...skill, isCrossRepository: true }]), null)
+    assert.equal(pickSkillMemoryPr([{ number: 2, headRefName: 'main', files: skill.files }], { defaultBranch: 'main' }), null)
     const first = appendMemorySkill('', '/bad Do not re-flag slash branches.')
     assert.match(first, /# AI review memory/)
     assert.equal(first.includes('- Do not re-flag slash branches.'), true)
