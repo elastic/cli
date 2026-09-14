@@ -76,13 +76,17 @@ jobs:
             echo "Empty memory entry"
             exit 0
           fi
-          gh pr list --state open --limit 50 --json number,headRefName,files \
+          gh pr list --state open --limit 50 --json number,headRefName,files,isCrossRepository \
             > /tmp/prs.json
           HEAD=ai/review-memory
           NUM=""
-          if node /tmp/repair-loop.mjs pick-skill-pr /tmp/prs.json > /tmp/skill-pr.json; then
+          if DEFAULT_BRANCH="$DEFAULT_BRANCH" node /tmp/repair-loop.mjs pick-skill-pr /tmp/prs.json > /tmp/skill-pr.json; then
             HEAD=$(jq -r '.headRefName' /tmp/skill-pr.json)
             NUM=$(jq -r '.number' /tmp/skill-pr.json)
+          fi
+          if [ -z "$HEAD" ] || [ "$HEAD" = "$DEFAULT_BRANCH" ]; then
+            HEAD=ai/review-memory
+            NUM=""
           fi
           git fetch origin "${HEAD}:${HEAD}" 2>/dev/null || true
           if git show-ref --verify --quiet "refs/heads/${HEAD}"; then

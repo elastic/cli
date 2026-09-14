@@ -144,10 +144,15 @@ export function isSkillOnlyPr (pr) {
   return files.every((file) => (typeof file === 'string' ? file : file?.path) === MEMORY_SKILL_PATH)
 }
 
-export function pickSkillMemoryPr (prs) {
+export function pickSkillMemoryPr (prs, { defaultBranch } = {}) {
   if (!Array.isArray(prs)) return null
-  return prs.find((pr) => pr?.headRefName === 'ai/review-memory')
-    ?? prs.find((pr) => isSkillOnlyPr(pr))
+  const usable = (pr) => {
+    if (!pr || pr.isCrossRepository) return false
+    if (defaultBranch && pr.headRefName === defaultBranch) return false
+    return true
+  }
+  return prs.find((pr) => usable(pr) && pr.headRefName === 'ai/review-memory')
+    ?? prs.find((pr) => usable(pr) && isSkillOnlyPr(pr))
     ?? null
 }
 
@@ -405,7 +410,7 @@ function main (argv) {
       break
     }
     case 'pick-skill-pr': {
-      const pr = pickSkillMemoryPr(readJsonArg(args[0]))
+      const pr = pickSkillMemoryPr(readJsonArg(args[0]), { defaultBranch: process.env.DEFAULT_BRANCH })
       process.stdout.write(JSON.stringify(pr ? { number: pr.number, headRefName: pr.headRefName } : {}) + '\n')
       process.exit(pr ? 0 : 1)
       break
