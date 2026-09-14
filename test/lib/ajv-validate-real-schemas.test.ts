@@ -183,8 +183,8 @@ describe('real schema shape: anyOf union (es search _source, boolean | SourceFil
     assert.equal(result.success, false)
     assert.ok(!result.success)
     assert.deepEqual(result.errors.map(e => ({ code: e.code, path_array: e.path_array, message: e.message })), [
-      { code: 'type', path_array: ['_source'], message: 'should be boolean' },
-      { code: 'type', path_array: ['_source'], message: 'should be object' },
+      { code: 'type', path_array: ['_source'], message: 'must be boolean' },
+      { code: 'type', path_array: ['_source'], message: 'must be object' },
     ])
   })
 })
