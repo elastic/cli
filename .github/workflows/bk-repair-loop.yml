@@ -1,0 +1,229 @@
+name: BK repair loop
+
+on:
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: bk-repair-loop-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    if: >-
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '<!-- bk-repair-loop -->') &&
+      (github.event.comment.user.login == 'github-actions[bot]' ||
+       github.event.comment.user.login == 'elastic-vault-github-plugin-prod[bot]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    outputs:
+      apply: ${{ steps.propose.outputs.apply }}
+      pr: ${{ steps.diag.outputs.pr }}
+      head_sha: ${{ steps.diag.outputs.head_sha }}
+    steps:
+      - name: Checkout default branch tools
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Copy repair-loop script
+        run: |
+          set -euo pipefail
+          if [ -f scripts/repair-loop.mjs ]; then
+            cp scripts/repair-loop.mjs /tmp/repair-loop.mjs
+            exit 0
+          fi
+          echo "scripts/repair-loop.mjs missing on default branch"
+          exit 0
+
+      - name: Decide whether to patch
+        id: diag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.issue.number }}
+          COMMENT: ${{ github.event.comment.body }}
+        run: |
+          set -euo pipefail
+          if [ ! -s /tmp/repair-loop.mjs ]; then
+            echo "repair-loop.mjs unavailable"
+            exit 0
+          fi
+          printf '%s\n' "${COMMENT:-}" > /tmp/job.log
+          if ! node /tmp/repair-loop.mjs has-bk-tag /tmp/job.log; then
+            echo "No bk-repair-loop tag"
+            exit 0
+          fi
+          node /tmp/repair-loop.mjs cited-paths /tmp/job.log > /tmp/cited.json
+          META=$(gh pr view "$PR" --json isDraft,headRefOid,headRepository,headRepositoryOwner,isCrossRepository)
+          DRAFT=$(printf '%s' "$META" | jq -r '.isDraft')
+          HEAD_SHA=$(printf '%s' "$META" | jq -r '.headRefOid // empty')
+          CROSS=$(printf '%s' "$META" | jq -r '.isCrossRepository')
+          if [ "$DRAFT" = true ]; then
+            echo "Draft PR"
+            exit 0
+          fi
+          SAME_REPO=1
+          if [ "$CROSS" = true ]; then SAME_REPO=0; fi
+          LABELS=$(gh pr view "$PR" --json labels --jq '[.labels[].name] | join(",")')
+          SKIP_LOOP=0
+          STOP_REPAIR=0
+          AUTO_LOOP=0
+          case ",$LABELS," in *,skip-auto-loop,*) SKIP_LOOP=1 ;; esac
+          case ",$LABELS," in *,auto-loop,*) AUTO_LOOP=1 ;; esac
+          gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+            --jq '.[] | select(.author_association == "OWNER" or .author_association == "MEMBER") | .body // empty' > /tmp/pr-comments.txt || true
+          if node /tmp/repair-loop.mjs has-stop /tmp/pr-comments.txt; then STOP_REPAIR=1; fi
+          gh api --paginate "repos/${GH_REPO}/pulls/${PR}/commits" \
+            --jq '.[] | {author:{login:(.author.login // "")},commit:{author:{name:(.commit.author.name // "")}}}' \
+            > /tmp/commits.ndjson || true
+          BOT_COMMITS=$(node /tmp/repair-loop.mjs bot-commits /tmp/commits.ndjson)
+          SAME_REPO="$SAME_REPO" SKIP_LOOP="$SKIP_LOOP" STOP_REPAIR="$STOP_REPAIR" AUTO_LOOP="$AUTO_LOOP" BOT_COMMITS="$BOT_COMMITS" \
+            node /tmp/repair-loop.mjs should-fix > /tmp/decision.json || true
+          FIX=0
+          if jq -e '.ok == true' /tmp/decision.json >/dev/null; then FIX=1; fi
+          {
+            echo "pr=${PR}"
+            echo "head_sha=${HEAD_SHA}"
+            echo "fix=${FIX}"
+          } >> "$GITHUB_OUTPUT"
+          if [ "$STOP_REPAIR" = 1 ] && [ "$SKIP_LOOP" = 0 ]; then
+            gh pr edit "$PR" --add-label skip-auto-loop || true
+            gh pr comment "$PR" --body "Repair loop stopped (\`/stop\`). Added \`skip-auto-loop\`."
+          fi
+
+      - name: Propose in-repo fix
+        id: propose
+        if: steps.diag.outputs.fix == '1' && steps.diag.outputs.pr != ''
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_BASE_URL: ${{ secrets.OPENROUTER_BASE_URL }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ steps.diag.outputs.pr }}
+          HEAD_SHA: ${{ steps.diag.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "${OPENROUTER_API_KEY:-}" ]; then
+            echo "OPENROUTER_API_KEY missing, diagnosis comment only"
+            exit 0
+          fi
+          BASE_URL="${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
+          case "$BASE_URL" in
+            https://*) ;;
+            *)
+              echo "OPENROUTER_BASE_URL must be https://, refusing to send the API key to it"
+              exit 0
+              ;;
+          esac
+          FILES=""
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+            CONTENT=$(gh api "repos/${GH_REPO}/contents/${path}?ref=${HEAD_SHA}" \
+              --jq '.content // empty' | tr -d '\n' | base64 -d 2>/dev/null || true)
+            [ -n "$CONTENT" ] || continue
+            BYTES=$(printf '%s' "$CONTENT" | wc -c | tr -d ' ')
+            if [ "$BYTES" -gt 12000 ]; then
+              FILES="${FILES}
+          === ${path} ===
+          OMITTED (${BYTES} bytes). Do not replace this file.
+          "
+              continue
+            fi
+            FILES="${FILES}
+          === ${path} ===
+          ${CONTENT}
+          "
+          done < <(jq -r '.[]' /tmp/cited.json)
+          LOG_TAIL=$(tail -n 120 /tmp/job.log | head -c 16000 || true)
+          printf '%s\n' \
+            "You repair one Buildkite functional failure in elastic/cli." \
+            "Take the first failed job only." \
+            "If the fix is in this repo, return file replacements." \
+            "If the cause is the spec, generator, CI infra, Cloud QA, or a flake, set stop=true and changes=[]." \
+            "Do not edit generated API files or .github/workflows/." \
+            "Respond with ONLY a JSON object:" \
+            '{"stop":false,"comment":"short diagnosis","commit_message":"fix: short","changes":[{"file":"src/foo.ts","content":"full file"}]}' \
+            "" \
+            "FAILED BUILDKITE JOB:" \
+            "$LOG_TAIL" \
+            "" \
+            "CITED FILES:" \
+            "$FILES" \
+            > /tmp/prompt.txt
+          curl -s -o /tmp/response.json \
+            -H "Authorization: Bearer ${OPENROUTER_API_KEY}" \
+            -H "Content-Type: application/json" \
+            "${BASE_URL%/}/chat/completions" \
+            -d "$(jq -n --rawfile prompt /tmp/prompt.txt '{
+              model: "anthropic/claude-sonnet-4.6",
+              max_tokens: 16384,
+              messages: [{role: "user", content: $prompt}]
+            }')"
+          CONTENT=$(jq -r '.choices[0].message.content // empty' /tmp/response.json)
+          if [ -z "$CONTENT" ]; then
+            echo "Empty model response"
+            exit 0
+          fi
+          printf '%s' "$CONTENT" > /tmp/model-raw.txt
+          node /tmp/repair-loop.mjs parse-changes /tmp/model-raw.txt > /tmp/parsed.json
+          COMMENT=$(jq -r '.comment // empty' /tmp/parsed.json)
+          if [ -n "$COMMENT" ]; then
+            gh pr comment "$PR" --body "$COMMENT"
+          fi
+          if jq -e '.stop == true or (.changes | length) == 0' /tmp/parsed.json >/dev/null; then
+            echo "Model stopped or proposed no changes"
+            echo "apply=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "apply=1" >> "$GITHUB_OUTPUT"
+          mkdir -p .repair-loop
+          cp /tmp/parsed.json /tmp/repair-loop.mjs .repair-loop/
+
+      - name: Upload parsed patch
+        if: steps.propose.outputs.apply == '1'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bk-repair-loop-patch
+          path: .repair-loop
+          if-no-files-found: error
+
+  apply:
+    needs: repair
+    if: needs.repair.outputs.apply == '1' && needs.repair.outputs.pr != ''
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Fetch ephemeral Github token
+        id: fetch-token
+        uses: elastic/ci-gh-actions/fetch-github-token@2feb1c6f5086cf8e06f61ef35e275abed3456f7b # v1.5.3
+        with:
+          vault-instance: "ci-prod"
+
+      - name: Download parsed patch
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bk-repair-loop-patch
+          path: /tmp/repair-loop
+
+      - name: Apply patch
+        env:
+          GH_TOKEN: ${{ steps.fetch-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ needs.repair.outputs.pr }}
+          EXPECTED_SHA: ${{ needs.repair.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          BRANCH=$(gh pr view "$PR" --json headRefName --jq '.headRefName')
+          BRANCH="$BRANCH" node /tmp/repair-loop/repair-loop.mjs apply-github /tmp/repair-loop/parsed.json

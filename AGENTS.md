@@ -195,7 +195,7 @@ On a GitHub Actions `CI` failure or a Buildkite functional failure, take the fir
 
 On GitHub Actions `CI` failure the bot can push a fix on the same PR when `auto-loop` is set. Comment `/stop` to halt and pin `skip-auto-loop`. Same-repo PRs only. At most two bot commits per PR. `skip-ai-review` silences the review bot.
 
-Buildkite is comment only here (`<!-- bk-repair-loop -->`). Auto-fix commits from that comment are a later PR.
+Buildkite posts `<!-- bk-repair-loop -->`. `bk-repair-loop.yml` applies the same-repo fix when `auto-loop` is set. Apply uses an ephemeral GitHub App token from Vault so the push retriggers CI.
 
 Do not edit generated files: `src/es/apis/*.ts`, `src/es/api-manifest.ts`, `src/kb/apis.ts`, `src/kb/api-manifest.ts`. Do not edit `.github/workflows/`.
 
