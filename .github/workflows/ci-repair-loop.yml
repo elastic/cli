@@ -67,8 +67,8 @@ jobs:
             LABELS=$(gh pr view "$PR" --json labels --jq '[.labels[].name] | join(",")')
             case ",$LABELS," in *,skip-auto-loop,*) SKIP_LOOP=1 ;; esac
             case ",$LABELS," in *,auto-loop,*) AUTO_LOOP=1 ;; esac
-            gh api "repos/${GH_REPO}/issues/${PR}/comments" \
-              --jq '[.[].body // empty] | join("\n")' > /tmp/pr-comments.txt || true
+            gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+              --jq '.[].body // empty' > /tmp/pr-comments.txt || true
             if node /tmp/repair-loop.mjs has-stop /tmp/pr-comments.txt; then STOP_REPAIR=1; fi
             BOT_COMMITS=$(gh api "repos/${GH_REPO}/pulls/${PR}/commits" --paginate \
               --jq '[.[]? | select(.author.login == "github-actions[bot]" or .commit.author.name == "github-actions[bot]")] | length' \

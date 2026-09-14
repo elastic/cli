@@ -294,6 +294,12 @@ describe('applyChangesGithub', () => {
       [{ file: 'src/a.ts', content: 'export {}\n' }],
       { repo: 'elastic/cli', branch: 'feat', message: 'fix: a', expectedSha: 'aaa', api },
     )
+    applyChangesGithub(
+      [{ file: 'src/a.ts', content: 'export {}\n' }],
+      { repo: 'elastic/cli', branch: 'fix/foo', message: 'fix: a', api },
+    )
+    assert.equal(calls.some((c) => c.path.includes('/git/ref/heads/fix%2Ffoo')), true)
+    assert.equal(calls.some((c) => c.method === 'PATCH' && c.path.includes('/git/refs/heads/fix%2Ffoo')), true)
     assert.throws(
       () => applyChangesGithub(
         [{ file: 'src/a.ts', content: 'x' }],

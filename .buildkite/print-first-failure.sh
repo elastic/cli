@@ -34,8 +34,8 @@ fi
 
 export GH_REPO="elastic/cli"
 
-gh api "repos/${GH_REPO}/issues/${PR}/comments" \
-  --jq '[.[].body // empty] | join("\n")' > /tmp/pr-comments.txt || true
+gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+  --jq '.[].body // empty' > /tmp/pr-comments.txt || true
 STOP_REPAIR=0
 if [ -f scripts/repair-loop.mjs ] && node scripts/repair-loop.mjs has-stop /tmp/pr-comments.txt; then
   STOP_REPAIR=1

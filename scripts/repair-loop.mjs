@@ -300,6 +300,10 @@ export function validatedWrites (changes) {
   })
 }
 
+export function gitHeadRef (branch) {
+  return `heads/${encodeURIComponent(branch)}`
+}
+
 export function defaultGhApi (method, path, body) {
   const args = ['api', '-X', method, path]
   if (body !== undefined) {
@@ -317,7 +321,8 @@ export function applyChangesGithub (changes, { repo, branch, message, expectedSh
   }
   const files = validatedWrites(changes)
   if (files.length === 0) return
-  const ref = api('GET', `repos/${repo}/git/ref/heads/${branch}`)
+  const head = gitHeadRef(branch)
+  const ref = api('GET', `repos/${repo}/git/ref/${head}`)
   if (expectedSha && ref.object.sha !== expectedSha) {
     throw new Error(`branch moved: ${ref.object.sha} != ${expectedSha}`)
   }
@@ -332,7 +337,7 @@ export function applyChangesGithub (changes, { repo, branch, message, expectedSh
     tree: newTree.sha,
     parents: [ref.object.sha],
   })
-  api('PATCH', `repos/${repo}/git/refs/heads/${branch}`, { sha: commit.sha })
+  api('PATCH', `repos/${repo}/git/refs/${head}`, { sha: commit.sha })
 }
 
 function readJsonArg (path) {
