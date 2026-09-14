@@ -14,8 +14,10 @@ import {
   citedPathsFromText,
   extractJsonObject,
   firstFailedJob,
+  hasReviewNoCommand,
   hasStopCommand,
   isFailedConclusion,
+  memoryEntry,
   isSafeReadPath,
   isSafeWritePath,
   parseAgentResponse,
@@ -82,6 +84,19 @@ describe('path guards', () => {
     assert.equal(isSafeWritePath('src/kb/api-manifest.ts'), false)
     assert.equal(isSafeWritePath('.github/workflows/ci.yml'), false)
     assert.equal(isSafeWritePath('.git/config'), false)
+    for (const sneak of ['./.github/workflows/pwn.yml', '.github//workflows/pwn.yml', './src/es/apis/foo.ts']) {
+      assert.equal(isSafeWritePath(sneak), false, sneak)
+    }
+  })
+})
+
+describe('review-no memory', () => {
+  it('matches /review-no and formats a memory line', () => {
+    assert.equal(hasReviewNoCommand('/review-no'), true)
+    assert.equal(hasReviewNoCommand('this review is shit /review-no'), true)
+    assert.equal(hasReviewNoCommand('/review-note'), false)
+    assert.equal(memoryEntry('false positive', 'path ./ prefix', '2026-09-14'), '- 2026-09-14: false positive | path ./ prefix')
+    assert.equal(memoryEntry('', ''), '')
   })
 })
 

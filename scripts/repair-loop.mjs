@@ -5,7 +5,7 @@
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, normalize, relative, resolve } from 'node:path'
+import { dirname, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const GENERATED = [
@@ -31,25 +31,47 @@ export function hasStopCommand (text) {
   return typeof text === 'string' && /(?:^|[\s])\/stop-repair(?:[\s]|$)/m.test(text)
 }
 
+export function canonicalPath (file) {
+  if (typeof file !== 'string' || file.length === 0) return null
+  if (file.includes('\0') || file.includes('\\')) return null
+  if (file.startsWith('/') || /^[A-Za-z]:/.test(file)) return null
+  const parts = []
+  for (const part of file.split('/')) {
+    if (part === '' || part === '.') continue
+    if (part === '..') return null
+    parts.push(part)
+  }
+  return parts.length === 0 ? null : parts.join('/')
+}
+
 export function isGeneratedPath (file) {
-  return GENERATED.some((re) => re.test(posixPath(file)))
+  const n = canonicalPath(file)
+  return n !== null && GENERATED.some((re) => re.test(n))
 }
 
 export function isProtectedWritePath (file) {
-  const n = posixPath(file)
-  return n.startsWith('.github/workflows/') || n.startsWith('.git/')
+  const n = canonicalPath(file)
+  return n === null || n.startsWith('.github/workflows/') || n.startsWith('.git/')
 }
 
 export function isSafeReadPath (file) {
-  if (typeof file !== 'string' || file.length === 0) return false
-  if (file.startsWith('/') || file.includes('\0') || file.includes('\\')) return false
-  if (file.includes('..') || /^[A-Za-z]:/.test(file)) return false
-  const normalized = normalize(file)
-  return !normalized.startsWith('..') && normalized !== '..'
+  return canonicalPath(file) !== null
 }
 
 export function isSafeWritePath (file) {
-  return isSafeReadPath(file) && !isGeneratedPath(file) && !isProtectedWritePath(file)
+  const n = canonicalPath(file)
+  return n !== null && !isGeneratedPath(n) && !isProtectedWritePath(n)
+}
+
+export function hasReviewNoCommand (text) {
+  return typeof text === 'string' && /(?:^|[\s])\/review-no(?:[\s]|$)/m.test(text)
+}
+
+export function memoryEntry (reason, finding, day = '1970-01-01') {
+  const r = String(reason ?? '').replace(/\s+/g, ' ').trim().slice(0, 200)
+  const f = String(finding ?? '').replace(/\s+/g, ' ').trim().slice(0, 400)
+  if (!r && !f) return ''
+  return `- ${day}: ${r}${f ? ` | ${f}` : ''}`
 }
 
 export function citedPathsFromText (text) {
@@ -58,7 +80,8 @@ export function citedPathsFromText (text) {
   const out = new Set()
   let match
   while ((match = re.exec(text)) !== null) {
-    if (isSafeReadPath(match[1])) out.add(match[1])
+    const canon = canonicalPath(match[1])
+    if (canon) out.add(canon)
   }
   return [...out]
 }
@@ -142,10 +165,11 @@ export function shouldAttemptFix ({
 export function applyChanges (changes, cwd) {
   const root = resolve(cwd)
   for (const change of changes) {
-    if (!isSafeWritePath(change.file)) {
+    const relFile = canonicalPath(change.file)
+    if (relFile === null || !isSafeWritePath(relFile)) {
       throw new Error(`refusing path: ${change.file}`)
     }
-    const dest = resolve(root, change.file)
+    const dest = resolve(root, relFile)
     const rel = relative(root, dest)
     if (rel.startsWith('..') || rel === '' || (!dest.startsWith(root + '/') && dest !== root)) {
       throw new Error(`path escapes cwd: ${change.file}`)
@@ -153,10 +177,6 @@ export function applyChanges (changes, cwd) {
     mkdirSync(dirname(dest), { recursive: true })
     writeFileSync(dest, change.content)
   }
-}
-
-function posixPath (file) {
-  return file.replaceAll('\\', '/')
 }
 
 function readJsonArg (path) {
@@ -170,6 +190,19 @@ function main (argv) {
       const job = firstFailedJob(readJsonArg(args[0]))
       process.stdout.write(JSON.stringify(job) + '\n')
       process.exit(job ? 0 : 2)
+      break
+    }
+    case 'has-review-no': {
+      const found = hasReviewNoCommand(readFileSync(args[0], 'utf8'))
+      process.stdout.write(JSON.stringify({ reviewNo: found }) + '\n')
+      process.exit(found ? 0 : 1)
+      break
+    }
+    case 'memory-entry': {
+      const reason = args[0] ?? ''
+      const finding = args[1] ?? ''
+      const day = args[2] ?? new Date().toISOString().slice(0, 10)
+      process.stdout.write(memoryEntry(reason, finding, day) + '\n')
       break
     }
     case 'has-stop': {
