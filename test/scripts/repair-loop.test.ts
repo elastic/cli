@@ -15,8 +15,10 @@ import {
   citedPathsFromText,
   extractJsonObject,
   firstFailedJob,
+  appendMemorySkill,
   hasBadCommand,
   hasStopCommand,
+  pickSkillMemoryPr,
   isFailedConclusion,
   memoryEntry,
   isMemoryLine,
@@ -154,6 +156,22 @@ describe('review-no memory', () => {
     assert.match(fresh, /# AI review memory/)
     assert.equal(fresh.includes('- Do not re-flag a missing author check.'), true)
     assert.equal(fresh.includes('2026-09-14'), false)
+  })
+
+  it('picks a skill-only PR and appends a new memory line', () => {
+    assert.equal(pickSkillMemoryPr(null), null)
+    assert.equal(pickSkillMemoryPr([]), null)
+    const skill = { number: 9, headRefName: 'docs/memory', files: [{ path: '.github/skills/ai-review-memory.md' }] }
+    const named = { number: 3, headRefName: 'ai/review-memory', files: [{ path: '.github/skills/ai-review-memory.md' }] }
+    const other = { number: 8, headRefName: 'feat', files: [{ path: 'src/a.ts' }, { path: '.github/skills/ai-review-memory.md' }] }
+    assert.equal(pickSkillMemoryPr([other, skill])?.number, 9)
+    assert.equal(pickSkillMemoryPr([skill, named])?.number, 3)
+    assert.equal(pickSkillMemoryPr([other]), null)
+    const first = appendMemorySkill('', '/bad Do not re-flag slash branches.')
+    assert.match(first, /# AI review memory/)
+    assert.equal(first.includes('- Do not re-flag slash branches.'), true)
+    assert.equal(appendMemorySkill(first, '/bad Do not re-flag slash branches.'), first)
+    assert.equal(appendMemorySkill(first, '').includes('- Do not re-flag slash branches.'), true)
   })
 })
 

@@ -131,6 +131,29 @@ export function unprocessedMemoryComments (comments, cursor) {
     .sort((a, b) => Number(a.id) - Number(b.id))
 }
 
+export function isSkillOnlyPr (pr) {
+  const files = pr?.files
+  if (!Array.isArray(files) || files.length === 0) return false
+  return files.every((file) => (typeof file === 'string' ? file : file?.path) === MEMORY_SKILL_PATH)
+}
+
+export function pickSkillMemoryPr (prs) {
+  if (!Array.isArray(prs)) return null
+  return prs.find((pr) => pr?.headRefName === 'ai/review-memory')
+    ?? prs.find((pr) => isSkillOnlyPr(pr))
+    ?? null
+}
+
+export function appendMemorySkill (existing, entry) {
+  const action = memoryActionItem(entry)
+  const raw = typeof existing === 'string' ? existing : ''
+  if (!action) return raw
+  const have = new Set(raw.split('\n').map((line) => memoryActionItem(line)).filter(Boolean))
+  if (have.has(action)) return raw
+  const body = raw.trim() === '' ? `${MEMORY_SKILL_HEADER}\n` : raw.replace(/\s*$/, '\n')
+  return `${body}${action}\n`
+}
+
 export function mergeMemorySkill (existing, comments) {
   const raw = typeof existing === 'string' ? existing : ''
   if (!Array.isArray(comments) || comments.length === 0) return raw
@@ -372,6 +395,16 @@ function main (argv) {
     }
     case 'memory-set-cursor': {
       process.stdout.write(setMemoryCursor(readFileSync(args[0], 'utf8'), Number(args[1])))
+      break
+    }
+    case 'pick-skill-pr': {
+      const pr = pickSkillMemoryPr(readJsonArg(args[0]))
+      process.stdout.write(JSON.stringify(pr ? { number: pr.number, headRefName: pr.headRefName } : {}) + '\n')
+      process.exit(pr ? 0 : 1)
+      break
+    }
+    case 'memory-append': {
+      process.stdout.write(appendMemorySkill(readFileSync(args[0], 'utf8'), args[1] ?? ''))
       break
     }
     case 'memory-merge': {

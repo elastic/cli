@@ -5,8 +5,12 @@ on:
     types: [created]
 
 permissions:
-  issues: write
+  contents: write
   pull-requests: write
+
+concurrency:
+  group: review-memory
+  cancel-in-progress: false
 
 jobs:
   remember:
@@ -17,25 +21,38 @@ jobs:
        github.event.comment.author_association == 'COLLABORATOR') &&
       github.event.issue.pull_request
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout default branch tools
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.repository.default_branch }}
-          persist-credentials: false
+          token: ${{ github.token }}
+          fetch-depth: 0
+          persist-credentials: true
 
       - name: Record rejected bot finding
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          PR: ${{ github.event.pull_request.number || github.event.issue.number }}
+          PR: ${{ github.event.issue.number }}
           COMMENT: ${{ github.event.comment.body }}
           IN_REPLY_TO: ${{ github.event.comment.in_reply_to || '' }}
-          EVENT_NAME: ${{ github.event_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
+          if [ -f scripts/repair-loop.mjs ]; then
+            cp scripts/repair-loop.mjs /tmp/repair-loop.mjs
+          else
+            SCRIPT_REF=$(gh pr view "$PR" --json headRefOid --jq '.headRefOid')
+            gh api "repos/${GH_REPO}/contents/scripts/repair-loop.mjs?ref=${SCRIPT_REF}" \
+              --jq '.content // empty' | tr -d '\n' | base64 -d > /tmp/repair-loop.mjs
+            test -s /tmp/repair-loop.mjs
+          fi
           printf '%s\n' "$COMMENT" > /tmp/comment.txt
-          if ! node scripts/repair-loop.mjs has-bad /tmp/comment.txt; then
+          if ! node /tmp/repair-loop.mjs has-bad /tmp/comment.txt; then
             echo "No /bad"
             exit 0
           fi
@@ -50,26 +67,51 @@ jobs:
             RID=$(printf '%s' "$REVIEW" | jq -r '.id // empty')
             FINDING=$(printf '%s' "$REVIEW" | jq -r '.body // empty')
           fi
-          if [ "$EVENT_NAME" = "issue_comment" ] && [ -n "$RID" ]; then
+          if [ -n "$RID" ]; then
             gh api -X PUT "repos/${GH_REPO}/pulls/${PR}/reviews/${RID}/dismissals" \
               -f message="Maintainer rejected this review (/bad)" \
               -f event=DISMISS || true
           fi
-          ENTRY=$(node scripts/repair-loop.mjs memory-entry "$COMMENT" "$FINDING")
+          ENTRY=$(node /tmp/repair-loop.mjs memory-entry "$COMMENT" "$FINDING")
           if [ -z "$ENTRY" ]; then
             echo "Empty memory entry"
             exit 0
           fi
-          MEM=$(gh issue list --label ai-review-memory --state open --json number \
-            --jq '.[0].number // empty')
-          if [ -z "$MEM" ]; then
-            printf '%s\n' \
-              'Rejected bot review findings. The AI review reads .github/skills/ai-review-memory.md. New comments here are folded into that file.' \
-              '' \
-              '<!-- processed-through: 0 -->' > /tmp/memory-issue-body.txt
-            MEM=$(gh issue create --title "AI review memory" --label ai-review-memory \
-              --body-file /tmp/memory-issue-body.txt)
-            MEM="${MEM##*/}"
+          gh pr list --state open --limit 50 --json number,headRefName,files \
+            > /tmp/prs.json
+          HEAD=ai/review-memory
+          NUM=""
+          if node /tmp/repair-loop.mjs pick-skill-pr /tmp/prs.json > /tmp/skill-pr.json; then
+            HEAD=$(jq -r '.headRefName' /tmp/skill-pr.json)
+            NUM=$(jq -r '.number' /tmp/skill-pr.json)
           fi
-          gh issue comment "$MEM" --body "$ENTRY"
-          gh pr comment "$PR" --body "Noted \`/bad\`. Stored on #${MEM}. A standing PR folds it into \`.github/skills/ai-review-memory.md\`. Add \`skip-ai-review\` to silence the bot on this PR."
+          git fetch origin "${HEAD}:${HEAD}" 2>/dev/null || true
+          if git show-ref --verify --quiet "refs/heads/${HEAD}"; then
+            git checkout "$HEAD"
+          else
+            git checkout -B "$HEAD"
+          fi
+          SKILL=".github/skills/ai-review-memory.md"
+          mkdir -p .github/skills
+          if [ ! -f "$SKILL" ]; then
+            : > "$SKILL"
+          fi
+          node /tmp/repair-loop.mjs memory-append "$SKILL" "$ENTRY" > /tmp/skill-out.md
+          if cmp -s "$SKILL" /tmp/skill-out.md; then
+            echo "Already recorded"
+            exit 0
+          fi
+          cp /tmp/skill-out.md "$SKILL"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$SKILL"
+          git commit -m "docs: record rejected review finding"
+          git push -u origin "$HEAD"
+          if [ -z "$NUM" ] || [ "$NUM" = "null" ]; then
+            CREATED=$(gh pr create --base "$DEFAULT_BRANCH" --head "$HEAD" \
+              --title "docs: update ai review memory" \
+              --label ai-review-memory \
+              --body "Updates \`.github/skills/ai-review-memory.md\` from \`/bad\`.")
+            NUM="${CREATED##*/}"
+          fi
+          gh pr comment "$PR" --body "Noted \`/bad\`. Recorded on #${NUM}."
