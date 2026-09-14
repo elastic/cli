@@ -30,11 +30,10 @@ jobs:
     # but tsc build still peaks around 3.7 GB locally; keep headroom above
     # the 2 GB Node default for slower/smaller CI runners.
     env:
-      # `--test-isolation=none` sidesteps a flaky node:test parent/child IPC
-      # deserialize crash (nodejs/node#64061). The flag only exists on Node 24+,
-      # so it is omitted on 22.x, which still passes under default (process)
-      # isolation.
-      NODE_OPTIONS: --max-old-space-size=6144 ${{ matrix.node-version != '22.x' && '--test-isolation=none' || '' }}
+      # Skip node:test per-file child processes. Process isolation interleaves
+      # stdout with V8 IPC frames and flakes as "Unable to deserialize cloned
+      # data" (nodejs/node#64061). Node 22 still uses the experimental name.
+      NODE_OPTIONS: --max-old-space-size=6144 ${{ matrix.node-version == '22.x' && '--experimental-test-isolation=none' || '--test-isolation=none' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
