@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -225,6 +225,23 @@ export function shouldAttemptFix ({
   return { ok: true, reason: 'ok' }
 }
 
+export function refuseSymlinkChain (root, dest) {
+  let cur = dest
+  for (;;) {
+    try {
+      if (lstatSync(cur).isSymbolicLink()) {
+        throw new Error(`refusing symlink: ${cur}`)
+      }
+    } catch (err) {
+      if (err?.code !== 'ENOENT') throw err
+    }
+    if (cur === root) return
+    const parent = dirname(cur)
+    if (parent === cur) return
+    cur = parent
+  }
+}
+
 export function applyChanges (changes, cwd) {
   const root = resolve(cwd)
   for (const change of changes) {
@@ -237,6 +254,7 @@ export function applyChanges (changes, cwd) {
     if (rel.startsWith('..') || rel === '' || (!dest.startsWith(root + '/') && dest !== root)) {
       throw new Error(`path escapes cwd: ${change.file}`)
     }
+    refuseSymlinkChain(root, dest)
     mkdirSync(dirname(dest), { recursive: true })
     writeFileSync(dest, change.content)
   }

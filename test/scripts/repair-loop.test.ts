@@ -6,7 +6,7 @@
 import { execFileSync } from 'node:child_process'
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -214,6 +214,25 @@ describe('applyChanges', () => {
       () => applyChanges([{ file: '../escape.ts', content: 'nope' }], dir),
       /refusing path/,
     )
+  })
+
+  it('refuses writes through dest or parent symlinks', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'repair-loop-'))
+    mkdirSync(join(dir, 'src'))
+    mkdirSync(join(dir, '.github', 'workflows'), { recursive: true })
+    writeFileSync(join(dir, '.github/workflows/ci.yml'), 'old\n')
+    symlinkSync(join(dir, '.github/workflows/ci.yml'), join(dir, 'src/foo.ts'))
+    assert.throws(
+      () => applyChanges([{ file: 'src/foo.ts', content: 'pwn\n' }], dir),
+      /symlink/,
+    )
+    assert.equal(readFileSync(join(dir, '.github/workflows/ci.yml'), 'utf8'), 'old\n')
+    symlinkSync(join(dir, '.github'), join(dir, 'src/evil'))
+    assert.throws(
+      () => applyChanges([{ file: 'src/evil/workflows/ci.yml', content: 'pwn\n' }], dir),
+      /symlink/,
+    )
+    assert.equal(readFileSync(join(dir, '.github/workflows/ci.yml'), 'utf8'), 'old\n')
   })
 })
 
