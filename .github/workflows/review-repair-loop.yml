@@ -5,7 +5,7 @@ on:
     types: [submitted]
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
 
 concurrency:
@@ -14,6 +14,9 @@ concurrency:
 
 jobs:
   repair:
+    permissions:
+      contents: read
+      pull-requests: write
     outputs:
       apply: ${{ steps.propose.outputs.apply }}
       pr: ${{ github.event.pull_request.number }}
@@ -69,6 +72,10 @@ jobs:
           FIX=0
           if jq -e '.ok == true' /tmp/decision.json >/dev/null; then FIX=1; fi
           echo "fix=${FIX}" >> "$GITHUB_OUTPUT"
+          if [ "$STOP_REPAIR" = 1 ] && [ "$SKIP_LOOP" = 0 ]; then
+            gh pr edit "$PR" --add-label skip-auto-loop || true
+            gh pr comment "$PR" --body "Repair loop stopped (\`/stop-repair\`). Added \`skip-auto-loop\`."
+          fi
           gh api "repos/${GH_REPO}/pulls/${PR}/reviews/${REVIEW_ID}/comments" \
             --jq '[.[]? | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR") | {path, line, body}]' \
             > /tmp/review-comments.json

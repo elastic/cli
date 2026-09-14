@@ -7,7 +7,7 @@ on:
 
 permissions:
   actions: read
-  contents: write
+  contents: read
   issues: write
   pull-requests: write
 
@@ -19,6 +19,11 @@ jobs:
   repair:
     if: github.event.workflow_run.conclusion == 'failure'
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: write
     outputs:
       apply: ${{ steps.propose.outputs.apply }}
       pr: ${{ steps.diag.outputs.pr }}
