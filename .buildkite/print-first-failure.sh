@@ -35,9 +35,10 @@ fi
 export GH_REPO="elastic/cli"
 
 gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
-  --jq '.[].body // empty' > /tmp/pr-comments.txt || true
+  --jq '.[] | select(.author_association == "OWNER" or .author_association == "MEMBER") | .body // empty' \
+  > /tmp/pr-comments.txt || true
 STOP_REPAIR=0
-if [ -f scripts/repair-loop.mjs ] && node scripts/repair-loop.mjs has-stop /tmp/pr-comments.txt; then
+if grep -Eq '(^|[[:space:]])(/stop|/stop-repair)([[:space:]]|$)' /tmp/pr-comments.txt; then
   STOP_REPAIR=1
 fi
 
@@ -46,13 +47,6 @@ SKIP_LOOP=0
 AUTO_LOOP=0
 case ",$LABELS," in *,skip-auto-loop,*) SKIP_LOOP=1 ;; esac
 case ",$LABELS," in *,auto-loop,*) AUTO_LOOP=1 ;; esac
-
-if [ "$STOP_REPAIR" = 1 ] && [ "$SKIP_LOOP" = 0 ]; then
-  gh pr edit "$PR" --add-label skip-auto-loop || true
-  gh pr comment "$PR" --body "Repair loop stopped (\`/stop\`). Added \`skip-auto-loop\`."
-  echo "Stopped by /stop"
-  exit 0
-fi
 
 COMMENT_TAG='<!-- bk-repair-loop -->'
 BODY=$(printf '%s\n' \
@@ -70,6 +64,13 @@ if [ -n "$EXISTING" ]; then
   gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" -f body="$BODY"
 else
   gh pr comment "$PR" --body "$BODY"
+fi
+
+if [ "$STOP_REPAIR" = 1 ] && [ "$SKIP_LOOP" = 0 ]; then
+  gh pr edit "$PR" --add-label skip-auto-loop || true
+  gh pr comment "$PR" --body "Repair loop stopped (\`/stop\`). Added \`skip-auto-loop\`."
+  echo "Stopped by /stop"
+  exit 0
 fi
 
 if [ "$SKIP_LOOP" = 1 ] || [ "$AUTO_LOOP" != 1 ]; then
