@@ -193,7 +193,9 @@ On a GitHub Actions `CI` failure or a Buildkite functional failure, take the fir
 
 `/bad` (optional reason) marks a bad bot review. Owners and maintainers only. That opens a bot PR that updates `.github/skills/ai-review-memory.md`, or adds a commit if that PR already exists.
 
-On CI failure the bot can push a fix on the same PR when `auto-loop` is set. Comment `/stop` to halt and pin `skip-auto-loop`. Same-repo PRs only. At most two bot commits per PR. `skip-ai-review` silences the review bot.
+On GitHub Actions `CI` failure the bot can push a fix on the same PR when `auto-loop` is set. Comment `/stop` to halt and pin `skip-auto-loop`. Same-repo PRs only. At most two bot commits per PR. `skip-ai-review` silences the review bot.
+
+Buildkite is comment only here (`<!-- bk-repair-loop -->`). Auto-fix commits from that comment are a later PR.
 
 Do not edit generated files: `src/es/apis/*.ts`, `src/es/api-manifest.ts`, `src/kb/apis.ts`, `src/kb/api-manifest.ts`. Do not edit `.github/workflows/`.
 
