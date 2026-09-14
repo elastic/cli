@@ -6,13 +6,13 @@
 /**
  * AJV-based JSON Schema validation, replacing the Zod-based zod-error.ts.
  *
- * Uses ajv@6 (already installed) with allErrors + useDefaults.
+ * Uses ajv@8 with allErrors + useDefaults.
  * Imported statically so `bun build --compile` embeds it; createRequire is
  * invisible to the bundler and leaves compiled binaries with a missing module.
  */
 
-import Ajv from 'ajv'
-import type { Ajv as AjvInstance, ValidateFunction } from 'ajv'
+import { Ajv } from 'ajv'
+import type { ValidateFunction } from 'ajv'
 
 /** Path segment: property name, or array index (as a number). */
 export type PathSegment = string | number
@@ -38,7 +38,7 @@ export type ValidationResult =
   | { success: false; errors: ValidationError[] }
 
 // ponytail: module-level cache so AJV is initialised once per process
-let _ajv: AjvInstance | null = null
+let _ajv: Ajv | null = null
 
 // ponytail: deliberately not importing ajv's own `ErrorObject` type. Its
 // `params` field is typed as a ~12-member union (ErrorParameters), which
@@ -48,7 +48,7 @@ let _ajv: AjvInstance | null = null
 // This narrow view names only the fields consumed below.
 interface AjvErrorView {
   keyword: string
-  dataPath: string
+  instancePath: string
   message?: string
   params?: {
     missingProperty?: string
@@ -57,7 +57,7 @@ interface AjvErrorView {
   }
 }
 
-function getAjv (): AjvInstance {
+function getAjv (): Ajv {
   if (_ajv == null) {
     // validateSchema: false — generated schemas contain cosmetic meta-schema violations
     // (e.g. nullable enums with a repeated `null`) that AJV would otherwise throw on
@@ -69,36 +69,44 @@ function getAjv (): AjvInstance {
     // (page/size) declare `default` values and their handlers destructure those fields as
     // non-optional. Removing this option would hand them `undefined`.
     //
-    // ponytail: these are ajv6/draft-07 options. `strict` and `validateSchema` mean
-    // something different (or don't exist) on ajv8/draft2020-12 — `unknownFormats`
-    // becomes the `formats` allowlist and `useDefaults` gains array-item semantics.
-    // Re-check every option here if this codebase ever moves off ajv@6.
-    _ajv = new Ajv({ allErrors: true, logger: false, useDefaults: true, validateSchema: false, unknownFormats: 'ignore' })
+    // ponytail: ajv@8 options. validateFormats: false suppresses errors about
+    // unrecognized format keywords (replaces v6's unknownFormats: 'ignore').
+    // strictSchema: false — suppresses 'unknown keyword' for x-found-in and other x- annotations.
+    _ajv = new Ajv({ allErrors: true, logger: false, useDefaults: true, validateSchema: false, validateFormats: false, strictSchema: false })
   }
-  return _ajv
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  return _ajv!
 }
 
 /**
- * Tokenizes an AJV v6 `dataPath` (e.g. `.tags[0].name` or `['weird.key']`)
+ * Converts an AJV v8 JSON Pointer `instancePath` (e.g. `/tags/0/name`)
  * into path segments, with array indices as numbers rather than strings.
  *
- * AJV v6 dataPath syntax: `.prop` for identifier-like keys, `[N]` for array
- * indices, and `['key']` for keys containing dots or other special chars.
+ * JSON Pointer: segments separated by `/`, `~1` → `/`, `~0` → `~`.
  */
-function tokenizePath (dataPath: string): PathSegment[] {
-  const segments: PathSegment[] = []
-  const re = /\[(\d+)\]|\['((?:[^'\\]|\\.)*)'\]|\.([^.[]+)/g
-  let match: RegExpExecArray | null
-  while ((match = re.exec(dataPath)) !== null) {
-    if (match[1] !== undefined) {
-      segments.push(Number(match[1]))
-    } else if (match[2] !== undefined) {
-      segments.push(match[2].replace(/\\'/g, "'"))
-    } else if (match[3] !== undefined) {
-      segments.push(match[3])
-    }
-  }
-  return segments
+function tokenizePath (instancePath: string): PathSegment[] {
+  if (!instancePath) return []
+  return instancePath.split('/').slice(1).map(seg => {
+    const s = seg.replace(/~1/g, '/').replace(/~0/g, '~')
+    const n = Number(s)
+    return Number.isFinite(n) && String(n) === s ? n : s
+  })
+}
+
+/**
+ * Converts an AJV v8 JSON Pointer `instancePath` to legacy dot/bracket notation
+ * (e.g. `/tags/0/name` → `.tags[0].name`, `/weird.key` → `['weird.key']`).
+ * Used for the user-facing `path` string in ValidationError.
+ */
+function instancePathToLegacy (instancePath: string): string {
+  if (!instancePath) return ''
+  return instancePath.split('/').slice(1).map(seg => {
+    const s = seg.replace(/~1/g, '/').replace(/~0/g, '~')
+    const n = Number(s)
+    if (Number.isFinite(n) && String(n) === s) return `[${n}]`
+    if (/^[a-zA-Z_$][\w$]*$/.test(s)) return `.${s}`
+    return `['${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'}`
+  }).join('')
 }
 
 /**
@@ -125,11 +133,11 @@ function enrichMessage (keyword: string, message: string, params: NonNullable<Aj
  * Reduces AJV's verbose anyOf/union error list to the actionable subset.
  *
  * AJV with allErrors:true emits one error per anyOf branch plus a root-level
- * "should match some schema in anyOf". Only the deepest-path error matters.
+ * "must match a schema in anyOf". Only the deepest-path error matters.
  *
  * Strategy:
  * 1. Deduplicate by (path, message).
- * 2. Drop "should match some schema in anyOf" when another error exists at the same path.
+ * 2. Drop "must match a schema in anyOf" when another error exists at the same path.
  */
 function deduplicateUnionErrors (errors: ValidationError[]): ValidationError[] {
   const seen = new Set<string>()
@@ -141,10 +149,10 @@ function deduplicateUnionErrors (errors: ValidationError[]): ValidationError[] {
   })
 
   const otherPaths = new Set(
-    deduped.filter((e) => e.message !== 'should match some schema in anyOf').map((e) => e.path)
+    deduped.filter((e) => e.message !== 'must match a schema in anyOf').map((e) => e.path)
   )
   return deduped.filter((e) =>
-    e.message !== 'should match some schema in anyOf' || !otherPaths.has(e.path)
+    e.message !== 'must match a schema in anyOf' || !otherPaths.has(e.path)
   )
 }
 
@@ -199,17 +207,20 @@ export function validateWithJsonSchema (
   // where `ErrorObject.params` is intentionally not imported (see AjvErrorView above).
   const errors = (validate.errors ?? []) as unknown as AjvErrorView[]
   const raw: ValidationError[] = errors.map((e) => {
-    const rawPath = e.dataPath || ''
+    const rawPath = e.instancePath || ''
     const params = e.params ?? {}
     const pathArr = tokenizePath(rawPath)
+    let legacyPath = instancePathToLegacy(rawPath)
     // AJV reports missing-required errors at the parent path; append the
     // missing property name so the path names the actual offending field.
     if (e.keyword === 'required' && typeof params.missingProperty === 'string') {
       pathArr.push(params.missingProperty)
+      const seg = params.missingProperty
+      legacyPath += /^[a-zA-Z_$][\w$]*$/.test(seg) ? `.${seg}` : `['${seg}']`
     }
     return {
       code: e.keyword,
-      path: rawPath || '(root)',
+      path: legacyPath || '(root)',
       path_array: pathArr,
       message: enrichMessage(e.keyword, e.message ?? 'validation error', params),
     }

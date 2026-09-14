@@ -1528,7 +1528,7 @@ describe('defineCommand', () => {
       const err = await captureErrAsync(cmd, ['--input-file', filePath])
       assert.match(err, /input validation failed/)
       assert.match(err, /name/)
-      assert.match(err, /should be string/)
+      assert.match(err, /must be string/)
     })
 
     it('missing required field error identifies the field name', async () => {
