@@ -1,0 +1,153 @@
+name: Review repair loop
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: review-repair-loop-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    if: >-
+      !github.event.pull_request.draft &&
+      github.event.review.user.login != 'github-actions[bot]' &&
+      (github.event.review.state == 'changes_requested' || github.event.review.state == 'commented') &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout default branch tools
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Copy repair-loop script
+        run: cp scripts/repair-loop.mjs /tmp/repair-loop.mjs
+
+      - name: Decide whether to patch
+        id: diag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          REVIEW_BODY: ${{ github.event.review.body }}
+        run: |
+          set -euo pipefail
+          LABELS=$(gh pr view "$PR" --json labels --jq '[.labels[].name] | join(",")')
+          SKIP_LOOP=0
+          AUTO_LOOP=0
+          case ",$LABELS," in *,skip-auto-loop,*) SKIP_LOOP=1 ;; esac
+          case ",$LABELS," in *,auto-loop,*|*,auto-pr,*) AUTO_LOOP=1 ;; esac
+          BOT_COMMITS=$(gh api "repos/${GH_REPO}/pulls/${PR}/commits" --paginate \
+            --jq '[.[]? | select(.author.login == "github-actions[bot]" or .commit.author.name == "github-actions[bot]")] | length' \
+            | awk '{s+=$1} END {print s+0}')
+          SAME_REPO=1 SKIP_LOOP="$SKIP_LOOP" AUTO_LOOP="$AUTO_LOOP" BOT_COMMITS="$BOT_COMMITS" \
+            node /tmp/repair-loop.mjs should-fix > /tmp/decision.json || true
+          FIX=0
+          if jq -e '.ok == true' /tmp/decision.json >/dev/null; then FIX=1; fi
+          echo "fix=${FIX}" >> "$GITHUB_OUTPUT"
+          gh api "repos/${GH_REPO}/pulls/${PR}/comments" \
+            --jq '[.[]? | {path, line, body}]' > /tmp/review-comments.json
+          printf '%s\n' "${REVIEW_BODY:-}" > /tmp/review-body.txt
+
+      - name: Checkout PR head
+        if: steps.diag.outputs.fix == '1'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          token: ${{ github.token }}
+          persist-credentials: true
+
+      - name: Attempt review patch
+        if: steps.diag.outputs.fix == '1'
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_BASE_URL: ${{ secrets.OPENROUTER_BASE_URL }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if [ -z "${OPENROUTER_API_KEY:-}" ]; then
+            echo "OPENROUTER_API_KEY missing"
+            exit 0
+          fi
+          BASE_URL="${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
+          case "$BASE_URL" in
+            https://*) ;;
+            *)
+              echo "OPENROUTER_BASE_URL must be https://, refusing to send the API key to it"
+              exit 0
+              ;;
+          esac
+          REVIEW_BODY=$(cat /tmp/review-body.txt)
+          REVIEW_COMMENTS=$(cat /tmp/review-comments.json)
+          cat /tmp/review-body.txt /tmp/review-comments.json > /tmp/review-all.txt
+          node /tmp/repair-loop.mjs cited-paths /tmp/review-all.txt > /tmp/cited.json
+          FILES=""
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+            [ -f "$path" ] || continue
+            FILES="${FILES}
+          === ${path} ===
+          $(head -c 12000 "$path")
+          "
+          done < <(jq -r '.[]' /tmp/cited.json)
+          printf '%s\n' \
+            "You iterate on review comments for an elastic/cli PR." \
+            "Do not repeat an approach a reviewer already rejected." \
+            "If the request is out of repo (spec, generator, infra), set stop=true and changes=[]." \
+            "Do not edit generated API files or .github/workflows/." \
+            "Respond with ONLY a JSON object:" \
+            '{"stop":false,"comment":"short","commit_message":"fix: short","changes":[{"file":"src/foo.ts","content":"full file"}]}' \
+            "" \
+            "REVIEW BODY:" \
+            "$REVIEW_BODY" \
+            "" \
+            "INLINE COMMENTS:" \
+            "$REVIEW_COMMENTS" \
+            "" \
+            "CITED FILES:" \
+            "$FILES" \
+            > /tmp/prompt.txt
+          curl -s -o /tmp/response.json \
+            -H "Authorization: Bearer ${OPENROUTER_API_KEY}" \
+            -H "Content-Type: application/json" \
+            "${BASE_URL%/}/chat/completions" \
+            -d "$(jq -n --rawfile prompt /tmp/prompt.txt '{
+              model: "anthropic/claude-sonnet-4.6",
+              max_tokens: 16384,
+              messages: [{role: "user", content: $prompt}]
+            }')"
+          CONTENT=$(jq -r '.choices[0].message.content // empty' /tmp/response.json)
+          if [ -z "$CONTENT" ]; then
+            echo "Empty model response"
+            exit 0
+          fi
+          printf '%s' "$CONTENT" > /tmp/model-raw.txt
+          node /tmp/repair-loop.mjs parse-changes /tmp/model-raw.txt > /tmp/parsed.json
+          COMMENT=$(jq -r '.comment // empty' /tmp/parsed.json)
+          if [ -n "$COMMENT" ]; then
+            gh pr comment "$PR" --body "$COMMENT"
+          fi
+          if jq -e '.stop == true or (.changes | length) == 0' /tmp/parsed.json >/dev/null; then
+            echo "Model stopped or proposed no changes"
+            exit 0
+          fi
+          BRANCH=$(gh pr view "$PR" --json headRefName --jq '.headRefName')
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          node /tmp/repair-loop.mjs apply-changes /tmp/parsed.json .
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No file changes after apply"
+            exit 0
+          fi
+          git commit -m "$(jq -r '.commit_message' /tmp/parsed.json)"
+          git push origin "$BRANCH"
