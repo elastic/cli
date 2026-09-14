@@ -105,9 +105,17 @@ jobs:
             CONTENT=$(gh api "repos/${GH_REPO}/contents/${path}?ref=${HEAD_SHA}" \
               --jq '.content // empty' | tr -d '\n' | base64 -d 2>/dev/null || true)
             [ -n "$CONTENT" ] || continue
+            BYTES=$(printf '%s' "$CONTENT" | wc -c | tr -d ' ')
+            if [ "$BYTES" -gt 12000 ]; then
+              FILES="${FILES}
+          === ${path} ===
+          OMITTED (${BYTES} bytes). Do not replace this file.
+          "
+              continue
+            fi
             FILES="${FILES}
           === ${path} ===
-          $(printf '%s' "$CONTENT" | head -c 12000)
+          ${CONTENT}
           "
           done < <(jq -r '.[]' /tmp/cited.json)
           printf '%s\n' \
