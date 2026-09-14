@@ -57,26 +57,33 @@ jobs:
           SAME_REPO=0
           if [ "$HEAD_REPO" = "$GH_REPO" ]; then SAME_REPO=1; fi
           SKIP_LOOP=0
+          STOP_REPAIR=0
           AUTO_LOOP=0
           BOT_COMMITS=0
           if [ -n "$PR" ]; then
             LABELS=$(gh pr view "$PR" --json labels --jq '[.labels[].name] | join(",")')
             case ",$LABELS," in *,skip-auto-loop,*) SKIP_LOOP=1 ;; esac
             case ",$LABELS," in *,auto-loop,*) AUTO_LOOP=1 ;; esac
+            gh api "repos/${GH_REPO}/issues/${PR}/comments" \
+              --jq '[.[].body // empty] | join("\n")' > /tmp/pr-comments.txt || true
+            if node /tmp/repair-loop.mjs has-stop /tmp/pr-comments.txt; then STOP_REPAIR=1; fi
             BOT_COMMITS=$(gh api "repos/${GH_REPO}/pulls/${PR}/commits" --paginate \
               --jq '[.[]? | select(.author.login == "github-actions[bot]" or .commit.author.name == "github-actions[bot]")] | length' \
               | awk '{s+=$1} END {print s+0}')
           fi
-          SAME_REPO="$SAME_REPO" SKIP_LOOP="$SKIP_LOOP" AUTO_LOOP="$AUTO_LOOP" BOT_COMMITS="$BOT_COMMITS" \
+          SAME_REPO="$SAME_REPO" SKIP_LOOP="$SKIP_LOOP" STOP_REPAIR="$STOP_REPAIR" AUTO_LOOP="$AUTO_LOOP" BOT_COMMITS="$BOT_COMMITS" \
             node /tmp/repair-loop.mjs should-fix > /tmp/decision.json || true
           FIX=0
+          PIN_STOP=0
           if jq -e '.ok == true' /tmp/decision.json >/dev/null; then FIX=1; fi
+          if [ "$STOP_REPAIR" = 1 ] && [ "$SKIP_LOOP" = 0 ]; then PIN_STOP=1; fi
           {
             echo "pr=${PR}"
             echo "job_id=${JOB_ID}"
             echo "job_name=${JOB_NAME}"
             echo "job_url=${JOB_URL}"
             echo "fix=${FIX}"
+            echo "pin_stop=${PIN_STOP}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Comment diagnosis
@@ -89,6 +96,7 @@ jobs:
           JOB_URL: ${{ steps.diag.outputs.job_url }}
           RUN_URL: ${{ github.event.workflow_run.html_url }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          PIN_STOP: ${{ steps.diag.outputs.pin_stop }}
         run: |
           set -euo pipefail
           COMMENT_TAG='<!-- ci-repair-loop -->'
@@ -115,6 +123,10 @@ jobs:
             gh issue create \
               --title "CI failed on main: ${JOB_NAME}" \
               --body "$BODY"
+          fi
+          if [ "${PIN_STOP:-0}" = "1" ] && [ -n "$PR" ]; then
+            gh pr edit "$PR" --add-label skip-auto-loop || true
+            gh pr comment "$PR" --body "Repair loop stopped (\`/stop-repair\`). Added \`skip-auto-loop\`."
           fi
 
       - name: Checkout PR head

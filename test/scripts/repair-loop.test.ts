@@ -14,6 +14,7 @@ import {
   citedPathsFromText,
   extractJsonObject,
   firstFailedJob,
+  hasStopCommand,
   isFailedConclusion,
   isSafeReadPath,
   isSafeWritePath,
@@ -47,6 +48,18 @@ describe('firstFailedJob', () => {
     assert.equal(firstFailedJob({ jobs: [] }), null)
     assert.equal(firstFailedJob({ jobs: [{ conclusion: 'success' }] }), null)
     assert.equal(firstFailedJob({ jobs: null }), null)
+    assert.equal(firstFailedJob({ jobs: [{ id: 'bk', name: 'cloud', state: 'failed' }] })?.id, 'bk')
+  })
+})
+
+describe('hasStopCommand', () => {
+  it('matches /stop-repair as its own token', () => {
+    assert.equal(hasStopCommand('/stop-repair'), true)
+    assert.equal(hasStopCommand('please /stop-repair now'), true)
+    assert.equal(hasStopCommand('ok\n/stop-repair\n'), true)
+    assert.equal(hasStopCommand('do not /stop-repairing'), false)
+    assert.equal(hasStopCommand(''), false)
+    assert.equal(hasStopCommand(null), false)
   })
 })
 
@@ -120,6 +133,7 @@ describe('shouldAttemptFix', () => {
     assert.deepEqual(shouldAttemptFix({ sameRepo: true, autoLoop: true, botCommits: 0 }), { ok: true, reason: 'ok' })
     assert.equal(shouldAttemptFix({ sameRepo: false, autoLoop: true }).ok, false)
     assert.equal(shouldAttemptFix({ sameRepo: true, skipLoop: true, autoLoop: true }).reason, 'skip-auto-loop')
+    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, stopRepair: true }).reason, 'stop-repair')
     assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: false }).reason, 'no auto-loop')
     assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, botCommits: 2 }).reason, 'bot commit cap')
   })
@@ -183,6 +197,16 @@ describe('repair-loop CLI', () => {
     }))
     execFileSync(process.execPath, [script, 'apply-changes', parsed, dir])
     assert.equal(readFileSync(join(dir, 'src/n.ts'), 'utf8'), 'export const n = 2\n')
+    const comments = join(dir, 'comments.txt')
+    writeFileSync(comments, 'looks wrong\n/stop-repair\n')
+    execFileSync(process.execPath, [script, 'has-stop', comments], { encoding: 'utf8' })
+    writeFileSync(comments, 'nope')
+    try {
+      execFileSync(process.execPath, [script, 'has-stop', comments], { encoding: 'utf8' })
+      assert.fail('expected exit 1')
+    } catch (err) {
+      assert.equal(err.status, 1)
+    }
   })
 })
 

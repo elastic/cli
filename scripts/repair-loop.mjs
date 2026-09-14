@@ -24,7 +24,11 @@ export function isFailedConclusion (conclusion) {
 export function firstFailedJob (payload) {
   const jobs = payload?.jobs
   if (!Array.isArray(jobs)) return null
-  return jobs.find((job) => job && isFailedConclusion(job.conclusion)) ?? null
+  return jobs.find((job) => job && (isFailedConclusion(job.conclusion) || job.state === 'failed')) ?? null
+}
+
+export function hasStopCommand (text) {
+  return typeof text === 'string' && /(?:^|[\s])\/stop-repair(?:[\s]|$)/m.test(text)
 }
 
 export function isGeneratedPath (file) {
@@ -122,11 +126,13 @@ export function safeCommitMessage (msg) {
 export function shouldAttemptFix ({
   sameRepo = false,
   skipLoop = false,
+  stopRepair = false,
   autoLoop = false,
   botCommits = 0,
   maxBotCommits = 2,
 } = {}) {
   if (!sameRepo) return { ok: false, reason: 'fork' }
+  if (stopRepair) return { ok: false, reason: 'stop-repair' }
   if (skipLoop) return { ok: false, reason: 'skip-auto-loop' }
   if (!autoLoop) return { ok: false, reason: 'no auto-loop' }
   if (botCommits >= maxBotCommits) return { ok: false, reason: 'bot commit cap' }
@@ -166,6 +172,12 @@ function main (argv) {
       process.exit(job ? 0 : 2)
       break
     }
+    case 'has-stop': {
+      const found = hasStopCommand(readFileSync(args[0], 'utf8'))
+      process.stdout.write(JSON.stringify({ stop: found }) + '\n')
+      process.exit(found ? 0 : 1)
+      break
+    }
     case 'cited-paths': {
       const text = readFileSync(args[0], 'utf8')
       process.stdout.write(JSON.stringify(citedPathsFromText(text)) + '\n')
@@ -175,6 +187,7 @@ function main (argv) {
       const decision = shouldAttemptFix({
         sameRepo: process.env.SAME_REPO === '1',
         skipLoop: process.env.SKIP_LOOP === '1',
+        stopRepair: process.env.STOP_REPAIR === '1',
         autoLoop: process.env.AUTO_LOOP === '1',
         botCommits: Number(process.env.BOT_COMMITS || '0'),
       })

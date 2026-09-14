@@ -40,13 +40,17 @@ jobs:
           set -euo pipefail
           LABELS=$(gh pr view "$PR" --json labels --jq '[.labels[].name] | join(",")')
           SKIP_LOOP=0
+          STOP_REPAIR=0
           AUTO_LOOP=0
           case ",$LABELS," in *,skip-auto-loop,*) SKIP_LOOP=1 ;; esac
           case ",$LABELS," in *,auto-loop,*|*,auto-pr,*) AUTO_LOOP=1 ;; esac
+          gh api "repos/${GH_REPO}/issues/${PR}/comments" \
+            --jq '[.[].body // empty] | join("\n")' > /tmp/pr-comments.txt || true
+          if node /tmp/repair-loop.mjs has-stop /tmp/pr-comments.txt; then STOP_REPAIR=1; fi
           BOT_COMMITS=$(gh api "repos/${GH_REPO}/pulls/${PR}/commits" --paginate \
             --jq '[.[]? | select(.author.login == "github-actions[bot]" or .commit.author.name == "github-actions[bot]")] | length' \
             | awk '{s+=$1} END {print s+0}')
-          SAME_REPO=1 SKIP_LOOP="$SKIP_LOOP" AUTO_LOOP="$AUTO_LOOP" BOT_COMMITS="$BOT_COMMITS" \
+          SAME_REPO=1 SKIP_LOOP="$SKIP_LOOP" STOP_REPAIR="$STOP_REPAIR" AUTO_LOOP="$AUTO_LOOP" BOT_COMMITS="$BOT_COMMITS" \
             node /tmp/repair-loop.mjs should-fix > /tmp/decision.json || true
           FIX=0
           if jq -e '.ok == true' /tmp/decision.json >/dev/null; then FIX=1; fi
