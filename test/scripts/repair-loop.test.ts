@@ -18,6 +18,11 @@ import {
   hasStopCommand,
   isFailedConclusion,
   memoryEntry,
+  isMemoryLine,
+  mergeMemorySkill,
+  parseMemoryCursor,
+  setMemoryCursor,
+  unprocessedMemoryComments,
   isSafeReadPath,
   isSafeWritePath,
   parseAgentResponse,
@@ -97,6 +102,47 @@ describe('review-no memory', () => {
     assert.equal(hasReviewNoCommand('/review-note'), false)
     assert.equal(memoryEntry('false positive', 'path ./ prefix', '2026-09-14'), '- 2026-09-14: false positive | path ./ prefix')
     assert.equal(memoryEntry('', ''), '')
+  })
+
+  it('parses and replaces the processed-through cursor', () => {
+    assert.equal(parseMemoryCursor(''), 0)
+    assert.equal(parseMemoryCursor(null), 0)
+    assert.equal(parseMemoryCursor('<!-- processed-through: 5666619416 -->'), 5666619416)
+    const next = setMemoryCursor('hello\n\n<!-- processed-through: 1 -->\n', 9)
+    assert.equal(parseMemoryCursor(next), 9)
+    assert.match(setMemoryCursor('no cursor yet', 3), /processed-through: 3/)
+  })
+
+  it('keeps only memory lines after the cursor', () => {
+    assert.equal(isMemoryLine('- 2026-09-14: skip this'), true)
+    assert.equal(isMemoryLine('Noted `/review-no`. Stored on #649.'), false)
+    const comments = [
+      { id: 10, body: '- 2026-09-14: old | finding' },
+      { id: 11, body: 'Noted `/review-no`. Stored on #649.' },
+      { id: '12', body: '- 2026-09-14: new | finding\nextra' },
+      { id: 13, body: '' },
+      { id: '../pwn', body: '- 2026-09-14: bad id' },
+    ]
+    const next = unprocessedMemoryComments(comments, 10)
+    assert.deepEqual(next.map((item) => item.id), ['12'])
+    assert.deepEqual(unprocessedMemoryComments(null, 0), [])
+    assert.deepEqual(unprocessedMemoryComments(comments, 12).map((item) => item.id), [])
+  })
+
+  it('merges new lines and advances the cursor without rewriting processed ones', () => {
+    const existing = `# AI review memory\n\n<!-- processed-through: 10 -->\n\n- 2026-09-14: old | finding\n`
+    assert.equal(mergeMemorySkill(existing, []), existing)
+    const merged = mergeMemorySkill(existing, [
+      { id: 12, body: '- 2026-09-14: new | finding' },
+      { id: 12, body: '- 2026-09-14: new | finding' },
+    ])
+    assert.equal(parseMemoryCursor(merged), 12)
+    assert.equal(merged.includes('- 2026-09-14: old | finding'), true)
+    assert.equal(merged.includes('- 2026-09-14: new | finding'), true)
+    assert.equal(merged.split('- 2026-09-14: new | finding').length, 2)
+    const fresh = mergeMemorySkill('', [{ id: 4, body: '- 2026-09-14: first | finding' }])
+    assert.equal(parseMemoryCursor(fresh), 4)
+    assert.match(fresh, /# AI review memory/)
   })
 })
 
@@ -212,6 +258,23 @@ describe('repair-loop CLI', () => {
     }))
     execFileSync(process.execPath, [script, 'apply-changes', parsed, dir])
     assert.equal(readFileSync(join(dir, 'src/n.ts'), 'utf8'), 'export const n = 2\n')
+    const skill = join(dir, 'skill.md')
+    const commentsJson = join(dir, 'comments.json')
+    const issueBody = join(dir, 'issue.md')
+    writeFileSync(skill, '# AI review memory\n\n<!-- processed-through: 10 -->\n\n- 2026-09-14: old | finding\n')
+    writeFileSync(commentsJson, JSON.stringify([
+      { id: 10, body: '- 2026-09-14: old | finding' },
+      { id: 11, body: 'Noted skip me' },
+      { id: 12, body: '- 2026-09-14: new | finding' },
+    ]))
+    writeFileSync(issueBody, '<!-- processed-through: 10 -->\n')
+    const merged = execFileSync(process.execPath, [script, 'memory-merge', skill, commentsJson, issueBody], { encoding: 'utf8' })
+    assert.equal(execFileSync(process.execPath, [script, 'memory-cursor', skill], { encoding: 'utf8' }).trim(), '10')
+    writeFileSync(skill, merged)
+    assert.equal(execFileSync(process.execPath, [script, 'memory-cursor', skill], { encoding: 'utf8' }).trim(), '12')
+    assert.equal(merged.includes('- 2026-09-14: new | finding'), true)
+    const skipped = execFileSync(process.execPath, [script, 'memory-merge', skill, commentsJson, issueBody], { encoding: 'utf8' })
+    assert.equal(skipped, merged)
     const comments = join(dir, 'comments.txt')
     writeFileSync(comments, 'looks wrong\n/stop-repair\n')
     execFileSync(process.execPath, [script, 'has-stop', comments], { encoding: 'utf8' })

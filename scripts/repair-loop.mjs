@@ -74,6 +74,61 @@ export function memoryEntry (reason, finding, day = '1970-01-01') {
   return `- ${day}: ${r}${f ? ` | ${f}` : ''}`
 }
 
+export const MEMORY_SKILL_PATH = '.github/skills/ai-review-memory.md'
+export const MEMORY_CURSOR_RE = /<!-- processed-through:\s*(\d+)\s*-->/
+
+const MEMORY_SKILL_HEADER = `# AI review memory
+
+Rejected findings. Do not repeat these.
+`
+
+export function isMemoryLine (text) {
+  return typeof text === 'string' && /^- \d{4}-\d{2}-\d{2}: /.test(text.trim())
+}
+
+export function parseMemoryCursor (text) {
+  const match = typeof text === 'string' ? text.match(MEMORY_CURSOR_RE) : null
+  return match ? Number(match[1]) : 0
+}
+
+export function setMemoryCursor (text, cursor) {
+  const body = typeof text === 'string' ? text : ''
+  const line = `<!-- processed-through: ${Number(cursor) || 0} -->`
+  if (MEMORY_CURSOR_RE.test(body)) return body.replace(MEMORY_CURSOR_RE, line)
+  if (body.trim() === '') return `${line}\n`
+  return `${body.replace(/\s*$/, '')}\n\n${line}\n`
+}
+
+export function unprocessedMemoryComments (comments, cursor) {
+  const after = Number(cursor) || 0
+  if (!Array.isArray(comments)) return []
+  return comments
+    .filter((item) => {
+      const id = Number(item?.id)
+      return Number.isFinite(id) && id > after && isMemoryLine(item.body)
+    })
+    .sort((a, b) => Number(a.id) - Number(b.id))
+}
+
+export function mergeMemorySkill (existing, comments) {
+  const raw = typeof existing === 'string' ? existing : ''
+  if (!Array.isArray(comments) || comments.length === 0) return raw
+  const have = new Set(raw.split('\n').map((line) => line.trim()).filter((line) => line.startsWith('- ')))
+  const added = []
+  let cursor = parseMemoryCursor(raw)
+  for (const item of comments) {
+    const id = Number(item?.id) || 0
+    if (id > cursor) cursor = id
+    const line = String(item?.body ?? '').trim().split('\n')[0]
+    if (!isMemoryLine(line) || have.has(line)) continue
+    have.add(line)
+    added.push(line)
+  }
+  let body = raw.trim() === '' ? `${MEMORY_SKILL_HEADER}\n<!-- processed-through: 0 -->\n` : raw
+  if (added.length > 0) body = body.replace(/\s*$/, '\n') + added.join('\n') + '\n'
+  return setMemoryCursor(body, cursor)
+}
+
 export function citedPathsFromText (text) {
   if (typeof text !== 'string' || text.length === 0) return []
   const re = /(?:^|[\s`'"(])((?:src|test|scripts|codegen|packages)\/[A-Za-z0-9_./-]+\.(?:ts|js|mjs|yml|yaml|json|md))/g
@@ -203,6 +258,22 @@ function main (argv) {
       const finding = args[1] ?? ''
       const day = args[2] ?? new Date().toISOString().slice(0, 10)
       process.stdout.write(memoryEntry(reason, finding, day) + '\n')
+      break
+    }
+    case 'memory-cursor': {
+      process.stdout.write(String(parseMemoryCursor(readFileSync(args[0], 'utf8'))) + '\n')
+      break
+    }
+    case 'memory-set-cursor': {
+      process.stdout.write(setMemoryCursor(readFileSync(args[0], 'utf8'), Number(args[1])))
+      break
+    }
+    case 'memory-merge': {
+      const existing = readFileSync(args[0], 'utf8')
+      const comments = readJsonArg(args[1])
+      const issueCursor = args[2] ? parseMemoryCursor(readFileSync(args[2], 'utf8')) : 0
+      const cursor = Math.max(parseMemoryCursor(existing), issueCursor)
+      process.stdout.write(mergeMemorySkill(existing, unprocessedMemoryComments(comments, cursor)))
       break
     }
     case 'has-stop': {
