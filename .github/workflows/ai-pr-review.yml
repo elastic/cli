@@ -234,7 +234,7 @@ jobs:
           DIFF=$(cat /tmp/diff.txt)
           MEMORY=""
           SKILL_REF=$(gh pr list --state open --limit 50 --json number,headRefName,files,isCrossRepository,labels,author \
-            | jq -r --arg def "${DEFAULT_BRANCH:-main}" '[.[] | select(.isCrossRepository != true and .headRefName != $def and ((.labels // []) | any(.name == "ai-review-memory") or .author.login == "github-actions" or .author.login == "github-actions[bot]") and (.headRefName == "ai/review-memory" or ((.files // []) | (length > 0 and all(.path == ".github/skills/ai-review-memory.md")))))][0].headRefName // empty')
+            | jq -r --arg def "${DEFAULT_BRANCH:-main}" '[.[] | select(.isCrossRepository != true and .headRefName != $def and (((.labels // []) | any(.name == "ai-review-memory")) or (.author.login // "") == "github-actions" or (.author.login // "") == "github-actions[bot]") and (.headRefName == "ai/review-memory" or ((.files // []) | (length > 0 and all(.path == ".github/skills/ai-review-memory.md")))))][0].headRefName // empty')
           for REF in $SKILL_REF ai/review-memory "${DEFAULT_BRANCH:-main}"; do
             ENC=$(gh api -X GET "repos/${GH_REPO}/contents/.github/skills/ai-review-memory.md" \
               -f ref="$REF" --jq '.content // empty' 2>/dev/null || true)
