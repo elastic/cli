@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   applyChanges,
+  applyChangesGithub,
   citedPathsFromText,
   extractJsonObject,
   firstFailedJob,
@@ -90,6 +91,7 @@ describe('path guards', () => {
     assert.equal(isSafeWritePath('src/kb/api-manifest.ts'), false)
     assert.equal(isSafeWritePath('.github/workflows/ci.yml'), false)
     assert.equal(isSafeWritePath('.git/config'), false)
+    assert.equal(isSafeWritePath('.buildkite/run-es-tests.sh'), false)
     for (const sneak of ['./.github/workflows/pwn.yml', '.github//workflows/pwn.yml', './src/es/apis/foo.ts']) {
       assert.equal(isSafeWritePath(sneak), false, sneak)
     }
@@ -236,6 +238,48 @@ describe('applyChanges', () => {
       /symlink/,
     )
     assert.equal(readFileSync(join(dir, '.github/workflows/ci.yml'), 'utf8'), 'old\n')
+  })
+})
+
+describe('applyChangesGithub', () => {
+  it('commits validated files in one git tree and refuses unsafe paths', () => {
+    const calls = []
+    const api = (method, path, body) => {
+      calls.push({ method, path, body })
+      if (path.includes('/git/ref/')) return { object: { sha: 'aaa' } }
+      if (path.includes('/git/commits/aaa')) return { tree: { sha: 'tree0' } }
+      if (path.includes('/git/blobs')) return { sha: 'blob1' }
+      if (path.includes('/git/trees')) return { sha: 'tree1' }
+      if (method === 'POST' && path.endsWith('/git/commits')) return { sha: 'ccc' }
+      return {}
+    }
+    applyChangesGithub(
+      [{ file: 'src/a.ts', content: 'export {}\n' }],
+      { repo: 'elastic/cli', branch: 'feat', message: 'fix: a', api },
+    )
+    assert.equal(calls.some((c) => c.method === 'POST' && c.path.endsWith('/git/blobs')), true)
+    assert.equal(calls.some((c) => c.method === 'PATCH' && c.path.includes('/git/refs/heads/feat')), true)
+    const commit = calls.find((c) => c.method === 'POST' && c.path.endsWith('/git/commits'))
+    assert.deepEqual(commit.body.parents, ['aaa'])
+    assert.equal(commit.body.message, 'fix: a')
+    assert.throws(
+      () => applyChangesGithub(
+        [{ file: '.github/workflows/pwn.yml', content: 'x' }],
+        { repo: 'elastic/cli', branch: 'feat', message: 'fix: a', api },
+      ),
+      /refusing path/,
+    )
+    assert.throws(
+      () => applyChangesGithub(
+        [{ file: '.buildkite/run-es-tests.sh', content: 'x' }],
+        { repo: 'elastic/cli', branch: 'feat', message: 'fix: a', api },
+      ),
+      /refusing path/,
+    )
+    assert.throws(
+      () => applyChangesGithub([{ file: 'src/a.ts', content: 'x' }], { repo: '', branch: 'feat', message: 'fix: a', api }),
+      /repo and branch/,
+    )
   })
 })
 

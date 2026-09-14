@@ -178,28 +178,12 @@ jobs:
           name: review-repair-loop-patch
           path: /tmp/repair-loop
 
-      - name: Checkout PR head
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          token: ${{ github.token }}
-          persist-credentials: true
-
       - name: Apply patch
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
           BRANCH=$(gh pr view "$PR" --json headRefName --jq '.headRefName')
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -B "$BRANCH"
-          node /tmp/repair-loop/repair-loop.mjs apply-changes /tmp/repair-loop/parsed.json .
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No file changes after apply"
-            exit 0
-          fi
-          git commit -m "$(jq -r '.commit_message' /tmp/repair-loop/parsed.json)"
-          git push origin "$BRANCH"
+          BRANCH="$BRANCH" node /tmp/repair-loop/repair-loop.mjs apply-github /tmp/repair-loop/parsed.json

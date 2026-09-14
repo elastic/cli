@@ -4,8 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, relative, resolve } from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { basename, dirname, join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const GENERATED = [
@@ -51,7 +53,7 @@ export function isGeneratedPath (file) {
 
 export function isProtectedWritePath (file) {
   const n = canonicalPath(file)
-  return n === null || n.startsWith('.github/workflows/') || n.startsWith('.git/')
+  return n === null || n.startsWith('.github/workflows/') || n.startsWith('.git/') || n.startsWith('.buildkite/')
 }
 
 export function isSafeReadPath (file) {
@@ -266,9 +268,63 @@ export function applyChanges (changes, cwd) {
       throw new Error(`path escapes cwd: ${change.file}`)
     }
     refuseSymlinkChain(root, dest)
+    try {
+      const realDest = resolve(realpathSync(dirname(dest)), basename(dest))
+      const relReal = relative(root, realDest)
+      const canonReal = canonicalPath(relReal)
+      if (canonReal === null || !isSafeWritePath(canonReal) || relReal.startsWith('..')) {
+        throw new Error(`realpath escapes cwd: ${change.file}`)
+      }
+    } catch (err) {
+      if (err?.code !== 'ENOENT') throw err
+    }
     mkdirSync(dirname(dest), { recursive: true })
     writeFileSync(dest, change.content)
   }
+}
+
+export function validatedWrites (changes) {
+  if (!Array.isArray(changes)) throw new Error('changes must be an array')
+  return changes.map((change) => {
+    const relFile = canonicalPath(change?.file)
+    if (relFile === null || !isSafeWritePath(relFile)) {
+      throw new Error(`refusing path: ${change?.file}`)
+    }
+    if (typeof change.content !== 'string') throw new Error(`refusing path: ${change.file}`)
+    return { path: relFile, content: change.content }
+  })
+}
+
+export function defaultGhApi (method, path, body) {
+  const args = ['api', '-X', method, path]
+  if (body !== undefined) {
+    const file = join(tmpdir(), `repair-loop-gh-${process.pid}.json`)
+    writeFileSync(file, JSON.stringify(body))
+    args.push('--input', file)
+  }
+  const out = execFileSync('gh', args, { encoding: 'utf8' })
+  return out ? JSON.parse(out) : {}
+}
+
+export function applyChangesGithub (changes, { repo, branch, message, api = defaultGhApi }) {
+  if (typeof repo !== 'string' || !repo.includes('/') || typeof branch !== 'string' || branch.length === 0) {
+    throw new Error('repo and branch required')
+  }
+  const files = validatedWrites(changes)
+  if (files.length === 0) return
+  const ref = api('GET', `repos/${repo}/git/ref/heads/${branch}`)
+  const parent = api('GET', `repos/${repo}/git/commits/${ref.object.sha}`)
+  const tree = files.map((file) => {
+    const blob = api('POST', `repos/${repo}/git/blobs`, { content: file.content, encoding: 'utf-8' })
+    return { path: file.path, mode: '100644', type: 'blob', sha: blob.sha }
+  })
+  const newTree = api('POST', `repos/${repo}/git/trees`, { base_tree: parent.tree.sha, tree })
+  const commit = api('POST', `repos/${repo}/git/commits`, {
+    message: safeCommitMessage(message),
+    tree: newTree.sha,
+    parents: [ref.object.sha],
+  })
+  api('PATCH', `repos/${repo}/git/refs/heads/${branch}`, { sha: commit.sha })
 }
 
 function readJsonArg (path) {
@@ -344,6 +400,15 @@ function main (argv) {
     case 'apply-changes': {
       const parsed = readJsonArg(args[0])
       applyChanges(parsed.changes ?? [], args[1] ?? process.cwd())
+      break
+    }
+    case 'apply-github': {
+      const parsed = readJsonArg(args[0])
+      applyChangesGithub(parsed.changes ?? [], {
+        repo: process.env.GH_REPO,
+        branch: process.env.BRANCH,
+        message: parsed.commit_message,
+      })
       break
     }
     default:

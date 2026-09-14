@@ -51,6 +51,7 @@ jobs:
             | jq -s '.' > /tmp/comments.json
           gh api -X GET "repos/${GH_REPO}/issues/${MEM}" --jq '.body // empty' \
             > /tmp/issue-body.txt
+          cp scripts/repair-loop.mjs /tmp/repair-loop.mjs
           git fetch origin ai/review-memory:ai/review-memory 2>/dev/null || true
           if git show-ref --verify --quiet refs/heads/ai/review-memory; then
             git checkout ai/review-memory
@@ -62,20 +63,20 @@ jobs:
             mkdir -p .github/skills
             : > "$SKILL"
           fi
-          node scripts/repair-loop.mjs memory-merge "$SKILL" /tmp/comments.json /tmp/issue-body.txt \
+          node /tmp/repair-loop.mjs memory-merge "$SKILL" /tmp/comments.json /tmp/issue-body.txt \
             > /tmp/skill-out.md
           if cmp -s "$SKILL" /tmp/skill-out.md; then
             echo "No new memory comments"
             exit 0
           fi
           cp /tmp/skill-out.md "$SKILL"
-          NEW_CURSOR=$(node scripts/repair-loop.mjs memory-cursor /tmp/skill-out.md)
+          NEW_CURSOR=$(node /tmp/repair-loop.mjs memory-cursor /tmp/skill-out.md)
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add "$SKILL"
           git commit -m "chore: update ai review memory"
           git push -u origin ai/review-memory
-          node scripts/repair-loop.mjs memory-set-cursor /tmp/issue-body.txt "$NEW_CURSOR" \
+          node /tmp/repair-loop.mjs memory-set-cursor /tmp/issue-body.txt "$NEW_CURSOR" \
             > /tmp/issue-body-out.txt
           jq -n --rawfile body /tmp/issue-body-out.txt '{body: $body}' \
             | gh api -X PATCH "repos/${GH_REPO}/issues/${MEM}" --input -
