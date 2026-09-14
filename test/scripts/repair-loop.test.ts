@@ -16,8 +16,11 @@ import {
   extractJsonObject,
   firstFailedJob,
   appendMemorySkill,
+  countBotCommits,
   hasBadCommand,
+  hasBkRepairTag,
   hasStopCommand,
+  isRepairBotLogin,
   isTrustedAssociation,
   parseReviewLoopEvent,
   parseReviewNoEvent,
@@ -292,6 +295,26 @@ describe('parseAgentResponse', () => {
 })
 
 describe('shouldAttemptFix', () => {
+  it('counts vault plugin bot commits toward the cap', () => {
+    assert.equal(isRepairBotLogin('github-actions[bot]'), true)
+    assert.equal(isRepairBotLogin('elastic-vault-github-plugin-prod[bot]'), true)
+    assert.equal(isRepairBotLogin('elastic-vault-github-plugin-prod'), true)
+    assert.equal(isRepairBotLogin('outsider'), false)
+    assert.equal(isRepairBotLogin(''), false)
+    assert.equal(isRepairBotLogin(null), false)
+    assert.equal(countBotCommits([
+      { author: { login: 'margaretjgu' } },
+      { author: { login: 'elastic-vault-github-plugin-prod[bot]' } },
+      { commit: { author: { name: 'github-actions[bot]' } } },
+      { author: { login: '../pwn' } },
+    ]), 2)
+    assert.equal(countBotCommits(null), 0)
+    assert.equal(hasBkRepairTag('<!-- bk-repair-loop -->\nFirst Buildkite failure'), true)
+    assert.equal(hasBkRepairTag('<!-- ci-repair-loop -->'), false)
+    assert.equal(hasBkRepairTag(''), false)
+    assert.equal(hasBkRepairTag(null), false)
+  })
+
   it('requires same-repo auto-loop under the bot cap', () => {
     assert.deepEqual(shouldAttemptFix({ sameRepo: true, autoLoop: true, botCommits: 0 }), { ok: true, reason: 'ok' })
     assert.equal(shouldAttemptFix({ sameRepo: false, autoLoop: true }).ok, false)
@@ -498,6 +521,14 @@ describe('repair-loop CLI', () => {
     }
     writeFileSync(event, JSON.stringify({ pr: 644, review_id: 3 }))
     assert.deepEqual(JSON.parse(execFileSync(process.execPath, [script, 'review-loop-event', event], { encoding: 'utf8' })), { pr: 644, reviewId: 3 })
+    const commits = join(dir, 'commits.ndjson')
+    writeFileSync(commits, [
+      JSON.stringify({ author: { login: 'elastic-vault-github-plugin-prod[bot]' } }),
+      JSON.stringify({ author: { login: 'human' } }),
+    ].join('\n'))
+    assert.equal(execFileSync(process.execPath, [script, 'bot-commits', commits], { encoding: 'utf8' }).trim(), '1')
+    writeFileSync(comments, '<!-- bk-repair-loop -->\nFAIL: x\n')
+    execFileSync(process.execPath, [script, 'has-bk-tag', comments], { encoding: 'utf8' })
     const comment = join(dir, 'comment.json')
     writeFileSync(comment, JSON.stringify({ pull_request_url: 'https://api.github.com/repos/elastic/cli/pulls/644' }))
     assert.equal(JSON.parse(execFileSync(process.execPath, [script, 'review-comment-pr', 'pull_request_review_comment', comment], { encoding: 'utf8' })).pr, 644)
