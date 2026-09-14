@@ -9,7 +9,9 @@ permissions:
 
 jobs:
   review:
-    if: github.event.pull_request.draft == false
+    if: >-
+      github.event.pull_request.draft == false &&
+      !contains(github.event.pull_request.labels.*.name, 'skip-ai-review')
     name: AI review
     runs-on: ubuntu-latest
     steps:
@@ -229,17 +231,25 @@ jobs:
           fi
 
           DIFF=$(cat /tmp/diff.txt)
+          MEMORY=""
+          MEM_ISSUE=$(gh issue list --label ai-review-memory --state open --json number \
+            --jq '.[0].number // empty' || true)
+          if [ -n "$MEM_ISSUE" ]; then
+            MEMORY=$(gh api "repos/${GH_REPO}/issues/${MEM_ISSUE}/comments" \
+              --jq '[.[].body // empty] | join("\n")' | tail -c 8000 || true)
+          fi
 
           jq -n \
             --arg title "$PR_TITLE" \
             --arg diff "$DIFF" \
+            --arg memory "$MEMORY" \
             --arg system "$SYSTEM_PROMPT" \
             '{
               model: "x-ai/grok-4.6",
               max_tokens: 2048,
               messages: [
                 {role: "system", content: $system},
-                {role: "user", content: ("PR: " + $title + "\n\nDiff:\n" + $diff)}
+                {role: "user", content: ("PR: " + $title + (if $memory == "" then "" else "\n\nRejected findings memory (do not repeat):\n" + $memory end) + "\n\nDiff:\n" + $diff)}
               ]
             }' > /tmp/payload.json
 

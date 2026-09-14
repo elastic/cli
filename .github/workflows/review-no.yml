@@ -1,0 +1,62 @@
+name: Review no
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  remember:
+    if: >-
+      github.event.issue.pull_request &&
+      github.event.comment.user.login != 'github-actions[bot]' &&
+      (github.event.comment.author_association == 'OWNER' ||
+       github.event.comment.author_association == 'MEMBER' ||
+       github.event.comment.author_association == 'COLLABORATOR')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout default branch tools
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Record rejected bot review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.issue.number }}
+          COMMENT: ${{ github.event.comment.body }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$COMMENT" > /tmp/comment.txt
+          if ! node scripts/repair-loop.mjs has-review-no /tmp/comment.txt; then
+            echo "No /review-no"
+            exit 0
+          fi
+          REVIEW=$(gh api "repos/${GH_REPO}/pulls/${PR}/reviews" \
+            --jq '[.[] | select(.user.login == "github-actions[bot]")] | last | {id, body}')
+          RID=$(printf '%s' "$REVIEW" | jq -r '.id // empty')
+          BODY=$(printf '%s' "$REVIEW" | jq -r '.body // empty')
+          if [ -n "$RID" ]; then
+            gh api -X PUT "repos/${GH_REPO}/pulls/${PR}/reviews/${RID}/dismissals" \
+              -f message="Maintainer rejected this review (/review-no)" \
+              -f event=DISMISS || true
+          fi
+          ENTRY=$(node scripts/repair-loop.mjs memory-entry "$COMMENT" "$BODY")
+          if [ -z "$ENTRY" ]; then
+            echo "Empty memory entry"
+            exit 0
+          fi
+          MEM=$(gh issue list --label ai-review-memory --state open --json number \
+            --jq '.[0].number // empty')
+          if [ -z "$MEM" ]; then
+            MEM=$(gh issue create --title "AI review memory" --label ai-review-memory \
+              --body "Rejected bot review findings. The next AI review reads this issue.")
+            MEM="${MEM##*/}"
+          fi
+          gh issue comment "$MEM" --body "$ENTRY"
+          gh pr comment "$PR" --body "Noted \`/review-no\`. Stored on #${MEM}. Next AI review will see it. Add \`skip-ai-review\` to silence the bot on this PR."
