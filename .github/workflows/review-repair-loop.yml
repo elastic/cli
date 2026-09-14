@@ -42,6 +42,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
+          REVIEW_ID: ${{ github.event.review.id }}
           REVIEW_BODY: ${{ github.event.review.body }}
         run: |
           set -euo pipefail
@@ -67,8 +68,9 @@ jobs:
           FIX=0
           if jq -e '.ok == true' /tmp/decision.json >/dev/null; then FIX=1; fi
           echo "fix=${FIX}" >> "$GITHUB_OUTPUT"
-          gh api "repos/${GH_REPO}/pulls/${PR}/comments" \
-            --jq '[.[]? | {path, line, body}]' > /tmp/review-comments.json
+          gh api "repos/${GH_REPO}/pulls/${PR}/reviews/${REVIEW_ID}/comments" \
+            --jq '[.[]? | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR") | {path, line, body}]' \
+            > /tmp/review-comments.json
           printf '%s\n' "${REVIEW_BODY:-}" > /tmp/review-body.txt
 
       - name: Propose review patch
