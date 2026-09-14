@@ -5,6 +5,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
+import './setup-non-interactive.ts'
 
 describe('setup-non-interactive stdout filter', () => {
   it('keeps TAP strings out of process.stdout captures', () => {
