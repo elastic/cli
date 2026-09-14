@@ -56,7 +56,7 @@ jobs:
           node /tmp/repair-loop.mjs cited-paths /tmp/job.log > /tmp/cited.json
           PR=$(gh api -H "Accept: application/vnd.github+json" \
             "repos/${GH_REPO}/commits/${HEAD_SHA}/pulls" \
-            --jq '[.[]? | select(.state == "open") | .number][0] // empty')
+            --jq "[.[]? | select(.state == \"open\" and .head.sha == \"${HEAD_SHA}\") | .number][0] // empty")
           SAME_REPO=0
           if [ "$HEAD_REPO" = "$GH_REPO" ]; then SAME_REPO=1; fi
           SKIP_LOOP=0
@@ -254,6 +254,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           PR: ${{ needs.repair.outputs.pr }}
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
           BRANCH=$(gh pr view "$PR" --json headRefName --jq '.headRefName')

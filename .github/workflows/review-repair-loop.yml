@@ -17,6 +17,7 @@ jobs:
     outputs:
       apply: ${{ steps.propose.outputs.apply }}
       pr: ${{ github.event.pull_request.number }}
+      head_sha: ${{ github.event.pull_request.head.sha }}
     if: >-
       !github.event.pull_request.draft &&
       github.event.review.user.login != 'github-actions[bot]' &&
@@ -193,6 +194,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
+          EXPECTED_SHA: ${{ needs.repair.outputs.head_sha }}
         run: |
           set -euo pipefail
           BRANCH=$(gh pr view "$PR" --json headRefName --jq '.headRefName')

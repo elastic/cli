@@ -311,13 +311,16 @@ export function defaultGhApi (method, path, body) {
   return out ? JSON.parse(out) : {}
 }
 
-export function applyChangesGithub (changes, { repo, branch, message, api = defaultGhApi }) {
+export function applyChangesGithub (changes, { repo, branch, message, expectedSha, api = defaultGhApi }) {
   if (typeof repo !== 'string' || !repo.includes('/') || typeof branch !== 'string' || branch.length === 0) {
     throw new Error('repo and branch required')
   }
   const files = validatedWrites(changes)
   if (files.length === 0) return
   const ref = api('GET', `repos/${repo}/git/ref/heads/${branch}`)
+  if (expectedSha && ref.object.sha !== expectedSha) {
+    throw new Error(`branch moved: ${ref.object.sha} != ${expectedSha}`)
+  }
   const parent = api('GET', `repos/${repo}/git/commits/${ref.object.sha}`)
   const tree = files.map((file) => {
     const blob = api('POST', `repos/${repo}/git/blobs`, { content: file.content, encoding: 'utf-8' })
@@ -412,6 +415,7 @@ function main (argv) {
       applyChangesGithub(parsed.changes ?? [], {
         repo: process.env.GH_REPO,
         branch: process.env.BRANCH,
+        expectedSha: process.env.EXPECTED_SHA,
         message: parsed.commit_message,
       })
       break

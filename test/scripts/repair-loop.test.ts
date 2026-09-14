@@ -290,6 +290,17 @@ describe('applyChangesGithub', () => {
       () => applyChangesGithub([{ file: 'src/a.ts', content: 'x' }], { repo: '', branch: 'feat', message: 'fix: a', api }),
       /repo and branch/,
     )
+    applyChangesGithub(
+      [{ file: 'src/a.ts', content: 'export {}\n' }],
+      { repo: 'elastic/cli', branch: 'feat', message: 'fix: a', expectedSha: 'aaa', api },
+    )
+    assert.throws(
+      () => applyChangesGithub(
+        [{ file: 'src/a.ts', content: 'x' }],
+        { repo: 'elastic/cli', branch: 'feat', message: 'fix: a', expectedSha: 'bbb', api },
+      ),
+      /branch moved/,
+    )
   })
 })
 
