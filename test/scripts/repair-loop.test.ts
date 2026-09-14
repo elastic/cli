@@ -24,6 +24,7 @@ import {
   isTrustedAssociation,
   parseReviewLoopEvent,
   parseReviewNoEvent,
+  resolveReviewLoopPr,
   positiveInt,
   reviewCommentPrNumber,
   pickSkillMemoryPr,
@@ -136,6 +137,13 @@ describe('review-no memory', () => {
     assert.deepEqual(parseReviewLoopEvent({ pr: 644, review_id: '9' }), { pr: 644, reviewId: 9 })
     assert.equal(parseReviewLoopEvent({ pr: 0, review_id: 1 }), null)
     assert.equal(parseReviewLoopEvent({ pr: '644/../1', review_id: 1 }), null)
+    assert.equal(resolveReviewLoopPr(644, 644), 644)
+    assert.equal(resolveReviewLoopPr('644', '644'), 644)
+    assert.equal(resolveReviewLoopPr(643, 656), null)
+    assert.equal(resolveReviewLoopPr(656, ''), null)
+    assert.equal(resolveReviewLoopPr(656, '0'), null)
+    assert.equal(resolveReviewLoopPr(656, '../656'), null)
+    assert.equal(resolveReviewLoopPr(null, 656), 656)
     assert.equal(positiveInt(''), null)
     assert.equal(positiveInt(1.5), null)
     assert.equal(isTrustedAssociation('OWNER'), true)
@@ -521,6 +529,13 @@ describe('repair-loop CLI', () => {
     }
     writeFileSync(event, JSON.stringify({ pr: 644, review_id: 3 }))
     assert.deepEqual(JSON.parse(execFileSync(process.execPath, [script, 'review-loop-event', event], { encoding: 'utf8' })), { pr: 644, reviewId: 3 })
+    assert.deepEqual(JSON.parse(execFileSync(process.execPath, [script, 'review-loop-pr', event, '644'], { encoding: 'utf8' })), { pr: 644, reviewId: 3 })
+    try {
+      execFileSync(process.execPath, [script, 'review-loop-pr', event, '656'], { encoding: 'utf8' })
+      assert.fail('expected exit 1')
+    } catch (err) {
+      assert.equal(err.status, 1)
+    }
     const commits = join(dir, 'commits.ndjson')
     writeFileSync(commits, [
       JSON.stringify({ author: { login: 'elastic-vault-github-plugin-prod[bot]' } }),

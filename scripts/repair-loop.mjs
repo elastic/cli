@@ -136,6 +136,14 @@ export function parseReviewLoopEvent (payload) {
   return { pr, reviewId }
 }
 
+export function resolveReviewLoopPr (artifactPr, runPr) {
+  const run = positiveInt(runPr)
+  if (run === null) return null
+  const artifact = positiveInt(artifactPr)
+  if (artifact !== null && artifact !== run) return null
+  return run
+}
+
 export function reviewCommentPrNumber (comment, source) {
   const url = source === 'issue_comment' ? comment?.issue_url : comment?.pull_request_url
   if (typeof url !== 'string') return null
@@ -475,6 +483,13 @@ function main (argv) {
       const parsed = parseReviewLoopEvent(readJsonArg(args[0]))
       process.stdout.write(JSON.stringify(parsed ?? {}) + '\n')
       process.exit(parsed ? 0 : 1)
+      break
+    }
+    case 'review-loop-pr': {
+      const parsed = parseReviewLoopEvent(readJsonArg(args[0]))
+      const pr = parsed ? resolveReviewLoopPr(parsed.pr, args[1]) : null
+      process.stdout.write(JSON.stringify(pr ? { pr, reviewId: parsed.reviewId } : {}) + '\n')
+      process.exit(pr ? 0 : 1)
       break
     }
     case 'review-comment-pr': {

@@ -59,6 +59,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          RUN_PR: ${{ github.event.workflow_run.pull_requests[0].number }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
           set -euo pipefail
           if [ ! -s /tmp/repair-loop.mjs ]; then
@@ -73,7 +75,15 @@ jobs:
             echo "Invalid review-loop event"
             exit 0
           fi
-          PR=$(jq -r '.pr' /tmp/review-loop-parsed.json)
+          RESOLVED_PR="${RUN_PR:-}"
+          if [ -z "$RESOLVED_PR" ] && [ -n "${HEAD_BRANCH:-}" ]; then
+            RESOLVED_PR=$(gh pr list --head "$HEAD_BRANCH" --state open --json number --jq '.[0].number // empty')
+          fi
+          if ! node /tmp/repair-loop.mjs review-loop-pr /tmp/review-loop-parsed.json "$RESOLVED_PR" > /tmp/review-loop-pr.json; then
+            echo "Artifact PR does not match workflow_run"
+            exit 0
+          fi
+          PR=$(jq -r '.pr' /tmp/review-loop-pr.json)
           REVIEW_ID=$(jq -r '.reviewId' /tmp/review-loop-parsed.json)
           REVIEW=$(gh api "repos/${GH_REPO}/pulls/${PR}/reviews/${REVIEW_ID}")
           LOGIN=$(printf '%s' "$REVIEW" | jq -r '.user.login // empty')
