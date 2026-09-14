@@ -180,12 +180,13 @@ describe('review-no memory', () => {
     assert.equal(pickSkillMemoryPr([unlabeled]), null)
     assert.equal(pickSkillMemoryPr([{ ...skill, isCrossRepository: true }]), null)
     assert.equal(pickSkillMemoryPr([{ number: 2, headRefName: 'main', files: skill.files }], { defaultBranch: 'main' }), null)
-    const skillRefFilter = '[.[] | select(.isCrossRepository != true and .headRefName != $def and (((.labels // []) | any(.name == "ai-review-memory")) or (.author.login // "") == "github-actions" or (.author.login // "") == "github-actions[bot]") and (.headRefName == "ai/review-memory" or ((.files // []) | (length > 0 and all(.path == ".github/skills/ai-review-memory.md")))))][0].headRefName // empty'
+    const skillRefFilter = '[.[] | select(.isCrossRepository != true and .headRefName != $def and (((.labels // []) | any(.name == "ai-review-memory")) or (.author.login // "") == "github-actions" or (.author.login // "") == "github-actions[bot]"))] | (map(select(.headRefName == "ai/review-memory")) + map(select((.files // []) | length > 0 and all(.path == ".github/skills/ai-review-memory.md"))))[0].headRefName // empty'
     const jqSkill = (rows) => execFileSync('jq', ['-r', '--arg', 'def', 'main', skillRefFilter], {
       input: JSON.stringify(rows),
       encoding: 'utf8',
     }).trim()
     assert.equal(jqSkill([named, unlabeled]), 'ai/review-memory')
+    assert.equal(jqSkill([skill, named]), 'ai/review-memory')
     assert.equal(jqSkill([unlabeled]), '')
     const first = appendMemorySkill('', '/bad Do not re-flag slash branches.')
     assert.match(first, /# AI review memory/)
