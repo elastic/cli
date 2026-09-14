@@ -76,6 +76,51 @@ export function hasBadCommand (text) {
   return typeof text === 'string' && /(?:^|[\s])\/bad(?:[\s]|$)/m.test(text)
 }
 
+export function positiveInt (value) {
+  if (typeof value === 'number') {
+    return Number.isInteger(value) && value > 0 && value <= Number.MAX_SAFE_INTEGER ? value : null
+  }
+  if (typeof value === 'string' && /^[1-9][0-9]{0,15}$/.test(value)) {
+    const n = Number(value)
+    return n <= Number.MAX_SAFE_INTEGER ? n : null
+  }
+  return null
+}
+
+export function isTrustedAssociation (association) {
+  return association === 'OWNER' || association === 'MEMBER'
+}
+
+export function parseReviewNoEvent (payload) {
+  if (!payload || typeof payload !== 'object') return null
+  const source = payload.source
+  if (source !== 'issue_comment' && source !== 'pull_request_review_comment') return null
+  const commentId = positiveInt(payload.comment_id)
+  if (commentId === null) return null
+  return {
+    source,
+    commentId,
+    apiPath: source === 'issue_comment'
+      ? `issues/comments/${commentId}`
+      : `pulls/comments/${commentId}`,
+  }
+}
+
+export function parseReviewLoopEvent (payload) {
+  if (!payload || typeof payload !== 'object') return null
+  const pr = positiveInt(payload.pr)
+  const reviewId = positiveInt(payload.review_id)
+  if (pr === null || reviewId === null) return null
+  return { pr, reviewId }
+}
+
+export function reviewCommentPrNumber (comment, source) {
+  const url = source === 'issue_comment' ? comment?.issue_url : comment?.pull_request_url
+  if (typeof url !== 'string') return null
+  const match = url.match(/^https:\/\/api\.github\.com\/repos\/[^/]+\/[^/]+\/(?:issues|pulls)\/([1-9][0-9]{0,15})$/)
+  return match ? Number(match[1]) : null
+}
+
 export function memoryActionItem (reason) {
   let r = String(reason ?? '').replace(/\s+/g, ' ').trim()
   r = r.replace(/\/bad\b/gi, ' ').replace(/\/review-no\b/gi, ' ').replace(/\s+/g, ' ').trim()
@@ -396,6 +441,26 @@ function main (argv) {
       const found = hasBadCommand(readFileSync(args[0], 'utf8'))
       process.stdout.write(JSON.stringify({ bad: found }) + '\n')
       process.exit(found ? 0 : 1)
+      break
+    }
+    case 'review-no-event': {
+      const parsed = parseReviewNoEvent(readJsonArg(args[0]))
+      process.stdout.write(JSON.stringify(parsed ?? {}) + '\n')
+      process.exit(parsed ? 0 : 1)
+      break
+    }
+    case 'review-loop-event': {
+      const parsed = parseReviewLoopEvent(readJsonArg(args[0]))
+      process.stdout.write(JSON.stringify(parsed ?? {}) + '\n')
+      process.exit(parsed ? 0 : 1)
+      break
+    }
+    case 'review-comment-pr': {
+      const source = args[0]
+      const comment = readJsonArg(args[1])
+      const pr = reviewCommentPrNumber(comment, source)
+      process.stdout.write(JSON.stringify({ pr }) + '\n')
+      process.exit(pr ? 0 : 1)
       break
     }
     case 'memory-entry': {

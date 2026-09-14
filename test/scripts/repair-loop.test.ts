@@ -18,6 +18,11 @@ import {
   appendMemorySkill,
   hasBadCommand,
   hasStopCommand,
+  isTrustedAssociation,
+  parseReviewLoopEvent,
+  parseReviewNoEvent,
+  positiveInt,
+  reviewCommentPrNumber,
   pickSkillMemoryPr,
   isFailedConclusion,
   memoryEntry,
@@ -109,6 +114,52 @@ describe('path guards', () => {
 })
 
 describe('review-no memory', () => {
+  it('parses dispatch artifacts and rejects junk ids', () => {
+    assert.deepEqual(
+      parseReviewNoEvent({ source: 'pull_request_review_comment', comment_id: 4008474124 }),
+      { source: 'pull_request_review_comment', commentId: 4008474124, apiPath: 'pulls/comments/4008474124' },
+    )
+    assert.deepEqual(
+      parseReviewNoEvent({ source: 'issue_comment', comment_id: '12' }),
+      { source: 'issue_comment', commentId: 12, apiPath: 'issues/comments/12' },
+    )
+    assert.equal(parseReviewNoEvent({ source: 'issue_comment', comment_id: 0 }), null)
+    assert.equal(parseReviewNoEvent({ source: 'issue_comment', comment_id: -1 }), null)
+    assert.equal(parseReviewNoEvent({ source: 'issue_comment', comment_id: '1e2' }), null)
+    assert.equal(parseReviewNoEvent({ source: 'issue_comment', comment_id: '08' }), null)
+    assert.equal(parseReviewNoEvent({ source: 'issue_comment', comment_id: '1/../2' }), null)
+    assert.equal(parseReviewNoEvent({ source: 'workflow_run', comment_id: 1 }), null)
+    assert.equal(parseReviewNoEvent(null), null)
+    assert.deepEqual(parseReviewLoopEvent({ pr: 644, review_id: '9' }), { pr: 644, reviewId: 9 })
+    assert.equal(parseReviewLoopEvent({ pr: 0, review_id: 1 }), null)
+    assert.equal(parseReviewLoopEvent({ pr: '644/../1', review_id: 1 }), null)
+    assert.equal(positiveInt(''), null)
+    assert.equal(positiveInt(1.5), null)
+    assert.equal(isTrustedAssociation('OWNER'), true)
+    assert.equal(isTrustedAssociation('MEMBER'), true)
+    assert.equal(isTrustedAssociation('COLLABORATOR'), false)
+    assert.equal(
+      reviewCommentPrNumber({ pull_request_url: 'https://api.github.com/repos/elastic/cli/pulls/644' }, 'pull_request_review_comment'),
+      644,
+    )
+    assert.equal(
+      reviewCommentPrNumber({ issue_url: 'https://api.github.com/repos/elastic/cli/issues/644' }, 'issue_comment'),
+      644,
+    )
+    assert.equal(
+      reviewCommentPrNumber({ issue_url: 'https://api.github.com/repos/elastic/cli/issues/644/comments' }, 'issue_comment'),
+      null,
+    )
+    assert.equal(
+      reviewCommentPrNumber({ pull_request_url: 'https://evil.example/pulls/644' }, 'pull_request_review_comment'),
+      null,
+    )
+    assert.equal(
+      reviewCommentPrNumber({ pull_request_url: 'https://api.github.com/repos/elastic/cli/pulls/0' }, 'pull_request_review_comment'),
+      null,
+    )
+  })
+
   it('matches /bad and formats a memory line', () => {
     assert.equal(hasBadCommand('/bad'), true)
     assert.equal(hasBadCommand('this review is shit /bad'), true)
@@ -434,6 +485,22 @@ describe('repair-loop CLI', () => {
     } catch (err) {
       assert.equal(err.status, 1)
     }
+    const event = join(dir, 'event.json')
+    writeFileSync(event, JSON.stringify({ source: 'pull_request_review_comment', comment_id: 9 }))
+    const parsedEvent = JSON.parse(execFileSync(process.execPath, [script, 'review-no-event', event], { encoding: 'utf8' }))
+    assert.equal(parsedEvent.apiPath, 'pulls/comments/9')
+    writeFileSync(event, JSON.stringify({ source: 'issue_comment', comment_id: '../9' }))
+    try {
+      execFileSync(process.execPath, [script, 'review-no-event', event], { encoding: 'utf8' })
+      assert.fail('expected exit 1')
+    } catch (err) {
+      assert.equal(err.status, 1)
+    }
+    writeFileSync(event, JSON.stringify({ pr: 644, review_id: 3 }))
+    assert.deepEqual(JSON.parse(execFileSync(process.execPath, [script, 'review-loop-event', event], { encoding: 'utf8' })), { pr: 644, reviewId: 3 })
+    const comment = join(dir, 'comment.json')
+    writeFileSync(comment, JSON.stringify({ pull_request_url: 'https://api.github.com/repos/elastic/cli/pulls/644' }))
+    assert.equal(JSON.parse(execFileSync(process.execPath, [script, 'review-comment-pr', 'pull_request_review_comment', comment], { encoding: 'utf8' })).pr, 644)
   })
 })
 
