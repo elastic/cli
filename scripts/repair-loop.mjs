@@ -86,6 +86,14 @@ export function isMemoryLine (text) {
   return typeof text === 'string' && /^- \d{4}-\d{2}-\d{2}: /.test(text.trim())
 }
 
+const TRUSTED_ASSOCIATION = new Set(['OWNER', 'MEMBER', 'COLLABORATOR'])
+
+export function isTrustedMemoryAuthor (comment) {
+  const login = comment?.user?.login
+  if (login === 'github-actions[bot]') return true
+  return TRUSTED_ASSOCIATION.has(comment?.author_association)
+}
+
 export function parseMemoryCursor (text) {
   const match = typeof text === 'string' ? text.match(MEMORY_CURSOR_RE) : null
   return match ? Number(match[1]) : 0
@@ -105,7 +113,7 @@ export function unprocessedMemoryComments (comments, cursor) {
   return comments
     .filter((item) => {
       const id = Number(item?.id)
-      return Number.isFinite(id) && id > after && isMemoryLine(item.body)
+      return Number.isFinite(id) && id > after && isMemoryLine(item.body) && isTrustedMemoryAuthor(item)
     })
     .sort((a, b) => Number(a.id) - Number(b.id))
 }

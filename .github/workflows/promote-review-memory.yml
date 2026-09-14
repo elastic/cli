@@ -18,7 +18,11 @@ jobs:
   promote:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      contains(github.event.issue.labels.*.name, 'ai-review-memory')
+      (contains(github.event.issue.labels.*.name, 'ai-review-memory') &&
+       (github.event.comment.user.login == 'github-actions[bot]' ||
+        github.event.comment.author_association == 'OWNER' ||
+        github.event.comment.author_association == 'MEMBER' ||
+        github.event.comment.author_association == 'COLLABORATOR'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout default branch tools
@@ -43,7 +47,8 @@ jobs:
             exit 0
           fi
           gh api --paginate "repos/${GH_REPO}/issues/${MEM}/comments" \
-            --jq '.[] | {id, body}' | jq -s '.' > /tmp/comments.json
+            --jq '.[] | {id, body, author_association, user: {login: .user.login}}' \
+            | jq -s '.' > /tmp/comments.json
           gh api -X GET "repos/${GH_REPO}/issues/${MEM}" --jq '.body // empty' \
             > /tmp/issue-body.txt
           git fetch origin ai/review-memory:ai/review-memory 2>/dev/null || true

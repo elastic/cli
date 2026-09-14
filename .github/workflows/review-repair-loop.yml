@@ -20,6 +20,9 @@ jobs:
     if: >-
       !github.event.pull_request.draft &&
       github.event.review.user.login != 'github-actions[bot]' &&
+      (github.event.review.author_association == 'OWNER' ||
+       github.event.review.author_association == 'MEMBER' ||
+       github.event.review.author_association == 'COLLABORATOR') &&
       (github.event.review.state == 'changes_requested' || github.event.review.state == 'commented') &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
