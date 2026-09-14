@@ -79,5 +79,5 @@ if [ "$SKIP_LOOP" = 1 ] || [ "$AUTO_LOOP" != 1 ]; then
   exit 0
 fi
 
-echo "auto-loop is set, but Buildkite has no commit token in this pipeline yet. Comment only."
+echo "Posted <!-- bk-repair-loop -->. GitHub Actions bk-repair-loop.yml applies the in-repo fix."
 exit 0

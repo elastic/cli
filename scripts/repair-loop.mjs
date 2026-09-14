@@ -76,6 +76,81 @@ export function hasBadCommand (text) {
   return typeof text === 'string' && /(?:^|[\s])\/bad(?:[\s]|$)/m.test(text)
 }
 
+export const REPAIR_BOT_LOGINS = new Set([
+  'github-actions',
+  'github-actions[bot]',
+  'elastic-vault-github-plugin-prod',
+  'elastic-vault-github-plugin-prod[bot]',
+])
+
+export function isRepairBotLogin (login) {
+  return typeof login === 'string' && REPAIR_BOT_LOGINS.has(login)
+}
+
+export function countBotCommits (commits) {
+  if (!Array.isArray(commits)) return 0
+  return commits.filter((commit) => (
+    isRepairBotLogin(commit?.author?.login) || isRepairBotLogin(commit?.commit?.author?.name)
+  )).length
+}
+
+export function hasBkRepairTag (text) {
+  return typeof text === 'string' && text.includes('<!-- bk-repair-loop -->')
+}
+
+export function positiveInt (value) {
+  if (typeof value === 'number') {
+    return Number.isInteger(value) && value > 0 && value <= Number.MAX_SAFE_INTEGER ? value : null
+  }
+  if (typeof value === 'string' && /^[1-9][0-9]{0,15}$/.test(value)) {
+    const n = Number(value)
+    return n <= Number.MAX_SAFE_INTEGER ? n : null
+  }
+  return null
+}
+
+export function isTrustedAssociation (association) {
+  return association === 'OWNER' || association === 'MEMBER'
+}
+
+export function parseReviewNoEvent (payload) {
+  if (!payload || typeof payload !== 'object') return null
+  const source = payload.source
+  if (source !== 'issue_comment' && source !== 'pull_request_review_comment') return null
+  const commentId = positiveInt(payload.comment_id)
+  if (commentId === null) return null
+  return {
+    source,
+    commentId,
+    apiPath: source === 'issue_comment'
+      ? `issues/comments/${commentId}`
+      : `pulls/comments/${commentId}`,
+  }
+}
+
+export function parseReviewLoopEvent (payload) {
+  if (!payload || typeof payload !== 'object') return null
+  const pr = positiveInt(payload.pr)
+  const reviewId = positiveInt(payload.review_id ?? payload.reviewId)
+  if (pr === null || reviewId === null) return null
+  return { pr, reviewId }
+}
+
+export function resolveReviewLoopPr (artifactPr, runPr) {
+  const run = positiveInt(runPr)
+  if (run === null) return null
+  const artifact = positiveInt(artifactPr)
+  if (artifact !== null && artifact !== run) return null
+  return run
+}
+
+export function reviewCommentPrNumber (comment, source) {
+  const url = source === 'issue_comment' ? comment?.issue_url : comment?.pull_request_url
+  if (typeof url !== 'string') return null
+  const match = url.match(/^https:\/\/api\.github\.com\/repos\/[^/]+\/[^/]+\/(?:issues|pulls)\/([1-9][0-9]{0,15})$/)
+  return match ? Number(match[1]) : null
+}
+
 export function memoryActionItem (reason) {
   let r = String(reason ?? '').replace(/\s+/g, ' ').trim()
   r = r.replace(/\/bad\b/gi, ' ').replace(/\/review-no\b/gi, ' ').replace(/\s+/g, ' ').trim()
@@ -398,6 +473,33 @@ function main (argv) {
       process.exit(found ? 0 : 1)
       break
     }
+    case 'review-no-event': {
+      const parsed = parseReviewNoEvent(readJsonArg(args[0]))
+      process.stdout.write(JSON.stringify(parsed ?? {}) + '\n')
+      process.exit(parsed ? 0 : 1)
+      break
+    }
+    case 'review-loop-event': {
+      const parsed = parseReviewLoopEvent(readJsonArg(args[0]))
+      process.stdout.write(JSON.stringify(parsed ?? {}) + '\n')
+      process.exit(parsed ? 0 : 1)
+      break
+    }
+    case 'review-loop-pr': {
+      const parsed = parseReviewLoopEvent(readJsonArg(args[0]))
+      const pr = parsed ? resolveReviewLoopPr(parsed.pr, args[1]) : null
+      process.stdout.write(JSON.stringify(pr ? { pr, reviewId: parsed.reviewId } : {}) + '\n')
+      process.exit(pr ? 0 : 1)
+      break
+    }
+    case 'review-comment-pr': {
+      const source = args[0]
+      const comment = readJsonArg(args[1])
+      const pr = reviewCommentPrNumber(comment, source)
+      process.stdout.write(JSON.stringify({ pr }) + '\n')
+      process.exit(pr ? 0 : 1)
+      break
+    }
     case 'memory-entry': {
       const reason = args[0] ?? ''
       const finding = args[1] ?? ''
@@ -429,6 +531,20 @@ function main (argv) {
       const issueCursor = args[2] ? parseMemoryCursor(readFileSync(args[2], 'utf8')) : 0
       const cursor = Math.max(parseMemoryCursor(existing), issueCursor)
       process.stdout.write(mergeMemorySkill(existing, unprocessedMemoryComments(comments, cursor)))
+      break
+    }
+    case 'bot-commits': {
+      const raw = readFileSync(args[0], 'utf8').trim()
+      let commits = []
+      if (raw.startsWith('[')) commits = JSON.parse(raw)
+      else if (raw !== '') commits = raw.split('\n').map((line) => JSON.parse(line))
+      process.stdout.write(String(countBotCommits(commits)) + '\n')
+      break
+    }
+    case 'has-bk-tag': {
+      const found = hasBkRepairTag(readFileSync(args[0], 'utf8'))
+      process.stdout.write(JSON.stringify({ bk: found }) + '\n')
+      process.exit(found ? 0 : 1)
       break
     }
     case 'has-stop': {
