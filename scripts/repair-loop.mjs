@@ -131,7 +131,7 @@ export function parseReviewNoEvent (payload) {
 export function parseReviewLoopEvent (payload) {
   if (!payload || typeof payload !== 'object') return null
   const pr = positiveInt(payload.pr)
-  const reviewId = positiveInt(payload.review_id)
+  const reviewId = positiveInt(payload.review_id ?? payload.reviewId)
   if (pr === null || reviewId === null) return null
   return { pr, reviewId }
 }

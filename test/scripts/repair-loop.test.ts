@@ -135,6 +135,7 @@ describe('review-no memory', () => {
     assert.equal(parseReviewNoEvent({ source: 'workflow_run', comment_id: 1 }), null)
     assert.equal(parseReviewNoEvent(null), null)
     assert.deepEqual(parseReviewLoopEvent({ pr: 644, review_id: '9' }), { pr: 644, reviewId: 9 })
+    assert.deepEqual(parseReviewLoopEvent({ pr: 644, reviewId: 9 }), { pr: 644, reviewId: 9 })
     assert.equal(parseReviewLoopEvent({ pr: 0, review_id: 1 }), null)
     assert.equal(parseReviewLoopEvent({ pr: '644/../1', review_id: 1 }), null)
     assert.equal(resolveReviewLoopPr(644, 644), 644)
@@ -528,8 +529,12 @@ describe('repair-loop CLI', () => {
       assert.equal(err.status, 1)
     }
     writeFileSync(event, JSON.stringify({ pr: 644, review_id: 3 }))
-    assert.deepEqual(JSON.parse(execFileSync(process.execPath, [script, 'review-loop-event', event], { encoding: 'utf8' })), { pr: 644, reviewId: 3 })
+    const parsedEventOut = execFileSync(process.execPath, [script, 'review-loop-event', event], { encoding: 'utf8' })
+    assert.deepEqual(JSON.parse(parsedEventOut), { pr: 644, reviewId: 3 })
     assert.deepEqual(JSON.parse(execFileSync(process.execPath, [script, 'review-loop-pr', event, '644'], { encoding: 'utf8' })), { pr: 644, reviewId: 3 })
+    const parsedPath = join(dir, 'parsed.json')
+    writeFileSync(parsedPath, parsedEventOut)
+    assert.deepEqual(JSON.parse(execFileSync(process.execPath, [script, 'review-loop-pr', parsedPath, '644'], { encoding: 'utf8' })), { pr: 644, reviewId: 3 })
     try {
       execFileSync(process.execPath, [script, 'review-loop-pr', event, '656'], { encoding: 'utf8' })
       assert.fail('expected exit 1')
