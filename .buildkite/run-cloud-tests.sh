@@ -42,4 +42,13 @@ echo "--- Generating Cloud functional tests"
 npm run codegen:functional:cloud
 
 echo "+++ Running Cloud functional tests"
-bash test/functional/cloud/generated/run.sh
+set +e
+bash test/functional/cloud/generated/run.sh | tee /tmp/cloud-ft.log
+code=${PIPESTATUS[0]}
+set -e
+# shellcheck source=./record-failure.sh
+. "$(dirname "$0")/record-failure.sh"
+if [ "$code" -ne 0 ]; then
+  record_functional_failure /tmp/cloud-ft.log
+fi
+exit "$code"

@@ -111,4 +111,13 @@ echo "--- Generating functional test scripts"
 npx tsx codegen/functional/es.ts --tests-dir elasticsearch-clients-tests/tests
 
 echo "+++ Running ES functional tests"
-npm run test:functional:es
+set +e
+npm run test:functional:es | tee /tmp/es-ft.log
+code=${PIPESTATUS[0]}
+set -e
+# shellcheck source=./record-failure.sh
+. "$(dirname "$0")/record-failure.sh"
+if [ "$code" -ne 0 ]; then
+  record_functional_failure /tmp/es-ft.log
+fi
+exit "$code"

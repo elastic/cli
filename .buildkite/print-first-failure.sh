@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Runs after functional jobs. Prints the first recorded failure.
+# Comments or commits only when GH_TOKEN is present and the PR allows it.
+
+set -euo pipefail
+
+echo "+++ First Buildkite failure"
+
+SUMMARY=""
+if command -v buildkite-agent >/dev/null && buildkite-agent meta-data exists first-failure 2>/dev/null; then
+  SUMMARY=$(buildkite-agent meta-data get first-failure)
+fi
+
+if [ -z "$SUMMARY" ]; then
+  echo "No first-failure metadata. Functional jobs were green, or they failed before recording a FAIL line."
+  exit 0
+fi
+
+printf '%s\n' "$SUMMARY"
+
+if [ -z "${GH_TOKEN:-}" ]; then
+  echo "GH_TOKEN unset. Printed only; no PR comment or commit from Buildkite."
+  exit 0
+fi
+
+PR="${BUILDKITE_PULL_REQUEST:-false}"
+if [ "$PR" = "false" ] || [ -z "$PR" ]; then
+  echo "Not a pull request build."
+  exit 0
+fi
+
+export GH_REPO="elastic/cli"
+
+gh api "repos/${GH_REPO}/issues/${PR}/comments" \
+  --jq '[.[].body // empty] | join("\n")' > /tmp/pr-comments.txt || true
+STOP_REPAIR=0
+if [ -f scripts/repair-loop.mjs ] && node scripts/repair-loop.mjs has-stop /tmp/pr-comments.txt; then
+  STOP_REPAIR=1
+fi
+
+LABELS=$(gh pr view "$PR" --json labels --jq '[.labels[].name] | join(",")' || true)
+SKIP_LOOP=0
+AUTO_LOOP=0
+case ",$LABELS," in *,skip-auto-loop,*) SKIP_LOOP=1 ;; esac
+case ",$LABELS," in *,auto-loop,*) AUTO_LOOP=1 ;; esac
+
+if [ "$STOP_REPAIR" = 1 ] && [ "$SKIP_LOOP" = 0 ]; then
+  gh pr edit "$PR" --add-label skip-auto-loop || true
+  gh pr comment "$PR" --body "Repair loop stopped (\`/stop-repair\`). Added \`skip-auto-loop\`."
+  echo "Stopped by /stop-repair"
+  exit 0
+fi
+
+COMMENT_TAG='<!-- bk-repair-loop -->'
+BODY=$(printf '%s\n' \
+  "$COMMENT_TAG" \
+  "First Buildkite failure: **${BUILDKITE_LABEL:-functional}**" \
+  "" \
+  "Build: ${BUILDKITE_BUILD_URL:-}" \
+  "" \
+  '```' \
+  "$SUMMARY" \
+  '```')
+EXISTING=$(gh api "repos/${GH_REPO}/issues/${PR}/comments" \
+  --jq "[.[]? | select(.user.login == \"github-actions[bot]\" or .user.login == \"elastic-vault-github-plugin-prod[bot]\") | select(.body | startswith(\"${COMMENT_TAG}\")) | .id][0] // empty" || true)
+if [ -n "$EXISTING" ]; then
+  gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" -f body="$BODY"
+else
+  gh pr comment "$PR" --body "$BODY"
+fi
+
+if [ "$SKIP_LOOP" = 1 ] || [ "$AUTO_LOOP" != 1 ]; then
+  echo "No auto-loop (label skip-auto-loop or missing auto-loop). Comment only."
+  exit 0
+fi
+
+echo "auto-loop is set, but Buildkite has no commit token in this pipeline yet. Comment only."
+exit 0
