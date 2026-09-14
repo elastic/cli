@@ -35,8 +35,8 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' "$COMMENT" > /tmp/comment.txt
-          if ! node scripts/repair-loop.mjs has-review-no /tmp/comment.txt; then
-            echo "No /review-no"
+          if ! node scripts/repair-loop.mjs has-bad /tmp/comment.txt; then
+            echo "No /bad"
             exit 0
           fi
           FINDING=""
@@ -52,7 +52,7 @@ jobs:
           fi
           if [ "$EVENT_NAME" = "issue_comment" ] && [ -n "$RID" ]; then
             gh api -X PUT "repos/${GH_REPO}/pulls/${PR}/reviews/${RID}/dismissals" \
-              -f message="Maintainer rejected this review (/review-no)" \
+              -f message="Maintainer rejected this review (/bad)" \
               -f event=DISMISS || true
           fi
           ENTRY=$(node scripts/repair-loop.mjs memory-entry "$COMMENT" "$FINDING")
@@ -72,4 +72,4 @@ jobs:
             MEM="${MEM##*/}"
           fi
           gh issue comment "$MEM" --body "$ENTRY"
-          gh pr comment "$PR" --body "Noted \`/review-no\`. Stored on #${MEM}. A standing PR folds it into \`.github/skills/ai-review-memory.md\`. Add \`skip-ai-review\` to silence the bot on this PR."
+          gh pr comment "$PR" --body "Noted \`/bad\`. Stored on #${MEM}. A standing PR folds it into \`.github/skills/ai-review-memory.md\`. Add \`skip-ai-review\` to silence the bot on this PR."

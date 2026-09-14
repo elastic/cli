@@ -65,13 +65,13 @@ export function isSafeWritePath (file) {
   return n !== null && !isGeneratedPath(n) && !isProtectedWritePath(n)
 }
 
-export function hasReviewNoCommand (text) {
-  return typeof text === 'string' && /(?:^|[\s])\/review-no(?:[\s]|$)/m.test(text)
+export function hasBadCommand (text) {
+  return typeof text === 'string' && /(?:^|[\s])\/bad(?:[\s]|$)/m.test(text)
 }
 
 export function memoryActionItem (reason) {
   let r = String(reason ?? '').replace(/\s+/g, ' ').trim()
-  r = r.replace(/\/review-no\b/gi, ' ').replace(/\s+/g, ' ').trim()
+  r = r.replace(/\/bad\b/gi, ' ').replace(/\/review-no\b/gi, ' ').replace(/\s+/g, ' ').trim()
   r = r.replace(/^\d{4}-\d{2}-\d{2}:\s*/, '')
   const pipe = r.indexOf(' | ')
   if (pipe !== -1) r = r.slice(0, pipe).trim()
@@ -353,9 +353,9 @@ function main (argv) {
       process.exit(job ? 0 : 2)
       break
     }
-    case 'has-review-no': {
-      const found = hasReviewNoCommand(readFileSync(args[0], 'utf8'))
-      process.stdout.write(JSON.stringify({ reviewNo: found }) + '\n')
+    case 'has-bad': {
+      const found = hasBadCommand(readFileSync(args[0], 'utf8'))
+      process.stdout.write(JSON.stringify({ bad: found }) + '\n')
       process.exit(found ? 0 : 1)
       break
     }

@@ -34,7 +34,24 @@ jobs:
           persist-credentials: false
 
       - name: Copy repair-loop script
-        run: cp scripts/repair-loop.mjs /tmp/repair-loop.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          HEAD_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+          SCRIPT_REF: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          if [ -f scripts/repair-loop.mjs ]; then
+            cp scripts/repair-loop.mjs /tmp/repair-loop.mjs
+            exit 0
+          fi
+          if [ "$HEAD_REPO" != "$GH_REPO" ]; then
+            echo "scripts/repair-loop.mjs missing on default branch; refusing fork fallback"
+            exit 0
+          fi
+          gh api "repos/${GH_REPO}/contents/scripts/repair-loop.mjs?ref=${SCRIPT_REF}" \
+            --jq '.content // empty' | tr -d '\n' | base64 -d > /tmp/repair-loop.mjs
+          test -s /tmp/repair-loop.mjs
 
       - name: Diagnose first failure
         id: diag
@@ -46,6 +63,12 @@ jobs:
           HEAD_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
         run: |
           set -euo pipefail
+          if [ ! -s /tmp/repair-loop.mjs ]; then
+            echo "repair-loop.mjs unavailable"
+            echo "pr=" >> "$GITHUB_OUTPUT"
+            echo "fix=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           gh api "repos/${GH_REPO}/actions/runs/${RUN_ID}/jobs" \
             --jq '{jobs: (.jobs // [])}' > /tmp/jobs.json
           if ! node /tmp/repair-loop.mjs first-failure /tmp/jobs.json > /tmp/job.json; then

@@ -51,6 +51,10 @@ jobs:
             | jq -s '.' > /tmp/comments.json
           gh api -X GET "repos/${GH_REPO}/issues/${MEM}" --jq '.body // empty' \
             > /tmp/issue-body.txt
+          if [ ! -f scripts/repair-loop.mjs ]; then
+            echo "scripts/repair-loop.mjs not on default branch yet"
+            exit 0
+          fi
           cp scripts/repair-loop.mjs /tmp/repair-loop.mjs
           git fetch origin ai/review-memory:ai/review-memory 2>/dev/null || true
           if git show-ref --verify --quiet refs/heads/ai/review-memory; then

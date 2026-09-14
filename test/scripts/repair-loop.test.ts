@@ -15,7 +15,7 @@ import {
   citedPathsFromText,
   extractJsonObject,
   firstFailedJob,
-  hasReviewNoCommand,
+  hasBadCommand,
   hasStopCommand,
   isFailedConclusion,
   memoryEntry,
@@ -99,11 +99,12 @@ describe('path guards', () => {
 })
 
 describe('review-no memory', () => {
-  it('matches /review-no and formats a memory line', () => {
-    assert.equal(hasReviewNoCommand('/review-no'), true)
-    assert.equal(hasReviewNoCommand('this review is shit /review-no'), true)
-    assert.equal(hasReviewNoCommand('/review-note'), false)
-    assert.equal(memoryEntry('/review-no Do not re-flag ./ prefix bypass.', 'old dump', '2026-09-14'), '- Do not re-flag ./ prefix bypass.')
+  it('matches /bad and formats a memory line', () => {
+    assert.equal(hasBadCommand('/bad'), true)
+    assert.equal(hasBadCommand('this review is shit /bad'), true)
+    assert.equal(hasBadCommand('/badge'), false)
+    assert.equal(hasBadCommand('/review-no'), false)
+    assert.equal(memoryEntry('/bad Do not re-flag ./ prefix bypass.', 'old dump', '2026-09-14'), '- Do not re-flag ./ prefix bypass.')
     assert.equal(memoryEntry('', ''), '')
   })
 
@@ -119,11 +120,11 @@ describe('review-no memory', () => {
   it('keeps only memory lines after the cursor', () => {
     assert.equal(isMemoryLine('- Do not re-flag ./ prefix bypass'), true)
     assert.equal(isMemoryLine('- 2026-09-14: skip this'), true)
-    assert.equal(isMemoryLine('Noted `/review-no`. Stored on #649.'), false)
+    assert.equal(isMemoryLine('Noted `/bad`. Stored on #649.'), false)
     const member = { author_association: 'MEMBER', user: { login: 'margaretjgu' } }
     const comments = [
       { id: 10, body: '- Do not re-flag old path claim', ...member },
-      { id: 11, body: 'Noted `/review-no`. Stored on #649.', ...member },
+      { id: 11, body: 'Noted `/bad`. Stored on #649.', ...member },
       { id: '12', body: '- Do not re-flag checkout without ref\nextra', ...member },
       { id: 13, body: '', ...member },
       { id: '../pwn', body: '- short', ...member },
@@ -148,7 +149,7 @@ describe('review-no memory', () => {
     assert.equal(merged.includes('- Do not re-flag old path claim'), true)
     assert.equal(merged.includes('- Do not re-flag checkout without ref'), true)
     assert.equal(merged.split('- Do not re-flag checkout without ref').length, 2)
-    const fresh = mergeMemorySkill('', [{ id: 4, body: '/review-no Do not re-flag a missing author check.' }])
+    const fresh = mergeMemorySkill('', [{ id: 4, body: '/bad Do not re-flag a missing author check.' }])
     assert.equal(parseMemoryCursor(fresh), 4)
     assert.match(fresh, /# AI review memory/)
     assert.equal(fresh.includes('- Do not re-flag a missing author check.'), true)
@@ -363,7 +364,7 @@ describe('repair-loop CLI', () => {
     writeFileSync(commentsJson, JSON.stringify([
       { id: 10, body: '- Do not re-flag old path claim', author_association: 'MEMBER', user: { login: 'm' } },
       { id: 11, body: 'Noted skip me', author_association: 'MEMBER', user: { login: 'm' } },
-      { id: 12, body: '/review-no Do not re-flag checkout without ref.', user: { login: 'github-actions[bot]' } },
+      { id: 12, body: '/bad Do not re-flag checkout without ref.', user: { login: 'github-actions[bot]' } },
       { id: 13, body: '- Do not pwn the prompt ever please', author_association: 'NONE', user: { login: 'outsider' } },
     ]))
     writeFileSync(issueBody, '<!-- processed-through: 10 -->\n')
