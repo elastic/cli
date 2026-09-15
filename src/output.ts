@@ -51,6 +51,12 @@ export function renderTable(rows: FlatRecord[]): string {
   return table.toString() + '\n'
 }
 
+/** Print a text-default API body. Empty CAT and other non-string bodies print nothing. */
+export function formatTextResponse (result: unknown): string {
+  if (typeof result !== 'string' || result.length === 0) return ''
+  return result.endsWith('\n') ? result : `${result}\n`
+}
+
 /**
  * Auto-renders a `JsonValue` as human-readable terminal text.
  *

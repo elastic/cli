@@ -5,7 +5,33 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { renderText, renderTable, formatHandlerError } from '../src/output.ts'
+import { renderText, renderTable, formatHandlerError, formatTextResponse } from '../src/output.ts'
+
+describe('formatTextResponse', () => {
+  it('prints nothing for an empty CAT body', () => {
+    assert.equal(formatTextResponse({}), '')
+    assert.equal(formatTextResponse([]), '')
+    assert.equal(formatTextResponse(''), '')
+    assert.equal(formatTextResponse(null), '')
+    assert.equal(formatTextResponse(undefined), '')
+  })
+
+  it('does not stringify objects to [object Object]', () => {
+    assert.equal(formatTextResponse({ health: 'green' }).includes('[object Object]'), false)
+    assert.equal(formatTextResponse({ health: 'green' }), '')
+  })
+
+  it('prints CAT text and adds a trailing newline when missing', () => {
+    assert.equal(formatTextResponse('green open my-index\n'), 'green open my-index\n')
+    assert.equal(formatTextResponse('green open my-index'), 'green open my-index\n')
+  })
+
+  it('does not treat adversarial strings as objects', () => {
+    assert.equal(formatTextResponse('../'), '../\n')
+    assert.equal(formatTextResponse('?#'), '?#\n')
+    assert.equal(formatTextResponse('[object Object]'), '[object Object]\n')
+  })
+})
 
 describe('renderTable', () => {
   it('returns empty string for an empty array', () => {
