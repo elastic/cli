@@ -116,4 +116,3 @@ if [ -z "$NUM" ] || [ "$NUM" = "null" ]; then
     --body "Updates \`.github/skills/ai-review-memory.md\` from \`/bad\`.")
   NUM="${CREATED##*/}"
 fi
-gh pr comment "$PR" --body "Noted \`/bad\`. Recorded on #${NUM}."
