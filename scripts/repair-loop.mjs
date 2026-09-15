@@ -239,6 +239,8 @@ export const MEMORY_CURSOR_RE = /<!-- processed-through:\s*(\d+)\s*-->/
 
 const MEMORY_SKILL_HEADER = `# AI review memory
 
+Shared store for rejected AI review findings. \`/bad\` (OWNER/MEMBER) updates this file on the standing \`ai/review-memory\` PR. Not an issue hop.
+
 Action items for the next AI review. Follow these. Do not repeat the rejected findings.
 `
 
