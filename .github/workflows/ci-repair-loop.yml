@@ -74,7 +74,14 @@ jobs:
           JOB_ID=$(jq -r '.id' /tmp/job.json)
           JOB_NAME=$(jq -r '.name // "unknown"' /tmp/job.json)
           JOB_URL=$(jq -r '.html_url // ""' /tmp/job.json)
-          gh api "repos/${GH_REPO}/actions/jobs/${JOB_ID}/logs" > /tmp/job.log || true
+          : > /tmp/job.log
+          # gh api drops logs that contain ANSI (##[group]). fetch keeps them.
+          for _ in 1 2 3; do
+            if node /tmp/repair-loop.mjs fetch-job-log "$JOB_ID" /tmp/job.log && [ -s /tmp/job.log ]; then
+              break
+            fi
+            sleep 2
+          done
           node /tmp/repair-loop.mjs cited-paths /tmp/job.log > /tmp/cited.json
           PR=$(gh api -H "Accept: application/vnd.github+json" \
             "repos/${GH_REPO}/commits/${HEAD_SHA}/pulls" \
@@ -102,6 +109,10 @@ jobs:
           FIX=0
           PIN_STOP=0
           if jq -e '.ok == true' /tmp/decision.json >/dev/null; then FIX=1; fi
+          if [ ! -s /tmp/job.log ]; then
+            echo "Job log empty"
+            FIX=0
+          fi
           if [ "$STOP_REPAIR" = 1 ] && [ "$SKIP_LOOP" = 0 ]; then PIN_STOP=1; fi
           {
             echo "pr=${PR}"

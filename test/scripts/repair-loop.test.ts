@@ -15,6 +15,8 @@ import {
   citedPathsFromText,
   extractJsonObject,
   firstFailedJob,
+  downloadJobLog,
+  jobLogUrl,
   appendMemorySkill,
   countBotCommits,
   hasBadCommand,
@@ -69,6 +71,43 @@ describe('firstFailedJob', () => {
     assert.equal(firstFailedJob({ jobs: [{ conclusion: 'success' }] }), null)
     assert.equal(firstFailedJob({ jobs: null }), null)
     assert.equal(firstFailedJob({ jobs: [{ id: 'bk', name: 'cloud', state: 'failed' }] })?.id, 'bk')
+  })
+})
+
+describe('downloadJobLog', () => {
+  it('keeps ANSI sequences that gh api would drop', async () => {
+    const dest = join(mkdtempSync(join(tmpdir(), 'repair-log-')), 'job.log')
+    const body = '##[group]Runner\n##[error]boom\n'
+    let captured
+    const ok = await downloadJobLog({
+      repo: 'elastic/cli',
+      jobId: '104536259888',
+      dest,
+      token: 't',
+      fetchImpl: async (url, init) => {
+        captured = { url, init }
+        return { ok: true, text: async () => body }
+      },
+    })
+    assert.equal(ok, true)
+    assert.equal(readFileSync(dest, 'utf8'), body)
+    assert.equal(captured.url, 'https://api.github.com/repos/elastic/cli/actions/jobs/104536259888/logs')
+    assert.equal(captured.init.redirect, 'follow')
+    assert.equal(captured.init.headers.Accept, 'application/vnd.github+json')
+  })
+
+  it('rejects a missing token, bad job id, or failed response', async () => {
+    const dest = join(mkdtempSync(join(tmpdir(), 'repair-log-')), 'job.log')
+    assert.equal(jobLogUrl('elastic/cli', '../1'), null)
+    assert.equal(jobLogUrl('elastic/cli', ''), null)
+    assert.equal(await downloadJobLog({ repo: 'elastic/cli', jobId: '1', dest, token: '' }), false)
+    assert.equal(await downloadJobLog({
+      repo: 'elastic/cli',
+      jobId: '1',
+      dest,
+      token: 't',
+      fetchImpl: async () => ({ ok: false, text: async () => 'nope' }),
+    }), false)
   })
 })
 

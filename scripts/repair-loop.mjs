@@ -29,6 +29,31 @@ export function firstFailedJob (payload) {
   return jobs.find((job) => job && (isFailedConclusion(job.conclusion) || job.state === 'failed')) ?? null
 }
 
+export function jobLogUrl (repo, jobId) {
+  if (typeof repo !== 'string' || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) return null
+  if (jobId == null || jobId === '') return null
+  const id = encodeURIComponent(String(jobId))
+  if (id !== String(jobId) || /[^0-9]/.test(String(jobId))) return null
+  return `https://api.github.com/repos/${repo}/actions/jobs/${id}/logs`
+}
+
+export async function downloadJobLog ({ repo, jobId, dest, token, fetchImpl = fetch }) {
+  const url = jobLogUrl(repo, jobId)
+  if (!url || typeof dest !== 'string' || dest === '' || typeof token !== 'string' || token === '') return false
+  const res = await fetchImpl(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+    redirect: 'follow',
+  })
+  if (!res || res.ok !== true) return false
+  const text = await res.text()
+  writeFileSync(dest, text)
+  return text.length > 0
+}
+
 export function hasStopCommand (text) {
   return typeof text === 'string' && /(?:^|[\s])\/stop(?:-repair)?(?:[\s]|$)/m.test(text)
 }
@@ -458,9 +483,19 @@ function readJsonArg (path) {
   return JSON.parse(readFileSync(path, 'utf8'))
 }
 
-function main (argv) {
+async function main (argv) {
   const [cmd, ...args] = argv
   switch (cmd) {
+    case 'fetch-job-log': {
+      const ok = await downloadJobLog({
+        repo: process.env.GH_REPO,
+        jobId: args[0],
+        dest: args[1],
+        token: process.env.GH_TOKEN,
+      })
+      process.exit(ok ? 0 : 1)
+      break
+    }
     case 'first-failure': {
       const job = firstFailedJob(readJsonArg(args[0]))
       process.stdout.write(JSON.stringify(job) + '\n')
@@ -598,5 +633,8 @@ function main (argv) {
 
 const entry = process.argv[1]
 if (entry != null && import.meta.url === pathToFileURL(resolve(entry)).href) {
-  main(process.argv.slice(2))
+  Promise.resolve(main(process.argv.slice(2))).catch((err) => {
+    process.stderr.write(String(err?.stack ?? err) + '\n')
+    process.exit(1)
+  })
 }
