@@ -29,15 +29,26 @@ jobs:
           EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
             --jq ".[] | select((.body // \"\") | startswith(\"${COMMENT_TAG}\")) | .id" \
             | head -n 1 || true)
-          if [ -n "$EXISTING" ]; then
-            echo "Welcome already posted"
-            exit 0
-          fi
           BODY=$(printf '%s\n' \
             "$COMMENT_TAG" \
-            "This repo has a first-failure repair loop on GitHub Actions CI and Buildkite." \
+            "👋 This PR can use the first-failure repair loop on GitHub Actions and Buildkite." \
             "" \
-            "Add the \`auto-loop\` label to let the bot patch the first same-repo failure (cap 2 bot commits). Comment \`/stop\` (OWNER/MEMBER) to halt and pin \`skip-auto-loop\`." \
+            "**Repair loop**" \
+            "- Add the \`auto-loop\` label and the bot will patch the first same-repo failure (up to 2 commits)" \
+            "- Comment \`/stop\` to halt and pin \`skip-auto-loop\`" \
             "" \
-            "Reply \`/bad\` on a bot review finding (OWNER/MEMBER, inline) to record it in \`.github/skills/ai-review-memory.md\`. Add \`skip-ai-review\` to silence the review bot.")
+            "**Review bot**" \
+            "- Reply \`/bad\` on a finding to record it in \`.github/skills/ai-review-memory.md\`" \
+            "- Add \`skip-ai-review\` to silence the review bot")
+          if [ -n "$EXISTING" ]; then
+            CURRENT=$(gh api "repos/${GH_REPO}/issues/comments/${EXISTING}" --jq '.body')
+            if [ "$CURRENT" = "$BODY" ]; then
+              echo "Welcome already posted"
+              exit 0
+            fi
+            jq -n --arg body "$BODY" '{body: $body}' \
+              | gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" --input -
+            echo "Welcome updated"
+            exit 0
+          fi
           gh pr comment "$PR" --body "$BODY"
