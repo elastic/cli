@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Runs after functional jobs. Prints the first recorded failure.
-# Comments or commits only when GH_TOKEN is present and the PR allows it.
+# The sticky PR comment is posted by .github/workflows/bk-repair-comment.yml
+# when GitHub sees buildkite/elastic-cli/pr fail. GH_TOKEN here is optional.
 
 set -euo pipefail
 
@@ -79,5 +80,5 @@ if [ "$SKIP_LOOP" = 1 ] || [ "$AUTO_LOOP" != 1 ]; then
   exit 0
 fi
 
-echo "auto-loop is set, but Buildkite has no commit token in this pipeline yet. Comment only."
+echo "Posted <!-- bk-repair-loop -->. GitHub Actions bk-repair-loop.yml applies the in-repo fix."
 exit 0

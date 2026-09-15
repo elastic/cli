@@ -15,9 +15,22 @@ import {
   citedPathsFromText,
   extractJsonObject,
   firstFailedJob,
+  downloadJobLog,
+  downloadBkFirstFailure,
+  parseBkBuildUrl,
+  jobLogUrl,
   appendMemorySkill,
+  countBotCommits,
   hasBadCommand,
+  hasBkRepairTag,
   hasStopCommand,
+  isRepairBotLogin,
+  isTrustedAssociation,
+  parseReviewLoopEvent,
+  parseReviewNoEvent,
+  resolveReviewLoopPr,
+  positiveInt,
+  reviewCommentPrNumber,
   pickSkillMemoryPr,
   isFailedConclusion,
   memoryEntry,
@@ -60,6 +73,103 @@ describe('firstFailedJob', () => {
     assert.equal(firstFailedJob({ jobs: [{ conclusion: 'success' }] }), null)
     assert.equal(firstFailedJob({ jobs: null }), null)
     assert.equal(firstFailedJob({ jobs: [{ id: 'bk', name: 'cloud', state: 'failed' }] })?.id, 'bk')
+  })
+})
+
+describe('downloadJobLog', () => {
+  it('keeps ANSI sequences that gh api would drop', async () => {
+    const dest = join(mkdtempSync(join(tmpdir(), 'repair-log-')), 'job.log')
+    const body = '##[group]Runner\n##[error]boom\n'
+    let captured
+    const ok = await downloadJobLog({
+      repo: 'elastic/cli',
+      jobId: '104536259888',
+      dest,
+      token: 't',
+      fetchImpl: async (url, init) => {
+        captured = { url, init }
+        return { ok: true, text: async () => body }
+      },
+    })
+    assert.equal(ok, true)
+    assert.equal(readFileSync(dest, 'utf8'), body)
+    assert.equal(captured.url, 'https://api.github.com/repos/elastic/cli/actions/jobs/104536259888/logs')
+    assert.equal(captured.init.redirect, 'follow')
+    assert.equal(captured.init.headers.Accept, 'application/vnd.github+json')
+  })
+
+  it('rejects a missing token, bad job id, or failed response', async () => {
+    const dest = join(mkdtempSync(join(tmpdir(), 'repair-log-')), 'job.log')
+    assert.equal(jobLogUrl('elastic/cli', '../1'), null)
+    assert.equal(jobLogUrl('elastic/cli', ''), null)
+    assert.equal(await downloadJobLog({ repo: 'elastic/cli', jobId: '1', dest, token: '' }), false)
+    assert.equal(await downloadJobLog({
+      repo: 'elastic/cli',
+      jobId: '1',
+      dest,
+      token: 't',
+      fetchImpl: async () => ({ ok: false, text: async () => 'nope' }),
+    }), false)
+  })
+})
+
+describe('downloadBkFirstFailure', () => {
+  it('parses elastic build urls and rejects others', () => {
+    assert.deepEqual(parseBkBuildUrl('https://buildkite.com/elastic/elastic-cli/builds/1298'), {
+      org: 'elastic',
+      pipeline: 'elastic-cli',
+      build: '1298',
+    })
+    assert.deepEqual(parseBkBuildUrl('https://buildkite.com/elastic/elastic-cli/builds/1298?foo=1'), {
+      org: 'elastic',
+      pipeline: 'elastic-cli',
+      build: '1298',
+    })
+    assert.equal(parseBkBuildUrl('https://evil.example/elastic/elastic-cli/builds/1298'), null)
+    assert.equal(parseBkBuildUrl('https://buildkite.com/elastic/elastic-cli/builds/../1'), null)
+  })
+
+  it('returns the first failed job log tail', async () => {
+    const calls = []
+    const result = await downloadBkFirstFailure({
+      token: 't',
+      org: 'elastic',
+      pipeline: 'elastic-cli',
+      build: '1298',
+      fetchImpl: async (url) => {
+        calls.push(url)
+        if (String(url).endsWith('/builds/1298')) {
+          return {
+            ok: true,
+            json: async () => ({
+              jobs: [
+                { id: 'ok', name: 'wait', state: 'passed', type: 'waiter' },
+                { id: 'fail-1', name: 'KB functional tests', state: 'failed', type: 'script' },
+              ],
+            }),
+          }
+        }
+        return {
+          ok: true,
+          json: async () => ({ content: 'ok\nFAIL: security_entity_analytics_api_schedule_monitoring_engine.sh\n' }),
+        }
+      },
+    })
+    assert.equal(result.jobName, 'KB functional tests')
+    assert.equal(result.summary, 'KB functional tests: FAIL')
+    assert.equal(result.log.includes('FAIL: security_entity_analytics_api_schedule_monitoring_engine.sh'), true)
+    assert.equal(calls[1].includes('/jobs/fail-1/log'), true)
+  })
+
+  it('returns null without a token or when the build request fails', async () => {
+    assert.equal(await downloadBkFirstFailure({ token: '', org: 'elastic', pipeline: 'elastic-cli', build: '1' }), null)
+    assert.equal(await downloadBkFirstFailure({
+      token: 't',
+      org: 'elastic',
+      pipeline: 'elastic-cli',
+      build: '1',
+      fetchImpl: async () => ({ ok: false, json: async () => ({}) }),
+    }), null)
   })
 })
 
@@ -109,6 +219,60 @@ describe('path guards', () => {
 })
 
 describe('review-no memory', () => {
+  it('parses dispatch artifacts and rejects junk ids', () => {
+    assert.deepEqual(
+      parseReviewNoEvent({ source: 'pull_request_review_comment', comment_id: 4008474124 }),
+      { source: 'pull_request_review_comment', commentId: 4008474124, apiPath: 'pulls/comments/4008474124' },
+    )
+    assert.deepEqual(
+      parseReviewNoEvent({ source: 'issue_comment', comment_id: '12' }),
+      { source: 'issue_comment', commentId: 12, apiPath: 'issues/comments/12' },
+    )
+    assert.equal(parseReviewNoEvent({ source: 'issue_comment', comment_id: 0 }), null)
+    assert.equal(parseReviewNoEvent({ source: 'issue_comment', comment_id: -1 }), null)
+    assert.equal(parseReviewNoEvent({ source: 'issue_comment', comment_id: '1e2' }), null)
+    assert.equal(parseReviewNoEvent({ source: 'issue_comment', comment_id: '08' }), null)
+    assert.equal(parseReviewNoEvent({ source: 'issue_comment', comment_id: '1/../2' }), null)
+    assert.equal(parseReviewNoEvent({ source: 'workflow_run', comment_id: 1 }), null)
+    assert.equal(parseReviewNoEvent(null), null)
+    assert.deepEqual(parseReviewLoopEvent({ pr: 644, review_id: '9' }), { pr: 644, reviewId: 9 })
+    assert.deepEqual(parseReviewLoopEvent({ pr: 644, reviewId: 9 }), { pr: 644, reviewId: 9 })
+    assert.equal(parseReviewLoopEvent({ pr: 0, review_id: 1 }), null)
+    assert.equal(parseReviewLoopEvent({ pr: '644/../1', review_id: 1 }), null)
+    assert.equal(resolveReviewLoopPr(644, 644), 644)
+    assert.equal(resolveReviewLoopPr('644', '644'), 644)
+    assert.equal(resolveReviewLoopPr(643, 656), null)
+    assert.equal(resolveReviewLoopPr(656, ''), null)
+    assert.equal(resolveReviewLoopPr(656, '0'), null)
+    assert.equal(resolveReviewLoopPr(656, '../656'), null)
+    assert.equal(resolveReviewLoopPr(null, 656), 656)
+    assert.equal(positiveInt(''), null)
+    assert.equal(positiveInt(1.5), null)
+    assert.equal(isTrustedAssociation('OWNER'), true)
+    assert.equal(isTrustedAssociation('MEMBER'), true)
+    assert.equal(isTrustedAssociation('COLLABORATOR'), false)
+    assert.equal(
+      reviewCommentPrNumber({ pull_request_url: 'https://api.github.com/repos/elastic/cli/pulls/644' }, 'pull_request_review_comment'),
+      644,
+    )
+    assert.equal(
+      reviewCommentPrNumber({ issue_url: 'https://api.github.com/repos/elastic/cli/issues/644' }, 'issue_comment'),
+      644,
+    )
+    assert.equal(
+      reviewCommentPrNumber({ issue_url: 'https://api.github.com/repos/elastic/cli/issues/644/comments' }, 'issue_comment'),
+      null,
+    )
+    assert.equal(
+      reviewCommentPrNumber({ pull_request_url: 'https://evil.example/pulls/644' }, 'pull_request_review_comment'),
+      null,
+    )
+    assert.equal(
+      reviewCommentPrNumber({ pull_request_url: 'https://api.github.com/repos/elastic/cli/pulls/0' }, 'pull_request_review_comment'),
+      null,
+    )
+  })
+
   it('matches /bad and formats a memory line', () => {
     assert.equal(hasBadCommand('/bad'), true)
     assert.equal(hasBadCommand('this review is shit /bad'), true)
@@ -241,6 +405,26 @@ describe('parseAgentResponse', () => {
 })
 
 describe('shouldAttemptFix', () => {
+  it('counts vault plugin bot commits toward the cap', () => {
+    assert.equal(isRepairBotLogin('github-actions[bot]'), true)
+    assert.equal(isRepairBotLogin('elastic-vault-github-plugin-prod[bot]'), true)
+    assert.equal(isRepairBotLogin('elastic-vault-github-plugin-prod'), true)
+    assert.equal(isRepairBotLogin('outsider'), false)
+    assert.equal(isRepairBotLogin(''), false)
+    assert.equal(isRepairBotLogin(null), false)
+    assert.equal(countBotCommits([
+      { author: { login: 'margaretjgu' } },
+      { author: { login: 'elastic-vault-github-plugin-prod[bot]' } },
+      { commit: { author: { name: 'github-actions[bot]' } } },
+      { author: { login: '../pwn' } },
+    ]), 2)
+    assert.equal(countBotCommits(null), 0)
+    assert.equal(hasBkRepairTag('<!-- bk-repair-loop -->\nFirst Buildkite failure'), true)
+    assert.equal(hasBkRepairTag('<!-- ci-repair-loop -->'), false)
+    assert.equal(hasBkRepairTag(''), false)
+    assert.equal(hasBkRepairTag(null), false)
+  })
+
   it('requires same-repo auto-loop under the bot cap', () => {
     assert.deepEqual(shouldAttemptFix({ sameRepo: true, autoLoop: true, botCommits: 0 }), { ok: true, reason: 'ok' })
     assert.equal(shouldAttemptFix({ sameRepo: false, autoLoop: true }).ok, false)
@@ -434,6 +618,41 @@ describe('repair-loop CLI', () => {
     } catch (err) {
       assert.equal(err.status, 1)
     }
+    const event = join(dir, 'event.json')
+    writeFileSync(event, JSON.stringify({ source: 'pull_request_review_comment', comment_id: 9 }))
+    const parsedEvent = JSON.parse(execFileSync(process.execPath, [script, 'review-no-event', event], { encoding: 'utf8' }))
+    assert.equal(parsedEvent.apiPath, 'pulls/comments/9')
+    writeFileSync(event, JSON.stringify({ source: 'issue_comment', comment_id: '../9' }))
+    try {
+      execFileSync(process.execPath, [script, 'review-no-event', event], { encoding: 'utf8' })
+      assert.fail('expected exit 1')
+    } catch (err) {
+      assert.equal(err.status, 1)
+    }
+    writeFileSync(event, JSON.stringify({ pr: 644, review_id: 3 }))
+    const parsedEventOut = execFileSync(process.execPath, [script, 'review-loop-event', event], { encoding: 'utf8' })
+    assert.deepEqual(JSON.parse(parsedEventOut), { pr: 644, reviewId: 3 })
+    assert.deepEqual(JSON.parse(execFileSync(process.execPath, [script, 'review-loop-pr', event, '644'], { encoding: 'utf8' })), { pr: 644, reviewId: 3 })
+    const parsedPath = join(dir, 'parsed.json')
+    writeFileSync(parsedPath, parsedEventOut)
+    assert.deepEqual(JSON.parse(execFileSync(process.execPath, [script, 'review-loop-pr', parsedPath, '644'], { encoding: 'utf8' })), { pr: 644, reviewId: 3 })
+    try {
+      execFileSync(process.execPath, [script, 'review-loop-pr', event, '656'], { encoding: 'utf8' })
+      assert.fail('expected exit 1')
+    } catch (err) {
+      assert.equal(err.status, 1)
+    }
+    const commits = join(dir, 'commits.ndjson')
+    writeFileSync(commits, [
+      JSON.stringify({ author: { login: 'elastic-vault-github-plugin-prod[bot]' } }),
+      JSON.stringify({ author: { login: 'human' } }),
+    ].join('\n'))
+    assert.equal(execFileSync(process.execPath, [script, 'bot-commits', commits], { encoding: 'utf8' }).trim(), '1')
+    writeFileSync(comments, '<!-- bk-repair-loop -->\nFAIL: x\n')
+    execFileSync(process.execPath, [script, 'has-bk-tag', comments], { encoding: 'utf8' })
+    const comment = join(dir, 'comment.json')
+    writeFileSync(comment, JSON.stringify({ pull_request_url: 'https://api.github.com/repos/elastic/cli/pulls/644' }))
+    assert.equal(JSON.parse(execFileSync(process.execPath, [script, 'review-comment-pr', 'pull_request_review_comment', comment], { encoding: 'utf8' })).pr, 644)
   })
 })
 
