@@ -13,7 +13,9 @@ concurrency:
 
 jobs:
   comment:
-    if: github.event.pull_request.draft != true
+    if: >-
+      github.event.pull_request.draft != true &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -34,7 +36,7 @@ jobs:
             "👋 This PR can use the first-failure repair loop on GitHub Actions and Buildkite." \
             "" \
             "**Repair loop**" \
-            "- Add the \`auto-loop\` label and the bot will patch the first same-repo failure (up to 2 commits)" \
+            "- Add the \`auto-loop\` label and the bot will patch the first same-repo failure" \
             "- Comment \`/stop\` to halt and pin \`skip-auto-loop\`" \
             "" \
             "**Review bot**" \
