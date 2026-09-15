@@ -35,13 +35,14 @@ jobs:
             "$COMMENT_TAG" \
             "👋 This PR can use the first-failure repair loop on GitHub Actions and Buildkite." \
             "" \
-            "**Repair loop**" \
-            "- Add the \`auto-loop\` label and the bot will patch the first same-repo failure" \
-            "- Comment \`/stop\` to halt and pin \`skip-auto-loop\`" \
+            "**Labels**" \
+            "- \`auto-loop\`: the bot patches the first same-repo failure" \
+            "- \`skip-ai-review\`: silences the review bot" \
+            "- \`skip-auto-loop\`: added when you comment \`/stop\`" \
             "" \
-            "**Review bot**" \
-            "- Reply \`/bad\` on a finding to record it in \`.github/skills/ai-review-memory.md\`" \
-            "- Add \`skip-ai-review\` to silence the review bot")
+            "**Comments**" \
+            "- \`/stop\`: halt the repair loop" \
+            "- \`/bad\` on a finding: records it in \`.github/skills/ai-review-memory.md\`")
           if [ -n "$EXISTING" ]; then
             CURRENT=$(gh api "repos/${GH_REPO}/issues/comments/${EXISTING}" --jq '.body')
             if [ "$CURRENT" = "$BODY" ]; then
