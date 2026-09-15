@@ -1,0 +1,43 @@
+name: Repair loop welcome
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, synchronize]
+
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: repair-loop-welcome-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  comment:
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post one-time welcome
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          COMMENT_TAG='<!-- repair-loop-welcome -->'
+          EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+            --jq ".[] | select((.body // \"\") | startswith(\"${COMMENT_TAG}\")) | .id" \
+            | head -n 1 || true)
+          if [ -n "$EXISTING" ]; then
+            echo "Welcome already posted"
+            exit 0
+          fi
+          BODY=$(printf '%s\n' \
+            "$COMMENT_TAG" \
+            "This repo has a first-failure repair loop on GitHub Actions CI and Buildkite." \
+            "" \
+            "Add the \`auto-loop\` label to let the bot patch the first same-repo failure (cap 2 bot commits). Comment \`/stop\` (OWNER/MEMBER) to halt and pin \`skip-auto-loop\`." \
+            "" \
+            "Reply \`/bad\` on a bot review finding (OWNER/MEMBER, inline) to record it in \`.github/skills/ai-review-memory.md\`. Add \`skip-ai-review\` to silence the review bot.")
+          gh pr comment "$PR" --body "$BODY"
