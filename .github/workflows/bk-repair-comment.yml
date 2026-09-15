@@ -1,0 +1,71 @@
+name: BK repair comment
+
+on:
+  status:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: bk-repair-comment-${{ github.event.sha }}
+  cancel-in-progress: true
+
+jobs:
+  comment:
+    if: >-
+      github.event.state == 'failure' &&
+      github.event.context == 'buildkite/elastic-cli/pr'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Post first-failure comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.sha }}
+          BUILD_URL: ${{ github.event.target_url }}
+          DESCRIPTION: ${{ github.event.description }}
+        run: |
+          set -euo pipefail
+          case "${BUILD_URL:-}" in
+            https://buildkite.com/elastic/elastic-cli/builds/*) ;;
+            "") ;;
+            *)
+              echo "Unexpected target_url"
+              exit 0
+              ;;
+          esac
+          PR=$(gh api -H "Accept: application/vnd.github+json" \
+            "repos/${GH_REPO}/commits/${HEAD_SHA}/pulls" \
+            --jq "[.[]? | select(.state == \"open\" and .head.sha == \"${HEAD_SHA}\") | .number][0] // empty")
+          if [ -z "$PR" ]; then
+            echo "No open PR for ${HEAD_SHA}"
+            exit 0
+          fi
+          CROSS=$(gh pr view "$PR" --json isCrossRepository --jq '.isCrossRepository')
+          if [ "$CROSS" = true ]; then
+            echo "Fork PR"
+            exit 0
+          fi
+          COMMENT_TAG='<!-- bk-repair-loop -->'
+          SUMMARY="${DESCRIPTION:-Buildkite failed}"
+          BODY=$(printf '%s\n' \
+            "$COMMENT_TAG" \
+            "First Buildkite failure: **functional**" \
+            "" \
+            "Build: ${BUILD_URL:-}" \
+            "" \
+            '```' \
+            "$SUMMARY" \
+            '```')
+          EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+            --jq ".[] | select((.user.login == \"github-actions[bot]\" or .user.login == \"elastic-vault-github-plugin-prod[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \
+            | head -n 1 || true)
+          if [ -n "$EXISTING" ]; then
+            gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" -f body="$BODY"
+          else
+            gh pr comment "$PR" --body "$BODY"
+          fi
