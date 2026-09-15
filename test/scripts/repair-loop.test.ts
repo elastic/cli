@@ -15,6 +15,10 @@ import {
   citedPathsFromText,
   extractJsonObject,
   firstFailedJob,
+  downloadJobLog,
+  downloadBkFirstFailure,
+  parseBkBuildUrl,
+  jobLogUrl,
   appendMemorySkill,
   countBotCommits,
   hasBadCommand,
@@ -69,6 +73,103 @@ describe('firstFailedJob', () => {
     assert.equal(firstFailedJob({ jobs: [{ conclusion: 'success' }] }), null)
     assert.equal(firstFailedJob({ jobs: null }), null)
     assert.equal(firstFailedJob({ jobs: [{ id: 'bk', name: 'cloud', state: 'failed' }] })?.id, 'bk')
+  })
+})
+
+describe('downloadJobLog', () => {
+  it('keeps ANSI sequences that gh api would drop', async () => {
+    const dest = join(mkdtempSync(join(tmpdir(), 'repair-log-')), 'job.log')
+    const body = '##[group]Runner\n##[error]boom\n'
+    let captured
+    const ok = await downloadJobLog({
+      repo: 'elastic/cli',
+      jobId: '104536259888',
+      dest,
+      token: 't',
+      fetchImpl: async (url, init) => {
+        captured = { url, init }
+        return { ok: true, text: async () => body }
+      },
+    })
+    assert.equal(ok, true)
+    assert.equal(readFileSync(dest, 'utf8'), body)
+    assert.equal(captured.url, 'https://api.github.com/repos/elastic/cli/actions/jobs/104536259888/logs')
+    assert.equal(captured.init.redirect, 'follow')
+    assert.equal(captured.init.headers.Accept, 'application/vnd.github+json')
+  })
+
+  it('rejects a missing token, bad job id, or failed response', async () => {
+    const dest = join(mkdtempSync(join(tmpdir(), 'repair-log-')), 'job.log')
+    assert.equal(jobLogUrl('elastic/cli', '../1'), null)
+    assert.equal(jobLogUrl('elastic/cli', ''), null)
+    assert.equal(await downloadJobLog({ repo: 'elastic/cli', jobId: '1', dest, token: '' }), false)
+    assert.equal(await downloadJobLog({
+      repo: 'elastic/cli',
+      jobId: '1',
+      dest,
+      token: 't',
+      fetchImpl: async () => ({ ok: false, text: async () => 'nope' }),
+    }), false)
+  })
+})
+
+describe('downloadBkFirstFailure', () => {
+  it('parses elastic build urls and rejects others', () => {
+    assert.deepEqual(parseBkBuildUrl('https://buildkite.com/elastic/elastic-cli/builds/1298'), {
+      org: 'elastic',
+      pipeline: 'elastic-cli',
+      build: '1298',
+    })
+    assert.deepEqual(parseBkBuildUrl('https://buildkite.com/elastic/elastic-cli/builds/1298?foo=1'), {
+      org: 'elastic',
+      pipeline: 'elastic-cli',
+      build: '1298',
+    })
+    assert.equal(parseBkBuildUrl('https://evil.example/elastic/elastic-cli/builds/1298'), null)
+    assert.equal(parseBkBuildUrl('https://buildkite.com/elastic/elastic-cli/builds/../1'), null)
+  })
+
+  it('returns the first failed job log tail', async () => {
+    const calls = []
+    const result = await downloadBkFirstFailure({
+      token: 't',
+      org: 'elastic',
+      pipeline: 'elastic-cli',
+      build: '1298',
+      fetchImpl: async (url) => {
+        calls.push(url)
+        if (String(url).endsWith('/builds/1298')) {
+          return {
+            ok: true,
+            json: async () => ({
+              jobs: [
+                { id: 'ok', name: 'wait', state: 'passed', type: 'waiter' },
+                { id: 'fail-1', name: 'KB functional tests', state: 'failed', type: 'script' },
+              ],
+            }),
+          }
+        }
+        return {
+          ok: true,
+          json: async () => ({ content: 'ok\nFAIL: security_entity_analytics_api_schedule_monitoring_engine.sh\n' }),
+        }
+      },
+    })
+    assert.equal(result.jobName, 'KB functional tests')
+    assert.equal(result.summary, 'KB functional tests: FAIL')
+    assert.equal(result.log.includes('FAIL: security_entity_analytics_api_schedule_monitoring_engine.sh'), true)
+    assert.equal(calls[1].includes('/jobs/fail-1/log'), true)
+  })
+
+  it('returns null without a token or when the build request fails', async () => {
+    assert.equal(await downloadBkFirstFailure({ token: '', org: 'elastic', pipeline: 'elastic-cli', build: '1' }), null)
+    assert.equal(await downloadBkFirstFailure({
+      token: 't',
+      org: 'elastic',
+      pipeline: 'elastic-cli',
+      build: '1',
+      fetchImpl: async () => ({ ok: false, json: async () => ({}) }),
+    }), null)
   })
 })
 
