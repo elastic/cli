@@ -73,10 +73,6 @@ jobs:
             if node /tmp/repair-loop.mjs fetch-bk-failure "$BUILD_URL" /tmp/bk-fail.json; then
               JOB_NAME=$(jq -r '.jobName // "functional"' /tmp/bk-fail.json)
               SUMMARY=$(jq -r '.summary // empty' /tmp/bk-fail.json)
-              LOG=$(jq -r '.log // empty' /tmp/bk-fail.json)
-              if [ -n "$LOG" ]; then
-                SUMMARY=$(printf '%s\n%s' "$SUMMARY" "$LOG")
-              fi
             fi
           fi
           BODY=$(printf '%s\n' \
