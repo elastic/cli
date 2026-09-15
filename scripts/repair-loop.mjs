@@ -61,6 +61,21 @@ export function parseBkBuildUrl (url) {
   return { org: m[1], pipeline: m[2], build: m[3] }
 }
 
+export function stripBkLog (text) {
+  if (typeof text !== 'string') return ''
+  return text
+    .replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
+    .replace(/\u001b_bk;t=\d+\u0007/g, '')
+    .replace(/_bk;t=\d+/g, '')
+    .replace(/\r/g, '')
+}
+
+export function extractBkFailureExcerpt (log, maxChars = 2000) {
+  const cap = Number.isInteger(maxChars) && maxChars > 0 ? maxChars : 2000
+  const lines = stripBkLog(log).split('\n').filter((line) => /^(?: {2})?(FAIL:|Results:)/.test(line))
+  return lines.slice(0, 20).join('\n').trim().slice(0, cap)
+}
+
 export async function downloadBkFirstFailure ({ token, org, pipeline, build, fetchImpl = fetch, maxChars = 8000 }) {
   if (typeof token !== 'string' || token === '') return null
   if (typeof org !== 'string' || typeof pipeline !== 'string' || typeof build !== 'string') return null
@@ -89,11 +104,12 @@ export async function downloadBkFirstFailure ({ token, org, pipeline, build, fet
     const body = await logRes.json()
     if (typeof body?.content === 'string') log = body.content
   }
-  const tail = log.split('\n').slice(-80).join('\n').slice(-maxChars)
+  const excerpt = extractBkFailureExcerpt(log, maxChars)
+  const jobName = typeof job.name === 'string' && job.name !== '' ? job.name : 'functional'
   return {
-    jobName: typeof job.name === 'string' && job.name !== '' ? job.name : 'functional',
-    summary: `${job.name ?? pipeline}: FAIL`,
-    log: tail,
+    jobName,
+    summary: excerpt || `${jobName}: FAIL`,
+    log: excerpt,
   }
 }
 
