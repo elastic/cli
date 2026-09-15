@@ -42,7 +42,8 @@ jobs:
             "" \
             "**Comments**" \
             "- \`/stop\`: halt the repair loop" \
-            "- \`/bad\` on a finding: records it in \`.github/skills/ai-review-memory.md\`")
+            "- \`/bad\` on a finding: records it in \`.github/skills/ai-review-memory.md\`. A reason after \`/bad\` is optional and becomes the memory line." \
+            "  - Example: \`/bad already fixed. The job if requires a same-repo head.\`")
           if [ -n "$EXISTING" ]; then
             CURRENT=$(gh api "repos/${GH_REPO}/issues/comments/${EXISTING}" --jq '.body')
             if [ "$CURRENT" = "$BODY" ]; then
