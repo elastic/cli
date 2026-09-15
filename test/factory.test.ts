@@ -19,6 +19,7 @@ import { defineGroup, isCommandAllowed, hideBlockedCommands, configureJsonHelp }
 import { defineCommand, _testSetStdinReader } from '../src/factory.ts'
 import { setResolvedConfig, _testResetConfig } from '../src/config/store.ts'
 import { YamlResponse } from '../src/lib/yaml-response.ts'
+import { formatTextResponse } from '../src/output.ts'
 import { Command } from 'commander'
 
 /** Build a JSON Schema for test use. */
@@ -2284,6 +2285,18 @@ describe('text output rendering', () => {
       })
       const out = await invokeText(cmd)
       assert.equal(out, 'custom output line\n')
+    })
+
+    it('empty CAT body does not print [object Object]', async () => {
+      const cmd = defineCommand({
+        name: 'cat-indices',
+        description: 'CAT indices',
+        handler: () => ({}),
+        formatOutput: formatTextResponse,
+      })
+      const out = await invokeText(cmd)
+      assert.equal(out.includes('[object Object]'), false)
+      assert.equal(out, '')
     })
 
     it('is NOT called when --json is provided', async () => {
