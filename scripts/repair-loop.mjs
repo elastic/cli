@@ -234,10 +234,45 @@ export function memoryEntry (reason, _finding, _day) {
   return memoryActionItem(reason)
 }
 
+export function memoryRetrospectPrompt (finding, reason) {
+  const note = memoryActionItem(reason).replace(/^- /, '')
+  const rejected = String(finding ?? '').replace(/\s+/g, ' ').trim().slice(0, 2000)
+  return [
+    'Write one action item for the next AI code review.',
+    'The maintainer rejected a bot finding with /bad.',
+    'Turn the finding and the maintainer note into one line the next review must follow.',
+    'Format: Do not re-flag <what was wrong>. <why it is wrong>.',
+    'Do not copy the maintainer note verbatim unless it is already in that form.',
+    'One line only. No markdown fences. No quotes. No /bad.',
+    '',
+    'REJECTED FINDING:',
+    rejected || '(none)',
+    '',
+    'MAINTAINER NOTE:',
+    note || '(none)',
+  ].join('\n')
+}
+
+export function memoryLineFromModel (text) {
+  let t = String(text ?? '').trim()
+  t = t.replace(/^```(?:\w+)?\s*/, '').replace(/\s*```$/, '').trim()
+  t = (t.split(/\r?\n/)[0] ?? '').trim()
+  t = t.replace(/^["'`]+|["'`]+$/g, '').trim()
+  let item = memoryActionItem(t)
+  if (!item) return ''
+  const body = item.slice(2)
+  if (!/^do not re-flag\b/i.test(body)) {
+    item = memoryActionItem(`Do not re-flag ${body}`)
+  }
+  return item
+}
+
 export const MEMORY_SKILL_PATH = '.github/skills/ai-review-memory.md'
 export const MEMORY_CURSOR_RE = /<!-- processed-through:\s*(\d+)\s*-->/
 
 const MEMORY_SKILL_HEADER = `# AI review memory
+
+Shared store for rejected AI review findings. \`/bad\` (OWNER/MEMBER) updates this file on the standing \`ai/review-memory\` PR. A model writes one "Do not re-flag" line from the finding and the maintainer note. Not an issue hop.
 
 Action items for the next AI review. Follow these. Do not repeat the rejected findings.
 `
@@ -595,6 +630,16 @@ async function main (argv) {
       const finding = args[1] ?? ''
       const day = args[2] ?? new Date().toISOString().slice(0, 10)
       process.stdout.write(memoryEntry(reason, finding, day) + '\n')
+      break
+    }
+    case 'memory-prompt': {
+      const reason = readFileSync(args[0], 'utf8')
+      const finding = readFileSync(args[1], 'utf8')
+      process.stdout.write(memoryRetrospectPrompt(finding, reason))
+      break
+    }
+    case 'memory-from-model': {
+      process.stdout.write(memoryLineFromModel(readFileSync(args[0], 'utf8')) + '\n')
       break
     }
     case 'memory-cursor': {

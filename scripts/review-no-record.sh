@@ -70,7 +70,36 @@ if [ -n "$RID" ]; then
     -f message="Maintainer rejected this review (/bad)" \
     -f event=DISMISS || true
 fi
-ENTRY=$(node /tmp/repair-loop.mjs memory-entry "$COMMENT" "$FINDING")
+printf '%s' "$COMMENT" > /tmp/bad-reason.txt
+printf '%s' "$FINDING" > /tmp/bad-finding.txt
+ENTRY=""
+if [ -n "${OPENROUTER_API_KEY:-}" ]; then
+  BASE_URL="${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
+  case "$BASE_URL" in
+    https://*)
+      node /tmp/repair-loop.mjs memory-prompt /tmp/bad-reason.txt /tmp/bad-finding.txt \
+        > /tmp/memory-prompt.txt
+      curl -s -o /tmp/memory-response.json \
+        -H "Authorization: Bearer ${OPENROUTER_API_KEY}" \
+        -H "Content-Type: application/json" \
+        "${BASE_URL%/}/chat/completions" \
+        -d "$(jq -n --rawfile prompt /tmp/memory-prompt.txt '{
+          model: "anthropic/claude-sonnet-4.6",
+          max_tokens: 256,
+          messages: [{role: "user", content: $prompt}]
+        }')"
+      jq -r '.choices[0].message.content // empty' /tmp/memory-response.json \
+        > /tmp/memory-model.txt
+      ENTRY=$(node /tmp/repair-loop.mjs memory-from-model /tmp/memory-model.txt)
+      ;;
+    *)
+      echo "OPENROUTER_BASE_URL must be https://, refusing to send the API key to it"
+      ;;
+  esac
+fi
+if [ -z "$ENTRY" ]; then
+  ENTRY=$(node /tmp/repair-loop.mjs memory-entry "$COMMENT" "$FINDING")
+fi
 if [ -z "$ENTRY" ]; then
   echo "Empty memory entry"
   exit 0
@@ -116,4 +145,3 @@ if [ -z "$NUM" ] || [ "$NUM" = "null" ]; then
     --body "Updates \`.github/skills/ai-review-memory.md\` from \`/bad\`.")
   NUM="${CREATED##*/}"
 fi
-gh pr comment "$PR" --body "Noted \`/bad\`. Recorded on #${NUM}."

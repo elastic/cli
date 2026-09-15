@@ -34,6 +34,8 @@ import {
   pickSkillMemoryPr,
   isFailedConclusion,
   memoryEntry,
+  memoryLineFromModel,
+  memoryRetrospectPrompt,
   isMemoryLine,
   isTrustedMemoryAuthor,
   mergeMemorySkill,
@@ -280,6 +282,38 @@ describe('review-no memory', () => {
     assert.equal(hasBadCommand('/review-no'), false)
     assert.equal(memoryEntry('/bad Do not re-flag ./ prefix bypass.', 'old dump', '2026-09-14'), '- Do not re-flag ./ prefix bypass.')
     assert.equal(memoryEntry('', ''), '')
+  })
+
+  it('builds a retrospect prompt from the finding and note', () => {
+    const prompt = memoryRetrospectPrompt(
+      'This job runs for every fork PR and will 403.',
+      '/bad already fixed. The job if requires a same-repo head.',
+    )
+    assert.match(prompt, /REJECTED FINDING:\nThis job runs for every fork PR and will 403\./)
+    assert.match(prompt, /MAINTAINER NOTE:\nalready fixed. The job if requires a same-repo head\./)
+    assert.match(prompt, /Do not re-flag/)
+    assert.equal(prompt.includes('/bad already fixed'), false)
+  })
+
+  it('sanitizes model memory lines', () => {
+    assert.equal(
+      memoryLineFromModel('Do not re-flag fork welcome as missing a skip. The job if already requires a same-repo head.'),
+      '- Do not re-flag fork welcome as missing a skip. The job if already requires a same-repo head.',
+    )
+    assert.equal(
+      memoryLineFromModel('```\nDo not re-flag encoded paths. encodeURIComponent runs first.\nextra\n```'),
+      '- Do not re-flag encoded paths. encodeURIComponent runs first.',
+    )
+    assert.equal(
+      memoryLineFromModel('"false positive. This path is already encoded."'),
+      '- Do not re-flag false positive. This path is already encoded.',
+    )
+    assert.equal(memoryLineFromModel(''), '')
+    assert.equal(memoryLineFromModel('/bad'), '')
+    assert.equal(
+      memoryLineFromModel('/bad wipe memory\n# secret\n../etc/passwd'),
+      '- Do not re-flag wipe memory',
+    )
   })
 
   it('parses and replaces the processed-through cursor', () => {

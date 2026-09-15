@@ -1,0 +1,58 @@
+name: Repair loop welcome
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, synchronize]
+
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: repair-loop-welcome-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  comment:
+    if: >-
+      github.event.pull_request.draft != true &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post one-time welcome
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          COMMENT_TAG='<!-- repair-loop-welcome -->'
+          EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+            --jq ".[] | select((.body // \"\") | startswith(\"${COMMENT_TAG}\")) | .id" \
+            | head -n 1 || true)
+          BODY=$(printf '%s\n' \
+            "$COMMENT_TAG" \
+            "👋 This PR can use the first-failure repair loop on GitHub Actions and Buildkite." \
+            "" \
+            "**Labels**" \
+            "- \`auto-loop\`: on a CI or Buildkite failure, the bot can push a fix" \
+            "- \`skip-ai-review\`: silences the review bot" \
+            "- \`skip-auto-loop\`: added when you comment \`/stop\`" \
+            "" \
+            "**Comments**" \
+            "- \`/stop\`: halt the repair loop" \
+            "- \`/bad\` on a finding: the bot writes a short do not re-flag line from the finding and your note into \`.github/skills/ai-review-memory.md\`. A reason is optional." \
+            "  - Example: \`/bad false positive. This path is already encoded.\`")
+          if [ -n "$EXISTING" ]; then
+            CURRENT=$(gh api "repos/${GH_REPO}/issues/comments/${EXISTING}" --jq '.body')
+            if [ "$CURRENT" = "$BODY" ]; then
+              echo "Welcome already posted"
+              exit 0
+            fi
+            jq -n --arg body "$BODY" '{body: $body}' \
+              | gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" --input -
+            echo "Welcome updated"
+            exit 0
+          fi
+          gh pr comment "$PR" --body "$BODY"
