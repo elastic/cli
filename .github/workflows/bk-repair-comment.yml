@@ -21,6 +21,21 @@ jobs:
       contents: read
       pull-requests: write
     steps:
+      - name: Checkout default branch tools
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Copy repair-loop script
+        run: |
+          set -euo pipefail
+          if [ -f scripts/repair-loop.mjs ]; then
+            cp scripts/repair-loop.mjs /tmp/repair-loop.mjs
+            exit 0
+          fi
+          echo "scripts/repair-loop.mjs missing on default branch"
+
       - name: Post first-failure comment
         env:
           GH_TOKEN: ${{ github.token }}
@@ -28,6 +43,7 @@ jobs:
           HEAD_SHA: ${{ github.event.sha }}
           BUILD_URL: ${{ github.event.target_url }}
           DESCRIPTION: ${{ github.event.description }}
+          BUILDKITE_API_TOKEN: ${{ secrets.BUILDKITE_API_TOKEN }}
         run: |
           set -euo pipefail
           case "${BUILD_URL:-}" in
@@ -51,10 +67,21 @@ jobs:
             exit 0
           fi
           COMMENT_TAG='<!-- bk-repair-loop -->'
+          JOB_NAME='functional'
           SUMMARY="${DESCRIPTION:-Buildkite failed}"
+          if [ -s /tmp/repair-loop.mjs ] && [ -n "${BUILDKITE_API_TOKEN:-}" ]; then
+            if node /tmp/repair-loop.mjs fetch-bk-failure "$BUILD_URL" /tmp/bk-fail.json; then
+              JOB_NAME=$(jq -r '.jobName // "functional"' /tmp/bk-fail.json)
+              SUMMARY=$(jq -r '.summary // empty' /tmp/bk-fail.json)
+              LOG=$(jq -r '.log // empty' /tmp/bk-fail.json)
+              if [ -n "$LOG" ]; then
+                SUMMARY=$(printf '%s\n%s' "$SUMMARY" "$LOG")
+              fi
+            fi
+          fi
           BODY=$(printf '%s\n' \
             "$COMMENT_TAG" \
-            "First Buildkite failure: **functional**" \
+            "First Buildkite failure: **${JOB_NAME}**" \
             "" \
             "Build: ${BUILD_URL:-}" \
             "" \

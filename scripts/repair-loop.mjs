@@ -54,6 +54,49 @@ export async function downloadJobLog ({ repo, jobId, dest, token, fetchImpl = fe
   return text.length > 0
 }
 
+export function parseBkBuildUrl (url) {
+  if (typeof url !== 'string') return null
+  const m = url.match(/^https:\/\/buildkite\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)\/builds\/(\d+)(?:[/?#]|$)/)
+  if (!m) return null
+  return { org: m[1], pipeline: m[2], build: m[3] }
+}
+
+export async function downloadBkFirstFailure ({ token, org, pipeline, build, fetchImpl = fetch, maxChars = 8000 }) {
+  if (typeof token !== 'string' || token === '') return null
+  if (typeof org !== 'string' || typeof pipeline !== 'string' || typeof build !== 'string') return null
+  if (!/^[A-Za-z0-9_.-]+$/.test(org) || !/^[A-Za-z0-9_.-]+$/.test(pipeline) || !/^\d+$/.test(build)) return null
+  const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json' }
+  const buildRes = await fetchImpl(
+    `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}`,
+    { headers, redirect: 'follow' },
+  )
+  if (!buildRes || buildRes.ok !== true) return null
+  const data = await buildRes.json()
+  const job = firstFailedJob({ jobs: data?.jobs })
+  if (!job?.id) {
+    return {
+      jobName: 'functional',
+      summary: `${pipeline} #${build} failed`,
+      log: '',
+    }
+  }
+  let log = ''
+  const logRes = await fetchImpl(
+    `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}/jobs/${encodeURIComponent(String(job.id))}/log`,
+    { headers, redirect: 'follow' },
+  )
+  if (logRes && logRes.ok === true) {
+    const body = await logRes.json()
+    if (typeof body?.content === 'string') log = body.content
+  }
+  const tail = log.split('\n').slice(-80).join('\n').slice(-maxChars)
+  return {
+    jobName: typeof job.name === 'string' && job.name !== '' ? job.name : 'functional',
+    summary: `${job.name ?? pipeline}: FAIL`,
+    log: tail,
+  }
+}
+
 export function hasStopCommand (text) {
   return typeof text === 'string' && /(?:^|[\s])\/stop(?:-repair)?(?:[\s]|$)/m.test(text)
 }
@@ -494,6 +537,18 @@ async function main (argv) {
         token: process.env.GH_TOKEN,
       })
       process.exit(ok ? 0 : 1)
+      break
+    }
+    case 'fetch-bk-failure': {
+      const parsed = parseBkBuildUrl(args[0])
+      const result = parsed
+        ? await downloadBkFirstFailure({
+          ...parsed,
+          token: process.env.BUILDKITE_API_TOKEN,
+        })
+        : null
+      writeFileSync(args[1], JSON.stringify(result ?? {}))
+      process.exit(result ? 0 : 1)
       break
     }
     case 'first-failure': {
