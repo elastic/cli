@@ -5,7 +5,7 @@
 
 import { describe, it, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { clientHeaders, toMetaVersion } from '../../src/lib/meta.ts'
+import { clientHeaders, toMetaVersion, agentMetaSegment, llmUserAgentSegment, _testResetDetection } from '../../src/lib/meta.ts'
 import os from 'node:os'
 import { createRequire } from 'node:module'
 import { setResolvedConfig, _testResetConfig } from '../../src/config/store.ts'
@@ -83,9 +83,15 @@ describe('clientHeaders', () => {
       assert.equal(tValue, etValue)
     })
 
-    it('has exactly 3 key-value pairs (et, js, t)', () => {
+    it('has et, js, t as the first three pairs (optional trailing ag= agent pair)', () => {
       const parts = headers['x-elastic-client-meta'].split(',')
-      assert.equal(parts.length, 3)
+      // et, js, t are always present; an `ag=<code>` pair is appended only when a
+      // spawning agent harness is detected, so the length is 3 or 4.
+      assert.ok(parts.length === 3 || parts.length === 4, `unexpected pair count: ${parts.length}`)
+      assert.match(parts[0]!, /^et=/)
+      assert.match(parts[1]!, /^js=/)
+      assert.match(parts[2]!, /^t=/)
+      if (parts.length === 4) assert.match(parts[3]!, /^ag=[a-z]{1,3}$/)
     })
 
     it('uses comma-separated key=value pairs with no spaces', () => {
@@ -96,11 +102,13 @@ describe('clientHeaders', () => {
       }
     })
 
-    it('all version values match the spec regex', () => {
+    it('all version values (et, js, t) match the spec regex', () => {
       const specRegex = /^[0-9]{1,2}\.[0-9]{1,2}(?:\.[0-9]{1,3})?p?$/
       const parts = headers['x-elastic-client-meta'].split(',')
+      // Only the version keys carry version values; the agent key (ag=) does not.
       for (const part of parts) {
-        const value = part.split('=')[1]!
+        const [key, value] = part.split('=') as [string, string]
+        if (key === 'ag') continue
         assert.match(value, specRegex, `value "${value}" in "${part}" does not match spec regex`)
       }
     })
@@ -152,5 +160,105 @@ describe('clientHeaders telemetry toggle', () => {
     process.env.ELASTIC_CLI_TELEMETRY = 'true'
     setResolvedConfig({ context: {}, telemetry: false } as ResolvedConfig)
     assert.ok('x-elastic-client-meta' in clientHeaders())
+  })
+})
+
+describe('clientHeaders detection gating', () => {
+  // All env vars consumed by detectAgent() in @elastic/agent-env — must stay in sync with that package.
+  const AGENT_VARS = [
+    'AI_AGENT', 'AGENT',
+    'CLAUDE_CODE_IS_COWORK', 'CLAUDECODE', 'CLAUDE_CODE',
+    'CURSOR_AGENT', 'CURSOR_TRACE_ID',
+    'CODEX_SANDBOX', 'CODEX_CI', 'CODEX_THREAD_ID',
+    'GEMINI_CLI',
+    'COPILOT_MODEL', 'COPILOT_ALLOW_ALL', 'COPILOT_GITHUB_TOKEN',
+    'ANTIGRAVITY_AGENT', 'AUGMENT_AGENT', 'CLINE_ACTIVE',
+    'CRUSH', 'GOOSE_TERMINAL', 'HERMES_SESSION_ID',
+    'KILOCODE_FEATURE', 'AGENT_CONTEXT_OUT', 'OPENCLAW_SHELL',
+    'OPENCODE_CLIENT', 'PI_CODING_AGENT', 'REPL_ID',
+    'TRAE_AI_SHELL_ID', 'VTCODE', 'ZED_TERM', 'TERM_PROGRAM',
+    'PI_MODEL', 'PI_PROVIDER', 'ANTHROPIC_MODEL',
+  ]
+  const snapshot = new Map(AGENT_VARS.map((k) => [k, process.env[k]]))
+  const ORIGINAL_TELEMETRY = process.env.ELASTIC_CLI_TELEMETRY
+
+  function clearAgentVars(): void {
+    for (const k of AGENT_VARS) delete process.env[k]
+  }
+
+  afterEach(() => {
+    clearAgentVars()
+    for (const [k, v] of snapshot) if (v !== undefined) process.env[k] = v
+    if (ORIGINAL_TELEMETRY === undefined) delete process.env.ELASTIC_CLI_TELEMETRY
+    else process.env.ELASTIC_CLI_TELEMETRY = ORIGINAL_TELEMETRY
+    _testResetConfig()
+    _testResetDetection()
+  })
+
+  it('omits agent/LLM details from the user-agent when telemetry is disabled', () => {
+    _testResetDetection()
+    clearAgentVars()
+    process.env.PI_CODING_AGENT = 'true'
+    process.env.PI_MODEL = 'anthropic/model-x'
+    process.env.ELASTIC_CLI_TELEMETRY = 'false'
+    const headers = clientHeaders()
+    assert.ok(!('x-elastic-client-meta' in headers))
+    assert.ok(!headers['user-agent'].includes('model-x'))
+  })
+
+  it('does not call detectAgent while telemetry is disabled (no stale detection cached)', () => {
+    // Disabled first with model-a in env. If detection ran here it would cache model-a.
+    _testResetDetection()
+    clearAgentVars()
+    process.env.PI_CODING_AGENT = 'true'
+    process.env.PI_MODEL = 'anthropic/model-a'
+    process.env.ELASTIC_CLI_TELEMETRY = 'false'
+    clientHeaders()
+    // Enable with model-b; a fresh detection must pick up model-b, proving the
+    // disabled call never invoked detectAgent (no stale model-a memoized).
+    process.env.PI_MODEL = 'anthropic/model-b'
+    process.env.ELASTIC_CLI_TELEMETRY = 'true'
+    _testResetConfig()
+    assert.match(clientHeaders()['user-agent'], /; anthropic\/model-b\)$/)
+  })
+
+  it('appends the LLM segment and ag= meta when telemetry is enabled', () => {
+    _testResetDetection()
+    clearAgentVars()
+    process.env.PI_CODING_AGENT = 'true'
+    process.env.PI_MODEL = 'anthropic/model-c'
+    process.env.ELASTIC_CLI_TELEMETRY = 'true'
+    _testResetConfig()
+    const headers = clientHeaders()
+    assert.match(headers['user-agent'], /; anthropic\/model-c\)$/)
+    assert.match(headers['x-elastic-client-meta']!, /,ag=pi$/)
+  })
+})
+
+describe('agentMetaSegment', () => {
+  it('returns empty when no agent is detected', () => {
+    assert.equal(agentMetaSegment({}), '')
+  })
+
+  it('returns ,ag=<code> for a detected known agent', () => {
+    assert.equal(agentMetaSegment({ CLAUDECODE: '1' }), ',ag=cc')
+  })
+
+  it('returns empty for a detected agent that has no short code', () => {
+    assert.equal(agentMetaSegment({ AI_AGENT: 'devin' }), '')
+  })
+})
+
+describe('llmUserAgentSegment', () => {
+  it('returns empty when no LLM is detected', () => {
+    assert.equal(llmUserAgentSegment({}), '')
+  })
+
+  it('returns vendor/model when vendor prefix is present', () => {
+    assert.equal(llmUserAgentSegment({ PI_CODING_AGENT: 'true', PI_MODEL: 'anthropic/claude-sonnet-4-5' }), 'anthropic/claude-sonnet-4-5')
+  })
+
+  it('returns just model when no vendor is available', () => {
+    assert.equal(llmUserAgentSegment({ PI_CODING_AGENT: 'true', PI_MODEL: 'some-custom-model' }), 'some-custom-model')
   })
 })

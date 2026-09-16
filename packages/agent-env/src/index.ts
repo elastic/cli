@@ -82,7 +82,6 @@ export const AGENT_SHORT_CODES: Record<KnownAgent, string> = {
   warp: 'wp',
 }
 
-
 /**
  * Ordered marker table. Order encodes detection priority for tie-breaking:
  * more specific signals precede generic ones (`cowork` before `claude-code`,

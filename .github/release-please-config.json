@@ -16,6 +16,11 @@
         "component": "config-resolver",
         "release-type": "node",
         "exclude-paths": ["src", "test", "codegen", "scripts", "docs", ".github"]
+    },
+    "packages/agent-env": {
+        "component": "agent-env",
+        "release-type": "node",
+        "exclude-paths": ["src", "test", "codegen", "scripts", "docs", ".github"]
     }
   },
   "plugins": [
