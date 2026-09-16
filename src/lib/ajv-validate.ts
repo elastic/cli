@@ -105,7 +105,7 @@ function instancePathToLegacy (instancePath: string): string {
     const n = Number(s)
     if (Number.isFinite(n) && String(n) === s) return `[${n}]`
     if (/^[a-zA-Z_$][\w$]*$/.test(s)) return `.${s}`
-    return `['${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'}`
+    return `['${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}']`
   }).join('')
 }
 
