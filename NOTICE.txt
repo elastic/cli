@@ -201,6 +201,64 @@ THE SOFTWARE.
 
 
 ------------------------------------------------------------------------
+@elastic/agent-env@0.1.0
+License: Apache-2.0
+------------------------------------------------------------------------
+
+# @elastic/agent-env
+
+Detect the coding-agent harness (Claude Code, Cursor, Codex, Gemini CLI, …)
+that spawned the current process from its environment variables. Marker table
+sourced from [Hugging Face's `agent-harnesses.ts` registry](https://github.com/huggingface/huggingface.js/blob/main/packages/tasks/src/agent-harnesses.ts).
+
+## Usage
+
+```ts
+import { detectAgent } from '@elastic/agent-env'
+
+const result = detectAgent() // minConfidence defaults to 0.95
+
+if (result.isOk()) {
+  const { agent, confidence, llm } = result.value
+  console.log(`${agent} (${confidence})${llm ? ` ${llm.vendor ?? '?'}/${llm.model}` : ''}`)
+} else {
+  console.error(result.error.message)
+}
+```
+
+`detectAgent(minConfidence = 0.95, env = process.env)` returns a
+[`Result`](https://www.typescript-result.dev) instead of throwing:
+
+- **`Result.ok({ agent, confidence, llm? })`** — `confidence` is the share of matched
+  env vars pointing at the winning agent (all agreeing → `1`; two Claude vars +
+  one Codex var → `0.666…`). Ties break by marker priority order. `llm` is
+  `{ model, vendor? }` — the active model id when the harness exposes it as an
+  env var (absent otherwise); see below.
+- **`Result.error({ code: 'no-agent-detected', … })`** — no known markers found.
+- **`Result.error({ code: 'low-confidence', agent, confidence, … })`** —
+  `confidence` fell below `minConfidence`.
+
+## LLM model detection
+
+When the detected harness publishes the active model id as an env var, `llm` is
+populated in the success result as `{ model, vendor? }`. `model` is the canonical
+lowercase id; `vendor` is normalized for telemetry grouping and omitted when it
+cannot be established. Vendor precedence: an explicit `vendor/model` value (split
+on the first `/`), then the agent's known vendor, then a model-prefix lookup
+(e.g. `claude*`→`anthropic`, `gpt*`→`openai`). Coverage is limited to harnesses
+whose official documentation describes a stable model env var:
+
+| Agent | Env var | Source |
+|---|---|---|
+| `pi` | `PI_MODEL` | [Pi environment variables](https://pi.dev/docs/latest/environment-variables) — injected by Pi into every bash/powershell tool subprocess |
+| `claude-code` / `cowork` | `ANTHROPIC_MODEL` | [Claude Code env vars](https://code.claude.com/docs/en/env-vars) — "Name of the model setting to use" |
+| `github-copilot` | `COPILOT_MODEL` | [GitHub Copilot CLI reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference) — "Use `--model=MODEL` or the `COPILOT_MODEL` environment variable to select the AI model" |
+
+All other harnesses return no `llm` field; the HuggingFace `agent-harnesses.ts`
+registry does not define model-detection env vars.
+
+
+------------------------------------------------------------------------
 @elastic/config-resolver@0.1.1
 License: UNLICENSED
 ------------------------------------------------------------------------

@@ -159,6 +159,7 @@ describe('AGENT_SHORT_CODES', () => {
     assert.equal(new Set(codes).size, codes.length)
   })
 })
+
 describe('resolveLlm', () => {
   it('splits on the first slash', () => assert.deepEqual(resolveLlm('openai/gpt-4o'), { model: 'gpt-4o', vendor: 'openai' }))
   it('infers vendor from prefix when no slash', () => assert.deepEqual(resolveLlm('gpt-4o'), { model: 'gpt-4o', vendor: 'openai' }))
@@ -176,4 +177,3 @@ describe('normalizeModelId', () => {
   it('only lowercases and collapses whitespace when combined', () => assert.equal(normalizeModelId('Claude Opus 4-5'), 'claude-opus-4-5'))
   it('trims surrounding whitespace', () => assert.equal(normalizeModelId('  claude-opus-4  '), 'claude-opus-4'))
 })
-
