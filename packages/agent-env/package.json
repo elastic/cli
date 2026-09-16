@@ -1,0 +1,28 @@
+{
+  "name": "@elastic/agent-env",
+  "version": "0.1.0",
+  "description": "Detect the coding-agent harness that spawned a process from its environment variables.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "tsx --test test/index.test.ts"
+  },
+  "dependencies": {
+    "typescript-result": "^3.5.2"
+  }
+}
