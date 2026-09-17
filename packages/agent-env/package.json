@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Detect the coding-agent harness that spawned a process from its environment variables.",
   "license": "Apache-2.0",
+  "private": true,
   "type": "module",
   "main": "./src/index.ts",
   "types": "./dist/index.d.ts",
