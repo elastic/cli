@@ -18,5 +18,10 @@
       "addLabels": ["renovate-auto-approve"],
       "automerge": true
     }
-  ]
+  ],
+  "postUpgradeTasks": {
+    "commands": ["node scripts/generate-notice.mjs"],
+    "fileFilters": ["NOTICE.txt"],
+    "executionMode": "branch"
+  }
 }
