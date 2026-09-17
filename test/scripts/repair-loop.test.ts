@@ -17,6 +17,8 @@ import {
   firstFailedJob,
   downloadJobLog,
   downloadBkFirstFailure,
+  extractBkFailureExcerpt,
+  stripBkLog,
   parseBkBuildUrl,
   jobLogUrl,
   appendMemorySkill,
@@ -158,9 +160,56 @@ describe('downloadBkFirstFailure', () => {
       },
     })
     assert.equal(result.jobName, 'KB functional tests')
-    assert.equal(result.summary, 'KB functional tests: FAIL')
-    assert.equal(result.log.includes('FAIL: security_entity_analytics_api_schedule_monitoring_engine.sh'), true)
+    assert.equal(result.summary, 'FAIL: security_entity_analytics_api_schedule_monitoring_engine.sh')
+    assert.equal(result.log, 'FAIL: security_entity_analytics_api_schedule_monitoring_engine.sh')
     assert.equal(calls[1].includes('/jobs/fail-1/log'), true)
+  })
+
+  it('does not use the last 80 lines when a FAIL line exists earlier', async () => {
+    const content = `FAIL: buried.sh\n${'INFO entity store\n'.repeat(200)}--- Cleaning up\n`
+    const result = await downloadBkFirstFailure({
+      token: 't',
+      org: 'elastic',
+      pipeline: 'elastic-cli',
+      build: '1307',
+      fetchImpl: async (url) => {
+        if (String(url).endsWith('/builds/1307')) {
+          return {
+            ok: true,
+            json: async () => ({ jobs: [{ id: 'fail-1', name: 'KB functional', state: 'failed', type: 'script' }] }),
+          }
+        }
+        return { ok: true, json: async () => ({ content }) }
+      },
+    })
+    assert.equal(result.summary, 'FAIL: buried.sh')
+    assert.equal(result.summary.includes('entity store'), false)
+    assert.equal(result.summary.includes('Cleaning up'), false)
+  })
+
+  it('picks FAIL lines out of a noisy KB tail', () => {
+    const log = [
+      '[INFO ][plugins.entityStore] Successfully extracted 0 entities',
+      '\u001b[90m$\u001b[0m cleanup',
+      'FAIL: security_entity_analytics_api_schedule_monitoring_engine.sh',
+      'Results: 348 passed, 1 failed',
+      '  FAIL: security_entity_analytics_api_schedule_monitoring_engine.sh',
+      '--- Cleaning up',
+      '\u001b[31m🚨 Error: The command exited with status 1\u001b[0m',
+    ].join('\n')
+    assert.equal(
+      extractBkFailureExcerpt(log),
+      [
+        'FAIL: security_entity_analytics_api_schedule_monitoring_engine.sh',
+        'Results: 348 passed, 1 failed',
+        '  FAIL: security_entity_analytics_api_schedule_monitoring_engine.sh',
+      ].join('\n'),
+    )
+    assert.equal(stripBkLog('\u001b_bk;t=1789506045463\u0007WARN noisy').includes('WARN noisy'), true)
+    assert.equal(extractBkFailureExcerpt(''), '')
+    assert.equal(extractBkFailureExcerpt('only info\n--- Cleaning up'), '')
+    const many = Array.from({ length: 50 }, (_, i) => `FAIL: case-${i}.sh`).join('\n')
+    assert.equal(extractBkFailureExcerpt(many).split('\n').length, 20)
   })
 
   it('returns null without a token or when the build request fails', async () => {
