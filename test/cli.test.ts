@@ -432,6 +432,31 @@ describe('elastic CLI -- command and option error ordering', () => {
       await rm(dir, { recursive: true })
     }
   })
+
+  it('suggests the closest sibling for a near misspelling', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-suggest-command-'))
+    await writeFile(join(dir, '.elasticrc.yml'), [
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '',
+    ].join('\n'))
+
+    try {
+      const { code, stderr } = await runCli(
+        ['stack', 'es', 'indice'],
+        { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } }
+      )
+
+      assert.equal(code, 1)
+      assert.match(stderr, /unknown command: indice/)
+      assert.match(stderr, /Did you mean indices/)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
 })
 
 describe('elastic CLI -- --help --json', () => {
