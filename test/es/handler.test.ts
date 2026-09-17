@@ -11,6 +11,9 @@ import type { EsApiDefinition } from '../../src/es/types.ts'
 import { createEsHandler } from '../../src/es/handler.ts'
 import type { EsHandlerDeps } from '../../src/es/handler.ts'
 import type { ParsedResult } from '../../src/factory.ts'
+import { formatTextResponse } from '../../src/output.ts'
+import { apiManifest } from '../../src/es/api-manifest.ts'
+import { loadEsApi } from '../../src/es/apis.ts'
 
 function makeDef(overrides: Partial<EsApiDefinition> = {}): EsApiDefinition {
   return {
@@ -321,5 +324,26 @@ describe('createEsHandler', () => {
 
     assert.deepEqual(result, jsonBody)
     assert.equal(capturedParams[0]?.querystring, undefined)
+  })
+})
+
+describe('empty text responses (#623)', () => {
+  it('every schema text API prints nothing for an empty object body', async () => {
+    const candidates = apiManifest.filter((m) => m.namespace === 'cat' || m.name === 'hot-threads')
+    assert.ok(candidates.length >= 28, `expected cat + hot-threads, got ${candidates.length}`)
+    let textCount = 0
+    for (const meta of candidates) {
+      const def = await loadEsApi(meta)
+      if (def.responseType !== 'text') continue
+      textCount++
+      const handler = createEsHandler(def, [], makeDeps({
+        getEsClient: () => ({ request: async () => ({}) } as unknown as EsClient),
+      }))
+      const result = await handler(parsedInput())
+      const out = formatTextResponse(result)
+      assert.equal(out.includes('[object Object]'), false, meta.id)
+      assert.equal(out, '', meta.id)
+    }
+    assert.equal(textCount, candidates.length)
   })
 })
