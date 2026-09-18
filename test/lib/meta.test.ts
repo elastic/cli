@@ -247,6 +247,12 @@ describe('agentMetaSegment', () => {
   it('returns empty for a detected agent that has no short code', () => {
     assert.equal(agentMetaSegment({ AI_AGENT: 'devin' }), '')
   })
+
+  it('returns empty when AI_AGENT is a prototype property name like constructor', () => {
+    // AGENT_SHORT_CODES["constructor"] walks the prototype chain and returns a
+    // function; Object.hasOwn guard must prevent this from leaking into client-meta.
+    assert.equal(agentMetaSegment({ AI_AGENT: 'constructor' }), '')
+  })
 })
 
 describe('llmUserAgentSegment', () => {

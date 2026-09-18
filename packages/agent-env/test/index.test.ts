@@ -90,13 +90,26 @@ describe('detectAgent', () => {
     assert.equal(d.confidence, 1)
   })
 
-  it('AI_AGENT overrides conflicting harness markers', () => {
-    // Without the fix: votes=[devin, claude-code], confidence=0.5, low-confidence error.
-    // With the fix: AI_AGENT exits early, returns devin at confidence 1.
-    const d = ok(detectAgent(0.95, { AI_AGENT: 'devin', CLAUDECODE: '1' }))
-    assert.equal(d.agent, 'devin')
-    assert.equal(d.confidence, 1)
+  it('accepts AI_AGENT values that are Object prototype property names (detection)', () => {
+    // AI_AGENT accepts any non-empty string verbatim; prototype-name values like
+    // 'constructor' are valid agent ids from detectAgent's perspective.
+    // The ag= segment guard (Object.hasOwn) lives in meta.ts agentMetaOf.
+    const d = ok(detectAgent(0.95, { AI_AGENT: 'constructor' }))
+    assert.equal(d.agent, 'constructor')
   })
+
+  it('ignores AGENT values that shadow Object prototype property names', () => {
+    const e = err(detectAgent(0.95, { AGENT: 'constructor' }))
+    assert.equal(e.code, 'no-agent-detected')
+  })
+
+  it('AI_AGENT overrides conflicting harness markers', () => {
+  // Without the fix: votes=[devin, claude-code], confidence=0.5, low-confidence error.
+  // With the fix: AI_AGENT exits early, returns devin at confidence 1.
+  const d = ok(detectAgent(0.95, { AI_AGENT: 'devin', CLAUDECODE: '1' }))
+  assert.equal(d.agent, 'devin')
+  assert.equal(d.confidence, 1)
+})
 
   it('AGENT overrides conflicting harness markers', () => {
     const d = ok(detectAgent(0.95, { AGENT: 'pi', CLAUDECODE: '1' }))
