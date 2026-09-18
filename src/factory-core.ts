@@ -355,6 +355,80 @@ export function configureErrorOutput (cmd: OpaqueCommandHandle): void {
 // Group definition
 // ---------------------------------------------------------------------------
 
+const MAX_EDIT_DISTANCE = 3
+const MIN_SIMILARITY = 0.4
+const MAX_SUGGESTIONS = 3
+
+/** Levenshtein distance, capped so far-off names skip the matrix. */
+function editDistance (a: string, b: string): number {
+  if (a === b) return 0
+  if (Math.abs(a.length - b.length) > MAX_EDIT_DISTANCE) return MAX_EDIT_DISTANCE + 1
+  let prev: number[] = Array.from({ length: b.length + 1 }, (_, j) => j)
+  for (let i = 1; i <= a.length; i++) {
+    const curr: number[] = [i]
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1
+      const deletion = (prev[j] ?? MAX_EDIT_DISTANCE + 1) + 1
+      const insertion = (curr[j - 1] ?? MAX_EDIT_DISTANCE + 1) + 1
+      const substitution = (prev[j - 1] ?? MAX_EDIT_DISTANCE + 1) + cost
+      curr[j] = Math.min(deletion, insertion, substitution)
+    }
+    prev = curr
+  }
+  return prev[b.length] ?? MAX_EDIT_DISTANCE + 1
+}
+
+function formatSuggestions (word: string, candidates: string[]): string {
+  const searchingOptions = word.startsWith('--')
+  const needle = searchingOptions ? word.slice(2) : word
+  const pool = [...new Set(candidates.map(c => searchingOptions && c.startsWith('--') ? c.slice(2) : c))]
+  let best = MAX_EDIT_DISTANCE
+  let similar: string[] = []
+  for (const candidate of pool) {
+    if (candidate.length <= 1) continue
+    const distance = editDistance(needle, candidate)
+    const length = Math.max(needle.length, candidate.length)
+    if (length === 0) continue
+    const similarity = (length - distance) / length
+    if (similarity <= MIN_SIMILARITY) continue
+    if (distance < best) {
+      best = distance
+      similar = [candidate]
+    } else if (distance === best) {
+      similar.push(candidate)
+    }
+  }
+  similar.sort((a, b) => a.localeCompare(b))
+  if (searchingOptions) similar = similar.map(c => `--${c}`)
+  similar = similar.slice(0, MAX_SUGGESTIONS)
+  if (similar.length === 1) return `\n(Did you mean ${similar[0]}?)`
+  if (similar.length > 1) return `\n(Did you mean one of ${similar.join(', ')}?)`
+  return ''
+}
+
+function siblingNames (cmd: OpaqueCommandHandle): string[] {
+  const names: string[] = []
+  for (const child of cmd.commands as OpaqueCommandHandle[]) {
+    if (isHidden(child) || child.name() === 'help') continue
+    names.push(child.name())
+    names.push(...child.aliases())
+  }
+  return names
+}
+
+function optionNames (cmd: OpaqueCommandHandle): string[] {
+  const flags: string[] = []
+  let current: OpaqueCommandHandle | null = cmd
+  while (current != null) {
+    for (const opt of current.options) {
+      if (opt.hidden === true || opt.long == null) continue
+      flags.push(opt.long)
+    }
+    current = current.parent
+  }
+  return flags
+}
+
 /**
  * Creates a new command group (namespace) that contains sub-commands.
  *
@@ -395,11 +469,11 @@ export function defineGroup (config: GroupConfig, ...commands: OpaqueCommandHand
     if (firstArg == null) {
       group.help()
     } else if (firstArg !== '--' && firstArg.startsWith('-')) {
-      group.error(`unknown option '${firstArg}'`)
+      group.error(`unknown option '${firstArg}'${formatSuggestions(firstArg, optionNames(group))}`)
     } else {
       const command = firstArg === '--' ? this.args[1] : firstArg
       if (command != null) {
-        group.error(`unknown command: ${command}`)
+        group.error(`unknown command: ${command}${formatSuggestions(command, siblingNames(group))}`)
       } else {
         group.help() // Bare '--' with no command following it.
       }
