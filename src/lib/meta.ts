@@ -48,8 +48,9 @@ function llmSegmentOf(result: DetectionResult): string {
 /** Derives the compact `,ag=<code>` meta segment from a detection result. */
 function agentMetaOf(result: DetectionResult): string {
   if (!result.ok) return ''
-  const code = AGENT_SHORT_CODES[result.value.agent as KnownAgent] as string | undefined
-  return code != null ? `,ag=${code}` : ''
+  const { agent } = result.value
+  if (!Object.hasOwn(AGENT_SHORT_CODES, agent)) return ''
+  return `,ag=${AGENT_SHORT_CODES[agent as KnownAgent]}`
 }
 
 /**
