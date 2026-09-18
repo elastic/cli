@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/elastic/cli/compare/v0.5.0...v0.5.1) (2026-09-18)
+
+
+### Bug Fixes
+
+* Print nothing for empty cat text ([#661](https://github.com/elastic/cli/issues/661)) ([28cc49f](https://github.com/elastic/cli/commit/28cc49f3a21423d2ecdea67a488b04489e210622))
+
 ## [0.5.0](https://github.com/elastic/cli/compare/v0.4.0...v0.5.0) (2026-09-10)
 
 
