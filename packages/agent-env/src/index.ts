@@ -161,7 +161,7 @@ const VENDOR_BY_PREFIX: Array<[RegExp, string]> = [
 // AI_AGENT accepts any value; AGENT is restricted to KnownAgent to avoid
 // misattribution from generic AGENT env vars set by unrelated tooling.
 function isKnownAgent (v: string): v is KnownAgent {
-  return v in AGENT_SHORT_CODES
+  return Object.hasOwn(AGENT_SHORT_CODES, v)
 }
 
 type Env = Record<string, string | undefined>

@@ -73,6 +73,11 @@ describe('detectAgent', () => {
     assert.equal(err(detectAgent(0.95, { AGENT: 'sandbase' })).code, 'no-agent-detected')
   })
 
+  it('ignores AGENT when value is a prototype property (prototype-safety)', () => {
+    assert.equal(err(detectAgent(0.95, { AGENT: 'constructor' })).code, 'no-agent-detected')
+    assert.equal(err(detectAgent(0.95, { AGENT: 'toString' })).code, 'no-agent-detected')
+  })
+
   it('breaks ties by marker priority (cowork before claude-code)', () => {
     const d = ok(detectAgent(0.5, { CLAUDE_CODE_IS_COWORK: '1', CLAUDECODE: '1' }))
     assert.equal(d.agent, 'cowork')
