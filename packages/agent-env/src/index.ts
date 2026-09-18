@@ -166,7 +166,7 @@ function isKnownAgent (v: string): v is KnownAgent {
 
 type Env = Record<string, string | undefined>
 
-/** Collects one agent vote per matching env var, in priority order. */
+/** Collects one agent vote per matching marker env var, in priority order. */
 function collectVotes (env: Env): AgentId[] {
   // Opt-in vars take exclusive priority: when set, skip the marker table so
   // a concurrent harness marker cannot dilute confidence below the threshold.
@@ -182,6 +182,14 @@ function collectVotes (env: Env): AgentId[] {
     votes.push(m.agent)
   }
   return votes
+}
+
+/** Assembles a Detection, resolving the LLM model var for the given agent. */
+function buildDetection (agent: AgentId, confidence: number, env: Env): Detection {
+  const modelVar = AGENT_MODEL_VARS[agent]
+  const rawLlm = modelVar != null ? env[modelVar] : undefined
+  const llm = rawLlm ? resolveLlm(rawLlm, AGENT_MODEL_VENDOR[agent]) : undefined
+  return { agent, confidence, ...(llm ? { llm } : {}) }
 }
 
 /**
@@ -202,6 +210,14 @@ export function detectAgent (
   minConfidence = 0.95,
   env: Env = process.env,
 ): Result<Detection, DetectionError> {
+  // Universal opt-in vars override the marker table unconditionally: when set,
+  // the caller has explicitly declared which harness is running and marker votes
+  // must not dilute confidence or suppress the result.
+  const aiAgent = env['AI_AGENT']
+  if (aiAgent != null && aiAgent !== '') return Result.ok(buildDetection(aiAgent, 1, env))
+  const agentEnv = env['AGENT']
+  if (agentEnv != null && agentEnv !== '' && isKnownAgent(agentEnv)) return Result.ok(buildDetection(agentEnv, 1, env))
+
   const votes = collectVotes(env)
   if (votes.length === 0) {
     return Result.error({
@@ -235,10 +251,7 @@ export function detectAgent (
     })
   }
 
-  const modelVar = AGENT_MODEL_VARS[agent]
-  const rawLlm = modelVar != null ? env[modelVar] : undefined
-  const llm = rawLlm ? resolveLlm(rawLlm, AGENT_MODEL_VENDOR[agent]) : undefined
-  return Result.ok({ agent, confidence, ...(llm ? { llm } : {}) })
+  return Result.ok(buildDetection(agent, confidence, env))
 }
 
 /**

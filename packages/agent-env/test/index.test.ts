@@ -90,6 +90,20 @@ describe('detectAgent', () => {
     assert.equal(d.confidence, 1)
   })
 
+  it('AI_AGENT overrides conflicting harness markers', () => {
+    // Without the fix: votes=[devin, claude-code], confidence=0.5, low-confidence error.
+    // With the fix: AI_AGENT exits early, returns devin at confidence 1.
+    const d = ok(detectAgent(0.95, { AI_AGENT: 'devin', CLAUDECODE: '1' }))
+    assert.equal(d.agent, 'devin')
+    assert.equal(d.confidence, 1)
+  })
+
+  it('AGENT overrides conflicting harness markers', () => {
+    const d = ok(detectAgent(0.95, { AGENT: 'pi', CLAUDECODE: '1' }))
+    assert.equal(d.agent, 'pi')
+    assert.equal(d.confidence, 1)
+  })
+
   it('breaks ties by marker priority (cowork before claude-code)', () => {
     const d = ok(detectAgent(0.5, { CLAUDE_CODE_IS_COWORK: '1', CLAUDECODE: '1' }))
     assert.equal(d.agent, 'cowork')
