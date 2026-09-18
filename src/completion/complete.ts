@@ -199,6 +199,14 @@ export async function buildCompletionTree (rewrittenWords: readonly string[]): P
     root.addCommand(defineGroup({ name: 'docs', description: 'Search, read, and ask questions about Elastic documentation' }))
   }
 
+  // `nightshift` — deep-load on exact match, stub otherwise.
+  if (firstWord === 'nightshift') {
+    const { registerNightshiftCommands } = await import('../nightshift/register.ts')
+    root.addCommand(registerNightshiftCommands())
+  } else {
+    root.addCommand(defineGroup({ name: 'nightshift', description: 'Ask the Nightshift investigation agent' }))
+  }
+
   // `config` — deep-load on exact match, stub otherwise.
   if (firstWord === 'config') {
     const { registerConfigCommands } = await import('../config/commands.ts')
