@@ -252,6 +252,33 @@ describe('extractGhaFailureExcerpt', () => {
       true,
     )
   })
+
+  it('keeps bun and node test fail lines, not passing Error output', () => {
+    const bun = [
+      '(pass) watch command > filters using --query [1.11ms]',
+      'Error: connection refused',
+      '(fail) installer > upgradeExtension > rejects a stored entrypoint that is a symlink escaping the install directory after npm update (#500) [30001.77ms]',
+      '  ^ this test timed out after 30000ms, before its done callback was called.',
+      '(fail) installer > installExtension -- --ignore-scripts > passes --ignore-scripts and a scrubbed env when installing an npm extension [5.97ms]',
+      '4 tests failed:',
+      'Post job cleanup.',
+    ].join('\n')
+    const excerpt = extractGhaFailureExcerpt(bun)
+    assert.equal(excerpt.includes('(fail) installer > upgradeExtension'), true)
+    assert.equal(excerpt.includes('this test timed out'), true)
+    assert.equal(excerpt.includes('4 tests failed:'), true)
+    assert.equal(excerpt.includes('Error: connection refused'), false)
+    assert.equal(excerpt.includes('(pass)'), false)
+    const node = [
+      '✔ checkCloud (3.14ms)',
+      '✖ failing tests:',
+      '✖ resolves object values concurrently, not sequentially (701.2748ms)',
+      '  AssertionError [ERR_ASSERTION]: expected parallel <82ms (1.5x avg single), took 100ms',
+    ].join('\n')
+    assert.equal(extractGhaFailureExcerpt(node).includes('resolves object values concurrently'), true)
+    assert.equal(extractGhaFailureExcerpt(node).includes('AssertionError'), true)
+    assert.equal(extractGhaFailureExcerpt(node).includes('checkCloud'), false)
+  })
 })
 
 describe('hasStopCommand', () => {
@@ -542,13 +569,13 @@ describe('shouldAttemptFix', () => {
     assert.equal(hasBkRepairTag(null), false)
   })
 
-  it('requires same-repo auto-loop under the bot cap', () => {
-    assert.deepEqual(shouldAttemptFix({ sameRepo: true, autoLoop: true, botCommits: 0 }), { ok: true, reason: 'ok' })
-    assert.equal(shouldAttemptFix({ sameRepo: false, autoLoop: true }).ok, false)
-    assert.equal(shouldAttemptFix({ sameRepo: true, skipLoop: true, autoLoop: true }).reason, 'skip-auto-loop')
-    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, stopRepair: true }).reason, 'stop')
-    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: false }).reason, 'no auto-loop')
-    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, botCommits: 2 }).reason, 'bot commit cap')
+  it('requires same-repo under the bot cap', () => {
+    assert.deepEqual(shouldAttemptFix({ sameRepo: true, botCommits: 0 }), { ok: true, reason: 'ok' })
+    assert.equal(shouldAttemptFix({ sameRepo: false }).ok, false)
+    assert.equal(shouldAttemptFix({ sameRepo: true, skipLoop: true }).reason, 'skip-auto-loop')
+    assert.equal(shouldAttemptFix({ sameRepo: true, stopRepair: true }).reason, 'stop')
+    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: false }).ok, true)
+    assert.equal(shouldAttemptFix({ sameRepo: true, botCommits: 2 }).reason, 'bot commit cap')
   })
 })
 

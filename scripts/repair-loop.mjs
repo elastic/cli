@@ -81,17 +81,40 @@ export function stripGhaLog (text) {
   return text.replace(/^\d{4}-\d{2}-\d{2}T[0-9:.]+Z /gm, '').replace(/\r/g, '')
 }
 
-const GHA_NOISE = /^(Correct: |Post job cleanup|\[command\]|Temporarily overriding HOME|Adding repository directory|##\[group\]|##\[endgroup\]|Cleaning up orphan)/
-const GHA_HIT = /^(Incorrect: |Error: |error TS|FAIL: |✖ |AssertionError|##\[error\])/
+const GHA_NOISE = /^(Correct: |\(pass\)|Post job cleanup|\[command\]|Temporarily overriding HOME|Adding repository directory|##\[group\]|##\[endgroup\]|Cleaning up orphan)/
+
+function isGhaFailLine (line) {
+  return /^(Incorrect: |\(fail\)|FAIL: |✖ failing tests|AssertionError|\d+ tests failed)/.test(line)
+    || /^ {2}\^ this test timed out/.test(line)
+}
 
 export function extractGhaFailureExcerpt (log, maxChars = 2000) {
   const cap = Number.isInteger(maxChars) && maxChars > 0 ? maxChars : 2000
   const lines = stripGhaLog(log).split('\n')
   const cut = lines.findIndex((line) => /^Post job cleanup/.test(line) || /^##\[error\]Process completed/.test(line))
   const body = cut >= 0 ? lines.slice(0, cut) : lines
-  const hits = body.filter((line) => GHA_HIT.test(line) && !/^##\[error\]Process completed/.test(line))
-  if (hits.length > 0) return hits.slice(0, 30).join('\n').trim().slice(0, cap)
-  return body.filter((line) => line.trim() !== '' && !GHA_NOISE.test(line)).slice(-20).join('\n').trim().slice(0, cap)
+  const hits = []
+  let take = 0
+  for (const line of body) {
+    if (/^✖ failing tests/.test(line) || /^\d+ tests failed/.test(line)) {
+      hits.push(line)
+      take = 12
+      continue
+    }
+    if (isGhaFailLine(line)) {
+      hits.push(line)
+      continue
+    }
+    if (take > 0) {
+      if (line.trim() === '' || /^ℹ /.test(line) || /^ {2}\d+ pass/.test(line)) {
+        take = 0
+        continue
+      }
+      hits.push(line)
+      take -= 1
+    }
+  }
+  return hits.slice(0, 30).join('\n').trim().slice(0, cap)
 }
 
 export function extractGhaFailureContext (log, maxChars = 4000) {
@@ -99,7 +122,7 @@ export function extractGhaFailureContext (log, maxChars = 4000) {
   const lines = stripGhaLog(log).split('\n')
   const cut = lines.findIndex((line) => /^Post job cleanup/.test(line))
   const body = (cut >= 0 ? lines.slice(0, cut) : lines).filter((line) => !GHA_NOISE.test(line))
-  const i = body.findIndex((line) => GHA_HIT.test(line) || /ELIFECYCLE|not found|Cannot find/.test(line))
+  const i = body.findIndex((line) => isGhaFailLine(line) || /ELIFECYCLE|not found|Cannot find/.test(line))
   if (i === -1) return extractGhaFailureExcerpt(log, cap)
   return body.slice(i, i + 40).join('\n').trim().slice(0, cap)
 }
@@ -493,14 +516,12 @@ export function shouldAttemptFix ({
   sameRepo = false,
   skipLoop = false,
   stopRepair = false,
-  autoLoop = false,
   botCommits = 0,
   maxBotCommits = 2,
 } = {}) {
   if (!sameRepo) return { ok: false, reason: 'fork' }
   if (stopRepair) return { ok: false, reason: 'stop' }
   if (skipLoop) return { ok: false, reason: 'skip-auto-loop' }
-  if (!autoLoop) return { ok: false, reason: 'no auto-loop' }
   if (botCommits >= maxBotCommits) return { ok: false, reason: 'bot commit cap' }
   return { ok: true, reason: 'ok' }
 }
@@ -756,7 +777,6 @@ async function main (argv) {
         sameRepo: process.env.SAME_REPO === '1',
         skipLoop: process.env.SKIP_LOOP === '1',
         stopRepair: process.env.STOP_REPAIR === '1',
-        autoLoop: process.env.AUTO_LOOP === '1',
         botCommits: Number(process.env.BOT_COMMITS || '0'),
       })
       process.stdout.write(JSON.stringify(decision) + '\n')
