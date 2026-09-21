@@ -205,6 +205,12 @@ describe('formatHandlerError', () => {
     assert.equal(formatHandlerError(val), 'request failed with status 503')
   })
 
+  it('points 401 transport errors at status and context edit', () => {
+    const val = { error: { code: 'transport_error', status_code: 401, body: { ok: false } } }
+    assert.match(formatHandlerError(val), /elastic status --json/)
+    assert.match(formatHandlerError(val), /elastic config context edit/)
+  })
+
   it('returns message for missing_config', () => {
     const val = { error: { code: 'missing_config', message: 'No Elasticsearch connection configured' } }
     assert.equal(formatHandlerError(val), 'No Elasticsearch connection configured')
