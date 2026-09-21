@@ -371,6 +371,13 @@ describe('extractGhaFailureExcerpt', () => {
     assert.equal(extractGhaFailureExcerpt(perf).includes('elastic es'), true)
     assert.equal(extractGhaFailureExcerpt(perf).includes('Performance regression detected'), true)
     assert.equal(extractGhaFailureExcerpt(perf).includes('elastic --help'), false)
+    const nodeDl = [
+      'Attempting to download 25.x...',
+      '##[error]read ECONNRESET',
+      'Post job cleanup.',
+    ].join('\n')
+    assert.equal(extractGhaFailureExcerpt(nodeDl).includes('read ECONNRESET'), true)
+    assert.equal(extractGhaFailureExcerpt(nodeDl).includes('Attempting to download'), false)
   })
 })
 

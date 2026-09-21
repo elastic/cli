@@ -138,6 +138,8 @@ function isGhaFailLine (line) {
     || /^ {2}\^ this test timed out/.test(line)
     || /^✗ /.test(line)
     || /Performance regression detected/.test(line)
+    || /^##\[error\]/.test(line)
+    || /ECONNRESET/.test(line)
 }
 
 export function extractGhaFailureExcerpt (log, maxChars = 2000) {
