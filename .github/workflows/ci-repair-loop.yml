@@ -17,7 +17,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: ci-repair-loop-${{ github.event.workflow_run.head_sha || github.event.inputs.run_id }}
+  group: ci-repair-loop-${{ github.event.workflow_run.id || github.event.inputs.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -36,8 +36,10 @@ jobs:
       pull-requests: write
     outputs:
       apply: ${{ steps.propose.outputs.apply }}
+      rerun: ${{ steps.propose.outputs.rerun }}
       pr: ${{ steps.diag.outputs.pr }}
       head_sha: ${{ steps.diag.outputs.head_sha }}
+      run_id: ${{ steps.diag.outputs.run_id }}
     steps:
       - name: Checkout default branch tools
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -72,6 +74,7 @@ jobs:
             echo "job_name="
             echo "job_url="
             echo "run_url="
+            echo "run_id="
             echo "fix=0"
             echo "triage=0"
             echo "pin_stop=0"
@@ -165,6 +168,7 @@ jobs:
             echo "job_name=${JOB_NAME}"
             echo "job_url=${JOB_URL}"
             echo "run_url=${RUN_URL}"
+            echo "run_id=${RUN_ID}"
             echo "fix=${FIX}"
             echo "triage=${TRIAGE}"
             echo "pin_stop=${PIN_STOP}"
@@ -193,6 +197,8 @@ jobs:
             "**${JOB_NAME}** failed." \
             "" \
             "$EXCERPT" \
+            "" \
+            "Resolution: triaging." \
             "" \
             "Job: ${JOB_URL}")
           EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
@@ -224,6 +230,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "apply=0" >> "$GITHUB_OUTPUT"
+          echo "rerun=0" >> "$GITHUB_OUTPUT"
           if [ -z "${OPENROUTER_API_KEY:-}" ]; then
             echo "OPENROUTER_API_KEY missing"
             exit 0
@@ -263,13 +270,14 @@ jobs:
           done < <(printf '%s\n' "$PATHS")
           printf '%s\n' \
             "You triage one GitHub Actions failure in elastic/cli." \
-            "Write a short comment that says what to change. Do not paste logs." \
-            "fix: in-repo change that addresses this failure. Return full file replacements." \
-            "stop: cannot fix in this repo (spec, generator, CI infra, flake)." \
+            "Write a short comment with what failed and the resolution. Do not paste logs." \
+            "fix: in-repo change. Return full file replacements." \
+            "rerun: flake or infra. Do not change tests to hide it." \
+            "stop: cannot fix and a rerun will not help." \
             "Do not skip tests or weaken assertions." \
             "Do not edit generated API files or .github/." \
             "Respond with ONLY a JSON object:" \
-            '{"action":"fix","comment":"one or two sentences naming the files and the change","commit_message":"fix: short","changes":[{"file":"src/foo.ts","content":"full file"}]}' \
+            '{"action":"fix","comment":"What failed: ...\\nResolution: change FILE to ...","commit_message":"fix: short","changes":[{"file":"src/foo.ts","content":"full file"}]}' \
             "" \
             "FAILED JOB: ${JOB_NAME}" \
             "$CONTEXT" \
@@ -314,7 +322,19 @@ jobs:
             echo "apply=1" >> "$GITHUB_OUTPUT"
             mkdir -p .repair-loop
             cp /tmp/parsed.json .repair-loop/
+            exit 0
           fi
+          if [ "$ACTION" != "rerun" ]; then
+            echo "No apply or rerun"
+            exit 0
+          fi
+          gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+            --jq '.[] | .body // empty' > /tmp/all-comments.txt || true
+          if grep -q '<!-- ci-rerun -->' /tmp/all-comments.txt; then
+            echo "Already reran once"
+            exit 0
+          fi
+          echo "rerun=1" >> "$GITHUB_OUTPUT"
 
       - name: Upload parsed patch
         if: steps.propose.outputs.apply == '1'
@@ -364,3 +384,25 @@ jobs:
           fi
           BRANCH=$(gh pr view "$PR" --json headRefName --jq '.headRefName')
           BRANCH="$BRANCH" node scripts/repair-loop.mjs apply-github /tmp/repair-loop/parsed.json
+
+  rerun:
+    needs: repair
+    if: needs.repair.outputs.rerun == '1' && needs.repair.outputs.pr != '' && needs.repair.outputs.run_id != ''
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      pull-requests: write
+    steps:
+      - name: Rerun failed CI jobs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ needs.repair.outputs.pr }}
+          RUN_ID: ${{ needs.repair.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          if gh api -X POST "repos/${GH_REPO}/actions/runs/${RUN_ID}/rerun-failed-jobs"; then
+            gh pr comment "$PR" --body "$(printf '%s\n' '<!-- ci-rerun -->' 'Resolution: reran the failed CI jobs.')"
+            exit 0
+          fi
+          gh pr comment "$PR" --body "$(printf '%s\n' '<!-- ci-rerun -->' 'Resolution: CI rerun failed.')"

@@ -492,7 +492,7 @@ export function parseAgentResponse (text) {
   }
   const stop = obj.stop === true
   let action = obj.action
-  if (action !== 'fix' && action !== 'stop') {
+  if (action !== 'fix' && action !== 'rerun' && action !== 'stop') {
     action = stop || changes.length === 0 ? 'stop' : 'fix'
   }
   return {

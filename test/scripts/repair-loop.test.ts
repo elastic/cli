@@ -528,6 +528,9 @@ describe('parseAgentResponse', () => {
     const fix = parseAgentResponse('{"action":"fix","comment":"add SPDX","commit_message":"fix: n","changes":[{"file":"src/foo.ts","content":"x"}]}')
     assert.equal(fix.action, 'fix')
     assert.equal(fix.comment, 'add SPDX')
+    const rerun = parseAgentResponse('{"action":"rerun","comment":"What failed: timing\\nResolution: rerun CI","changes":[]}')
+    assert.equal(rerun.action, 'rerun')
+    assert.equal(rerun.stop, false)
   })
 
   it('rejects missing JSON, bad changes, and unsafe paths', () => {
