@@ -36,7 +36,7 @@ jobs:
             "👋 This PR can use the first-failure repair loop on GitHub Actions and Buildkite." \
             "" \
             "**Labels**" \
-            "- \`auto-loop\`: on a CI or Buildkite failure, the bot can push a fix" \
+            "- \`auto-loop\`: bot triages the first CI failure and can push a fix" \
             "- \`skip-ai-review\`: silences the review bot" \
             "- \`skip-auto-loop\`: added when you comment \`/stop\`" \
             "" \
