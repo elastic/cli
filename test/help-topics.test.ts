@@ -14,6 +14,7 @@ import {
   HELP_TOPICS,
   LEARN_MORE,
   formatHelpTopicIndex,
+  helpTopicResult,
   isHelpTopicName,
 } from '../src/help-topics.ts'
 
@@ -63,6 +64,11 @@ describe('help topics', () => {
     assert.match(HELP_TOPICS['exit-codes'], /^0 {2}success/m)
     assert.match(HELP_TOPICS['exit-codes'], /^1 {2}error/m)
     assert.match(HELP_TOPICS['exit-codes'], /reserved/)
+    assert.equal(helpTopicResult(undefined, true).stdout, '{"topics":["formatting","environment","exit-codes"]}\n')
+    assert.equal(helpTopicResult('../x', false).code, 1)
+    assert.match(helpTopicResult('../x', false).stderr, /unknown help topic/)
+    assert.equal(helpTopicResult('formatting', false).code, 0)
+    assert.match(helpTopicResult('formatting', false).stdout, /--json/)
   })
 })
 

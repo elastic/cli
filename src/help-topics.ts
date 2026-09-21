@@ -4,7 +4,6 @@
  */
 
 import type { Command } from 'commander'
-import { hasGlobalJsonFlag } from './factory-core.js'
 
 export const HELP_TOPIC_NAMES = ['formatting', 'environment', 'exit-codes'] as const
 export type HelpTopicName = (typeof HELP_TOPIC_NAMES)[number]
@@ -78,31 +77,33 @@ export function formatHelpTopicIndex (): string {
   ].join('\n')
 }
 
-export function registerHelpCommand (program: Command): void {
+export type HelpTopicResult = {
+  stdout: string
+  stderr: string
+  code: number
+}
+
+export function helpTopicResult (topic: string | undefined, json: boolean): HelpTopicResult {
+  if (topic == null || topic === '') {
+    if (json) return { stdout: JSON.stringify({ topics: [...HELP_TOPIC_NAMES] }) + '\n', stderr: '', code: 0 }
+    return { stdout: formatHelpTopicIndex(), stderr: '', code: 0 }
+  }
+  if (!isHelpTopicName(topic)) {
+    return {
+      stdout: '',
+      stderr: `Error: unknown help topic "${topic}". Topics: ${HELP_TOPIC_NAMES.join(', ')}\n`,
+      code: 1,
+    }
+  }
+  const body = HELP_TOPICS[topic]
+  if (json) return { stdout: JSON.stringify({ topic, body }) + '\n', stderr: '', code: 0 }
+  return { stdout: body.endsWith('\n') ? body : `${body}\n`, stderr: '', code: 0 }
+}
+
+export function registerHelpCommand (program: Command): Command {
   program.addHelpCommand(false)
-  program
+  return program
     .command('help')
     .description('Print a help topic (formatting, environment, exit-codes)')
     .argument('[topic]', 'formatting, environment, or exit-codes')
-    .action((topic?: string) => {
-      const json = hasGlobalJsonFlag(program)
-      if (topic == null || topic === '') {
-        if (json) {
-          process.stdout.write(JSON.stringify({ topics: [...HELP_TOPIC_NAMES] }) + '\n')
-          return
-        }
-        process.stdout.write(formatHelpTopicIndex())
-        return
-      }
-      if (!isHelpTopicName(topic)) {
-        process.stderr.write(`Error: unknown help topic "${topic}". Topics: ${HELP_TOPIC_NAMES.join(', ')}\n`)
-        process.exit(1)
-      }
-      const body = HELP_TOPICS[topic]
-      if (json) {
-        process.stdout.write(JSON.stringify({ topic, body }) + '\n')
-        return
-      }
-      process.stdout.write(body.endsWith('\n') ? body : `${body}\n`)
-    })
 }

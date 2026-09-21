@@ -258,8 +258,13 @@ if (firstArg != null && (!willJustPrintHelp || hasProfileFlag)) {
 // Logo banner (root help only). Loaded lazily -- dynamic import keeps it out of the
 // startup graph for every other invocation, and esbuild/pkg can still bundle it.
 if (firstArg == null || firstArg === 'help') {
-  const { registerHelpCommand, LEARN_MORE } = await import('./help-topics.js')
-  registerHelpCommand(program)
+  const { registerHelpCommand, helpTopicResult, LEARN_MORE } = await import('./help-topics.js')
+  registerHelpCommand(program).action((topic?: string) => {
+    const result = helpTopicResult(topic, hasGlobalJsonFlag(program))
+    if (result.stderr !== '') process.stderr.write(result.stderr)
+    if (result.stdout !== '') process.stdout.write(result.stdout)
+    if (result.code !== 0) process.exit(result.code)
+  })
   if (firstArg == null) {
     program.addHelpText('after', () => hasGlobalJsonFlag(program) ? '' : LEARN_MORE)
   }
