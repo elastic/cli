@@ -181,45 +181,16 @@ jobs:
             echo "pin_stop=${PIN_STOP}"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Comment diagnosis
-        if: steps.diag.outputs.job_name != ''
+      - name: Pin stop
+        if: steps.diag.outputs.pin_stop == '1' && steps.diag.outputs.pr != ''
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           PR: ${{ steps.diag.outputs.pr }}
-          JOB_NAME: ${{ steps.diag.outputs.job_name }}
-          JOB_URL: ${{ steps.diag.outputs.job_url }}
-          RUN_URL: ${{ steps.diag.outputs.run_url }}
-          PIN_STOP: ${{ steps.diag.outputs.pin_stop }}
         run: |
           set -euo pipefail
-          COMMENT_TAG='<!-- ci-repair-loop -->'
-          if [ -z "$PR" ]; then
-            echo "No PR, not opening an issue"
-            exit 0
-          fi
-          EXCERPT=$(cat /tmp/excerpt.txt 2>/dev/null || true)
-          BODY=$(printf '%s\n' \
-            "$COMMENT_TAG" \
-            "**${JOB_NAME}** failed." \
-            "" \
-            "$EXCERPT" \
-            "" \
-            "Resolution: triaging." \
-            "" \
-            "Job: ${JOB_URL}")
-          EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
-            --jq ".[] | select((.user.login == \"github-actions[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \
-            | head -n 1 || true)
-          if [ -n "$EXISTING" ]; then
-            gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" -f body="$BODY"
-          else
-            gh pr comment "$PR" --body "$BODY"
-          fi
-          if [ "${PIN_STOP:-0}" = "1" ]; then
-            gh pr edit "$PR" --add-label skip-auto-loop || true
-            gh pr comment "$PR" --body "Repair loop stopped (\`/stop\`). Added \`skip-auto-loop\`."
-          fi
+          gh pr edit "$PR" --add-label skip-auto-loop || true
+          gh pr comment "$PR" --body "Repair loop stopped (\`/stop\`). Added \`skip-auto-loop\`."
 
       - name: Propose in-repo fix
         id: propose
@@ -231,6 +202,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           PR: ${{ steps.diag.outputs.pr }}
           JOB_NAME: ${{ steps.diag.outputs.job_name }}
+          JOB_ID: ${{ steps.diag.outputs.job_id }}
           JOB_URL: ${{ steps.diag.outputs.job_url }}
           HEAD_SHA: ${{ steps.diag.outputs.head_sha }}
           CAN_FIX: ${{ steps.diag.outputs.fix }}
@@ -238,8 +210,26 @@ jobs:
           set -euo pipefail
           echo "apply=0" >> "$GITHUB_OUTPUT"
           echo "rerun=0" >> "$GITHUB_OUTPUT"
+          COMMENT_TAG='<!-- ci-repair-loop -->'
+          upsert_sticky() {
+            local body="$1"
+            EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+              --jq ".[] | select((.user.login == \"github-actions[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \
+              | head -n 1 || true)
+            if [ -n "$EXISTING" ]; then
+              gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" -f body="$body"
+            else
+              gh pr comment "$PR" --body "$body"
+            fi
+          }
+          fallback_sticky() {
+            local excerpt
+            excerpt=$(cat /tmp/excerpt.txt 2>/dev/null || true)
+            upsert_sticky "$(printf '%s\n' "$COMMENT_TAG" "**${JOB_NAME}** failed." "" "$excerpt" "" "Job: ${JOB_URL}")"
+          }
           if [ -z "${OPENROUTER_API_KEY:-}" ]; then
             echo "OPENROUTER_API_KEY missing"
+            fallback_sticky
             exit 0
           fi
           BASE_URL="${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
@@ -247,6 +237,7 @@ jobs:
             https://*) ;;
             *)
               echo "OPENROUTER_BASE_URL must be https://, refusing to send the API key to it"
+              fallback_sticky
               exit 0
               ;;
           esac
@@ -275,9 +266,10 @@ jobs:
           ${CONTENT}
           "
           done < <(printf '%s\n' "$PATHS")
+          JOB_DEF=$(jq -c '{id,name,conclusion,workflow_name,steps:[.steps[]?|{name,conclusion,number}]}' /tmp/job.json 2>/dev/null || true)
           printf '%s\n' \
-            "You triage one GitHub Actions failure in elastic/cli." \
-            "Write a short comment with what failed and the resolution. Do not paste logs." \
+            "Please find a solution for failing job ${JOB_ID:-$JOB_NAME}. Use the logs, job definition, and any referenced files where the failure occurred. Keep your response focused on the solution and include code suggestions when appropriate." \
+            "Do not paste logs into the comment." \
             "fix: in-repo change. Return full file replacements." \
             "rerun: flake or infra. Do not change tests to hide it." \
             "stop: cannot fix and a rerun will not help." \
@@ -286,8 +278,12 @@ jobs:
             "Respond with ONLY a JSON object:" \
             '{"action":"fix","comment":"What failed: ...\\nResolution: change FILE to ...","commit_message":"fix: short","changes":[{"file":"src/foo.ts","content":"full file"}]}' \
             "" \
-            "FAILED JOB: ${JOB_NAME}" \
+            "JOB: ${JOB_URL}" \
+            "LOGS:" \
             "$CONTEXT" \
+            "" \
+            "JOB DEFINITION:" \
+            "$JOB_DEF" \
             "" \
             "PR FILES:" \
             "$PR_FILES" \
@@ -307,6 +303,7 @@ jobs:
           CONTENT=$(jq -r '.choices[0].message.content // empty' /tmp/response.json)
           if [ -z "$CONTENT" ]; then
             echo "Empty model response"
+            fallback_sticky
             exit 0
           fi
           printf '%s' "$CONTENT" > /tmp/model-raw.txt
@@ -314,16 +311,9 @@ jobs:
           COMMENT=$(jq -r '.comment // empty' /tmp/parsed.json)
           ACTION=$(jq -r '.action // empty' /tmp/parsed.json)
           if [ -n "$COMMENT" ]; then
-            COMMENT_TAG='<!-- ci-repair-loop -->'
-            BODY=$(printf '%s\n' "$COMMENT_TAG" "$COMMENT" "" "Job: ${JOB_URL}")
-            EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
-              --jq ".[] | select((.user.login == \"github-actions[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \
-              | head -n 1 || true)
-            if [ -n "$EXISTING" ]; then
-              gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" -f body="$BODY"
-            else
-              gh pr comment "$PR" --body "$BODY"
-            fi
+            upsert_sticky "$(printf '%s\n' "$COMMENT_TAG" "$COMMENT" "" "Job: ${JOB_URL}")"
+          else
+            fallback_sticky
           fi
           if [ "$ACTION" = "fix" ] && [ "$CAN_FIX" = "1" ] && jq -e '(.changes | length) > 0' /tmp/parsed.json >/dev/null; then
             echo "apply=1" >> "$GITHUB_OUTPUT"
