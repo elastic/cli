@@ -127,6 +127,39 @@ describe('elastic CLI -- preAction config error handling', () => {
     }
   })
 
+  it('emits missing_config JSON when --json and no config file is found', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-json-'))
+    try {
+      const { code, stderr } = await runCli(
+        ['--json', 'stack', 'es', 'info'],
+        { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } },
+      )
+      assert.equal(code, 1, `expected exit code 1, got ${code}`)
+      const parsed = JSON.parse(stderr) as { error: { code: string, message: string } }
+      assert.equal(parsed.error.code, 'missing_config')
+      assert.ok(parsed.error.message.includes('No configuration file found'))
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('emits config_invalid JSON when --json and the config file is malformed', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-badyaml-'))
+    try {
+      const configPath = join(dir, '.elasticrc.yml')
+      await writeFile(configPath, 'contexts: [\nnot yaml\n')
+      const { code, stderr } = await runCli(
+        ['--json', '--config-file', configPath, 'stack', 'es', 'info'],
+        { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } },
+      )
+      assert.equal(code, 1, `expected exit code 1, got ${code}`)
+      const parsed = JSON.parse(stderr) as { error: { code: string, message: string } }
+      assert.equal(parsed.error.code, 'config_invalid')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
   it('exits with error when --config-file points to a nonexistent file', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-badconfig-'))
     try {
