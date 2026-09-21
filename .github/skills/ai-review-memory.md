@@ -21,3 +21,4 @@ Action items for the next AI review. Follow these. Do not repeat the rejected fi
 - Do not re-flag `workflow_run` as matching the dispatcher by name only. Require `event` and `path` (`review-repair-loop.yml`, `review-no-dispatch.yml`).
 - Do not re-flag review-loop concurrency as `workflow_run.id`. It is keyed on `head_branch` so two reviews on the same PR cancel.
 - already fixed. Job if requires same-repo head.
+- Do not re-flag the concurrency group differing between workflow_run and workflow_dispatch triggers. The concurrency group already uses the CI run id uniformly for both event types.
