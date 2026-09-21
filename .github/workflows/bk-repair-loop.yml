@@ -25,8 +25,10 @@ jobs:
       pull-requests: write
     outputs:
       apply: ${{ steps.propose.outputs.apply }}
+      rerun: ${{ steps.propose.outputs.rerun }}
       pr: ${{ steps.diag.outputs.pr }}
       head_sha: ${{ steps.diag.outputs.head_sha }}
+      build_url: ${{ steps.diag.outputs.build_url }}
     steps:
       - name: Checkout default branch tools
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -44,25 +46,58 @@ jobs:
           echo "scripts/repair-loop.mjs missing on default branch"
           exit 0
 
-      - name: Decide whether to patch
+      - name: Diagnose first failure
         id: diag
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           PR: ${{ github.event.issue.number }}
           COMMENT: ${{ github.event.comment.body }}
+          BUILDKITE_API_TOKEN: ${{ secrets.BUILDKITE_API_TOKEN }}
         run: |
           set -euo pipefail
+          {
+            echo "pr="
+            echo "head_sha="
+            echo "job_name="
+            echo "build_url="
+            echo "fix=0"
+            echo "triage=0"
+            echo "pin_stop=0"
+          } >> "$GITHUB_OUTPUT"
           if [ ! -s /tmp/repair-loop.mjs ]; then
             echo "repair-loop.mjs unavailable"
             exit 0
           fi
-          printf '%s\n' "${COMMENT:-}" > /tmp/job.log
-          if ! node /tmp/repair-loop.mjs has-bk-tag /tmp/job.log; then
+          printf '%s\n' "${COMMENT:-}" > /tmp/comment.txt
+          if ! node /tmp/repair-loop.mjs has-bk-tag /tmp/comment.txt; then
             echo "No bk-repair-loop tag"
             exit 0
           fi
-          node /tmp/repair-loop.mjs cited-paths /tmp/job.log > /tmp/cited.json
+          gh pr view "$PR" --json headRefName,labels > /tmp/pr-meta.json
+          if node /tmp/repair-loop.mjs is-memory-pr /tmp/pr-meta.json; then
+            echo "Memory skill PR"
+            exit 0
+          fi
+          if grep -q '^Resolution:' /tmp/comment.txt && ! grep -q 'Resolution: triaging' /tmp/comment.txt; then
+            echo "Already diagnosed"
+            exit 0
+          fi
+          BUILD_URL=$(grep -oE 'https://buildkite.com/elastic/elastic-cli/builds/[0-9]+' /tmp/comment.txt | head -n 1 || true)
+          : > /tmp/excerpt.txt
+          : > /tmp/context.txt
+          JOB_NAME='functional'
+          if [ -n "$BUILD_URL" ] && [ -n "${BUILDKITE_API_TOKEN:-}" ]; then
+            if node /tmp/repair-loop.mjs fetch-bk-failure "$BUILD_URL" /tmp/bk-fail.json; then
+              JOB_NAME=$(jq -r '.jobName // "functional"' /tmp/bk-fail.json)
+              jq -r '.summary // empty' /tmp/bk-fail.json > /tmp/excerpt.txt
+              jq -r '.context // .summary // empty' /tmp/bk-fail.json > /tmp/context.txt
+            fi
+          fi
+          if [ ! -s /tmp/context.txt ]; then
+            cp /tmp/comment.txt /tmp/context.txt
+          fi
+          node /tmp/repair-loop.mjs cited-paths /tmp/context.txt > /tmp/cited.json
           META=$(gh pr view "$PR" --json isDraft,headRefOid,headRepository,headRepositoryOwner,isCrossRepository)
           DRAFT=$(printf '%s' "$META" | jq -r '.isDraft')
           HEAD_SHA=$(printf '%s' "$META" | jq -r '.headRefOid // empty')
@@ -89,31 +124,53 @@ jobs:
           SAME_REPO="$SAME_REPO" SKIP_LOOP="$SKIP_LOOP" STOP_REPAIR="$STOP_REPAIR" AUTO_LOOP="$AUTO_LOOP" BOT_COMMITS="$BOT_COMMITS" \
             node /tmp/repair-loop.mjs should-fix > /tmp/decision.json || true
           FIX=0
+          PIN_STOP=0
           if jq -e '.ok == true' /tmp/decision.json >/dev/null; then FIX=1; fi
+          TRIAGE=0
+          if [ "$SAME_REPO" = 1 ] && [ "$STOP_REPAIR" != 1 ] && [ "$SKIP_LOOP" != 1 ]; then
+            TRIAGE=1
+          fi
+          if [ "$STOP_REPAIR" = 1 ] && [ "$SKIP_LOOP" = 0 ]; then PIN_STOP=1; fi
           {
             echo "pr=${PR}"
             echo "head_sha=${HEAD_SHA}"
+            echo "job_name=${JOB_NAME}"
+            echo "build_url=${BUILD_URL}"
             echo "fix=${FIX}"
+            echo "triage=${TRIAGE}"
+            echo "pin_stop=${PIN_STOP}"
           } >> "$GITHUB_OUTPUT"
-          if [ "$STOP_REPAIR" = 1 ] && [ "$SKIP_LOOP" = 0 ]; then
-            gh pr edit "$PR" --add-label skip-auto-loop || true
-            gh pr comment "$PR" --body "Repair loop stopped (\`/stop\`). Added \`skip-auto-loop\`."
-          fi
+
+      - name: Pin stop
+        if: steps.diag.outputs.pin_stop == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ steps.diag.outputs.pr }}
+        run: |
+          set -euo pipefail
+          gh pr edit "$PR" --add-label skip-auto-loop || true
+          gh pr comment "$PR" --body "Repair loop stopped (\`/stop\`). Added \`skip-auto-loop\`."
 
       - name: Propose in-repo fix
         id: propose
-        if: steps.diag.outputs.fix == '1' && steps.diag.outputs.pr != ''
+        if: steps.diag.outputs.triage == '1' && steps.diag.outputs.pr != ''
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENROUTER_BASE_URL: ${{ secrets.OPENROUTER_BASE_URL }}
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           PR: ${{ steps.diag.outputs.pr }}
+          JOB_NAME: ${{ steps.diag.outputs.job_name }}
+          BUILD_URL: ${{ steps.diag.outputs.build_url }}
           HEAD_SHA: ${{ steps.diag.outputs.head_sha }}
+          CAN_FIX: ${{ steps.diag.outputs.fix }}
         run: |
           set -euo pipefail
+          echo "apply=0" >> "$GITHUB_OUTPUT"
+          echo "rerun=0" >> "$GITHUB_OUTPUT"
           if [ -z "${OPENROUTER_API_KEY:-}" ]; then
-            echo "OPENROUTER_API_KEY missing, diagnosis comment only"
+            echo "OPENROUTER_API_KEY missing"
             exit 0
           fi
           BASE_URL="${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
@@ -124,6 +181,12 @@ jobs:
               exit 0
               ;;
           esac
+          CONTEXT=$(cat /tmp/context.txt 2>/dev/null || true)
+          PR_FILES=$(gh api --paginate "repos/${GH_REPO}/pulls/${PR}/files" --jq '.[] | .filename' | head -n 80 || true)
+          PATHS=$(jq -r '.[]' /tmp/cited.json)
+          if [ -z "$PATHS" ]; then
+            PATHS=$(printf '%s\n' "$PR_FILES" | grep -E '^(src/|test/|packages/)' | grep -vE 'src/es/apis/|src/kb/apis|api-manifest' | head -n 6 || true)
+          fi
           FILES=""
           while IFS= read -r path; do
             [ -z "$path" ] && continue
@@ -142,21 +205,25 @@ jobs:
           === ${path} ===
           ${CONTENT}
           "
-          done < <(jq -r '.[]' /tmp/cited.json)
-          LOG_TAIL=$(tail -n 120 /tmp/job.log | head -c 16000 || true)
+          done < <(printf '%s\n' "$PATHS")
           printf '%s\n' \
-            "You repair one Buildkite functional failure in elastic/cli." \
-            "Take the first failed job only." \
-            "If the fix is in this repo, return file replacements." \
-            "If the cause is the spec, generator, CI infra, Cloud QA, or a flake, set stop=true and changes=[]." \
-            "Do not edit generated API files or .github/workflows/." \
+            "You triage one Buildkite functional failure in elastic/cli." \
+            "Write a short comment with what failed (which tests or setup error) and the resolution. Do not paste logs." \
+            "fix: in-repo change. Return full file replacements." \
+            "rerun: flake or infra. Do not change tests to hide it." \
+            "stop: cannot fix and a rerun will not help." \
+            "Do not skip tests or weaken assertions." \
+            "Do not edit generated API files, .github/, or .buildkite/." \
             "Respond with ONLY a JSON object:" \
-            '{"stop":false,"comment":"short diagnosis","commit_message":"fix: short","changes":[{"file":"src/foo.ts","content":"full file"}]}' \
+            '{"action":"fix","comment":"What failed: ...\\nResolution: change FILE to ...","commit_message":"fix: short","changes":[{"file":"src/foo.ts","content":"full file"}]}' \
             "" \
-            "FAILED BUILDKITE JOB:" \
-            "$LOG_TAIL" \
+            "FAILED JOB: ${JOB_NAME}" \
+            "$CONTEXT" \
             "" \
-            "CITED FILES:" \
+            "PR FILES:" \
+            "$PR_FILES" \
+            "" \
+            "FILE CONTENTS:" \
             "$FILES" \
             > /tmp/prompt.txt
           curl -s -o /tmp/response.json \
@@ -176,17 +243,36 @@ jobs:
           printf '%s' "$CONTENT" > /tmp/model-raw.txt
           node /tmp/repair-loop.mjs parse-changes /tmp/model-raw.txt > /tmp/parsed.json
           COMMENT=$(jq -r '.comment // empty' /tmp/parsed.json)
+          ACTION=$(jq -r '.action // empty' /tmp/parsed.json)
           if [ -n "$COMMENT" ]; then
-            gh pr comment "$PR" --body "$COMMENT"
+            COMMENT_TAG='<!-- bk-repair-loop -->'
+            BODY=$(printf '%s\n' "$COMMENT_TAG" "$COMMENT" "" "Build: ${BUILD_URL}")
+            EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+              --jq ".[] | select((.user.login == \"github-actions[bot]\" or .user.login == \"elastic-vault-github-plugin-prod[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \
+              | head -n 1 || true)
+            if [ -n "$EXISTING" ]; then
+              gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" -f body="$BODY"
+            else
+              gh pr comment "$PR" --body "$BODY"
+            fi
           fi
-          if jq -e '.stop == true or (.changes | length) == 0' /tmp/parsed.json >/dev/null; then
-            echo "Model stopped or proposed no changes"
-            echo "apply=0" >> "$GITHUB_OUTPUT"
+          if [ "$ACTION" = "fix" ] && [ "$CAN_FIX" = "1" ] && jq -e '(.changes | length) > 0' /tmp/parsed.json >/dev/null; then
+            echo "apply=1" >> "$GITHUB_OUTPUT"
+            mkdir -p .repair-loop
+            cp /tmp/parsed.json .repair-loop/
             exit 0
           fi
-          echo "apply=1" >> "$GITHUB_OUTPUT"
-          mkdir -p .repair-loop
-          cp /tmp/parsed.json .repair-loop/
+          if [ "$ACTION" != "rerun" ]; then
+            echo "No apply or rerun"
+            exit 0
+          fi
+          gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+            --jq '.[] | .body // empty' > /tmp/all-comments.txt || true
+          if grep -q '<!-- bk-rerun -->' /tmp/all-comments.txt; then
+            echo "Already rebuilt once"
+            exit 0
+          fi
+          echo "rerun=1" >> "$GITHUB_OUTPUT"
 
       - name: Upload parsed patch
         if: steps.propose.outputs.apply == '1'
@@ -236,3 +322,35 @@ jobs:
           fi
           BRANCH=$(gh pr view "$PR" --json headRefName --jq '.headRefName')
           BRANCH="$BRANCH" node scripts/repair-loop.mjs apply-github /tmp/repair-loop/parsed.json
+
+  rerun:
+    needs: repair
+    if: needs.repair.outputs.rerun == '1' && needs.repair.outputs.pr != '' && needs.repair.outputs.build_url != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout default branch tools
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Rebuild Buildkite
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ needs.repair.outputs.pr }}
+          BUILD_URL: ${{ needs.repair.outputs.build_url }}
+          BUILDKITE_API_TOKEN: ${{ secrets.BUILDKITE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ ! -f scripts/repair-loop.mjs ]; then
+            echo "scripts/repair-loop.mjs missing on default branch"
+            exit 0
+          fi
+          if node scripts/repair-loop.mjs rebuild-bk "$BUILD_URL"; then
+            gh pr comment "$PR" --body "$(printf '%s\n' '<!-- bk-rerun -->' 'Resolution: rebuilt the failed Buildkite jobs.')"
+            exit 0
+          fi
+          gh pr comment "$PR" --body "$(printf '%s\n' '<!-- bk-rerun -->' 'Resolution: Buildkite rebuild failed.')"

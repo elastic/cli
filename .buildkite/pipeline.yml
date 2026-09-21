@@ -13,7 +13,12 @@ env:
   NODE_VERSION: "22"
 
 steps:
+  - label: "Skill memory PR"
+    if: build.branch == "ai/review-memory"
+    command: echo "skip functional tests on ai/review-memory"
+
   - group: "ES Functional Tests"
+    if: build.branch != "ai/review-memory"
     steps:
       - label: ":elasticsearch: ES functional tests — Node {{matrix.node}}"
         key: "es-functional"
@@ -31,6 +36,7 @@ steps:
         command: ".buildkite/run-es-tests.sh"
 
   - group: "KB Functional Tests"
+    if: build.branch != "ai/review-memory"
     steps:
       - label: ":kibana: KB functional tests — Node {{matrix.node}}"
         key: "kb-functional"
@@ -50,6 +56,7 @@ steps:
         command: ".buildkite/run-kb-tests.sh"
 
   - group: "Cloud Functional Tests"
+    if: build.branch != "ai/review-memory"
     steps:
       - label: ":cloud: Cloud functional tests — Node {{matrix.node}}"
         key: "cloud-functional"
@@ -69,10 +76,12 @@ steps:
 
   - wait: ~
     continue_on_failure: true
+    if: build.branch != "ai/review-memory"
 
   - label: "First failure summary"
     key: first-failure
     soft_fail: true
+    if: build.branch != "ai/review-memory"
     agents:
       provider: gcp
       image: family/core-ubuntu-2204

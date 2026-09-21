@@ -56,7 +56,7 @@ jobs:
           esac
           PR=$(gh api -H "Accept: application/vnd.github+json" \
             "repos/${GH_REPO}/commits/${HEAD_SHA}/pulls" \
-            --jq "[.[]? | select(.state == \"open\" and .head.sha == \"${HEAD_SHA}\") | .number][0] // empty")
+            --jq "[.[]? | select(.state == \"open\") | .number][0] // empty")
           if [ -z "$PR" ]; then
             echo "No open PR for ${HEAD_SHA}"
             exit 0
@@ -64,6 +64,11 @@ jobs:
           CROSS=$(gh pr view "$PR" --json isCrossRepository --jq '.isCrossRepository')
           if [ "$CROSS" = true ]; then
             echo "Fork PR"
+            exit 0
+          fi
+          gh pr view "$PR" --json headRefName,labels > /tmp/pr-meta.json
+          if [ -s /tmp/repair-loop.mjs ] && node /tmp/repair-loop.mjs is-memory-pr /tmp/pr-meta.json; then
+            echo "Memory skill PR"
             exit 0
           fi
           COMMENT_TAG='<!-- bk-repair-loop -->'
@@ -77,13 +82,13 @@ jobs:
           fi
           BODY=$(printf '%s\n' \
             "$COMMENT_TAG" \
-            "First Buildkite failure: **${JOB_NAME}**" \
+            "**${JOB_NAME}** failed." \
             "" \
-            "Build: ${BUILD_URL:-}" \
-            "" \
-            '```' \
             "$SUMMARY" \
-            '```')
+            "" \
+            "Resolution: triaging." \
+            "" \
+            "Build: ${BUILD_URL:-}")
           EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
             --jq ".[] | select((.user.login == \"github-actions[bot]\" or .user.login == \"elastic-vault-github-plugin-prod[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \
             | head -n 1 || true)

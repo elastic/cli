@@ -18,6 +18,11 @@ import {
   downloadJobLog,
   downloadBkFirstFailure,
   extractBkFailureExcerpt,
+  extractBkFailureContext,
+  rebuildBkBuild,
+  extractGhaFailureExcerpt,
+  extractGhaFailureContext,
+  stripGhaLog,
   stripBkLog,
   parseBkBuildUrl,
   jobLogUrl,
@@ -34,6 +39,7 @@ import {
   positiveInt,
   reviewCommentPrNumber,
   pickSkillMemoryPr,
+  isMemorySkillPr,
   isFailedConclusion,
   memoryEntry,
   memoryLineFromModel,
@@ -212,6 +218,38 @@ describe('downloadBkFirstFailure', () => {
     assert.equal(extractBkFailureExcerpt(many).split('\n').length, 20)
   })
 
+  it('keeps the assertion after FAIL and setup errors when no FAIL line exists', () => {
+    const testLog = [
+      '+++ Running ES functional tests',
+      'FAIL: expected hits.total.value = 1; got 0',
+      '  response: {"hits":{"total":{"value":0}}}',
+      'Results: 340 passed, 1 failed',
+      '  FAIL: indices/10_basic.yml',
+      '--- Cleaning up',
+      'Error: The command exited with status 1',
+    ].join('\n')
+    assert.equal(
+      extractBkFailureExcerpt(testLog),
+      [
+        'FAIL: expected hits.total.value = 1; got 0',
+        '  response: {"hits":{"total":{"value":0}}}',
+        'Results: 340 passed, 1 failed',
+        '  FAIL: indices/10_basic.yml',
+      ].join('\n'),
+    )
+    assert.equal(extractBkFailureExcerpt(testLog).includes('command exited'), false)
+    assert.equal(extractBkFailureContext(testLog).startsWith('FAIL: expected hits.total.value = 1; got 0'), true)
+    const setup = [
+      '--- Waiting for Elasticsearch to be healthy',
+      'Elasticsearch did not become healthy in time',
+      'Error: The command exited with status 1',
+    ].join('\n')
+    assert.equal(
+      extractBkFailureExcerpt(setup),
+      'Elasticsearch did not become healthy in time\nError: The command exited with status 1',
+    )
+  })
+
   it('returns null without a token or when the build request fails', async () => {
     assert.equal(await downloadBkFirstFailure({ token: '', org: 'elastic', pipeline: 'elastic-cli', build: '1' }), null)
     assert.equal(await downloadBkFirstFailure({
@@ -221,6 +259,107 @@ describe('downloadBkFirstFailure', () => {
       build: '1',
       fetchImpl: async () => ({ ok: false, json: async () => ({}) }),
     }), null)
+  })
+
+  it('skips waiter jobs and does not fall back to job name FAIL', async () => {
+    const result = await downloadBkFirstFailure({
+      token: 't',
+      org: 'elastic',
+      pipeline: 'elastic-cli',
+      build: '1336',
+      delayMs: 0,
+      fetchImpl: async (url) => {
+        if (String(url).endsWith('/builds/1336')) {
+          return {
+            ok: true,
+            json: async () => ({
+              jobs: [
+                { id: 'wait', name: 'wait', state: 'failed', type: 'waiter' },
+                { id: 'es-24', name: ':elasticsearch: ES functional tests - Node 24', state: 'failed', type: 'script' },
+              ],
+            }),
+          }
+        }
+        return { ok: true, json: async () => ({ content: '' }) }
+      },
+    })
+    assert.equal(result.jobName, ':elasticsearch: ES functional tests - Node 24')
+    assert.equal(result.summary, 'Job log not available yet')
+    assert.equal(result.summary.includes(': FAIL'), false)
+  })
+
+  it('rebuilds a build with PUT', async () => {
+    let captured
+    const ok = await rebuildBkBuild({
+      token: 't',
+      org: 'elastic',
+      pipeline: 'elastic-cli',
+      build: '1336',
+      fetchImpl: async (url, init) => {
+        captured = { url, init }
+        return { ok: true, json: async () => ({}) }
+      },
+    })
+    assert.equal(ok, true)
+    assert.equal(captured.url, 'https://api.buildkite.com/v2/organizations/elastic/pipelines/elastic-cli/builds/1336/rebuild')
+    assert.equal(captured.init.method, 'PUT')
+    assert.equal(captured.init.redirect, 'error')
+    assert.equal(await rebuildBkBuild({ token: '', org: 'elastic', pipeline: 'elastic-cli', build: '1' }), false)
+    assert.equal(await rebuildBkBuild({ token: 't', org: 'elastic', pipeline: 'elastic-cli', build: '../1' }), false)
+  })
+})
+
+describe('extractGhaFailureExcerpt', () => {
+  it('keeps Incorrect lines and drops Correct plus post job cleanup', () => {
+    const log = [
+      '2026-09-18T17:25:11.0000000Z SPDX license header check',
+      '2026-09-18T17:25:11.1000000Z Incorrect: packages/agent-env/src/index.ts',
+      '2026-09-18T17:25:11.2000000Z Incorrect: packages/agent-env/../evil.ts',
+      ...Array.from({ length: 80 }, (_, i) => `2026-09-18T17:25:11.${String(300 + i).padStart(7, '0')}Z Correct: test/file-${i}.ts`),
+      '2026-09-18T17:25:11.7414082Z ##[error]Process completed with exit code 1.',
+      '2026-09-18T17:25:11.7530424Z Post job cleanup.',
+      '2026-09-18T17:25:11.9041707Z Cleaning up orphan processes',
+    ].join('\n')
+    assert.equal(
+      extractGhaFailureExcerpt(log),
+      'Incorrect: packages/agent-env/src/index.ts\nIncorrect: packages/agent-env/../evil.ts',
+    )
+    assert.equal(extractGhaFailureExcerpt(log).includes('Correct:'), false)
+    assert.equal(extractGhaFailureExcerpt(log).includes('Post job cleanup'), false)
+    assert.equal(stripGhaLog('2026-09-18T17:25:11.5825962Z Incorrect: src/a.ts'), 'Incorrect: src/a.ts')
+    assert.equal(extractGhaFailureExcerpt(''), '')
+    assert.equal(extractGhaFailureExcerpt('Correct: src/a.ts\nCorrect: src/b.ts'), '')
+    assert.equal(
+      extractGhaFailureContext(log).startsWith('Incorrect: packages/agent-env/src/index.ts'),
+      true,
+    )
+  })
+
+  it('keeps bun and node test fail lines, not passing Error output', () => {
+    const bun = [
+      '(pass) watch command > filters using --query [1.11ms]',
+      'Error: connection refused',
+      '(fail) installer > upgradeExtension > rejects a stored entrypoint that is a symlink escaping the install directory after npm update (#500) [30001.77ms]',
+      '  ^ this test timed out after 30000ms, before its done callback was called.',
+      '(fail) installer > installExtension -- --ignore-scripts > passes --ignore-scripts and a scrubbed env when installing an npm extension [5.97ms]',
+      '4 tests failed:',
+      'Post job cleanup.',
+    ].join('\n')
+    const excerpt = extractGhaFailureExcerpt(bun)
+    assert.equal(excerpt.includes('(fail) installer > upgradeExtension'), true)
+    assert.equal(excerpt.includes('this test timed out'), true)
+    assert.equal(excerpt.includes('4 tests failed:'), true)
+    assert.equal(excerpt.includes('Error: connection refused'), false)
+    assert.equal(excerpt.includes('(pass)'), false)
+    const node = [
+      '✔ checkCloud (3.14ms)',
+      '✖ failing tests:',
+      '✖ resolves object values concurrently, not sequentially (701.2748ms)',
+      '  AssertionError [ERR_ASSERTION]: expected parallel <82ms (1.5x avg single), took 100ms',
+    ].join('\n')
+    assert.equal(extractGhaFailureExcerpt(node).includes('resolves object values concurrently'), true)
+    assert.equal(extractGhaFailureExcerpt(node).includes('AssertionError'), true)
+    assert.equal(extractGhaFailureExcerpt(node).includes('checkCloud'), false)
   })
 })
 
@@ -427,6 +566,11 @@ describe('review-no memory', () => {
     assert.equal(pickSkillMemoryPr([unlabeled]), null)
     assert.equal(pickSkillMemoryPr([{ ...skill, isCrossRepository: true }]), null)
     assert.equal(pickSkillMemoryPr([{ number: 2, headRefName: 'main', files: skill.files }], { defaultBranch: 'main' }), null)
+    assert.equal(isMemorySkillPr(named), true)
+    assert.equal(isMemorySkillPr(skill), true)
+    assert.equal(isMemorySkillPr(other), false)
+    assert.equal(isMemorySkillPr({ head: { ref: 'ai/review-memory' } }), true)
+    assert.equal(isMemorySkillPr(null), false)
     const skillRefFilter = '[.[] | select(.isCrossRepository != true and .headRefName != $def and (((.labels // []) | any(.name == "ai-review-memory")) or (.author.login // "") == "github-actions" or (.author.login // "") == "github-actions[bot]"))] | (map(select(.headRefName == "ai/review-memory")) + map(select((.files // []) | length > 0 and all(.path == ".github/skills/ai-review-memory.md"))))[0].headRefName // empty'
     const jqSkill = (rows) => execFileSync('jq', ['-r', '--arg', 'def', 'main', skillRefFilter], {
       input: JSON.stringify(rows),
@@ -465,8 +609,15 @@ describe('parseAgentResponse', () => {
   it('extracts JSON wrapped in prose', () => {
     const parsed = parseAgentResponse('here\n```json\n{"stop":false,"comment":"ok","commit_message":"fix: n","changes":[]}\n```')
     assert.equal(parsed.stop, false)
+    assert.equal(parsed.action, 'stop')
     assert.equal(parsed.comment, 'ok')
     assert.deepEqual(parsed.changes, [])
+    const fix = parseAgentResponse('{"action":"fix","comment":"add SPDX","commit_message":"fix: n","changes":[{"file":"src/foo.ts","content":"x"}]}')
+    assert.equal(fix.action, 'fix')
+    assert.equal(fix.comment, 'add SPDX')
+    const rerun = parseAgentResponse('{"action":"rerun","comment":"What failed: timing\\nResolution: rerun CI","changes":[]}')
+    assert.equal(rerun.action, 'rerun')
+    assert.equal(rerun.stop, false)
   })
 
   it('rejects missing JSON, bad changes, and unsafe paths', () => {
@@ -508,13 +659,13 @@ describe('shouldAttemptFix', () => {
     assert.equal(hasBkRepairTag(null), false)
   })
 
-  it('requires same-repo auto-loop under the bot cap', () => {
-    assert.deepEqual(shouldAttemptFix({ sameRepo: true, autoLoop: true, botCommits: 0 }), { ok: true, reason: 'ok' })
-    assert.equal(shouldAttemptFix({ sameRepo: false, autoLoop: true }).ok, false)
-    assert.equal(shouldAttemptFix({ sameRepo: true, skipLoop: true, autoLoop: true }).reason, 'skip-auto-loop')
-    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, stopRepair: true }).reason, 'stop')
-    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: false }).reason, 'no auto-loop')
-    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, botCommits: 2 }).reason, 'bot commit cap')
+  it('requires same-repo under the bot cap', () => {
+    assert.deepEqual(shouldAttemptFix({ sameRepo: true, botCommits: 0 }), { ok: true, reason: 'ok' })
+    assert.equal(shouldAttemptFix({ sameRepo: false }).ok, false)
+    assert.equal(shouldAttemptFix({ sameRepo: true, skipLoop: true }).reason, 'skip-auto-loop')
+    assert.equal(shouldAttemptFix({ sameRepo: true, stopRepair: true }).reason, 'stop')
+    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: false }).ok, true)
+    assert.equal(shouldAttemptFix({ sameRepo: true, botCommits: 2 }).reason, 'bot commit cap')
   })
 })
 

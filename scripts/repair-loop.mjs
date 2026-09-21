@@ -70,16 +70,128 @@ export function stripBkLog (text) {
     .replace(/\r/g, '')
 }
 
-export function extractBkFailureExcerpt (log, maxChars = 2000) {
-  const cap = Number.isInteger(maxChars) && maxChars > 0 ? maxChars : 2000
-  const lines = stripBkLog(log).split('\n').filter((line) => /^(?: {2})?(FAIL:|Results:)/.test(line))
-  return lines.slice(0, 20).join('\n').trim().slice(0, cap)
+function isBkTestFailLine (line) {
+  return /^(?: {2})?(FAIL: |Results: )/.test(line)
 }
 
-export async function downloadBkFirstFailure ({ token, org, pipeline, build, fetchImpl = fetch, maxChars = 8000 }) {
+function isBkSetupFailLine (line) {
+  return /did not become healthy/.test(line)
+    || /Error: The command exited/.test(line)
+    || /^npm ERR!/.test(line)
+}
+
+export function extractBkFailureExcerpt (log, maxChars = 2000) {
+  const cap = Number.isInteger(maxChars) && maxChars > 0 ? maxChars : 2000
+  const lines = stripBkLog(log).split('\n')
+  const hits = []
+  let take = 0
+  for (const line of lines) {
+    if (isBkTestFailLine(line)) {
+      hits.push(line)
+      take = /^FAIL: /.test(line) ? 2 : 0
+      continue
+    }
+    if (take > 0) {
+      if (/^ {2}/.test(line) && !isBkTestFailLine(line)) {
+        hits.push(line)
+        take -= 1
+        continue
+      }
+      take = 0
+    }
+  }
+  if (hits.length > 0) return hits.slice(0, 20).join('\n').trim().slice(0, cap)
+  return lines.filter(isBkSetupFailLine).slice(0, 20).join('\n').trim().slice(0, cap)
+}
+
+export function extractBkFailureContext (log, maxChars = 4000) {
+  const cap = Number.isInteger(maxChars) && maxChars > 0 ? maxChars : 4000
+  const lines = stripBkLog(log).split('\n')
+  const cut = lines.findIndex((line) => /^--- Cleaning up/.test(line))
+  const body = cut >= 0 ? lines.slice(0, cut) : lines
+  const i = body.findIndex((line) => isBkTestFailLine(line) || isBkSetupFailLine(line))
+  if (i === -1) return extractBkFailureExcerpt(log, cap)
+  return body.slice(i, i + 40).join('\n').trim().slice(0, cap)
+}
+
+function firstFailedBkJob (jobs) {
+  if (!Array.isArray(jobs)) return null
+  const failed = jobs.filter((job) => job && (job.state === 'failed' || isFailedConclusion(job.conclusion)))
+  const skip = new Set(['waiter', 'manual', 'trigger', 'group'])
+  return failed.find((job) => !skip.has(job.type)) ?? failed[0] ?? null
+}
+
+function bkFailureSummary (excerpt, log) {
+  if (excerpt) return excerpt
+  return log ? 'Job log had no FAIL lines' : 'Job log not available yet'
+}
+
+export function stripGhaLog (text) {
+  if (typeof text !== 'string') return ''
+  return text.replace(/^\d{4}-\d{2}-\d{2}T[0-9:.]+Z /gm, '').replace(/\r/g, '')
+}
+
+const GHA_NOISE = /^(Correct: |\(pass\)|Post job cleanup|\[command\]|Temporarily overriding HOME|Adding repository directory|##\[group\]|##\[endgroup\]|Cleaning up orphan)/
+
+function isGhaFailLine (line) {
+  return /^(Incorrect: |\(fail\)|FAIL: |✖ failing tests|AssertionError|\d+ tests failed)/.test(line)
+    || /^ {2}\^ this test timed out/.test(line)
+}
+
+export function extractGhaFailureExcerpt (log, maxChars = 2000) {
+  const cap = Number.isInteger(maxChars) && maxChars > 0 ? maxChars : 2000
+  const lines = stripGhaLog(log).split('\n')
+  const cut = lines.findIndex((line) => /^Post job cleanup/.test(line) || /^##\[error\]Process completed/.test(line))
+  const body = cut >= 0 ? lines.slice(0, cut) : lines
+  const hits = []
+  let take = 0
+  for (const line of body) {
+    if (/^✖ failing tests/.test(line) || /^\d+ tests failed/.test(line)) {
+      hits.push(line)
+      take = 12
+      continue
+    }
+    if (isGhaFailLine(line)) {
+      hits.push(line)
+      continue
+    }
+    if (take > 0) {
+      if (line.trim() === '' || /^ℹ /.test(line) || /^ {2}\d+ pass/.test(line)) {
+        take = 0
+        continue
+      }
+      hits.push(line)
+      take -= 1
+    }
+  }
+  return hits.slice(0, 30).join('\n').trim().slice(0, cap)
+}
+
+export function extractGhaFailureContext (log, maxChars = 4000) {
+  const cap = Number.isInteger(maxChars) && maxChars > 0 ? maxChars : 4000
+  const lines = stripGhaLog(log).split('\n')
+  const cut = lines.findIndex((line) => /^Post job cleanup/.test(line))
+  const body = (cut >= 0 ? lines.slice(0, cut) : lines).filter((line) => !GHA_NOISE.test(line))
+  const i = body.findIndex((line) => isGhaFailLine(line) || /ELIFECYCLE|not found|Cannot find/.test(line))
+  if (i === -1) return extractGhaFailureExcerpt(log, cap)
+  return body.slice(i, i + 40).join('\n').trim().slice(0, cap)
+}
+
+export async function downloadBkFirstFailure ({
+  token,
+  org,
+  pipeline,
+  build,
+  fetchImpl = fetch,
+  maxChars = 8000,
+  retries = 3,
+  delayMs = 2000,
+  sleepImpl,
+} = {}) {
   if (typeof token !== 'string' || token === '') return null
   if (typeof org !== 'string' || typeof pipeline !== 'string' || typeof build !== 'string') return null
   if (!/^[A-Za-z0-9_.-]+$/.test(org) || !/^[A-Za-z0-9_.-]+$/.test(pipeline) || !/^\d+$/.test(build)) return null
+  const sleep = sleepImpl ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)))
   const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json' }
   const buildRes = await fetchImpl(
     `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}`,
@@ -87,30 +199,56 @@ export async function downloadBkFirstFailure ({ token, org, pipeline, build, fet
   )
   if (!buildRes || buildRes.ok !== true) return null
   const data = await buildRes.json()
-  const job = firstFailedJob({ jobs: data?.jobs })
+  const job = firstFailedBkJob(data?.jobs)
   if (!job?.id) {
     return {
       jobName: 'functional',
       summary: `${pipeline} #${build} failed`,
+      excerpt: '',
+      context: '',
       log: '',
     }
   }
+  const logUrl = `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}/jobs/${encodeURIComponent(String(job.id))}/log`
   let log = ''
-  const logRes = await fetchImpl(
-    `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}/jobs/${encodeURIComponent(String(job.id))}/log`,
-    { headers, redirect: 'follow' },
-  )
-  if (logRes && logRes.ok === true) {
-    const body = await logRes.json()
-    if (typeof body?.content === 'string') log = body.content
+  const attempts = Number.isInteger(retries) && retries > 0 ? retries : 1
+  for (let i = 0; i < attempts; i++) {
+    const logRes = await fetchImpl(logUrl, { headers, redirect: 'follow' })
+    if (logRes && logRes.ok === true) {
+      const body = await logRes.json()
+      if (typeof body?.content === 'string' && body.content !== '') {
+        log = body.content
+        break
+      }
+    }
+    if (i < attempts - 1 && delayMs > 0) await sleep(delayMs)
   }
   const excerpt = extractBkFailureExcerpt(log, maxChars)
+  const context = extractBkFailureContext(log, 4000)
+  const summary = bkFailureSummary(excerpt, log)
   const jobName = typeof job.name === 'string' && job.name !== '' ? job.name : 'functional'
   return {
     jobName,
-    summary: excerpt || `${jobName}: FAIL`,
-    log: excerpt,
+    summary,
+    excerpt: excerpt || summary,
+    context: context || summary,
+    log: excerpt || summary,
   }
+}
+
+export async function rebuildBkBuild ({ token, org, pipeline, build, fetchImpl = fetch }) {
+  if (typeof token !== 'string' || token === '') return false
+  if (typeof org !== 'string' || typeof pipeline !== 'string' || typeof build !== 'string') return false
+  if (!/^[A-Za-z0-9_.-]+$/.test(org) || !/^[A-Za-z0-9_.-]+$/.test(pipeline) || !/^\d+$/.test(build)) return false
+  const res = await fetchImpl(
+    `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}/rebuild`,
+    {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      redirect: 'error',
+    },
+  )
+  return res?.ok === true
 }
 
 export function hasStopCommand (text) {
@@ -354,6 +492,14 @@ export function pickSkillMemoryPr (prs, { defaultBranch } = {}) {
     ?? null
 }
 
+export function isMemorySkillPr (pr) {
+  if (!pr || typeof pr !== 'object') return false
+  const ref = pr.headRefName ?? pr.head?.ref ?? ''
+  if (ref === 'ai/review-memory') return true
+  const labels = Array.isArray(pr.labels) ? pr.labels : []
+  return labels.some((label) => (typeof label === 'string' ? label : label?.name) === 'ai-review-memory')
+}
+
 export function appendMemorySkill (existing, entry) {
   const action = memoryActionItem(entry)
   const raw = typeof existing === 'string' ? existing : ''
@@ -439,8 +585,14 @@ export function parseAgentResponse (text) {
       throw new Error(`refusing path: ${change.file}`)
     }
   }
+  const stop = obj.stop === true
+  let action = obj.action
+  if (action !== 'fix' && action !== 'rerun' && action !== 'stop') {
+    action = stop || changes.length === 0 ? 'stop' : 'fix'
+  }
   return {
-    stop: obj.stop === true,
+    stop,
+    action,
     comment: typeof obj.comment === 'string' ? obj.comment : '',
     commit_message: safeCommitMessage(obj.commit_message),
     changes,
@@ -459,14 +611,12 @@ export function shouldAttemptFix ({
   sameRepo = false,
   skipLoop = false,
   stopRepair = false,
-  autoLoop = false,
   botCommits = 0,
   maxBotCommits = 2,
 } = {}) {
   if (!sameRepo) return { ok: false, reason: 'fork' }
   if (stopRepair) return { ok: false, reason: 'stop' }
   if (skipLoop) return { ok: false, reason: 'skip-auto-loop' }
-  if (!autoLoop) return { ok: false, reason: 'no auto-loop' }
   if (botCommits >= maxBotCommits) return { ok: false, reason: 'bot commit cap' }
   return { ok: true, reason: 'ok' }
 }
@@ -590,6 +740,26 @@ async function main (argv) {
       process.exit(ok ? 0 : 1)
       break
     }
+    case 'rebuild-bk': {
+      const parsed = parseBkBuildUrl(args[0])
+      const result = parsed
+        ? await rebuildBkBuild({
+          ...parsed,
+          token: process.env.BUILDKITE_API_TOKEN,
+        })
+        : false
+      process.stdout.write(JSON.stringify({ ok: result }) + '\n')
+      process.exit(result ? 0 : 1)
+      break
+    }
+    case 'bk-excerpt': {
+      writeFileSync(args[1], extractBkFailureExcerpt(readFileSync(args[0], 'utf8')))
+      break
+    }
+    case 'bk-context': {
+      writeFileSync(args[1], extractBkFailureContext(readFileSync(args[0], 'utf8')))
+      break
+    }
     case 'fetch-bk-failure': {
       const parsed = parseBkBuildUrl(args[0])
       const result = parsed
@@ -600,6 +770,14 @@ async function main (argv) {
         : null
       writeFileSync(args[1], JSON.stringify(result ?? {}))
       process.exit(result ? 0 : 1)
+      break
+    }
+    case 'gha-excerpt': {
+      writeFileSync(args[1], extractGhaFailureExcerpt(readFileSync(args[0], 'utf8')))
+      break
+    }
+    case 'gha-context': {
+      writeFileSync(args[1], extractGhaFailureContext(readFileSync(args[0], 'utf8')))
       break
     }
     case 'first-failure': {
@@ -672,6 +850,12 @@ async function main (argv) {
       process.exit(pr ? 0 : 1)
       break
     }
+    case 'is-memory-pr': {
+      const found = isMemorySkillPr(readJsonArg(args[0]))
+      process.stdout.write(JSON.stringify({ memory: found }) + '\n')
+      process.exit(found ? 0 : 1)
+      break
+    }
     case 'memory-append': {
       process.stdout.write(appendMemorySkill(readFileSync(args[0], 'utf8'), args[1] ?? ''))
       break
@@ -714,7 +898,6 @@ async function main (argv) {
         sameRepo: process.env.SAME_REPO === '1',
         skipLoop: process.env.SKIP_LOOP === '1',
         stopRepair: process.env.STOP_REPAIR === '1',
-        autoLoop: process.env.AUTO_LOOP === '1',
         botCommits: Number(process.env.BOT_COMMITS || '0'),
       })
       process.stdout.write(JSON.stringify(decision) + '\n')

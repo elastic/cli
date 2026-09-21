@@ -15,7 +15,9 @@ jobs:
   comment:
     if: >-
       github.event.pull_request.draft != true &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref != 'ai/review-memory' &&
+      !contains(github.event.pull_request.labels.*.name, 'ai-review-memory')
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -36,9 +38,9 @@ jobs:
             "👋 This PR can use the first-failure repair loop on GitHub Actions and Buildkite." \
             "" \
             "**Labels**" \
-            "- \`auto-loop\`: on a CI or Buildkite failure, the bot can push a fix" \
+            "- \`auto-loop\`: optional. Same-repo PRs already get a diagnosis and a fix commit" \
             "- \`skip-ai-review\`: silences the review bot" \
-            "- \`skip-auto-loop\`: added when you comment \`/stop\`" \
+            "- \`skip-auto-loop\`: halt the repair loop (also added when you comment \`/stop\`)" \
             "" \
             "**Comments**" \
             "- \`/stop\`: halt the repair loop" \

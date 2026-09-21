@@ -4,6 +4,11 @@ on:
   workflow_run:
     workflows: ["CI"]
     types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Failed CI run id
+        required: true
 
 permissions:
   actions: read
@@ -12,16 +17,17 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: ci-repair-loop-${{ github.event.workflow_run.head_sha }}
+  group: ci-repair-loop-${{ github.event.workflow_run.id || github.event.inputs.run_id }}
   cancel-in-progress: true
 
 jobs:
   repair:
     if: >-
-      github.event.workflow_run.conclusion == 'failure' &&
-      github.event.workflow_run.path == '.github/workflows/ci.yml' &&
-      (github.event.workflow_run.event == 'pull_request' ||
-       github.event.workflow_run.event == 'push')
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'failure' &&
+       github.event.workflow_run.path == '.github/workflows/ci.yml' &&
+       (github.event.workflow_run.event == 'pull_request' ||
+        github.event.workflow_run.event == 'push'))
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -30,7 +36,10 @@ jobs:
       pull-requests: write
     outputs:
       apply: ${{ steps.propose.outputs.apply }}
+      rerun: ${{ steps.propose.outputs.rerun }}
       pr: ${{ steps.diag.outputs.pr }}
+      head_sha: ${{ steps.diag.outputs.head_sha }}
+      run_id: ${{ steps.diag.outputs.run_id }}
     steps:
       - name: Checkout default branch tools
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -52,16 +61,48 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RUN_ID: ${{ github.event.workflow_run.id }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_ID: ${{ github.event.inputs.run_id || github.event.workflow_run.id }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           HEAD_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
         run: |
           set -euo pipefail
+          {
+            echo "pr="
+            echo "head_sha="
+            echo "job_name="
+            echo "job_url="
+            echo "run_url="
+            echo "run_id="
+            echo "fix=0"
+            echo "triage=0"
+            echo "pin_stop=0"
+          } >> "$GITHUB_OUTPUT"
           if [ ! -s /tmp/repair-loop.mjs ]; then
             echo "repair-loop.mjs unavailable"
-            echo "pr=" >> "$GITHUB_OUTPUT"
-            echo "fix=0" >> "$GITHUB_OUTPUT"
             exit 0
+          fi
+          if [ -z "${RUN_ID:-}" ]; then
+            echo "No run id"
+            exit 0
+          fi
+          if [ "${EVENT_NAME}" = workflow_dispatch ]; then
+            RUN_JSON=$(gh api "repos/${GH_REPO}/actions/runs/${RUN_ID}")
+            PATH_NAME=$(printf '%s' "$RUN_JSON" | jq -r '.path // empty')
+            CONCLUSION=$(printf '%s' "$RUN_JSON" | jq -r '.conclusion // empty')
+            EVENT=$(printf '%s' "$RUN_JSON" | jq -r '.event // empty')
+            if [ "$PATH_NAME" != '.github/workflows/ci.yml' ] || [ "$CONCLUSION" != failure ]; then
+              echo "Dispatch run is not a failed CI workflow"
+              exit 0
+            fi
+            if [ "$EVENT" != pull_request ] && [ "$EVENT" != push ]; then
+              echo "Dispatch run event is ${EVENT}"
+              exit 0
+            fi
+            HEAD_SHA=$(printf '%s' "$RUN_JSON" | jq -r '.head_sha // empty')
+            HEAD_REPO=$(printf '%s' "$RUN_JSON" | jq -r '.head_repository.full_name // empty')
+            RUN_URL=$(printf '%s' "$RUN_JSON" | jq -r '.html_url // empty')
           fi
           gh api "repos/${GH_REPO}/actions/runs/${RUN_ID}/jobs" \
             --jq '{jobs: (.jobs // [])}' > /tmp/jobs.json
@@ -82,10 +123,19 @@ jobs:
             fi
             sleep 2
           done
-          node /tmp/repair-loop.mjs cited-paths /tmp/job.log > /tmp/cited.json
+          node /tmp/repair-loop.mjs gha-excerpt /tmp/job.log /tmp/excerpt.txt
+          node /tmp/repair-loop.mjs gha-context /tmp/job.log /tmp/context.txt
+          node /tmp/repair-loop.mjs cited-paths /tmp/context.txt > /tmp/cited.json
           PR=$(gh api -H "Accept: application/vnd.github+json" \
             "repos/${GH_REPO}/commits/${HEAD_SHA}/pulls" \
-            --jq "[.[]? | select(.state == \"open\" and .head.sha == \"${HEAD_SHA}\") | .number][0] // empty")
+            --jq "[.[]? | select(.state == \"open\") | .number][0] // empty")
+          if [ -n "$PR" ]; then
+            gh pr view "$PR" --json headRefName,labels > /tmp/pr-meta.json
+            if node /tmp/repair-loop.mjs is-memory-pr /tmp/pr-meta.json; then
+              echo "Memory skill PR"
+              exit 0
+            fi
+          fi
           SAME_REPO=0
           if [ "$HEAD_REPO" = "$GH_REPO" ]; then SAME_REPO=1; fi
           SKIP_LOOP=0
@@ -113,13 +163,21 @@ jobs:
             echo "Job log empty"
             FIX=0
           fi
+          TRIAGE=0
+          if [ -n "$PR" ] && [ "$SAME_REPO" = 1 ] && [ "$STOP_REPAIR" != 1 ] && [ "$SKIP_LOOP" != 1 ] && [ -s /tmp/job.log ]; then
+            TRIAGE=1
+          fi
           if [ "$STOP_REPAIR" = 1 ] && [ "$SKIP_LOOP" = 0 ]; then PIN_STOP=1; fi
           {
             echo "pr=${PR}"
+            echo "head_sha=${HEAD_SHA}"
             echo "job_id=${JOB_ID}"
             echo "job_name=${JOB_NAME}"
             echo "job_url=${JOB_URL}"
+            echo "run_url=${RUN_URL}"
+            echo "run_id=${RUN_ID}"
             echo "fix=${FIX}"
+            echo "triage=${TRIAGE}"
             echo "pin_stop=${PIN_STOP}"
           } >> "$GITHUB_OUTPUT"
 
@@ -131,51 +189,41 @@ jobs:
           PR: ${{ steps.diag.outputs.pr }}
           JOB_NAME: ${{ steps.diag.outputs.job_name }}
           JOB_URL: ${{ steps.diag.outputs.job_url }}
-          RUN_URL: ${{ github.event.workflow_run.html_url }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_URL: ${{ steps.diag.outputs.run_url }}
           PIN_STOP: ${{ steps.diag.outputs.pin_stop }}
         run: |
           set -euo pipefail
           COMMENT_TAG='<!-- ci-repair-loop -->'
-          LOG_TAIL=$(tail -n 80 /tmp/job.log | head -c 8000 || true)
+          if [ -z "$PR" ]; then
+            echo "No PR, not opening an issue"
+            exit 0
+          fi
+          EXCERPT=$(cat /tmp/excerpt.txt 2>/dev/null || true)
           BODY=$(printf '%s\n' \
             "$COMMENT_TAG" \
-            "First failed job: **${JOB_NAME}**" \
+            "**${JOB_NAME}** failed." \
             "" \
-            "Run: ${RUN_URL}" \
-            "Job: ${JOB_URL}" \
+            "$EXCERPT" \
             "" \
-            '```' \
-            "$LOG_TAIL" \
-            '```')
-          if [ -n "$PR" ]; then
-            EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
-              --jq ".[] | select((.user.login == \"github-actions[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \
-              | head -n 1 || true)
-            if [ -n "$EXISTING" ]; then
-              gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" -f body="$BODY"
-            else
-              gh pr comment "$PR" --body "$BODY"
-            fi
+            "Resolution: triaging." \
+            "" \
+            "Job: ${JOB_URL}")
+          EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+            --jq ".[] | select((.user.login == \"github-actions[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \
+            | head -n 1 || true)
+          if [ -n "$EXISTING" ]; then
+            gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" -f body="$BODY"
           else
-            EXISTING=$(gh issue list --search "CI failed on main in:title" --state open \
-              --json number --jq '.[0].number // empty')
-            if [ -n "$EXISTING" ]; then
-              gh issue comment "$EXISTING" --body "$BODY"
-            else
-              gh issue create \
-                --title "CI failed on main: ${JOB_NAME}" \
-                --body "$BODY"
-            fi
+            gh pr comment "$PR" --body "$BODY"
           fi
-          if [ "${PIN_STOP:-0}" = "1" ] && [ -n "$PR" ]; then
+          if [ "${PIN_STOP:-0}" = "1" ]; then
             gh pr edit "$PR" --add-label skip-auto-loop || true
             gh pr comment "$PR" --body "Repair loop stopped (\`/stop\`). Added \`skip-auto-loop\`."
           fi
 
       - name: Propose in-repo fix
         id: propose
-        if: steps.diag.outputs.fix == '1' && steps.diag.outputs.pr != ''
+        if: steps.diag.outputs.triage == '1' && steps.diag.outputs.pr != ''
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENROUTER_BASE_URL: ${{ secrets.OPENROUTER_BASE_URL }}
@@ -183,11 +231,15 @@ jobs:
           GH_REPO: ${{ github.repository }}
           PR: ${{ steps.diag.outputs.pr }}
           JOB_NAME: ${{ steps.diag.outputs.job_name }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          JOB_URL: ${{ steps.diag.outputs.job_url }}
+          HEAD_SHA: ${{ steps.diag.outputs.head_sha }}
+          CAN_FIX: ${{ steps.diag.outputs.fix }}
         run: |
           set -euo pipefail
+          echo "apply=0" >> "$GITHUB_OUTPUT"
+          echo "rerun=0" >> "$GITHUB_OUTPUT"
           if [ -z "${OPENROUTER_API_KEY:-}" ]; then
-            echo "OPENROUTER_API_KEY missing, diagnosis comment only"
+            echo "OPENROUTER_API_KEY missing"
             exit 0
           fi
           BASE_URL="${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
@@ -198,6 +250,12 @@ jobs:
               exit 0
               ;;
           esac
+          CONTEXT=$(cat /tmp/context.txt 2>/dev/null || true)
+          PR_FILES=$(gh api --paginate "repos/${GH_REPO}/pulls/${PR}/files" --jq '.[] | .filename' | head -n 80 || true)
+          PATHS=$(jq -r '.[]' /tmp/cited.json)
+          if [ -z "$PATHS" ]; then
+            PATHS=$(printf '%s\n' "$PR_FILES" | grep -E '^(src/|test/|packages/)' | grep -vE 'src/es/apis/|src/kb/apis|api-manifest' | head -n 6 || true)
+          fi
           FILES=""
           while IFS= read -r path; do
             [ -z "$path" ] && continue
@@ -216,21 +274,25 @@ jobs:
           === ${path} ===
           ${CONTENT}
           "
-          done < <(jq -r '.[]' /tmp/cited.json)
-          LOG_TAIL=$(tail -n 120 /tmp/job.log | head -c 16000 || true)
+          done < <(printf '%s\n' "$PATHS")
           printf '%s\n' \
-            "You repair one GitHub Actions failure in elastic/cli." \
-            "Take the first failed job only." \
-            "If the fix is in this repo, return file replacements." \
-            "If the cause is the spec, generator, CI infra, or a flake, set stop=true and changes=[]." \
-            "Do not edit generated API files or .github/workflows/." \
+            "You triage one GitHub Actions failure in elastic/cli." \
+            "Write a short comment with what failed and the resolution. Do not paste logs." \
+            "fix: in-repo change. Return full file replacements." \
+            "rerun: flake or infra. Do not change tests to hide it." \
+            "stop: cannot fix and a rerun will not help." \
+            "Do not skip tests or weaken assertions." \
+            "Do not edit generated API files or .github/." \
             "Respond with ONLY a JSON object:" \
-            '{"stop":false,"comment":"short diagnosis","commit_message":"fix: short","changes":[{"file":"src/foo.ts","content":"full file"}]}' \
+            '{"action":"fix","comment":"What failed: ...\\nResolution: change FILE to ...","commit_message":"fix: short","changes":[{"file":"src/foo.ts","content":"full file"}]}' \
             "" \
             "FAILED JOB: ${JOB_NAME}" \
-            "$LOG_TAIL" \
+            "$CONTEXT" \
             "" \
-            "CITED FILES:" \
+            "PR FILES:" \
+            "$PR_FILES" \
+            "" \
+            "FILE CONTENTS:" \
             "$FILES" \
             > /tmp/prompt.txt
           curl -s -o /tmp/response.json \
@@ -250,17 +312,36 @@ jobs:
           printf '%s' "$CONTENT" > /tmp/model-raw.txt
           node /tmp/repair-loop.mjs parse-changes /tmp/model-raw.txt > /tmp/parsed.json
           COMMENT=$(jq -r '.comment // empty' /tmp/parsed.json)
+          ACTION=$(jq -r '.action // empty' /tmp/parsed.json)
           if [ -n "$COMMENT" ]; then
-            gh pr comment "$PR" --body "$COMMENT"
+            COMMENT_TAG='<!-- ci-repair-loop -->'
+            BODY=$(printf '%s\n' "$COMMENT_TAG" "$COMMENT" "" "Job: ${JOB_URL}")
+            EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+              --jq ".[] | select((.user.login == \"github-actions[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \
+              | head -n 1 || true)
+            if [ -n "$EXISTING" ]; then
+              gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" -f body="$BODY"
+            else
+              gh pr comment "$PR" --body "$BODY"
+            fi
           fi
-          if jq -e '.stop == true or (.changes | length) == 0' /tmp/parsed.json >/dev/null; then
-            echo "Model stopped or proposed no changes"
-            echo "apply=0" >> "$GITHUB_OUTPUT"
+          if [ "$ACTION" = "fix" ] && [ "$CAN_FIX" = "1" ] && jq -e '(.changes | length) > 0' /tmp/parsed.json >/dev/null; then
+            echo "apply=1" >> "$GITHUB_OUTPUT"
+            mkdir -p .repair-loop
+            cp /tmp/parsed.json .repair-loop/
             exit 0
           fi
-          echo "apply=1" >> "$GITHUB_OUTPUT"
-          mkdir -p .repair-loop
-          cp /tmp/parsed.json .repair-loop/
+          if [ "$ACTION" != "rerun" ]; then
+            echo "No apply or rerun"
+            exit 0
+          fi
+          gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+            --jq '.[] | .body // empty' > /tmp/all-comments.txt || true
+          if grep -q '<!-- ci-rerun -->' /tmp/all-comments.txt; then
+            echo "Already reran once"
+            exit 0
+          fi
+          echo "rerun=1" >> "$GITHUB_OUTPUT"
 
       - name: Upload parsed patch
         if: steps.propose.outputs.apply == '1'
@@ -301,7 +382,7 @@ jobs:
           GH_TOKEN: ${{ steps.fetch-token.outputs.token }}
           GH_REPO: ${{ github.repository }}
           PR: ${{ needs.repair.outputs.pr }}
-          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+          EXPECTED_SHA: ${{ needs.repair.outputs.head_sha }}
         run: |
           set -euo pipefail
           if [ ! -f scripts/repair-loop.mjs ]; then
@@ -310,3 +391,25 @@ jobs:
           fi
           BRANCH=$(gh pr view "$PR" --json headRefName --jq '.headRefName')
           BRANCH="$BRANCH" node scripts/repair-loop.mjs apply-github /tmp/repair-loop/parsed.json
+
+  rerun:
+    needs: repair
+    if: needs.repair.outputs.rerun == '1' && needs.repair.outputs.pr != '' && needs.repair.outputs.run_id != ''
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      pull-requests: write
+    steps:
+      - name: Rerun failed CI jobs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ needs.repair.outputs.pr }}
+          RUN_ID: ${{ needs.repair.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          if gh api -X POST "repos/${GH_REPO}/actions/runs/${RUN_ID}/rerun-failed-jobs"; then
+            gh pr comment "$PR" --body "$(printf '%s\n' '<!-- ci-rerun -->' 'Resolution: reran the failed CI jobs.')"
+            exit 0
+          fi
+          gh pr comment "$PR" --body "$(printf '%s\n' '<!-- ci-rerun -->' 'Resolution: CI rerun failed.')"
