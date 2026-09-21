@@ -76,6 +76,34 @@ export function extractBkFailureExcerpt (log, maxChars = 2000) {
   return lines.slice(0, 20).join('\n').trim().slice(0, cap)
 }
 
+export function stripGhaLog (text) {
+  if (typeof text !== 'string') return ''
+  return text.replace(/^\d{4}-\d{2}-\d{2}T[0-9:.]+Z /gm, '').replace(/\r/g, '')
+}
+
+const GHA_NOISE = /^(Correct: |Post job cleanup|\[command\]|Temporarily overriding HOME|Adding repository directory|##\[group\]|##\[endgroup\]|Cleaning up orphan)/
+const GHA_HIT = /^(Incorrect: |Error: |error TS|FAIL: |✖ |AssertionError|##\[error\])/
+
+export function extractGhaFailureExcerpt (log, maxChars = 2000) {
+  const cap = Number.isInteger(maxChars) && maxChars > 0 ? maxChars : 2000
+  const lines = stripGhaLog(log).split('\n')
+  const cut = lines.findIndex((line) => /^Post job cleanup/.test(line) || /^##\[error\]Process completed/.test(line))
+  const body = cut >= 0 ? lines.slice(0, cut) : lines
+  const hits = body.filter((line) => GHA_HIT.test(line) && !/^##\[error\]Process completed/.test(line))
+  if (hits.length > 0) return hits.slice(0, 30).join('\n').trim().slice(0, cap)
+  return body.filter((line) => line.trim() !== '' && !GHA_NOISE.test(line)).slice(-20).join('\n').trim().slice(0, cap)
+}
+
+export function extractGhaFailureContext (log, maxChars = 4000) {
+  const cap = Number.isInteger(maxChars) && maxChars > 0 ? maxChars : 4000
+  const lines = stripGhaLog(log).split('\n')
+  const cut = lines.findIndex((line) => /^Post job cleanup/.test(line))
+  const body = (cut >= 0 ? lines.slice(0, cut) : lines).filter((line) => !GHA_NOISE.test(line))
+  const i = body.findIndex((line) => GHA_HIT.test(line) || /ELIFECYCLE|not found|Cannot find/.test(line))
+  if (i === -1) return extractGhaFailureExcerpt(log, cap)
+  return body.slice(i, i + 40).join('\n').trim().slice(0, cap)
+}
+
 export async function downloadBkFirstFailure ({ token, org, pipeline, build, fetchImpl = fetch, maxChars = 8000 }) {
   if (typeof token !== 'string' || token === '') return null
   if (typeof org !== 'string' || typeof pipeline !== 'string' || typeof build !== 'string') return null
@@ -439,8 +467,14 @@ export function parseAgentResponse (text) {
       throw new Error(`refusing path: ${change.file}`)
     }
   }
+  const stop = obj.stop === true
+  let action = obj.action
+  if (action !== 'fix' && action !== 'stop') {
+    action = stop || changes.length === 0 ? 'stop' : 'fix'
+  }
   return {
-    stop: obj.stop === true,
+    stop,
+    action,
     comment: typeof obj.comment === 'string' ? obj.comment : '',
     commit_message: safeCommitMessage(obj.commit_message),
     changes,
@@ -600,6 +634,14 @@ async function main (argv) {
         : null
       writeFileSync(args[1], JSON.stringify(result ?? {}))
       process.exit(result ? 0 : 1)
+      break
+    }
+    case 'gha-excerpt': {
+      writeFileSync(args[1], extractGhaFailureExcerpt(readFileSync(args[0], 'utf8')))
+      break
+    }
+    case 'gha-context': {
+      writeFileSync(args[1], extractGhaFailureContext(readFileSync(args[0], 'utf8')))
       break
     }
     case 'first-failure': {

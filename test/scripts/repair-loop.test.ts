@@ -18,6 +18,9 @@ import {
   downloadJobLog,
   downloadBkFirstFailure,
   extractBkFailureExcerpt,
+  extractGhaFailureExcerpt,
+  extractGhaFailureContext,
+  stripGhaLog,
   stripBkLog,
   parseBkBuildUrl,
   jobLogUrl,
@@ -221,6 +224,33 @@ describe('downloadBkFirstFailure', () => {
       build: '1',
       fetchImpl: async () => ({ ok: false, json: async () => ({}) }),
     }), null)
+  })
+})
+
+describe('extractGhaFailureExcerpt', () => {
+  it('keeps Incorrect lines and drops Correct plus post job cleanup', () => {
+    const log = [
+      '2026-09-18T17:25:11.0000000Z SPDX license header check',
+      '2026-09-18T17:25:11.1000000Z Incorrect: packages/agent-env/src/index.ts',
+      '2026-09-18T17:25:11.2000000Z Incorrect: packages/agent-env/../evil.ts',
+      ...Array.from({ length: 80 }, (_, i) => `2026-09-18T17:25:11.${String(300 + i).padStart(7, '0')}Z Correct: test/file-${i}.ts`),
+      '2026-09-18T17:25:11.7414082Z ##[error]Process completed with exit code 1.',
+      '2026-09-18T17:25:11.7530424Z Post job cleanup.',
+      '2026-09-18T17:25:11.9041707Z Cleaning up orphan processes',
+    ].join('\n')
+    assert.equal(
+      extractGhaFailureExcerpt(log),
+      'Incorrect: packages/agent-env/src/index.ts\nIncorrect: packages/agent-env/../evil.ts',
+    )
+    assert.equal(extractGhaFailureExcerpt(log).includes('Correct:'), false)
+    assert.equal(extractGhaFailureExcerpt(log).includes('Post job cleanup'), false)
+    assert.equal(stripGhaLog('2026-09-18T17:25:11.5825962Z Incorrect: src/a.ts'), 'Incorrect: src/a.ts')
+    assert.equal(extractGhaFailureExcerpt(''), '')
+    assert.equal(extractGhaFailureExcerpt('Correct: src/a.ts\nCorrect: src/b.ts'), '')
+    assert.equal(
+      extractGhaFailureContext(log).startsWith('Incorrect: packages/agent-env/src/index.ts'),
+      true,
+    )
   })
 })
 
@@ -465,8 +495,12 @@ describe('parseAgentResponse', () => {
   it('extracts JSON wrapped in prose', () => {
     const parsed = parseAgentResponse('here\n```json\n{"stop":false,"comment":"ok","commit_message":"fix: n","changes":[]}\n```')
     assert.equal(parsed.stop, false)
+    assert.equal(parsed.action, 'stop')
     assert.equal(parsed.comment, 'ok')
     assert.deepEqual(parsed.changes, [])
+    const fix = parseAgentResponse('{"action":"fix","comment":"add SPDX","commit_message":"fix: n","changes":[{"file":"src/foo.ts","content":"x"}]}')
+    assert.equal(fix.action, 'fix')
+    assert.equal(fix.comment, 'add SPDX')
   })
 
   it('rejects missing JSON, bad changes, and unsafe paths', () => {
