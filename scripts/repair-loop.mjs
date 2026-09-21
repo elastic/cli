@@ -492,6 +492,14 @@ export function pickSkillMemoryPr (prs, { defaultBranch } = {}) {
     ?? null
 }
 
+export function isMemorySkillPr (pr) {
+  if (!pr || typeof pr !== 'object') return false
+  const ref = pr.headRefName ?? pr.head?.ref ?? ''
+  if (ref === 'ai/review-memory') return true
+  const labels = Array.isArray(pr.labels) ? pr.labels : []
+  return labels.some((label) => (typeof label === 'string' ? label : label?.name) === 'ai-review-memory')
+}
+
 export function appendMemorySkill (existing, entry) {
   const action = memoryActionItem(entry)
   const raw = typeof existing === 'string' ? existing : ''
@@ -840,6 +848,12 @@ async function main (argv) {
       const pr = pickSkillMemoryPr(readJsonArg(args[0]), { defaultBranch: process.env.DEFAULT_BRANCH })
       process.stdout.write(JSON.stringify(pr ? { number: pr.number, headRefName: pr.headRefName } : {}) + '\n')
       process.exit(pr ? 0 : 1)
+      break
+    }
+    case 'is-memory-pr': {
+      const found = isMemorySkillPr(readJsonArg(args[0]))
+      process.stdout.write(JSON.stringify({ memory: found }) + '\n')
+      process.exit(found ? 0 : 1)
       break
     }
     case 'memory-append': {
