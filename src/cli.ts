@@ -47,7 +47,7 @@ program.option('--json', 'output as JSON')
 // preAction hook (skipped for --help paths since the hook never fires)
 if (!wantsHelp) {
   program.hook('preAction', async (thisCommand, actionCommand) => {
-    const skipActionNames: ReadonlySet<string> = new Set(['version', 'completion', '__complete', 'status'])
+    const skipActionNames: ReadonlySet<string> = new Set(['version', 'completion', '__complete', 'status', 'help'])
     if (skipActionNames.has(actionCommand.name())) return
     // Groups with no sub-command will just call group.help() — no real action fires.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -77,7 +77,14 @@ if (!wantsHelp) {
     if (result.ok) {
       setResolvedConfig(result.value)
     } else {
-      process.stderr.write(`Error: ${result.error.message}\n`)
+      const json = thisCommand.opts().json === true
+      const { classifyConfigLoadError } = await import('./help/catalog.js')
+      const code = classifyConfigLoadError(result.error.message)
+      if (json) {
+        process.stderr.write(JSON.stringify({ error: { code, message: result.error.message } }) + '\n')
+      } else {
+        process.stderr.write(`Error: ${result.error.message}\n`)
+      }
       process.exit(1)
     }
   })
@@ -224,6 +231,17 @@ if (firstArg === 'status') {
   program.addCommand(stub)
 }
 
+// Help topics (config-free)
+if (firstArg === 'help') {
+  program.helpCommand(false)
+  const { registerHelpCommand } = await import('./help/register.ts')
+  program.addCommand(registerHelpCommand())
+} else if (firstArg == null) {
+  const stub = new Command('help')
+  stub.description('Show help topics')
+  program.addCommand(stub)
+}
+
 // Early config load (for --command-profile filtering in help output)
 let earlyConfig: LoadConfigResult | undefined
 const hasProfileFlag = argv.includes('--command-profile')
@@ -234,7 +252,7 @@ const CONTEXT_NAMESPACES = new Set(['stack', 'cloud'])
 const willJustPrintHelp = wantsHelp || (CONTEXT_NAMESPACES.has(firstArg ?? '') && operands.length < 3)
 if (firstArg != null && (!willJustPrintHelp || hasProfileFlag)) {
   const SKIP_EARLY_CONFIG: ReadonlySet<string> = new Set([
-    'version', 'extension', 'status', 'completion', '__complete',
+    'version', 'extension', 'status', 'help', 'completion', '__complete',
     'docs', 'config', 'sanitize', 'cli-schema',
   ])
   if (!SKIP_EARLY_CONFIG.has(firstArg)) {
@@ -258,6 +276,9 @@ if (firstArg != null && (!willJustPrintHelp || hasProfileFlag)) {
 if (firstArg == null && !process.argv.includes('--json') && !(earlyConfig?.ok === true && earlyConfig.value.banner === false)) {
   const { renderLogo } = await import('./lib/logo.js')
   program.addHelpText('before', () => renderLogo(VERSION).replace(/\n$/, ''))
+}
+if (firstArg == null && !process.argv.includes('--json')) {
+  program.addHelpText('after', '\nLEARN MORE\n  elastic help exit-codes   Process exit codes and JSON error.code values\n')
 }
 
 // Bare invocation: show help
