@@ -114,7 +114,11 @@ jobs:
             fi
             BUILD_URL=$(grep -oE 'https://buildkite.com/elastic/elastic-cli/builds/[0-9]+' /tmp/comment.txt | head -n 1 || true)
           fi
-          gh pr view "$PR" --json headRefName,labels > /tmp/pr-meta.json
+          gh pr view "$PR" --json isCrossRepository,headRefName,labels > /tmp/pr-meta.json
+          if [ "$(jq -r '.isCrossRepository' /tmp/pr-meta.json)" = true ]; then
+            echo "Fork PR"
+            exit 0
+          fi
           if node /tmp/repair-loop.mjs is-memory-pr /tmp/pr-meta.json; then
             echo "Memory skill PR"
             exit 0
