@@ -74,6 +74,11 @@ jobs:
             echo "No bk-repair-loop tag"
             exit 0
           fi
+          gh pr view "$PR" --json headRefName,labels > /tmp/pr-meta.json
+          if node /tmp/repair-loop.mjs is-memory-pr /tmp/pr-meta.json; then
+            echo "Memory skill PR"
+            exit 0
+          fi
           if grep -q '^Resolution:' /tmp/comment.txt && ! grep -q 'Resolution: triaging' /tmp/comment.txt; then
             echo "Already diagnosed"
             exit 0

@@ -66,6 +66,11 @@ jobs:
             echo "Fork PR"
             exit 0
           fi
+          gh pr view "$PR" --json headRefName,labels > /tmp/pr-meta.json
+          if [ -s /tmp/repair-loop.mjs ] && node /tmp/repair-loop.mjs is-memory-pr /tmp/pr-meta.json; then
+            echo "Memory skill PR"
+            exit 0
+          fi
           COMMENT_TAG='<!-- bk-repair-loop -->'
           JOB_NAME='functional'
           SUMMARY="${DESCRIPTION:-Buildkite failed}"

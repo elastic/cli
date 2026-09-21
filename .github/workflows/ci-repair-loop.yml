@@ -129,6 +129,13 @@ jobs:
           PR=$(gh api -H "Accept: application/vnd.github+json" \
             "repos/${GH_REPO}/commits/${HEAD_SHA}/pulls" \
             --jq "[.[]? | select(.state == \"open\" and .head.sha == \"${HEAD_SHA}\") | .number][0] // empty")
+          if [ -n "$PR" ]; then
+            gh pr view "$PR" --json headRefName,labels > /tmp/pr-meta.json
+            if node /tmp/repair-loop.mjs is-memory-pr /tmp/pr-meta.json; then
+              echo "Memory skill PR"
+              exit 0
+            fi
+          fi
           SAME_REPO=0
           if [ "$HEAD_REPO" = "$GH_REPO" ]; then SAME_REPO=1; fi
           SKIP_LOOP=0
