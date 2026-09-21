@@ -136,6 +136,10 @@ const GHA_NOISE = /^(Correct: |\(pass\)|Post job cleanup|\[command\]|Temporarily
 function isGhaFailLine (line) {
   return /^(Incorrect: |\(fail\)|FAIL: |✖ failing tests|AssertionError|\d+ tests failed)/.test(line)
     || /^ {2}\^ this test timed out/.test(line)
+    || /^✗ /.test(line)
+    || /Performance regression detected/.test(line)
+    || /^##\[error\]/.test(line)
+    || /ECONNRESET/.test(line)
 }
 
 export function extractGhaFailureExcerpt (log, maxChars = 2000) {
@@ -333,6 +337,21 @@ export function positiveInt (value) {
 
 export function isTrustedAssociation (association) {
   return association === 'OWNER' || association === 'MEMBER'
+}
+
+export const REVIEW_LOOP_BOTS = new Set(['github-advanced-security[bot]'])
+
+export function isTrustedReviewer (login, association) {
+  if (login === 'github-actions[bot]') return false
+  if (isTrustedAssociation(association)) return true
+  return REVIEW_LOOP_BOTS.has(login)
+}
+
+export function trustedReviewComments (comments) {
+  if (!Array.isArray(comments)) return []
+  return comments
+    .filter((c) => c && isTrustedReviewer(c.user?.login, c.author_association))
+    .map((c) => ({ path: c.path ?? null, line: c.line ?? null, body: c.body ?? '' }))
 }
 
 export function parseReviewNoEvent (payload) {
@@ -802,6 +821,16 @@ async function main (argv) {
       const parsed = parseReviewLoopEvent(readJsonArg(args[0]))
       process.stdout.write(JSON.stringify(parsed ?? {}) + '\n')
       process.exit(parsed ? 0 : 1)
+      break
+    }
+    case 'trusted-reviewer': {
+      const ok = isTrustedReviewer(args[0], args[1])
+      process.stdout.write(JSON.stringify({ ok }) + '\n')
+      process.exit(ok ? 0 : 1)
+      break
+    }
+    case 'trusted-review-comments': {
+      process.stdout.write(JSON.stringify(trustedReviewComments(readJsonArg(args[0]))) + '\n')
       break
     }
     case 'review-loop-pr': {

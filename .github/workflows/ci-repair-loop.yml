@@ -2,7 +2,7 @@ name: CI repair loop
 
 on:
   workflow_run:
-    workflows: ["CI"]
+    workflows: ["CI", "CodeQL", "Performance", "Heap memory"]
     types: [completed]
   workflow_dispatch:
     inputs:
@@ -25,7 +25,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'failure' &&
-       github.event.workflow_run.path == '.github/workflows/ci.yml' &&
+       contains(fromJSON('[".github/workflows/ci.yml",".github/workflows/codeql.yml",".github/workflows/perf.yml",".github/workflows/heap.yml"]'), github.event.workflow_run.path) &&
        (github.event.workflow_run.event == 'pull_request' ||
         github.event.workflow_run.event == 'push'))
     runs-on: ubuntu-latest
@@ -408,8 +408,20 @@ jobs:
           RUN_ID: ${{ needs.repair.outputs.run_id }}
         run: |
           set -euo pipefail
+          COMMENT_TAG='<!-- ci-repair-loop -->'
+          RERUN_TAG='<!-- ci-rerun -->'
           if gh api -X POST "repos/${GH_REPO}/actions/runs/${RUN_ID}/rerun-failed-jobs"; then
-            gh pr comment "$PR" --body "$(printf '%s\n' '<!-- ci-rerun -->' 'Resolution: reran the failed CI jobs.')"
-            exit 0
+            LINE='Resolution: reran the failed CI jobs.'
+          else
+            LINE='Resolution: CI rerun failed.'
           fi
-          gh pr comment "$PR" --body "$(printf '%s\n' '<!-- ci-rerun -->' 'Resolution: CI rerun failed.')"
+          EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+            --jq ".[] | select((.user.login == \"github-actions[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \
+            | head -n 1 || true)
+          if [ -n "$EXISTING" ]; then
+            CURRENT=$(gh api "repos/${GH_REPO}/issues/comments/${EXISTING}" --jq '.body // empty')
+            gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" \
+              -f body="$(printf '%s\n' "$CURRENT" "" "$RERUN_TAG" "$LINE")"
+          else
+            gh pr comment "$PR" --body "$(printf '%s\n' "$COMMENT_TAG" "$RERUN_TAG" "$LINE")"
+          fi

@@ -349,8 +349,20 @@ jobs:
             echo "scripts/repair-loop.mjs missing on default branch"
             exit 0
           fi
+          COMMENT_TAG='<!-- bk-repair-loop -->'
+          RERUN_TAG='<!-- bk-rerun -->'
           if node scripts/repair-loop.mjs rebuild-bk "$BUILD_URL"; then
-            gh pr comment "$PR" --body "$(printf '%s\n' '<!-- bk-rerun -->' 'Resolution: rebuilt the failed Buildkite jobs.')"
-            exit 0
+            LINE='Resolution: rebuilt the failed Buildkite jobs.'
+          else
+            LINE='Resolution: Buildkite rebuild failed.'
           fi
-          gh pr comment "$PR" --body "$(printf '%s\n' '<!-- bk-rerun -->' 'Resolution: Buildkite rebuild failed.')"
+          EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+            --jq ".[] | select((.user.login == \"github-actions[bot]\" or .user.login == \"elastic-vault-github-plugin-prod[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \
+            | head -n 1 || true)
+          if [ -n "$EXISTING" ]; then
+            CURRENT=$(gh api "repos/${GH_REPO}/issues/comments/${EXISTING}" --jq '.body // empty')
+            gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" \
+              -f body="$(printf '%s\n' "$CURRENT" "" "$RERUN_TAG" "$LINE")"
+          else
+            gh pr comment "$PR" --body "$(printf '%s\n' "$COMMENT_TAG" "$RERUN_TAG" "$LINE")"
+          fi

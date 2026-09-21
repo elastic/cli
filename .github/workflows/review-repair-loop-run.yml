@@ -90,11 +90,7 @@ jobs:
           ASSOC=$(printf '%s' "$REVIEW" | jq -r '.author_association // empty')
           STATE=$(printf '%s' "$REVIEW" | jq -r '.state // empty')
           BODY=$(printf '%s' "$REVIEW" | jq -r '.body // empty')
-          if [ "$LOGIN" = 'github-actions[bot]' ]; then
-            echo "Ignoring bot review"
-            exit 0
-          fi
-          if [ "$ASSOC" != OWNER ] && [ "$ASSOC" != MEMBER ]; then
+          if ! node /tmp/repair-loop.mjs trusted-reviewer "$LOGIN" "$ASSOC"; then
             echo "Ignoring untrusted review"
             exit 0
           fi
@@ -150,8 +146,9 @@ jobs:
             gh pr edit "$PR" --add-label skip-auto-loop || true
             gh pr comment "$PR" --body "Repair loop stopped (\`/stop\`). Added \`skip-auto-loop\`."
           fi
-          gh api "repos/${GH_REPO}/pulls/${PR}/reviews/${REVIEW_ID}/comments" \
-            --jq '[.[]? | select(.author_association == "OWNER" or .author_association == "MEMBER") | {path, line, body}]' \
+          gh api --paginate "repos/${GH_REPO}/pulls/${PR}/reviews/${REVIEW_ID}/comments" \
+            --jq '.[]' | jq -s '.' > /tmp/review-comments-raw.json
+          node /tmp/repair-loop.mjs trusted-review-comments /tmp/review-comments-raw.json \
             > /tmp/review-comments.json
 
       - name: Propose review patch

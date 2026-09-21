@@ -33,6 +33,8 @@ import {
   hasStopCommand,
   isRepairBotLogin,
   isTrustedAssociation,
+  isTrustedReviewer,
+  trustedReviewComments,
   parseReviewLoopEvent,
   parseReviewNoEvent,
   resolveReviewLoopPr,
@@ -360,6 +362,22 @@ describe('extractGhaFailureExcerpt', () => {
     assert.equal(extractGhaFailureExcerpt(node).includes('resolves object values concurrently'), true)
     assert.equal(extractGhaFailureExcerpt(node).includes('AssertionError'), true)
     assert.equal(extractGhaFailureExcerpt(node).includes('checkCloud'), false)
+    const perf = [
+      '✓  elastic --help            mean 40.0 ms  baseline 38.0 ms',
+      '✗  elastic es                mean 101.9 ms  baseline 58.2 ms  (+75.2%)',
+      'Performance regression detected. One or more commands exceeded their baseline by more than 75%.',
+      'Post job cleanup.',
+    ].join('\n')
+    assert.equal(extractGhaFailureExcerpt(perf).includes('elastic es'), true)
+    assert.equal(extractGhaFailureExcerpt(perf).includes('Performance regression detected'), true)
+    assert.equal(extractGhaFailureExcerpt(perf).includes('elastic --help'), false)
+    const nodeDl = [
+      'Attempting to download 25.x...',
+      '##[error]read ECONNRESET',
+      'Post job cleanup.',
+    ].join('\n')
+    assert.equal(extractGhaFailureExcerpt(nodeDl).includes('read ECONNRESET'), true)
+    assert.equal(extractGhaFailureExcerpt(nodeDl).includes('Attempting to download'), false)
   })
 })
 
@@ -441,6 +459,21 @@ describe('review-no memory', () => {
     assert.equal(isTrustedAssociation('OWNER'), true)
     assert.equal(isTrustedAssociation('MEMBER'), true)
     assert.equal(isTrustedAssociation('COLLABORATOR'), false)
+    assert.equal(isTrustedReviewer('margaretjgu', 'MEMBER'), true)
+    assert.equal(isTrustedReviewer('github-advanced-security[bot]', 'CONTRIBUTOR'), true)
+    assert.equal(isTrustedReviewer('github-actions[bot]', 'MEMBER'), false)
+    assert.equal(isTrustedReviewer('outsider', 'NONE'), false)
+    assert.deepEqual(
+      trustedReviewComments([
+        { path: 'src/help-topics.ts', line: 91, body: 'no print', author_association: 'CONTRIBUTOR', user: { login: 'github-advanced-security[bot]' } },
+        { path: 'src/x.ts', line: 1, body: 'noise', author_association: 'NONE', user: { login: 'outsider' } },
+        { path: 'src/y.ts', line: 2, body: 'ours', author_association: 'NONE', user: { login: 'github-actions[bot]' } },
+      ]),
+      [{ path: 'src/help-topics.ts', line: 91, body: 'no print' }],
+    )
+    const script = join(process.cwd(), 'scripts/repair-loop.mjs')
+    assert.equal(JSON.parse(execFileSync(process.execPath, [script, 'trusted-reviewer', 'github-advanced-security[bot]', 'CONTRIBUTOR'], { encoding: 'utf8' })).ok, true)
+    assert.throws(() => execFileSync(process.execPath, [script, 'trusted-reviewer', 'github-actions[bot]', 'MEMBER']))
     assert.equal(
       reviewCommentPrNumber({ pull_request_url: 'https://api.github.com/repos/elastic/cli/pulls/644' }, 'pull_request_review_comment'),
       644,
