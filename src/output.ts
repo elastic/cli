@@ -5,6 +5,7 @@
 
 import Table from 'cli-table3'
 import type { JsonValue } from './factory.ts'
+import { formatAuthFailure, isAuthStatus, withAuthHint } from './config/next-command.ts'
 
 /** A flat object whose values are all JSON primitives — renderable as a table row. */
 type FlatRecord = Record<string, string | number | boolean | null>
@@ -116,17 +117,25 @@ export function formatHandlerError (value: JsonValue): string {
   const code = err.code as string
 
   if (code === 'transport_error') {
+    const status = typeof err.status_code === 'number' ? err.status_code : undefined
     const body = err.body
     if (body !== null && typeof body === 'object' && !Array.isArray(body)) {
       const nested = (body as Record<string, JsonValue>).error
       if (nested !== null && typeof nested === 'object' && !Array.isArray(nested)) {
         const t = (nested as Record<string, JsonValue>).type
         const r = (nested as Record<string, JsonValue>).reason
-        if (typeof t === 'string' && typeof r === 'string') return `${t}: ${r}`
+        if (typeof t === 'string' && typeof r === 'string') {
+          const text = `${t}: ${r}`
+          return status != null ? withAuthHint(text, status) : text
+        }
       }
-      if (typeof nested === 'string') return nested
+      if (typeof nested === 'string') return status != null ? withAuthHint(nested, status) : nested
     }
-    if (typeof err.status_code === 'number') return `request failed with status ${err.status_code}`
+    if (status != null) {
+      if (typeof err.message === 'string' && err.message.length > 0) return err.message
+      if (isAuthStatus(status)) return formatAuthFailure(status)
+      return `request failed with status ${status}`
+    }
   }
 
   if (typeof err.message === 'string') return err.message
