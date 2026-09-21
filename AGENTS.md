@@ -193,13 +193,13 @@ On a GitHub Actions `CI` failure or a Buildkite functional failure, take the fir
 
 `/bad` (optional reason) marks a bad bot review. Owners and maintainers only. Conversation comment or inline reply on the finding. A model turns the finding and your note into one "Do not re-flag" line on `.github/skills/ai-review-memory.md` (new bot PR, or a commit if that PR already exists).
 
-On GitHub Actions `CI` failure the bot can push a fix on the same PR when `auto-loop` is set. Comment `/stop` to halt and pin `skip-auto-loop`. Same-repo PRs only. At most two bot commits per PR. `skip-ai-review` silences the review bot.
+On GitHub Actions `CI` failure the bot can push a fix on a same-repo PR. Adding `auto-loop` re-dispatches that loop and the review loop, including AI review and CodeQL. The label job is `issues: labeled` so it always runs from the default branch. Apply writes `repair-loop-patch` (not `.repair-loop`; upload-artifact drops hidden paths). Comment `/stop` to halt and pin `skip-auto-loop`. At most two bot commits per PR. `skip-ai-review` silences the review bot.
 
 On a `buildkite/elastic-cli/pr` failure, GitHub Actions posts `<!-- bk-repair-loop -->`. `bk-repair-loop.yml` applies the same-repo fix when `auto-loop` is set. Apply uses an ephemeral GitHub App token from Vault so the push retriggers CI. Buildkite does not get a GitHub token.
 
 Do not edit generated files: `src/es/apis/*.ts`, `src/es/api-manifest.ts`, `src/kb/apis.ts`, `src/kb/api-manifest.ts`. Do not edit `.github/workflows/`.
 
-Review comments on an `auto-loop` or `auto-pr` PR are another pass of the same loop. Do not repeat an approach a reviewer already rejected.
+Review comments from a trusted reviewer (OWNER, MEMBER, CodeQL, or the AI review bot) are another pass of the same loop. Do not repeat an approach a reviewer already rejected.
 
 Durable lessons from a run belong in this file.
 
