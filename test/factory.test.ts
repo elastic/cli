@@ -875,6 +875,18 @@ describe('defineCommand', () => {
       assert.match(err, /^Error:/m)
     })
 
+    it('suggests the closest flag for a near misspelling', () => {
+      const cmd = defineCommand({
+        name: 'health',
+        description: 'Check health',
+        options: [{ long: 'timeout', type: 'number', description: 'Timeout' }],
+        handler: () => ({}),
+      })
+      const err = captureErr(cmd, ['--timeot'])
+      assert.match(err, /unknown option '--timeot'/)
+      assert.match(err, /Did you mean --timeout/)
+    })
+
     it('missing required option error starts with "Error:" (capital E)', () => {
       const cmd = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'env', type: 'string', description: 'Env', required: true }], handler: () => ({}) })
       const err = captureErr(cmd, [])
