@@ -1,0 +1,40 @@
+name: CI repair on auto-loop
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  actions: write
+  pull-requests: read
+
+jobs:
+  dispatch:
+    if: >-
+      github.event.label.name == 'auto-loop' &&
+      github.event.pull_request.draft != true &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      pull-requests: read
+    steps:
+      - name: Dispatch repair loop for the latest failed CI run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          RUN_ID=$(gh api -X GET "repos/${GH_REPO}/actions/runs" \
+            -f head_sha="$SHA" \
+            -f event=pull_request \
+            -f status=completed \
+            --jq '.workflow_runs[] | select((.path // "") == ".github/workflows/ci.yml" and (.conclusion // "") == "failure") | .id' \
+            | head -n 1 || true)
+          if [ -z "$RUN_ID" ]; then
+            echo "No failed CI run for ${SHA}"
+            exit 0
+          fi
+          gh workflow run ci-repair-loop.yml --ref "$DEFAULT_BRANCH" -f "run_id=${RUN_ID}"
