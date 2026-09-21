@@ -128,7 +128,7 @@ jobs:
           node /tmp/repair-loop.mjs cited-paths /tmp/context.txt > /tmp/cited.json
           PR=$(gh api -H "Accept: application/vnd.github+json" \
             "repos/${GH_REPO}/commits/${HEAD_SHA}/pulls" \
-            --jq "[.[]? | select(.state == \"open\" and .head.sha == \"${HEAD_SHA}\") | .number][0] // empty")
+            --jq "[.[]? | select(.state == \"open\") | .number][0] // empty")
           if [ -n "$PR" ]; then
             gh pr view "$PR" --json headRefName,labels > /tmp/pr-meta.json
             if node /tmp/repair-loop.mjs is-memory-pr /tmp/pr-meta.json; then

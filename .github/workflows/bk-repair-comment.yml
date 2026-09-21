@@ -56,7 +56,7 @@ jobs:
           esac
           PR=$(gh api -H "Accept: application/vnd.github+json" \
             "repos/${GH_REPO}/commits/${HEAD_SHA}/pulls" \
-            --jq "[.[]? | select(.state == \"open\" and .head.sha == \"${HEAD_SHA}\") | .number][0] // empty")
+            --jq "[.[]? | select(.state == \"open\") | .number][0] // empty")
           if [ -z "$PR" ]; then
             echo "No open PR for ${HEAD_SHA}"
             exit 0
