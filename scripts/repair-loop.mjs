@@ -70,10 +70,60 @@ export function stripBkLog (text) {
     .replace(/\r/g, '')
 }
 
+function isBkTestFailLine (line) {
+  return /^(?: {2})?(FAIL: |Results: )/.test(line)
+}
+
+function isBkSetupFailLine (line) {
+  return /did not become healthy/.test(line)
+    || /Error: The command exited/.test(line)
+    || /^npm ERR!/.test(line)
+}
+
 export function extractBkFailureExcerpt (log, maxChars = 2000) {
   const cap = Number.isInteger(maxChars) && maxChars > 0 ? maxChars : 2000
-  const lines = stripBkLog(log).split('\n').filter((line) => /^(?: {2})?(FAIL:|Results:)/.test(line))
-  return lines.slice(0, 20).join('\n').trim().slice(0, cap)
+  const lines = stripBkLog(log).split('\n')
+  const hits = []
+  let take = 0
+  for (const line of lines) {
+    if (isBkTestFailLine(line)) {
+      hits.push(line)
+      take = /^FAIL: /.test(line) ? 2 : 0
+      continue
+    }
+    if (take > 0) {
+      if (/^ {2}/.test(line) && !isBkTestFailLine(line)) {
+        hits.push(line)
+        take -= 1
+        continue
+      }
+      take = 0
+    }
+  }
+  if (hits.length > 0) return hits.slice(0, 20).join('\n').trim().slice(0, cap)
+  return lines.filter(isBkSetupFailLine).slice(0, 20).join('\n').trim().slice(0, cap)
+}
+
+export function extractBkFailureContext (log, maxChars = 4000) {
+  const cap = Number.isInteger(maxChars) && maxChars > 0 ? maxChars : 4000
+  const lines = stripBkLog(log).split('\n')
+  const cut = lines.findIndex((line) => /^--- Cleaning up/.test(line))
+  const body = cut >= 0 ? lines.slice(0, cut) : lines
+  const i = body.findIndex((line) => isBkTestFailLine(line) || isBkSetupFailLine(line))
+  if (i === -1) return extractBkFailureExcerpt(log, cap)
+  return body.slice(i, i + 40).join('\n').trim().slice(0, cap)
+}
+
+function firstFailedBkJob (jobs) {
+  if (!Array.isArray(jobs)) return null
+  const failed = jobs.filter((job) => job && (job.state === 'failed' || isFailedConclusion(job.conclusion)))
+  const skip = new Set(['waiter', 'manual', 'trigger', 'group'])
+  return failed.find((job) => !skip.has(job.type)) ?? failed[0] ?? null
+}
+
+function bkFailureSummary (excerpt, log) {
+  if (excerpt) return excerpt
+  return log ? 'Job log had no FAIL lines' : 'Job log not available yet'
 }
 
 export function stripGhaLog (text) {
@@ -127,10 +177,21 @@ export function extractGhaFailureContext (log, maxChars = 4000) {
   return body.slice(i, i + 40).join('\n').trim().slice(0, cap)
 }
 
-export async function downloadBkFirstFailure ({ token, org, pipeline, build, fetchImpl = fetch, maxChars = 8000 }) {
+export async function downloadBkFirstFailure ({
+  token,
+  org,
+  pipeline,
+  build,
+  fetchImpl = fetch,
+  maxChars = 8000,
+  retries = 3,
+  delayMs = 2000,
+  sleepImpl,
+} = {}) {
   if (typeof token !== 'string' || token === '') return null
   if (typeof org !== 'string' || typeof pipeline !== 'string' || typeof build !== 'string') return null
   if (!/^[A-Za-z0-9_.-]+$/.test(org) || !/^[A-Za-z0-9_.-]+$/.test(pipeline) || !/^\d+$/.test(build)) return null
+  const sleep = sleepImpl ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)))
   const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json' }
   const buildRes = await fetchImpl(
     `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}`,
@@ -138,30 +199,56 @@ export async function downloadBkFirstFailure ({ token, org, pipeline, build, fet
   )
   if (!buildRes || buildRes.ok !== true) return null
   const data = await buildRes.json()
-  const job = firstFailedJob({ jobs: data?.jobs })
+  const job = firstFailedBkJob(data?.jobs)
   if (!job?.id) {
     return {
       jobName: 'functional',
       summary: `${pipeline} #${build} failed`,
+      excerpt: '',
+      context: '',
       log: '',
     }
   }
+  const logUrl = `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}/jobs/${encodeURIComponent(String(job.id))}/log`
   let log = ''
-  const logRes = await fetchImpl(
-    `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}/jobs/${encodeURIComponent(String(job.id))}/log`,
-    { headers, redirect: 'follow' },
-  )
-  if (logRes && logRes.ok === true) {
-    const body = await logRes.json()
-    if (typeof body?.content === 'string') log = body.content
+  const attempts = Number.isInteger(retries) && retries > 0 ? retries : 1
+  for (let i = 0; i < attempts; i++) {
+    const logRes = await fetchImpl(logUrl, { headers, redirect: 'follow' })
+    if (logRes && logRes.ok === true) {
+      const body = await logRes.json()
+      if (typeof body?.content === 'string' && body.content !== '') {
+        log = body.content
+        break
+      }
+    }
+    if (i < attempts - 1 && delayMs > 0) await sleep(delayMs)
   }
   const excerpt = extractBkFailureExcerpt(log, maxChars)
+  const context = extractBkFailureContext(log, 4000)
+  const summary = bkFailureSummary(excerpt, log)
   const jobName = typeof job.name === 'string' && job.name !== '' ? job.name : 'functional'
   return {
     jobName,
-    summary: excerpt || `${jobName}: FAIL`,
-    log: excerpt,
+    summary,
+    excerpt: excerpt || summary,
+    context: context || summary,
+    log: excerpt || summary,
   }
+}
+
+export async function rebuildBkBuild ({ token, org, pipeline, build, fetchImpl = fetch }) {
+  if (typeof token !== 'string' || token === '') return false
+  if (typeof org !== 'string' || typeof pipeline !== 'string' || typeof build !== 'string') return false
+  if (!/^[A-Za-z0-9_.-]+$/.test(org) || !/^[A-Za-z0-9_.-]+$/.test(pipeline) || !/^\d+$/.test(build)) return false
+  const res = await fetchImpl(
+    `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}/rebuild`,
+    {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      redirect: 'error',
+    },
+  )
+  return res?.ok === true
 }
 
 export function hasStopCommand (text) {
@@ -643,6 +730,26 @@ async function main (argv) {
         token: process.env.GH_TOKEN,
       })
       process.exit(ok ? 0 : 1)
+      break
+    }
+    case 'rebuild-bk': {
+      const parsed = parseBkBuildUrl(args[0])
+      const result = parsed
+        ? await rebuildBkBuild({
+          ...parsed,
+          token: process.env.BUILDKITE_API_TOKEN,
+        })
+        : false
+      process.stdout.write(JSON.stringify({ ok: result }) + '\n')
+      process.exit(result ? 0 : 1)
+      break
+    }
+    case 'bk-excerpt': {
+      writeFileSync(args[1], extractBkFailureExcerpt(readFileSync(args[0], 'utf8')))
+      break
+    }
+    case 'bk-context': {
+      writeFileSync(args[1], extractBkFailureContext(readFileSync(args[0], 'utf8')))
       break
     }
     case 'fetch-bk-failure': {

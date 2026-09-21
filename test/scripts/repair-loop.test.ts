@@ -18,6 +18,8 @@ import {
   downloadJobLog,
   downloadBkFirstFailure,
   extractBkFailureExcerpt,
+  extractBkFailureContext,
+  rebuildBkBuild,
   extractGhaFailureExcerpt,
   extractGhaFailureContext,
   stripGhaLog,
@@ -215,6 +217,38 @@ describe('downloadBkFirstFailure', () => {
     assert.equal(extractBkFailureExcerpt(many).split('\n').length, 20)
   })
 
+  it('keeps the assertion after FAIL and setup errors when no FAIL line exists', () => {
+    const testLog = [
+      '+++ Running ES functional tests',
+      'FAIL: expected hits.total.value = 1; got 0',
+      '  response: {"hits":{"total":{"value":0}}}',
+      'Results: 340 passed, 1 failed',
+      '  FAIL: indices/10_basic.yml',
+      '--- Cleaning up',
+      'Error: The command exited with status 1',
+    ].join('\n')
+    assert.equal(
+      extractBkFailureExcerpt(testLog),
+      [
+        'FAIL: expected hits.total.value = 1; got 0',
+        '  response: {"hits":{"total":{"value":0}}}',
+        'Results: 340 passed, 1 failed',
+        '  FAIL: indices/10_basic.yml',
+      ].join('\n'),
+    )
+    assert.equal(extractBkFailureExcerpt(testLog).includes('command exited'), false)
+    assert.equal(extractBkFailureContext(testLog).startsWith('FAIL: expected hits.total.value = 1; got 0'), true)
+    const setup = [
+      '--- Waiting for Elasticsearch to be healthy',
+      'Elasticsearch did not become healthy in time',
+      'Error: The command exited with status 1',
+    ].join('\n')
+    assert.equal(
+      extractBkFailureExcerpt(setup),
+      'Elasticsearch did not become healthy in time\nError: The command exited with status 1',
+    )
+  })
+
   it('returns null without a token or when the build request fails', async () => {
     assert.equal(await downloadBkFirstFailure({ token: '', org: 'elastic', pipeline: 'elastic-cli', build: '1' }), null)
     assert.equal(await downloadBkFirstFailure({
@@ -224,6 +258,53 @@ describe('downloadBkFirstFailure', () => {
       build: '1',
       fetchImpl: async () => ({ ok: false, json: async () => ({}) }),
     }), null)
+  })
+
+  it('skips waiter jobs and does not fall back to job name FAIL', async () => {
+    const result = await downloadBkFirstFailure({
+      token: 't',
+      org: 'elastic',
+      pipeline: 'elastic-cli',
+      build: '1336',
+      delayMs: 0,
+      fetchImpl: async (url) => {
+        if (String(url).endsWith('/builds/1336')) {
+          return {
+            ok: true,
+            json: async () => ({
+              jobs: [
+                { id: 'wait', name: 'wait', state: 'failed', type: 'waiter' },
+                { id: 'es-24', name: ':elasticsearch: ES functional tests - Node 24', state: 'failed', type: 'script' },
+              ],
+            }),
+          }
+        }
+        return { ok: true, json: async () => ({ content: '' }) }
+      },
+    })
+    assert.equal(result.jobName, ':elasticsearch: ES functional tests - Node 24')
+    assert.equal(result.summary, 'Job log not available yet')
+    assert.equal(result.summary.includes(': FAIL'), false)
+  })
+
+  it('rebuilds a build with PUT', async () => {
+    let captured
+    const ok = await rebuildBkBuild({
+      token: 't',
+      org: 'elastic',
+      pipeline: 'elastic-cli',
+      build: '1336',
+      fetchImpl: async (url, init) => {
+        captured = { url, init }
+        return { ok: true, json: async () => ({}) }
+      },
+    })
+    assert.equal(ok, true)
+    assert.equal(captured.url, 'https://api.buildkite.com/v2/organizations/elastic/pipelines/elastic-cli/builds/1336/rebuild')
+    assert.equal(captured.init.method, 'PUT')
+    assert.equal(captured.init.redirect, 'error')
+    assert.equal(await rebuildBkBuild({ token: '', org: 'elastic', pipeline: 'elastic-cli', build: '1' }), false)
+    assert.equal(await rebuildBkBuild({ token: 't', org: 'elastic', pipeline: 'elastic-cli', build: '../1' }), false)
   })
 })
 
