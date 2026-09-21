@@ -206,9 +206,10 @@ jobs:
           ${CONTENT}
           "
           done < <(printf '%s\n' "$PATHS")
+          JOB_DEF=$(jq -c '{jobName,summary}' /tmp/bk-fail.json 2>/dev/null || true)
           printf '%s\n' \
-            "You triage one Buildkite functional failure in elastic/cli." \
-            "Write a short comment with what failed (which tests or setup error) and the resolution. Do not paste logs." \
+            "Please find a solution for failing job ${JOB_NAME}. Use the logs, job definition, and any referenced files where the failure occurred. Keep your response focused on the solution and include code suggestions when appropriate." \
+            "Do not paste logs into the comment." \
             "fix: in-repo change. Return full file replacements." \
             "rerun: flake or infra. Do not change tests to hide it." \
             "stop: cannot fix and a rerun will not help." \
@@ -217,8 +218,12 @@ jobs:
             "Respond with ONLY a JSON object:" \
             '{"action":"fix","comment":"What failed: ...\\nResolution: change FILE to ...","commit_message":"fix: short","changes":[{"file":"src/foo.ts","content":"full file"}]}' \
             "" \
-            "FAILED JOB: ${JOB_NAME}" \
+            "JOB: ${BUILD_URL}" \
+            "LOGS:" \
             "$CONTEXT" \
+            "" \
+            "JOB DEFINITION:" \
+            "$JOB_DEF" \
             "" \
             "PR FILES:" \
             "$PR_FILES" \
