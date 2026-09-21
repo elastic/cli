@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Runs after functional jobs. Prints the first recorded failure.
-# The sticky PR comment is posted by .github/workflows/bk-repair-comment.yml
-# when GitHub sees buildkite/elastic-cli/pr fail. GH_TOKEN here is optional.
+# The sticky PR comment is posted by .github/workflows/bk-repair-loop.yml
+# after triage when GitHub sees buildkite/elastic-cli/pr fail. GH_TOKEN here is optional.
 
 set -euo pipefail
 

@@ -1,6 +1,7 @@
 name: BK repair loop
 
 on:
+  status:
   issue_comment:
     types: [created, edited]
 
@@ -9,16 +10,20 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: bk-repair-loop-${{ github.event.issue.number }}
+  group: bk-repair-loop-${{ github.event.issue.number || github.event.sha }}
   cancel-in-progress: true
 
 jobs:
   repair:
     if: >-
-      github.event.issue.pull_request &&
-      contains(github.event.comment.body, '<!-- bk-repair-loop -->') &&
-      (github.event.comment.user.login == 'github-actions[bot]' ||
-       github.event.comment.user.login == 'elastic-vault-github-plugin-prod[bot]')
+      (github.event_name == 'status' &&
+       github.event.state == 'failure' &&
+       github.event.context == 'buildkite/elastic-cli/pr') ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '<!-- bk-repair-loop -->') &&
+       (github.event.comment.user.login == 'github-actions[bot]' ||
+        github.event.comment.user.login == 'elastic-vault-github-plugin-prod[bot]'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -51,8 +56,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
           PR: ${{ github.event.issue.number }}
           COMMENT: ${{ github.event.comment.body }}
+          STATUS_SHA: ${{ github.event.sha }}
+          STATUS_URL: ${{ github.event.target_url }}
           BUILDKITE_API_TOKEN: ${{ secrets.BUILDKITE_API_TOKEN }}
         run: |
           set -euo pipefail
@@ -69,21 +77,48 @@ jobs:
             echo "repair-loop.mjs unavailable"
             exit 0
           fi
-          printf '%s\n' "${COMMENT:-}" > /tmp/comment.txt
-          if ! node /tmp/repair-loop.mjs has-bk-tag /tmp/comment.txt; then
-            echo "No bk-repair-loop tag"
-            exit 0
+          BUILD_URL=""
+          if [ "${EVENT_NAME:-}" = "status" ]; then
+            BUILD_URL="${STATUS_URL:-}"
+            case "$BUILD_URL" in
+              https://buildkite.com/elastic/elastic-cli/builds/*) ;;
+              "")
+                echo "No build url"
+                exit 0
+                ;;
+              *)
+                echo "Unexpected target_url"
+                exit 0
+                ;;
+            esac
+            PR=$(gh api -H "Accept: application/vnd.github+json" \
+              "repos/${GH_REPO}/commits/${STATUS_SHA}/pulls" \
+              --jq "[.[]? | select(.state == \"open\") | .number][0] // empty")
+            if [ -z "$PR" ]; then
+              echo "No open PR for ${STATUS_SHA}"
+              exit 0
+            fi
+          else
+            if [ -z "${PR:-}" ]; then
+              echo "No PR"
+              exit 0
+            fi
+            printf '%s\n' "${COMMENT:-}" > /tmp/comment.txt
+            if ! node /tmp/repair-loop.mjs has-bk-tag /tmp/comment.txt; then
+              echo "No bk-repair-loop tag"
+              exit 0
+            fi
+            if grep -q '^Resolution:' /tmp/comment.txt && ! grep -q 'Resolution: triaging' /tmp/comment.txt; then
+              echo "Already diagnosed"
+              exit 0
+            fi
+            BUILD_URL=$(grep -oE 'https://buildkite.com/elastic/elastic-cli/builds/[0-9]+' /tmp/comment.txt | head -n 1 || true)
           fi
           gh pr view "$PR" --json headRefName,labels > /tmp/pr-meta.json
           if node /tmp/repair-loop.mjs is-memory-pr /tmp/pr-meta.json; then
             echo "Memory skill PR"
             exit 0
           fi
-          if grep -q '^Resolution:' /tmp/comment.txt && ! grep -q 'Resolution: triaging' /tmp/comment.txt; then
-            echo "Already diagnosed"
-            exit 0
-          fi
-          BUILD_URL=$(grep -oE 'https://buildkite.com/elastic/elastic-cli/builds/[0-9]+' /tmp/comment.txt | head -n 1 || true)
           : > /tmp/excerpt.txt
           : > /tmp/context.txt
           JOB_NAME='functional'
@@ -94,7 +129,7 @@ jobs:
               jq -r '.context // .summary // empty' /tmp/bk-fail.json > /tmp/context.txt
             fi
           fi
-          if [ ! -s /tmp/context.txt ]; then
+          if [ ! -s /tmp/context.txt ] && [ -s /tmp/comment.txt ]; then
             cp /tmp/comment.txt /tmp/context.txt
           fi
           node /tmp/repair-loop.mjs cited-paths /tmp/context.txt > /tmp/cited.json
@@ -142,7 +177,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Pin stop
-        if: steps.diag.outputs.pin_stop == '1'
+        if: steps.diag.outputs.pin_stop == '1' && steps.diag.outputs.pr != ''
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -169,8 +204,26 @@ jobs:
           set -euo pipefail
           echo "apply=0" >> "$GITHUB_OUTPUT"
           echo "rerun=0" >> "$GITHUB_OUTPUT"
+          COMMENT_TAG='<!-- bk-repair-loop -->'
+          upsert_sticky() {
+            local body="$1"
+            EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+              --jq ".[] | select((.user.login == \"github-actions[bot]\" or .user.login == \"elastic-vault-github-plugin-prod[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \
+              | head -n 1 || true)
+            if [ -n "$EXISTING" ]; then
+              gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" -f body="$body"
+            else
+              gh pr comment "$PR" --body "$body"
+            fi
+          }
+          fallback_sticky() {
+            local excerpt
+            excerpt=$(cat /tmp/excerpt.txt 2>/dev/null || true)
+            upsert_sticky "$(printf '%s\n' "$COMMENT_TAG" "**${JOB_NAME}** failed." "" "$excerpt" "" "Build: ${BUILD_URL}")"
+          }
           if [ -z "${OPENROUTER_API_KEY:-}" ]; then
             echo "OPENROUTER_API_KEY missing"
+            fallback_sticky
             exit 0
           fi
           BASE_URL="${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
@@ -178,6 +231,7 @@ jobs:
             https://*) ;;
             *)
               echo "OPENROUTER_BASE_URL must be https://, refusing to send the API key to it"
+              fallback_sticky
               exit 0
               ;;
           esac
@@ -243,6 +297,7 @@ jobs:
           CONTENT=$(jq -r '.choices[0].message.content // empty' /tmp/response.json)
           if [ -z "$CONTENT" ]; then
             echo "Empty model response"
+            fallback_sticky
             exit 0
           fi
           printf '%s' "$CONTENT" > /tmp/model-raw.txt
@@ -250,16 +305,9 @@ jobs:
           COMMENT=$(jq -r '.comment // empty' /tmp/parsed.json)
           ACTION=$(jq -r '.action // empty' /tmp/parsed.json)
           if [ -n "$COMMENT" ]; then
-            COMMENT_TAG='<!-- bk-repair-loop -->'
-            BODY=$(printf '%s\n' "$COMMENT_TAG" "$COMMENT" "" "Build: ${BUILD_URL}")
-            EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
-              --jq ".[] | select((.user.login == \"github-actions[bot]\" or .user.login == \"elastic-vault-github-plugin-prod[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \
-              | head -n 1 || true)
-            if [ -n "$EXISTING" ]; then
-              gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" -f body="$BODY"
-            else
-              gh pr comment "$PR" --body "$BODY"
-            fi
+            upsert_sticky "$(printf '%s\n' "$COMMENT_TAG" "$COMMENT" "" "Build: ${BUILD_URL}")"
+          else
+            fallback_sticky
           fi
           if [ "$ACTION" = "fix" ] && [ "$CAN_FIX" = "1" ] && jq -e '(.changes | length) > 0' /tmp/parsed.json >/dev/null; then
             echo "apply=1" >> "$GITHUB_OUTPUT"
