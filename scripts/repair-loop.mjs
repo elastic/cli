@@ -339,10 +339,12 @@ export function isTrustedAssociation (association) {
   return association === 'OWNER' || association === 'MEMBER'
 }
 
-export const REVIEW_LOOP_BOTS = new Set(['github-advanced-security[bot]'])
+export const REVIEW_LOOP_BOTS = new Set([
+  'github-advanced-security[bot]',
+  'github-actions[bot]',
+])
 
 export function isTrustedReviewer (login, association) {
-  if (login === 'github-actions[bot]') return false
   if (isTrustedAssociation(association)) return true
   return REVIEW_LOOP_BOTS.has(login)
 }
@@ -352,6 +354,21 @@ export function trustedReviewComments (comments) {
   return comments
     .filter((c) => c && isTrustedReviewer(c.user?.login, c.author_association))
     .map((c) => ({ path: c.path ?? null, line: c.line ?? null, body: c.body ?? '' }))
+}
+
+const REVIEW_LOOP_STATES = new Set(['COMMENTED', 'CHANGES_REQUESTED', 'commented', 'changes_requested'])
+
+export function latestTrustedReview (reviews) {
+  if (!Array.isArray(reviews)) return null
+  let best = null
+  for (const review of reviews) {
+    if (!review || !isTrustedReviewer(review.user?.login, review.author_association)) continue
+    if (!REVIEW_LOOP_STATES.has(review.state)) continue
+    const reviewId = positiveInt(review.id)
+    if (reviewId === null) continue
+    if (best === null || reviewId > best.reviewId) best = { reviewId }
+  }
+  return best
 }
 
 export function parseReviewNoEvent (payload) {
@@ -831,6 +848,12 @@ async function main (argv) {
     }
     case 'trusted-review-comments': {
       process.stdout.write(JSON.stringify(trustedReviewComments(readJsonArg(args[0]))) + '\n')
+      break
+    }
+    case 'latest-trusted-review': {
+      const found = latestTrustedReview(readJsonArg(args[0]))
+      process.stdout.write(JSON.stringify(found ?? {}) + '\n')
+      process.exit(found ? 0 : 1)
       break
     }
     case 'review-loop-pr': {

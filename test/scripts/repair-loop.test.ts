@@ -35,6 +35,7 @@ import {
   isTrustedAssociation,
   isTrustedReviewer,
   trustedReviewComments,
+  latestTrustedReview,
   parseReviewLoopEvent,
   parseReviewNoEvent,
   resolveReviewLoopPr,
@@ -461,7 +462,7 @@ describe('review-no memory', () => {
     assert.equal(isTrustedAssociation('COLLABORATOR'), false)
     assert.equal(isTrustedReviewer('margaretjgu', 'MEMBER'), true)
     assert.equal(isTrustedReviewer('github-advanced-security[bot]', 'CONTRIBUTOR'), true)
-    assert.equal(isTrustedReviewer('github-actions[bot]', 'MEMBER'), false)
+    assert.equal(isTrustedReviewer('github-actions[bot]', 'NONE'), true)
     assert.equal(isTrustedReviewer('outsider', 'NONE'), false)
     assert.deepEqual(
       trustedReviewComments([
@@ -469,11 +470,30 @@ describe('review-no memory', () => {
         { path: 'src/x.ts', line: 1, body: 'noise', author_association: 'NONE', user: { login: 'outsider' } },
         { path: 'src/y.ts', line: 2, body: 'ours', author_association: 'NONE', user: { login: 'github-actions[bot]' } },
       ]),
-      [{ path: 'src/help-topics.ts', line: 91, body: 'no print' }],
+      [
+        { path: 'src/help-topics.ts', line: 91, body: 'no print' },
+        { path: 'src/y.ts', line: 2, body: 'ours' },
+      ],
     )
     const script = join(process.cwd(), 'scripts/repair-loop.mjs')
     assert.equal(JSON.parse(execFileSync(process.execPath, [script, 'trusted-reviewer', 'github-advanced-security[bot]', 'CONTRIBUTOR'], { encoding: 'utf8' })).ok, true)
-    assert.throws(() => execFileSync(process.execPath, [script, 'trusted-reviewer', 'github-actions[bot]', 'MEMBER']))
+    assert.equal(JSON.parse(execFileSync(process.execPath, [script, 'trusted-reviewer', 'github-actions[bot]', 'NONE'], { encoding: 'utf8' })).ok, true)
+    assert.deepEqual(latestTrustedReview([
+      { id: 1, state: 'COMMENTED', author_association: 'MEMBER', user: { login: 'margaretjgu' } },
+      { id: 9, state: 'COMMENTED', author_association: 'CONTRIBUTOR', user: { login: 'github-advanced-security[bot]' } },
+      { id: 8, state: 'APPROVED', author_association: 'MEMBER', user: { login: 'margaretjgu' } },
+      { id: 10, state: 'COMMENTED', author_association: 'NONE', user: { login: 'github-actions[bot]' } },
+      { id: '../11', state: 'COMMENTED', author_association: 'MEMBER', user: { login: 'margaretjgu' } },
+    ]), { reviewId: 10 })
+    assert.equal(latestTrustedReview([]), null)
+    assert.equal(latestTrustedReview(null), null)
+    const reviews = join(tmpdir(), `repair-loop-reviews-${process.pid}.json`)
+    writeFileSync(reviews, JSON.stringify([
+      { id: 3, state: 'CHANGES_REQUESTED', author_association: 'OWNER', user: { login: 'josh' } },
+    ]))
+    assert.deepEqual(JSON.parse(execFileSync(process.execPath, [script, 'latest-trusted-review', reviews], { encoding: 'utf8' })), { reviewId: 3 })
+    writeFileSync(reviews, '[]')
+    assert.throws(() => execFileSync(process.execPath, [script, 'latest-trusted-review', reviews]))
     assert.equal(
       reviewCommentPrNumber({ pull_request_url: 'https://api.github.com/repos/elastic/cli/pulls/644' }, 'pull_request_review_comment'),
       644,
