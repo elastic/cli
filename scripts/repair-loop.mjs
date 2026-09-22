@@ -241,18 +241,30 @@ export async function downloadBkFirstFailure ({
 }
 
 export async function rebuildBkBuild ({ token, org, pipeline, build, fetchImpl = fetch }) {
-  if (typeof token !== 'string' || token === '') return false
-  if (typeof org !== 'string' || typeof pipeline !== 'string' || typeof build !== 'string') return false
-  if (!/^[A-Za-z0-9_.-]+$/.test(org) || !/^[A-Za-z0-9_.-]+$/.test(pipeline) || !/^\d+$/.test(build)) return false
-  const res = await fetchImpl(
-    `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}/rebuild`,
-    {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-      redirect: 'error',
-    },
-  )
-  return res?.ok === true
+  if (typeof token !== 'string' || token === '') return { ok: false, status: 0 }
+  if (typeof org !== 'string' || typeof pipeline !== 'string' || typeof build !== 'string') return { ok: false, status: 0 }
+  if (!/^[A-Za-z0-9_.-]+$/.test(org) || !/^[A-Za-z0-9_.-]+$/.test(pipeline) || !/^\d+$/.test(build)) return { ok: false, status: 0 }
+  try {
+    const res = await fetchImpl(
+      `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}/rebuild`,
+      {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        redirect: 'error',
+      },
+    )
+    return { ok: res?.ok === true, status: Number(res?.status) || 0 }
+  } catch {
+    return { ok: false, status: 0 }
+  }
+}
+
+export function formatBkRebuildNote ({ ok, status }) {
+  if (ok) return 'Rebuilt the failed Buildkite jobs.'
+  if (Number(status) > 0) {
+    return `Rebuild skipped: Buildkite API returned ${Number(status)}. Rebuild the failed jobs in the Buildkite UI.`
+  }
+  return 'Rebuild skipped: no usable Buildkite API response. Rebuild the failed jobs in the Buildkite UI.'
 }
 
 export function hasStopCommand (text) {
@@ -783,9 +795,9 @@ async function main (argv) {
           ...parsed,
           token: process.env.BUILDKITE_API_TOKEN,
         })
-        : false
-      process.stdout.write(JSON.stringify({ ok: result }) + '\n')
-      process.exit(result ? 0 : 1)
+        : { ok: false, status: 0 }
+      process.stdout.write(JSON.stringify({ ...result, note: formatBkRebuildNote(result) }) + '\n')
+      process.exit(result.ok ? 0 : 1)
       break
     }
     case 'bk-excerpt': {

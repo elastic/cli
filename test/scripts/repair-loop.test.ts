@@ -20,6 +20,7 @@ import {
   extractBkFailureExcerpt,
   extractBkFailureContext,
   rebuildBkBuild,
+  formatBkRebuildNote,
   extractGhaFailureExcerpt,
   extractGhaFailureContext,
   stripGhaLog,
@@ -300,15 +301,48 @@ describe('downloadBkFirstFailure', () => {
       build: '1336',
       fetchImpl: async (url, init) => {
         captured = { url, init }
-        return { ok: true, json: async () => ({}) }
+        return { ok: true, status: 200, json: async () => ({}) }
       },
     })
-    assert.equal(ok, true)
+    assert.deepEqual(ok, { ok: true, status: 200 })
     assert.equal(captured.url, 'https://api.buildkite.com/v2/organizations/elastic/pipelines/elastic-cli/builds/1336/rebuild')
     assert.equal(captured.init.method, 'PUT')
     assert.equal(captured.init.redirect, 'error')
-    assert.equal(await rebuildBkBuild({ token: '', org: 'elastic', pipeline: 'elastic-cli', build: '1' }), false)
-    assert.equal(await rebuildBkBuild({ token: 't', org: 'elastic', pipeline: 'elastic-cli', build: '../1' }), false)
+    assert.deepEqual(await rebuildBkBuild({ token: '', org: 'elastic', pipeline: 'elastic-cli', build: '1' }), { ok: false, status: 0 })
+    assert.deepEqual(await rebuildBkBuild({ token: 't', org: 'elastic', pipeline: 'elastic-cli', build: '../1' }), { ok: false, status: 0 })
+    assert.deepEqual(
+      await rebuildBkBuild({
+        token: 't',
+        org: 'elastic',
+        pipeline: 'elastic-cli',
+        build: '1355',
+        fetchImpl: async () => ({ ok: false, status: 403, json: async () => ({ message: 'Forbidden' }) }),
+      }),
+      { ok: false, status: 403 },
+    )
+    assert.deepEqual(
+      await rebuildBkBuild({
+        token: 't',
+        org: 'elastic',
+        pipeline: 'elastic-cli',
+        build: '1355',
+        fetchImpl: async () => { throw new TypeError('redirect') },
+      }),
+      { ok: false, status: 0 },
+    )
+    assert.equal(formatBkRebuildNote({ ok: true, status: 200 }), 'Rebuilt the failed Buildkite jobs.')
+    assert.equal(
+      formatBkRebuildNote({ ok: false, status: 403 }),
+      'Rebuild skipped: Buildkite API returned 403. Rebuild the failed jobs in the Buildkite UI.',
+    )
+    assert.equal(
+      formatBkRebuildNote({ ok: false, status: 0 }),
+      'Rebuild skipped: no usable Buildkite API response. Rebuild the failed jobs in the Buildkite UI.',
+    )
+    assert.equal(
+      formatBkRebuildNote({ ok: false, status: '403' }),
+      'Rebuild skipped: Buildkite API returned 403. Rebuild the failed jobs in the Buildkite UI.',
+    )
   })
 })
 
