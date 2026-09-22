@@ -4,7 +4,7 @@
  */
 
 import { createInterface } from 'node:readline'
-import { defineCommand } from '../factory.ts'
+import { defineCommand, ttyRequiredError } from '../factory.ts'
 import type { OpaqueCommandHandle, JsonValue, ParsedResult } from '../factory.ts'
 import { docsAskStream, newUuid, type AskStreamEvent } from './client.ts'
 import { startSpinner, streamAnswer, type SpinnerHandle } from './stream.ts'
@@ -56,11 +56,11 @@ export function createChatCommand (deps: ChatDeps = defaultDeps): OpaqueCommandH
     handler: async (parsed: ParsedResult): Promise<JsonValue> => {
       const inp = parsed.input as { question: string }
       const question = inp.question.trim()
-      if (question === '') return { error: { code: 'missing_input', message: 'question is required' } }
+      if (question === '') return { error: { code: 'missing_input', message: 'Pass --question <text>.' } }
+      if (parsed.options['json'] !== true && process.stdin.isTTY !== true) return ttyRequiredError(['--json'])
 
-      // Spinner and interactive loop are disabled when stderr is not a TTY (piped/redirected)
-      // or when --json is requested, so agents and scripts get clean output.
-      const interactive = process.stderr.isTTY === true && parsed.options['json'] !== true
+      // Follow-up loop needs a TTY. --json is the non-interactive path.
+      const interactive = process.stdin.isTTY === true && parsed.options['json'] !== true
       const conversationId = newUuid()
 
       if (parsed.options['json'] === true) {

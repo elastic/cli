@@ -102,6 +102,17 @@ export function _testSetConfirmReader (fn: () => Promise<boolean>): () => void {
   return () => { confirmReader = prev }
 }
 
+/** Error envelope for a prompt that cannot run without a TTY. Message lists the flags that replace it. */
+export function ttyRequiredError (flags: readonly string[]): { error: { code: string; message: string } } {
+  const named = flags.map((f) => f.startsWith('--') ? f : `--${f}`).join(', ')
+  return {
+    error: {
+      code: 'confirmation_required',
+      message: `Pass ${named} (not a TTY).`,
+    },
+  }
+}
+
 /** Prompts the user on stderr and reads one line from stdin to confirm a destructive action. */
 async function promptConfirm (): Promise<boolean> {
   if (confirmReader != null) return confirmReader()
