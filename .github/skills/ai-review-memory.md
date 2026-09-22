@@ -26,3 +26,4 @@ Action items for the next AI review. Follow these. Do not repeat the rejected fi
 - Do not re-flag console.log usage in Command .action() handlers. The writes have been moved to cli.ts, which is excluded from this query.
 - Do not re-flag console.log calls in Command .action() handlers. The writes have been relocated to cli.ts, which is excluded from this query.
 - Do not re-flag manual Command construction for the help command because it has been refactored to use defineCommand with factory-managed output.
+- Do not re-flag console.log usage in Command .action() handlers. The help command uses defineCommand and output is handled by the factory, not direct printing.
