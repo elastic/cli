@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Result } from 'typescript-result'
-
 interface Marker {
   env: string
   agent: KnownAgent
@@ -51,10 +49,6 @@ export interface Detection {
   confidence: number
   llm?: LlmInfo
 }
-
-export type DetectionError =
-  | { code: 'no-agent-detected'; message: string }
-  | { code: 'low-confidence'; message: string; agent: AgentId; confidence: number }
 
 export const AGENT_SHORT_CODES: Record<KnownAgent, string> = {
   cowork: 'cw',
@@ -166,6 +160,19 @@ function isKnownAgent (v: string): v is KnownAgent {
 
 type Env = Record<string, string | undefined>
 
+/**
+ * Maps a generic parent marker to the more-specific child that subsumes it.
+ * When both markers are present they describe one session, not two agents:
+ * cowork ships the Claude Code markers, and cursor-cli inherits cursor's
+ * CURSOR_TRACE_ID. Counting them separately splits the vote below
+ * `minConfidence` and drops the session, so the parent vote is folded into
+ * the child when the child is also present.
+ */
+const SUBSUMES: Partial<Record<KnownAgent, KnownAgent>> = {
+  'claude-code': 'cowork',
+  cursor: 'cursor-cli',
+}
+
 /** Collects one agent vote per matching marker env var, in priority order. */
 function collectVotes (env: Env): AgentId[] {
   const votes: AgentId[] = []
@@ -175,7 +182,11 @@ function collectVotes (env: Env): AgentId[] {
     if (m.value != null && v !== m.value) continue
     votes.push(m.agent)
   }
-  return votes
+  const present = new Set(votes)
+  return votes.map((a) => {
+    const child = SUBSUMES[a as KnownAgent]
+    return child != null && present.has(child) ? child : a
+  })
 }
 
 /** Assembles a Detection, resolving the LLM model var for the given agent. */
@@ -190,36 +201,31 @@ function buildDetection (agent: AgentId, confidence: number, env: Env): Detectio
  * Detects the coding-agent harness that spawned the current process from its
  * environment variables.
  *
+ * Returns the {@link Detection} when a harness is identified with sufficient
+ * confidence, or `null` when no agent is detected or confidence falls below
+ * `minConfidence`. Neither outcome is an error.
+ *
  * Confidence is the share of matched env vars that point at the winning agent:
  * all vars agreeing yields 1; two Claude vars and one Codex var yields 0.667.
- * Ties are broken by marker priority order. Returns a {@link Result} rather
- * than throwing so callers can branch on the failure explicitly.
+ * Ties are broken by marker priority order.
  *
- * @param minConfidence lower bound (0–1, default 0.95) below which detection
- *   fails with a `low-confidence` error.
- * @param env environment to read; defaults to `process.env` (injectable for
- *   testing).
+ * @param minConfidence lower bound (0–1, default 0.95) below which null is returned.
+ * @param env environment to read; defaults to `process.env` (injectable for testing).
  */
 export function detectAgent (
   minConfidence = 0.95,
   env: Env = process.env,
-): Result<Detection, DetectionError> {
+): Detection | null {
   // Universal opt-in vars override the marker table unconditionally: when set,
   // the caller has explicitly declared which harness is running and marker votes
   // must not dilute confidence or suppress the result.
   const aiAgent = env['AI_AGENT']
-  if (aiAgent != null && aiAgent !== '') return Result.ok(buildDetection(aiAgent, 1, env))
+  if (aiAgent != null && aiAgent !== '') return buildDetection(aiAgent, 1, env)
   const agentEnv = env['AGENT']
-  if (agentEnv != null && agentEnv !== '' && isKnownAgent(agentEnv)) return Result.ok(buildDetection(agentEnv, 1, env))
+  if (agentEnv != null && agentEnv !== '' && isKnownAgent(agentEnv)) return buildDetection(agentEnv, 1, env)
 
   const votes = collectVotes(env)
-  if (votes.length === 0) {
-    return Result.error({
-      code: 'no-agent-detected',
-      message: 'no known agent-harness environment variables were found',
-    })
-  }
-
+  if (votes.length === 0) return null
   const counts = new Map<AgentId, number>()
   for (const agent of votes) counts.set(agent, (counts.get(agent) ?? 0) + 1)
 
@@ -236,16 +242,9 @@ export function detectAgent (
   }
 
   const confidence = best / votes.length
-  if (confidence < minConfidence) {
-    return Result.error({
-      code: 'low-confidence',
-      message: `detection confidence ${confidence.toFixed(6)} is below minimum ${minConfidence}`,
-      agent,
-      confidence,
-    })
-  }
+  if (confidence < minConfidence) return null
 
-  return Result.ok(buildDetection(agent, confidence, env))
+  return buildDetection(agent, confidence, env)
 }
 
 /**

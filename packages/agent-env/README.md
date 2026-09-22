@@ -11,25 +11,24 @@ import { detectAgent } from '@elastic/agent-env'
 
 const result = detectAgent() // minConfidence defaults to 0.95
 
-if (result.isOk()) {
-  const { agent, confidence, llm } = result.value
+if (result) {
+  const { agent, confidence, llm } = result
   console.log(`${agent} (${confidence})${llm ? ` ${llm.vendor ?? '?'}/${llm.model}` : ''}`)
 } else {
-  console.error(result.error.message)
+  console.error('no agent detected')
 }
 ```
 
 `detectAgent(minConfidence = 0.95, env = process.env)` returns a
-[`Result`](https://www.typescript-result.dev) instead of throwing:
+`Detection` or `null` instead of throwing:
 
-- **`Result.ok({ agent, confidence, llm? })`** — `confidence` is the share of matched
+- **`Detection` (`{ agent, confidence, llm? }`)** — `confidence` is the share of matched
   env vars pointing at the winning agent (all agreeing → `1`; two Claude vars +
   one Codex var → `0.666…`). Ties break by marker priority order. `llm` is
   `{ model, vendor? }` — the active model id when the harness exposes it as an
   env var (absent otherwise); see below.
-- **`Result.error({ code: 'no-agent-detected', … })`** — no known markers found.
-- **`Result.error({ code: 'low-confidence', agent, confidence, … })`** —
-  `confidence` fell below `minConfidence`.
+- **`null`** — no known markers found, or `confidence` fell below
+  `minConfidence`. Neither outcome is an error.
 
 `agent` is typed as `AgentId` (`KnownAgent | string`). Values outside
 `KnownAgent` can appear when the `AI_AGENT` env var is set to an unrecognized

@@ -5,7 +5,7 @@
 
 import os from 'node:os'
 import { getResolvedConfig } from '../config/store.ts'
-import { detectAgent, AGENT_SHORT_CODES, type KnownAgent } from '@elastic/agent-env'
+import { detectAgent, AGENT_SHORT_CODES, type Detection, type KnownAgent } from '@elastic/agent-env'
 
 // x-release-please-start-version
 const cliVersion = '0.5.0'
@@ -22,15 +22,15 @@ export function toMetaVersion(version: string): string {
 const _metaVersion = toMetaVersion(cliVersion)
 const _userAgentPrefix = `elastic-cli/${cliVersion} (${os.platform()} ${os.arch()}; Node.js ${process.version}`
 
-type DetectionResult = ReturnType<typeof detectAgent>
-let _detectionCache: DetectionResult | undefined
+let _detectionCache: ReturnType<typeof detectAgent> | undefined
 
 /**
  * Memoized agent detection. Invoked only when telemetry is enabled so that
  * opted-out users never trigger `detectAgent` at all.
  */
-function detection(): DetectionResult {
-  return (_detectionCache ??= detectAgent())
+function detection(): Detection | null {
+  if (_detectionCache === undefined) _detectionCache = detectAgent()
+  return _detectionCache
 }
 
 /** Test-only: clears the memoized detection so later env changes take effect. */
@@ -39,16 +39,16 @@ export function _testResetDetection(): void {
 }
 
 /** Derives the `vendor/model` (or `model`) user-agent segment from a detection result. */
-function llmSegmentOf(result: DetectionResult): string {
-  if (!result.ok || !result.value.llm) return ''
-  const { model, vendor } = result.value.llm
+function llmSegmentOf(result: Detection | null): string {
+  if (result == null || !result.llm) return ''
+  const { model, vendor } = result.llm
   return vendor ? `${vendor}/${model}` : model
 }
 
 /** Derives the compact `,ag=<code>` meta segment from a detection result. */
-function agentMetaOf(result: DetectionResult): string {
-  if (!result.ok) return ''
-  const { agent } = result.value
+function agentMetaOf(result: Detection | null): string {
+  if (result == null) return ''
+  const { agent } = result
   if (!Object.hasOwn(AGENT_SHORT_CODES, agent)) return ''
   return `,ag=${AGENT_SHORT_CODES[agent as KnownAgent]}`
 }

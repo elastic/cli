@@ -22,8 +22,5 @@
   "scripts": {
     "build": "tsc -b",
     "test": "tsx --test test/index.test.ts"
-  },
-  "dependencies": {
-    "typescript-result": "^3.5.2"
   }
 }
