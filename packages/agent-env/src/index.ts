@@ -173,6 +173,13 @@ const SUBSUMES: Partial<Record<KnownAgent, KnownAgent>> = {
   cursor: 'cursor-cli',
 }
 
+/**
+ * Agents whose env vars are commonly inherited by child processes. When any
+ * vote for a non-ambient agent is present, ambient votes are discarded so they
+ * cannot suppress the real harness below minConfidence.
+ */
+const AMBIENT_AGENTS = new Set<AgentId>(['cursor', 'cursor-cli'])
+
 /** Collects one agent vote per matching marker env var, in priority order. */
 function collectVotes (env: Env): AgentId[] {
   const votes: AgentId[] = []
@@ -183,7 +190,9 @@ function collectVotes (env: Env): AgentId[] {
     votes.push(m.agent)
   }
   const present = new Set(votes)
-  return votes.map((a) => {
+  const hasDefinitive = votes.some((a) => !AMBIENT_AGENTS.has(a))
+  const filtered = hasDefinitive ? votes.filter((a) => !AMBIENT_AGENTS.has(a)) : votes
+  return filtered.map((a) => {
     const child = SUBSUMES[a as KnownAgent]
     return child != null && present.has(child) ? child : a
   })

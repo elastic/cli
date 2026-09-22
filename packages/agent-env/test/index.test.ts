@@ -133,6 +133,28 @@ describe('detectAgent', () => {
     assert.equal(detectAgent(undefined, { CURSOR_TRACE_ID: 'x' })?.agent, 'cursor')
   })
 
+  it('discards cursor votes when any non-cursor marker is present', () => {
+    // CURSOR_TRACE_ID is commonly inherited; must not suppress the real harness.
+    const d = detectAgent(undefined, { CLAUDECODE: '1', CURSOR_TRACE_ID: 'x' })
+    assert.ok(d != null)
+    assert.equal(d.agent, 'claude-code')
+    assert.equal(d.confidence, 1)
+  })
+
+  it('discards cursor-cli votes too when any non-cursor marker is present', () => {
+    const d = detectAgent(undefined, { PI_CODING_AGENT: '1', CURSOR_AGENT: '1', CURSOR_TRACE_ID: 'x' })
+    assert.ok(d != null)
+    assert.equal(d.agent, 'pi')
+    assert.equal(d.confidence, 1)
+  })
+
+  it('keeps cursor-cli when no non-cursor marker is present', () => {
+    // Ensure ambient filtering is only applied when another harness fired.
+    const d = detectAgent(undefined, { CURSOR_AGENT: '1', CURSOR_TRACE_ID: 'x' })
+    assert.ok(d != null)
+    assert.equal(d.agent, 'cursor-cli')
+  })
+
   it('ignores empty-string vars', () => {
     assert.equal(detectAgent(0.95, { CLAUDECODE: '' }), null)
   })
