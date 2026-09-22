@@ -25,3 +25,4 @@ Action items for the next AI review. Follow these. Do not repeat the rejected fi
 - Do not re-flag the cross-repo secret exposure in the status path. The maintainer has already added an isCrossRepository exit before BUILDKITE_API_TOKEN is accessed.
 - Do not re-flag console.log usage in Command .action() handlers. The writes have been moved to cli.ts, which is excluded from this query.
 - Do not re-flag console.log calls in Command .action() handlers. The writes have been relocated to cli.ts, which is excluded from this query.
+- Do not re-flag manual Command construction for the help command because it has been refactored to use defineCommand with factory-managed output.
