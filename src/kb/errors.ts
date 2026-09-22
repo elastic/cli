@@ -4,7 +4,7 @@
  */
 
 import type { JsonValue } from '../factory.ts'
-import { isAuthStatus, withAuthHint } from '../config/next-command.ts'
+import { withAuthHint } from '../config/next-command.ts'
 
 /** Builds a `missing_config` error payload from a thrown error. */
 export function missingConfigError (err: unknown): JsonValue {
