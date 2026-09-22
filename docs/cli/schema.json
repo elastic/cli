@@ -9905,7 +9905,7 @@
                       "name": "active-only",
                       "type": "boolean",
                       "required": false,
-                      "summary": "If `true`, the response only includes shard recoveries that have not yet completed (excludes `done` stage)."
+                      "summary": "If `true`, the response only includes ongoing shard recoveries."
                     },
                     {
                       "role": "flag",
@@ -26666,7 +26666,7 @@
                       "name": "active-only",
                       "type": "boolean",
                       "required": false,
-                      "summary": "If `true`, the response only includes shard recoveries that have not yet completed (excludes `DONE` stage)."
+                      "summary": "If `true`, the response only includes ongoing shard recoveries."
                     },
                     {
                       "role": "flag",
@@ -52200,7 +52200,7 @@
                       "name": "wait-for-completion",
                       "type": "boolean",
                       "required": false,
-                      "summary": "If `false`, the request returns a response as soon as the deletes are scheduled.\nIf `true`, the request returns a response when the matching snapshots are all deleted, and the post-deletion cleanup work associated with the request has completed.\nIf you make several requests to the delete-snapshots API targetting overlapping collections of snapshots then some of those requests may perform different parts of the associated post-deletion cleanup work, returning their responses at different times.\nFor example, if you make two requests to delete the same snapshot then sometimes all of the post-deletion cleanup work will be associated with the first request, delaying its response, while the second request has no associated post-deletion cleanup work and receives its response as soon as the snapshot has been deleted."
+                      "summary": "If `true`, the request returns a response when the matching snapshots are all deleted.\nIf `false`, the request returns a response as soon as the deletes are scheduled."
                     },
                     {
                       "role": "flag",
@@ -58664,38 +58664,6 @@
                     },
                     {
                       "role": "flag",
-                      "name": "page",
-                      "type": "number",
-                      "required": false,
-                      "summary": "Page number, 1-based."
-                    },
-                    {
-                      "role": "flag",
-                      "name": "per-page",
-                      "type": "number",
-                      "required": false,
-                      "summary": "Number of results per page. Maximum 1000."
-                    },
-                    {
-                      "role": "flag",
-                      "name": "sort-order",
-                      "type": "enum",
-                      "required": false,
-                      "summary": "Sort direction for results, ordered by updated_at.",
-                      "enumValues": [
-                        "asc",
-                        "desc"
-                      ]
-                    },
-                    {
-                      "role": "flag",
-                      "name": "pinned",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "Filter to pinned (true) or unpinned (false) conversations. Omit to return all."
-                    },
-                    {
-                      "role": "flag",
                       "name": "input-file",
                       "type": "string",
                       "required": false,
@@ -60200,13 +60168,6 @@
                   ],
                   "name": "post-agent-builder-tools-execute",
                   "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "approvals",
-                      "type": "string",
-                      "required": false,
-                      "summary": "Actions the tool run may take that would otherwise need a live user to approve them. Applies to this run and any sub-agents it spawns."
-                    },
                     {
                       "role": "flag",
                       "name": "connector-id",
@@ -64817,7 +64778,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "delete-case",
+                  "name": "delete-case-default-space",
                   "parameters": [
                     {
                       "role": "dryRun",
@@ -64848,7 +64809,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "update-case",
+                  "name": "update-case-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -64884,7 +64845,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "create-case",
+                  "name": "create-case-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -64918,12 +64879,6 @@
                       "name": "description",
                       "type": "string",
                       "required": true
-                    },
-                    {
-                      "role": "flag",
-                      "name": "extended-fields",
-                      "type": "string",
-                      "required": false
                     },
                     {
                       "role": "flag",
@@ -65001,7 +64956,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "find-cases",
+                  "name": "find-cases-default-space",
                   "parameters": [
                     {
                       "role": "dryRun",
@@ -65025,7 +64980,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case",
+                  "name": "get-case-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65063,7 +65018,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case-alerts",
+                  "name": "get-case-alerts-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65101,7 +65056,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "delete-case-comments",
+                  "name": "delete-case-comments-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65146,7 +65101,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "update-case-comment",
+                  "name": "update-case-comment-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65187,7 +65142,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "add-case-comment",
+                  "name": "add-case-comment-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65228,7 +65183,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "find-case-comments",
+                  "name": "find-case-comments-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65291,7 +65246,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "delete-case-comment",
+                  "name": "delete-case-comment-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65343,7 +65298,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case-comment",
+                  "name": "get-case-comment-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65388,7 +65343,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "push-case",
+                  "name": "push-case-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65436,7 +65391,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case-applicable-fields",
+                  "name": "get-case-applicable-fields-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65474,7 +65429,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "add-case-file",
+                  "name": "add-case-file-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65523,7 +65478,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "find-case-activity",
+                  "name": "find-case-activity-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65594,7 +65549,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-cases-by-alert",
+                  "name": "get-cases-by-alert-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65640,7 +65595,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case-configuration",
+                  "name": "get-case-configuration-default-space",
                   "parameters": [
                     {
                       "role": "dryRun",
@@ -65664,7 +65619,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "set-case-configuration",
+                  "name": "set-case-configuration-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65735,7 +65690,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "update-case-configuration",
+                  "name": "update-case-configuration-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65809,7 +65764,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "find-case-connectors",
+                  "name": "find-case-connectors-default-space",
                   "parameters": [
                     {
                       "role": "dryRun",
@@ -65833,7 +65788,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-applicable-fields",
+                  "name": "get-applicable-fields-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -65878,7 +65833,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case-reporters",
+                  "name": "get-case-reporters-default-space",
                   "parameters": [
                     {
                       "role": "dryRun",
@@ -65902,7 +65857,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case-tags",
+                  "name": "get-case-tags-default-space",
                   "parameters": [
                     {
                       "role": "dryRun",
@@ -65926,7 +65881,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case-templates",
+                  "name": "get-case-templates-default-space",
                   "parameters": [
                     {
                       "role": "dryRun",
@@ -65950,7 +65905,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "create-case-template",
+                  "name": "create-case-template-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -66025,7 +65980,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "delete-case-template",
+                  "name": "delete-case-template-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -66070,7 +66025,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "get-case-template",
+                  "name": "get-case-template-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -66115,7 +66070,7 @@
                     "kb",
                     "cases"
                   ],
-                  "name": "update-case-template",
+                  "name": "update-case-template-default-space",
                   "parameters": [
                     {
                       "role": "flag",
@@ -66827,51 +66782,6 @@
                     }
                   ],
                   "summary": "Get data streams",
-                  "intent": {
-                    "destructive": false,
-                    "idempotent": true,
-                    "scope": "global",
-                    "requiresAuth": true
-                  }
-                },
-                {
-                  "path": [
-                    "stack",
-                    "kb",
-                    "data-streams"
-                  ],
-                  "name": "get-fleet-data-streams-data",
-                  "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "data-streams",
-                      "type": "string",
-                      "required": true,
-                      "summary": "A comma-separated list of data stream index patterns to check. Each pattern must be of the form `logs-<dataset>-*` or `metrics-<dataset>-*`."
-                    },
-                    {
-                      "role": "flag",
-                      "name": "start",
-                      "type": "string",
-                      "required": true,
-                      "summary": "An ISO 8601 timestamp. Only documents with an `@timestamp` at or after this time are considered."
-                    },
-                    {
-                      "role": "flag",
-                      "name": "input-file",
-                      "type": "string",
-                      "required": false,
-                      "summary": "path to a JSON file to use as command input"
-                    },
-                    {
-                      "role": "dryRun",
-                      "name": "dry-run",
-                      "type": "boolean",
-                      "required": false,
-                      "summary": "validate all inputs and exit without performing any action"
-                    }
-                  ],
-                  "summary": "Check if data streams have data",
                   "intent": {
                     "destructive": false,
                     "idempotent": true,
@@ -74653,7 +74563,7 @@
                       "role": "flag",
                       "name": "hosts",
                       "type": "array",
-                      "required": false,
+                      "required": true,
                       "repeatable": true,
                       "elementType": "string"
                     },
@@ -74749,7 +74659,7 @@
                       "type": "enum",
                       "required": true,
                       "enumValues": [
-                        "otlp"
+                        "kafka"
                       ]
                     },
                     {
@@ -74926,12 +74836,6 @@
                     {
                       "role": "flag",
                       "name": "version",
-                      "type": "string",
-                      "required": false
-                    },
-                    {
-                      "role": "flag",
-                      "name": "otlp-exporter",
                       "type": "string",
                       "required": false
                     },
@@ -75179,7 +75083,7 @@
                       "type": "enum",
                       "required": false,
                       "enumValues": [
-                        "otlp"
+                        "kafka"
                       ]
                     },
                     {
@@ -75356,12 +75260,6 @@
                     {
                       "role": "flag",
                       "name": "version",
-                      "type": "string",
-                      "required": false
-                    },
-                    {
-                      "role": "flag",
-                      "name": "otlp-exporter",
                       "type": "string",
                       "required": false
                     },
@@ -85682,9 +85580,6 @@
                   ],
                   "summary": "Configure the Risk Engine Saved Object",
                   "intent": {
-                    "destructive": false,
-                    "idempotent": true,
-                    "scope": "global",
                     "requiresAuth": true
                   }
                 },
@@ -104433,13 +104328,6 @@
                     },
                     {
                       "role": "flag",
-                      "name": "organization-id",
-                      "type": "string",
-                      "required": true,
-                      "summary": "The Organization ID to scope the request to."
-                    },
-                    {
-                      "role": "flag",
                       "name": "input-file",
                       "type": "string",
                       "required": false,
@@ -104467,13 +104355,6 @@
                   ],
                   "name": "create-traffic-filter",
                   "parameters": [
-                    {
-                      "role": "flag",
-                      "name": "organization-id",
-                      "type": "string",
-                      "required": true,
-                      "summary": "The Organization ID to scope the request to."
-                    },
                     {
                       "role": "flag",
                       "name": "name",
@@ -104568,13 +104449,6 @@
                     },
                     {
                       "role": "flag",
-                      "name": "organization-id",
-                      "type": "string",
-                      "required": true,
-                      "summary": "The Organization ID to scope the request to."
-                    },
-                    {
-                      "role": "flag",
                       "name": "input-file",
                       "type": "string",
                       "required": false,
@@ -104608,13 +104482,6 @@
                       "type": "string",
                       "required": true,
                       "summary": "The traffic filter ID."
-                    },
-                    {
-                      "role": "flag",
-                      "name": "organization-id",
-                      "type": "string",
-                      "required": true,
-                      "summary": "The Organization ID to scope the request to."
                     },
                     {
                       "role": "flag",
@@ -104880,6 +104747,74 @@
       "namespaces": [],
       "summary": "Search, read, and ask questions about Elastic documentation",
       "options": [
+        {
+          "role": "flag",
+          "name": "input-file",
+          "type": "string",
+          "required": false,
+          "summary": "path to a JSON file to use as command input"
+        },
+        {
+          "role": "dryRun",
+          "name": "dry-run",
+          "type": "boolean",
+          "required": false,
+          "summary": "validate all inputs and exit without performing any action"
+        }
+      ]
+    },
+    {
+      "segment": "nightshift",
+      "commands": [
+        {
+          "path": [
+            "nightshift"
+          ],
+          "name": "ask",
+          "parameters": [],
+          "summary": "Ask the Nightshift investigation agent a question (single answer)",
+          "intent": {
+            "requiresAuth": true
+          }
+        }
+      ],
+      "namespaces": [],
+      "summary": "Ask the Nightshift investigation agent",
+      "options": [
+        {
+          "role": "flag",
+          "name": "timeout",
+          "type": "string",
+          "required": false,
+          "summary": "Abort the request after this many seconds (default: no timeout)"
+        },
+        {
+          "role": "flag",
+          "name": "verbose",
+          "type": "boolean",
+          "required": false,
+          "summary": "Show agent tool call count after the answer"
+        },
+        {
+          "role": "flag",
+          "name": "prompt",
+          "type": "string",
+          "required": false,
+          "summary": "Question or instruction for the Nightshift investigation agent"
+        },
+        {
+          "role": "flag",
+          "name": "conversation-id",
+          "type": "string",
+          "required": false,
+          "summary": "Continue an existing conversation instead of starting a new one",
+          "validations": [
+            {
+              "kind": "regex",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          ]
+        },
         {
           "role": "flag",
           "name": "input-file",
