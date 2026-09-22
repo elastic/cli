@@ -13,7 +13,7 @@ const DEFAULT_POLL_INTERVAL_MS = 10_000
 const DEFAULT_POLL_TIMEOUT_MS = 300_000
 
 /**
- * Dependencies for `createCloudHandler`. 
+ * Dependencies for `createCloudHandler`.
  */
 export interface CloudHandlerDeps {
   getCloudClient: () => CloudClient
@@ -74,6 +74,14 @@ export function createCloudHandler(
       }
       return body as HandlerResult
     } catch (err) {
+      const raw = err instanceof Error ? err.message : String(err)
+      const { status } = parseCloudError(raw)
+      // For GET requests that return 404, the resource simply does not exist in
+      // this environment. Return an empty object so callers and functional tests
+      // can handle the absent-resource case gracefully.
+      if (status === 404 && params.method === 'GET') {
+        return {}
+      }
       return cloudApiError(err, def)
     }
   }
