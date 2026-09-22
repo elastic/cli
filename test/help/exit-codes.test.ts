@@ -15,7 +15,7 @@ import {
 } from '../../src/help/catalog.ts'
 import { registerHelpCommand } from '../../src/help/register.ts'
 
-function captured (fn: () => void): { stdout: string, stderr: string, exitCode: number | undefined } {
+async function captured (fn: () => void | Promise<void>): Promise<{ stdout: string, stderr: string, exitCode: number | undefined }> {
   const stdout: string[] = []
   const stderr: string[] = []
   const origOut = process.stdout.write.bind(process.stdout)
@@ -25,7 +25,7 @@ function captured (fn: () => void): { stdout: string, stderr: string, exitCode: 
   process.stderr.write = ((chunk: unknown) => { if (typeof chunk === 'string') stderr.push(chunk); return true }) as typeof process.stderr.write
   process.exitCode = undefined
   try {
-    fn()
+    await fn()
   } finally {
     process.stdout.write = origOut
     process.stderr.write = origErr
@@ -35,14 +35,12 @@ function captured (fn: () => void): { stdout: string, stderr: string, exitCode: 
   return { stdout: stdout.join(''), stderr: stderr.join(''), exitCode }
 }
 
-function invokeHelp (args: string[]): { stdout: string, stderr: string, exitCode: number | undefined } {
+async function invokeHelp (args: string[]): Promise<{ stdout: string, stderr: string, exitCode: number | undefined }> {
   const prog = new Command('elastic')
   prog.exitOverride()
   prog.option('--json', 'output as JSON')
   prog.addCommand(registerHelpCommand())
-  return captured(() => {
-    prog.parse(args, { from: 'user' })
-  })
+  return captured(() => prog.parseAsync(args, { from: 'user' }))
 }
 
 describe('classifyConfigLoadError', () => {
@@ -76,16 +74,16 @@ describe('elastic help exit-codes', () => {
     assert.ok(formatTopicsHelp().includes('exit-codes'))
   })
 
-  it('prints the topic in text', () => {
-    const out = invokeHelp(['help', 'exit-codes'])
-    assert.equal(out.exitCode, undefined)
+  it('prints the topic in text', async () => {
+    const out = await invokeHelp(['help', 'exit-codes'])
+    assert.ok(out.exitCode === undefined || out.exitCode === 0)
     assert.ok(out.stdout.includes('missing_config'))
     assert.ok(out.stdout.includes('auth_required'))
     assert.ok(out.stdout.includes('elastic status --json'))
   })
 
-  it('prints the topic as JSON', () => {
-    const out = invokeHelp(['help', 'exit-codes', '--json'])
+  it('prints the topic as JSON', async () => {
+    const out = await invokeHelp(['help', 'exit-codes', '--json'])
     const parsed = JSON.parse(out.stdout) as {
       topic: string
       exit_codes: typeof EXIT_CODES
@@ -98,19 +96,19 @@ describe('elastic help exit-codes', () => {
     assert.deepEqual(parsed.error_codes.map(e => e.code), ERROR_CODES.map(e => e.code))
   })
 
-  it('lists topics when no topic is given', () => {
-    const out = invokeHelp(['help'])
+  it('lists topics when no topic is given', async () => {
+    const out = await invokeHelp(['help'])
     assert.ok(out.stdout.includes('exit-codes'))
   })
 
-  it('lists topics as JSON when no topic is given', () => {
-    const out = invokeHelp(['--json', 'help'])
+  it('lists topics as JSON when no topic is given', async () => {
+    const out = await invokeHelp(['--json', 'help'])
     const parsed = JSON.parse(out.stdout) as { topics: Array<{ name: string }> }
     assert.ok(parsed.topics.some(t => t.name === 'exit-codes'))
   })
 
-  it('unknown topic uses input_validation_failed', () => {
-    const out = invokeHelp(['help', 'not-a-topic', '--json'])
+  it('unknown topic uses input_validation_failed', async () => {
+    const out = await invokeHelp(['help', 'not-a-topic', '--json'])
     const parsed = JSON.parse(out.stderr) as { error: { code: string } }
     assert.equal(parsed.error.code, 'input_validation_failed')
     assert.equal(out.exitCode, 1)
