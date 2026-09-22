@@ -68,9 +68,13 @@ export function createCloudHandler(
         }
       }
 
+      if (isEmptyListBody(body)) {
+        const hint = emptyListCreateHint(def)
+        if (hint != null) process.stderr.write(`${hint}\n`)
+      }
       return body as HandlerResult
     } catch (err) {
-      return cloudApiError(err)
+      return cloudApiError(err, def)
     }
   }
 }
@@ -117,9 +121,75 @@ function missingConfigError(err: unknown): JsonValue {
   return { error: { code: 'missing_config', message } }
 }
 
-function cloudApiError(err: unknown): JsonValue {
-  const message = err instanceof Error ? err.message : String(err)
-  return { error: { code: 'cloud_api_error', message } }
+const REGION_HINT = 'Run `elastic cloud serverless regions list-regions`.'
+const CLOUD_AUTH_HINT = 'Use a Cloud API key, not a project Elasticsearch key. Create one at https://cloud.elastic.co/account/keys, then run `elastic config context edit`.'
+
+function parseErrorsMessage (bodyText: string): string | undefined {
+  try {
+    const json = JSON.parse(bodyText) as { errors?: Array<{ message?: unknown }> }
+    if (!Array.isArray(json.errors)) return undefined
+    const msgs = json.errors
+      .map((e) => (typeof e?.message === 'string' ? e.message : undefined))
+      .filter((m): m is string => m != null)
+    return msgs.length > 0 ? msgs.join('; ') : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function parseCloudError (raw: string): { status?: number; message: string } {
+  const match = /Cloud API error (\d+): ([\s\S]*)$/.exec(raw)
+  if (match == null) return { message: raw }
+  const status = parseInt(match[1]!, 10)
+  const bodyText = match[2] ?? ''
+  return { status, message: parseErrorsMessage(bodyText) ?? raw }
+}
+
+function listHint (def: CloudApiDefinition): string | undefined {
+  switch (def.namespace) {
+    case 'elasticsearch-projects': return 'Run `elastic cloud serverless projects search list`.'
+    case 'observability-projects': return 'Run `elastic cloud serverless projects observability list`.'
+    case 'security-projects': return 'Run `elastic cloud serverless projects security list`.'
+    case 'deployments': return 'Run `elastic cloud hosted deployments list-deployments`.'
+    default: return undefined
+  }
+}
+
+function emptyListCreateHint (def: CloudApiDefinition): string | undefined {
+  switch (def.name) {
+    case 'list-elasticsearch-projects': return 'No projects yet. Create one with `elastic cloud serverless projects search create`.'
+    case 'list-observability-projects': return 'No projects yet. Create one with `elastic cloud serverless projects observability create`.'
+    case 'list-security-projects': return 'No projects yet. Create one with `elastic cloud serverless projects security create`.'
+    case 'list-deployments': return 'No deployments yet. Create one with `elastic cloud hosted deployments create-deployment`.'
+    default: return undefined
+  }
+}
+
+function isEmptyListBody (body: unknown): boolean {
+  if (Array.isArray(body) && body.length === 0) return true
+  if (body != null && typeof body === 'object' && !Array.isArray(body)) {
+    const o = body as Record<string, unknown>
+    if (Array.isArray(o.items) && o.items.length === 0) return true
+    if (Array.isArray(o.deployments) && o.deployments.length === 0) return true
+  }
+  return false
+}
+
+function cloudHint (def: CloudApiDefinition, status: number | undefined, message: string): string | undefined {
+  if (status === 401 || status === 403) return CLOUD_AUTH_HINT
+  if (status === 404) return listHint(def)
+  if (/region/i.test(message)) return REGION_HINT
+  if (status === 400 && isCreateProjectCommand(def.name)) return REGION_HINT
+  return undefined
+}
+
+function cloudApiError (err: unknown, def: CloudApiDefinition): JsonValue {
+  const raw = err instanceof Error ? err.message : String(err)
+  const { status, message } = parseCloudError(raw)
+  const error: Record<string, JsonValue> = { code: 'cloud_api_error', message }
+  const hint = cloudHint(def, status, message)
+  if (hint != null) error.hint = hint
+  return { error }
 }
 
 function invalidRequestError(err: unknown): JsonValue {
