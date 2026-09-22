@@ -6,7 +6,7 @@
 import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { Command } from 'commander'
-import { defineCommand, _testSetConfirmReader, _testSetIsTTY, _testSetStdinReader } from '../src/factory.ts'
+import { defineCommand, ttyRequiredError, _testSetConfirmReader, _testSetIsTTY, _testSetStdinReader } from '../src/factory.ts'
 import type { OpaqueCommandHandle } from '../src/factory.ts'
 
 // ---------------------------------------------------------------------------
@@ -277,5 +277,22 @@ describe('confirmation guard', { concurrency: false }, () => {
       assert.equal(handlerCalled, false)
       assert.match(stdout, /dry run/)
     })
+  })
+})
+
+describe('ttyRequiredError', () => {
+  it('names each flag in a confirmation_required envelope', () => {
+    const err = ttyRequiredError(['--json', 'es-url'])
+    assert.equal(err.error.code, 'confirmation_required')
+    assert.match(err.error.message, /--json/)
+    assert.match(err.error.message, /--es-url/)
+    assert.match(err.error.message, /not a TTY/)
+  })
+
+  it('rejects empty, traversal, and query-string flag names as still printable', () => {
+    const err = ttyRequiredError(['', '../x', 'a?#b'])
+    assert.equal(err.error.code, 'confirmation_required')
+    assert.match(err.error.message, /--\.\.\/x/)
+    assert.match(err.error.message, /--a\?#b/)
   })
 })
