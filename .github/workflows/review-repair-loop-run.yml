@@ -4,6 +4,11 @@ on:
   workflow_run:
     workflows: ["Review repair loop"]
     types: [completed]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: PR number
+        required: true
 
 permissions:
   actions: read
@@ -11,15 +16,16 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: review-repair-loop-${{ github.event.workflow_run.head_branch }}
+  group: review-repair-loop-${{ github.event.inputs.pr || github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_branch }}
   cancel-in-progress: true
 
 jobs:
   repair:
     if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'pull_request_review' &&
-      github.event.workflow_run.path == '.github/workflows/review-repair-loop.yml'
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'pull_request_review' &&
+       github.event.workflow_run.path == '.github/workflows/review-repair-loop.yml')
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -36,6 +42,7 @@ jobs:
           persist-credentials: false
 
       - name: Download review id
+        if: github.event_name == 'workflow_run'
         continue-on-error: true
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -59,6 +66,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_PR: ${{ github.event.inputs.pr }}
           RUN_PR: ${{ github.event.workflow_run.pull_requests[0].number }}
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
@@ -67,24 +76,44 @@ jobs:
             echo "repair-loop.mjs unavailable"
             exit 0
           fi
-          if [ ! -s /tmp/review-loop-event/event.json ]; then
-            echo "No review artifact"
-            exit 0
+          if [ "${EVENT_NAME}" = workflow_dispatch ]; then
+            if ! jq -n --arg pr "${INPUT_PR}" --arg id "1" \
+              '{pr:($pr|tonumber),review_id:($id|tonumber)}' > /tmp/pr-check.json; then
+              echo "Invalid PR"
+              exit 0
+            fi
+            if ! node /tmp/repair-loop.mjs review-loop-event /tmp/pr-check.json > /tmp/pr-check-parsed.json; then
+              echo "Invalid PR"
+              exit 0
+            fi
+            PR=$(jq -r '.pr' /tmp/pr-check-parsed.json)
+            gh api --paginate "repos/${GH_REPO}/pulls/${PR}/reviews" --jq '.[]' \
+              | jq -s '.' > /tmp/reviews.json || true
+            if ! node /tmp/repair-loop.mjs latest-trusted-review /tmp/reviews.json > /tmp/latest-review.json; then
+              echo "No trusted review"
+              exit 0
+            fi
+            REVIEW_ID=$(jq -r '.reviewId' /tmp/latest-review.json)
+          else
+            if [ ! -s /tmp/review-loop-event/event.json ]; then
+              echo "No review artifact"
+              exit 0
+            fi
+            if ! node /tmp/repair-loop.mjs review-loop-event /tmp/review-loop-event/event.json > /tmp/review-loop-parsed.json; then
+              echo "Invalid review-loop event"
+              exit 0
+            fi
+            RESOLVED_PR="${RUN_PR:-}"
+            if [ -z "$RESOLVED_PR" ] && [ -n "${HEAD_BRANCH:-}" ]; then
+              RESOLVED_PR=$(gh pr list --head "$HEAD_BRANCH" --state open --json number --jq '.[0].number // empty')
+            fi
+            if ! node /tmp/repair-loop.mjs review-loop-pr /tmp/review-loop-parsed.json "$RESOLVED_PR" > /tmp/review-loop-pr.json; then
+              echo "Artifact PR does not match workflow_run"
+              exit 0
+            fi
+            PR=$(jq -r '.pr' /tmp/review-loop-pr.json)
+            REVIEW_ID=$(jq -r '.reviewId' /tmp/review-loop-parsed.json)
           fi
-          if ! node /tmp/repair-loop.mjs review-loop-event /tmp/review-loop-event/event.json > /tmp/review-loop-parsed.json; then
-            echo "Invalid review-loop event"
-            exit 0
-          fi
-          RESOLVED_PR="${RUN_PR:-}"
-          if [ -z "$RESOLVED_PR" ] && [ -n "${HEAD_BRANCH:-}" ]; then
-            RESOLVED_PR=$(gh pr list --head "$HEAD_BRANCH" --state open --json number --jq '.[0].number // empty')
-          fi
-          if ! node /tmp/repair-loop.mjs review-loop-pr /tmp/review-loop-parsed.json "$RESOLVED_PR" > /tmp/review-loop-pr.json; then
-            echo "Artifact PR does not match workflow_run"
-            exit 0
-          fi
-          PR=$(jq -r '.pr' /tmp/review-loop-pr.json)
-          REVIEW_ID=$(jq -r '.reviewId' /tmp/review-loop-parsed.json)
           REVIEW=$(gh api "repos/${GH_REPO}/pulls/${PR}/reviews/${REVIEW_ID}")
           LOGIN=$(printf '%s' "$REVIEW" | jq -r '.user.login // empty')
           ASSOC=$(printf '%s' "$REVIEW" | jq -r '.author_association // empty')
@@ -125,7 +154,7 @@ jobs:
           STOP_REPAIR=0
           AUTO_LOOP=0
           case ",$LABELS," in *,skip-auto-loop,*) SKIP_LOOP=1 ;; esac
-          case ",$LABELS," in *,auto-loop,*|*,auto-pr,*) AUTO_LOOP=1 ;; esac
+          case ",$LABELS," in *,auto-loop,*) AUTO_LOOP=1 ;; esac
           gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
             --jq '.[] | select(.author_association == "OWNER" or .author_association == "MEMBER") | .body // empty' > /tmp/pr-comments.txt || true
           if node /tmp/repair-loop.mjs has-stop /tmp/pr-comments.txt; then STOP_REPAIR=1; fi
@@ -241,15 +270,15 @@ jobs:
             exit 0
           fi
           echo "apply=1" >> "$GITHUB_OUTPUT"
-          mkdir -p .repair-loop
-          cp /tmp/parsed.json .repair-loop/
+          mkdir -p "$GITHUB_WORKSPACE/repair-loop-patch"
+          cp /tmp/parsed.json "$GITHUB_WORKSPACE/repair-loop-patch/"
 
       - name: Upload parsed patch
         if: steps.propose.outputs.apply == '1'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: review-repair-loop-patch
-          path: .repair-loop
+          path: repair-loop-patch
           if-no-files-found: error
 
   apply:

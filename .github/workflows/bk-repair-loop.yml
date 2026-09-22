@@ -108,6 +108,10 @@ jobs:
               echo "No bk-repair-loop tag"
               exit 0
             fi
+            if grep -q '<!-- bk-rerun -->' /tmp/comment.txt; then
+              echo "Already rebuilt once"
+              exit 0
+            fi
             if grep -q '^Resolution:' /tmp/comment.txt && ! grep -q 'Resolution: triaging' /tmp/comment.txt; then
               echo "Already diagnosed"
               exit 0
@@ -315,8 +319,8 @@ jobs:
           fi
           if [ "$ACTION" = "fix" ] && [ "$CAN_FIX" = "1" ] && jq -e '(.changes | length) > 0' /tmp/parsed.json >/dev/null; then
             echo "apply=1" >> "$GITHUB_OUTPUT"
-            mkdir -p .repair-loop
-            cp /tmp/parsed.json .repair-loop/
+            mkdir -p "$GITHUB_WORKSPACE/repair-loop-patch"
+            cp /tmp/parsed.json "$GITHUB_WORKSPACE/repair-loop-patch/"
             exit 0
           fi
           if [ "$ACTION" != "rerun" ]; then
@@ -336,7 +340,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: bk-repair-loop-patch
-          path: .repair-loop
+          path: repair-loop-patch
           if-no-files-found: error
 
   apply:
@@ -408,10 +412,10 @@ jobs:
           fi
           COMMENT_TAG='<!-- bk-repair-loop -->'
           RERUN_TAG='<!-- bk-rerun -->'
-          if node scripts/repair-loop.mjs rebuild-bk "$BUILD_URL"; then
-            LINE='Resolution: rebuilt the failed Buildkite jobs.'
-          else
-            LINE='Resolution: Buildkite rebuild failed.'
+          node scripts/repair-loop.mjs rebuild-bk "$BUILD_URL" > /tmp/rebuild.json || true
+          LINE=$(jq -r '.note // empty' /tmp/rebuild.json)
+          if [ -z "$LINE" ]; then
+            LINE='Rebuild skipped: no usable Buildkite API response. Rebuild the failed jobs in the Buildkite UI.'
           fi
           EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
             --jq ".[] | select((.user.login == \"github-actions[bot]\" or .user.login == \"elastic-vault-github-plugin-prod[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \

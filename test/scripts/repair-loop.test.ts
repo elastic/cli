@@ -20,6 +20,7 @@ import {
   extractBkFailureExcerpt,
   extractBkFailureContext,
   rebuildBkBuild,
+  formatBkRebuildNote,
   extractGhaFailureExcerpt,
   extractGhaFailureContext,
   stripGhaLog,
@@ -35,6 +36,7 @@ import {
   isTrustedAssociation,
   isTrustedReviewer,
   trustedReviewComments,
+  latestTrustedReview,
   parseReviewLoopEvent,
   parseReviewNoEvent,
   resolveReviewLoopPr,
@@ -299,15 +301,48 @@ describe('downloadBkFirstFailure', () => {
       build: '1336',
       fetchImpl: async (url, init) => {
         captured = { url, init }
-        return { ok: true, json: async () => ({}) }
+        return { ok: true, status: 200, json: async () => ({}) }
       },
     })
-    assert.equal(ok, true)
+    assert.deepEqual(ok, { ok: true, status: 200 })
     assert.equal(captured.url, 'https://api.buildkite.com/v2/organizations/elastic/pipelines/elastic-cli/builds/1336/rebuild')
     assert.equal(captured.init.method, 'PUT')
     assert.equal(captured.init.redirect, 'error')
-    assert.equal(await rebuildBkBuild({ token: '', org: 'elastic', pipeline: 'elastic-cli', build: '1' }), false)
-    assert.equal(await rebuildBkBuild({ token: 't', org: 'elastic', pipeline: 'elastic-cli', build: '../1' }), false)
+    assert.deepEqual(await rebuildBkBuild({ token: '', org: 'elastic', pipeline: 'elastic-cli', build: '1' }), { ok: false, status: 0 })
+    assert.deepEqual(await rebuildBkBuild({ token: 't', org: 'elastic', pipeline: 'elastic-cli', build: '../1' }), { ok: false, status: 0 })
+    assert.deepEqual(
+      await rebuildBkBuild({
+        token: 't',
+        org: 'elastic',
+        pipeline: 'elastic-cli',
+        build: '1355',
+        fetchImpl: async () => ({ ok: false, status: 403, json: async () => ({ message: 'Forbidden' }) }),
+      }),
+      { ok: false, status: 403 },
+    )
+    assert.deepEqual(
+      await rebuildBkBuild({
+        token: 't',
+        org: 'elastic',
+        pipeline: 'elastic-cli',
+        build: '1355',
+        fetchImpl: async () => { throw new TypeError('redirect') },
+      }),
+      { ok: false, status: 0 },
+    )
+    assert.equal(formatBkRebuildNote({ ok: true, status: 200 }), 'Rebuilt the failed Buildkite jobs.')
+    assert.equal(
+      formatBkRebuildNote({ ok: false, status: 403 }),
+      'Rebuild skipped: Buildkite API returned 403. Rebuild the failed jobs in the Buildkite UI.',
+    )
+    assert.equal(
+      formatBkRebuildNote({ ok: false, status: 0 }),
+      'Rebuild skipped: no usable Buildkite API response. Rebuild the failed jobs in the Buildkite UI.',
+    )
+    assert.equal(
+      formatBkRebuildNote({ ok: false, status: '403' }),
+      'Rebuild skipped: Buildkite API returned 403. Rebuild the failed jobs in the Buildkite UI.',
+    )
   })
 })
 
@@ -461,7 +496,7 @@ describe('review-no memory', () => {
     assert.equal(isTrustedAssociation('COLLABORATOR'), false)
     assert.equal(isTrustedReviewer('margaretjgu', 'MEMBER'), true)
     assert.equal(isTrustedReviewer('github-advanced-security[bot]', 'CONTRIBUTOR'), true)
-    assert.equal(isTrustedReviewer('github-actions[bot]', 'MEMBER'), false)
+    assert.equal(isTrustedReviewer('github-actions[bot]', 'NONE'), true)
     assert.equal(isTrustedReviewer('outsider', 'NONE'), false)
     assert.deepEqual(
       trustedReviewComments([
@@ -469,11 +504,30 @@ describe('review-no memory', () => {
         { path: 'src/x.ts', line: 1, body: 'noise', author_association: 'NONE', user: { login: 'outsider' } },
         { path: 'src/y.ts', line: 2, body: 'ours', author_association: 'NONE', user: { login: 'github-actions[bot]' } },
       ]),
-      [{ path: 'src/help-topics.ts', line: 91, body: 'no print' }],
+      [
+        { path: 'src/help-topics.ts', line: 91, body: 'no print' },
+        { path: 'src/y.ts', line: 2, body: 'ours' },
+      ],
     )
     const script = join(process.cwd(), 'scripts/repair-loop.mjs')
     assert.equal(JSON.parse(execFileSync(process.execPath, [script, 'trusted-reviewer', 'github-advanced-security[bot]', 'CONTRIBUTOR'], { encoding: 'utf8' })).ok, true)
-    assert.throws(() => execFileSync(process.execPath, [script, 'trusted-reviewer', 'github-actions[bot]', 'MEMBER']))
+    assert.equal(JSON.parse(execFileSync(process.execPath, [script, 'trusted-reviewer', 'github-actions[bot]', 'NONE'], { encoding: 'utf8' })).ok, true)
+    assert.deepEqual(latestTrustedReview([
+      { id: 1, state: 'COMMENTED', author_association: 'MEMBER', user: { login: 'margaretjgu' } },
+      { id: 9, state: 'COMMENTED', author_association: 'CONTRIBUTOR', user: { login: 'github-advanced-security[bot]' } },
+      { id: 8, state: 'APPROVED', author_association: 'MEMBER', user: { login: 'margaretjgu' } },
+      { id: 10, state: 'COMMENTED', author_association: 'NONE', user: { login: 'github-actions[bot]' } },
+      { id: '../11', state: 'COMMENTED', author_association: 'MEMBER', user: { login: 'margaretjgu' } },
+    ]), { reviewId: 10 })
+    assert.equal(latestTrustedReview([]), null)
+    assert.equal(latestTrustedReview(null), null)
+    const reviews = join(tmpdir(), `repair-loop-reviews-${process.pid}.json`)
+    writeFileSync(reviews, JSON.stringify([
+      { id: 3, state: 'CHANGES_REQUESTED', author_association: 'OWNER', user: { login: 'josh' } },
+    ]))
+    assert.deepEqual(JSON.parse(execFileSync(process.execPath, [script, 'latest-trusted-review', reviews], { encoding: 'utf8' })), { reviewId: 3 })
+    writeFileSync(reviews, '[]')
+    assert.throws(() => execFileSync(process.execPath, [script, 'latest-trusted-review', reviews]))
     assert.equal(
       reviewCommentPrNumber({ pull_request_url: 'https://api.github.com/repos/elastic/cli/pulls/644' }, 'pull_request_review_comment'),
       644,
@@ -693,12 +747,13 @@ describe('shouldAttemptFix', () => {
   })
 
   it('requires same-repo under the bot cap', () => {
-    assert.deepEqual(shouldAttemptFix({ sameRepo: true, botCommits: 0 }), { ok: true, reason: 'ok' })
-    assert.equal(shouldAttemptFix({ sameRepo: false }).ok, false)
-    assert.equal(shouldAttemptFix({ sameRepo: true, skipLoop: true }).reason, 'skip-auto-loop')
-    assert.equal(shouldAttemptFix({ sameRepo: true, stopRepair: true }).reason, 'stop')
-    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: false }).ok, true)
-    assert.equal(shouldAttemptFix({ sameRepo: true, botCommits: 2 }).reason, 'bot commit cap')
+    assert.deepEqual(shouldAttemptFix({ sameRepo: true, autoLoop: true, botCommits: 0 }), { ok: true, reason: 'ok' })
+    assert.equal(shouldAttemptFix({ sameRepo: false, autoLoop: true }).ok, false)
+    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, skipLoop: true }).reason, 'skip-auto-loop')
+    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, stopRepair: true }).reason, 'stop')
+    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: false }).reason, 'auto-loop')
+    assert.equal(shouldAttemptFix({ sameRepo: true }).reason, 'auto-loop')
+    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, botCommits: 2 }).reason, 'bot commit cap')
   })
 })
 
@@ -842,6 +897,16 @@ describe('repair-loop CLI', () => {
     try {
       execFileSync(process.execPath, [script, 'should-fix'], {
         encoding: 'utf8',
+        env: { ...process.env, SAME_REPO: '1', AUTO_LOOP: '0' },
+      })
+      assert.fail('expected exit 1')
+    } catch (err) {
+      assert.equal(err.status, 1)
+      assert.equal(JSON.parse(err.stdout).reason, 'auto-loop')
+    }
+    try {
+      execFileSync(process.execPath, [script, 'should-fix'], {
+        encoding: 'utf8',
         env: { ...process.env, SAME_REPO: '0', AUTO_LOOP: '1' },
       })
       assert.fail('expected exit 1')
@@ -929,5 +994,20 @@ describe('extractJsonObject', () => {
     assert.equal(extractJsonObject('not json'), null)
     assert.equal(extractJsonObject('{'), null)
     assert.deepEqual(extractJsonObject('prefix {"a":1} suffix'), { a: 1 })
+  })
+})
+
+describe('apply artifact path', () => {
+  it('does not use a hidden directory', () => {
+    const root = join(import.meta.dirname, '../..')
+    for (const rel of [
+      '.github/workflows/ci-repair-loop.yml',
+      '.github/workflows/review-repair-loop-run.yml',
+      '.github/workflows/bk-repair-loop.yml',
+    ]) {
+      const text = readFileSync(join(root, rel), 'utf8')
+      assert.equal(text.includes('.repair-loop'), false, rel)
+      assert.match(text, /path: repair-loop-patch/)
+    }
   })
 })

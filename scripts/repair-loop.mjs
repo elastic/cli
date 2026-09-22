@@ -241,18 +241,30 @@ export async function downloadBkFirstFailure ({
 }
 
 export async function rebuildBkBuild ({ token, org, pipeline, build, fetchImpl = fetch }) {
-  if (typeof token !== 'string' || token === '') return false
-  if (typeof org !== 'string' || typeof pipeline !== 'string' || typeof build !== 'string') return false
-  if (!/^[A-Za-z0-9_.-]+$/.test(org) || !/^[A-Za-z0-9_.-]+$/.test(pipeline) || !/^\d+$/.test(build)) return false
-  const res = await fetchImpl(
-    `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}/rebuild`,
-    {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-      redirect: 'error',
-    },
-  )
-  return res?.ok === true
+  if (typeof token !== 'string' || token === '') return { ok: false, status: 0 }
+  if (typeof org !== 'string' || typeof pipeline !== 'string' || typeof build !== 'string') return { ok: false, status: 0 }
+  if (!/^[A-Za-z0-9_.-]+$/.test(org) || !/^[A-Za-z0-9_.-]+$/.test(pipeline) || !/^\d+$/.test(build)) return { ok: false, status: 0 }
+  try {
+    const res = await fetchImpl(
+      `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}/rebuild`,
+      {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        redirect: 'error',
+      },
+    )
+    return { ok: res?.ok === true, status: Number(res?.status) || 0 }
+  } catch {
+    return { ok: false, status: 0 }
+  }
+}
+
+export function formatBkRebuildNote ({ ok, status }) {
+  if (ok) return 'Rebuilt the failed Buildkite jobs.'
+  if (Number(status) > 0) {
+    return `Rebuild skipped: Buildkite API returned ${Number(status)}. Rebuild the failed jobs in the Buildkite UI.`
+  }
+  return 'Rebuild skipped: no usable Buildkite API response. Rebuild the failed jobs in the Buildkite UI.'
 }
 
 export function hasStopCommand (text) {
@@ -339,10 +351,12 @@ export function isTrustedAssociation (association) {
   return association === 'OWNER' || association === 'MEMBER'
 }
 
-export const REVIEW_LOOP_BOTS = new Set(['github-advanced-security[bot]'])
+export const REVIEW_LOOP_BOTS = new Set([
+  'github-advanced-security[bot]',
+  'github-actions[bot]',
+])
 
 export function isTrustedReviewer (login, association) {
-  if (login === 'github-actions[bot]') return false
   if (isTrustedAssociation(association)) return true
   return REVIEW_LOOP_BOTS.has(login)
 }
@@ -352,6 +366,21 @@ export function trustedReviewComments (comments) {
   return comments
     .filter((c) => c && isTrustedReviewer(c.user?.login, c.author_association))
     .map((c) => ({ path: c.path ?? null, line: c.line ?? null, body: c.body ?? '' }))
+}
+
+const REVIEW_LOOP_STATES = new Set(['COMMENTED', 'CHANGES_REQUESTED', 'commented', 'changes_requested'])
+
+export function latestTrustedReview (reviews) {
+  if (!Array.isArray(reviews)) return null
+  let best = null
+  for (const review of reviews) {
+    if (!review || !isTrustedReviewer(review.user?.login, review.author_association)) continue
+    if (!REVIEW_LOOP_STATES.has(review.state)) continue
+    const reviewId = positiveInt(review.id)
+    if (reviewId === null) continue
+    if (best === null || reviewId > best.reviewId) best = { reviewId }
+  }
+  return best
 }
 
 export function parseReviewNoEvent (payload) {
@@ -630,12 +659,14 @@ export function shouldAttemptFix ({
   sameRepo = false,
   skipLoop = false,
   stopRepair = false,
+  autoLoop = false,
   botCommits = 0,
   maxBotCommits = 2,
 } = {}) {
   if (!sameRepo) return { ok: false, reason: 'fork' }
   if (stopRepair) return { ok: false, reason: 'stop' }
   if (skipLoop) return { ok: false, reason: 'skip-auto-loop' }
+  if (!autoLoop) return { ok: false, reason: 'auto-loop' }
   if (botCommits >= maxBotCommits) return { ok: false, reason: 'bot commit cap' }
   return { ok: true, reason: 'ok' }
 }
@@ -766,9 +797,9 @@ async function main (argv) {
           ...parsed,
           token: process.env.BUILDKITE_API_TOKEN,
         })
-        : false
-      process.stdout.write(JSON.stringify({ ok: result }) + '\n')
-      process.exit(result ? 0 : 1)
+        : { ok: false, status: 0 }
+      process.stdout.write(JSON.stringify({ ...result, note: formatBkRebuildNote(result) }) + '\n')
+      process.exit(result.ok ? 0 : 1)
       break
     }
     case 'bk-excerpt': {
@@ -831,6 +862,12 @@ async function main (argv) {
     }
     case 'trusted-review-comments': {
       process.stdout.write(JSON.stringify(trustedReviewComments(readJsonArg(args[0]))) + '\n')
+      break
+    }
+    case 'latest-trusted-review': {
+      const found = latestTrustedReview(readJsonArg(args[0]))
+      process.stdout.write(JSON.stringify(found ?? {}) + '\n')
+      process.exit(found ? 0 : 1)
       break
     }
     case 'review-loop-pr': {
@@ -927,6 +964,7 @@ async function main (argv) {
         sameRepo: process.env.SAME_REPO === '1',
         skipLoop: process.env.SKIP_LOOP === '1',
         stopRepair: process.env.STOP_REPAIR === '1',
+        autoLoop: process.env.AUTO_LOOP === '1',
         botCommits: Number(process.env.BOT_COMMITS || '0'),
       })
       process.stdout.write(JSON.stringify(decision) + '\n')
