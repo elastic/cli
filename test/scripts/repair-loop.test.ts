@@ -12,6 +12,7 @@ import { join } from 'node:path'
 import {
   applyChanges,
   applyChangesGithub,
+  citedPathsFromReview,
   citedPathsFromText,
   extractJsonObject,
   firstFailedJob,
@@ -57,6 +58,7 @@ import {
   isSafeReadPath,
   isSafeWritePath,
   parseAgentResponse,
+  parseAgentResponseOrNull,
   safeCommitMessage,
   shouldAttemptFix,
 } from '../../scripts/repair-loop.mjs'
@@ -690,6 +692,18 @@ describe('citedPathsFromText', () => {
     assert.deepEqual(citedPathsFromText(''), [])
     assert.deepEqual(citedPathsFromText(null), [])
   })
+
+  it('uses review comment path when the body has no path', () => {
+    assert.deepEqual(
+      citedPathsFromReview(
+        [{ path: 'src/cloud/handler.ts', body: 'drop the 400 fallback' }],
+        'A 400 on create always suggests list-regions.',
+      ),
+      ['src/cloud/handler.ts'],
+    )
+    assert.deepEqual(citedPathsFromReview(null, 'see `src/factory.ts`'), ['src/factory.ts'])
+    assert.deepEqual(citedPathsFromReview([{ path: '../etc/passwd', body: '' }]), [])
+  })
 })
 
 describe('parseAgentResponse', () => {
@@ -715,6 +729,22 @@ describe('parseAgentResponse', () => {
     assert.throws(() => parseAgentResponse('{"changes":[{"file":"src/es/apis/search.ts","content":"a"}]}'), /refusing path/)
     assert.throws(() => parseAgentResponse('{"changes":[{"file":".github/workflows/ci.yml","content":"a"}]}'), /refusing path/)
     assert.throws(() => parseAgentResponse('{"changes":[{"file":".github/CODEOWNERS","content":"a"}]}'), /refusing path/)
+    assert.equal(parseAgentResponseOrNull('nope'), null)
+    assert.equal(parseAgentResponseOrNull(''), null)
+    assert.equal(parseAgentResponseOrNull('{"changes":"x"}'), null)
+    assert.equal(parseAgentResponseOrNull('{"action":"rerun","comment":"flake","changes":[]}').action, 'rerun')
+    const script = join(process.cwd(), 'scripts/repair-loop.mjs')
+    const raw = join(tmpdir(), `repair-loop-model-${process.pid}.txt`)
+    writeFileSync(raw, 'not json')
+    assert.equal(JSON.parse(execFileSync(process.execPath, [script, 'parse-changes-soft', raw], { encoding: 'utf8' })), null)
+    writeFileSync(raw, '{"action":"fix","comment":"ok","changes":[{"file":"src/foo.ts","content":"x"}]}')
+    assert.equal(JSON.parse(execFileSync(process.execPath, [script, 'parse-changes-soft', raw], { encoding: 'utf8' })).action, 'fix')
+    const comments = join(tmpdir(), `repair-loop-review-paths-${process.pid}.json`)
+    writeFileSync(comments, JSON.stringify([{ path: 'src/cloud/handler.ts', body: 'drop fallback' }]))
+    assert.deepEqual(
+      JSON.parse(execFileSync(process.execPath, [script, 'cited-review-paths', comments], { encoding: 'utf8' })),
+      ['src/cloud/handler.ts'],
+    )
   })
 
   it('falls back when commit message is unsafe', () => {

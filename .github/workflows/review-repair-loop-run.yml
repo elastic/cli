@@ -2,7 +2,7 @@ name: Review repair loop run
 
 on:
   workflow_run:
-    workflows: ["Review repair loop"]
+    workflows: ["Review repair loop", "AI PR Review run"]
     types: [completed]
   workflow_dispatch:
     inputs:
@@ -24,8 +24,9 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'pull_request_review' &&
-       github.event.workflow_run.path == '.github/workflows/review-repair-loop.yml')
+       ((github.event.workflow_run.event == 'pull_request_review' &&
+         github.event.workflow_run.path == '.github/workflows/review-repair-loop.yml') ||
+        github.event.workflow_run.path == '.github/workflows/ai-pr-review-run.yml'))
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -106,6 +107,9 @@ jobs:
             RESOLVED_PR="${RUN_PR:-}"
             if [ -z "$RESOLVED_PR" ] && [ -n "${HEAD_BRANCH:-}" ]; then
               RESOLVED_PR=$(gh pr list --head "$HEAD_BRANCH" --state open --json number --jq '.[0].number // empty')
+            fi
+            if [ -z "$RESOLVED_PR" ]; then
+              RESOLVED_PR=$(jq -r '.pr // empty' /tmp/review-loop-parsed.json)
             fi
             if ! node /tmp/repair-loop.mjs review-loop-pr /tmp/review-loop-parsed.json "$RESOLVED_PR" > /tmp/review-loop-pr.json; then
               echo "Artifact PR does not match workflow_run"
@@ -206,8 +210,7 @@ jobs:
           esac
           REVIEW_BODY=$(cat /tmp/review-body.txt)
           REVIEW_COMMENTS=$(cat /tmp/review-comments.json)
-          cat /tmp/review-body.txt /tmp/review-comments.json > /tmp/review-all.txt
-          node /tmp/repair-loop.mjs cited-paths /tmp/review-all.txt > /tmp/cited.json
+          node /tmp/repair-loop.mjs cited-review-paths /tmp/review-comments.json /tmp/review-body.txt > /tmp/cited.json
           FILES=""
           while IFS= read -r path; do
             [ -z "$path" ] && continue
@@ -254,13 +257,33 @@ jobs:
               messages: [{role: "user", content: $prompt}]
             }')"
           CONTENT=$(jq -r '.choices[0].message.content // empty' /tmp/response.json)
-          if [ -z "$CONTENT" ]; then
-            echo "Empty model response"
+          printf '%s' "$CONTENT" > /tmp/model-raw.txt
+          node /tmp/repair-loop.mjs parse-changes-soft /tmp/model-raw.txt > /tmp/parsed.json
+          if [ "$(cat /tmp/parsed.json)" = "null" ]; then
+            echo "Unparseable model response, retrying"
+            curl -s -o /tmp/response.json \
+              -H "Authorization: Bearer ${OPENROUTER_API_KEY}" \
+              -H "Content-Type: application/json" \
+              "${BASE_URL%/}/chat/completions" \
+              -d "$(jq -n --rawfile prompt /tmp/prompt.txt --rawfile first /tmp/model-raw.txt '{
+                model: "anthropic/claude-sonnet-4.6",
+                max_tokens: 16384,
+                messages: [
+                  {role: "user", content: $prompt},
+                  {role: "assistant", content: $first},
+                  {role: "user", content: "That was not valid JSON. Respond with ONLY a JSON object."}
+                ]
+              }')"
+            CONTENT=$(jq -r '.choices[0].message.content // empty' /tmp/response.json)
+            printf '%s' "$CONTENT" > /tmp/model-raw.txt
+            node /tmp/repair-loop.mjs parse-changes-soft /tmp/model-raw.txt > /tmp/parsed.json
+          fi
+          if [ "$(cat /tmp/parsed.json)" = "null" ]; then
+            echo "Unparseable model response"
             exit 0
           fi
-          printf '%s' "$CONTENT" > /tmp/model-raw.txt
-          node /tmp/repair-loop.mjs parse-changes /tmp/model-raw.txt > /tmp/parsed.json
           COMMENT=$(jq -r '.comment // empty' /tmp/parsed.json)
+          echo "action=$(jq -r '.action // empty' /tmp/parsed.json) changes=$(jq '.changes | length' /tmp/parsed.json)"
           if [ -n "$COMMENT" ]; then
             gh pr comment "$PR" --body "$COMMENT"
           fi

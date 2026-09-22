@@ -589,6 +589,25 @@ export function citedPathsFromText (text) {
   return [...out]
 }
 
+export function citedPathsFromReview (comments, extraText) {
+  const out = new Set(citedPathsFromText(extraText ?? ''))
+  if (!Array.isArray(comments)) return [...out]
+  for (const comment of comments) {
+    const path = canonicalPath(comment?.path)
+    if (path) out.add(path)
+    for (const cited of citedPathsFromText(comment?.body ?? '')) out.add(cited)
+  }
+  return [...out]
+}
+
+export function parseAgentResponseOrNull (text) {
+  try {
+    return parseAgentResponse(text)
+  } catch {
+    return null
+  }
+}
+
 export function extractJsonObject (text) {
   if (typeof text !== 'string' || text.length === 0) return null
   const start = text.indexOf('{')
@@ -959,6 +978,12 @@ async function main (argv) {
       process.stdout.write(JSON.stringify(citedPathsFromText(text)) + '\n')
       break
     }
+    case 'cited-review-paths': {
+      const comments = readJsonArg(args[0])
+      const extra = args[1] ? readFileSync(args[1], 'utf8') : ''
+      process.stdout.write(JSON.stringify(citedPathsFromReview(comments, extra)) + '\n')
+      break
+    }
     case 'should-fix': {
       const decision = shouldAttemptFix({
         sameRepo: process.env.SAME_REPO === '1',
@@ -973,6 +998,11 @@ async function main (argv) {
     }
     case 'parse-changes': {
       const parsed = parseAgentResponse(readFileSync(args[0], 'utf8'))
+      process.stdout.write(JSON.stringify(parsed) + '\n')
+      break
+    }
+    case 'parse-changes-soft': {
+      const parsed = parseAgentResponseOrNull(readFileSync(args[0], 'utf8'))
       process.stdout.write(JSON.stringify(parsed) + '\n')
       break
     }

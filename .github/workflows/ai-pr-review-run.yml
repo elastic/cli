@@ -406,12 +406,27 @@ jobs:
             '{event: "COMMENT", body: $body, comments: $comments}' > /tmp/review.json
 
           if ! gh api --method POST "repos/${GH_REPO}/pulls/${PR_NUMBER}/reviews" \
-            --input /tmp/review.json > /dev/null; then
+            --input /tmp/review.json > /tmp/posted-review.json; then
             echo "Inline placement rejected (stale line refs?), posting findings in the body"
             FINDINGS=$(jq -r '.[] | "- " + .path + ":" + (.line|tostring) + " " + .body' \
               <<<"$COMMENTS")
             jq -n --arg summary "$SUMMARY" --arg findings "$FINDINGS" \
               '{event: "COMMENT", body: ($summary + "\n\n" + $findings)}' > /tmp/review.json
             gh api --method POST "repos/${GH_REPO}/pulls/${PR_NUMBER}/reviews" \
-              --input /tmp/review.json > /dev/null
+              --input /tmp/review.json > /tmp/posted-review.json
           fi
+          REVIEW_ID=$(jq -r '.id // empty' /tmp/posted-review.json)
+          if [ -n "$REVIEW_ID" ]; then
+            mkdir -p "$GITHUB_WORKSPACE/.review-loop-event"
+            jq -n --arg pr "$PR_NUMBER" --arg id "$REVIEW_ID" \
+              '{pr:($pr|tonumber), review_id:($id|tonumber)}' \
+              > "$GITHUB_WORKSPACE/.review-loop-event/event.json"
+          fi
+
+      - name: Upload review id
+        if: hashFiles('.review-loop-event/event.json') != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: review-loop-event
+          path: .review-loop-event/event.json
+          if-no-files-found: error
