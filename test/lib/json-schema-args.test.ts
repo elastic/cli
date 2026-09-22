@@ -84,6 +84,8 @@ describe('extractSchemaArgs', () => {
     assert.equal(typeMap.get('mappings'), 'object')
     assert.equal(typeMap.get('tags'), 'array')
     assert.equal(typeMap.get('level'), 'enum')
+    const level = extractSchemaArgs(s).find((a) => a.schemaKey === 'level')
+    assert.deepEqual(level?.enumValues, ['low', 'medium', 'high'])
   })
 
   it('determines required status from "required" array', () => {
