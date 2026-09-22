@@ -70,6 +70,12 @@ describe('buildCompletionCommand', () => {
     assert.match(stdout, /complete -c elastic/)
   })
 
+  it('emits the PowerShell wrapper to stdout for "powershell"', async () => {
+    const { stdout } = await captureWith(buildCompletionCommand(), ['powershell'])
+    assert.match(stdout, /Register-ArgumentCompleter/)
+    assert.match(stdout, /__complete/)
+  })
+
   it('reports an error for an unknown shell', async () => {
     const { stderr, exitCode } = await captureWith(buildCompletionCommand(), ['tcsh'])
     assert.match(stderr, /unknown shell/i)
@@ -82,7 +88,7 @@ describe('buildCompletionCommand', () => {
     assert.equal(exitCode, 1)
   })
 
-  it('SUPPORTED_SHELLS lists bash, zsh and fish', () => {
-    assert.deepEqual([...SUPPORTED_SHELLS].sort(), ['bash', 'fish', 'zsh'])
+  it('SUPPORTED_SHELLS lists bash, zsh, fish and powershell', () => {
+    assert.deepEqual([...SUPPORTED_SHELLS].sort(), ['bash', 'fish', 'powershell', 'zsh'])
   })
 })
