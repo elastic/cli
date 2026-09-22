@@ -128,6 +128,19 @@ function getCommandPath (cmd: Command): string {
   return parts.join(' ')
 }
 
+function outputFieldKeys (cmd: Command): string[] {
+  if (cmd.name() === 'status') return ['context', 'services']
+  return []
+}
+
+function enumValuesForFlag (cmd: Command, flagLong: string): string[] {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const schemaArgs = (cmd as unknown as { _commandConfig?: { schemaArgs?: Array<{ cliFlag: string; enumValues?: string[] }> } })._commandConfig?.schemaArgs
+  if (schemaArgs == null) return []
+  const flag = flagLong.replace(/^--/, '')
+  return schemaArgs.find((a) => a.cliFlag === flag)?.enumValues ?? []
+}
+
 function prefixFilter (candidates: readonly string[], prefix: string): string[] {
   if (prefix === '') return [...candidates]
   return candidates.filter((c) => c.startsWith(prefix))
@@ -225,6 +238,15 @@ export async function enumerate (
   }
 
   if (previous != null && previous.startsWith('--')) {
+    if (previous === '--output-fields') {
+      const keys = outputFieldKeys(current)
+      if (keys.length > 0) {
+        return {
+          candidates: prefixFilter(keys, incomplete),
+          directive: DIRECTIVE_NO_FILE_COMP,
+        }
+      }
+    }
     const completer = registry?.get(previous)
     if (completer != null) {
       const cands = await safeRun(completer)
@@ -233,8 +255,13 @@ export async function enumerate (
         directive: DIRECTIVE_NO_FILE_COMP,
       }
     }
-    // Previous is a flag but no completer registered: yield no candidates,
-    // but stay in NO_FILE_COMP mode so the shell doesn't surprise the user.
+    const enums = enumValuesForFlag(current, previous)
+    if (enums.length > 0) {
+      return {
+        candidates: prefixFilter(enums, incomplete),
+        directive: DIRECTIVE_NO_FILE_COMP,
+      }
+    }
     return { candidates: [], directive: DIRECTIVE_NO_FILE_COMP }
   }
 
