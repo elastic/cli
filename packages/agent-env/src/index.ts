@@ -168,12 +168,6 @@ type Env = Record<string, string | undefined>
 
 /** Collects one agent vote per matching marker env var, in priority order. */
 function collectVotes (env: Env): AgentId[] {
-  // Opt-in vars take exclusive priority: when set, skip the marker table so
-  // a concurrent harness marker cannot dilute confidence below the threshold.
-  const aiAgent = env['AI_AGENT']
-  if (aiAgent != null && aiAgent !== '') return [aiAgent]
-  const agent = env['AGENT']
-  if (agent != null && agent !== '' && isKnownAgent(agent)) return [agent]
   const votes: AgentId[] = []
   for (const m of MARKERS) {
     const v = env[m.env]
