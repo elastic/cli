@@ -301,15 +301,35 @@ jobs:
               messages: [{role: "user", content: $prompt}]
             }')"
           CONTENT=$(jq -r '.choices[0].message.content // empty' /tmp/response.json)
-          if [ -z "$CONTENT" ]; then
-            echo "Empty model response"
+          printf '%s' "$CONTENT" > /tmp/model-raw.txt
+          node /tmp/repair-loop.mjs parse-changes-soft /tmp/model-raw.txt > /tmp/parsed.json
+          if [ "$(cat /tmp/parsed.json)" = "null" ]; then
+            echo "Unparseable model response, retrying"
+            curl -s -o /tmp/response.json \
+              -H "Authorization: Bearer ${OPENROUTER_API_KEY}" \
+              -H "Content-Type: application/json" \
+              "${BASE_URL%/}/chat/completions" \
+              -d "$(jq -n --rawfile prompt /tmp/prompt.txt --rawfile first /tmp/model-raw.txt '{
+                model: "anthropic/claude-sonnet-4.6",
+                max_tokens: 16384,
+                messages: [
+                  {role: "user", content: $prompt},
+                  {role: "assistant", content: $first},
+                  {role: "user", content: "That was not valid JSON. Respond with ONLY a JSON object."}
+                ]
+              }')"
+            CONTENT=$(jq -r '.choices[0].message.content // empty' /tmp/response.json)
+            printf '%s' "$CONTENT" > /tmp/model-raw.txt
+            node /tmp/repair-loop.mjs parse-changes-soft /tmp/model-raw.txt > /tmp/parsed.json
+          fi
+          if [ "$(cat /tmp/parsed.json)" = "null" ]; then
+            echo "Unparseable model response"
             fallback_sticky
             exit 0
           fi
-          printf '%s' "$CONTENT" > /tmp/model-raw.txt
-          node /tmp/repair-loop.mjs parse-changes /tmp/model-raw.txt > /tmp/parsed.json
           COMMENT=$(jq -r '.comment // empty' /tmp/parsed.json)
           ACTION=$(jq -r '.action // empty' /tmp/parsed.json)
+          echo "action=${ACTION} changes=$(jq '.changes | length' /tmp/parsed.json)"
           if [ -n "$COMMENT" ]; then
             upsert_sticky "$(printf '%s\n' "$COMMENT_TAG" "$COMMENT" "" "Job: ${JOB_URL}")"
           else
