@@ -747,12 +747,13 @@ describe('shouldAttemptFix', () => {
   })
 
   it('requires same-repo under the bot cap', () => {
-    assert.deepEqual(shouldAttemptFix({ sameRepo: true, botCommits: 0 }), { ok: true, reason: 'ok' })
-    assert.equal(shouldAttemptFix({ sameRepo: false }).ok, false)
-    assert.equal(shouldAttemptFix({ sameRepo: true, skipLoop: true }).reason, 'skip-auto-loop')
-    assert.equal(shouldAttemptFix({ sameRepo: true, stopRepair: true }).reason, 'stop')
-    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: false }).ok, true)
-    assert.equal(shouldAttemptFix({ sameRepo: true, botCommits: 2 }).reason, 'bot commit cap')
+    assert.deepEqual(shouldAttemptFix({ sameRepo: true, autoLoop: true, botCommits: 0 }), { ok: true, reason: 'ok' })
+    assert.equal(shouldAttemptFix({ sameRepo: false, autoLoop: true }).ok, false)
+    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, skipLoop: true }).reason, 'skip-auto-loop')
+    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, stopRepair: true }).reason, 'stop')
+    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: false }).reason, 'auto-loop')
+    assert.equal(shouldAttemptFix({ sameRepo: true }).reason, 'auto-loop')
+    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, botCommits: 2 }).reason, 'bot commit cap')
   })
 })
 
@@ -896,6 +897,16 @@ describe('repair-loop CLI', () => {
     try {
       execFileSync(process.execPath, [script, 'should-fix'], {
         encoding: 'utf8',
+        env: { ...process.env, SAME_REPO: '1', AUTO_LOOP: '0' },
+      })
+      assert.fail('expected exit 1')
+    } catch (err) {
+      assert.equal(err.status, 1)
+      assert.equal(JSON.parse(err.stdout).reason, 'auto-loop')
+    }
+    try {
+      execFileSync(process.execPath, [script, 'should-fix'], {
+        encoding: 'utf8',
         env: { ...process.env, SAME_REPO: '0', AUTO_LOOP: '1' },
       })
       assert.fail('expected exit 1')
@@ -983,5 +994,20 @@ describe('extractJsonObject', () => {
     assert.equal(extractJsonObject('not json'), null)
     assert.equal(extractJsonObject('{'), null)
     assert.deepEqual(extractJsonObject('prefix {"a":1} suffix'), { a: 1 })
+  })
+})
+
+describe('apply artifact path', () => {
+  it('does not use a hidden directory', () => {
+    const root = join(import.meta.dirname, '../..')
+    for (const rel of [
+      '.github/workflows/ci-repair-loop.yml',
+      '.github/workflows/review-repair-loop-run.yml',
+      '.github/workflows/bk-repair-loop.yml',
+    ]) {
+      const text = readFileSync(join(root, rel), 'utf8')
+      assert.equal(text.includes('.repair-loop'), false, rel)
+      assert.match(text, /path: repair-loop-patch/)
+    }
   })
 })

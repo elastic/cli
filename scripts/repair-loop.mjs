@@ -659,12 +659,14 @@ export function shouldAttemptFix ({
   sameRepo = false,
   skipLoop = false,
   stopRepair = false,
+  autoLoop = false,
   botCommits = 0,
   maxBotCommits = 2,
 } = {}) {
   if (!sameRepo) return { ok: false, reason: 'fork' }
   if (stopRepair) return { ok: false, reason: 'stop' }
   if (skipLoop) return { ok: false, reason: 'skip-auto-loop' }
+  if (!autoLoop) return { ok: false, reason: 'auto-loop' }
   if (botCommits >= maxBotCommits) return { ok: false, reason: 'bot commit cap' }
   return { ok: true, reason: 'ok' }
 }
@@ -962,6 +964,7 @@ async function main (argv) {
         sameRepo: process.env.SAME_REPO === '1',
         skipLoop: process.env.SKIP_LOOP === '1',
         stopRepair: process.env.STOP_REPAIR === '1',
+        autoLoop: process.env.AUTO_LOOP === '1',
         botCommits: Number(process.env.BOT_COMMITS || '0'),
       })
       process.stdout.write(JSON.stringify(decision) + '\n')

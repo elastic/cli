@@ -154,7 +154,7 @@ jobs:
           STOP_REPAIR=0
           AUTO_LOOP=0
           case ",$LABELS," in *,skip-auto-loop,*) SKIP_LOOP=1 ;; esac
-          case ",$LABELS," in *,auto-loop,*|*,auto-pr,*) AUTO_LOOP=1 ;; esac
+          case ",$LABELS," in *,auto-loop,*) AUTO_LOOP=1 ;; esac
           gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
             --jq '.[] | select(.author_association == "OWNER" or .author_association == "MEMBER") | .body // empty' > /tmp/pr-comments.txt || true
           if node /tmp/repair-loop.mjs has-stop /tmp/pr-comments.txt; then STOP_REPAIR=1; fi
