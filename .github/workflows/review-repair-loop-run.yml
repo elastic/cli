@@ -162,11 +162,7 @@ jobs:
           gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
             --jq '.[] | select(.author_association == "OWNER" or .author_association == "MEMBER") | .body // empty' > /tmp/pr-comments.txt || true
           if node /tmp/repair-loop.mjs has-stop /tmp/pr-comments.txt; then STOP_REPAIR=1; fi
-          gh api --paginate "repos/${GH_REPO}/pulls/${PR}/commits" \
-            --jq '.[] | {author:{login:(.author.login // "")},commit:{author:{name:(.commit.author.name // "")}}}' \
-            > /tmp/commits.ndjson || true
-          BOT_COMMITS=$(node /tmp/repair-loop.mjs bot-commits /tmp/commits.ndjson)
-          SAME_REPO=1 SKIP_LOOP="$SKIP_LOOP" STOP_REPAIR="$STOP_REPAIR" AUTO_LOOP="$AUTO_LOOP" BOT_COMMITS="$BOT_COMMITS" \
+          SAME_REPO=1 SKIP_LOOP="$SKIP_LOOP" STOP_REPAIR="$STOP_REPAIR" AUTO_LOOP="$AUTO_LOOP" \
             node /tmp/repair-loop.mjs should-fix > /tmp/decision.json || true
           FIX=0
           if jq -e '.ok == true' /tmp/decision.json >/dev/null; then FIX=1; fi
