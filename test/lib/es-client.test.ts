@@ -251,6 +251,58 @@ describe('EsClient.request', () => {
     )
   })
 
+  it('throws EsResponseError with HTML body on non-2xx (e.g. 504 from proxy)', async () => {
+    const client = makeClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('<html><body>504 Gateway Time-out</body></html>', { status: 504, headers: { 'content-type': 'text/html' } }))
+    ) as typeof fetch)
+
+    await assert.rejects(
+      () => client.request({ method: 'POST', path: '/_esql/query' }),
+      (err: unknown) => {
+        assert.ok(err instanceof EsResponseError)
+        assert.equal(err.statusCode, 504)
+        assert.ok(typeof err.body === 'string', 'body should be a string for non-JSON error')
+        assert.match(err.body as string, /504/)
+        return true
+      }
+    )
+  })
+
+  it('throws EsResponseError with plain-text body on non-2xx', async () => {
+    const client = makeClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('Service Unavailable', { status: 503, headers: { 'content-type': 'text/plain' } }))
+    ) as typeof fetch)
+
+    await assert.rejects(
+      () => client.request({ method: 'GET', path: '/_cluster/health' }),
+      (err: unknown) => {
+        assert.ok(err instanceof EsResponseError)
+        assert.equal(err.statusCode, 503)
+        assert.equal(err.body, 'Service Unavailable')
+        return true
+      }
+    )
+  })
+
+  it('throws EsResponseError with empty body on non-2xx', async () => {
+    const client = makeClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('', { status: 502 }))
+    ) as typeof fetch)
+
+    await assert.rejects(
+      () => client.request({ method: 'GET', path: '/' }),
+      (err: unknown) => {
+        assert.ok(err instanceof EsResponseError)
+        assert.equal(err.statusCode, 502)
+        assert.equal(err.body, '')
+        return true
+      }
+    )
+  })
+
   it('returns true for HEAD requests with 2xx status', async () => {
     const client = makeClient()
     client._testSetFetch((() =>
