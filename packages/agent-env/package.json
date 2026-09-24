@@ -1,6 +1,6 @@
 {
   "name": "@elastic/agent-env",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Detect the coding-agent harness that spawned a process from its environment variables.",
   "license": "Apache-2.0",
   "private": true,
