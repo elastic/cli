@@ -159,7 +159,7 @@ if (firstArg === 'completion' || firstArg === '__complete') {
   }
 } else if (firstArg == null) {
   const completionStub = new Command('completion')
-  completionStub.description('Print a shell completion script (bash, zsh, fish)')
+  completionStub.description('Print a shell completion script (bash, zsh, fish, powershell)')
   completionStub.allowUnknownOption(true)
   completionStub.action(async () => {
     const { registerCompletionCommands: real } = await import('./completion/index.js')

@@ -17,12 +17,14 @@ import type { OpaqueCommandHandle } from '../factory.ts'
 import { bashWrapper } from './shells/bash.ts'
 import { zshWrapper } from './shells/zsh.ts'
 import { fishWrapper } from './shells/fish.ts'
+import { powershellWrapper } from './shells/powershell.ts'
 
 /** Maps a shell name to a function that produces its wrapper script. */
 const WRAPPERS: Readonly<Record<string, () => string>> = Object.freeze({
   bash: bashWrapper,
   zsh: zshWrapper,
   fish: fishWrapper,
+  powershell: powershellWrapper,
 })
 
 /** Shells supported by `elastic completion <shell>`, in declaration order. */
@@ -32,9 +34,10 @@ export const SUPPORTED_SHELLS: readonly string[] = Object.freeze(Object.keys(WRA
  * Builds the `elastic completion <shell>` command.
  *
  * Behaviour:
- *   - `elastic completion bash`      → prints the bash wrapper to stdout
- *   - `elastic completion zsh`       → prints the zsh wrapper to stdout
- *   - `elastic completion fish`      → prints the fish wrapper to stdout
+ *   - `elastic completion bash`       → prints the bash wrapper to stdout
+ *   - `elastic completion zsh`        → prints the zsh wrapper to stdout
+ *   - `elastic completion fish`       → prints the fish wrapper to stdout
+ *   - `elastic completion powershell` → prints the PowerShell wrapper to stdout
  *   - `elastic completion <other>`   → structured error, exit 1
  *   - `elastic completion --json <shell>` → JSON `{shell, script}` on stdout
  */

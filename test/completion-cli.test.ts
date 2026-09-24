@@ -143,6 +143,13 @@ describe('elastic CLI -- shell completion end-to-end', () => {
     assert.match(stdout, /complete -c elastic/)
   })
 
+  it('`completion powershell` prints a PowerShell wrapper', async () => {
+    const { code, stdout } = await runCli(['completion', 'powershell'])
+    assert.equal(code, 0)
+    assert.match(stdout, /Register-ArgumentCompleter/)
+    assert.match(stdout, /__complete/)
+  })
+
   it('`completion <unknown>` exits 1 with a structured error', async () => {
     const { code, stderr } = await runCli(['completion', 'tcsh'])
     assert.equal(code, 1)
