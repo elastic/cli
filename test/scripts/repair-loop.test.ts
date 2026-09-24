@@ -29,11 +29,9 @@ import {
   parseBkBuildUrl,
   jobLogUrl,
   appendMemorySkill,
-  countBotCommits,
   hasBadCommand,
   hasBkRepairTag,
   hasStopCommand,
-  isRepairBotLogin,
   isTrustedAssociation,
   isTrustedReviewer,
   trustedReviewComments,
@@ -756,34 +754,21 @@ describe('parseAgentResponse', () => {
 })
 
 describe('shouldAttemptFix', () => {
-  it('counts vault plugin bot commits toward the cap', () => {
-    assert.equal(isRepairBotLogin('github-actions[bot]'), true)
-    assert.equal(isRepairBotLogin('elastic-vault-github-plugin-prod[bot]'), true)
-    assert.equal(isRepairBotLogin('elastic-vault-github-plugin-prod'), true)
-    assert.equal(isRepairBotLogin('outsider'), false)
-    assert.equal(isRepairBotLogin(''), false)
-    assert.equal(isRepairBotLogin(null), false)
-    assert.equal(countBotCommits([
-      { author: { login: 'margaretjgu' } },
-      { author: { login: 'elastic-vault-github-plugin-prod[bot]' } },
-      { commit: { author: { name: 'github-actions[bot]' } } },
-      { author: { login: '../pwn' } },
-    ]), 2)
-    assert.equal(countBotCommits(null), 0)
+  it('matches the bk repair tag', () => {
     assert.equal(hasBkRepairTag('<!-- bk-repair-loop -->\nFirst Buildkite failure'), true)
     assert.equal(hasBkRepairTag('<!-- ci-repair-loop -->'), false)
     assert.equal(hasBkRepairTag(''), false)
     assert.equal(hasBkRepairTag(null), false)
   })
 
-  it('requires same-repo under the bot cap', () => {
-    assert.deepEqual(shouldAttemptFix({ sameRepo: true, autoLoop: true, botCommits: 0 }), { ok: true, reason: 'ok' })
+  it('requires same repo and auto loop', () => {
+    assert.deepEqual(shouldAttemptFix({ sameRepo: true, autoLoop: true }), { ok: true, reason: 'ok' })
+    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, botCommits: 9 }).ok, true)
     assert.equal(shouldAttemptFix({ sameRepo: false, autoLoop: true }).ok, false)
     assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, skipLoop: true }).reason, 'skip-auto-loop')
     assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, stopRepair: true }).reason, 'stop')
     assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: false }).reason, 'auto-loop')
     assert.equal(shouldAttemptFix({ sameRepo: true }).reason, 'auto-loop')
-    assert.equal(shouldAttemptFix({ sameRepo: true, autoLoop: true, botCommits: 2 }).reason, 'bot commit cap')
   })
 })
 
@@ -921,7 +906,7 @@ describe('repair-loop CLI', () => {
     const dir = mkdtempSync(join(tmpdir(), 'repair-loop-cli-'))
     const ok = execFileSync(process.execPath, [script, 'should-fix'], {
       encoding: 'utf8',
-      env: { ...process.env, SAME_REPO: '1', AUTO_LOOP: '1', SKIP_LOOP: '0', BOT_COMMITS: '0' },
+      env: { ...process.env, SAME_REPO: '1', AUTO_LOOP: '1', SKIP_LOOP: '0' },
     })
     assert.equal(JSON.parse(ok).ok, true)
     try {
@@ -1004,12 +989,6 @@ describe('repair-loop CLI', () => {
     } catch (err) {
       assert.equal(err.status, 1)
     }
-    const commits = join(dir, 'commits.ndjson')
-    writeFileSync(commits, [
-      JSON.stringify({ author: { login: 'elastic-vault-github-plugin-prod[bot]' } }),
-      JSON.stringify({ author: { login: 'human' } }),
-    ].join('\n'))
-    assert.equal(execFileSync(process.execPath, [script, 'bot-commits', commits], { encoding: 'utf8' }).trim(), '1')
     writeFileSync(comments, '<!-- bk-repair-loop -->\nFAIL: x\n')
     execFileSync(process.execPath, [script, 'has-bk-tag', comments], { encoding: 'utf8' })
     const comment = join(dir, 'comment.json')
