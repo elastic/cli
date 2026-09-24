@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.6.0](https://github.com/elastic/cli/compare/v0.5.0...v0.6.0) (2026-09-24)
+
+
+### Features
+
+* Suggest closest command on typo ([#666](https://github.com/elastic/cli/issues/666)) ([097832f](https://github.com/elastic/cli/commit/097832faa0b4455d60de85e56852fae8dfcfb0ff))
+
+
+### Bug Fixes
+
+* Add agent environment details to telemetry ([#667](https://github.com/elastic/cli/issues/667)) ([493053b](https://github.com/elastic/cli/commit/493053bb58ccc0a9903a3fa99ffb38d42a0856f1))
+* **es:** Non-JSON error responses report 'Body is unusable' instead of HTTP status ([#687](https://github.com/elastic/cli/issues/687)) ([d975706](https://github.com/elastic/cli/commit/d975706023bc6bf5b5651ff8311f1f5f54fb7fe0))
+* Print nothing for empty cat text ([#661](https://github.com/elastic/cli/issues/661)) ([28cc49f](https://github.com/elastic/cli/commit/28cc49f3a21423d2ecdea67a488b04489e210622))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @elastic/agent-env bumped from 0.1.0 to 0.1.1
+    * @elastic/config-resolver bumped from 0.1.1 to 0.1.2
+
 ## [0.5.0](https://github.com/elastic/cli/compare/v0.4.0...v0.5.0) (2026-09-10)
 
 
