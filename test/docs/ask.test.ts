@@ -54,13 +54,15 @@ describe('createAskCommand', () => {
       stderr: { write: () => true },
     })
     cmd.exitOverride()
-    cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
+    const captured: string[] = []
+    cmd.configureOutput({ writeOut: (s) => { captured.push(s) }, writeErr: (s) => { captured.push(s) } })
 
     const restoreStdin = _testSetStdinReader(() => '')
     try {
       await cmd.parseAsync(['--question', '   '], { from: 'user' })
     } finally { restoreStdin() }
     assert.equal(process.exitCode, 1)
+    assert.match(captured.join(''), /--question/)
     process.exitCode = 0
   })
 
