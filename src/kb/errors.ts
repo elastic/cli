@@ -4,6 +4,7 @@
  */
 
 import type { JsonValue } from '../factory.ts'
+import { AUTH_FAILURE_HINT } from '../output.ts'
 
 /** Builds a `missing_config` error payload from a thrown error. */
 export function missingConfigError (err: unknown): JsonValue {
@@ -21,8 +22,9 @@ export function missingConfigError (err: unknown): JsonValue {
 export function kibanaApiError (err: unknown): JsonValue {
   const message = err instanceof Error ? err.message : String(err)
   const match = /Kibana API error (\d+):/.exec(message)
-  if (match != null) {
-    return { error: { code: 'kibana_api_error', status_code: parseInt(match[1]!, 10), message } }
-  }
-  return { error: { code: 'kibana_api_error', message } }
+  const status = match != null ? parseInt(match[1]!, 10) : undefined
+  const error: Record<string, JsonValue> = { code: 'kibana_api_error', message }
+  if (status != null) error.status_code = status
+  if (status === 401 || status === 403) error.hint = AUTH_FAILURE_HINT
+  return { error }
 }
