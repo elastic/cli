@@ -50,6 +50,9 @@ export interface SchemaArgDefinition {
    */
   acceptsArrayForm?: boolean
 
+  /** Schema enum values, when `type` is `enum`. */
+  enumValues?: string[]
+
   /**
    * Marks args whose CLI string value needs a non-trivial transformation.
    * `'sort-pairs'`: ES Sort fields using `field:direction` syntax.
@@ -200,6 +203,9 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
     // Sort fields: check if prop description or key suggests Sort semantics
     // (used by ES Sort body fields that need field:direction→object transformation)
     const isSortField = key === 'sort' && (foundIn === 'body' || foundIn === undefined)
+    const enumValues = Array.isArray(prop.enum)
+      ? prop.enum.filter((v): v is string => typeof v === 'string')
+      : undefined
 
     return {
       schemaKey: key,
@@ -212,6 +218,7 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
       ...(prop['x-body-root'] === true ? { bodyRoot: true } : {}),
       ...(acceptsArrayForm ? { acceptsArrayForm: true } : {}),
       ...(isSortField ? { parseStyle: 'sort-pairs' as const } : {}),
+      ...(enumValues != null && enumValues.length > 0 ? { enumValues } : {}),
     }
   })
 }
