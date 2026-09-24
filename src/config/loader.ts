@@ -34,6 +34,7 @@ import { resolveExpressions } from '@elastic/config-resolver'
 import { hasInlineSecrets, type RawConfig } from './writer.ts'
 import type { ConfigFile, ResolvedConfig, ResolvedContext } from './types.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './profiles.ts'
+import { withSetupHint } from './next-command.ts'
 
 function formatAjvErrors (errors: Array<{ path: string; message: string }> | undefined): string {
   if (!errors || errors.length === 0) return 'Invalid configuration'
@@ -256,7 +257,7 @@ export function clearConfigCache (): void {
 export interface LoadConfigOk { ok: true, value: ResolvedConfig, contextName: string }
 
 /** Failure result from {@link loadConfig}. */
-export interface LoadConfigErr { ok: false, error: { message: string } }
+export interface LoadConfigErr { ok: false, error: { code?: string, message: string } }
 
 /** Discriminated result type returned by {@link loadConfig}. */
 export type LoadConfigResult = LoadConfigOk | LoadConfigErr
@@ -309,14 +310,24 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     if (resolvedPath == null) {
       return {
         ok: false,
-        error: { message: 'No configuration file found. Create a .elasticrc.yml in your home directory, or use --config-file / ELASTIC_CLI_CONFIG_FILE to specify a path.' }
+        error: {
+          code: 'config_not_found',
+          message: withSetupHint('No configuration file found.'),
+        },
       }
     }
 
     raw = await loadConfigFile(resolvedPath)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    return { ok: false, error: { message } }
+    const missing = /ENOENT|no such file|not found/i.test(message)
+    return {
+      ok: false,
+      error: {
+        code: missing ? 'config_not_found' : 'config_error',
+        message: missing ? withSetupHint(message) : message,
+      },
+    }
   }
 
   // Warn (stderr only) when the file has inline secrets AND looser-than-0600 perms.
@@ -327,6 +338,15 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
   // Step 2: structural validation (shape only, no deep context validation)
   const structural = StructuralConfigSchema.safeParse(raw)
   if (!structural.success) {
+    const cc = raw != null && typeof raw === 'object' && !Array.isArray(raw)
+      ? (raw as { current_context?: unknown }).current_context
+      : undefined
+    if (cc == null || cc === '') {
+      return {
+        ok: false,
+        error: { code: 'config_empty_context', message: withSetupHint('No current_context is set.') },
+      }
+    }
     return { ok: false, error: { message: formatAjvErrors(structural.errors) } }
   }
 
@@ -365,7 +385,10 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     ])
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    return { ok: false, error: { message: `Failed to resolve config expressions: ${message}` } }
+    return {
+      ok: false,
+      error: { code: 'config_unresolved', message: withSetupHint(`Failed to resolve config expressions: ${message}`) },
+    }
   }
 
   // Step 5: validate active context and commands with full schemas

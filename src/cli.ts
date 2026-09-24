@@ -77,7 +77,17 @@ if (!wantsHelp) {
     if (result.ok) {
       setResolvedConfig(result.value)
     } else {
-      process.stderr.write(`Error: ${result.error.message}\n`)
+      const payload = {
+        error: {
+          code: result.error.code ?? 'config_error',
+          message: result.error.message,
+        },
+      }
+      if (hasGlobalJsonFlag(program)) {
+        process.stderr.write(JSON.stringify(payload) + '\n')
+      } else {
+        process.stderr.write(`Error: ${payload.error.message}\n`)
+      }
       process.exit(1)
     }
   })

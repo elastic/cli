@@ -51,6 +51,15 @@ describe('kibanaApiError', () => {
     assert.equal(res.error.code, 'kibana_api_error')
     assert.equal(res.error.status_code, 404)
     assert.match(res.error.message, /not found/)
+    assert.equal(res.error.message.includes('elastic config context edit'), false)
+  })
+
+  it('points 403 at status and context edit', () => {
+    const res = kibanaApiError(new Error('Kibana API error 403: {"message":"forbidden"}')) as {
+      error: { code: string; status_code: number; message: string }
+    }
+    assert.equal(res.error.status_code, 403)
+    assert.match(res.error.message, /elastic status --json/)
   })
 
   it('omits status_code when the message has no status', () => {
