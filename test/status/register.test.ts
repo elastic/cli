@@ -227,7 +227,7 @@ describe('elastic status -- command', () => {
     }
   })
 
-  it('returns a config_error envelope when no config file is found', async () => {
+  it('returns a missing_config envelope when no config file is found', async () => {
     const missingPath = join(dir, 'does-not-exist.yml')
     const out = await captured(async () => {
       const prog = makeProgram()
@@ -235,8 +235,19 @@ describe('elastic status -- command', () => {
     })
     assert.ok(out.stderr.length > 0, `expected stderr, got: ${out.stderr}`)
     const parsed = JSON.parse(out.stderr) as { error: { code: string, message: string } }
-    assert.equal(parsed.error.code, 'config_error')
+    assert.equal(parsed.error.code, 'missing_config')
     assert.ok(parsed.error.message.length > 0)
+    assert.equal(out.exitCode, 1)
+  })
+
+  it('returns a config_invalid envelope when the config file is malformed', async () => {
+    await writeConfig('contexts: [\nnot yaml\n')
+    const out = await captured(async () => {
+      const prog = makeProgram()
+      await prog.parseAsync(['--config-file', configPath, '--json', 'status'], { from: 'user' })
+    })
+    const parsed = JSON.parse(out.stderr) as { error: { code: string } }
+    assert.equal(parsed.error.code, 'config_invalid')
     assert.equal(out.exitCode, 1)
   })
 

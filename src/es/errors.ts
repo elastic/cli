@@ -42,9 +42,14 @@ function appendTlsHint (message: string): string {
 /** Builds a structured error payload from a thrown transport error. */
 export function transportError (err: unknown): JsonValue {
   if (err instanceof EsResponseError) {
+    const code = err.statusCode === 401
+      ? 'auth_required'
+      : err.statusCode === 404
+        ? 'not_found'
+        : 'transport_error'
     return {
       error: {
-        code: 'transport_error',
+        code,
         status_code: err.statusCode,
         body: err.body as JsonValue ?? null
       }

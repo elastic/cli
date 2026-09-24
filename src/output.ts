@@ -115,7 +115,7 @@ export function formatHandlerError (value: JsonValue): string {
   const err = (value as Record<string, JsonValue>).error as Record<string, JsonValue>
   const code = err.code as string
 
-  if (code === 'transport_error') {
+  if (code === 'transport_error' || code === 'auth_required' || code === 'not_found') {
     const body = err.body
     if (body !== null && typeof body === 'object' && !Array.isArray(body)) {
       const nested = (body as Record<string, JsonValue>).error

@@ -25,6 +25,7 @@ import { checkElasticsearch, checkKibana, checkCloud } from './checks.ts'
 import type { EsCheck, KbCheck, CloudCheck } from './checks.ts'
 import { formatStatusText } from './format.ts'
 import type { StatusResult } from './types.ts'
+import { classifyConfigLoadError } from '../help/catalog.ts'
 
 /**
  * Test seam: the fetch implementation used by the three service probes.
@@ -102,7 +103,7 @@ async function statusHandler (parsed: ParsedResult): Promise<JsonValue> {
     ...(profileName != null && { profileName }),
   })
   if (!loaded.ok) {
-    return { error: { code: 'config_error', message: loaded.error.message } }
+    return { error: { code: classifyConfigLoadError(loaded.error.message), message: loaded.error.message } }
   }
 
   const result = await runStatusChecks(loaded.contextName, loaded.value.context)

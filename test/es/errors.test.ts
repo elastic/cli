@@ -57,6 +57,20 @@ describe('transportError', () => {
     assert.equal(result.error.message, 'raw string error')
   })
 
+  it('maps EsResponseError 401 to auth_required', () => {
+    const err = new EsResponseError(401, { error: 'unauthorized' })
+    const result = transportError(err) as { error: { code: string; status_code: number } }
+    assert.equal(result.error.code, 'auth_required')
+    assert.equal(result.error.status_code, 401)
+  })
+
+  it('maps EsResponseError 404 to not_found', () => {
+    const err = new EsResponseError(404, { error: 'no such index' })
+    const result = transportError(err) as { error: { code: string; status_code: number } }
+    assert.equal(result.error.code, 'not_found')
+    assert.equal(result.error.status_code, 404)
+  })
+
   it('maps EsResponseError to a transport_error with status_code and body', () => {
     const err = new EsResponseError(418, { reason: 'teapot' })
     const result = transportError(err) as { error: { code: string; status_code: number; body: unknown } }

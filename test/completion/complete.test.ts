@@ -49,6 +49,7 @@ describe('buildCompletionTree -- top-level commands', () => {
     const root = await buildCompletionTree([])
     const names = root.commands.map(c => c.name())
     assert.ok(names.includes('version'), `expected version, got: ${names.join(',')}`)
+    assert.ok(names.includes('help'), `expected help, got: ${names.join(',')}`)
     assert.ok(names.includes('stack'))
     assert.ok(names.includes('cloud'))
     assert.ok(names.includes('docs'))
