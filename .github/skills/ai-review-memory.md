@@ -21,3 +21,10 @@ Action items for the next AI review. Follow these. Do not repeat the rejected fi
 - Do not re-flag `workflow_run` as matching the dispatcher by name only. Require `event` and `path` (`review-repair-loop.yml`, `review-no-dispatch.yml`).
 - Do not re-flag review-loop concurrency as `workflow_run.id`. It is keyed on `head_branch` so two reviews on the same PR cancel.
 - already fixed. Job if requires same-repo head.
+- Do not re-flag the concurrency group differing between workflow_run and workflow_dispatch triggers. The concurrency group already uses the CI run id uniformly for both event types.
+- Do not re-flag the cross-repo secret exposure in the status path. The maintainer has already added an isCrossRepository exit before BUILDKITE_API_TOKEN is accessed.
+- Do not re-flag console.log usage in Command .action() handlers. The writes have been moved to cli.ts, which is excluded from this query.
+- Do not re-flag console.log calls in Command .action() handlers. The writes have been relocated to cli.ts, which is excluded from this query.
+- Do not re-flag manual Command construction for the help command because it has been refactored to use defineCommand with factory-managed output.
+- Do not re-flag console.log usage in Command .action() handlers. The help command uses defineCommand and output is handled by the factory, not direct printing.
+- Do not re-flag console.log usage in Command .action() handlers that delegate output to a factory or defineCommand wrapper, as the direct print has already been replaced by the proper output layer.
