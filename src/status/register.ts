@@ -124,6 +124,11 @@ export function registerStatusCommand (): OpaqueCommandHandle {
     name: 'status',
     description: 'Verify connectivity and authentication for the active context',
     handler: statusHandler,
-    formatOutput: (result) => formatStatusText(result as unknown as StatusResult),
+    formatOutput: (result, parsed) => {
+      const opts = parsed.options ?? {}
+      const noColor = opts['color'] === false || process.env.NO_COLOR !== undefined
+      const plain = noColor || process.stdout.isTTY !== true
+      return formatStatusText(result as unknown as StatusResult, { plain })
+    },
   })
 }

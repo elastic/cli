@@ -2387,12 +2387,37 @@ describe('text output rendering', () => {
           { name: 'bar', status: 'error' },
         ],
       })
-      const out = await invokeText(cmd)
-      assert.match(out, /name/)
-      assert.match(out, /status/)
-      assert.match(out, /foo/)
-      assert.match(out, /bar/)
-      assert.match(out, /[─├┤┼]/)
+      const origIsTTY = process.stdout.isTTY
+      Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true, writable: true })
+      try {
+        const out = await invokeText(cmd)
+        assert.match(out, /name/)
+        assert.match(out, /status/)
+        assert.match(out, /foo/)
+        assert.match(out, /bar/)
+        assert.match(out, /[─├┤┼]/)
+      } finally {
+        Object.defineProperty(process.stdout, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+      }
+    })
+
+    it('renders an array of flat objects as TSV when stdout is not a TTY', async () => {
+      const cmd = defineCommand({
+        name: 'list',
+        description: 'List',
+        handler: () => [
+          { name: 'foo', status: 'ok' },
+          { name: 'bar', status: 'error' },
+        ],
+      })
+      const origIsTTY = process.stdout.isTTY
+      Object.defineProperty(process.stdout, 'isTTY', { value: false, configurable: true, writable: true })
+      try {
+        const out = await invokeText(cmd)
+        assert.equal(out, 'name\tstatus\nfoo\tok\nbar\terror\n')
+      } finally {
+        Object.defineProperty(process.stdout, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+      }
     })
 
     it('renders a flat object as key:value lines', async () => {
