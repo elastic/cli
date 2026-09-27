@@ -298,6 +298,10 @@ elasticsearch:
 | `--output-template <string>` | Mustache-like template for custom text output (e.g. `"{{id}}: {{name}}"`) |
 | `--dry-run` | Validate all inputs and exit without performing any action |
 
+## Agents
+
+Agent hosts should read `skills/elastic/SKILL.md`. It covers non-interactive runs (`--yes`, `--dry-run`), JSON output and schema discovery, contexts, environment variables, and error diagnosis.
+
 ## Commands
 
 ### `version`
