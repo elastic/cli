@@ -123,6 +123,14 @@ export const NAMESPACES: NamespaceEntry[] = [
     },
   },
   {
+    name: 'nightshift',
+    description: 'Ask the Nightshift investigation agent',
+    load: async () => {
+      const { registerNightshiftCommands } = await import('./nightshift/register.ts')
+      return registerNightshiftCommands()
+    },
+  },
+  {
     name: 'config',
     description: 'Author and maintain the elastic config file',
     requiresContext: false,

@@ -24,6 +24,7 @@ const dirs = [
   'dist/extension',
   'dist/kb',
   'dist/lib',
+  'dist/nightshift',
   'dist/sanitize',
   'dist/status',
 ]
