@@ -5,6 +5,12 @@
 
 import type { Command } from 'commander'
 
-export function register (_program: Command): void {
-  // status namespace commands registered here
+export function registerStatusCommand (program: Command): void {
+  program
+    .command('status')
+    .description('Check the status of the Elastic stack')
+    .option('--json', 'output as JSON')
+    .action(async (_options) => {
+      // status command implementation
+    })
 }
