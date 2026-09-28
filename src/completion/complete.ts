@@ -165,6 +165,7 @@ export async function buildCompletionTree (rewrittenWords: readonly string[]): P
   // The real version handler is wired in src/cli.ts; for enumeration we only
   // need the name to be discoverable.
   root.addCommand(defineGroup({ name: 'version', description: 'Print the elastic CLI version' }))
+  root.addCommand(defineGroup({ name: 'help', description: 'Show help topics' }))
 
   const firstWord = rewrittenWords[0]
   const secondWord = rewrittenWords[1]

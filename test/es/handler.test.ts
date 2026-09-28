@@ -174,12 +174,13 @@ describe('createEsHandler', () => {
     const handler = createEsHandler(makeDef({ name: 'ping', path: '/' }), [], deps)
     const result = await handler(parsedInput()) as Record<string, unknown>
     const err = result['error'] as Record<string, unknown>
+    assert.equal(err['code'], 'auth_required')
     assert.equal(err['status_code'], 401)
     assert.match(String(err['hint'] ?? ''), /elastic status/)
     assert.match(String(err['hint'] ?? ''), /config context edit/)
   })
 
-  it('returns transport_error with status code and ES body for EsResponseError', async () => {
+  it('returns not_found with status code and ES body for EsResponseError 404', async () => {
     const esErrorBody = { error: { type: 'index_not_found_exception', reason: 'no such index' }, status: 404 }
     const responseError = new EsResponseError(404, esErrorBody)
     const deps = makeDeps({
@@ -192,8 +193,26 @@ describe('createEsHandler', () => {
     const result = await handler(parsedInput()) as Record<string, unknown>
 
     const err = result['error'] as Record<string, unknown>
-    assert.equal(err['code'], 'transport_error')
+    assert.equal(err['code'], 'not_found')
     assert.equal(err['status_code'], 404)
+    assert.deepEqual(err['body'], esErrorBody)
+  })
+
+  it('returns transport_error with status code and ES body for EsResponseError 500', async () => {
+    const esErrorBody = { error: { type: 'internal', reason: 'boom' }, status: 500 }
+    const responseError = new EsResponseError(500, esErrorBody)
+    const deps = makeDeps({
+      getEsClient: () => ({
+        request: async () => { throw responseError },
+      } as unknown as EsClient),
+    })
+
+    const handler = createEsHandler(makeDef(), [], deps)
+    const result = await handler(parsedInput()) as Record<string, unknown>
+
+    const err = result['error'] as Record<string, unknown>
+    assert.equal(err['code'], 'transport_error')
+    assert.equal(err['status_code'], 500)
     assert.deepEqual(err['body'], esErrorBody)
   })
 

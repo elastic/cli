@@ -83,6 +83,15 @@
       "intent": {
         "requiresAuth": false
       }
+    },
+    {
+      "path": [],
+      "name": "help",
+      "parameters": [],
+      "summary": "Show help topics",
+      "intent": {
+        "requiresAuth": false
+      }
     }
   ],
   "namespaces": [

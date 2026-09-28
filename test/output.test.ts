@@ -184,6 +184,17 @@ describe('renderText', () => {
 })
 
 describe('formatHandlerError', () => {
+  it('extracts type and reason from not_found with ES body', () => {
+    const val = {
+      error: {
+        code: 'not_found',
+        status_code: 404,
+        body: { error: { type: 'index_not_found_exception', reason: 'no such index [foo]', root_cause: [] } }
+      }
+    }
+    assert.equal(formatHandlerError(val), 'index_not_found_exception: no such index [foo]')
+  })
+
   it('extracts type and reason from transport_error with ES body', () => {
     const val = {
       error: {

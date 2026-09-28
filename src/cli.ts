@@ -79,9 +79,10 @@ if (!wantsHelp) {
     if (result.ok) {
       setResolvedConfig(result.value)
     } else {
+      const { classifyConfigLoadError } = await import('./help/catalog.js')
       const payload = {
         error: {
-          code: result.error.code ?? 'config_error',
+          code: classifyConfigLoadError(result.error.message),
           message: result.error.message,
         },
       }
@@ -284,7 +285,6 @@ if (firstArg == null && !process.argv.includes('--json') && !(earlyConfig?.ok ==
   const { renderLogo } = await import('./lib/logo.js')
   program.addHelpText('before', () => renderLogo(VERSION).replace(/\n$/, ''))
 }
-
 // Bare invocation: show help
 if (argv.length === 0) {
   program.outputHelp()

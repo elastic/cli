@@ -4,11 +4,12 @@
  */
 
 import type { Command } from 'commander'
+import { formatExitCodesHelp } from './help/catalog.ts'
 
 export const HELP_TOPIC_NAMES = ['formatting', 'environment', 'exit-codes'] as const
 export type HelpTopicName = (typeof HELP_TOPIC_NAMES)[number]
 
-export const HELP_TOPICS: Record<HelpTopicName, string> = {
+const _helpTopics: Partial<Record<HelpTopicName, string>> = {
   formatting: `Output flags (global)
 
 --json                 Print the response as JSON (pretty-printed).
@@ -45,13 +46,17 @@ elastic config stores secrets in the OS store when one is available:
   Windows  Credential Manager
 The YAML then holds $(keychain:...) expressions. Pass --inline-secrets to keep secrets in the file.
 `,
-  'exit-codes': `Exit codes
+}
 
-0  success
-1  error (usage, validation, missing config, auth, API, aborted confirmation)
-
-2-63 are reserved. Do not rely on them yet; every failure is 1 today.
-`,
+export const HELP_TOPICS: Record<HelpTopicName, string> = {
+  get formatting () { return _helpTopics.formatting! },
+  get environment () { return _helpTopics.environment! },
+  get 'exit-codes' () {
+    if (_helpTopics['exit-codes'] == null) {
+      _helpTopics['exit-codes'] = formatExitCodesHelp()
+    }
+    return _helpTopics['exit-codes']
+  },
 }
 
 export const LEARN_MORE = `

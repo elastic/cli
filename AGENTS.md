@@ -63,6 +63,23 @@ All requirements below are non-negotiable and enforced at review time.
 - **`--json`**: Every command MUST emit structured JSON when `--json` is passed.
 - **`--help --json`**: MUST output the full JSON Schema so agents can introspect valid inputs.
 - **Errors**: All errors MUST go to stderr with a non-zero exit code. With `--json`, errors MUST serialize as `{"error": {"code": "...", "message": "..."}}`.
+- **Exit codes**: Process exit is `0` on success and `1` on every failure. Codes `2` (usage), `3` (validation), `4` (auth/config), and `5` (network) are reserved; do not emit them yet. See `elastic help exit-codes`.
+- **`error.code` catalog** (frozen; do not invent new strings without a changelog note):
+  - `missing_config` — no config file or no service connection
+  - `config_invalid` — config file failed to parse or validate
+  - `auth_required` — HTTP 401. Probe with `elastic status --json`
+  - `not_found` — HTTP 404. Probe with `elastic status --json`
+  - `transport_error` — other HTTP/client errors. Probe with `elastic status --json`
+  - `connection_error` — TCP/TLS failure. Probe with `elastic status --json`
+  - `input_error` — handler rejected the request before sending
+  - `input_validation_failed` — flags or JSON input failed the schema
+  - `confirmation_required` — destructive command needs `--yes`
+  - `command_blocked` — command policy blocked this invocation
+  - `kibana_api_error` / `cloud_api_error` — product HTTP errors
+  - `invalid_request` / `credential_policy_error` — Cloud request/policy
+  - `output_template_error` — `--output-template` failed to render
+  - `missing_source` / `missing_name` — extension add/remove args
+- After `auth_required` or `transport_error`, run `elastic status --json`.
 
 ### Mutations and Side Effects
 
