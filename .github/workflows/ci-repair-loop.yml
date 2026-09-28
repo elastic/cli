@@ -141,7 +141,6 @@ jobs:
           SKIP_LOOP=0
           STOP_REPAIR=0
           AUTO_LOOP=0
-          BOT_COMMITS=0
           if [ -n "$PR" ]; then
             LABELS=$(gh pr view "$PR" --json labels --jq '[.labels[].name] | join(",")')
             case ",$LABELS," in *,skip-auto-loop,*) SKIP_LOOP=1 ;; esac
@@ -149,12 +148,8 @@ jobs:
             gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
               --jq '.[] | select(.author_association == "OWNER" or .author_association == "MEMBER") | .body // empty' > /tmp/pr-comments.txt || true
             if node /tmp/repair-loop.mjs has-stop /tmp/pr-comments.txt; then STOP_REPAIR=1; fi
-            gh api --paginate "repos/${GH_REPO}/pulls/${PR}/commits" \
-              --jq '.[] | {author:{login:(.author.login // "")},commit:{author:{name:(.commit.author.name // "")}}}' \
-              > /tmp/commits.ndjson || true
-            BOT_COMMITS=$(node /tmp/repair-loop.mjs bot-commits /tmp/commits.ndjson)
           fi
-          SAME_REPO="$SAME_REPO" SKIP_LOOP="$SKIP_LOOP" STOP_REPAIR="$STOP_REPAIR" AUTO_LOOP="$AUTO_LOOP" BOT_COMMITS="$BOT_COMMITS" \
+          SAME_REPO="$SAME_REPO" SKIP_LOOP="$SKIP_LOOP" STOP_REPAIR="$STOP_REPAIR" AUTO_LOOP="$AUTO_LOOP" \
             node /tmp/repair-loop.mjs should-fix > /tmp/decision.json || true
           FIX=0
           PIN_STOP=0
@@ -181,45 +176,16 @@ jobs:
             echo "pin_stop=${PIN_STOP}"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Comment diagnosis
-        if: steps.diag.outputs.job_name != ''
+      - name: Pin stop
+        if: steps.diag.outputs.pin_stop == '1' && steps.diag.outputs.pr != ''
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           PR: ${{ steps.diag.outputs.pr }}
-          JOB_NAME: ${{ steps.diag.outputs.job_name }}
-          JOB_URL: ${{ steps.diag.outputs.job_url }}
-          RUN_URL: ${{ steps.diag.outputs.run_url }}
-          PIN_STOP: ${{ steps.diag.outputs.pin_stop }}
         run: |
           set -euo pipefail
-          COMMENT_TAG='<!-- ci-repair-loop -->'
-          if [ -z "$PR" ]; then
-            echo "No PR, not opening an issue"
-            exit 0
-          fi
-          EXCERPT=$(cat /tmp/excerpt.txt 2>/dev/null || true)
-          BODY=$(printf '%s\n' \
-            "$COMMENT_TAG" \
-            "**${JOB_NAME}** failed." \
-            "" \
-            "$EXCERPT" \
-            "" \
-            "Resolution: triaging." \
-            "" \
-            "Job: ${JOB_URL}")
-          EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
-            --jq ".[] | select((.user.login == \"github-actions[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \
-            | head -n 1 || true)
-          if [ -n "$EXISTING" ]; then
-            gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" -f body="$BODY"
-          else
-            gh pr comment "$PR" --body "$BODY"
-          fi
-          if [ "${PIN_STOP:-0}" = "1" ]; then
-            gh pr edit "$PR" --add-label skip-auto-loop || true
-            gh pr comment "$PR" --body "Repair loop stopped (\`/stop\`). Added \`skip-auto-loop\`."
-          fi
+          gh pr edit "$PR" --add-label skip-auto-loop || true
+          gh pr comment "$PR" --body "Repair loop stopped (\`/stop\`). Added \`skip-auto-loop\`."
 
       - name: Propose in-repo fix
         id: propose
@@ -231,6 +197,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           PR: ${{ steps.diag.outputs.pr }}
           JOB_NAME: ${{ steps.diag.outputs.job_name }}
+          JOB_ID: ${{ steps.diag.outputs.job_id }}
           JOB_URL: ${{ steps.diag.outputs.job_url }}
           HEAD_SHA: ${{ steps.diag.outputs.head_sha }}
           CAN_FIX: ${{ steps.diag.outputs.fix }}
@@ -238,8 +205,26 @@ jobs:
           set -euo pipefail
           echo "apply=0" >> "$GITHUB_OUTPUT"
           echo "rerun=0" >> "$GITHUB_OUTPUT"
+          COMMENT_TAG='<!-- ci-repair-loop -->'
+          upsert_sticky() {
+            local body="$1"
+            EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
+              --jq ".[] | select((.user.login == \"github-actions[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \
+              | head -n 1 || true)
+            if [ -n "$EXISTING" ]; then
+              gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" -f body="$body"
+            else
+              gh pr comment "$PR" --body "$body"
+            fi
+          }
+          fallback_sticky() {
+            local excerpt
+            excerpt=$(cat /tmp/excerpt.txt 2>/dev/null || true)
+            upsert_sticky "$(printf '%s\n' "$COMMENT_TAG" "**${JOB_NAME}** failed." "" "$excerpt" "" "Job: ${JOB_URL}")"
+          }
           if [ -z "${OPENROUTER_API_KEY:-}" ]; then
             echo "OPENROUTER_API_KEY missing"
+            fallback_sticky
             exit 0
           fi
           BASE_URL="${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
@@ -247,6 +232,7 @@ jobs:
             https://*) ;;
             *)
               echo "OPENROUTER_BASE_URL must be https://, refusing to send the API key to it"
+              fallback_sticky
               exit 0
               ;;
           esac
@@ -275,9 +261,10 @@ jobs:
           ${CONTENT}
           "
           done < <(printf '%s\n' "$PATHS")
+          JOB_DEF=$(jq -c '{id,name,conclusion,workflow_name,steps:[.steps[]?|{name,conclusion,number}]}' /tmp/job.json 2>/dev/null || true)
           printf '%s\n' \
-            "You triage one GitHub Actions failure in elastic/cli." \
-            "Write a short comment with what failed and the resolution. Do not paste logs." \
+            "Please find a solution for failing job ${JOB_ID:-$JOB_NAME}. Use the logs, job definition, and any referenced files where the failure occurred. Keep your response focused on the solution and include code suggestions when appropriate." \
+            "Do not paste logs into the comment." \
             "fix: in-repo change. Return full file replacements." \
             "rerun: flake or infra. Do not change tests to hide it." \
             "stop: cannot fix and a rerun will not help." \
@@ -286,8 +273,12 @@ jobs:
             "Respond with ONLY a JSON object:" \
             '{"action":"fix","comment":"What failed: ...\\nResolution: change FILE to ...","commit_message":"fix: short","changes":[{"file":"src/foo.ts","content":"full file"}]}' \
             "" \
-            "FAILED JOB: ${JOB_NAME}" \
+            "JOB: ${JOB_URL}" \
+            "LOGS:" \
             "$CONTEXT" \
+            "" \
+            "JOB DEFINITION:" \
+            "$JOB_DEF" \
             "" \
             "PR FILES:" \
             "$PR_FILES" \
@@ -305,30 +296,44 @@ jobs:
               messages: [{role: "user", content: $prompt}]
             }')"
           CONTENT=$(jq -r '.choices[0].message.content // empty' /tmp/response.json)
-          if [ -z "$CONTENT" ]; then
-            echo "Empty model response"
+          printf '%s' "$CONTENT" > /tmp/model-raw.txt
+          node /tmp/repair-loop.mjs parse-changes-soft /tmp/model-raw.txt > /tmp/parsed.json
+          if [ "$(cat /tmp/parsed.json)" = "null" ]; then
+            echo "Unparseable model response, retrying"
+            curl -s -o /tmp/response.json \
+              -H "Authorization: Bearer ${OPENROUTER_API_KEY}" \
+              -H "Content-Type: application/json" \
+              "${BASE_URL%/}/chat/completions" \
+              -d "$(jq -n --rawfile prompt /tmp/prompt.txt --rawfile first /tmp/model-raw.txt '{
+                model: "anthropic/claude-sonnet-4.6",
+                max_tokens: 16384,
+                messages: [
+                  {role: "user", content: $prompt},
+                  {role: "assistant", content: $first},
+                  {role: "user", content: "That was not valid JSON. Respond with ONLY a JSON object."}
+                ]
+              }')"
+            CONTENT=$(jq -r '.choices[0].message.content // empty' /tmp/response.json)
+            printf '%s' "$CONTENT" > /tmp/model-raw.txt
+            node /tmp/repair-loop.mjs parse-changes-soft /tmp/model-raw.txt > /tmp/parsed.json
+          fi
+          if [ "$(cat /tmp/parsed.json)" = "null" ]; then
+            echo "Unparseable model response"
+            fallback_sticky
             exit 0
           fi
-          printf '%s' "$CONTENT" > /tmp/model-raw.txt
-          node /tmp/repair-loop.mjs parse-changes /tmp/model-raw.txt > /tmp/parsed.json
           COMMENT=$(jq -r '.comment // empty' /tmp/parsed.json)
           ACTION=$(jq -r '.action // empty' /tmp/parsed.json)
+          echo "action=${ACTION} changes=$(jq '.changes | length' /tmp/parsed.json)"
           if [ -n "$COMMENT" ]; then
-            COMMENT_TAG='<!-- ci-repair-loop -->'
-            BODY=$(printf '%s\n' "$COMMENT_TAG" "$COMMENT" "" "Job: ${JOB_URL}")
-            EXISTING=$(gh api --paginate "repos/${GH_REPO}/issues/${PR}/comments" \
-              --jq ".[] | select((.user.login == \"github-actions[bot]\") and (.body | startswith(\"${COMMENT_TAG}\"))) | .id" \
-              | head -n 1 || true)
-            if [ -n "$EXISTING" ]; then
-              gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING}" -f body="$BODY"
-            else
-              gh pr comment "$PR" --body "$BODY"
-            fi
+            upsert_sticky "$(printf '%s\n' "$COMMENT_TAG" "$COMMENT" "" "Job: ${JOB_URL}")"
+          else
+            fallback_sticky
           fi
           if [ "$ACTION" = "fix" ] && [ "$CAN_FIX" = "1" ] && jq -e '(.changes | length) > 0' /tmp/parsed.json >/dev/null; then
             echo "apply=1" >> "$GITHUB_OUTPUT"
-            mkdir -p .repair-loop
-            cp /tmp/parsed.json .repair-loop/
+            mkdir -p "$GITHUB_WORKSPACE/repair-loop-patch"
+            cp /tmp/parsed.json "$GITHUB_WORKSPACE/repair-loop-patch/"
             exit 0
           fi
           if [ "$ACTION" != "rerun" ]; then
@@ -348,7 +353,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: repair-loop-patch
-          path: .repair-loop
+          path: repair-loop-patch
           if-no-files-found: error
 
   apply:

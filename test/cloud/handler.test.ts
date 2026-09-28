@@ -121,6 +121,17 @@ describe('createCloudHandler', () => {
     })
   })
 
+  it('adds error.hint on Cloud 401 naming status', async () => {
+    const handler = createCloudHandler(listDef(), {
+      getCloudClient: () => failingClient(new Error('Cloud API error 401: {"errors":[{"message":"unauthorized"}]}')),
+      buildCloudRequestParams: () => ({ method: 'GET', path: '/test' }),
+    })
+    const result = await handler(parsed()) as { error: { hint?: string; message: string } }
+    assert.match(result.error.message, /401/)
+    assert.match(result.error.hint ?? '', /elastic status/)
+    assert.match(result.error.hint ?? '', /config context edit/)
+  })
+
   it('returns a structured input_error when buildCloudRequestParams throws, without calling client.request', async () => {
     const requests: unknown[] = []
     const handler = createCloudHandler(listDef(), {

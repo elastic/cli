@@ -205,10 +205,9 @@ describe('formatHandlerError', () => {
     assert.equal(formatHandlerError(val), 'request failed with status 503')
   })
 
-  it('points 401 transport errors at status and context edit', () => {
+  it('does not invent an auth hint when error.hint is absent', () => {
     const val = { error: { code: 'transport_error', status_code: 401, body: { ok: false } } }
-    assert.match(formatHandlerError(val), /elastic status --json/)
-    assert.match(formatHandlerError(val), /elastic config context edit/)
+    assert.equal(formatHandlerError(val), 'request failed with status 401')
   })
 
   it('returns message for missing_config', () => {
@@ -229,5 +228,20 @@ describe('formatHandlerError', () => {
   it('returns fallback for unknown code without message', () => {
     const val = { error: { code: 'weird_error' } }
     assert.equal(formatHandlerError(val), 'unknown error (code: weird_error)')
+  })
+
+  it('appends error.hint after the original message', () => {
+    const val = {
+      error: {
+        code: 'transport_error',
+        status_code: 401,
+        body: { error: 'unauthorized' },
+        hint: 'Run `elastic status --json` then `elastic config context edit`.',
+      },
+    }
+    assert.equal(
+      formatHandlerError(val),
+      'unauthorized\nRun `elastic status --json` then `elastic config context edit`.',
+    )
   })
 })

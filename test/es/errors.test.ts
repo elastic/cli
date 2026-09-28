@@ -59,17 +59,33 @@ describe('transportError', () => {
 
   it('maps EsResponseError to a transport_error with status_code and body', () => {
     const err = new EsResponseError(418, { reason: 'teapot' })
-    const result = transportError(err) as { error: { code: string; status_code: number; body: unknown } }
+    const result = transportError(err) as { error: { code: string; status_code: number; body: unknown; hint?: string } }
     assert.equal(result.error.code, 'transport_error')
     assert.equal(result.error.status_code, 418)
     assert.deepEqual(result.error.body, { reason: 'teapot' })
+    assert.equal(result.error.hint, undefined)
+  })
+
+  it('adds error.hint on 401 naming status and config edit', () => {
+    const result = transportError(new EsResponseError(401, { error: 'unauthorized' })) as {
+      error: { hint?: string }
+    }
+    assert.match(result.error.hint ?? '', /elastic status/)
+    assert.match(result.error.hint ?? '', /config context edit/)
+  })
+
+  it('adds error.hint on 403', () => {
+    const result = transportError(new EsResponseError(403, { error: 'forbidden' })) as {
+      error: { hint?: string }
+    }
+    assert.match(result.error.hint ?? '', /elastic status/)
   })
 
   it('adds a next command on 401', () => {
     const err = new EsResponseError(401, { error: 'unauthorized' })
-    const result = transportError(err) as { error: { code: string; status_code: number; message?: string } }
+    const result = transportError(err) as { error: { code: string; status_code: number; hint?: string } }
     assert.equal(result.error.status_code, 401)
-    assert.match(result.error.message ?? '', /elastic config context edit/)
+    assert.match(result.error.hint ?? '', /elastic config context edit/)
   })
 
   it('maps EsResponseError with null body to null', () => {

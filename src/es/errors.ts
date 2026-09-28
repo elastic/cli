@@ -5,7 +5,7 @@
 
 import { EsResponseError, EsConnectionError } from '../lib/es-client.ts'
 import type { JsonValue } from '../factory.ts'
-import { formatAuthFailure, isAuthStatus } from '../config/next-command.ts'
+import { AUTH_FAILURE_HINT } from '../output.ts'
 
 /** Builds a `missing_config` error payload from a thrown error. */
 export function missingConfigError (err: unknown): JsonValue {
@@ -43,14 +43,13 @@ function appendTlsHint (message: string): string {
 /** Builds a structured error payload from a thrown transport error. */
 export function transportError (err: unknown): JsonValue {
   if (err instanceof EsResponseError) {
-    return {
-      error: {
-        code: 'transport_error',
-        status_code: err.statusCode,
-        body: err.body as JsonValue ?? null,
-        ...(isAuthStatus(err.statusCode) && { message: formatAuthFailure(err.statusCode) }),
-      }
+    const error: Record<string, JsonValue> = {
+      code: 'transport_error',
+      status_code: err.statusCode,
+      body: err.body as JsonValue ?? null,
     }
+    if (err.statusCode === 401 || err.statusCode === 403) error.hint = AUTH_FAILURE_HINT
+    return { error }
   }
 
   if (err instanceof EsConnectionError) {

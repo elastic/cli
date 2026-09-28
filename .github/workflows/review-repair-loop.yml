@@ -12,10 +12,11 @@ jobs:
   dispatch:
     if: >-
       !github.event.pull_request.draft &&
-      github.event.review.user.login != 'github-actions[bot]' &&
       (github.event.review.author_association == 'OWNER' ||
        github.event.review.author_association == 'MEMBER' ||
-       github.event.review.user.login == 'github-advanced-security[bot]') &&
+       github.event.review.user.login == 'github-advanced-security[bot]' ||
+       (github.event.review.user.login == 'github-actions[bot]' &&
+        contains(github.event.pull_request.labels.*.name, 'auto-loop'))) &&
       (github.event.review.state == 'changes_requested' || github.event.review.state == 'commented') &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest

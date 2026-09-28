@@ -38,7 +38,7 @@ jobs:
             "👋 This PR can use the first-failure repair loop on GitHub Actions and Buildkite." \
             "" \
             "**Labels**" \
-            "- \`auto-loop\`: optional. Same-repo PRs already get a diagnosis and a fix commit" \
+            "- \`auto-loop\`: triage the first CI or Buildkite failure and commit in-repo fixes (also AI review and CodeQL)" \
             "- \`skip-ai-review\`: silences the review bot" \
             "- \`skip-auto-loop\`: halt the repair loop (also added when you comment \`/stop\`)" \
             "" \

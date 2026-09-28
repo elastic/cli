@@ -241,18 +241,30 @@ export async function downloadBkFirstFailure ({
 }
 
 export async function rebuildBkBuild ({ token, org, pipeline, build, fetchImpl = fetch }) {
-  if (typeof token !== 'string' || token === '') return false
-  if (typeof org !== 'string' || typeof pipeline !== 'string' || typeof build !== 'string') return false
-  if (!/^[A-Za-z0-9_.-]+$/.test(org) || !/^[A-Za-z0-9_.-]+$/.test(pipeline) || !/^\d+$/.test(build)) return false
-  const res = await fetchImpl(
-    `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}/rebuild`,
-    {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-      redirect: 'error',
-    },
-  )
-  return res?.ok === true
+  if (typeof token !== 'string' || token === '') return { ok: false, status: 0 }
+  if (typeof org !== 'string' || typeof pipeline !== 'string' || typeof build !== 'string') return { ok: false, status: 0 }
+  if (!/^[A-Za-z0-9_.-]+$/.test(org) || !/^[A-Za-z0-9_.-]+$/.test(pipeline) || !/^\d+$/.test(build)) return { ok: false, status: 0 }
+  try {
+    const res = await fetchImpl(
+      `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}/rebuild`,
+      {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        redirect: 'error',
+      },
+    )
+    return { ok: res?.ok === true, status: Number(res?.status) || 0 }
+  } catch {
+    return { ok: false, status: 0 }
+  }
+}
+
+export function formatBkRebuildNote ({ ok, status }) {
+  if (ok) return 'Rebuilt the failed Buildkite jobs.'
+  if (Number(status) > 0) {
+    return `Rebuild skipped: Buildkite API returned ${Number(status)}. Rebuild the failed jobs in the Buildkite UI.`
+  }
+  return 'Rebuild skipped: no usable Buildkite API response. Rebuild the failed jobs in the Buildkite UI.'
 }
 
 export function hasStopCommand (text) {
@@ -302,24 +314,6 @@ export function hasBadCommand (text) {
   return typeof text === 'string' && /(?:^|[\s])\/bad(?:[\s]|$)/m.test(text)
 }
 
-export const REPAIR_BOT_LOGINS = new Set([
-  'github-actions',
-  'github-actions[bot]',
-  'elastic-vault-github-plugin-prod',
-  'elastic-vault-github-plugin-prod[bot]',
-])
-
-export function isRepairBotLogin (login) {
-  return typeof login === 'string' && REPAIR_BOT_LOGINS.has(login)
-}
-
-export function countBotCommits (commits) {
-  if (!Array.isArray(commits)) return 0
-  return commits.filter((commit) => (
-    isRepairBotLogin(commit?.author?.login) || isRepairBotLogin(commit?.commit?.author?.name)
-  )).length
-}
-
 export function hasBkRepairTag (text) {
   return typeof text === 'string' && text.includes('<!-- bk-repair-loop -->')
 }
@@ -339,10 +333,12 @@ export function isTrustedAssociation (association) {
   return association === 'OWNER' || association === 'MEMBER'
 }
 
-export const REVIEW_LOOP_BOTS = new Set(['github-advanced-security[bot]'])
+export const REVIEW_LOOP_BOTS = new Set([
+  'github-advanced-security[bot]',
+  'github-actions[bot]',
+])
 
 export function isTrustedReviewer (login, association) {
-  if (login === 'github-actions[bot]') return false
   if (isTrustedAssociation(association)) return true
   return REVIEW_LOOP_BOTS.has(login)
 }
@@ -352,6 +348,21 @@ export function trustedReviewComments (comments) {
   return comments
     .filter((c) => c && isTrustedReviewer(c.user?.login, c.author_association))
     .map((c) => ({ path: c.path ?? null, line: c.line ?? null, body: c.body ?? '' }))
+}
+
+const REVIEW_LOOP_STATES = new Set(['COMMENTED', 'CHANGES_REQUESTED', 'commented', 'changes_requested'])
+
+export function latestTrustedReview (reviews) {
+  if (!Array.isArray(reviews)) return null
+  let best = null
+  for (const review of reviews) {
+    if (!review || !isTrustedReviewer(review.user?.login, review.author_association)) continue
+    if (!REVIEW_LOOP_STATES.has(review.state)) continue
+    const reviewId = positiveInt(review.id)
+    if (reviewId === null) continue
+    if (best === null || reviewId > best.reviewId) best = { reviewId }
+  }
+  return best
 }
 
 export function parseReviewNoEvent (payload) {
@@ -560,6 +571,25 @@ export function citedPathsFromText (text) {
   return [...out]
 }
 
+export function citedPathsFromReview (comments, extraText) {
+  const out = new Set(citedPathsFromText(extraText ?? ''))
+  if (!Array.isArray(comments)) return [...out]
+  for (const comment of comments) {
+    const path = canonicalPath(comment?.path)
+    if (path) out.add(path)
+    for (const cited of citedPathsFromText(comment?.body ?? '')) out.add(cited)
+  }
+  return [...out]
+}
+
+export function parseAgentResponseOrNull (text) {
+  try {
+    return parseAgentResponse(text)
+  } catch {
+    return null
+  }
+}
+
 export function extractJsonObject (text) {
   if (typeof text !== 'string' || text.length === 0) return null
   const start = text.indexOf('{')
@@ -630,13 +660,12 @@ export function shouldAttemptFix ({
   sameRepo = false,
   skipLoop = false,
   stopRepair = false,
-  botCommits = 0,
-  maxBotCommits = 2,
+  autoLoop = false,
 } = {}) {
   if (!sameRepo) return { ok: false, reason: 'fork' }
   if (stopRepair) return { ok: false, reason: 'stop' }
   if (skipLoop) return { ok: false, reason: 'skip-auto-loop' }
-  if (botCommits >= maxBotCommits) return { ok: false, reason: 'bot commit cap' }
+  if (!autoLoop) return { ok: false, reason: 'auto-loop' }
   return { ok: true, reason: 'ok' }
 }
 
@@ -766,9 +795,9 @@ async function main (argv) {
           ...parsed,
           token: process.env.BUILDKITE_API_TOKEN,
         })
-        : false
-      process.stdout.write(JSON.stringify({ ok: result }) + '\n')
-      process.exit(result ? 0 : 1)
+        : { ok: false, status: 0 }
+      process.stdout.write(JSON.stringify({ ...result, note: formatBkRebuildNote(result) }) + '\n')
+      process.exit(result.ok ? 0 : 1)
       break
     }
     case 'bk-excerpt': {
@@ -831,6 +860,12 @@ async function main (argv) {
     }
     case 'trusted-review-comments': {
       process.stdout.write(JSON.stringify(trustedReviewComments(readJsonArg(args[0]))) + '\n')
+      break
+    }
+    case 'latest-trusted-review': {
+      const found = latestTrustedReview(readJsonArg(args[0]))
+      process.stdout.write(JSON.stringify(found ?? {}) + '\n')
+      process.exit(found ? 0 : 1)
       break
     }
     case 'review-loop-pr': {
@@ -897,14 +932,6 @@ async function main (argv) {
       process.stdout.write(mergeMemorySkill(existing, unprocessedMemoryComments(comments, cursor)))
       break
     }
-    case 'bot-commits': {
-      const raw = readFileSync(args[0], 'utf8').trim()
-      let commits = []
-      if (raw.startsWith('[')) commits = JSON.parse(raw)
-      else if (raw !== '') commits = raw.split('\n').map((line) => JSON.parse(line))
-      process.stdout.write(String(countBotCommits(commits)) + '\n')
-      break
-    }
     case 'has-bk-tag': {
       const found = hasBkRepairTag(readFileSync(args[0], 'utf8'))
       process.stdout.write(JSON.stringify({ bk: found }) + '\n')
@@ -922,12 +949,18 @@ async function main (argv) {
       process.stdout.write(JSON.stringify(citedPathsFromText(text)) + '\n')
       break
     }
+    case 'cited-review-paths': {
+      const comments = readJsonArg(args[0])
+      const extra = args[1] ? readFileSync(args[1], 'utf8') : ''
+      process.stdout.write(JSON.stringify(citedPathsFromReview(comments, extra)) + '\n')
+      break
+    }
     case 'should-fix': {
       const decision = shouldAttemptFix({
         sameRepo: process.env.SAME_REPO === '1',
         skipLoop: process.env.SKIP_LOOP === '1',
         stopRepair: process.env.STOP_REPAIR === '1',
-        botCommits: Number(process.env.BOT_COMMITS || '0'),
+        autoLoop: process.env.AUTO_LOOP === '1',
       })
       process.stdout.write(JSON.stringify(decision) + '\n')
       process.exit(decision.ok ? 0 : 1)
@@ -935,6 +968,11 @@ async function main (argv) {
     }
     case 'parse-changes': {
       const parsed = parseAgentResponse(readFileSync(args[0], 'utf8'))
+      process.stdout.write(JSON.stringify(parsed) + '\n')
+      break
+    }
+    case 'parse-changes-soft': {
+      const parsed = parseAgentResponseOrNull(readFileSync(args[0], 'utf8'))
       process.stdout.write(JSON.stringify(parsed) + '\n')
       break
     }

@@ -29,23 +29,33 @@ describe('createChatCommand', () => {
     assert.ok(optNames.includes('--question'))
   })
 
-  it('streams the opening answer to stdout (non-interactive)', async () => {
-    const written: string[] = []
+  it('exits non-zero and names --json when stdin is not a TTY', async () => {
+    const captured: string[] = []
     const cmd = createChatCommand({
-      docsAskStream: streamFrom(['chat answer']),
-      stdout: { write: (s) => { written.push(s); return true } },
-      stderr: { write: () => true },
+      docsAskStream: streamFrom(['should not run']),
+      stdout: { write: (s) => { captured.push(s); return true } },
+      stderr: { write: (s) => { captured.push(s); return true } },
       getStdin: () => Readable.from([]),
     })
-
+    cmd.option('--json', 'output as JSON')
     cmd.exitOverride()
-    cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
+    cmd.configureOutput({ writeOut: (s) => { captured.push(s) }, writeErr: (s) => { captured.push(s) } })
+    const origIsTTY = process.stdin.isTTY
+    Object.defineProperty(process.stdin, 'isTTY', { value: undefined, configurable: true, writable: true })
     const restoreStdin = _testSetStdinReader(() => '')
+    let exitCode: string | number | undefined
     try {
       await cmd.parseAsync(['--question', 'what is search'], { from: 'user' })
-    } finally { restoreStdin() }
-
-    assert.ok(written.join('').includes('chat answer'))
+      exitCode = process.exitCode
+    } finally {
+      restoreStdin()
+      Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+      process.exitCode = 0
+    }
+    const text = captured.join('')
+    assert.equal(exitCode, 1)
+    assert.match(text, /--json/)
+    assert.match(text, /not a TTY/)
   })
 
   it('returns missing_input when the question is empty', async () => {
@@ -56,13 +66,15 @@ describe('createChatCommand', () => {
       getStdin: () => Readable.from([]),
     })
     cmd.exitOverride()
-    cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
+    const captured: string[] = []
+    cmd.configureOutput({ writeOut: (s) => { captured.push(s) }, writeErr: (s) => { captured.push(s) } })
 
     const restoreStdin = _testSetStdinReader(() => '')
     try {
       await cmd.parseAsync(['--question', ''], { from: 'user' })
     } finally { restoreStdin() }
     assert.equal(process.exitCode, 1)
+    assert.match(captured.join(''), /--question/)
     process.exitCode = 0
   })
 
@@ -75,21 +87,26 @@ describe('createChatCommand', () => {
       },
       stdout: { write: () => true },
       stderr: { write: (s) => { stderrWrites.push(s); return true } },
-      getStdin: () => Readable.from([]),
+      getStdin: () => Readable.from(['\n']),
     })
     cmd.exitOverride()
     cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
 
+    const origIsTTY = process.stdin.isTTY
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true, writable: true })
     const restoreStdin = _testSetStdinReader(() => '')
     try {
       await cmd.parseAsync(['--question', 'hello'], { from: 'user' })
-    } finally { restoreStdin() }
+    } finally {
+      restoreStdin()
+      Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+    }
     assert.ok(stderrWrites.join('').includes('Error: boom'))
   })
 
-  it('enters the interactive follow-up loop when stderr is a TTY and exits on empty input', async () => {
-    const prevIsTTY = process.stderr.isTTY
-    Object.defineProperty(process.stderr, 'isTTY', { value: true, configurable: true })
+  it('enters the interactive follow-up loop when stdin is a TTY and exits on empty input', async () => {
+    const prevIsTTY = process.stdin.isTTY
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true })
     try {
       const written: string[] = []
       // stdin emits two lines: one follow-up question, then an empty line to quit
@@ -111,13 +128,13 @@ describe('createChatCommand', () => {
       // at least the opening answer was streamed
       assert.ok(written.join('').includes('answer'))
     } finally {
-      Object.defineProperty(process.stderr, 'isTTY', { value: prevIsTTY, configurable: true })
+      Object.defineProperty(process.stdin, 'isTTY', { value: prevIsTTY, configurable: true })
     }
   })
 
   it('interactive follow-up loop never writes to the real process.stderr', async () => {
-    const prevIsTTY = process.stderr.isTTY
-    Object.defineProperty(process.stderr, 'isTTY', { value: true, configurable: true })
+    const prevIsTTY = process.stdin.isTTY
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true })
     const origErrWrite = process.stderr.write
     const realWrites: string[] = []
     process.stderr.write = ((s: string) => { realWrites.push(s); return true }) as typeof process.stderr.write
@@ -139,7 +156,7 @@ describe('createChatCommand', () => {
       assert.deepEqual(realWrites, [])
     } finally {
       process.stderr.write = origErrWrite
-      Object.defineProperty(process.stderr, 'isTTY', { value: prevIsTTY, configurable: true })
+      Object.defineProperty(process.stdin, 'isTTY', { value: prevIsTTY, configurable: true })
     }
   })
 
@@ -215,15 +232,20 @@ describe('createChatCommand', () => {
       },
       stdout: { write: () => true },
       stderr: { write: (s) => { stderrWrites.push(s); return true } },
-      getStdin: () => Readable.from([]),
+      getStdin: () => Readable.from(['\n']),
     })
     cmd.exitOverride()
     cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
 
+    const origIsTTY = process.stdin.isTTY
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true, writable: true })
     const restoreStdin = _testSetStdinReader(() => '')
     try {
       await cmd.parseAsync(['--question', 'hello'], { from: 'user' })
-    } finally { restoreStdin() }
+    } finally {
+      restoreStdin()
+      Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+    }
     assert.ok(stderrWrites.join('').includes('Error: plain string failure'))
   })
 })
