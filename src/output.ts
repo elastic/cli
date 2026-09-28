@@ -13,6 +13,12 @@ export const AUTH_FAILURE_HINT =
 /** A flat object whose values are all JSON primitives — renderable as a table row. */
 type FlatRecord = Record<string, string | number | boolean | null>
 
+/** Strips ANSI SGR escape sequences. Exported for tests guarding the no-ANSI contract. */
+export function stripAnsi (value: string): string {
+  // eslint-disable-next-line no-control-regex
+  return value.replace(/\u001B\[[\d;]*m/g, '')
+}
+
 /**
  * Returns true when ANSI colors may be emitted for the given TTY state.
  *
@@ -66,7 +72,8 @@ export function renderTable(rows: FlatRecord[]): string {
     table.push(headers.map((h) => String(row[h] ?? '')))
   }
 
-  return table.toString() + '\n'
+  const text = table.toString() + '\n'
+  return colorsEnabled(process.stdout.isTTY === true) ? text : stripAnsi(text)
 }
 
 /**
@@ -81,7 +88,7 @@ export function renderTsv (rows: FlatRecord[]): string {
   const sanitize = (v: string | number | boolean | null): string =>
     String(v ?? '').replace(/[\t\n\r]+/g, ' ')
   const headers = Object.keys(rows[0]!)
-  const lines = [headers.join('\t')]
+  const lines = [headers.map(sanitize).join('\t')]
   for (const row of rows) {
     lines.push(headers.map((h) => sanitize(row[h] ?? null)).join('\t'))
   }

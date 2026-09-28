@@ -21,7 +21,12 @@ marked.use(markedTerminal({}, { theme: {} }) as any)
 /**
  * Parse `md` as markdown and render it for terminal output.
  * Returns the rendered string with trailing whitespace trimmed.
+ * When `NO_COLOR` is set (or `--no-color` passed), ANSI styling is stripped
+ * so piped output stays parseable.
  */
 export function renderMarkdown (md: string): string {
-  return (marked.parse(md) as string).trimEnd()
+  const out = (marked.parse(md) as string).trimEnd()
+  if (process.env.NO_COLOR === undefined) return out
+  // eslint-disable-next-line no-control-regex
+  return out.replace(/\u001B\[[\d;]*m/g, '')
 }

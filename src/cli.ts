@@ -23,6 +23,10 @@ for (const arg of argv) {
   } else operandsFromScan.push(arg)
 }
 
+// --no-color is an alias for NO_COLOR=1: normalize early so every color
+// decision downstream (logo, banners, markdown, status) honors the flag.
+if (argv.includes('--no-color')) process.env.NO_COLOR = '1'
+
 // x-release-please-start-version
 const VERSION = '0.5.0';
 // x-release-please-end

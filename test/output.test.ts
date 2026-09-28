@@ -261,6 +261,33 @@ describe('renderText', () => {
       assert.equal(renderText(val as never), JSON.stringify(val, null, 2) + '\n')
     })
   })
+
+  describe('no-ANSI contract', () => {
+    // eslint-disable-next-line no-control-regex
+    const ansi = /\u001B\[[\d;]*m/
+    it('renderTable emits no ANSI sequences', () => {
+      assert.doesNotMatch(renderTable([{ name: 'foo', count: 3 }]), ansi)
+    })
+
+    it('renderText emits no ANSI sequences', () => {
+      assert.doesNotMatch(renderText('hello'), ansi)
+      assert.doesNotMatch(renderText([{ name: 'foo' }]), ansi)
+      assert.doesNotMatch(renderText([{ name: 'foo' }], { plain: true }), ansi)
+      assert.doesNotMatch(renderText({ key: { nested: 1 } }), ansi)
+    })
+
+    it('formatTextResponse emits no ANSI sequences', () => {
+      assert.doesNotMatch(formatTextResponse('line one\nline two\n'), ansi)
+    })
+
+    it('formatHandlerError emits no ANSI sequences', () => {
+      assert.doesNotMatch(formatHandlerError({ error: { code: 'missing_config', message: 'nope' } }), ansi)
+      assert.doesNotMatch(
+        formatHandlerError({ error: { code: 'transport_error', status_code: 500, body: {} } }),
+        ansi,
+      )
+    })
+  })
 })
 
 describe('formatHandlerError', () => {

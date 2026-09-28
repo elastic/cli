@@ -36,4 +36,18 @@ describe('renderMarkdown', () => {
     const out = renderMarkdown('```\nconst x = 1\n```')
     assert.ok(stripAnsi(out).includes('const x = 1'))
   })
+
+  it('strips ANSI styling under NO_COLOR', () => {
+    const prev = process.env.NO_COLOR
+    process.env.NO_COLOR = '1'
+    try {
+      const out = renderMarkdown('# Hello\n\nWorld')
+      // eslint-disable-next-line no-control-regex
+      assert.doesNotMatch(out, /\u001B/)
+      assert.ok(out.includes('Hello'))
+    } finally {
+      if (prev === undefined) delete process.env.NO_COLOR
+      else process.env.NO_COLOR = prev
+    }
+  })
 })
