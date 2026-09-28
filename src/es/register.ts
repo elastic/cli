@@ -10,6 +10,7 @@ import type { OpaqueCommandHandle } from '../factory-core.ts'
 import { inferIntentFromHttp } from '@cli-schema/spec'
 import type { EsApiDefinition } from './types.ts'
 import { validateApiDefinition } from './types.ts'
+import { commandExamples } from '../lib/command-examples.ts'
 import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
 import { formatTextResponse } from '../output.ts'
 import { apiManifest } from './apis.ts'
@@ -55,9 +56,11 @@ function buildLeafHandle (
   defineCommand: typeof _DefCmd
 ): OpaqueCommandHandle {
   const schemaArgs = defSchemaArgs.get(def) ?? []
+  const examples = commandExamples(def.namespace !== undefined ? `es.${def.namespace}.${def.name}` : `es.${def.name}`)
   const config: Parameters<typeof _DefCmd>[0] = {
     name: def.name,
     description: def.description,
+    ...(examples !== undefined ? { examples } : {}),
     ...(def.input !== undefined ? { input: def.input } : {}),
     readOnly: def.method === 'GET' || def.method === 'HEAD',
     handler: async (parsed) => {

@@ -529,6 +529,9 @@ function buildContextGroup (): OpaqueCommandHandle {
     ],
     handler: async (parsed) => handleContextAdd(parsed),
     formatOutput: (result) => appendWarnings(`Context '${(result as unknown as CommandSummary).context}' added.\n`, result),
+    examples: [
+      'elastic config context add local --es-url http://localhost:9200 --es-api-key k1 --inline-secrets',
+    ],
   })
 
   const removeCmd = defineCommand({
@@ -561,6 +564,10 @@ function buildContextGroup (): OpaqueCommandHandle {
     description: 'List all contexts defined in the config file',
     options: [CONFIG_FILE_OPT],
     handler: async (parsed) => handleContextList(parsed.options),
+    examples: [
+      'elastic config context list',
+      'elastic config context list --json',
+    ],
     formatOutput: (result) => {
       const r = result as { contexts: Array<{ name: string; current: boolean }> }
       if (r.contexts.length === 0) return 'No contexts configured.\n'
@@ -578,6 +585,9 @@ function buildCurrentContextGroup (): OpaqueCommandHandle {
     positionalArg: { name: 'name', description: 'context name', required: true },
     options: [CONFIG_FILE_OPT],
     handler: async (parsed) => handleCurrentContextSet(parsed),
+    examples: [
+      'elastic config current-context set local',
+    ],
     formatOutput: (result) => appendWarnings(
       `Switched to context '${(result as { current: string }).current}'.\n`, result
     ),

@@ -156,6 +156,21 @@ describe('elastic status -- command', () => {
     }
   })
 
+  it('shows hand-authored Examples in help', () => {
+    const prog = makeProgram()
+    const cmd = prog.commands.find((c) => c.name() === 'status')!
+    let output = ''
+    cmd.exitOverride()
+    cmd.configureOutput({ writeOut: (s) => { output += s } })
+    try {
+      cmd.parse(['--help'], { from: 'user' })
+    } catch {
+      // Commander throws under exitOverride when help is displayed
+    }
+    assert.match(output, /Examples:/)
+    assert.match(output, /elastic status --json/)
+  })
+
   it('emits structured JSON under --json and sets exit code 1 on any failure', async () => {
     await writeConfig([
       'current_context: local',

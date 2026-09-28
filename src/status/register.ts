@@ -123,6 +123,10 @@ export function registerStatusCommand (): OpaqueCommandHandle {
     name: 'status',
     description: 'Verify connectivity and authentication for the active context',
     handler: statusHandler,
+    examples: [
+      'elastic status',
+      'elastic status --json',
+    ],
     formatOutput: (result) => formatStatusText(result as unknown as StatusResult),
   })
 }

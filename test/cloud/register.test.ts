@@ -248,6 +248,27 @@ describe('registerCloudCommands', () => {
       assert.ok(createCmd.options.map((o) => o.long).includes('--wait'))
       assert.ok(!listCmd.options.map((o) => o.long).includes('--wait'))
     })
+
+    it('shows hand-authored Examples on create project help', async () => {
+      const defs: CloudApiDefinition[] = [
+        { name: 'create-elasticsearch-project', namespace: 'elasticsearch-projects', description: 'Create', method: 'POST', path: '/api/v1/serverless/projects/elasticsearch' },
+      ]
+      const group = await registerCloudCommands(defs)
+      const createCmd = group.commands.find((c) => c.name() === 'serverless')!
+        .commands.find((c) => c.name() === 'projects')!
+        .commands.find((c) => c.name() === 'search')!
+        .commands.find((c) => c.name() === 'create')!
+      let output = ''
+      createCmd.exitOverride()
+      createCmd.configureOutput({ writeOut: (s) => { output += s } })
+      try {
+        createCmd.parse(['--help'], { from: 'user' })
+      } catch {
+        // Commander throws under exitOverride when help is displayed
+      }
+      assert.match(output, /Examples:/)
+      assert.match(output, /--save-as demo/)
+    })
   })
 
   describe('validation', () => {

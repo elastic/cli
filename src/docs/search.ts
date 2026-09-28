@@ -48,6 +48,10 @@ export function createSearchCommand (deps: SearchDeps = defaultDeps): OpaqueComm
         description: 'Acknowledge that this command is experimental and may be removed; suppresses the warning',
       },
     ],
+    examples: [
+      'elastic docs search "index lifecycle management"',
+      'elastic docs search "index lifecycle management" --json',
+    ],
     handler: async (parsed): Promise<JsonValue> => {
       if (parsed.options['accept-experimental'] !== true && parsed.options['json'] !== true) {
         deps.stderr.write(experimentalBanner('docs search', process.stderr.isTTY === true))

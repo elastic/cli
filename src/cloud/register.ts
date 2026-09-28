@@ -6,6 +6,7 @@
 import { Command } from 'commander'
 import { defineCommand, defineGroup } from '../factory.ts'
 import type { OpaqueCommandHandle } from '../factory.ts'
+import { commandExamples } from '../lib/command-examples.ts'
 import type { CloudApiDefinition } from './types.ts'
 import { validateCloudApiDefinition, buildCloudJsonSchema } from './types.ts'
 import { loadCloudApis } from './apis.ts'
@@ -158,12 +159,14 @@ function buildServerlessTypeGroup (
     const shortName = simplifyProjectCommandName(def.name, namespace)
     const schema = buildCloudJsonSchema(def)
     const baseHandler = createCloudHandler(def)
+    const examples = commandExamples(`cloud.${namespace}.${def.name}`)
     const handler: (parsed: ParsedResult) => Promise<HandlerResult> = isCredentialCommand(def.name)
       ? async (parsed) => wrapWithCredentialPolicy(def.name, baseHandler, parsed)
       : baseHandler
     const cmd = defineCommand({
       name: shortName,
       description: def.description,
+      ...(examples !== undefined ? { examples } : {}),
       input: schema,
       readOnly: def.method === 'GET',
       handler,

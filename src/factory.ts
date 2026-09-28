@@ -12,6 +12,7 @@ import { extractSchemaArgs, validateSchemaArgs } from './lib/json-schema-args.ts
 import type { SchemaArgDefinition } from './lib/json-schema-args.ts'
 import type { renderText as _RT, formatHandlerError as _FHE } from './output.ts'
 import { pickFields, parseFieldList, applyTemplate, TemplateAgainstPrimitiveError } from './lib/output-transform.ts'
+import { formatExamples } from './lib/command-examples.ts'
 import { validateName, hasGlobalJsonFlag, configureErrorOutput, commandPath, isCommandAllowed, stripTransportMeta } from './factory-core.ts'
 import type { OpaqueCommandHandle, JsonValue, CommandConfig, ParsedResult } from './factory-core.ts'
 import { RawJsonValue } from './factory-core.ts'
@@ -385,6 +386,10 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
 
   const cmd = new Command(config.name)
   cmd.description(config.description)
+  if (config.examples != null && config.examples.length > 0) {
+    // Structured --help --json must stay parseable: skip the prose block there.
+    cmd.addHelpText('after', () => process.argv.includes('--json') ? '' : formatExamples(config.examples ?? []))
+  }
   configureErrorOutput(cmd)
   cmd.configureOutput({
     outputError: (str, write) => {

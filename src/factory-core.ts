@@ -90,6 +90,11 @@ export interface CommandConfig {
   readOnly?: boolean
   /** Applied to JSON input (stdin or --input-file) before schema validation. */
   inputTransform?: (input: unknown) => unknown
+  /**
+   * Hand-authored usage examples shown in `--help` under an Examples block.
+   * Reserved for high-traffic commands; generated endpoints stay schema-only.
+   */
+  examples?: string[]
 }
 
 /** Configuration for a command group (namespace). */

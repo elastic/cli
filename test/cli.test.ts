@@ -249,6 +249,31 @@ describe('elastic CLI -- config-free commands', () => {
 })
 
 describe('elastic CLI -- stack command tree', () => {
+  it('high-traffic commands show hand-authored Examples in --help', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-examples-'))
+    const cases: Array<{ args: string[]; markers: RegExp[] }> = [
+      { args: ['config', 'context', 'add', '--help'], markers: [/Examples:/, /config context add local/] },
+      { args: ['config', 'context', 'list', '--help'], markers: [/Examples:/, /config context list/] },
+      { args: ['config', 'current-context', 'set', '--help'], markers: [/Examples:/, /current-context set/] },
+      { args: ['stack', 'es', 'search', '--help'], markers: [/Examples:/, /stack es search/] },
+      { args: ['stack', 'es', 'indices', 'create', '--help'], markers: [/Examples:/, /indices create/] },
+      { args: ['stack', 'es', 'indices', 'delete', '--help'], markers: [/Examples:/, /indices delete/] },
+      { args: ['stack', 'es', 'cat', 'indices', '--help'], markers: [/Examples:/, /cat indices/] },
+      { args: ['docs', 'search', '--help'], markers: [/Examples:/, /docs search/] },
+    ]
+    try {
+      for (const c of cases) {
+        const { code, stdout } = await runCli(c.args, { cwd: dir, env: { HOME: dir } })
+        assert.equal(code, 0, `expected exit code 0 for ${c.args.join(' ')}, got ${code}`)
+        for (const m of c.markers) {
+          assert.match(stdout, m, `expected ${m} in --help for ${c.args.join(' ')}`)
+        }
+      }
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
   it('top-level help lists `stack` and not `es` or `kb`', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-help-'))
     try {
