@@ -142,7 +142,7 @@ function parseCloudError (raw: string): { status?: number; message: string } {
   if (match == null) return { message: raw }
   const status = parseInt(match[1]!, 10)
   const bodyText = match[2] ?? ''
-  return { status, message: parseErrorsMessage(bodyText) ?? raw }
+  return { status, message: parseErrorsMessage(bodyText) ?? bodyText }
 }
 
 function listHint (def: CloudApiDefinition): string | undefined {
