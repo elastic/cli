@@ -13,8 +13,12 @@ import type { Command } from 'commander'
  * or lists available schemas when invoked without arguments.
  *
  * The actual output logic lives in the action handler wired up in namespaces.ts.
+ *
+ * @param program - the Commander Command to register `schema` on
+ * @param _schemaMap - ignored; kept for call-site compatibility during migration
+ * @param _options - ignored; kept for call-site compatibility during migration
  */
-export function registerCliSchemaCommand (program: Command): Command {
+export function registerCliSchemaCommand (program: Command, _schemaMap?: unknown, _options?: unknown): Command {
   return program
     .command('schema')
     .description('Print the JSON Schema for a command (machine-readable help)')
