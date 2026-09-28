@@ -19,4 +19,10 @@ describe('registerHelperCommands', () => {
     const group = registerHelperCommands()
     assert.ok(group.description().length > 0)
   })
+
+  it('exposes the four helper sub-commands', () => {
+    const group = registerHelperCommands()
+    const names = group.commands.map((c) => c.name()).sort()
+    assert.deepEqual(names, ['bulk-ingest', 'msearch', 'scroll-search', 'watch'])
+  })
 })
