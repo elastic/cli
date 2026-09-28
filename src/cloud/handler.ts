@@ -186,6 +186,7 @@ function cloudApiError (err: unknown, def: CloudApiDefinition): JsonValue {
   const raw = err instanceof Error ? err.message : String(err)
   const { status, message } = parseCloudError(raw)
   const error: Record<string, JsonValue> = { code: 'cloud_api_error', message }
+  if (status != null) error.status_code = status
   const hint = cloudHint(def, status, message)
   if (hint != null) error.hint = hint
   return { error }

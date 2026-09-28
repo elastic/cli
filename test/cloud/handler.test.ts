@@ -120,6 +120,7 @@ describe('createCloudHandler', () => {
       error: {
         code: 'cloud_api_error',
         message: 'not found',
+        status_code: 404,
         hint: 'Run `elastic cloud hosted deployments list-deployments`.',
       },
     })
