@@ -117,19 +117,92 @@ describe('createCloudHandler', () => {
     })
     const result = await handler(parsed())
     assert.deepEqual(result, {
-      error: { code: 'cloud_api_error', message: 'Cloud API error 404: {"errors":[{"message":"not found"}]}' },
+      error: {
+        code: 'cloud_api_error',
+        message: 'not found',
+        status_code: 404,
+        hint: 'Run `elastic cloud hosted deployments list-deployments`.',
+      },
     })
   })
 
-  it('adds error.hint on Cloud 401 naming status', async () => {
+  it('parses errors[].message and adds list-regions hint on a bad region', async () => {
+    const handler = createCloudHandler(createEsProjectDef(), {
+      getCloudClient: () => failingClient(new Error('Cloud API error 400: {"errors":[{"message":"project not found for region not-a-region"}]}')),
+      buildCloudRequestParams: () => ({ method: 'POST', path: '/api/v1/serverless/projects/elasticsearch' }),
+    })
+    const result = await handler(parsed()) as { error: { message: string; hint?: string } }
+    assert.equal(result.error.message, 'project not found for region not-a-region')
+    assert.match(result.error.hint ?? '', /list-regions/)
+  })
+
+  it('does not suggest list-regions for a create 400 that is not a region error', async () => {
+    for (const message of ['name is required', '', '../', '?#']) {
+      const body = JSON.stringify({ errors: [{ message }] })
+      const handler = createCloudHandler(createEsProjectDef(), {
+        getCloudClient: () => failingClient(new Error(`Cloud API error 400: ${body}`)),
+        buildCloudRequestParams: () => ({ method: 'POST', path: '/api/v1/serverless/projects/elasticsearch' }),
+      })
+      const result = await handler(parsed()) as { error: { message: string; hint?: string } }
+      assert.equal(result.error.message, message)
+      assert.equal(result.error.hint, undefined, JSON.stringify(message))
+    }
+  })
+
+  it('adds Cloud API key hint on 401', async () => {
     const handler = createCloudHandler(listDef(), {
       getCloudClient: () => failingClient(new Error('Cloud API error 401: {"errors":[{"message":"unauthorized"}]}')),
       buildCloudRequestParams: () => ({ method: 'GET', path: '/test' }),
     })
-    const result = await handler(parsed()) as { error: { hint?: string; message: string } }
-    assert.match(result.error.message, /401/)
-    assert.match(result.error.hint ?? '', /elastic status/)
-    assert.match(result.error.hint ?? '', /config context edit/)
+    const result = await handler(parsed()) as { error: { message: string; hint?: string } }
+    assert.equal(result.error.message, 'unauthorized')
+    assert.match(result.error.hint ?? '', /Cloud API key/)
+    assert.match(result.error.hint ?? '', /cloud.elastic.co\/account\/keys/)
+  })
+
+  it('writes a create hint on stderr for an empty project list and keeps the body', async () => {
+    const chunks: string[] = []
+    const origWrite = process.stderr.write
+    process.stderr.write = ((c: string) => { chunks.push(c); return true }) as typeof process.stderr.write
+    try {
+      const handler = createCloudHandler({
+        name: 'list-elasticsearch-projects',
+        namespace: 'elasticsearch-projects',
+        description: 'List',
+        method: 'GET',
+        path: '/api/v1/serverless/projects/elasticsearch',
+      }, {
+        getCloudClient: () => stubClient({ items: [] }),
+        buildCloudRequestParams: () => ({ method: 'GET', path: '/api/v1/serverless/projects/elasticsearch' }),
+      })
+      const result = await handler(parsed())
+      assert.deepEqual(result, { items: [] })
+      assert.ok(chunks.some((c) => c.includes('elastic cloud serverless projects search create')))
+    } finally {
+      process.stderr.write = origWrite
+    }
+  })
+
+  it('does not hint on a non-empty list', async () => {
+    const chunks: string[] = []
+    const origWrite = process.stderr.write
+    process.stderr.write = ((c: string) => { chunks.push(c); return true }) as typeof process.stderr.write
+    try {
+      const handler = createCloudHandler({
+        name: 'list-elasticsearch-projects',
+        namespace: 'elasticsearch-projects',
+        description: 'List',
+        method: 'GET',
+        path: '/api/v1/serverless/projects/elasticsearch',
+      }, {
+        getCloudClient: () => stubClient({ items: [{ id: 'p1' }] }),
+        buildCloudRequestParams: () => ({ method: 'GET', path: '/list' }),
+      })
+      await handler(parsed())
+      assert.equal(chunks.join(''), '')
+    } finally {
+      process.stderr.write = origWrite
+    }
   })
 
   it('returns a structured input_error when buildCloudRequestParams throws, without calling client.request', async () => {
