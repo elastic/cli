@@ -677,7 +677,9 @@ contexts:
     if (result.ok) return
     assert.equal(result.error.code, 'config_unresolved')
     assert.match(result.error.message, new RegExp(ACTIVE_VAR))
-    assert.match(result.error.message, /elastic config context add/)
+    assert.match(result.error.message, /Failed to resolve config expressions/)
+    assert.doesNotMatch(result.error.message, /elastic config context add/)
+    assert.doesNotMatch(result.error.message, /ELASTIC_CLI_CONFIG_FILE/)
   })
 
   it('resolves expressions in the active context selected via --use-context', async () => {

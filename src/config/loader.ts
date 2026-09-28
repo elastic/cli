@@ -387,7 +387,7 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     const message = err instanceof Error ? err.message : String(err)
     return {
       ok: false,
-      error: { code: 'config_unresolved', message: withSetupHint(`Failed to resolve config expressions: ${message}`) },
+      error: { code: 'config_unresolved', message: `Failed to resolve config expressions: ${message}` },
     }
   }
 
