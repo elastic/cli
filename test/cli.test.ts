@@ -118,10 +118,28 @@ describe('elastic CLI -- preAction config error handling', () => {
   it('exits with error when no config file is found', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-'))
     try {
-      const { code, stderr } = await runCli(['stack', 'es', 'info'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } })
+      const { code, stderr } = await runCli(['stack', 'es', 'ping'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir, ELASTIC_CLI_CONFIG_FILE: '' } })
       assert.equal(code, 1, `expected exit code 1, got ${code}`)
       assert.ok(stderr.includes('Error:'), `expected stderr to contain "Error:", got: ${stderr}`)
       assert.ok(stderr.includes('No configuration file found'), `expected config error message, got: ${stderr}`)
+      assert.ok(stderr.includes('elastic config context add'), `expected next command, got: ${stderr}`)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('emits error.code and error.message under --json when no config file is found', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-json-'))
+    try {
+      const { code, stderr, stdout } = await runCli(
+        ['--json', 'stack', 'es', 'ping'],
+        { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir, ELASTIC_CLI_CONFIG_FILE: '' } },
+      )
+      assert.equal(code, 1, `expected exit code 1, got ${code}`)
+      assert.equal(stdout, '')
+      const parsed = JSON.parse(stderr) as { error: { code: string, message: string } }
+      assert.equal(parsed.error.code, 'config_not_found')
+      assert.match(parsed.error.message, /elastic config context add/)
     } finally {
       await rm(dir, { recursive: true })
     }

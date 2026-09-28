@@ -81,6 +81,13 @@ describe('transportError', () => {
     assert.match(result.error.hint ?? '', /elastic status/)
   })
 
+  it('adds a next command on 401', () => {
+    const err = new EsResponseError(401, { error: 'unauthorized' })
+    const result = transportError(err) as { error: { code: string; status_code: number; hint?: string } }
+    assert.equal(result.error.status_code, 401)
+    assert.match(result.error.hint ?? '', /elastic config context edit/)
+  })
+
   it('maps EsResponseError with null body to null', () => {
     const err = new EsResponseError(500, null)
     const result = transportError(err) as { error: { code: string; status_code: number; body: unknown } }
