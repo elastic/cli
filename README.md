@@ -79,6 +79,14 @@ elastic completion fish > ~/.config/fish/completions/elastic.fish
 
 Fish picks up new completion files automatically.
 
+### PowerShell
+
+```powershell
+elastic completion powershell | Out-File -Encoding utf8 -Append $PROFILE
+```
+
+Then open a new PowerShell session.
+
 ### What gets completed
 
 - Top-level commands and groups (`stack`, `cloud`, `docs`, `config`, …)

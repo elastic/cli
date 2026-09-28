@@ -79,13 +79,17 @@ if (!wantsHelp) {
     if (result.ok) {
       setResolvedConfig(result.value)
     } else {
-      const json = thisCommand.opts().json === true
       const { classifyConfigLoadError } = await import('./help/catalog.js')
-      const code = classifyConfigLoadError(result.error.message)
-      if (json) {
-        process.stderr.write(JSON.stringify({ error: { code, message: result.error.message } }) + '\n')
+      const payload = {
+        error: {
+          code: classifyConfigLoadError(result.error.message),
+          message: result.error.message,
+        },
+      }
+      if (hasGlobalJsonFlag(program)) {
+        process.stderr.write(JSON.stringify(payload) + '\n')
       } else {
-        process.stderr.write(`Error: ${result.error.message}\n`)
+        process.stderr.write(`Error: ${payload.error.message}\n`)
       }
       process.exit(1)
     }
@@ -168,7 +172,7 @@ if (firstArg === 'completion' || firstArg === '__complete') {
   }
 } else if (firstArg == null) {
   const completionStub = new Command('completion')
-  completionStub.description('Print a shell completion script (bash, zsh, fish)')
+  completionStub.description('Print a shell completion script (bash, zsh, fish, powershell)')
   completionStub.allowUnknownOption(true)
   completionStub.action(async () => {
     const { registerCompletionCommands: real } = await import('./completion/index.js')

@@ -216,6 +216,11 @@ describe('formatHandlerError', () => {
     assert.equal(formatHandlerError(val), 'request failed with status 503')
   })
 
+  it('does not invent an auth hint when error.hint is absent', () => {
+    const val = { error: { code: 'transport_error', status_code: 401, body: { ok: false } } }
+    assert.equal(formatHandlerError(val), 'request failed with status 401')
+  })
+
   it('returns message for missing_config', () => {
     const val = { error: { code: 'missing_config', message: 'No Elasticsearch connection configured' } }
     assert.equal(formatHandlerError(val), 'No Elasticsearch connection configured')
