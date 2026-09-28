@@ -57,6 +57,7 @@ describe('buildCompletionTree -- top-level commands', () => {
     assert.ok(names.includes('es'), 'expected top-level es alias')
     assert.ok(names.includes('kb'), 'expected top-level kb alias')
     assert.ok(names.includes('completion'))
+    assert.ok(names.includes('status'))
   })
 
   it('exposes elasticsearch as an alias of the top-level es', async () => {
@@ -399,5 +400,15 @@ describe('buildCompletionTree -- docs and config subtrees', () => {
     const config = root.commands.find((c) => c.name() === 'config')
     assert.ok(config != null, 'config should be present')
     assert.ok(config.commands.length > 0, 'config should have children when deep-loaded')
+  })
+})
+
+describe('handleComplete -- output-fields', () => {
+  it('offers status output keys after --output-fields', async () => {
+    const w = bufferedWriter()
+    await handleComplete(['status', '--output-fields', ''], w.write)
+    const out = parseOutput(w.chunks.join(''))
+    assert.ok(out.candidates.includes('services'), `got: ${out.candidates.join(',')}`)
+    assert.ok(out.candidates.includes('context'))
   })
 })

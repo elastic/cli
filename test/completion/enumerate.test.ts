@@ -315,4 +315,16 @@ describe('enumerate -- edge cases', () => {
     const result = await enumerate(buildSampleProgram(), ['sta'])
     assert.deepEqual(result.candidates, ['stack'])
   })
+
+  it('offers schema enum values after an enum flag', async () => {
+    const root = new Command('elastic')
+    root.addCommand(defineCommand({
+      name: 'make',
+      description: 'Make',
+      input: { type: 'object', properties: { level: { type: 'string', enum: ['low', 'high'] } } },
+      handler: () => ({}),
+    }))
+    const result = await enumerate(root, ['make', '--level', ''])
+    assert.deepEqual(result.candidates.sort(), ['high', 'low'])
+  })
 })
