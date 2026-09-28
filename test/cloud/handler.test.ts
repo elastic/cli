@@ -135,6 +135,19 @@ describe('createCloudHandler', () => {
     assert.match(result.error.hint ?? '', /list-regions/)
   })
 
+  it('does not suggest list-regions for a create 400 that is not a region error', async () => {
+    for (const message of ['name is required', '', '../', '?#']) {
+      const body = JSON.stringify({ errors: [{ message }] })
+      const handler = createCloudHandler(createEsProjectDef(), {
+        getCloudClient: () => failingClient(new Error(`Cloud API error 400: ${body}`)),
+        buildCloudRequestParams: () => ({ method: 'POST', path: '/api/v1/serverless/projects/elasticsearch' }),
+      })
+      const result = await handler(parsed()) as { error: { message: string; hint?: string } }
+      assert.equal(result.error.message, message)
+      assert.equal(result.error.hint, undefined, JSON.stringify(message))
+    }
+  })
+
   it('adds Cloud API key hint on 401', async () => {
     const handler = createCloudHandler(listDef(), {
       getCloudClient: () => failingClient(new Error('Cloud API error 401: {"errors":[{"message":"unauthorized"}]}')),

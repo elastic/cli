@@ -179,7 +179,6 @@ function cloudHint (def: CloudApiDefinition, status: number | undefined, message
   if (status === 401 || status === 403) return CLOUD_AUTH_HINT
   if (status === 404) return listHint(def)
   if (/region/i.test(message)) return REGION_HINT
-  if (status === 400 && isCreateProjectCommand(def.name)) return REGION_HINT
   return undefined
 }
 
