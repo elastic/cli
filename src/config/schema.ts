@@ -160,6 +160,9 @@ const contextSchema: Record<string, unknown> = {
     kibana: serviceBlockSchema,
     cloud: serviceBlockSchema,
     commands: commandPolicySchema,
+    project_id: { type: 'string' },
+    project_type: { type: 'string' },
+    region_id: { type: 'string' },
   },
 }
 
@@ -253,6 +256,9 @@ function stripContext (raw: unknown): Context | undefined {
   if (r['commands'] != null) {
     const v = stripCommandPolicy(r['commands'])
     if (v != null) out.commands = v
+  }
+  for (const k of ['project_id', 'project_type', 'region_id'] as const) {
+    if (typeof r[k] === 'string') out[k] = r[k]
   }
   return out
 }

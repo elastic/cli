@@ -236,7 +236,17 @@ async function handleContextList (options: Record<string, string | number | bool
   return {
     configFile: path,
     current: config.current_context,
-    contexts: names.map(name => ({ name, current: name === config.current_context })),
+    contexts: names.map((name) => {
+      const item: Record<string, JsonValue> = { name, current: name === config.current_context }
+      const ctx: unknown = config.contexts[name]
+      if (ctx != null && typeof ctx === 'object' && !Array.isArray(ctx)) {
+        for (const k of ['project_id', 'project_type', 'region_id']) {
+          const v: unknown = (ctx as Record<string, unknown>)[k]
+          if (typeof v === 'string') item[k] = v
+        }
+      }
+      return item
+    }),
   }
 }
 

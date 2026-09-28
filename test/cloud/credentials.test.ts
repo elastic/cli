@@ -5,7 +5,7 @@
 
 import { describe, it, before, after, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { parse as parseYaml } from 'yaml'
@@ -14,8 +14,10 @@ import {
   extractProjectFields,
   isCredentialCommand,
   isResetCredentialsCommand,
+  projectTypeForCommand,
   readCredentialPolicyOptions,
   redactCredentials,
+  resolveResetProjectId,
 } from '../../src/cloud/credentials.ts'
 import type { JsonValue } from '../../src/factory.ts'
 import {
@@ -61,10 +63,32 @@ describe('isCredentialCommand / isResetCredentialsCommand', () => {
   })
 })
 
+describe('projectTypeForCommand', () => {
+  it('maps create and reset commands to search / observability / security', () => {
+    assert.equal(projectTypeForCommand('create-elasticsearch-project'), 'search')
+    assert.equal(projectTypeForCommand('create-observability-project'), 'observability')
+    assert.equal(projectTypeForCommand('create-security-project'), 'security')
+    assert.equal(projectTypeForCommand('reset-observability-project-credentials'), 'observability')
+  })
+
+  it('returns undefined for unrelated commands', () => {
+    assert.equal(projectTypeForCommand('list-elasticsearch-projects'), undefined)
+    assert.equal(projectTypeForCommand(''), undefined)
+  })
+})
+
+describe('resolveResetProjectId', () => {
+  it('keeps an explicitly provided id without touching config', async () => {
+    const out = await resolveResetProjectId({ id: 'p-explicit' }, {})
+    assert.deepEqual(out, { id: 'p-explicit' })
+  })
+})
+
 describe('extractProjectFields', () => {
   it('pulls id, endpoints, and credentials from a create response', () => {
     const x = extractProjectFields(CREATE_RESPONSE)
     assert.equal(x.id, 'p-123')
+    assert.equal(x.regionId, 'aws-us-east-1')
     assert.equal(x.endpoints.elasticsearch, 'https://p-123.es.us-east-1.aws.elastic.cloud')
     assert.equal(x.credentials.username, 'admin')
     assert.equal(x.credentials.password, 'super-secret-admin-pass')
@@ -298,5 +322,41 @@ describe('applyCredentialPolicy', () => {
       () => applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, { credentialsFile: frag }),
       /already exists/
     )
+  })
+
+  it('--save-as stores cloud block and project metadata on the context', async () => {
+    const cfg = join(dir, 'metadata.yml')
+    stubSecretStore('keychain')
+    // seed an active context carrying a cloud block
+    await writeFile(cfg, [
+      'current_context: base',
+      'contexts:',
+      '  base:',
+      '    elasticsearch: { url: http://localhost:9200 }',
+      '    cloud: { url: https://api.elastic-cloud.com }',
+      '',
+    ].join('\n'))
+    const res = await applyCredentialPolicy('create-observability-project', CREATE_RESPONSE, {
+      saveAs: 'second', configFile: cfg,
+    })
+    assert.equal(res.log.mode, 'save-as')
+    const yaml = await readFile(cfg, 'utf-8')
+    const parsed = parseYaml(yaml) as { contexts: { second: Record<string, unknown> } }
+    const second = parsed.contexts.second
+    assert.deepEqual(second['cloud'], { url: 'https://api.elastic-cloud.com' })
+    assert.equal(second['project_id'], 'p-123')
+    assert.equal(second['project_type'], 'observability')
+    assert.equal(second['region_id'], 'aws-us-east-1')
+  })
+
+  it('resolveResetProjectId fills a missing id from the --save-as context', async () => {
+    const cfg = join(dir, 'reset-id.yml')
+    stubSecretStore('keychain')
+    await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, {
+      saveAs: 'demo', configFile: cfg,
+    })
+    const out = await resolveResetProjectId({}, { saveAs: 'demo', configFile: cfg })
+    assert.deepEqual(out, { id: 'p-123' })
+    assert.equal(await resolveResetProjectId({}, { saveAs: 'ghost', configFile: cfg }), undefined)
   })
 })

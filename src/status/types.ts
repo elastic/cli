@@ -13,4 +13,10 @@ export interface StatusResult {
     kibana?: KbCheck
     cloud?: CloudCheck
   }
+  /** Project metadata stored on the context by project create --save-as. */
+  project?: {
+    project_id?: string
+    project_type?: string
+    region_id?: string
+  }
 }

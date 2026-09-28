@@ -15,7 +15,9 @@ import { createCloudHandler, isCreateProjectCommand } from './handler.ts'
 import {
   applyCredentialPolicy,
   isCredentialCommand,
+  isResetCredentialsCommand,
   readCredentialPolicyOptions,
+  resolveResetProjectId,
 } from './credentials.ts'
 import type { HandlerResult, ParsedResult } from '../factory.ts'
 import { YamlResponse } from '../lib/yaml-response.ts'
@@ -157,10 +159,28 @@ function buildServerlessTypeGroup (
   const leaves = defs.map((def) => {
     const shortName = simplifyProjectCommandName(def.name, namespace)
     const schema = buildCloudJsonSchema(def)
+    // Reset commands resolve `--id` from the --save-as context, so it stays
+    // omittable here; the handler wrapper fills it before the request runs.
+    if (isResetCredentialsCommand(def.name)) {
+      const required = schema['required']
+      if (Array.isArray(required)) {
+        schema['required'] = required.filter((k) => k !== 'id')
+      }
+    }
     const baseHandler = createCloudHandler(def)
-    const handler: (parsed: ParsedResult) => Promise<HandlerResult> = isCredentialCommand(def.name)
-      ? async (parsed) => wrapWithCredentialPolicy(def.name, baseHandler, parsed)
-      : baseHandler
+    const handler: (parsed: ParsedResult) => Promise<HandlerResult> = isResetCredentialsCommand(def.name)
+      ? async (parsed) => {
+        const input = await resolveResetProjectId(
+          parsed.input, readCredentialPolicyOptions(parsed.options),
+        )
+        if (input === undefined) {
+          return { error: { code: 'missing_input', message: 'Missing required input: id. Pass --id or use --save-as with a context storing project_id.' } }
+        }
+        return wrapWithCredentialPolicy(def.name, baseHandler, { ...parsed, input })
+      }
+      : isCredentialCommand(def.name)
+        ? async (parsed) => wrapWithCredentialPolicy(def.name, baseHandler, parsed)
+        : baseHandler
     const cmd = defineCommand({
       name: shortName,
       description: def.description,

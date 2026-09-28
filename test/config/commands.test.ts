@@ -109,6 +109,30 @@ describe('elastic config (integration)', () => {
     assert.deepEqual(out.contexts, [{ name: 'local', current: true }])
   })
 
+  it('context list --json includes stored project metadata', async () => {
+    const proj = join(dir, 'proj.yml')
+    await writeFile(proj, [
+      'current_context: demo',
+      'contexts:',
+      '  demo:',
+      '    elasticsearch: { url: http://localhost:9200 }',
+      '    project_id: p-123',
+      '    project_type: search',
+      '    region_id: aws-us-east-1',
+      '',
+    ].join('\n'))
+    const res = run(['config', 'context', 'list', '--config-file', proj])
+    assert.equal(res.exitCode, 0, res.stderr)
+    const out = res.json as { contexts: Array<Record<string, unknown>> }
+    assert.deepEqual(out.contexts, [{
+      name: 'demo',
+      current: true,
+      project_id: 'p-123',
+      project_type: 'search',
+      region_id: 'aws-us-east-1',
+    }])
+  })
+
   it('context add second context keeps current_context on the first', () => {
     const res = run([
       'config', 'context', 'add', 'staging',

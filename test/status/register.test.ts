@@ -264,6 +264,31 @@ describe('elastic status -- command', () => {
     }
   })
 
+  it('exposes stored project metadata in --json output', async () => {
+    await writeConfig([
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '      auth: { api_key: k }',
+      '    project_id: p-123',
+      '    project_type: search',
+      '    region_id: aws-us-east-1',
+    ].join('\n'))
+    const restore = _testSetFetch(mockFetch(() => new Response(SAMPLE_HEALTH, { status: 200 })))
+    try {
+      const out = await captured(async () => {
+        const prog = makeProgram()
+        await prog.parseAsync(['--config-file', configPath, '--json', 'status'], { from: 'user' })
+      })
+      const parsed = JSON.parse(out.stdout) as { project?: Record<string, string> }
+      assert.deepEqual(parsed.project, { project_id: 'p-123', project_type: 'search', region_id: 'aws-us-east-1' })
+    } finally {
+      restore()
+    }
+  })
+
   it('--dry-run validates and exits without making any HTTP calls', async () => {
     await writeConfig([
       'current_context: local',

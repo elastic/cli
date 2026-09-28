@@ -47,6 +47,19 @@ export function isResetCredentialsCommand (cmdName: string): boolean {
   return RESET_CREDENTIALS_RE.test(cmdName)
 }
 
+const PROJECT_TYPE_BY_SEGMENT: Record<string, string> = {
+  elasticsearch: 'search',
+  observability: 'observability',
+  security: 'security',
+}
+
+/** Project type for create/reset project commands, from the command name. */
+export function projectTypeForCommand (cmdName: string): string | undefined {
+  const m = /^(?:create|reset)-([a-z]+)-project(?:-credentials)?$/.exec(cmdName)
+  if (m == null) return undefined
+  return PROJECT_TYPE_BY_SEGMENT[m[1] as string]
+}
+
 /** The flags this module cares about, pulled out of `parsed.options`. */
 export interface CredentialPolicyOptions {
   saveAs?: string
@@ -54,6 +67,7 @@ export interface CredentialPolicyOptions {
   force?: boolean
   configFile?: string
   showCredentials?: boolean
+  useContext?: string
 }
 
 export function readCredentialPolicyOptions (
@@ -69,7 +83,30 @@ export function readCredentialPolicyOptions (
   if (typeof cfg === 'string' && cfg.length > 0) out.configFile = cfg
   const show = options['show-credentials']
   if (show === true) out.showCredentials = true
+  const useContext = options['use-context']
+  if (typeof useContext === 'string' && useContext.length > 0) out.useContext = useContext
   return out
+}
+
+/**
+ * Fills a missing reset-credentials `id` input from the `--save-as` target
+ * context's stored `project_id`. Returns the input unchanged when it already
+ * carries an id, and undefined when no id can be resolved.
+ */
+export async function resolveResetProjectId (
+  input: unknown,
+  opts: CredentialPolicyOptions,
+): Promise<Record<string, unknown> | undefined> {
+  if (isObj(input) && input['id'] != null) {
+    return input as Record<string, unknown>
+  }
+  if (opts.saveAs == null) return undefined
+  const config = await readRawConfig(resolveConfigPath(opts.configFile))
+  const ctx = config.contexts[opts.saveAs]
+  const projectId = isObj(ctx) ? asString(ctx['project_id']) : undefined
+  if (projectId == null) return undefined
+  const base = isObj(input) ? (input as Record<string, unknown>) : {}
+  return { ...base, id: projectId }
 }
 
 /**
@@ -88,6 +125,7 @@ interface EndpointFields {
 
 interface ExtractedProject {
   id?: string
+  regionId?: string
   credentials: CredentialFields
   endpoints: EndpointFields
 }
@@ -105,6 +143,8 @@ export function extractProjectFields (body: JsonValue): ExtractedProject {
   if (!isObj(body)) return out
   const id = asString(body.id)
   if (id != null) out.id = id
+  const regionId = asString(body.region_id)
+  if (regionId != null) out.regionId = regionId
 
   const credsSrc = isObj(body.credentials) ? body.credentials : body
   const u = asString(credsSrc.username)
@@ -143,7 +183,8 @@ export function redactCredentials (body: JsonValue, marker: string): JsonValue {
 /**
  * Builds a RawContext for a newly-created project from its endpoints +
  * credentials. Stores secrets in the keychain (or leaves them inline when
- * no store is available).
+ * no store is available). Carries over the source context's `cloud` block
+ * and records project metadata (id, type, region) when known.
  */
 interface BuildContextResult {
   context: RawContext
@@ -151,10 +192,18 @@ interface BuildContextResult {
   storageKind: SecretStore['kind']
 }
 
+interface BuildProjectExtras {
+  cloudBlock?: Record<string, unknown>
+  projectId?: string
+  projectType?: string
+  regionId?: string
+}
+
 async function buildProjectContext (
   extracted: ExtractedProject,
   contextName: string,
   store: SecretStore,
+  extras: BuildProjectExtras = {},
 ): Promise<BuildContextResult> {
   const ctx: Record<string, unknown> = {}
   const { username, password } = extracted.credentials
@@ -185,6 +234,12 @@ async function buildProjectContext (
     if (auth != null) block.auth = auth
     ctx.kibana = block
   }
+  if (extras.cloudBlock != null) {
+    ctx.cloud = { ...extras.cloudBlock }
+  }
+  if (extracted.id != null) ctx.project_id = extracted.id
+  if (extras.projectType != null) ctx.project_type = extras.projectType
+  if (extracted.regionId != null) ctx.region_id = extracted.regionId
 
   return {
     context: ctx as RawContext,
@@ -329,7 +384,15 @@ async function saveAsContext (
     if (contextName in config.contexts && opts.force !== true) {
       throw new Error(`context "${contextName}" already exists. Pass --force to overwrite.`)
     }
-    const built = await buildProjectContext(extracted, contextName, store)
+    const sourceCtx = config.contexts[opts.useContext ?? config.current_context]
+    const cloudBlock = isObj(sourceCtx) && isObj(sourceCtx.cloud)
+      ? sourceCtx.cloud as Record<string, unknown>
+      : undefined
+    const projectType = projectTypeForCommand(cmdName)
+    const built = await buildProjectContext(extracted, contextName, store, {
+      ...(cloudBlock !== undefined ? { cloudBlock } : {}),
+      ...(projectType !== undefined ? { projectType } : {}),
+    })
     nextContext = built.context
   }
 

@@ -175,6 +175,9 @@ export function resolveContext (config: ConfigFile, contextName: string, profile
   if (ctx.elasticsearch != null) resolved.elasticsearch = ctx.elasticsearch
   if (ctx.kibana != null) resolved.kibana = ctx.kibana
   if (ctx.cloud != null) resolved.cloud = ctx.cloud
+  if (typeof ctx.project_id === 'string') resolved.project_id = ctx.project_id
+  if (typeof ctx.project_type === 'string') resolved.project_type = ctx.project_type
+  if (typeof ctx.region_id === 'string') resolved.region_id = ctx.region_id
   const result: ResolvedConfig = { context: resolved }
 
   const effectiveCommandsResult = resolveEffectiveCommands(

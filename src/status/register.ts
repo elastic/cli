@@ -106,6 +106,14 @@ async function statusHandler (parsed: ParsedResult): Promise<JsonValue> {
   }
 
   const result = await runStatusChecks(loaded.contextName, loaded.value.context)
+  const { project_id, project_type, region_id } = loaded.value.context
+  if (project_id != null || project_type != null || region_id != null) {
+    result.project = {
+      ...(project_id != null ? { project_id } : {}),
+      ...(project_type != null ? { project_type } : {}),
+      ...(region_id != null ? { region_id } : {}),
+    }
+  }
   const anyFail = Object.values(result.services).some((svc) => svc != null && !svc.ok)
   if (anyFail) {
     process.exitCode = 1

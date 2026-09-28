@@ -49,6 +49,10 @@ export interface Context {
   elasticsearch?: ServiceBlock
   kibana?: ServiceBlock
   cloud?: ServiceBlock
+  /** Stored by project create --save-as; used to resolve reset-credentials --id. */
+  project_id?: string
+  project_type?: string
+  region_id?: string
   commands?: CommandPolicy
 }
 
@@ -67,6 +71,9 @@ export interface ResolvedContext {
   elasticsearch?: ServiceBlock
   kibana?: ServiceBlock
   cloud?: ServiceBlock
+  project_id?: string
+  project_type?: string
+  region_id?: string
 }
 
 /** Typed configuration object passed to command handlers after loading and context resolution. */
