@@ -27,6 +27,15 @@ export function registerCliSchemaCommand (nameOrProgram: string | Command, progr
     // New call: registerCliSchemaCommand(program, schemaMap, options)
     program = nameOrProgram
   }
+
+  // Guard against double-registration: if `schema` was already added (e.g. by
+  // cli.ts directly), return the existing sub-command instead of adding a
+  // duplicate, which Commander forbids.
+  const existing = program.commands.find((c) => c.name() === 'schema')
+  if (existing != null) {
+    return existing
+  }
+
   return program
     .command('schema')
     .description('Print the JSON Schema for a command (machine-readable help)')
