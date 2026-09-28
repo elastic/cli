@@ -7,6 +7,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { Command } from 'commander'
 import { buildCompletionCommand, SUPPORTED_SHELLS } from '../../src/completion/command.ts'
+import { powershellWrapper } from '../../src/completion/shells/powershell.ts'
 
 async function captureWith (
   cmd: Command,
@@ -74,6 +75,13 @@ describe('buildCompletionCommand', () => {
     const { stdout } = await captureWith(buildCompletionCommand(), ['powershell'])
     assert.match(stdout, /Register-ArgumentCompleter/)
     assert.match(stdout, /__complete/)
+  })
+
+  it('does not keep a lone :N directive as a PowerShell candidate', () => {
+    const src = powershellWrapper()
+    assert.match(src, /if \(\$lines\.Length -lt 2\) \{ return \}/)
+    assert.match(src, /\$lines = \$lines\[0\.\.\(\$lines\.Length - 2\)\]/)
+    assert.doesNotMatch(src, /Math\]::Max\(0, \$lines\.Length - 2\)/)
   })
 
   it('reports an error for an unknown shell', async () => {
