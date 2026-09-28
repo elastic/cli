@@ -313,6 +313,19 @@ describe('elastic CLI -- stack command tree', () => {
     }
   })
 
+  it('top-level help points agents at schema discovery', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-help-agents-'))
+    try {
+      const { code, stdout } = await runCli(['--help'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      assert.match(stdout, /LEARN MORE/, 'expected LEARN MORE footer in top-level help')
+      assert.match(stdout, /cli-schema/, 'expected cli-schema pointer in top-level help')
+      assert.match(stdout, /--help --json/, 'expected --help --json pointer in top-level help')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
   it('`elastic stack --help` lists `es` and `kb` sub-groups with aliases', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-stack-help-'))
     try {

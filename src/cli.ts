@@ -285,6 +285,18 @@ if (firstArg == null && !process.argv.includes('--json') && !(earlyConfig?.ok ==
   const { renderLogo } = await import('./lib/logo.js')
   program.addHelpText('before', () => renderLogo(VERSION).replace(/\n$/, ''))
 }
+
+// Learn-more footer (root help only): point humans and agents at schema discovery.
+// Skipped for --json so structured help stays parseable.
+if (!process.argv.includes('--json')) {
+  program.addHelpText('after', () => [
+    '',
+    'LEARN MORE',
+    '  For one command: elastic <command> --help --json',
+    '  For the full tree: elastic cli-schema',
+  ].join('\n'))
+}
+
 // Bare invocation: show help
 if (argv.length === 0) {
   program.outputHelp()
