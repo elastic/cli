@@ -58,6 +58,10 @@ export async function emitCliSchema (program: Command, dest: string): Promise<vo
  * When invoked as `elastic schema <command...>` it prints the JSON Schema for
  * the given subcommand; invoked without arguments it lists available schemas.
  *
+ * Output is written via process.stdout.write / process.stderr.write rather
+ * than console.log so that the output stream is controlled and no extra
+ * newlines or formatting are injected by the runtime.
+ *
  * @param program - the root Commander program
  */
 export function registerCliSchemaCommand (program: Command): Command {
