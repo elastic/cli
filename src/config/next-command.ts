@@ -12,3 +12,20 @@ export function withSetupHint (detail: string, tty = process.stderr.isTTY === tr
   const trimmed = detail.replace(/\s+$/, '')
   return `${trimmed} ${setupNextCommand(tty)}`
 }
+
+export function isAuthStatus (status: number): boolean {
+  return status === 401 || status === 403
+}
+
+export function formatAuthFailure (status: number): string {
+  if (status === 401) {
+    return 'Run `elastic status --json` to verify connectivity, then `elastic config context edit` to update credentials.'
+  }
+  return 'Run `elastic config context edit` to update the credentials for the current context.'
+}
+
+export function withAuthHint (detail: string, status: number): string {
+  if (!isAuthStatus(status)) return detail
+  const trimmed = detail.replace(/\s+$/, '')
+  return `${trimmed} ${formatAuthFailure(status)}`
+}
