@@ -8,6 +8,7 @@ import type { CloudClient } from '../lib/cloud-client.ts'
 import { getCloudClient } from '../lib/cloud-client.ts'
 import { buildCloudRequestParams } from './request-builder.ts'
 import type { HandlerResult, JsonValue, ParsedResult } from '../factory.ts'
+import { AUTH_FAILURE_HINT } from '../output.ts'
 
 const DEFAULT_POLL_INTERVAL_MS = 10_000
 const DEFAULT_POLL_TIMEOUT_MS = 300_000
@@ -119,7 +120,11 @@ function missingConfigError(err: unknown): JsonValue {
 
 function cloudApiError(err: unknown): JsonValue {
   const message = err instanceof Error ? err.message : String(err)
-  return { error: { code: 'cloud_api_error', message } }
+  const match = /Cloud API error (\d+):/.exec(message)
+  const status = match != null ? parseInt(match[1]!, 10) : undefined
+  const error: Record<string, JsonValue> = { code: 'cloud_api_error', message }
+  if (status === 401 || status === 403) error.hint = AUTH_FAILURE_HINT
+  return { error }
 }
 
 function invalidRequestError(err: unknown): JsonValue {
