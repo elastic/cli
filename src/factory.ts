@@ -12,6 +12,7 @@ import { extractSchemaArgs, validateSchemaArgs } from './lib/json-schema-args.ts
 import type { SchemaArgDefinition } from './lib/json-schema-args.ts'
 import type { renderText as _RT, formatHandlerError as _FHE } from './output.ts'
 import { pickFields, parseFieldList, applyTemplate, TemplateAgainstPrimitiveError } from './lib/output-transform.ts'
+import { withDeprecatedMarker } from './lib/deprecation.ts'
 import { validateName, hasGlobalJsonFlag, configureErrorOutput, commandPath, isCommandAllowed, stripTransportMeta } from './factory-core.ts'
 import type { OpaqueCommandHandle, JsonValue, CommandConfig, ParsedResult } from './factory-core.ts'
 import { RawJsonValue } from './factory-core.ts'
@@ -384,7 +385,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
   }
 
   const cmd = new Command(config.name)
-  cmd.description(config.description)
+  cmd.description(withDeprecatedMarker(config.description, config.deprecated))
   configureErrorOutput(cmd)
   cmd.configureOutput({
     outputError: (str, write) => {
@@ -443,10 +444,10 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
       const csvNote = arg.acceptsArrayForm === true && arg.foundIn === 'body'
         ? 'Accepts a comma-separated list; use --input-file with a JSON array for values that contain commas.'
         : undefined
-      const desc = [arg.description, csvNote, suffix].filter(Boolean).join(' ')
+      const desc = [withDeprecatedMarker(arg.description, arg.deprecated), csvNote, suffix].filter(Boolean).join(' ')
       if (arg.type === 'boolean') {
         // booleans omit the suffix; flag-style convention makes it clear
-        cmd.option(`--${arg.cliFlag} [value]`, arg.description)
+        cmd.option(`--${arg.cliFlag} [value]`, withDeprecatedMarker(arg.description, arg.deprecated))
       } else if (arg.type === 'number') {
         const attrName = camelCase(arg.cliFlag)
         const parseNum = (val: string): number => {
@@ -751,6 +752,10 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
           throw Object.assign(new Error('confirmation_required'), { exitCode: 1 })
         }
       }
+    }
+
+    if (config.deprecated != null && config.deprecated !== '') {
+      writeErr(cmd, `Warning: ${config.name} is deprecated: ${config.deprecated}.\n`)
     }
 
     const handlerResult = await config.handler(parsed)

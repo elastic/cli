@@ -10,6 +10,8 @@
  * as produced by @elastic/schemas (properties carry `x-found-in` routing).
  */
 
+import { deprecationNote } from './deprecation.ts'
+
 /**
  * Represents a single CLI argument derived from a top-level key in a command's input schema.
  */
@@ -34,6 +36,9 @@ export interface SchemaArgDefinition {
 
   /** Description from the schema, used in help text */
   description: string
+
+  /** Deprecation note from the schema's `x-deprecated`, if it marks a real deprecation */
+  deprecated?: string
 
   /** Routing destination derived from `x-found-in`, or `undefined` if absent */
   foundIn?: FoundIn
@@ -95,6 +100,7 @@ interface JsonSchemaProp {
   enum?: unknown[]
   'x-found-in'?: string
   'x-body-root'?: boolean
+  'x-deprecated'?: unknown
   anyOf?: JsonSchemaProp[]
   oneOf?: JsonSchemaProp[]
   allOf?: JsonSchemaProp[]
@@ -196,6 +202,7 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
     const isRequired = requiredKeys.has(key) && defaultValue === undefined
     const description = prop.description ?? ''
     const foundIn = prop['x-found-in'] as FoundIn | undefined
+    const deprecated = deprecationNote(prop['x-deprecated'])
 
     // Sort fields: check if prop description or key suggests Sort semantics
     // (used by ES Sort body fields that need field:direction→object transformation)
@@ -208,6 +215,7 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
       required: isRequired,
       ...(defaultValue !== undefined ? { defaultValue } : {}),
       description,
+      ...(deprecated !== undefined ? { deprecated } : {}),
       ...(foundIn !== undefined ? { foundIn } : {}),
       ...(prop['x-body-root'] === true ? { bodyRoot: true } : {}),
       ...(acceptsArrayForm ? { acceptsArrayForm: true } : {}),

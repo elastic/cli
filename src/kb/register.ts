@@ -9,6 +9,7 @@ import type { OpaqueCommandHandle } from '../factory.ts'
 import { inferIntentFromHttp } from '@cli-schema/spec'
 import type { KbApiDefinition } from './types.ts'
 import { validateKbApiDefinition } from './types.ts'
+import { commandDeprecation } from '../lib/deprecation.ts'
 import { kbApiManifest, loadKbApi } from './apis.ts'
 import type { KbApiMeta } from './apis.ts'
 import { createKbHandler } from './handler.ts'
@@ -23,9 +24,11 @@ import { formatTextResponse } from '../output.ts'
 /** Builds a leaf command handle from a definition. */
 function buildLeafHandle (def: KbApiDefinition): OpaqueCommandHandle {
   validateKbApiDefinition(def)
+  const deprecated = commandDeprecation(def)
   return defineCommand({
     name: def.name,
     description: def.description,
+    ...(deprecated !== undefined ? { deprecated } : {}),
     ...(def.input !== undefined ? { input: def.input } : {}),
     readOnly: def.method === 'GET' || def.method === 'HEAD',
     handler: createKbHandler(def),
