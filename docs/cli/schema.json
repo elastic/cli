@@ -8,6 +8,20 @@
   "globalOptions": [
     {
       "role": "flag",
+      "name": "output-fields",
+      "type": "string",
+      "required": false,
+      "summary": "comma-separated list of fields to include in output (dot-notation supported)"
+    },
+    {
+      "role": "flag",
+      "name": "output-template",
+      "type": "string",
+      "required": false,
+      "summary": "Mustache-like template for custom text output (e.g. \"{{id}}: {{name}}\")"
+    },
+    {
+      "role": "flag",
       "name": "json",
       "type": "boolean",
       "required": false,

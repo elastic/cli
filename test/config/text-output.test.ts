@@ -125,6 +125,19 @@ describe('config commands text output', () => {
     assert.match(stderr, /No context fields provided/)
   })
 
+  it('context edit without flags names them when stdin is not a TTY', async () => {
+    const origIsTTY = process.stdin.isTTY
+    Object.defineProperty(process.stdin, 'isTTY', { value: undefined, configurable: true, writable: true })
+    try {
+      const { stderr } = await runCapture(['context', 'edit', 'staging', '--config-file', cfg])
+      assert.match(stderr, /--es-url/)
+      assert.match(stderr, /--es-api-key/)
+      assert.match(stderr, /not a TTY/)
+    } finally {
+      Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+    }
+  })
+
   it('context edit of an unknown context errors', async () => {
     const { stderr } = await runCapture([
       'context', 'edit', 'missing',

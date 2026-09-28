@@ -164,6 +164,21 @@ describe('createEsHandler', () => {
     await assert.rejects(() => handler(parsedInput()), /unexpected bug/)
   })
 
+  it('adds error.hint on 401 naming status', async () => {
+    const deps = makeDeps({
+      getEsClient: () => ({
+        request: async () => { throw new EsResponseError(401, { error: 'unauthorized' }) },
+      } as unknown as EsClient),
+    })
+
+    const handler = createEsHandler(makeDef({ name: 'ping', path: '/' }), [], deps)
+    const result = await handler(parsedInput()) as Record<string, unknown>
+    const err = result['error'] as Record<string, unknown>
+    assert.equal(err['status_code'], 401)
+    assert.match(String(err['hint'] ?? ''), /elastic status/)
+    assert.match(String(err['hint'] ?? ''), /config context edit/)
+  })
+
   it('returns transport_error with status code and ES body for EsResponseError', async () => {
     const esErrorBody = { error: { type: 'index_not_found_exception', reason: 'no such index' }, status: 404 }
     const responseError = new EsResponseError(404, esErrorBody)

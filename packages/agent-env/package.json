@@ -1,16 +1,16 @@
 {
-  "name": "@elastic/config-resolver",
-  "version": "0.1.1",
-  "description": "Expression resolver for the Elastic CLI config pipeline. Resolves $(name:params) references from sources like env vars, files, and OS keychains.",
+  "name": "@elastic/agent-env",
+  "version": "0.1.0",
+  "description": "Detect the coding-agent harness that spawned a process from its environment variables.",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./src/index.ts",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "default": "./src/index.ts"
     }
   },
   "files": [

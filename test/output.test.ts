@@ -224,4 +224,19 @@ describe('formatHandlerError', () => {
     const val = { error: { code: 'weird_error' } }
     assert.equal(formatHandlerError(val), 'unknown error (code: weird_error)')
   })
+
+  it('appends error.hint after the original message', () => {
+    const val = {
+      error: {
+        code: 'transport_error',
+        status_code: 401,
+        body: { error: 'unauthorized' },
+        hint: 'Run `elastic status --json` then `elastic config context edit`.',
+      },
+    }
+    assert.equal(
+      formatHandlerError(val),
+      'unauthorized\nRun `elastic status --json` then `elastic config context edit`.',
+    )
+  })
 })

@@ -35,6 +35,9 @@
   "references": [
     {
       "path": "./packages/config-resolver"
+    },
+    {
+      "path": "./packages/agent-env"
     }
   ]
 }

@@ -33,27 +33,29 @@ program
   .name('elastic')
   .description('Interface with the Elastic Stack and Elastic Cloud from the command line.')
 
-// Register global options only when argv actually contains them (common case: it doesn't)
+// Config flags stay lazy (most invocations do not pass them). Output flags are
+// always registered so `elastic --help` lists them (#630).
 if (hasGlobalFlags) {
   program
     .option('--config-file <path>', 'path to a config file (default: ~/.elasticrc.yml)')
     .option('--use-context <name>', 'override the active context from the config file')
     .option(`--command-profile <name>`, `restrict available commands to a deployment profile (${BUILT_IN_PROFILES.join(', ')})`)
-    .option('--output-fields <list>', 'comma-separated list of fields to include in output (dot-notation supported)')
-    .option('--output-template <string>', 'Mustache-like template for custom text output (e.g. "{{id}}: {{name}}")')
 }
-program.option('--json', 'output as JSON')
+program
+  .option('--output-fields <list>', 'comma-separated list of fields to include in output (dot-notation supported)')
+  .option('--output-template <string>', 'Mustache-like template for custom text output (e.g. "{{id}}: {{name}}")')
+  .option('--json', 'output as JSON')
 
 // preAction hook (skipped for --help paths since the hook never fires)
 if (!wantsHelp) {
   program.hook('preAction', async (thisCommand, actionCommand) => {
-    const skipActionNames: ReadonlySet<string> = new Set(['version', 'completion', '__complete', 'status'])
+    const skipActionNames: ReadonlySet<string> = new Set(['version', 'completion', '__complete', 'status', 'help'])
     if (skipActionNames.has(actionCommand.name())) return
     // Groups with no sub-command will just call group.help() — no real action fires.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((actionCommand as any)._isGroup === true && actionCommand.args.length === 0) return
 
-    const skipConfigNames: ReadonlySet<string> = new Set(['docs', 'config', 'sanitize', 'cli-schema'])
+    const skipConfigNames: ReadonlySet<string> = new Set(['docs', 'config', 'sanitize', 'cli-schema', 'help'])
     for (let c: Command | null = actionCommand; c != null; c = c.parent) {
       if (skipConfigNames.has(c.name())) return
     }
@@ -235,7 +237,7 @@ const willJustPrintHelp = wantsHelp || (CONTEXT_NAMESPACES.has(firstArg ?? '') &
 if (firstArg != null && (!willJustPrintHelp || hasProfileFlag)) {
   const SKIP_EARLY_CONFIG: ReadonlySet<string> = new Set([
     'version', 'extension', 'status', 'completion', '__complete',
-    'docs', 'config', 'sanitize', 'cli-schema',
+    'docs', 'config', 'sanitize', 'cli-schema', 'help',
   ])
   if (!SKIP_EARLY_CONFIG.has(firstArg)) {
     const profileArgIdx = process.argv.indexOf('--command-profile')
@@ -255,6 +257,19 @@ if (firstArg != null && (!willJustPrintHelp || hasProfileFlag)) {
 
 // Logo banner (root help only). Loaded lazily -- dynamic import keeps it out of the
 // startup graph for every other invocation, and esbuild/pkg can still bundle it.
+if (firstArg == null || firstArg === 'help') {
+  const { registerHelpCommand, helpTopicResult, LEARN_MORE } = await import('./help-topics.js')
+  registerHelpCommand(program).action((topic?: string) => {
+    const result = helpTopicResult(topic, hasGlobalJsonFlag(program))
+    if (result.stderr !== '') process.stderr.write(result.stderr)
+    if (result.stdout !== '') process.stdout.write(result.stdout)
+    if (result.code !== 0) process.exit(result.code)
+  })
+  if (firstArg == null) {
+    program.addHelpText('after', () => hasGlobalJsonFlag(program) ? '' : LEARN_MORE)
+  }
+}
+
 if (firstArg == null && !process.argv.includes('--json') && !(earlyConfig?.ok === true && earlyConfig.value.banner === false)) {
   const { renderLogo } = await import('./lib/logo.js')
   program.addHelpText('before', () => renderLogo(VERSION).replace(/\n$/, ''))
