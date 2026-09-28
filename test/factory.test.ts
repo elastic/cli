@@ -2239,6 +2239,73 @@ describe('defineCommand', () => {
     })
 
   })
+
+  describe('--no-validate', () => {
+    it('appears in help text for commands with an input schema', () => {
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: { type: 'object', properties: { index: { type: 'string' } } },
+        handler: () => ({}),
+      })
+      assert.match(cmd.helpInformation(), /--no-validate/)
+    })
+
+    it('allows invalid input through when set', async () => {
+      let receivedInput: unknown
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: {
+          type: 'object',
+          properties: { refresh: { type: 'string', enum: ['true', 'false', 'wait_for'] } },
+        },
+        handler: ({ input }) => { receivedInput = input; return {} },
+      })
+      const { writeFileSync } = await import('fs')
+      const { tmpdir } = await import('os')
+      const { join } = await import('path')
+      const filePath = join(tmpdir(), `no-validate-test-${Date.now()}.json`)
+      writeFileSync(filePath, JSON.stringify({ refresh: 'unknown_value' }))
+      await invokeUnderRoot(cmd, [], ['--no-validate', '--input-file', filePath])
+      assert.deepEqual(receivedInput, { refresh: 'unknown_value' })
+    })
+
+    it('outputs validation error without --no-validate', async () => {
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: {
+          type: 'object',
+          properties: { refresh: { type: 'string', enum: ['true', 'false', 'wait_for'] } },
+        },
+        handler: () => ({}),
+      })
+      const { writeFileSync } = await import('fs')
+      const { tmpdir } = await import('os')
+      const { join } = await import('path')
+      const filePath = join(tmpdir(), `no-validate-test-${Date.now()}.json`)
+      writeFileSync(filePath, JSON.stringify({ refresh: 'unknown_value' }))
+      const err = await captureErrAsync(cmd, ['--input-file', filePath])
+      assert.match(err, /input validation failed/)
+    })
+
+    it('throws at definition time when user defines a --no-validate option', () => {
+      assert.throws(
+        () => defineCommand({
+          name: 'test',
+          description: 'Test',
+          options: [{ long: 'no-validate', description: 'Skip', type: 'boolean' }],
+          handler: () => ({}),
+        }),
+        (e: unknown) => {
+          assert.ok(e instanceof Error)
+          assert.match(e.message, /--no-validate is reserved/)
+          return true
+        },
+      )
+    })
+  })
 })
 
 describe('text output rendering', () => {

@@ -229,6 +229,7 @@ function validateOptions (options: import('./factory-core.ts').OptionDefinition[
     if (seenLong.has(opt.long)) throw new Error(`duplicate option long name: --${opt.long}`)
     seenLong.add(opt.long)
     if (opt.long === 'dry-run') throw new Error('option --dry-run is reserved')
+    if (opt.long === 'no-validate') throw new Error('option --no-validate is reserved')
     if (opt.short !== undefined) {
       if (seenShort.has(opt.short)) throw new Error(`duplicate option short alias: -${opt.short}`)
       seenShort.add(opt.short)
@@ -498,6 +499,9 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
   if (!schemaClaimsDryRun && !hideNoInputFlags) {
     cmd.option('--dry-run', 'validate all inputs and exit without performing any action')
   }
+  if (isJsonSchemaInput(config.input) && !hideNoInputFlags) {
+    cmd.option('--no-validate', 'skip input validation and send the request as-is')
+  }
 
   if (config.intent?.destructive === true || config.intent?.requiresConfirmation === true) {
     cmd.option('--yes', 'confirm destructive action without prompting')
@@ -526,9 +530,12 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
       }
     }
 
+    // 'validate' is Commander's synthetic affirmative for --no-validate; prevent it from
+    // leaking into user-facing parsed.options (noValidate is the negation key, also excluded)
+    const noValidateKeys = new Set(['noValidate', 'validate'])
     const declaredKeys = new Set(optDefs.map((o) => camelCase(o.long)))
     for (const [camelKey, val] of Object.entries(allRaw)) {
-      if (!declaredKeys.has(camelKey) && (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean')) {
+      if (!declaredKeys.has(camelKey) && !noValidateKeys.has(camelKey) && (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean')) {
         const kebabKey = camelKey.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)
         options[kebabKey] = val
       }
@@ -682,51 +689,58 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
     if (inputValue !== undefined) {
       assert(isJsonSchemaInput(config.input), `command ${JSON.stringify(config.name)}: input must be a JSON Schema object`)
 
-      const { validateWithJsonSchema, formatValidationErrors } = await import('./lib/ajv-validate.js')
+      // --no-validate skips schema validation and sends the input as-is (#530 escape
+      // hatch): neutralizes false rejections when the shipped schema is stricter than the
+      // target server (e.g. a new enum value or tightened type on a top-level scalar param).
+      if (allRaw['validate'] !== false) {
+        const { validateWithJsonSchema, formatValidationErrors } = await import('./lib/ajv-validate.js')
 
-      // Relax schema for sort-pairs and x-found-in: body object/array fields, regardless
-      // of input source (CLI flag, stdin, or --input-file):
-      // - sort-pairs: parsed to [{field: dir}] which won't match string schema
-      // - body object/array fields: full DSL (e.g. query, _source) may not match strict schema
-      // Fields with no x-found-in are validated strictly.
-      let validationSchema: Record<string, unknown> = config.input
-      const relaxFields = schemaArgs.filter(
-        (a) =>
-          sortParsedKeys.has(a.schemaKey) ||
-          (a.foundIn === 'body' && (a.type === 'object' || a.type === 'array'))
-      )
-      if (relaxFields.length > 0 && typeof config.input['properties'] === 'object') {
-        const props = { ...(config.input['properties'] as Record<string, unknown>) }
-        for (const f of relaxFields) {
-          if (f.schemaKey in props) {
-            // Accept any value for these relaxed fields
-            props[f.schemaKey] = {}
+        // Relax schema for sort-pairs and x-found-in: body object/array fields, regardless
+        // of input source (CLI flag, stdin, or --input-file):
+        // - sort-pairs: parsed to [{field: dir}] which won't match string schema
+        // - body object/array fields: full DSL (e.g. query, _source) may not match strict schema
+        // Fields with no x-found-in are validated strictly.
+        let validationSchema: Record<string, unknown> = config.input
+        const relaxFields = schemaArgs.filter(
+          (a) =>
+            sortParsedKeys.has(a.schemaKey) ||
+            (a.foundIn === 'body' && (a.type === 'object' || a.type === 'array'))
+        )
+        if (relaxFields.length > 0 && typeof config.input['properties'] === 'object') {
+          const props = { ...(config.input['properties'] as Record<string, unknown>) }
+          for (const f of relaxFields) {
+            if (f.schemaKey in props) {
+              // Accept any value for these relaxed fields
+              props[f.schemaKey] = {}
+            }
           }
+          validationSchema = { ...config.input, properties: props }
         }
-        validationSchema = { ...config.input, properties: props }
+
+        const result = validateWithJsonSchema(validationSchema, inputValue)
+
+        if (!result.success) {
+          if (jsonFormat === true) {
+            writeErr(cmd, JSON.stringify({
+              error: {
+                code: 'input_validation_failed',
+                message: `Input validation failed with ${result.errors.length} issue(s)`,
+                // Emit path as array (like Zod) for API compatibility
+                issues: result.errors.map(e => ({ code: e.code, path: e.path_array, message: e.message }))
+              }
+            }) + '\n')
+            // throw to prevent handler execution - mirrors cmd.error() behaviour
+            throw Object.assign(new Error('input_validation_failed'), { exitCode: 1 })
+          }
+          return cmd.error(`input validation failed:\n${formatValidationErrors(result.errors)}`)
+        }
+
+        inputValue = result.data
       }
 
-      const result = validateWithJsonSchema(validationSchema, inputValue)
-
-      if (result.success) {
-        parsed.input = result.data
-        if (Object.keys(rawBodyValues).length > 0) {
-          parsed.rawBodyValues = rawBodyValues
-        }
-      } else {
-        if (jsonFormat === true) {
-          writeErr(cmd, JSON.stringify({
-            error: {
-              code: 'input_validation_failed',
-              message: `Input validation failed with ${result.errors.length} issue(s)`,
-              // Emit path as array (like Zod) for API compatibility
-              issues: result.errors.map(e => ({ code: e.code, path: e.path_array, message: e.message }))
-            }
-          }) + '\n')
-          // throw to prevent handler execution - mirrors cmd.error() behaviour
-          throw Object.assign(new Error('input_validation_failed'), { exitCode: 1 })
-        }
-        return cmd.error(`input validation failed:\n${formatValidationErrors(result.errors)}`)
+      parsed.input = inputValue as Record<string, unknown>
+      if (Object.keys(rawBodyValues).length > 0) {
+        parsed.rawBodyValues = rawBodyValues
       }
     }
 
