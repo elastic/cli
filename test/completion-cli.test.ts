@@ -66,7 +66,7 @@ describe('elastic CLI -- shell completion end-to-end', () => {
     const { code, stdout } = await runCli(['__complete', '--', ''])
     assert.equal(code, 0, `expected exit 0, got ${code}`)
     const out = parseProtocol(stdout)
-    for (const expected of ['version', 'stack', 'cloud', 'docs', 'config', 'sanitize', 'es', 'kb', 'completion']) {
+    for (const expected of ['version', 'stack', 'cloud', 'docs', 'config', 'sanitize', 'es', 'kb', 'completion', 'status']) {
       assert.ok(out.candidates.includes(expected), `missing top-level "${expected}" in ${out.candidates.join(',')}`)
     }
     assert.equal(out.directive & 2, 2, 'expected NO_FILE_COMP bit (2) in directive')

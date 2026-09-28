@@ -22,7 +22,7 @@ import { join } from 'node:path'
 import { mkdtemp, readFile, rm, unlink, writeFile } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
-import { defineCommand, defineGroup } from '../factory.ts'
+import { defineCommand, defineGroup, ttyRequiredError } from '../factory.ts'
 import type { JsonValue, OpaqueCommandHandle } from '../factory.ts'
 import {
   readRawConfig,
@@ -346,6 +346,10 @@ async function handleContextEdit (parsed: {
 
   const updates = collectFieldUpdates(options)
   const hasFlagEdits = updates.plains.length > 0 || updates.secrets.length > 0
+
+  if (!hasFlagEdits && process.stdin.isTTY !== true) {
+    return ttyRequiredError([...PLAIN_FIELDS, ...SECRET_FIELDS].map((f) => f.flag))
+  }
 
   if (hasFlagEdits) {
     // Flag-patch mode

@@ -5,6 +5,7 @@
 
 import { EsResponseError, EsConnectionError } from '../lib/es-client.ts'
 import type { JsonValue } from '../factory.ts'
+import { AUTH_FAILURE_HINT } from '../output.ts'
 
 /** Builds a `missing_config` error payload from a thrown error. */
 export function missingConfigError (err: unknown): JsonValue {
@@ -47,13 +48,13 @@ export function transportError (err: unknown): JsonValue {
       : err.statusCode === 404
         ? 'not_found'
         : 'transport_error'
-    return {
-      error: {
-        code,
-        status_code: err.statusCode,
-        body: err.body as JsonValue ?? null
-      }
+    const error: Record<string, JsonValue> = {
+      code,
+      status_code: err.statusCode,
+      body: err.body as JsonValue ?? null,
     }
+    if (err.statusCode === 401 || err.statusCode === 403) error.hint = AUTH_FAILURE_HINT
+    return { error }
   }
 
   if (err instanceof EsConnectionError) {
