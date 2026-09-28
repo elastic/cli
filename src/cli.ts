@@ -287,15 +287,14 @@ if (firstArg == null && !process.argv.includes('--json') && !(earlyConfig?.ok ==
 }
 
 // Learn-more footer (root help only): point humans and agents at schema discovery.
-// Skipped for --json so structured help stays parseable.
-if (!process.argv.includes('--json')) {
-  program.addHelpText('after', () => [
-    '',
-    'LEARN MORE',
-    '  For one command: elastic <command> --help --json',
-    '  For the full tree: elastic cli-schema',
-  ].join('\n'))
-}
+// Skipped for --json so structured help stays parseable; evaluated at render
+// time so the parsed global flag is visible.
+program.addHelpText('after', () => hasGlobalJsonFlag(program) ? '' : [
+  '',
+  'LEARN MORE',
+  '  See JSON schema for this command\'s accepted inputs: elastic <command> --help --json',
+  '  See schemas for the entire command tree: elastic cli-schema',
+].join('\n'))
 
 // Bare invocation: show help
 if (argv.length === 0) {
