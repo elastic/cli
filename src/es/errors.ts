@@ -5,9 +5,7 @@
 
 import { EsResponseError, EsConnectionError } from '../lib/es-client.ts'
 import type { JsonValue } from '../factory.ts'
-
-const AUTH_FAILURE_HINT =
-  'Check your API key or username/password in the config file. Run `elastic status --json` to test connectivity.'
+import { AUTH_FAILURE_HINT } from '../output.ts'
 
 /** Builds a `missing_config` error payload from a thrown error. */
 export function missingConfigError (err: unknown): JsonValue {
