@@ -109,7 +109,8 @@ are checked (in this order):
 3. `.elasticrc.yaml`
 4. `.elasticrc.yml`
 
-Place your config at `~/.elasticrc.yml` (recommended).
+Place your config at `~/.elasticrc.yml` (recommended). If no home config exists,
+`$XDG_CONFIG_HOME/elastic/` is checked next (e.g. `~/.config/elastic/.elasticrc.yml`).
 
 To use a config file in a different location, pass `--config-file <path>` or set
 the `ELASTIC_CLI_CONFIG_FILE` environment variable. The flag takes precedence

@@ -19,6 +19,7 @@
  *
  * Supports:
  * - Home-directory discovery (~/.elasticrc.yml and variants)
+ * - XDG lookup ($XDG_CONFIG_HOME/elastic) as a fallback
  * - --config-file <path> or ELASTIC_CLI_CONFIG_FILE env var (bypass discovery)
  * - --use-context <name> override (select non-default context)
  * - Clear error messages with field paths and context names
@@ -63,18 +64,39 @@ export function _testResetLooseInlineSecretWarning (): void {
  * Checks each file name in {@link CONFIG_FILE_NAMES} order. Returns the
  * absolute path of the first readable match, or `null` if none is found.
  *
- * @param dir - Directory to search. Defaults to the user's home directory.
+ * When no directory is given, the home directory is searched first for
+ * backwards compatibility, then `$XDG_CONFIG_HOME/elastic` (XDG base
+ * directory spec) so Linux users can keep config under `~/.config`.
+ * An explicit `dir` searches only that directory.
+ *
+ * @param dir - Directory to search. Defaults to home + XDG lookup.
  */
 export async function discoverConfigFile (dir?: string): Promise<string | null> {
-  const searchDir = dir ?? homedir()
-  for (const name of CONFIG_FILE_NAMES) {
-    const candidate = join(searchDir, name)
-    try {
-      await access(candidate, constants.R_OK)
-      return candidate
-    } catch { continue }
+  const searchDirs = dir != null
+    ? [dir]
+    : [homedir(), ...xdgConfigDirs()]
+  for (const searchDir of searchDirs) {
+    for (const name of CONFIG_FILE_NAMES) {
+      const candidate = join(searchDir, name)
+      try {
+        await access(candidate, constants.R_OK)
+        return candidate
+      } catch { continue }
+    }
   }
   return null
+}
+
+/**
+ * Extra config search directories from the environment.
+ *
+ * Currently just the XDG config home (`$XDG_CONFIG_HOME/elastic`,
+ * honoring an explicitly set variable on any platform).
+ */
+function xdgConfigDirs (): string[] {
+  const xdg = process.env.XDG_CONFIG_HOME
+  if (xdg == null || xdg === '') return []
+  return [join(xdg, 'elastic')]
 }
 
 /**

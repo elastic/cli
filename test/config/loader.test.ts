@@ -129,6 +129,58 @@ describe('discoverConfigFile', () => {
     const found = await discoverConfigFile('/nonexistent/path')
     assert.equal(found, null)
   })
+
+  it('falls back to $XDG_CONFIG_HOME/elastic when home has no config', async () => {
+    const fakeHome = await mkdtemp(join(tmpdir(), 'elastic-cli-xdg-home-'))
+    const xdgDir = join(fakeHome, 'xdghome')
+    await mkdir(join(xdgDir, 'elastic'), { recursive: true })
+    await writeFile(join(xdgDir, 'elastic', '.elasticrc.yml'), VALID_CONFIG_YAML)
+    const prevHome = process.env.HOME
+    const prevProfile = process.env.USERPROFILE
+    const prevXdg = process.env.XDG_CONFIG_HOME
+    process.env.HOME = fakeHome
+    process.env.USERPROFILE = fakeHome
+    process.env.XDG_CONFIG_HOME = xdgDir
+    try {
+      const found = await discoverConfigFile()
+      assert.ok(found != null)
+      assert.ok(found.endsWith(join('elastic', '.elasticrc.yml')))
+    } finally {
+      if (prevHome === undefined) delete process.env.HOME
+      else process.env.HOME = prevHome
+      if (prevProfile === undefined) delete process.env.USERPROFILE
+      else process.env.USERPROFILE = prevProfile
+      if (prevXdg === undefined) delete process.env.XDG_CONFIG_HOME
+      else process.env.XDG_CONFIG_HOME = prevXdg
+      await rm(fakeHome, { recursive: true })
+    }
+  })
+
+  it('prefers home config over XDG config', async () => {
+    const fakeHome = await mkdtemp(join(tmpdir(), 'elastic-cli-xdg-pref-'))
+    const xdgDir = join(fakeHome, 'xdghome')
+    await mkdir(join(xdgDir, 'elastic'), { recursive: true })
+    await writeFile(join(fakeHome, '.elasticrc.yml'), VALID_CONFIG_YAML)
+    await writeFile(join(xdgDir, 'elastic', '.elasticrc.yml'), VALID_CONFIG_YAML)
+    const prevHome = process.env.HOME
+    const prevProfile = process.env.USERPROFILE
+    const prevXdg = process.env.XDG_CONFIG_HOME
+    process.env.HOME = fakeHome
+    process.env.USERPROFILE = fakeHome
+    process.env.XDG_CONFIG_HOME = xdgDir
+    try {
+      const found = await discoverConfigFile()
+      assert.equal(found, join(fakeHome, '.elasticrc.yml'))
+    } finally {
+      if (prevHome === undefined) delete process.env.HOME
+      else process.env.HOME = prevHome
+      if (prevProfile === undefined) delete process.env.USERPROFILE
+      else process.env.USERPROFILE = prevProfile
+      if (prevXdg === undefined) delete process.env.XDG_CONFIG_HOME
+      else process.env.XDG_CONFIG_HOME = prevXdg
+      await rm(fakeHome, { recursive: true })
+    }
+  })
 })
 
 // ---------------------------------------------------------------------------
