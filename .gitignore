@@ -1,6 +1,7 @@
 node_modules
 dist
 build
+!.agents/skills/build/
 *.tsbuildinfo
 *.log
 .env*
