@@ -252,6 +252,49 @@ describe('elastic CLI -- config caching (preAction reuse)', () => {
   })
 })
 
+describe('elastic CLI -- availability filtering honors --use-context', () => {
+  // put-user-managed-service-account is stack-only since 9.6.0, so a 9.5 context
+  // must filter it out. The early config load (which resolves the availability
+  // target before command registration) must therefore honor --use-context.
+  async function writeConfig (): Promise<string> {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-avail-'))
+    const { writeFile } = await import('node:fs/promises')
+    const configYaml = [
+      'current_context: unset',
+      'contexts:',
+      '  unset:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '  stack95:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '      version: "9.5"',
+    ].join('\n')
+    await writeFile(join(dir, '.elasticrc.yml'), configYaml)
+    return dir
+  }
+
+  it('shows the stack-9.6 command when the active context has no version', async () => {
+    const dir = await writeConfig()
+    try {
+      const { stdout } = await runCli(['es', 'security', '--help'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } })
+      assert.ok(stdout.includes('put-user-managed-service-account'), 'expected command visible with no version target')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('hides the stack-9.6 command when --use-context selects a 9.5 context', async () => {
+    const dir = await writeConfig()
+    try {
+      const { stdout } = await runCli(['--use-context', 'stack95', 'es', 'security', '--help'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } })
+      assert.ok(!stdout.includes('put-user-managed-service-account'), 'expected command filtered for 9.5 context target')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+})
+
 describe('elastic CLI -- config-free commands', () => {
   it('`elastic --version` succeeds without a config file', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-'))

@@ -98,6 +98,7 @@ if (!wantsHelp) {
 
 // Determine first argument (namespace routing)
 let operands: string[]
+
 let firstArg: string | undefined
 if (!hasGlobalFlags) {
   operands = operandsFromScan
@@ -138,6 +139,38 @@ if (shortcutTarget != null) {
   }
 }
 
+// Early config load: must run before command registration so that registerEsCommandsLazy
+// (and registerKbCommandsLazy) can read the elasticsearch/kibana version from the resolved
+// config and apply availability filtering at build time. Also enables --command-profile
+// command hiding in help output (hideBlockedCommands is called after registration below).
+let earlyConfig: LoadConfigResult | undefined
+const SKIP_EARLY_CONFIG: ReadonlySet<string> = new Set([
+  'version', 'extension', 'status', 'completion', '__complete',
+  'docs', 'config', 'sanitize', 'cli-schema', 'help',
+])
+if (firstArg != null && !SKIP_EARLY_CONFIG.has(firstArg)) {
+  const sniffArg = (flag: string): string | undefined => {
+    const idx = process.argv.indexOf(flag)
+    return idx !== -1 ? process.argv[idx + 1] : undefined
+  }
+  const earlyProfile = sniffArg('--command-profile') as BuiltInProfile | undefined
+  const earlyContext = sniffArg('--use-context')
+  const earlyConfigPath = sniffArg('--config-file')
+  const hasOverrides = earlyConfigPath != null || earlyContext != null || earlyProfile != null
+
+  const { loadConfig } = await import('./config/loader.js')
+  earlyConfig = await loadConfig({
+    ...(earlyConfigPath != null && { configPath: earlyConfigPath }),
+    ...(earlyContext != null && { contextName: earlyContext }),
+    ...(earlyProfile != null && { profileName: earlyProfile }),
+    refresh: hasOverrides,
+  })
+  if (earlyConfig.ok) {
+    const { setResolvedConfig } = await import('./config/store.js')
+    setResolvedConfig(earlyConfig.value)
+  }
+}
+
 // Command registration (lazy: only load the targeted namespace)
 
 // Version and JSON help only needed for root invocations
@@ -162,6 +195,11 @@ if (firstArg != null) {
     stub.allowUnknownOption(true)
     program.addCommand(stub)
   }
+}
+
+// Apply command-profile hiding now that commands are registered.
+if (earlyConfig?.ok === true) {
+  hideBlockedCommands(program, earlyConfig.value.commands)
 }
 
 // Completion commands
@@ -235,35 +273,6 @@ if (firstArg === 'status') {
   const stub = new Command('status')
   stub.description('Verify connectivity and authentication for the active context')
   program.addCommand(stub)
-}
-
-// Early config load (for --command-profile filtering in help output)
-let earlyConfig: LoadConfigResult | undefined
-const hasProfileFlag = argv.includes('--command-profile')
-const CONTEXT_NAMESPACES = new Set(['stack', 'cloud'])
-// skip early config when Commander will just print help -- no action will fire.
-// Also skip for any --help invocation (wantsHelp) unless --command-profile is set,
-// since help text never needs credentials or context resolution.
-const willJustPrintHelp = wantsHelp || (CONTEXT_NAMESPACES.has(firstArg ?? '') && operands.length < 3)
-if (firstArg != null && (!willJustPrintHelp || hasProfileFlag)) {
-  const SKIP_EARLY_CONFIG: ReadonlySet<string> = new Set([
-    'version', 'extension', 'status', 'completion', '__complete',
-    'docs', 'config', 'sanitize', 'cli-schema', 'help',
-  ])
-  if (!SKIP_EARLY_CONFIG.has(firstArg)) {
-    const profileArgIdx = process.argv.indexOf('--command-profile')
-    const earlyProfile = profileArgIdx !== -1 ? process.argv[profileArgIdx + 1] as BuiltInProfile | undefined : undefined
-
-    const { loadConfig } = await import('./config/loader.js')
-    earlyConfig = await loadConfig({
-      ...(earlyProfile != null && { profileName: earlyProfile }),
-    })
-    if (earlyConfig.ok) {
-      const { setResolvedConfig } = await import('./config/store.js')
-      setResolvedConfig(earlyConfig.value)
-      hideBlockedCommands(program, earlyConfig.value.commands)
-    }
-  }
 }
 
 // Logo banner (root help only). Loaded lazily -- dynamic import keeps it out of the
