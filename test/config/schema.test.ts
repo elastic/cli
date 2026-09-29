@@ -564,3 +564,90 @@ describe('ConfigFileSchema', () => {
     }
   })
 })
+
+describe('ServiceBlockSchema — version field', () => {
+  const baseUrl = 'https://es.example.com:9200'
+
+  it('accepts version "9.2" (major.minor)', () => {
+    const result = ServiceBlockSchema.safeParse({ url: baseUrl, version: '9.2' })
+    assert.equal(result.success, true)
+    if (result.success) assert.equal(result.data.version, '9.2')
+  })
+
+  it('accepts version "9.2.3" (major.minor.patch)', () => {
+    const result = ServiceBlockSchema.safeParse({ url: baseUrl, version: '9.2.3' })
+    assert.equal(result.success, true)
+    if (result.success) assert.equal(result.data.version, '9.2.3')
+  })
+
+  it('accepts version "serverless"', () => {
+    const result = ServiceBlockSchema.safeParse({ url: baseUrl, version: 'serverless' })
+    assert.equal(result.success, true)
+    if (result.success) assert.equal(result.data.version, 'serverless')
+  })
+
+  it('rejects version "foo" (arbitrary string)', () => {
+    const result = ServiceBlockSchema.safeParse({ url: baseUrl, version: 'foo' })
+    assert.equal(result.success, false)
+    if (result.success) return
+    assert.ok(result.errors.some(e => e.path === '.version'))
+  })
+
+  it('rejects version "" (empty string)', () => {
+    const result = ServiceBlockSchema.safeParse({ url: baseUrl, version: '' })
+    assert.equal(result.success, false)
+  })
+
+  it('rejects version "9" (major only)', () => {
+    const result = ServiceBlockSchema.safeParse({ url: baseUrl, version: '9' })
+    assert.equal(result.success, false)
+    if (result.success) return
+    assert.ok(result.errors.some(e => e.path === '.version'))
+  })
+
+  it('rejects version "v9.2" (v-prefix)', () => {
+    const result = ServiceBlockSchema.safeParse({ url: baseUrl, version: 'v9.2' })
+    assert.equal(result.success, false)
+    if (result.success) return
+    assert.ok(result.errors.some(e => e.path === '.version'))
+  })
+
+  it('rejects version "9.2.3.4" (four-part version)', () => {
+    const result = ServiceBlockSchema.safeParse({ url: baseUrl, version: '9.2.3.4' })
+    assert.equal(result.success, false)
+    if (result.success) return
+    assert.ok(result.errors.some(e => e.path === '.version'))
+  })
+
+  it('preserves version through ConfigFileSchema (elasticsearch block)', () => {
+    const result = ConfigFileSchema.safeParse({
+      'current_context': 'prod',
+      contexts: { prod: { elasticsearch: { url: baseUrl, version: '9.2' } } },
+    })
+    assert.equal(result.success, true)
+    if (result.success) assert.equal(result.data.contexts['prod']?.elasticsearch?.version, '9.2')
+  })
+
+  it('preserves version through ConfigFileSchema (kibana block)', () => {
+    const result = ConfigFileSchema.safeParse({
+      'current_context': 'prod',
+      contexts: { prod: { kibana: { url: 'https://kb.example.com:5601', version: '9.2.1' } } },
+    })
+    assert.equal(result.success, true)
+    if (result.success) assert.equal(result.data.contexts['prod']?.kibana?.version, '9.2.1')
+  })
+
+  it('rejects invalid version in nested context via ConfigFileSchema', () => {
+    const result = ConfigFileSchema.safeParse({
+      'current_context': 'prod',
+      contexts: { prod: { elasticsearch: { url: baseUrl, version: 'bad-version' } } },
+    })
+    assert.equal(result.success, false)
+  })
+
+  it('version absent leaves block unchanged (backward compat)', () => {
+    const result = ServiceBlockSchema.safeParse({ url: baseUrl, auth: { api_key: 'k' } })
+    assert.equal(result.success, true)
+    if (result.success) assert.equal(result.data.version, undefined)
+  })
+})
