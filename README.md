@@ -33,6 +33,11 @@ npx -y @elastic/cli --help
 > source ~/.bashrc
 > ```
 
+## For agents
+
+Prefer `elastic <command> --help --json` for one command and `elastic cli-schema`
+for the full tree. Do not ingest `docs/cli/schema.json` directly.
+
 ## Shell completion
 
 `elastic completion <shell>` prints a wrapper script that hooks the CLI into
