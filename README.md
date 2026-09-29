@@ -340,6 +340,7 @@ All `es` subcommands support:
 |---|---|
 | `--dry-run` | Validate inputs and exit without making any API call |
 | `--input-file <path>` | Load command input from a JSON file instead of CLI flags |
+| `--no-validate` | Skip input validation and send the request as-is (escape hatch for schema mismatches; only available on commands with a JSON Schema input) |
 
 **Subcommand groups** (each with their own subcommands):
 
@@ -392,6 +393,7 @@ All `kb` subcommands support:
 |---|---|
 | `--dry-run` | Validate inputs and exit without making any API call |
 | `--input-file <path>` | Load command input from a JSON file instead of CLI flags |
+| `--no-validate` | Skip input validation and send the request as-is (escape hatch for schema mismatches; only available on commands with a JSON Schema input) |
 
 ```bash
 elastic kb data-views list
