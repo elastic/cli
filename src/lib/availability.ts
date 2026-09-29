@@ -72,3 +72,32 @@ export function isAvailable (xAvailability: unknown, target: AvailabilityTarget 
 
   return true
 }
+
+/**
+ * Returns a shallow copy of `schema` with `properties` filtered by availability
+ * and `required` pruned to match. When `target` is `undefined`, returns the schema unchanged.
+ */
+export function filterSchemaByAvailability (
+  schema: Record<string, unknown>,
+  target: AvailabilityTarget | undefined
+): Record<string, unknown> {
+  if (target == null) return schema
+  const properties = schema['properties'] as Record<string, unknown> | undefined
+  if (properties == null) return schema
+
+  const filtered = Object.fromEntries(
+    Object.entries(properties).filter(([, prop]) =>
+      isAvailable((prop as Record<string, unknown>)['x-availability'], target)
+    )
+  )
+
+  const required = Array.isArray(schema['required'])
+    ? (schema['required'] as string[]).filter((k) => k in filtered)
+    : undefined
+
+  return {
+    ...schema,
+    properties: filtered,
+    ...(Array.isArray(schema['required']) ? { required } : {}),
+  }
+}

@@ -4240,6 +4240,105 @@ async function invokeCapturingStreams(
   return captureStreams(() => prog.parseAsync([...rootArgv, cmd.name(), ...cmdArgv], { from: 'user' }))
 }
 
+describe('JSON schema in help output -- availability filtering', () => {
+  async function captureJsonHelp (cmd: OpaqueCommandHandle): Promise<Record<string, unknown>> {
+    const prog = new Command('elastic')
+    prog.option('--json', 'output as JSON')
+    prog.addCommand(cmd as unknown as InstanceType<typeof Command>)
+    prog.exitOverride()
+    ;(cmd as unknown as InstanceType<typeof Command>).exitOverride()
+    let out = ''
+    ;(cmd as unknown as InstanceType<typeof Command>).configureOutput({ writeOut: (s: string) => { out += s } })
+    try {
+      await prog.parseAsync(['--json', cmd.name(), '--help'], { from: 'user' })
+    } catch { /* exitOverride on --help */ }
+    return JSON.parse(out) as Record<string, unknown>
+  }
+
+  it('no target → all properties present in schema output', async () => {
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: {
+        type: 'object',
+        properties: {
+          index: { type: 'string', 'x-availability': { stack: {} } },
+          size: { type: 'number', 'x-availability': { serverless: {} } },
+        },
+      },
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    const props = schema['properties'] as Record<string, unknown>
+    assert.ok('index' in props, 'stack prop must appear with no target')
+    assert.ok('size' in props, 'serverless prop must appear with no target')
+  })
+
+  it('serverless target → excluded stack-only properties absent from schema output', async () => {
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: {
+        type: 'object',
+        properties: {
+          index: { type: 'string', 'x-availability': { stack: {} } },
+          size: { type: 'number', 'x-availability': { serverless: {} } },
+        },
+        required: ['index', 'size'],
+      },
+      target: 'serverless' as import('../src/lib/availability.ts').AvailabilityTarget,
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    const props = schema['properties'] as Record<string, unknown>
+    assert.ok(!('index' in props), 'stack-only prop must be absent for serverless target')
+    assert.ok('size' in props, 'serverless prop must remain for serverless target')
+  })
+
+  it('with target → required array pruned for excluded properties', async () => {
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: {
+        type: 'object',
+        properties: {
+          index: { type: 'string', 'x-availability': { stack: {} } },
+          size: { type: 'number', 'x-availability': { serverless: {} } },
+        },
+        required: ['index', 'size'],
+      },
+      target: 'serverless' as import('../src/lib/availability.ts').AvailabilityTarget,
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    const required = schema['required'] as string[]
+    assert.ok(Array.isArray(required))
+    assert.ok(!required.includes('index'), 'excluded prop must be pruned from required')
+    assert.ok(required.includes('size'), 'available prop must remain in required')
+  })
+
+  it('stack target → version-gated properties absent from schema output', async () => {
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: {
+        type: 'object',
+        properties: {
+          knn: { type: 'object', 'x-availability': { stack: { since: '9.4.0' } } },
+          query: { type: 'object', 'x-availability': { stack: { since: '7.0.0' } } },
+        },
+      },
+      target: [9, 2] as import('../src/lib/availability.ts').AvailabilityTarget,
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    const props = schema['properties'] as Record<string, unknown>
+    assert.ok(!('knn' in props), 'future version prop must be absent for target 9.2')
+    assert.ok('query' in props, 'old version prop must remain for target 9.2')
+  })
+})
+
+
 describe('error result detection', () => {
   it('error result in JSON mode goes to stderr with non-zero exit', async () => {
     const cmd = defineCommand({

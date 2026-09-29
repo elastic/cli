@@ -563,3 +563,65 @@ describe('registerEsCommands - REST-style body (#360)', () => {
     assert.ok(!err.includes('input validation failed'), `unexpected validation error: ${err}`)
   })
 })
+
+// ---------------------------------------------------------------------------
+// registerEsCommandsLazy — availability filtering
+// ---------------------------------------------------------------------------
+
+import type { EsApiMeta } from '../../src/es/apis.ts'
+import type { AvailabilityTarget } from '../../src/lib/availability.ts'
+
+describe('registerEsCommandsLazy — availability filtering', () => {
+  function fakeMeta (name: string, xAvailability?: unknown): EsApiMeta {
+    return {
+      id: `test.${name}`, name, namespace: null, description: `${name} desc`, namespaceFile: 'fake',
+      ...(xAvailability !== undefined ? { 'x-availability': xAvailability } : {}),
+    } as unknown as EsApiMeta
+  }
+
+  it('no target → all manifest entries appear in the command tree', async () => {
+    const manifest = [
+      fakeMeta('cmd-stack', { stack: {} }),
+      fakeMeta('cmd-svl', { serverless: {} }),
+    ]
+    const handle = await registerEsCommandsLazy({
+      argv: ['node', 'elastic', 'es'],
+      manifest,
+    })
+    const names = handle.commands.map((c) => c.name())
+    assert.ok(names.includes('cmd-stack'), 'stack cmd must appear with no target')
+    assert.ok(names.includes('cmd-svl'), 'serverless cmd must appear with no target')
+  })
+
+  it('serverless target → omits stack-only commands', async () => {
+    const manifest = [
+      fakeMeta('cmd-stack', { stack: {} }),
+      fakeMeta('cmd-svl', { serverless: {} }),
+    ]
+    const target: AvailabilityTarget = 'serverless'
+    const handle = await registerEsCommandsLazy({
+      argv: ['node', 'elastic', 'es'],
+      manifest,
+      target,
+    })
+    const names = handle.commands.map((c) => c.name())
+    assert.ok(!names.includes('cmd-stack'), 'stack-only cmd must be filtered for serverless target')
+    assert.ok(names.includes('cmd-svl'), 'serverless cmd must remain for serverless target')
+  })
+
+  it('stack target → omits serverless-only commands', async () => {
+    const manifest = [
+      fakeMeta('cmd-stack', { stack: {} }),
+      fakeMeta('cmd-svl', { serverless: {} }),
+    ]
+    const target: AvailabilityTarget = [9, 0]
+    const handle = await registerEsCommandsLazy({
+      argv: ['node', 'elastic', 'es'],
+      manifest,
+      target,
+    })
+    const names = handle.commands.map((c) => c.name())
+    assert.ok(names.includes('cmd-stack'), 'stack cmd must remain for stack target')
+    assert.ok(!names.includes('cmd-svl'), 'serverless-only cmd must be filtered for stack target')
+  })
+})

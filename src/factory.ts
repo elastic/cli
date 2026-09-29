@@ -13,6 +13,8 @@ import type { SchemaArgDefinition } from './lib/json-schema-args.ts'
 import type { renderText as _RT, formatHandlerError as _FHE } from './output.ts'
 import { pickFields, parseFieldList, applyTemplate, TemplateAgainstPrimitiveError } from './lib/output-transform.ts'
 import { validateName, hasGlobalJsonFlag, configureErrorOutput, commandPath, isCommandAllowed, stripTransportMeta } from './factory-core.ts'
+import type { AvailabilityTarget } from './lib/availability.ts'
+import { filterSchemaByAvailability } from './lib/availability.ts'
 import type { OpaqueCommandHandle, JsonValue, CommandConfig, ParsedResult } from './factory-core.ts'
 import { RawJsonValue } from './factory-core.ts'
 import { YamlResponse } from './lib/yaml-response.ts'
@@ -268,13 +270,15 @@ function isJsonSchemaInput (input: unknown): input is Record<string, unknown> {
 function configureHelpWithSchema (
   cmd: OpaqueCommandHandle,
   inputSchema: Record<string, unknown> | undefined,
+  target?: AvailabilityTarget,
 ): void {
   const origHelp = cmd.createHelp()
   cmd.configureHelp({
     formatHelp: (thisCmd, helper) => {
       if (hasGlobalJsonFlag(thisCmd)) {
-        const jsonSchema = inputSchema != null
-          ? stripTransportMeta(inputSchema as JsonValue)
+        const filteredSchema = inputSchema != null ? filterSchemaByAvailability(inputSchema, target) : undefined
+        const jsonSchema = filteredSchema != null
+          ? stripTransportMeta(filteredSchema as JsonValue)
           : undefined
         return jsonSchema != null ? JSON.stringify(jsonSchema) + '\n' : ''
       }
@@ -449,7 +453,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
   // schema-derived CLI options (registered before --input-file so help text order is correct)
   let schemaArgs: SchemaArgDefinition[] = []
   if (isJsonSchemaInput(config.input)) {
-    schemaArgs = extractSchemaArgs(config.input)
+    schemaArgs = extractSchemaArgs(config.input, config.target)
     validateSchemaArgs(schemaArgs)
     for (const arg of schemaArgs) {
       const suffix = arg.required
@@ -510,7 +514,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
     cmd.option('--yes', 'confirm destructive action without prompting')
   }
 
-  configureHelpWithSchema(cmd, isJsonSchemaInput(config.input) ? config.input : undefined)
+  configureHelpWithSchema(cmd, isJsonSchemaInput(config.input) ? config.input : undefined, config.target)
 
   Object.defineProperty(cmd, '_commandConfig', {
     value: { config, schemaArgs },

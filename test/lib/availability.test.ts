@@ -201,3 +201,65 @@ describe('isAvailable — malformed x-availability', () => {
     assert.equal(isAvailable({ stack: 'bad' }, stackTarget), true)
   })
 })
+
+// ---------------------------------------------------------------------------
+// filterSchemaByAvailability
+// ---------------------------------------------------------------------------
+
+import { filterSchemaByAvailability } from '../../src/lib/availability.ts'
+
+describe('filterSchemaByAvailability', () => {
+  it('returns schema unchanged when target is undefined', () => {
+    const s = { type: 'object', properties: { a: { type: 'string' } } }
+    assert.deepEqual(filterSchemaByAvailability(s, undefined), s)
+  })
+
+  it('filters out properties that fail availability check', () => {
+    const s = {
+      type: 'object',
+      properties: {
+        a: { type: 'string', 'x-availability': { serverless: {} } },
+        b: { type: 'string', 'x-availability': { stack: {} } },
+      },
+    }
+    const result = filterSchemaByAvailability(s, 'serverless')
+    const props = result['properties'] as Record<string, unknown>
+    assert.ok('a' in props, 'serverless prop must survive for serverless target')
+    assert.ok(!('b' in props), 'stack-only prop must be removed for serverless target')
+  })
+
+  it('prunes required array for filtered-out properties', () => {
+    const s = {
+      type: 'object',
+      properties: {
+        a: { type: 'string', 'x-availability': { serverless: {} } },
+        b: { type: 'string', 'x-availability': { stack: {} } },
+      },
+      required: ['a', 'b'],
+    }
+    const result = filterSchemaByAvailability(s, 'serverless')
+    assert.deepEqual(result['required'], ['a'])
+  })
+
+  it('passes through properties without x-availability (fail open)', () => {
+    const s = { type: 'object', properties: { a: { type: 'string' } } }
+    const result = filterSchemaByAvailability(s, [9, 2] as [number, number])
+    const props = result['properties'] as Record<string, unknown>
+    assert.ok('a' in props)
+  })
+
+  it('returns schema unchanged when no properties field', () => {
+    const s = { type: 'string' }
+    const result = filterSchemaByAvailability(s, [9, 2] as [number, number])
+    assert.deepEqual(result, s)
+  })
+
+  it('keeps required intact when it is absent from schema', () => {
+    const s = {
+      type: 'object',
+      properties: { a: { type: 'string', 'x-availability': { stack: {} } } },
+    }
+    const result = filterSchemaByAvailability(s, [9, 0] as [number, number])
+    assert.ok(!('required' in result), 'required should not appear if it was not in original schema')
+  })
+})
