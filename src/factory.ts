@@ -230,6 +230,9 @@ function validateOptions (options: import('./factory-core.ts').OptionDefinition[
     seenLong.add(opt.long)
     if (opt.long === 'dry-run') throw new Error('option --dry-run is reserved')
     if (opt.long === 'no-validate') throw new Error('option --no-validate is reserved')
+    // Commander stores the negated --no-validate flag under the synthetic 'validate' key;
+    // reserve it so an author-defined 'validate' option cannot collide with that slot.
+    if (opt.long === 'validate') throw new Error('option --validate is reserved')
     if (opt.short !== undefined) {
       if (seenShort.has(opt.short)) throw new Error(`duplicate option short alias: -${opt.short}`)
       seenShort.add(opt.short)
@@ -746,9 +749,11 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
 
     if (allRaw['dryRun'] === true) {
       if (jsonFormat) {
-        process.stdout.write(JSON.stringify({ success: true }) + '\n')
+        const validationSkipped = allRaw['validate'] === false
+        process.stdout.write(JSON.stringify({ success: true, ...(validationSkipped ? { validationSkipped: true } : {}) }) + '\n')
       } else {
-        process.stdout.write('dry run: inputs valid, no action performed\n')
+        const validationNote = allRaw['validate'] === false ? ' (validation skipped)' : ''
+        process.stdout.write(`dry run: inputs valid${validationNote}, no action performed\n`)
       }
       return
     }
