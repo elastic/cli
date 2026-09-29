@@ -25,6 +25,7 @@ import { checkElasticsearch, checkKibana, checkCloud } from './checks.ts'
 import type { EsCheck, KbCheck, CloudCheck } from './checks.ts'
 import { formatStatusText } from './format.ts'
 import type { StatusResult } from './types.ts'
+import { colorsEnabled } from '../output.ts'
 import { classifyConfigLoadError } from '../help/catalog.ts'
 
 /**
@@ -125,9 +126,8 @@ export function registerStatusCommand (): OpaqueCommandHandle {
     description: 'Verify connectivity and authentication for the active context',
     handler: statusHandler,
     formatOutput: (result, parsed) => {
-      const opts = parsed.options ?? {}
-      const noColor = opts['color'] === false || process.env.NO_COLOR !== undefined
-      const plain = noColor || process.stdout.isTTY !== true
+      const flagOff = parsed.options['color'] === false
+      const plain = flagOff || !colorsEnabled(process.stdout.isTTY === true)
       return formatStatusText(result as unknown as StatusResult, { plain })
     },
   })
