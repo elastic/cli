@@ -4,6 +4,7 @@
  */
 
 import { validateWithJsonSchema } from '../lib/ajv-validate.ts'
+import { parseVersionHint } from '../lib/availability.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './profiles.ts'
 import type {
   Auth,
@@ -93,14 +94,12 @@ function urlError (url: unknown, path: string): FieldError | undefined {
   return undefined
 }
 
-// ponytail: inline regex — Milestone 2 will extract parseVersionHint() to src/lib/availability.ts and share it
-const VERSION_RE = /^\d+\.\d+(\.\d+)?$/
 
 /** Verifies a version hint is a valid semver (major.minor[.patch]) or the literal "serverless". */
 function versionError (version: unknown, path: string): FieldError | undefined {
   if (version === undefined) return undefined
   if (typeof version !== 'string') return undefined // shape errors are AJV's job
-  if (version === 'serverless' || VERSION_RE.test(version)) return undefined
+  if (parseVersionHint(version) != null) return undefined
   return { path, message: 'must be a semver version (e.g. "9.2" or "9.2.3") or "serverless"' }
 }
 
