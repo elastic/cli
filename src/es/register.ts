@@ -300,7 +300,7 @@ async function buildEagerTree (definitions: EsApiDefinition[]): Promise<OpaqueCo
  * `defineCommand`. All other leaves remain stubs.
  */
 async function buildLazyTree (rawManifest: readonly EsApiMeta[], argv: readonly string[], target?: AvailabilityTarget): Promise<OpaqueCommandHandle> {
-  const manifest = rawManifest.filter((m) => isAvailable((m as unknown as Record<string, unknown>)['x-availability'], target))
+  const manifest = rawManifest.filter((m) => isAvailable((m as unknown as Record<string, unknown>)['availability'], target))
   const invoked = sniffInvokedLeaf(argv, manifest)
   // The namespace the user is targeting (may or may not have a specific leaf).
   // We only fully expand leaf stubs for this namespace; all others get an empty

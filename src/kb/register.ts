@@ -105,7 +105,7 @@ export async function registerKbCommandsLazy (
     if (version != null) target = parseVersionHint(version) ?? undefined
   }
   const manifest = kbApiManifest.filter(m =>
-    isAvailable((m as unknown as Record<string, unknown>)['x-availability'], target)
+    isAvailable((m as unknown as Record<string, unknown>)['availability'], target)
   )
   const invoked = sniffInvokedLeaf(argv, manifest)
 

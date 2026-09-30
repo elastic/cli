@@ -575,7 +575,7 @@ describe('registerEsCommandsLazy — availability filtering', () => {
   function fakeMeta (name: string, xAvailability?: unknown): EsApiMeta {
     return {
       id: `test.${name}`, name, namespace: null, description: `${name} desc`, namespaceFile: 'fake',
-      ...(xAvailability !== undefined ? { 'x-availability': xAvailability } : {}),
+      ...(xAvailability !== undefined ? { availability: xAvailability } : {}),
     } as unknown as EsApiMeta
   }
 
@@ -652,7 +652,7 @@ describe('registerEsCommandsLazy — target from resolved config', () => {
   function fakeMeta4 (name: string, xAvailability?: unknown): EsApiMeta {
     return {
       id: `m4.${name}`, name, namespace: null, description: `${name} desc`, namespaceFile: 'fake',
-      ...(xAvailability !== undefined ? { 'x-availability': xAvailability } : {}),
+      ...(xAvailability !== undefined ? { availability: xAvailability } : {}),
     } as unknown as EsApiMeta
   }
 

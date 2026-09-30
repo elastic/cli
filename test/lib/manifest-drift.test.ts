@@ -61,7 +61,7 @@ describe('manifest/definition parity (upstream drift guard)', () => {
     })
 
     it('pins the es command count', () => {
-      const expected = 573
+      const expected = 576
       assert.equal(apiManifest.length, expected, countDriftMessage('es', expected, apiManifest.length))
     })
   })
@@ -90,7 +90,7 @@ describe('manifest/definition parity (upstream drift guard)', () => {
     })
 
     it('pins the kb command count', () => {
-      const expected = 667
+      const expected = 682
       assert.equal(kbApiManifest.length, expected, countDriftMessage('kb', expected, kbApiManifest.length))
     })
 
@@ -126,7 +126,7 @@ describe('manifest/definition parity (upstream drift guard)', () => {
 
   describe('serverless', () => {
     it('pins the serverless command count', async () => {
-      const expected = 41
+      const expected = 53
       const actual = (await loadServerlessApis()).length
       assert.equal(actual, expected, countDriftMessage('serverless', expected, actual))
     })
