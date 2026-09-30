@@ -4,9 +4,10 @@
 creates a Vector DB serverless project, indexes sample data, and proves semantic
 search against keyword search.
 
-**Status: skeleton.** The journey is not ported yet — see
-[`.specify/specs/quickstart-extension-design.md`](../../.specify/specs/quickstart-extension-design.md)
-for the design and the full list of what the extension model costs.
+**Status: skeleton.** The journey is not ported yet; the entrypoint exits with a
+`not_implemented` envelope. What is here covers the three things the extension
+model forces to differ from the in-tree implementation: flag-based environment
+selection, CLI resolution, and the error envelope.
 
 ## Install
 
@@ -45,11 +46,11 @@ Use `elastic quickstart help`.
 
 ## Requirements
 
-- Node.js >= 22.18 — the entrypoint runs TypeScript directly under Node's type
+- Node.js >= 22.18. The entrypoint runs TypeScript directly under Node's type
   stripping, because extensions are installed with `--ignore-scripts` and no
   build step runs.
-- The `elastic` CLI on `PATH`, or `--cli-bin`. The extension orchestrates real
-  CLI commands as subprocesses rather than reimplementing them.
+- The `elastic` CLI on `PATH`, or `--cli-bin`. The extension orchestrates CLI
+  commands as subprocesses rather than reimplementing them.
 
 ## Development
 

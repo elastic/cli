@@ -8,15 +8,15 @@
  *
  * The CLI's command factory normally owns this. Extensions are spawned with
  * inherited stdio and no wrapper, so the envelope the agent contract promises
- * -- `{"error": {"code", "message"}}` on stderr, non-zero exit -- is produced
- * here instead.
+ * (`{"error": {"code", "message"}}` on stderr, non-zero exit) is produced here
+ * instead.
  */
 
 /** A failure with a stable machine-readable code. */
 export class QuickstartError extends Error {
   readonly code: string
   readonly exitCode: number
-  /** Actionable commands or steps rendered under the message for humans. */
+  /** Commands or steps rendered under the message for humans. */
   readonly nextSteps: readonly string[]
 
   constructor (code: string, message: string, nextSteps: readonly string[] = [], exitCode = 1) {

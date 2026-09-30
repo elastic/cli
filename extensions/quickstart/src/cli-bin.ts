@@ -9,8 +9,8 @@
  * The in-tree MVP re-execs itself via `process.execPath` plus `process.argv[1]`.
  * An extension is a separate process with no handle on its parent and no
  * `ELASTIC_CLI_BIN` in the environment, so the binary is resolved from PATH and
- * version-probed up front -- a missing or unrunnable CLI must fail before the
- * flow starts provisioning, not midway through.
+ * version-probed up front. A missing or unrunnable CLI has to fail before the
+ * flow starts provisioning rather than midway through.
  */
 
 import { spawn } from 'node:child_process'

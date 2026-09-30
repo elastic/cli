@@ -8,7 +8,7 @@
  *
  * Ported from the in-tree MVP's executor with one change: the command is the
  * binary resolved by `cli-bin.ts` rather than a re-exec of the current process.
- * Every other reason for orchestrating by subprocess still holds -- the command
+ * Every other reason for orchestrating by subprocess still holds. The command
  * factory owns validation, `--dry-run`, and error normalisation; `--wait` and
  * `--save-as` are registration-time wrappers; and the resolved-config store is
  * write-once per process, which a flow that creates a context mid-run cannot use.

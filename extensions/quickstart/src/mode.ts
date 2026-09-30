@@ -12,7 +12,7 @@
  * mode even at a TTY.
  *
  * Coding agents often allocate a PTY, so TTY detection alone is not enough.
- * Agents must pass `--json` explicitly -- that is the published contract.
+ * Agents must pass `--json` explicitly. That is the published contract.
  * Extension dispatch inherits stdio, so these signals survive the hop.
  */
 
