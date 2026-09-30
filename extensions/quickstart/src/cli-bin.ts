@@ -15,7 +15,7 @@
 
 import { spawn } from 'node:child_process'
 import { accessSync, constants, existsSync } from 'node:fs'
-import { delimiter, join } from 'node:path'
+import { join } from 'node:path'
 import { QuickstartError } from './errors.ts'
 
 /** The resolved CLI and the version it reported. */
@@ -40,17 +40,29 @@ function isExecutable (p: string): boolean {
   }
 }
 
+/**
+ * PATH separator for `platform`.
+ *
+ * Derived from the argument rather than `node:path`'s `delimiter`, which
+ * reflects the host and would make the injected platform a half-truth: a
+ * `win32` lookup on macOS would split on `:` and find nothing.
+ */
+export function pathSeparator (platform: NodeJS.Platform): string {
+  return platform === 'win32' ? ';' : ':'
+}
+
 /** Resolves `bin` against PATH, applying PATHEXT suffixes on Windows. */
 export function whichBin (bin: string, env: NodeJS.ProcessEnv, platform: NodeJS.Platform): string | undefined {
   const pathVar = env.PATH ?? env.Path ?? ''
-  const exts = platform === 'win32'
+  const isWindows = platform === 'win32'
+  const exts = isWindows
     ? (env.PATHEXT ?? '.EXE;.CMD;.BAT;.COM').split(';').map((e) => e.toLowerCase())
     : ['']
-  for (const dir of pathVar.split(delimiter)) {
+  for (const dir of pathVar.split(pathSeparator(platform))) {
     if (dir.length === 0) continue
     for (const ext of exts) {
       const candidate = join(dir, bin + ext)
-      if (platform === 'win32' ? existsSync(candidate) : isExecutable(candidate)) return candidate
+      if (isWindows ? existsSync(candidate) : isExecutable(candidate)) return candidate
     }
   }
   return undefined

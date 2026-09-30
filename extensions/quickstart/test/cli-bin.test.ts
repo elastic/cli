@@ -8,7 +8,7 @@ import assert from 'node:assert/strict'
 import { chmod, mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { resolveCliBin, whichBin } from '../src/cli-bin.ts'
+import { pathSeparator, resolveCliBin, whichBin } from '../src/cli-bin.ts'
 import { QuickstartError } from '../src/errors.ts'
 
 async function fakeBin (name = 'elastic'): Promise<{ dir: string, path: string }> {
@@ -21,16 +21,39 @@ async function fakeBin (name = 'elastic'): Promise<{ dir: string, path: string }
 
 const ok = async (): Promise<string> => JSON.stringify({ version: '0.3.0' })
 
+// Filesystem cases run on the host platform: a Windows temp path contains a
+// drive-letter colon, so a posix lookup there would split the path itself.
+// The fake bin has no extension, hence the empty PATHEXT on Windows.
+const HOST: NodeJS.Platform = process.platform
+const HOST_SEP = pathSeparator(HOST)
+const hostEnv = (path: string): NodeJS.ProcessEnv =>
+  HOST === 'win32' ? { PATH: path, PATHEXT: '' } : { PATH: path }
+
 test('whichBin finds an executable on PATH', async () => {
   const { dir, path } = await fakeBin()
-  assert.equal(whichBin('elastic', { PATH: dir }, 'darwin'), path)
+  assert.equal(whichBin('elastic', hostEnv(dir), HOST), path)
 })
 
 test('whichBin ignores empty PATH segments and misses', async () => {
-  const { dir } = await fakeBin()
-  assert.equal(whichBin('elastic', { PATH: `::${dir}` }, 'darwin'), join(dir, 'elastic'))
-  assert.equal(whichBin('nope', { PATH: dir }, 'darwin'), undefined)
-  assert.equal(whichBin('elastic', {}, 'darwin'), undefined)
+  const { dir, path } = await fakeBin()
+  assert.equal(whichBin('elastic', hostEnv(`${HOST_SEP}${HOST_SEP}${dir}`), HOST), path)
+  assert.equal(whichBin('nope', hostEnv(dir), HOST), undefined)
+  assert.equal(whichBin('elastic', {}, HOST), undefined)
+})
+
+test('whichBin splits PATH on the separator, not on arbitrary punctuation', async () => {
+  const { dir, path } = await fakeBin()
+  const wrongSep = HOST_SEP === ':' ? ';' : ':'
+  assert.equal(whichBin('elastic', hostEnv(`${dir}${HOST_SEP}${dir}`), HOST), path)
+  assert.equal(whichBin('elastic', hostEnv(`${dir}${wrongSep}${dir}`), HOST), undefined)
+})
+
+// Pins the bug this helper exists to prevent: reading the separator from
+// node:path makes it the host's, so a cross-platform lookup silently misses.
+test('pathSeparator follows the platform argument, not the host', () => {
+  assert.equal(pathSeparator('win32'), ';')
+  assert.equal(pathSeparator('darwin'), ':')
+  assert.equal(pathSeparator('linux'), ':')
 })
 
 test('a missing CLI fails before anything is provisioned', async () => {
@@ -57,8 +80,8 @@ test('a CLI that will not run is reported as a probe failure', async () => {
   const { dir, path } = await fakeBin()
   await assert.rejects(
     resolveCliBin(undefined, {
-      env: { PATH: dir },
-      platform: 'darwin',
+      env: hostEnv(dir),
+      platform: HOST,
       probe: async () => { throw new Error('exited with code 127') },
     }),
     (err: unknown) => err instanceof QuickstartError && err.code === 'cli_probe_failed' && err.message.includes(path),
@@ -67,7 +90,7 @@ test('a CLI that will not run is reported as a probe failure', async () => {
 
 test('unparseable or versionless probe output is a probe failure', async () => {
   const { dir } = await fakeBin()
-  const deps = { env: { PATH: dir }, platform: 'darwin' as const }
+  const deps = { env: hostEnv(dir), platform: HOST }
   await assert.rejects(
     resolveCliBin(undefined, { ...deps, probe: async () => 'Elastic CLI v0.3.0' }),
     (err: unknown) => err instanceof QuickstartError && err.code === 'cli_probe_failed',
