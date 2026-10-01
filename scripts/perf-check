@@ -5,15 +5,30 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// Benchmark CLI startup time against recorded baselines from PR #400.
-// Fails if any command's mean runtime exceeds its baseline by more than 20%.
+// Benchmark CLI startup time. Two gating strategies:
 //
-// Usage: scripts/perf-check
-//        scripts/perf-check --binary ./elastic-linux-x64
-// The recorded baselines only describe `node dist/cli.js`; with --binary the means
-// are reported without a pass/fail verdict (a pkg binary pays extra snapshot startup).
+//   scripts/perf-check --compare <baseDir>
+//     Primary PR gate. Benchmarks this build against a second build (the PR's
+//     merge-base) on the SAME machine, in the SAME job. Fails only when the PR
+//     is slower by more than REGRESSION_PCT with statistical confidence. This
+//     cancels cross-machine and cross-run drift, so it is reliable on noisy
+//     shared CI runners. <baseDir> is the base checkout's repo root (it must
+//     contain dist/cli.js). Add --md <file> to also write a markdown results
+//     table (used to post a sticky PR comment).
+//
+//   scripts/perf-check
+//     Absolute baseline check against scripts/perf-baselines.json. Only
+//     meaningful on the hardware the baselines were recorded on; used as a
+//     trend signal on push-to-main, not as the PR gate.
+//
+//   scripts/perf-check --update-baseline
+//     Rewrite scripts/perf-baselines.json with this machine's means.
+//
+//   scripts/perf-check --binary ./elastic-linux-x64
+//     Report means for a pkg binary without a verdict (snapshot startup differs).
+//
 // Override warmup/runs for local profiling:
-//   PERF_WARMUP=5 PERF_RUNS=30 scripts/perf-check
+//   PERF_WARMUP=20 PERF_RUNS=100 scripts/perf-check --compare ../base
 
 import { execFileSync } from "node:child_process"
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
@@ -24,34 +39,54 @@ import { parseArgs } from "node:util"
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
 
-const { binary } = parseArgs({ options: { binary: { type: "string" } } }).values
-// hyperfine gets one command string; a binary runs directly, the JS build needs `node`.
-const CLI = binary != null ? resolve(binary) : `node ${join(REPO_ROOT, "dist", "cli.js")}`
+const { binary, compare, "update-baseline": updateBaseline, md } = parseArgs({
+  options: {
+    binary: { type: "string" },
+    compare: { type: "string" },
+    "update-baseline": { type: "boolean" },
+    md: { type: "string" },
+  },
+}).values
 
-// Tuned for CI: fast enough to finish in ~60 s on a shared runner while still
-// producing a stable mean. Override with env vars for local profiling.
-const WARMUP = Number(process.env.PERF_WARMUP ?? 10)
-const MIN_RUNS = Number(process.env.PERF_RUNS ?? 50)
+const BASELINE_FILE = join(REPO_ROOT, "scripts", "perf-baselines.json")
+const baselineDoc = JSON.parse(readFileSync(BASELINE_FILE, "utf8"))
+const COMMANDS = baselineDoc.commands
+const BASELINES_MS = baselineDoc.baselines_ms
 
-// Baselines (mean ms) recorded after the optimisations in PR #400.
-// Measured with: hyperfine -w 10 -m 100 <command>
-// Hardware: Lenovo ThinkPad X1 Carbon, i7-1365U, 16 GB RAM, Arch Linux
-const BASELINES_MS = {
-  "elastic":              51.1,
-  "elastic --help":       48.5,
-  "elastic es --help":    59.0,
-  "elastic es":           58.2,
-  "elastic cloud --help": 62.3,
-  "elastic cloud":        42.4,
-  "elastic kb --help":    83.7,
-  "elastic kb":           76.9,
-  "elastic es indices --help": 102.4,
-  "elastic es indices update-aliases --help": 273.0,
+// Warmups and runs. A high warmup drains disk/JIT caches; many runs tighten the
+// mean. CI can afford this because the A/B gate runs only a handful of commands.
+const WARMUP = Number(process.env.PERF_WARMUP ?? 20)
+const MIN_RUNS = Number(process.env.PERF_RUNS ?? 100)
+
+// Absolute-mode gate: fail if a command is >75% slower than its recorded baseline.
+const ABS_THRESHOLD = 1.75
+// A/B-mode gate: fail if the PR is >15% slower than base, AND that slowdown is
+// larger than the combined measurement noise (so a noisy spike alone can't fail).
+const REGRESSION_PCT = 0.15
+const CONFIDENCE_K = 2 // require slowdown to exceed K combined standard deviations
+const NOISE_RETRY_REL_STDDEV = 0.10 // re-run a command once if relative stddev exceeds this
+
+// Pin to a single core when taskset is available (Linux CI). Prevents the
+// scheduler migrating the process mid-run, a common source of jitter.
+let cpuPin = []
+try {
+  execFileSync("taskset", ["--version"], { stdio: "ignore" })
+  cpuPin = ["taskset", "-c", "0"]
+} catch {
+  cpuPin = []
 }
 
+// Resolve the CLI command tokens for a given repo root (or the pkg binary).
+function cliTokens (root) {
+  if (binary != null) return [resolve(binary)]
+  return ["node", join(root, "dist", "cli.js")]
+}
 
-
-const THRESHOLD = 1.75 // fail if mean performance is 75% slower than baseline
+function commandTokens (root, label) {
+  const args = label.slice("elastic".length).trim()
+  const tokens = [...cpuPin, ...cliTokens(root)]
+  return args.length > 0 ? [...tokens, ...args.split(" ")] : tokens
+}
 
 const tmpDir = mkdtempSync(join(tmpdir(), "elastic-cli-bench-"))
 try {
@@ -67,48 +102,103 @@ try {
     '        api_key: static-key',
     '',
   ].join('\n'))
+  const env = { ...process.env, ELASTIC_CLI_CONFIG_FILE: staticConfig }
 
-  let failed = false
+  // Run a hyperfine benchmark and return parsed results (array of {command, mean, stddev}).
+  // `named` maps hyperfine -n labels in order to the command token arrays.
+  function hyperfine (named) {
+    const jsonOut = join(tmpDir, `result-${Math.random().toString(36).slice(2)}.json`)
+    const args = ["-N", "--warmup", String(WARMUP), "--min-runs", String(MIN_RUNS), "--export-json", jsonOut]
+    for (const [name, tokens] of named) args.push("-n", name, tokens.join(" "))
+    execFileSync("hyperfine", args, { stdio: "inherit", env })
+    return JSON.parse(readFileSync(jsonOut, "utf8")).results
+  }
 
-  for (const [label, baseline] of Object.entries(BASELINES_MS)) {
-    const args = label.slice("elastic".length).trim()
-    const cmd = args.length > 0 ? `${CLI} ${args}` : CLI
-    const jsonOut = join(tmpDir, `result-${encodeURIComponent(label)}.json`)
+  if (compare != null) {
+    const baseRoot = resolve(compare)
+    let failed = false
+    const rows = []
+    console.log(`A/B vs base build at ${baseRoot}\n`)
+    for (const label of COMMANDS) {
+      const run = () => hyperfine([
+        ["pr", commandTokens(REPO_ROOT, label)],
+        ["base", commandTokens(baseRoot, label)],
+      ])
+      let results = run()
+      const relNoise = (r) => r.stddev / r.mean
+      // One retry if either side is too noisy to trust this sample.
+      if (results.some((r) => relNoise(r) > NOISE_RETRY_REL_STDDEV)) results = run()
 
-    const env = { ...process.env, ELASTIC_CLI_CONFIG_FILE: staticConfig }
-    const argv = cmd.split(" ")
-    execFileSync(argv[0], argv.slice(1), { stdio: "inherit", env })
-
-    execFileSync(
-      "hyperfine",
-      ["--warmup", String(WARMUP), "--min-runs", String(MIN_RUNS), "--export-json", jsonOut, "--shell=none", cmd],
-      { stdio: "inherit", env },
-    )
-
-    const meanMs = JSON.parse(readFileSync(jsonOut, "utf8")).results[0].mean * 1000
-    if (binary != null) {
-      console.log(`   ${label.padEnd(24)}  mean ${meanMs.toFixed(1)} ms`)
-      continue
+      const [pr, base] = results
+      const ratio = pr.mean / base.mean
+      // Combined relative noise of the ratio (errors add in quadrature).
+      const combinedRel = Math.hypot(relNoise(pr), relNoise(base))
+      const confident = (ratio - CONFIDENCE_K * combinedRel) > (1 + REGRESSION_PCT)
+      const pct = ((ratio - 1) * 100).toFixed(1)
+      const sign = ratio >= 1 ? "+" : ""
+      const ok = !confident
+      console.log(
+        `${ok ? "✓" : "✗"}  ${label.padEnd(24)}  pr ${(pr.mean * 1000).toFixed(1)} ms vs base ${(base.mean * 1000).toFixed(1)} ms  ` +
+        `(${sign}${pct}%, noise ±${(combinedRel * 100).toFixed(1)}%)`,
+      )
+      rows.push({ label, prMs: pr.mean * 1000, baseMs: base.mean * 1000, pct, sign, ok })
+      if (!ok) failed = true
     }
-    const limit = baseline * THRESHOLD
-    const pct = ((meanMs / baseline - 1) * 100).toFixed(1)
-    const sign = meanMs > baseline ? "+" : ""
-    const ok = meanMs <= limit
-    console.log(
-      `${ok ? "✓" : "✗"}  ${label.padEnd(24)}  mean ${meanMs.toFixed(1)} ms  ` +
-      `(baseline ${baseline} ms, ${sign}${pct}%, limit ${limit.toFixed(1)} ms)`,
-    )
-    if (!ok) failed = true
-  }
+    if (md != null) {
+      const title = `### Startup perf: PR vs merge-base${failed ? " \u2014 \u26a0\ufe0f regression" : " \u2705"}`
+      const table = [
+        "| command | PR | base | delta |",
+        "| --- | --: | --: | --: |",
+        ...rows.map((r) =>
+          `| \`${r.label}\` | ${r.prMs.toFixed(1)} ms | ${r.baseMs.toFixed(1)} ms | ${r.ok ? "" : "\u26a0\ufe0f "}${r.sign}${r.pct}% |`),
+      ]
+      writeFileSync(md, [title, "", ...table, ""].join("\n") + "\n")
+    }
+    if (failed) {
+      console.error(`\nPerformance regression detected: a command is >${REGRESSION_PCT * 100}% slower than base beyond the noise band.`)
+      process.exit(1)
+    }
+    console.log(`\nNo command is confidently more than ${REGRESSION_PCT * 100}% slower than base.`)
+  } else if (updateBaseline) {
+    const next = {}
+    for (const label of COMMANDS) {
+      const [r] = hyperfine([["cli", commandTokens(REPO_ROOT, label)]])
+      next[label] = Number((r.mean * 1000).toFixed(1))
+      console.log(`   ${label.padEnd(24)}  mean ${next[label]} ms`)
+    }
+    writeFileSync(BASELINE_FILE, JSON.stringify({ ...baselineDoc, baselines_ms: next }, null, 2) + "\n")
+    console.log(`\nWrote new baselines to ${BASELINE_FILE}.`)
+  } else {
+    let failed = false
+    const means = {}
+    for (const label of COMMANDS) {
+      const [r] = hyperfine([["cli", commandTokens(REPO_ROOT, label)]])
+      const meanMs = r.mean * 1000
+      means[label] = Number(meanMs.toFixed(1))
+      if (binary != null) {
+        console.log(`   ${label.padEnd(24)}  mean ${meanMs.toFixed(1)} ms`)
+        continue
+      }
+      const baseline = BASELINES_MS[label]
+      const limit = baseline * ABS_THRESHOLD
+      const pct = ((meanMs / baseline - 1) * 100).toFixed(1)
+      const sign = meanMs > baseline ? "+" : ""
+      const ok = meanMs <= limit
+      console.log(
+        `${ok ? "✓" : "✗"}  ${label.padEnd(24)}  mean ${meanMs.toFixed(1)} ms  ` +
+        `(baseline ${baseline} ms, ${sign}${pct}%, limit ${limit.toFixed(1)} ms)`,
+      )
+      if (!ok) failed = true
+    }
+    if (failed) {
+      console.error("\nPerformance regression detected. One or more commands exceeded their baseline by more than 75%.")
+      process.exit(1)
+    }
+    console.log(binary != null
+      ? `\nReported means for the binary. Baselines describe the JS build, so no verdict is given.`
+      : "\nAll commands within the 75% regression threshold.")
 
-  if (failed) {
-    console.error("\nPerformance regression detected. One or more commands exceeded their baseline by more than 75%.")
-    process.exit(1)
   }
-
-  console.log(binary != null
-    ? `\nReported means for ${CLI}. Baselines describe the JS build, so no verdict is given.`
-    : "\nAll commands within the 75% regression threshold.")
 } finally {
   rmSync(tmpDir, { recursive: true, force: true })
 }
