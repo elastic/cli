@@ -4,6 +4,40 @@
 
 Process exit stays 1. Codes 2-5 are reserved and not emitted. `--json` config-load failures use `missing_config` or `config_invalid`. HTTP 401 is `auth_required`, 404 is `not_found`. See `elastic help exit-codes`. Relates to #634.
 
+## [0.6.0](https://github.com/elastic/cli/compare/v0.5.0...v0.6.0) (2026-10-01)
+
+
+### Features
+
+* Add --no-validate escape hatch to skip input validation ([#694](https://github.com/elastic/cli/issues/694)) ([52bbad7](https://github.com/elastic/cli/commit/52bbad7e09e1a8afa1e1f17b594e4b0774a1ed85))
+* Add help topics for formatting environment and exit codes ([#671](https://github.com/elastic/cli/issues/671)) ([7801f7f](https://github.com/elastic/cli/commit/7801f7fbc1e48e4210d6ba958375db860c1143c3))
+* Add powershell completion ([#682](https://github.com/elastic/cli/issues/682)) ([435a1af](https://github.com/elastic/cli/commit/435a1af1b487da3268638fc162994b929548fedb))
+* Complete output fields and enum flags ([#683](https://github.com/elastic/cli/issues/683)) ([63b3945](https://github.com/elastic/cli/commit/63b3945e7bd032f28603d95cdef1ad5ce0c88def))
+* Document and stabilize exit codes ([#676](https://github.com/elastic/cli/issues/676)) ([11974da](https://github.com/elastic/cli/commit/11974da0ac489397e545b213599d23a7f0f180f3))
+* Suggest closest command on typo ([#666](https://github.com/elastic/cli/issues/666)) ([097832f](https://github.com/elastic/cli/commit/097832faa0b4455d60de85e56852fae8dfcfb0ff))
+
+
+### Bug Fixes
+
+* Add agent environment details to telemetry ([#667](https://github.com/elastic/cli/issues/667)) ([493053b](https://github.com/elastic/cli/commit/493053bb58ccc0a9903a3fa99ffb38d42a0856f1))
+* Drop repair loop bot commit cap ([#685](https://github.com/elastic/cli/issues/685)) ([59057ae](https://github.com/elastic/cli/commit/59057ae62a2333b97b6e1de82916c405e0a5066c))
+* **es:** Non-JSON error responses report 'Body is unusable' instead of HTTP status ([#687](https://github.com/elastic/cli/issues/687)) ([d975706](https://github.com/elastic/cli/commit/d975706023bc6bf5b5651ff8311f1f5f54fb7fe0))
+* Hint auth failures at status ([#680](https://github.com/elastic/cli/issues/680)) ([1c20429](https://github.com/elastic/cli/commit/1c20429de1b1cc106c1ea042712986a8a63cf41c))
+* Name cloud missing config next command ([#679](https://github.com/elastic/cli/issues/679)) ([4aa0437](https://github.com/elastic/cli/commit/4aa04375a14655b64ed79007798e362a564889d6))
+* Name flags when prompt has no tty ([#678](https://github.com/elastic/cli/issues/678)) ([953576e](https://github.com/elastic/cli/commit/953576e9e86515ef093975804882b9e012572a8e))
+* Name the next command on missing config ([#674](https://github.com/elastic/cli/issues/674)) ([8c51dd4](https://github.com/elastic/cli/commit/8c51dd41528086659099dfdca8693107d62026d4))
+* Parse cloud errors and name next command ([#681](https://github.com/elastic/cli/issues/681)) ([4424ee8](https://github.com/elastic/cli/commit/4424ee80ba6f0ce25c05025948f034bdd7ac49fb))
+* Pin @elastic/schemas to an exact version ([#704](https://github.com/elastic/cli/issues/704)) ([b0721c8](https://github.com/elastic/cli/commit/b0721c8655e20c5293ed441f9a966ecb1ddb2131))
+* Print nothing for empty cat text ([#661](https://github.com/elastic/cli/issues/661)) ([28cc49f](https://github.com/elastic/cli/commit/28cc49f3a21423d2ecdea67a488b04489e210622))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @elastic/agent-env bumped from 0.1.0 to 0.1.1
+    * @elastic/config-resolver bumped from 0.1.1 to 0.1.2
+
 ## [0.5.0](https://github.com/elastic/cli/compare/v0.4.0...v0.5.0) (2026-09-10)
 
 
