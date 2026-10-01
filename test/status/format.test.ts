@@ -12,7 +12,7 @@ describe('formatStatusText', () => {
     const out = formatStatusText({
       context: 'local',
       services: {
-        elasticsearch: { ok: true, url: 'http://localhost:9200', status: 'green', nodes: 3 },
+        elasticsearch: { ok: true, url: 'http://localhost:9200', flavor: 'stateful', status: 'green', nodes: 3 },
         kibana: { ok: true, url: 'http://localhost:5601', status: 'available', version: '8.18.0' },
         cloud: { ok: false, url: 'https://api.elastic-cloud.com', error: 'auth failed (401)' },
       },
@@ -34,7 +34,7 @@ describe('formatStatusText', () => {
     const out = formatStatusText({
       context: 'es-only',
       services: {
-        elasticsearch: { ok: true, url: 'http://localhost:9200', status: 'green', nodes: 1 },
+        elasticsearch: { ok: true, url: 'http://localhost:9200', flavor: 'stateful', status: 'green', nodes: 1 },
       },
     })
     assert.ok(out.startsWith('Context: es-only\n\n'), `got ${out}`)
@@ -46,16 +46,26 @@ describe('formatStatusText', () => {
   it('pluralises the node count correctly', () => {
     const one = formatStatusText({
       context: 'c',
-      services: { elasticsearch: { ok: true, url: 'u', status: 'green', nodes: 1 } },
+      services: { elasticsearch: { ok: true, url: 'u', flavor: 'stateful', status: 'green', nodes: 1 } },
     })
     assert.ok(one.includes('1 node)'), `got ${one}`)
     assert.ok(!one.includes('1 nodes)'))
 
     const many = formatStatusText({
       context: 'c',
-      services: { elasticsearch: { ok: true, url: 'u', status: 'green', nodes: 5 } },
+      services: { elasticsearch: { ok: true, url: 'u', flavor: 'stateful', status: 'green', nodes: 5 } },
     })
     assert.ok(many.includes('5 nodes)'), `got ${many}`)
+  })
+
+  it('renders a serverless Elasticsearch as "serverless (<version>)"', () => {
+    const out = formatStatusText({
+      context: 'cloud',
+      services: {
+        elasticsearch: { ok: true, url: 'https://x.es.cloud', flavor: 'serverless', version: '9.5.0' },
+      },
+    })
+    assert.ok(out.includes('✓  serverless (9.5.0)'), `got ${out}`)
   })
 
   it('renders failed services with their classified error message', () => {
@@ -77,7 +87,7 @@ describe('formatStatusText', () => {
     const out = formatStatusText({
       context: 'c',
       services: {
-        elasticsearch: { ok: true, url: 'http://es', status: 'green', nodes: 1 },
+        elasticsearch: { ok: true, url: 'http://es', flavor: 'stateful', status: 'green', nodes: 1 },
         kibana: { ok: true, url: 'http://kibana-very-long-url.example.com', status: 'available', version: '9' },
       },
     })

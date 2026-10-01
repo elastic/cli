@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-server-hosts API: get Fleet Server hosts.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"fleet-server-hosts get fleet fleet-server-hosts":
+  - do:
+      fleet-server-hosts.get_fleet_fleet_server_hosts: {}
+  - is_true: items

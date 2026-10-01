@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana alerting API: find backfills (no filter, default pagination).
+---
+requires:
+  serverless: true
+  stack: true
+---
+"alerting find backfills":
+  - do:
+      alerting.post_alerting_rules_backfill_find: {}
+  - match: {page: 1}
+  - is_true: data

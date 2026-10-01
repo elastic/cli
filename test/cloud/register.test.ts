@@ -302,6 +302,60 @@ describe('registerCloudCommands', () => {
       assert.deepEqual(issues, [])
     })
   })
+
+  describe('destructive intent', () => {
+    it('registers --yes for a PUT flat leaf marked destructive: true', async () => {
+      const defs: CloudApiDefinition[] = [
+        { name: 'update-current-account', namespace: 'accounts', description: 'Update', method: 'PUT', path: '/api/v1/account', destructive: true },
+      ]
+      const group = await registerCloudCommands(defs)
+      const cmd = group.commands.find((c) => c.name() === 'trust')!
+        .commands.find((c) => c.name() === 'update-current-account')!
+      assert.ok(cmd.options.map((o) => o.long).includes('--yes'), 'PUT def.destructive: true must expose --yes')
+    })
+
+    it('omits --yes for a PUT flat leaf marked destructive: false', async () => {
+      const defs: CloudApiDefinition[] = [
+        { name: 'get-current-account', namespace: 'accounts', description: 'Idempotent replace', method: 'PUT', path: '/api/v1/account', destructive: false },
+      ]
+      const group = await registerCloudCommands(defs)
+      const cmd = group.commands.find((c) => c.name() === 'trust')!
+        .commands.find((c) => c.name() === 'get-current-account')!
+      assert.ok(!cmd.options.map((o) => o.long).includes('--yes'), 'PUT def.destructive: false must not expose --yes')
+    })
+
+    it('registers --yes for a PATCH flat leaf marked destructive: true', async () => {
+      const defs: CloudApiDefinition[] = [
+        { name: 'patch-current-account', namespace: 'accounts', description: 'Patch', method: 'PATCH', path: '/api/v1/account', destructive: true },
+      ]
+      const group = await registerCloudCommands(defs)
+      const cmd = group.commands.find((c) => c.name() === 'trust')!
+        .commands.find((c) => c.name() === 'patch-current-account')!
+      assert.ok(cmd.options.map((o) => o.long).includes('--yes'), 'PATCH def.destructive: true must expose --yes')
+    })
+
+    it('registers --yes for a destructive PUT command inside a serverless project type group', async () => {
+      const defs: CloudApiDefinition[] = [
+        { name: 'reset-elasticsearch-project-credentials', namespace: 'elasticsearch-projects', description: 'Reset', method: 'PUT', path: '/api/v1/serverless/projects/elasticsearch/{id}/_reset-credentials', destructive: true, input: { type: 'object', properties: { id: { type: 'string', description: 'ID', 'x-found-in': 'path' } }, required: ['id'] } },
+      ]
+      const group = await registerCloudCommands(defs)
+      const cmd = group.commands.find((c) => c.name() === 'serverless')!
+        .commands.find((c) => c.name() === 'projects')!
+        .commands.find((c) => c.name() === 'search')!
+        .commands.find((c) => c.name() === 'reset-credentials')!
+      assert.ok(cmd.options.map((o) => o.long).includes('--yes'), 'serverless PUT def.destructive: true must expose --yes')
+    })
+
+    it('omits --yes for a non-destructive GET command', async () => {
+      const defs: CloudApiDefinition[] = [
+        { name: 'get-current-account', namespace: 'accounts', description: 'Get', method: 'GET', path: '/api/v1/account', destructive: false },
+      ]
+      const group = await registerCloudCommands(defs)
+      const cmd = group.commands.find((c) => c.name() === 'trust')!
+        .commands.find((c) => c.name() === 'get-current-account')!
+      assert.ok(!cmd.options.map((o) => o.long).includes('--yes'), 'GET def.destructive: false must not expose --yes')
+    })
+  })
 })
 
 describe('simplifyProjectCommandName', () => {

@@ -1,0 +1,28 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-server-hosts API: create a Fleet Server host then delete it by ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      fleet-server-hosts.delete_fleet_fleet_server_hosts_itemid:
+        item_id: $host_id
+        ignore: [404]
+---
+"fleet-server-hosts delete fleet fleet-server-hosts by ID":
+  - do:
+      fleet-server-hosts.post_fleet_fleet_server_hosts:
+        body:
+          name: cli-ft-fleet-server-host-delete
+          host_urls:
+            - "https://fleet-server.example.com:8220"
+  - set: {item.id: host_id}
+  - is_true: item.id
+
+  - do:
+      fleet-server-hosts.delete_fleet_fleet_server_hosts_itemid:
+        item_id: $host_id

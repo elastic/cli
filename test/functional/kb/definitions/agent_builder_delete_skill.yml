@@ -1,0 +1,28 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana agent-builder API: create skill / delete skill.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      agent-builder.delete_agent_builder_skills_skillid:
+        skillId: cli-ft-ab-skill-delete
+        ignore: [404]
+---
+"agent-builder delete skill":
+  - do:
+      agent-builder.post_agent_builder_skills:
+        body:
+          id: cli-ft-ab-skill-delete
+          name: CLI FT Skill Delete
+          description: Created by functional test
+          content: "# Skill\nDo something useful."
+  - match: {id: cli-ft-ab-skill-delete}
+
+  - do:
+      agent-builder.delete_agent_builder_skills_skillid:
+        skillId: cli-ft-ab-skill-delete

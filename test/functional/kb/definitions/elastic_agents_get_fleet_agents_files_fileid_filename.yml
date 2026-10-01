@@ -1,0 +1,24 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agents API: get an uploaded file by file ID and file name.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agents.get_fleet_agents: {}
+  - set: {"items.0.id": agent_id}
+  - do:
+      elastic-agents.get_fleet_agents_agentid_uploads:
+        agent_id: $agent_id
+  - set: {"items.0.id": file_id}
+  - set: {"items.0.name": file_name}
+---
+"elastic-agents get fleet agents files fileid filename":
+  - do:
+      elastic-agents.get_fleet_agents_files_fileid_filename:
+        file_id: $file_id
+        file_name: $file_name

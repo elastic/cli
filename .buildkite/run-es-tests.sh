@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-STACK_VERSION="${STACK_VERSION:-9.3.0}"
+STACK_VERSION="${STACK_VERSION:-9.5.3}"
 ES_CONTAINER_NAME="elastic-cli-es-test"
 NETWORK_NAME="elastic-cli-test-net"
 TESTS_REPO="https://github.com/elastic/elasticsearch-clients-tests.git"
@@ -71,6 +71,8 @@ docker run \
   --env "xpack.security.enabled=false" \
   --env "xpack.license.self_generated.type=trial" \
   --env "action.destructive_requires_name=false" \
+  --env "ingest.geoip.downloader.enabled=false" \
+  --env "cluster.deprecation_indexing.enabled=false" \
   --env "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
   --detach \
   --rm \
@@ -106,7 +108,16 @@ EOF
 export ELASTIC_CLI_CONFIG_FILE="$CI_CONFIG_FILE"
 
 echo "--- Generating functional test scripts"
-npx tsx codegen/functional/index.ts --tests-dir elasticsearch-clients-tests/tests
+npx tsx codegen/functional/es.ts --tests-dir elasticsearch-clients-tests/tests
 
 echo "+++ Running ES functional tests"
-npm run test:functional:es
+set +e
+npm run test:functional:es | tee /tmp/es-ft.log
+code=${PIPESTATUS[0]}
+set -e
+# shellcheck source=./record-failure.sh
+. "$(dirname "$0")/record-failure.sh"
+if [ "$code" -ne 0 ]; then
+  record_functional_failure /tmp/es-ft.log
+fi
+exit "$code"

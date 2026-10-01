@@ -1,0 +1,22 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-store API: uninstall the Entity Store.
+# Verifies that post-security-entity-store-uninstall succeeds without error.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-entity-store.post_security_entity_store_install:
+        body:
+          entityTypes: [user, host, service, generic]
+---
+"security-entity-store uninstall":
+  - do:
+      security-entity-store.post_security_entity_store_uninstall:
+        body:
+          entityTypes: [user, host, service, generic]
+  - is_true: ""

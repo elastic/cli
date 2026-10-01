@@ -14,9 +14,12 @@ import type {
   CommandConfig,
   GroupConfig,
   OpaqueCommandHandle,
-} from '../src/factory.ts'
-import { defineCommand, defineGroup, _testSetStdinReader, isCommandAllowed, hideBlockedCommands, configureJsonHelp } from '../src/factory.ts'
+} from '../src/factory-core.ts'
+import { defineGroup, isCommandAllowed, hideBlockedCommands, configureJsonHelp } from '../src/factory-core.ts'
+import { defineCommand, _testSetStdinReader } from '../src/factory.ts'
 import { setResolvedConfig, _testResetConfig } from '../src/config/store.ts'
+import { YamlResponse } from '../src/lib/yaml-response.ts'
+import { formatTextResponse } from '../src/output.ts'
 import { Command } from 'commander'
 
 /** Build a JSON Schema for test use. */
@@ -872,6 +875,18 @@ describe('defineCommand', () => {
       assert.match(err, /^Error:/m)
     })
 
+    it('suggests the closest flag for a near misspelling', () => {
+      const cmd = defineCommand({
+        name: 'health',
+        description: 'Check health',
+        options: [{ long: 'timeout', type: 'number', description: 'Timeout' }],
+        handler: () => ({}),
+      })
+      const err = captureErr(cmd, ['--timeot'])
+      assert.match(err, /unknown option '--timeot'/)
+      assert.match(err, /Did you mean --timeout/)
+    })
+
     it('missing required option error starts with "Error:" (capital E)', () => {
       const cmd = defineCommand({ name: 'health', description: 'Check health', options: [{ long: 'env', type: 'string', description: 'Env', required: true }], handler: () => ({}) })
       const err = captureErr(cmd, [])
@@ -1526,7 +1541,7 @@ describe('defineCommand', () => {
       const err = await captureErrAsync(cmd, ['--input-file', filePath])
       assert.match(err, /input validation failed/)
       assert.match(err, /name/)
-      assert.match(err, /should be string/)
+      assert.match(err, /must be string/)
     })
 
     it('missing required field error identifies the field name', async () => {
@@ -1704,6 +1719,101 @@ describe('defineCommand', () => {
       assert.equal(received.length, 1)
       const input = received[0] as Record<string, unknown>
       assert.deepEqual(input.operations, [{ index: {} }, { name: 'doc' }])
+    })
+
+    it('wraps a scalar array flag in an array (#587)', async () => {
+      const schema = jsonSchema({
+        agents_ids: { type: 'array', items: { type: 'string' }, 'x-found-in': 'query' },
+      }, ['agents_ids'])
+      let captured: unknown
+      const cmd = defineCommand({
+        name: 'get-fleet-agent-status-data',
+        description: 'Status',
+        input: schema,
+        handler: (parsed) => { captured = parsed.input; return {} },
+      })
+      await invokeAsync(cmd, ['--agents-ids', 'abc'])
+      assert.deepEqual(captured, { agents_ids: ['abc'] })
+    })
+
+    it('repeats an array flag into one array', async () => {
+      const schema = jsonSchema({
+        agents_ids: { type: 'array', items: { type: 'string' }, 'x-found-in': 'query' },
+      })
+      let captured: unknown
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        input: schema,
+        handler: (parsed) => { captured = parsed.input; return {} },
+      })
+      await invokeAsync(cmd, ['--agents-ids', 'abc', '--agents-ids', 'def'])
+      assert.deepEqual(captured, { agents_ids: ['abc', 'def'] })
+    })
+
+    it('keeps a JSON array flag as an array', async () => {
+      const schema = jsonSchema({
+        agents_ids: { type: 'array', items: { type: 'string' }, 'x-found-in': 'query' },
+      })
+      let captured: unknown
+      const cmd = defineCommand({
+        name: 'status',
+        description: 'Status',
+        input: schema,
+        handler: (parsed) => { captured = parsed.input; return {} },
+      })
+      await invokeAsync(cmd, ['--agents-ids', '["abc","def"]'])
+      assert.deepEqual(captured, { agents_ids: ['abc', 'def'] })
+    })
+
+    it('wraps adversarial scalar array flags without interpreting them', async () => {
+      const schema = jsonSchema({
+        agents_ids: { type: 'array', items: { type: 'string' }, 'x-found-in': 'query' },
+      })
+      for (const scalar of ['../', '?#', '', '/etc/passwd']) {
+        let captured: unknown
+        const cmd = defineCommand({
+          name: 'status',
+          description: 'Status',
+          input: schema,
+          handler: (parsed) => { captured = parsed.input; return {} },
+        })
+        await invokeAsync(cmd, ['--agents-ids', scalar])
+        assert.deepEqual(captured, { agents_ids: [scalar] }, `scalar ${JSON.stringify(scalar)}`)
+      }
+    })
+
+    it('wraps a scalar for oneOf(array, null) body flags', async () => {
+      const schema = jsonSchema({
+        ids: {
+          oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'null' }],
+          'x-found-in': 'body',
+        },
+      })
+      let captured: unknown
+      const cmd = defineCommand({
+        name: 'export-timelines',
+        description: 'Export',
+        input: schema,
+        handler: (parsed) => { captured = parsed.input; return {} },
+      })
+      await invokeAsync(cmd, ['--ids', 'abc'])
+      assert.deepEqual(captured, { ids: ['abc'] })
+    })
+
+    it('keeps an empty JSON array as empty', async () => {
+      const schema = jsonSchema({
+        host_statuses: { type: 'array', items: { type: 'string' }, 'x-found-in': 'query' },
+      }, ['host_statuses'])
+      let captured: unknown
+      const cmd = defineCommand({
+        name: 'metadata',
+        description: 'Metadata',
+        input: schema,
+        handler: (parsed) => { captured = parsed.input; return {} },
+      })
+      await invokeAsync(cmd, ['--host-statuses', '[]'])
+      assert.deepEqual(captured, { host_statuses: [] })
     })
 
     it('omitting an optional object body field still validates', async () => {
@@ -1948,9 +2058,8 @@ describe('defineCommand', () => {
   describe('handler return value and output', () => {
     async function captureOutput(fn: () => Promise<void>): Promise<string> {
       let out = ''
-      const orig = process.stdout.write.bind(process.stdout)
-      process.stdout.write = (chunk: unknown) => { if (typeof chunk === 'string') out += chunk; return true }
-      try { await fn() } finally { process.stdout.write = orig }
+      const restore = patchWrite(process.stdout, (s) => { out += s })
+      try { await fn() } finally { restore() }
       return out
     }
 
@@ -2130,14 +2239,132 @@ describe('defineCommand', () => {
     })
 
   })
+
+  describe('--no-validate', () => {
+    it('appears in help text for commands with an input schema', () => {
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: { type: 'object', properties: { index: { type: 'string' } } },
+        handler: () => ({}),
+      })
+      assert.match(cmd.helpInformation(), /--no-validate/)
+    })
+
+    it('allows invalid input through when set', async () => {
+      let receivedInput: unknown
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: {
+          type: 'object',
+          properties: { refresh: { type: 'string', enum: ['true', 'false', 'wait_for'] } },
+        },
+        handler: ({ input }) => { receivedInput = input; return {} },
+      })
+      const { writeFileSync } = await import('fs')
+      const { tmpdir } = await import('os')
+      const { join } = await import('path')
+      const filePath = join(tmpdir(), `no-validate-test-${Date.now()}.json`)
+      writeFileSync(filePath, JSON.stringify({ refresh: 'unknown_value' }))
+      await invokeUnderRoot(cmd, [], ['--no-validate', '--input-file', filePath])
+      assert.deepEqual(receivedInput, { refresh: 'unknown_value' })
+    })
+
+    it('outputs validation error without --no-validate', async () => {
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: {
+          type: 'object',
+          properties: { refresh: { type: 'string', enum: ['true', 'false', 'wait_for'] } },
+        },
+        handler: () => ({}),
+      })
+      const { writeFileSync } = await import('fs')
+      const { tmpdir } = await import('os')
+      const { join } = await import('path')
+      const filePath = join(tmpdir(), `no-validate-test-${Date.now()}.json`)
+      writeFileSync(filePath, JSON.stringify({ refresh: 'unknown_value' }))
+      const err = await captureErrAsync(cmd, ['--input-file', filePath])
+      assert.match(err, /input validation failed/)
+    })
+
+    it('throws at definition time when user defines a --no-validate option', () => {
+      assert.throws(
+        () => defineCommand({
+          name: 'test',
+          description: 'Test',
+          options: [{ long: 'no-validate', description: 'Skip', type: 'boolean' }],
+          handler: () => ({}),
+        }),
+        (e: unknown) => {
+          assert.ok(e instanceof Error)
+          assert.match(e.message, /--no-validate is reserved/)
+          return true
+        },
+      )
+    })
+
+    it('throws at definition time when user defines a --validate option', () => {
+      assert.throws(
+        () => defineCommand({
+          name: 'test',
+          description: 'Test',
+          options: [{ long: 'validate', description: 'Skip', type: 'boolean' }],
+          handler: () => ({}),
+        }),
+        (e: unknown) => {
+          assert.ok(e instanceof Error)
+          assert.match(e.message, /--validate is reserved/)
+          return true
+        },
+      )
+    })
+
+    it('dry-run with --no-validate reports validation skipped in text mode', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-dryrun-noval-'))
+      const filePath = join(tmpDir, 'input.json')
+      writeFileSync(filePath, JSON.stringify({ index: 'logs' }))
+      try {
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Search',
+          input: jsonSchema({ index: { type: 'string' } }, ['index']),
+          handler: () => ({}),
+        })
+        const out = await invokeUnderRoot(cmd, [], ['--dry-run', '--no-validate', '--input-file', filePath])
+        assert.match(out, /validation skipped/)
+      } finally {
+        rmSync(tmpDir, { recursive: true })
+      }
+    })
+
+    it('dry-run with --no-validate includes validationSkipped in JSON output', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-dryrun-noval-json-'))
+      const filePath = join(tmpDir, 'input.json')
+      writeFileSync(filePath, JSON.stringify({ index: 'logs' }))
+      try {
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Search',
+          input: jsonSchema({ index: { type: 'string' } }, ['index']),
+          handler: () => ({}),
+        })
+        const out = await invokeUnderRoot(cmd, ['--json'], ['--dry-run', '--no-validate', '--input-file', filePath])
+        assert.deepEqual(JSON.parse(out), { success: true, validationSkipped: true })
+      } finally {
+        rmSync(tmpDir, { recursive: true })
+      }
+    })
+  })
 })
 
 describe('text output rendering', () => {
   async function captureOutput(fn: () => Promise<unknown>): Promise<string> {
     let out = ''
-    const orig = process.stdout.write.bind(process.stdout)
-    process.stdout.write = (chunk: unknown) => { if (typeof chunk === 'string') out += chunk; return true }
-    try { await fn() } finally { process.stdout.write = orig }
+    const restore = patchWrite(process.stdout, (s) => { out += s })
+    try { await fn() } finally { restore() }
     return out
   }
 
@@ -2189,6 +2416,18 @@ describe('text output rendering', () => {
       })
       const out = await invokeText(cmd)
       assert.equal(out, 'custom output line\n')
+    })
+
+    it('empty CAT body does not print [object Object]', async () => {
+      const cmd = defineCommand({
+        name: 'cat-indices',
+        description: 'CAT indices',
+        handler: () => ({}),
+        formatOutput: formatTextResponse,
+      })
+      const out = await invokeText(cmd)
+      assert.equal(out.includes('[object Object]'), false)
+      assert.equal(out, '')
     })
 
     it('is NOT called when --json is provided', async () => {
@@ -2927,7 +3166,7 @@ describe('no Commander API leaks', () => {
   it('factory module exports only public API and test seam at runtime', async () => {
     const factory = await import('../src/factory.ts')
     const exported = Object.keys(factory)
-    assert.deepEqual(exported.sort(), ['RawJsonValue', '_testSetStdinReader', 'commandPath', 'configureErrorOutput', 'configureJsonHelp', 'defineCommand', 'defineGroup', 'hideBlockedCommands', 'isCommandAllowed', 'isHidden', 'setHidden', 'stripTransportMeta', 'validateName'])
+    assert.deepEqual(exported.sort(), ['RawJsonValue', '_testSetConfirmReader', '_testSetIsTTY', '_testSetStdinReader', 'commandPath', 'configureErrorOutput', 'configureJsonHelp', 'defineCommand', 'defineGroup', 'hideBlockedCommands', 'isCommandAllowed', 'isHidden', 'setHidden', 'stripTransportMeta', 'ttyRequiredError', 'validateName'])
   })
 
   it('defineCommand return value requires no Commander import to use', () => {
@@ -3046,6 +3285,22 @@ describe('defineCommand schema input - CLI arguments', () => {
     })
     await invokeAsync(cmd, ['--api-key', 'secret123'])
     assert.deepEqual(captured, { api_key: 'secret123' })
+  })
+
+  it('maps --version to _version and --x-version to version', async () => {
+    const schema = jsonSchema({
+      _version: { type: 'string' },
+      version: { type: 'number' },
+    })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'update-list',
+      description: 'Update list',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    await invokeAsync(cmd, ['--version', 'WzEsbnVsbF0=', '--x-version', '2'])
+    assert.deepEqual(captured, { _version: 'WzEsbnVsbF0=', version: 2 })
   })
 
   it('string schema field passes value through as-is without coercion', async () => {
@@ -3914,12 +4169,26 @@ async function captureErrAsync(handle: OpaqueCommandHandle, argv: string[]): Pro
   return err
 }
 
+/**
+ * Temporarily captures string writes to a process stream, returning a restore fn.
+ * Non-string chunks (e.g. the node:test v8 reporter's serialized Buffers) are
+ * forwarded to the real stream so the test-runner IPC channel is never corrupted
+ * when this runs inside a spawned test subprocess.
+ */
+function patchWrite (stream: NodeJS.WriteStream, sink: (s: string) => void): () => void {
+  const orig = stream.write.bind(stream)
+  stream.write = (chunk: unknown, ...args: unknown[]) => {
+    if (typeof chunk === 'string') { sink(chunk); return true }
+    return Reflect.apply(orig, stream, [chunk, ...args]) as boolean
+  }
+  return () => { stream.write = orig }
+}
+
 /** captures everything written to process.stdout during fn(), even if fn throws */
 async function captureStdout(fn: () => Promise<unknown>): Promise<string> {
   let out = ''
-  const orig = process.stdout.write.bind(process.stdout)
-  process.stdout.write = (chunk: unknown) => { if (typeof chunk === 'string') out += chunk; return true }
-  try { await fn() } catch { /* swallow — caller inspects captured output */ } finally { process.stdout.write = orig }
+  const restore = patchWrite(process.stdout, (s) => { out += s })
+  try { await fn() } catch { /* swallow — caller inspects captured output */ } finally { restore() }
   return out
 }
 
@@ -3939,20 +4208,18 @@ async function captureStreams(fn: () => Promise<void>): Promise<{ stdout: string
   let stdout = ''
   let stderr = ''
   let exitCode: number
-  const origOut = process.stdout.write.bind(process.stdout)
-  const origErr = process.stderr.write.bind(process.stderr)
   const origExitCode = process.exitCode
   process.exitCode = 0
-  process.stdout.write = (chunk: unknown) => { if (typeof chunk === 'string') stdout += chunk; return true }
-  process.stderr.write = (chunk: unknown) => { if (typeof chunk === 'string') stderr += chunk; return true }
+  const restoreOut = patchWrite(process.stdout, (s) => { stdout += s })
+  const restoreErr = patchWrite(process.stderr, (s) => { stderr += s })
   try {
     await fn()
   } catch {
     /* swallow -- caller inspects captured output */
   } finally {
     exitCode = process.exitCode ?? 0
-    process.stdout.write = origOut
-    process.stderr.write = origErr
+    restoreOut()
+    restoreErr()
     process.exitCode = origExitCode as typeof process.exitCode
   }
   return { stdout, stderr, exitCode }
@@ -4207,5 +4474,100 @@ describe('configureJsonHelp', () => {
     } catch { /* exitOverride on --help */ }
     const parsed = JSON.parse(out) as { name: string }
     assert.equal(parsed.name, 'sanitize')
+  })
+})
+
+describe('YAML response rendering', () => {
+  async function capture (rootArgv: string[], cmd: OpaqueCommandHandle): Promise<string> {
+    const prog = new Command('elastic')
+    prog.option('--json', 'output as JSON')
+    prog.addCommand(cmd)
+    prog.exitOverride()
+    cmd.exitOverride()
+    let out = ''
+    const restore = patchWrite(process.stdout, (s) => { out += s })
+    try {
+      await prog.parseAsync([...rootArgv, cmd.name()], { from: 'user' })
+    } finally {
+      restore()
+    }
+    return out
+  }
+
+  const yamlBody = 'apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: agent\n'
+
+  it('prints the raw YAML body verbatim by default', async () => {
+    const cmd = defineCommand({
+      name: 'download',
+      description: 'Download',
+      handler: () => new YamlResponse(yamlBody),
+    })
+    const out = await capture([], cmd)
+    assert.equal(out, yamlBody)
+  })
+
+  it('parses YAML into JSON when --json is passed', async () => {
+    const cmd = defineCommand({
+      name: 'download',
+      description: 'Download',
+      handler: () => new YamlResponse(yamlBody),
+    })
+    const out = await capture(['--json'], cmd)
+    assert.deepEqual(JSON.parse(out), {
+      apiVersion: 'v1',
+      kind: 'ConfigMap',
+      metadata: { name: 'agent' },
+    })
+  })
+
+  it('appends a trailing newline when the YAML body lacks one', async () => {
+    const cmd = defineCommand({
+      name: 'download',
+      description: 'Download',
+      handler: () => new YamlResponse('key: value'),
+    })
+    const out = await capture([], cmd)
+    assert.equal(out, 'key: value\n')
+  })
+
+  it('returns the yaml body under --json with exit 0 (#588)', async () => {
+    const cmd = defineCommand({
+      name: 'download',
+      description: 'Download',
+      handler: () => new YamlResponse(yamlBody),
+    })
+    const { stdout, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.equal(exitCode, 0)
+    assert.deepEqual(JSON.parse(stdout), {
+      apiVersion: 'v1',
+      kind: 'ConfigMap',
+      metadata: { name: 'agent' },
+    })
+  })
+
+  it('returns an ndjson body as a json array under --json with exit 0 (#588)', async () => {
+    const cmd = defineCommand({
+      name: 'export-list-items',
+      description: 'Export',
+      handler: () => [{ list_id: 'a', value: '1' }, { list_id: 'a', value: '2' }],
+    })
+    const { stdout, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.equal(exitCode, 0)
+    assert.deepEqual(JSON.parse(stdout), [
+      { list_id: 'a', value: '1' },
+      { list_id: 'a', value: '2' },
+    ])
+  })
+
+  it('prints a multi-doc yaml body as a json string under --json with exit 0', async () => {
+    const multiDoc = '---\napiVersion: v1\nkind: ConfigMap\n---\napiVersion: apps/v1\nkind: DaemonSet\n'
+    const cmd = defineCommand({
+      name: 'download',
+      description: 'Download',
+      handler: () => new YamlResponse(multiDoc),
+    })
+    const { stdout, exitCode } = await invokeCapturingStreams(cmd, ['--json'], [])
+    assert.equal(exitCode, 0)
+    assert.equal(JSON.parse(stdout), multiDoc)
   })
 })

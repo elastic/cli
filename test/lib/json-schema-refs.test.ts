@@ -5,7 +5,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { resolveSidecarRefs, createSidecarResolver, resolveRootRef } from '../../src/lib/json-schema-refs.ts'
+import { resolveSidecarRefs, createSidecarResolver, resolveRootRef, requireSchemaModule, setSchemaLoaders } from '../../src/lib/json-schema-refs.ts'
 import { loadEsApisInFile } from '../../src/es/apis.ts'
 
 describe('resolveSidecarRefs', () => {
@@ -279,5 +279,48 @@ describe('resolveRootRef', () => {
   it('throws when the root $ref target is missing entirely', () => {
     const schema = { $ref: '#/$defs/Missing', $defs: {} }
     assert.throws(() => resolveRootRef(schema), /does not resolve to an object schema with properties/)
+  })
+})
+
+describe('requireSchemaModule', () => {
+  it('falls back to createRequire when no loader is registered', async () => {
+    setSchemaLoaders({})
+    const mod = await requireSchemaModule<{ $defs?: Record<string, unknown> }>('@elastic/schemas/es/json/_types.json')
+    assert.ok(mod.$defs != null && Object.keys(mod.$defs).length > 0)
+  })
+
+  it('uses a registered json loader and unwraps default', async () => {
+    const payload = { $defs: { Fake: { type: 'string' } } }
+    setSchemaLoaders({
+      '@elastic/schemas/es/json/_types.json': async () => ({ default: payload }),
+    })
+    try {
+      const mod = await requireSchemaModule('@elastic/schemas/es/json/_types.json')
+      assert.equal(mod, payload)
+    } finally {
+      setSchemaLoaders({})
+    }
+  })
+
+  it('uses a registered js loader without unwrapping', async () => {
+    const ns = { search_definitions: [{ name: 'search' }] }
+    const spec = '@elastic/schemas/es/tools/apis/search.js'
+    setSchemaLoaders({
+      [spec]: async () => ns,
+    })
+    try {
+      const mod = await requireSchemaModule<typeof ns>(spec)
+      assert.equal(mod, ns)
+    } finally {
+      setSchemaLoaders({})
+    }
+  })
+
+  it('throws on missing modules and path traversal', async () => {
+    setSchemaLoaders({})
+    await assert.rejects(() => requireSchemaModule(''), /refusing to load schema module/)
+    await assert.rejects(() => requireSchemaModule('../package.json'), /refusing to load schema module/)
+    await assert.rejects(() => requireSchemaModule('../../package.json'), /refusing to load schema module/)
+    await assert.rejects(() => requireSchemaModule('@elastic/schemas/does-not-exist.json'))
   })
 })

@@ -1,0 +1,17 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-osquery-api: get scheduled action results.
+# No real scheduled action execution exists in a test environment, so a fake
+# UUID is used for scheduleId and a 404 is expected.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-osquery-api get scheduled action results":
+  - do:
+      catch: missing
+      security-osquery-api.osquery_get_scheduled_action_results:
+        schedule_id: "00000000-0000-0000-0000-000000000000"
+        execution_count: "0"

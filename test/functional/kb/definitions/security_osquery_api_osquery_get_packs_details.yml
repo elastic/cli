@@ -1,0 +1,34 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-osquery-api: get pack details.
+# Creates a pack in setup, fetches it by ID, and deletes it in teardown.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-osquery-api.osquery_create_packs:
+        body:
+          name: cli-ft-osquery-get-packs-details
+          enabled: true
+          interval: 3600
+          queries:
+            uptime:
+              query: SELECT * FROM uptime LIMIT 1
+  - set: {"data.id": pack_id}
+---
+teardown:
+  - do:
+      security-osquery-api.osquery_delete_packs:
+        id: $pack_id
+        ignore: [404]
+---
+"security-osquery-api get pack details":
+  - do:
+      security-osquery-api.osquery_get_packs_details:
+        id: $pack_id
+  - match: {data.name: cli-ft-osquery-get-packs-details}
+  - is_true: data.id

@@ -2,6 +2,7 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened]
   push:
     branches:
       - main
@@ -22,22 +23,36 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         node-version: [22.x, 24.x, 25.x]
     runs-on: ${{ matrix.os }}
+    # Baseline job time is 1-3 min; cap at 15 to fail fast on a hang instead
+    # of burning hours and losing logs to blob storage expiry.
+    timeout-minutes: 15
     # Per-endpoint Zod schemas (#171) that once bloated .d.ts emit are gone,
     # but tsc build still peaks around 3.7 GB locally; keep headroom above
     # the 2 GB Node default for slower/smaller CI runners.
     env:
-      NODE_OPTIONS: --max-old-space-size=6144
+      # `--test-isolation=none` sidesteps a flaky node:test parent/child IPC
+      # deserialize crash (nodejs/node#64061). The stable flag is allowed in
+      # NODE_OPTIONS on 24+. Node 22 cannot use isolation=none: it emits TAP as
+      # strings through process.stdout.write, which this suite captures.
+      NODE_OPTIONS: --max-old-space-size=6144 ${{ matrix.node-version != '22.x' && '--test-isolation=none' || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ matrix.node-version }}
       - name: Install
         run: npm ci
       - name: Run unit tests
-        run: npm test
+        # Node 22 still uses process isolation, so nodejs/node#64061 can flake
+        # the parent IPC. One retry; isolation=none is not viable on 22 here.
+        run: |
+          if [ "${{ matrix.node-version }}" = "22.x" ]; then
+            npm test || npm test
+          else
+            npm test
+          fi
         shell: bash
 
   license-header:
@@ -49,7 +64,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
       - name: Install
         run: npm ci
       - name: License header check
@@ -64,7 +79,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
       - name: Install
         run: npm ci
       - name: Verify NOTICE.txt
@@ -96,18 +111,26 @@ jobs:
         # stubs for the full ES manifest takes longer than bun's 5 s default.
         run: bun test --timeout 30000
 
-  validate-pr-title:
-    if: github.event_name == 'pull_request'
-    name: Validate PR title
+  binary-smoke:
+    name: Binary smoke
     permissions:
-      pull-requests: read
+      contents: read
     runs-on: ubuntu-latest
     steps:
-      - name: PR Conventional Commit Validation
-        uses: ytanikin/pr-conventional-commits@639145d78959c53c43112365837e3abd21ed67c1 # v1.5.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          task_types: '["feat","fix","docs","test","ci","refactor","perf","chore","revert"]'
-          add_label: "false"
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      - name: Install
+        run: bun install
+      - name: Build config-resolver
+        run: bunx tsc -b packages/config-resolver
+      - name: Generate schema loaders
+        run: node scripts/generate-schema-loaders.mjs
+      - name: Compile
+        run: bun build src/bun-entry.ts --compile --minify --bytecode --format esm --outfile elastic --target bun-linux-x64
+      - name: Smoke
+        run: bash scripts/smoke-binary.sh ./elastic
 
   megalinter:
     name: MegaLinter
@@ -128,16 +151,17 @@ jobs:
   cli-schema:
     name: Check CLI schema is up to date
     permissions:
-      contents: read
-      pull-requests: write
+      contents: write
     runs-on: ubuntu-latest
     env:
       NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+          # PR head, not the merge ref, so a schema commit can fast-forward the branch.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24.x
       - name: Install
@@ -146,21 +170,25 @@ jobs:
         run: npm run build
       - name: Regenerate CLI schema
         run: npm run build:schema
-      - name: Check for uncommitted changes
-        run: |
-          if ! git diff --exit-code docs/cli/schema.json; then
-            echo ""
-            echo "docs/cli/schema.json is out of date. Run 'npm run build:schema' and commit the result."
-            exit 1
-          fi
-      - name: Comment on PR
-        if: failure() && github.event_name == 'pull_request'
+      - name: Commit schema or fail
         env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BRANCH: ${{ github.head_ref }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
-          gh pr comment "$PR_NUMBER" --body "<!-- schema-stale -->
-          \`docs/cli/schema.json\` is out of date. Comment \`/fix-schema\` on this PR and the bot will regenerate and commit it automatically."
+          if git diff --quiet docs/cli/schema.json; then
+            exit 0
+          fi
+          if [ "$SAME_REPO" = "true" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add docs/cli/schema.json
+            git commit -m "chore: regenerate CLI schema"
+            git push origin "HEAD:refs/heads/$BRANCH" --force-with-lease="refs/heads/$BRANCH:$SHA"
+            exit 0
+          fi
+          echo "docs/cli/schema.json is out of date. Run 'npm run build:schema' and commit the result."
+          exit 1
 
   ci:
     name: CI Result
@@ -170,7 +198,7 @@ jobs:
       - test-node
       - license-header
       - test-bun
-      - validate-pr-title
+      - binary-smoke
       - megalinter
       - cli-schema
     steps:

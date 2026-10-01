@@ -1,0 +1,1006 @@
+#!/usr/bin/env node
+/*
+ * Copyright Elasticsearch B.V. and contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { execFileSync } from 'node:child_process'
+import { lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { pathToFileURL } from 'node:url'
+
+const GENERATED = [
+  /^src\/es\/apis\//,
+  /^src\/es\/api-manifest\.ts$/,
+  /^src\/kb\/apis\.ts$/,
+  /^src\/kb\/api-manifest\.ts$/,
+]
+
+const FAILED = new Set(['failure', 'timed_out'])
+
+export function isFailedConclusion (conclusion) {
+  return FAILED.has(conclusion)
+}
+
+export function firstFailedJob (payload) {
+  const jobs = payload?.jobs
+  if (!Array.isArray(jobs)) return null
+  return jobs.find((job) => job && (isFailedConclusion(job.conclusion) || job.state === 'failed')) ?? null
+}
+
+export function jobLogUrl (repo, jobId) {
+  if (typeof repo !== 'string' || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) return null
+  if (jobId == null || jobId === '') return null
+  const id = encodeURIComponent(String(jobId))
+  if (id !== String(jobId) || /[^0-9]/.test(String(jobId))) return null
+  return `https://api.github.com/repos/${repo}/actions/jobs/${id}/logs`
+}
+
+export async function downloadJobLog ({ repo, jobId, dest, token, fetchImpl = fetch }) {
+  const url = jobLogUrl(repo, jobId)
+  if (!url || typeof dest !== 'string' || dest === '' || typeof token !== 'string' || token === '') return false
+  const res = await fetchImpl(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+    redirect: 'follow',
+  })
+  if (!res || res.ok !== true) return false
+  const text = await res.text()
+  writeFileSync(dest, text)
+  return text.length > 0
+}
+
+export function parseBkBuildUrl (url) {
+  if (typeof url !== 'string') return null
+  const m = url.match(/^https:\/\/buildkite\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)\/builds\/(\d+)(?:[/?#]|$)/)
+  if (!m) return null
+  return { org: m[1], pipeline: m[2], build: m[3] }
+}
+
+export function stripBkLog (text) {
+  if (typeof text !== 'string') return ''
+  return text
+    .replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
+    .replace(/\u001b_bk;t=\d+\u0007/g, '')
+    .replace(/_bk;t=\d+/g, '')
+    .replace(/\r/g, '')
+}
+
+function isBkTestFailLine (line) {
+  return /^(?: {2})?(FAIL: |Results: )/.test(line)
+}
+
+function isBkSetupFailLine (line) {
+  return /did not become healthy/.test(line)
+    || /Error: The command exited/.test(line)
+    || /^npm ERR!/.test(line)
+}
+
+export function extractBkFailureExcerpt (log, maxChars = 2000) {
+  const cap = Number.isInteger(maxChars) && maxChars > 0 ? maxChars : 2000
+  const lines = stripBkLog(log).split('\n')
+  const hits = []
+  let take = 0
+  for (const line of lines) {
+    if (isBkTestFailLine(line)) {
+      hits.push(line)
+      take = /^FAIL: /.test(line) ? 2 : 0
+      continue
+    }
+    if (take > 0) {
+      if (/^ {2}/.test(line) && !isBkTestFailLine(line)) {
+        hits.push(line)
+        take -= 1
+        continue
+      }
+      take = 0
+    }
+  }
+  if (hits.length > 0) return hits.slice(0, 20).join('\n').trim().slice(0, cap)
+  return lines.filter(isBkSetupFailLine).slice(0, 20).join('\n').trim().slice(0, cap)
+}
+
+export function extractBkFailureContext (log, maxChars = 4000) {
+  const cap = Number.isInteger(maxChars) && maxChars > 0 ? maxChars : 4000
+  const lines = stripBkLog(log).split('\n')
+  const cut = lines.findIndex((line) => /^--- Cleaning up/.test(line))
+  const body = cut >= 0 ? lines.slice(0, cut) : lines
+  const i = body.findIndex((line) => isBkTestFailLine(line) || isBkSetupFailLine(line))
+  if (i === -1) return extractBkFailureExcerpt(log, cap)
+  return body.slice(i, i + 40).join('\n').trim().slice(0, cap)
+}
+
+function firstFailedBkJob (jobs) {
+  if (!Array.isArray(jobs)) return null
+  const failed = jobs.filter((job) => job && (job.state === 'failed' || isFailedConclusion(job.conclusion)))
+  const skip = new Set(['waiter', 'manual', 'trigger', 'group'])
+  return failed.find((job) => !skip.has(job.type)) ?? failed[0] ?? null
+}
+
+function bkFailureSummary (excerpt, log) {
+  if (excerpt) return excerpt
+  return log ? 'Job log had no FAIL lines' : 'Job log not available yet'
+}
+
+export function stripGhaLog (text) {
+  if (typeof text !== 'string') return ''
+  return text.replace(/^\d{4}-\d{2}-\d{2}T[0-9:.]+Z /gm, '').replace(/\r/g, '')
+}
+
+const GHA_NOISE = /^(Correct: |\(pass\)|Post job cleanup|\[command\]|Temporarily overriding HOME|Adding repository directory|##\[group\]|##\[endgroup\]|Cleaning up orphan)/
+
+function isGhaFailLine (line) {
+  return /^(Incorrect: |\(fail\)|FAIL: |✖ failing tests|AssertionError|\d+ tests failed)/.test(line)
+    || /^ {2}\^ this test timed out/.test(line)
+    || /^✗ /.test(line)
+    || /Performance regression detected/.test(line)
+    || /^##\[error\]/.test(line)
+    || /ECONNRESET/.test(line)
+}
+
+export function extractGhaFailureExcerpt (log, maxChars = 2000) {
+  const cap = Number.isInteger(maxChars) && maxChars > 0 ? maxChars : 2000
+  const lines = stripGhaLog(log).split('\n')
+  const cut = lines.findIndex((line) => /^Post job cleanup/.test(line) || /^##\[error\]Process completed/.test(line))
+  const body = cut >= 0 ? lines.slice(0, cut) : lines
+  const hits = []
+  let take = 0
+  for (const line of body) {
+    if (/^✖ failing tests/.test(line) || /^\d+ tests failed/.test(line)) {
+      hits.push(line)
+      take = 12
+      continue
+    }
+    if (isGhaFailLine(line)) {
+      hits.push(line)
+      continue
+    }
+    if (take > 0) {
+      if (line.trim() === '' || /^ℹ /.test(line) || /^ {2}\d+ pass/.test(line)) {
+        take = 0
+        continue
+      }
+      hits.push(line)
+      take -= 1
+    }
+  }
+  return hits.slice(0, 30).join('\n').trim().slice(0, cap)
+}
+
+export function extractGhaFailureContext (log, maxChars = 4000) {
+  const cap = Number.isInteger(maxChars) && maxChars > 0 ? maxChars : 4000
+  const lines = stripGhaLog(log).split('\n')
+  const cut = lines.findIndex((line) => /^Post job cleanup/.test(line))
+  const body = (cut >= 0 ? lines.slice(0, cut) : lines).filter((line) => !GHA_NOISE.test(line))
+  const i = body.findIndex((line) => isGhaFailLine(line) || /ELIFECYCLE|not found|Cannot find/.test(line))
+  if (i === -1) return extractGhaFailureExcerpt(log, cap)
+  return body.slice(i, i + 40).join('\n').trim().slice(0, cap)
+}
+
+export async function downloadBkFirstFailure ({
+  token,
+  org,
+  pipeline,
+  build,
+  fetchImpl = fetch,
+  maxChars = 8000,
+  retries = 3,
+  delayMs = 2000,
+  sleepImpl,
+} = {}) {
+  if (typeof token !== 'string' || token === '') return null
+  if (typeof org !== 'string' || typeof pipeline !== 'string' || typeof build !== 'string') return null
+  if (!/^[A-Za-z0-9_.-]+$/.test(org) || !/^[A-Za-z0-9_.-]+$/.test(pipeline) || !/^\d+$/.test(build)) return null
+  const sleep = sleepImpl ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)))
+  const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json' }
+  const buildRes = await fetchImpl(
+    `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}`,
+    { headers, redirect: 'follow' },
+  )
+  if (!buildRes || buildRes.ok !== true) return null
+  const data = await buildRes.json()
+  const job = firstFailedBkJob(data?.jobs)
+  if (!job?.id) {
+    return {
+      jobName: 'functional',
+      summary: `${pipeline} #${build} failed`,
+      excerpt: '',
+      context: '',
+      log: '',
+    }
+  }
+  const logUrl = `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}/jobs/${encodeURIComponent(String(job.id))}/log`
+  let log = ''
+  const attempts = Number.isInteger(retries) && retries > 0 ? retries : 1
+  for (let i = 0; i < attempts; i++) {
+    const logRes = await fetchImpl(logUrl, { headers, redirect: 'follow' })
+    if (logRes && logRes.ok === true) {
+      const body = await logRes.json()
+      if (typeof body?.content === 'string' && body.content !== '') {
+        log = body.content
+        break
+      }
+    }
+    if (i < attempts - 1 && delayMs > 0) await sleep(delayMs)
+  }
+  const excerpt = extractBkFailureExcerpt(log, maxChars)
+  const context = extractBkFailureContext(log, 4000)
+  const summary = bkFailureSummary(excerpt, log)
+  const jobName = typeof job.name === 'string' && job.name !== '' ? job.name : 'functional'
+  return {
+    jobName,
+    summary,
+    excerpt: excerpt || summary,
+    context: context || summary,
+    log: excerpt || summary,
+  }
+}
+
+export async function rebuildBkBuild ({ token, org, pipeline, build, fetchImpl = fetch }) {
+  if (typeof token !== 'string' || token === '') return { ok: false, status: 0 }
+  if (typeof org !== 'string' || typeof pipeline !== 'string' || typeof build !== 'string') return { ok: false, status: 0 }
+  if (!/^[A-Za-z0-9_.-]+$/.test(org) || !/^[A-Za-z0-9_.-]+$/.test(pipeline) || !/^\d+$/.test(build)) return { ok: false, status: 0 }
+  try {
+    const res = await fetchImpl(
+      `https://api.buildkite.com/v2/organizations/${org}/pipelines/${pipeline}/builds/${build}/rebuild`,
+      {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        redirect: 'error',
+      },
+    )
+    return { ok: res?.ok === true, status: Number(res?.status) || 0 }
+  } catch {
+    return { ok: false, status: 0 }
+  }
+}
+
+export function formatBkRebuildNote ({ ok, status }) {
+  if (ok) return 'Rebuilt the failed Buildkite jobs.'
+  if (Number(status) > 0) {
+    return `Rebuild skipped: Buildkite API returned ${Number(status)}. Rebuild the failed jobs in the Buildkite UI.`
+  }
+  return 'Rebuild skipped: no usable Buildkite API response. Rebuild the failed jobs in the Buildkite UI.'
+}
+
+export function hasStopCommand (text) {
+  return typeof text === 'string' && /(?:^|[\s])\/stop(?:-repair)?(?:[\s]|$)/m.test(text)
+}
+
+export function canonicalPath (file) {
+  if (typeof file !== 'string' || file.length === 0) return null
+  if (file.includes('\0') || file.includes('\\')) return null
+  if (file.startsWith('/') || /^[A-Za-z]:/.test(file)) return null
+  const parts = []
+  for (const part of file.split('/')) {
+    if (part === '' || part === '.') continue
+    if (part === '..') return null
+    parts.push(part)
+  }
+  return parts.length === 0 ? null : parts.join('/')
+}
+
+export function isGeneratedPath (file) {
+  const n = canonicalPath(file)
+  return n !== null && GENERATED.some((re) => re.test(n))
+}
+
+function isDirOrChild (n, dir) {
+  return n === dir || n.startsWith(`${dir}/`)
+}
+
+export function isProtectedWritePath (file) {
+  const n = canonicalPath(file)
+  return n === null
+    || isDirOrChild(n, '.github')
+    || isDirOrChild(n, '.git')
+    || isDirOrChild(n, '.buildkite')
+}
+
+export function isSafeReadPath (file) {
+  return canonicalPath(file) !== null
+}
+
+export function isSafeWritePath (file) {
+  const n = canonicalPath(file)
+  return n !== null && !isGeneratedPath(n) && !isProtectedWritePath(n)
+}
+
+export function hasBadCommand (text) {
+  return typeof text === 'string' && /(?:^|[\s])\/bad(?:[\s]|$)/m.test(text)
+}
+
+export function hasBkRepairTag (text) {
+  return typeof text === 'string' && text.includes('<!-- bk-repair-loop -->')
+}
+
+export function positiveInt (value) {
+  if (typeof value === 'number') {
+    return Number.isInteger(value) && value > 0 && value <= Number.MAX_SAFE_INTEGER ? value : null
+  }
+  if (typeof value === 'string' && /^[1-9][0-9]{0,15}$/.test(value)) {
+    const n = Number(value)
+    return n <= Number.MAX_SAFE_INTEGER ? n : null
+  }
+  return null
+}
+
+export function isTrustedAssociation (association) {
+  return association === 'OWNER' || association === 'MEMBER'
+}
+
+export const REVIEW_LOOP_BOTS = new Set([
+  'github-advanced-security[bot]',
+  'github-actions[bot]',
+])
+
+export function isTrustedReviewer (login, association) {
+  if (isTrustedAssociation(association)) return true
+  return REVIEW_LOOP_BOTS.has(login)
+}
+
+export function trustedReviewComments (comments) {
+  if (!Array.isArray(comments)) return []
+  return comments
+    .filter((c) => c && isTrustedReviewer(c.user?.login, c.author_association))
+    .map((c) => ({ path: c.path ?? null, line: c.line ?? null, body: c.body ?? '' }))
+}
+
+const REVIEW_LOOP_STATES = new Set(['COMMENTED', 'CHANGES_REQUESTED', 'commented', 'changes_requested'])
+
+export function latestTrustedReview (reviews) {
+  if (!Array.isArray(reviews)) return null
+  let best = null
+  for (const review of reviews) {
+    if (!review || !isTrustedReviewer(review.user?.login, review.author_association)) continue
+    if (!REVIEW_LOOP_STATES.has(review.state)) continue
+    const reviewId = positiveInt(review.id)
+    if (reviewId === null) continue
+    if (best === null || reviewId > best.reviewId) best = { reviewId }
+  }
+  return best
+}
+
+export function parseReviewNoEvent (payload) {
+  if (!payload || typeof payload !== 'object') return null
+  const source = payload.source
+  if (source !== 'issue_comment' && source !== 'pull_request_review_comment') return null
+  const commentId = positiveInt(payload.comment_id)
+  if (commentId === null) return null
+  return {
+    source,
+    commentId,
+    apiPath: source === 'issue_comment'
+      ? `issues/comments/${commentId}`
+      : `pulls/comments/${commentId}`,
+  }
+}
+
+export function parseReviewLoopEvent (payload) {
+  if (!payload || typeof payload !== 'object') return null
+  const pr = positiveInt(payload.pr)
+  const reviewId = positiveInt(payload.review_id ?? payload.reviewId)
+  if (pr === null || reviewId === null) return null
+  return { pr, reviewId }
+}
+
+export function resolveReviewLoopPr (artifactPr, runPr) {
+  const run = positiveInt(runPr)
+  if (run === null) return null
+  const artifact = positiveInt(artifactPr)
+  if (artifact !== null && artifact !== run) return null
+  return run
+}
+
+export function reviewCommentPrNumber (comment, source) {
+  const url = source === 'issue_comment' ? comment?.issue_url : comment?.pull_request_url
+  if (typeof url !== 'string') return null
+  const match = url.match(/^https:\/\/api\.github\.com\/repos\/[^/]+\/[^/]+\/(?:issues|pulls)\/([1-9][0-9]{0,15})$/)
+  return match ? Number(match[1]) : null
+}
+
+export function memoryActionItem (reason) {
+  let r = String(reason ?? '').replace(/\s+/g, ' ').trim()
+  r = r.replace(/\/bad\b/gi, ' ').replace(/\/review-no\b/gi, ' ').replace(/\s+/g, ' ').trim()
+  r = r.replace(/^\d{4}-\d{2}-\d{2}:\s*/, '')
+  const pipe = r.indexOf(' | ')
+  if (pipe !== -1) r = r.slice(0, pipe).trim()
+  r = r.replace(/^[-*]\s+/, '').trim()
+  if (!r) return ''
+  return `- ${r.slice(0, 280)}`
+}
+
+export function memoryEntry (reason, _finding, _day) {
+  return memoryActionItem(reason)
+}
+
+export function memoryRetrospectPrompt (finding, reason) {
+  const note = memoryActionItem(reason).replace(/^- /, '')
+  const rejected = String(finding ?? '').replace(/\s+/g, ' ').trim().slice(0, 2000)
+  return [
+    'Write one action item for the next AI code review.',
+    'The maintainer rejected a bot finding with /bad.',
+    'Turn the finding and the maintainer note into one line the next review must follow.',
+    'Format: Do not re-flag <what was wrong>. <why it is wrong>.',
+    'Do not copy the maintainer note verbatim unless it is already in that form.',
+    'One line only. No markdown fences. No quotes. No /bad.',
+    '',
+    'REJECTED FINDING:',
+    rejected || '(none)',
+    '',
+    'MAINTAINER NOTE:',
+    note || '(none)',
+  ].join('\n')
+}
+
+export function memoryLineFromModel (text) {
+  let t = String(text ?? '').trim()
+  t = t.replace(/^```(?:\w+)?\s*/, '').replace(/\s*```$/, '').trim()
+  t = (t.split(/\r?\n/)[0] ?? '').trim()
+  t = t.replace(/^["'`]+|["'`]+$/g, '').trim()
+  let item = memoryActionItem(t)
+  if (!item) return ''
+  const body = item.slice(2)
+  if (!/^do not re-flag\b/i.test(body)) {
+    item = memoryActionItem(`Do not re-flag ${body}`)
+  }
+  return item
+}
+
+export const MEMORY_SKILL_PATH = '.github/skills/ai-review-memory.md'
+export const MEMORY_CURSOR_RE = /<!-- processed-through:\s*(\d+)\s*-->/
+
+const MEMORY_SKILL_HEADER = `# AI review memory
+
+Shared store for rejected AI review findings. \`/bad\` (OWNER/MEMBER) updates this file on the standing \`ai/review-memory\` PR. A model writes one "Do not re-flag" line from the finding and the maintainer note. Not an issue hop.
+
+Action items for the next AI review. Follow these. Do not repeat the rejected findings.
+`
+
+export function isMemoryLine (text) {
+  if (typeof text !== 'string') return false
+  const line = text.trim().split('\n')[0]
+  if (/^Noted\b/i.test(line.replace(/^[-*]\s+/, ''))) return false
+  return memoryActionItem(line) !== ''
+}
+
+const TRUSTED_ASSOCIATION = new Set(['OWNER', 'MEMBER'])
+
+export function isTrustedMemoryAuthor (comment) {
+  const login = comment?.user?.login
+  if (login === 'github-actions[bot]') return true
+  return TRUSTED_ASSOCIATION.has(comment?.author_association)
+}
+
+export function parseMemoryCursor (text) {
+  const match = typeof text === 'string' ? text.match(MEMORY_CURSOR_RE) : null
+  return match ? Number(match[1]) : 0
+}
+
+export function setMemoryCursor (text, cursor) {
+  const body = typeof text === 'string' ? text : ''
+  const line = `<!-- processed-through: ${Number(cursor) || 0} -->`
+  if (MEMORY_CURSOR_RE.test(body)) return body.replace(MEMORY_CURSOR_RE, line)
+  if (body.trim() === '') return `${line}\n`
+  return `${body.replace(/\s*$/, '')}\n\n${line}\n`
+}
+
+export function unprocessedMemoryComments (comments, cursor) {
+  const after = Number(cursor) || 0
+  if (!Array.isArray(comments)) return []
+  return comments
+    .filter((item) => {
+      const id = Number(item?.id)
+      return Number.isFinite(id) && id > after && isMemoryLine(item.body) && isTrustedMemoryAuthor(item)
+    })
+    .sort((a, b) => Number(a.id) - Number(b.id))
+}
+
+export function isSkillOnlyPr (pr) {
+  const files = pr?.files
+  if (!Array.isArray(files) || files.length === 0) return false
+  return files.every((file) => (typeof file === 'string' ? file : file?.path) === MEMORY_SKILL_PATH)
+}
+
+export function pickSkillMemoryPr (prs, { defaultBranch } = {}) {
+  if (!Array.isArray(prs)) return null
+  const usable = (pr) => {
+    if (!pr || pr.isCrossRepository) return false
+    if (defaultBranch && pr.headRefName === defaultBranch) return false
+    const labels = Array.isArray(pr.labels) ? pr.labels : []
+    const labeled = labels.some((label) => (typeof label === 'string' ? label : label?.name) === 'ai-review-memory')
+    const login = pr.author?.login ?? pr.user?.login
+    const bot = login === 'github-actions' || login === 'github-actions[bot]'
+    return labeled || bot
+  }
+  return prs.find((pr) => usable(pr) && pr.headRefName === 'ai/review-memory')
+    ?? prs.find((pr) => usable(pr) && isSkillOnlyPr(pr))
+    ?? null
+}
+
+export function isMemorySkillPr (pr) {
+  if (!pr || typeof pr !== 'object') return false
+  const ref = pr.headRefName ?? pr.head?.ref ?? ''
+  if (ref === 'ai/review-memory') return true
+  const labels = Array.isArray(pr.labels) ? pr.labels : []
+  return labels.some((label) => (typeof label === 'string' ? label : label?.name) === 'ai-review-memory')
+}
+
+export function appendMemorySkill (existing, entry) {
+  const action = memoryActionItem(entry)
+  const raw = typeof existing === 'string' ? existing : ''
+  if (!action) return raw
+  const have = new Set(raw.split('\n').map((line) => memoryActionItem(line)).filter(Boolean))
+  if (have.has(action)) return raw
+  const body = raw.trim() === '' ? `${MEMORY_SKILL_HEADER}\n` : raw.replace(/\s*$/, '\n')
+  return `${body}${action}\n`
+}
+
+export function mergeMemorySkill (existing, comments) {
+  const raw = typeof existing === 'string' ? existing : ''
+  if (!Array.isArray(comments) || comments.length === 0) return raw
+  const have = new Set(raw.split('\n').map((line) => memoryActionItem(line)).filter(Boolean))
+  const added = []
+  let cursor = parseMemoryCursor(raw)
+  for (const item of comments) {
+    const id = Number(item?.id) || 0
+    if (id > cursor) cursor = id
+    const action = memoryActionItem(item?.body)
+    if (!action || have.has(action)) continue
+    have.add(action)
+    added.push(action)
+  }
+  let body = raw.trim() === '' ? `${MEMORY_SKILL_HEADER}\n<!-- processed-through: 0 -->\n` : raw
+  if (added.length > 0) body = body.replace(/\s*$/, '\n') + added.join('\n') + '\n'
+  return setMemoryCursor(body, cursor)
+}
+
+export function citedPathsFromText (text) {
+  if (typeof text !== 'string' || text.length === 0) return []
+  const re = /(?:^|[\s`'"(])((?:src|test|scripts|codegen|packages)\/[A-Za-z0-9_./-]+\.(?:ts|js|mjs|yml|yaml|json|md))/g
+  const out = new Set()
+  let match
+  while ((match = re.exec(text)) !== null) {
+    const canon = canonicalPath(match[1])
+    if (canon) out.add(canon)
+  }
+  return [...out]
+}
+
+export function citedPathsFromReview (comments, extraText) {
+  const out = new Set(citedPathsFromText(extraText ?? ''))
+  if (!Array.isArray(comments)) return [...out]
+  for (const comment of comments) {
+    const path = canonicalPath(comment?.path)
+    if (path) out.add(path)
+    for (const cited of citedPathsFromText(comment?.body ?? '')) out.add(cited)
+  }
+  return [...out]
+}
+
+export function parseAgentResponseOrNull (text) {
+  try {
+    return parseAgentResponse(text)
+  } catch {
+    return null
+  }
+}
+
+export function extractJsonObject (text) {
+  if (typeof text !== 'string' || text.length === 0) return null
+  const start = text.indexOf('{')
+  if (start === -1) return null
+  let depth = 0
+  let inStr = false
+  let esc = false
+  for (let i = start; i < text.length; i++) {
+    const c = text[i]
+    if (inStr) {
+      if (esc) esc = false
+      else if (c === '\\') esc = true
+      else if (c === '"') inStr = false
+    } else if (c === '"') inStr = true
+    else if (c === '{') depth++
+    else if (c === '}') {
+      depth--
+      if (depth === 0) {
+        try {
+          return JSON.parse(text.slice(start, i + 1))
+        } catch {
+          return null
+        }
+      }
+    }
+  }
+  return null
+}
+
+export function parseAgentResponse (text) {
+  const obj = extractJsonObject(text)
+  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
+    throw new Error('no JSON object')
+  }
+  const changes = obj.changes ?? []
+  if (!Array.isArray(changes)) throw new Error('changes must be an array')
+  for (const change of changes) {
+    if (!change || typeof change.file !== 'string' || typeof change.content !== 'string') {
+      throw new Error('each change needs file and content')
+    }
+    if (!isSafeWritePath(change.file)) {
+      throw new Error(`refusing path: ${change.file}`)
+    }
+  }
+  const stop = obj.stop === true
+  let action = obj.action
+  if (action !== 'fix' && action !== 'rerun' && action !== 'stop') {
+    action = stop || changes.length === 0 ? 'stop' : 'fix'
+  }
+  return {
+    stop,
+    action,
+    comment: typeof obj.comment === 'string' ? obj.comment : '',
+    commit_message: safeCommitMessage(obj.commit_message),
+    changes,
+  }
+}
+
+export function safeCommitMessage (msg) {
+  const fallback = 'fix: repair first ci failure'
+  if (typeof msg !== 'string' || msg.includes('\n')) return fallback
+  return /^(feat|fix|docs|test|ci|refactor|perf|chore|revert)(\([^)]+\))?: [a-z0-9 ].{0,72}$/.test(msg)
+    ? msg
+    : fallback
+}
+
+export function shouldAttemptFix ({
+  sameRepo = false,
+  skipLoop = false,
+  stopRepair = false,
+  autoLoop = false,
+} = {}) {
+  if (!sameRepo) return { ok: false, reason: 'fork' }
+  if (stopRepair) return { ok: false, reason: 'stop' }
+  if (skipLoop) return { ok: false, reason: 'skip-auto-loop' }
+  if (!autoLoop) return { ok: false, reason: 'auto-loop' }
+  return { ok: true, reason: 'ok' }
+}
+
+export function refuseSymlinkChain (root, dest) {
+  let cur = dest
+  for (;;) {
+    try {
+      if (lstatSync(cur).isSymbolicLink()) {
+        throw new Error(`refusing symlink: ${cur}`)
+      }
+    } catch (err) {
+      if (err?.code !== 'ENOENT') throw err
+    }
+    if (cur === root) return
+    const parent = dirname(cur)
+    if (parent === cur) return
+    cur = parent
+  }
+}
+
+function posixRel (from, to) {
+  const rel = relative(from, to)
+  if (rel === '' || isAbsolute(rel) || rel.split(sep)[0] === '..') return null
+  return rel.split(sep).join('/')
+}
+
+export function applyChanges (changes, cwd) {
+  const root = resolve(cwd)
+  for (const change of changes) {
+    const relFile = canonicalPath(change.file)
+    if (relFile === null || !isSafeWritePath(relFile)) {
+      throw new Error(`refusing path: ${change.file}`)
+    }
+    const dest = resolve(root, ...relFile.split('/'))
+    if (posixRel(root, dest) !== relFile) {
+      throw new Error(`path escapes cwd: ${change.file}`)
+    }
+    refuseSymlinkChain(root, dest)
+    try {
+      const rootReal = realpathSync(root)
+      const realDest = resolve(realpathSync(dirname(dest)), basename(dest))
+      const relReal = posixRel(rootReal, realDest)
+      if (relReal === null || !isSafeWritePath(relReal)) {
+        throw new Error(`realpath escapes cwd: ${change.file}`)
+      }
+    } catch (err) {
+      if (err?.code !== 'ENOENT') throw err
+    }
+    mkdirSync(dirname(dest), { recursive: true })
+    writeFileSync(dest, change.content)
+  }
+}
+
+export function validatedWrites (changes) {
+  if (!Array.isArray(changes)) throw new Error('changes must be an array')
+  return changes.map((change) => {
+    const relFile = canonicalPath(change?.file)
+    if (relFile === null || !isSafeWritePath(relFile)) {
+      throw new Error(`refusing path: ${change?.file}`)
+    }
+    if (typeof change.content !== 'string') throw new Error(`refusing path: ${change.file}`)
+    return { path: relFile, content: change.content }
+  })
+}
+
+export function gitHeadRef (branch) {
+  return `heads/${encodeURIComponent(branch)}`
+}
+
+export function defaultGhApi (method, path, body) {
+  const args = ['api', '-X', method, path]
+  if (body !== undefined) {
+    const file = join(tmpdir(), `repair-loop-gh-${process.pid}.json`)
+    writeFileSync(file, JSON.stringify(body))
+    args.push('--input', file)
+  }
+  const out = execFileSync('gh', args, { encoding: 'utf8' })
+  return out ? JSON.parse(out) : {}
+}
+
+export function applyChangesGithub (changes, { repo, branch, message, expectedSha, api = defaultGhApi }) {
+  if (typeof repo !== 'string' || !repo.includes('/') || typeof branch !== 'string' || branch.length === 0) {
+    throw new Error('repo and branch required')
+  }
+  const files = validatedWrites(changes)
+  if (files.length === 0) return
+  const head = gitHeadRef(branch)
+  const ref = api('GET', `repos/${repo}/git/ref/${head}`)
+  if (expectedSha && ref.object.sha !== expectedSha) {
+    throw new Error(`branch moved: ${ref.object.sha} != ${expectedSha}`)
+  }
+  const parent = api('GET', `repos/${repo}/git/commits/${ref.object.sha}`)
+  const tree = files.map((file) => {
+    const blob = api('POST', `repos/${repo}/git/blobs`, { content: file.content, encoding: 'utf-8' })
+    return { path: file.path, mode: '100644', type: 'blob', sha: blob.sha }
+  })
+  const newTree = api('POST', `repos/${repo}/git/trees`, { base_tree: parent.tree.sha, tree })
+  const commit = api('POST', `repos/${repo}/git/commits`, {
+    message: safeCommitMessage(message),
+    tree: newTree.sha,
+    parents: [ref.object.sha],
+  })
+  api('PATCH', `repos/${repo}/git/refs/${head}`, { sha: commit.sha })
+}
+
+function readJsonArg (path) {
+  return JSON.parse(readFileSync(path, 'utf8'))
+}
+
+async function main (argv) {
+  const [cmd, ...args] = argv
+  switch (cmd) {
+    case 'fetch-job-log': {
+      const ok = await downloadJobLog({
+        repo: process.env.GH_REPO,
+        jobId: args[0],
+        dest: args[1],
+        token: process.env.GH_TOKEN,
+      })
+      process.exit(ok ? 0 : 1)
+      break
+    }
+    case 'rebuild-bk': {
+      const parsed = parseBkBuildUrl(args[0])
+      const result = parsed
+        ? await rebuildBkBuild({
+          ...parsed,
+          token: process.env.BUILDKITE_API_TOKEN,
+        })
+        : { ok: false, status: 0 }
+      process.stdout.write(JSON.stringify({ ...result, note: formatBkRebuildNote(result) }) + '\n')
+      process.exit(result.ok ? 0 : 1)
+      break
+    }
+    case 'bk-excerpt': {
+      writeFileSync(args[1], extractBkFailureExcerpt(readFileSync(args[0], 'utf8')))
+      break
+    }
+    case 'bk-context': {
+      writeFileSync(args[1], extractBkFailureContext(readFileSync(args[0], 'utf8')))
+      break
+    }
+    case 'fetch-bk-failure': {
+      const parsed = parseBkBuildUrl(args[0])
+      const result = parsed
+        ? await downloadBkFirstFailure({
+          ...parsed,
+          token: process.env.BUILDKITE_API_TOKEN,
+        })
+        : null
+      writeFileSync(args[1], JSON.stringify(result ?? {}))
+      process.exit(result ? 0 : 1)
+      break
+    }
+    case 'gha-excerpt': {
+      writeFileSync(args[1], extractGhaFailureExcerpt(readFileSync(args[0], 'utf8')))
+      break
+    }
+    case 'gha-context': {
+      writeFileSync(args[1], extractGhaFailureContext(readFileSync(args[0], 'utf8')))
+      break
+    }
+    case 'first-failure': {
+      const job = firstFailedJob(readJsonArg(args[0]))
+      process.stdout.write(JSON.stringify(job) + '\n')
+      process.exit(job ? 0 : 2)
+      break
+    }
+    case 'has-bad': {
+      const found = hasBadCommand(readFileSync(args[0], 'utf8'))
+      process.stdout.write(JSON.stringify({ bad: found }) + '\n')
+      process.exit(found ? 0 : 1)
+      break
+    }
+    case 'review-no-event': {
+      const parsed = parseReviewNoEvent(readJsonArg(args[0]))
+      process.stdout.write(JSON.stringify(parsed ?? {}) + '\n')
+      process.exit(parsed ? 0 : 1)
+      break
+    }
+    case 'review-loop-event': {
+      const parsed = parseReviewLoopEvent(readJsonArg(args[0]))
+      process.stdout.write(JSON.stringify(parsed ?? {}) + '\n')
+      process.exit(parsed ? 0 : 1)
+      break
+    }
+    case 'trusted-reviewer': {
+      const ok = isTrustedReviewer(args[0], args[1])
+      process.stdout.write(JSON.stringify({ ok }) + '\n')
+      process.exit(ok ? 0 : 1)
+      break
+    }
+    case 'trusted-review-comments': {
+      process.stdout.write(JSON.stringify(trustedReviewComments(readJsonArg(args[0]))) + '\n')
+      break
+    }
+    case 'latest-trusted-review': {
+      const found = latestTrustedReview(readJsonArg(args[0]))
+      process.stdout.write(JSON.stringify(found ?? {}) + '\n')
+      process.exit(found ? 0 : 1)
+      break
+    }
+    case 'review-loop-pr': {
+      const parsed = parseReviewLoopEvent(readJsonArg(args[0]))
+      const pr = parsed ? resolveReviewLoopPr(parsed.pr, args[1]) : null
+      process.stdout.write(JSON.stringify(pr ? { pr, reviewId: parsed.reviewId } : {}) + '\n')
+      process.exit(pr ? 0 : 1)
+      break
+    }
+    case 'review-comment-pr': {
+      const source = args[0]
+      const comment = readJsonArg(args[1])
+      const pr = reviewCommentPrNumber(comment, source)
+      process.stdout.write(JSON.stringify({ pr }) + '\n')
+      process.exit(pr ? 0 : 1)
+      break
+    }
+    case 'memory-entry': {
+      const reason = args[0] ?? ''
+      const finding = args[1] ?? ''
+      const day = args[2] ?? new Date().toISOString().slice(0, 10)
+      process.stdout.write(memoryEntry(reason, finding, day) + '\n')
+      break
+    }
+    case 'memory-prompt': {
+      const reason = readFileSync(args[0], 'utf8')
+      const finding = readFileSync(args[1], 'utf8')
+      process.stdout.write(memoryRetrospectPrompt(finding, reason))
+      break
+    }
+    case 'memory-from-model': {
+      process.stdout.write(memoryLineFromModel(readFileSync(args[0], 'utf8')) + '\n')
+      break
+    }
+    case 'memory-cursor': {
+      process.stdout.write(String(parseMemoryCursor(readFileSync(args[0], 'utf8'))) + '\n')
+      break
+    }
+    case 'memory-set-cursor': {
+      process.stdout.write(setMemoryCursor(readFileSync(args[0], 'utf8'), Number(args[1])))
+      break
+    }
+    case 'pick-skill-pr': {
+      const pr = pickSkillMemoryPr(readJsonArg(args[0]), { defaultBranch: process.env.DEFAULT_BRANCH })
+      process.stdout.write(JSON.stringify(pr ? { number: pr.number, headRefName: pr.headRefName } : {}) + '\n')
+      process.exit(pr ? 0 : 1)
+      break
+    }
+    case 'is-memory-pr': {
+      const found = isMemorySkillPr(readJsonArg(args[0]))
+      process.stdout.write(JSON.stringify({ memory: found }) + '\n')
+      process.exit(found ? 0 : 1)
+      break
+    }
+    case 'memory-append': {
+      process.stdout.write(appendMemorySkill(readFileSync(args[0], 'utf8'), args[1] ?? ''))
+      break
+    }
+    case 'memory-merge': {
+      const existing = readFileSync(args[0], 'utf8')
+      const comments = readJsonArg(args[1])
+      const issueCursor = args[2] ? parseMemoryCursor(readFileSync(args[2], 'utf8')) : 0
+      const cursor = Math.max(parseMemoryCursor(existing), issueCursor)
+      process.stdout.write(mergeMemorySkill(existing, unprocessedMemoryComments(comments, cursor)))
+      break
+    }
+    case 'has-bk-tag': {
+      const found = hasBkRepairTag(readFileSync(args[0], 'utf8'))
+      process.stdout.write(JSON.stringify({ bk: found }) + '\n')
+      process.exit(found ? 0 : 1)
+      break
+    }
+    case 'has-stop': {
+      const found = hasStopCommand(readFileSync(args[0], 'utf8'))
+      process.stdout.write(JSON.stringify({ stop: found }) + '\n')
+      process.exit(found ? 0 : 1)
+      break
+    }
+    case 'cited-paths': {
+      const text = readFileSync(args[0], 'utf8')
+      process.stdout.write(JSON.stringify(citedPathsFromText(text)) + '\n')
+      break
+    }
+    case 'cited-review-paths': {
+      const comments = readJsonArg(args[0])
+      const extra = args[1] ? readFileSync(args[1], 'utf8') : ''
+      process.stdout.write(JSON.stringify(citedPathsFromReview(comments, extra)) + '\n')
+      break
+    }
+    case 'should-fix': {
+      const decision = shouldAttemptFix({
+        sameRepo: process.env.SAME_REPO === '1',
+        skipLoop: process.env.SKIP_LOOP === '1',
+        stopRepair: process.env.STOP_REPAIR === '1',
+        autoLoop: process.env.AUTO_LOOP === '1',
+      })
+      process.stdout.write(JSON.stringify(decision) + '\n')
+      process.exit(decision.ok ? 0 : 1)
+      break
+    }
+    case 'parse-changes': {
+      const parsed = parseAgentResponse(readFileSync(args[0], 'utf8'))
+      process.stdout.write(JSON.stringify(parsed) + '\n')
+      break
+    }
+    case 'parse-changes-soft': {
+      const parsed = parseAgentResponseOrNull(readFileSync(args[0], 'utf8'))
+      process.stdout.write(JSON.stringify(parsed) + '\n')
+      break
+    }
+    case 'apply-changes': {
+      const parsed = readJsonArg(args[0])
+      applyChanges(parsed.changes ?? [], args[1] ?? process.cwd())
+      break
+    }
+    case 'apply-github': {
+      const parsed = readJsonArg(args[0])
+      applyChangesGithub(parsed.changes ?? [], {
+        repo: process.env.GH_REPO,
+        branch: process.env.BRANCH,
+        expectedSha: process.env.EXPECTED_SHA,
+        message: parsed.commit_message,
+      })
+      break
+    }
+    default:
+      process.stderr.write(`unknown command: ${cmd ?? ''}\n`)
+      process.exit(2)
+  }
+}
+
+const entry = process.argv[1]
+if (entry != null && import.meta.url === pathToFileURL(resolve(entry)).href) {
+  Promise.resolve(main(process.argv.slice(2))).catch((err) => {
+    process.stderr.write(String(err?.stack ?? err) + '\n')
+    process.exit(1)
+  })
+}

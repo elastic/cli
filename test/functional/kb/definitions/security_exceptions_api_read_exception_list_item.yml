@@ -1,0 +1,59 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-exceptions-api: create an exception list item then read it.
+---
+requires:
+  serverless: true
+  stack: true
+  serverless_project: security
+---
+setup:
+  - do:
+      security-exceptions-api.delete_exception_list:
+        list_id: cli-ft-sec-exc-read-parent
+        namespace_type: single
+        ignore: [404]
+  - do:
+      security-exceptions-api.create_exception_list:
+        body:
+          name: CLI FT Exception List Read Parent
+          description: Parent list for read item test
+          type: detection
+          list_id: cli-ft-sec-exc-read-parent
+          namespace_type: single
+  - do:
+      security-exceptions-api.create_exception_list_item:
+        body:
+          item_id: cli-ft-sec-exc-read-list-item
+          name: CLI FT Read Exception List Item
+          description: Created by functional test
+          type: simple
+          list_id: cli-ft-sec-exc-read-parent
+          namespace_type: single
+          entries:
+            - field: host.name
+              type: match
+              operator: included
+              value: test-host
+---
+teardown:
+  - do:
+      security-exceptions-api.delete_exception_list_item:
+        item_id: cli-ft-sec-exc-read-list-item
+        namespace_type: single
+        ignore: [404]
+  - do:
+      security-exceptions-api.delete_exception_list:
+        list_id: cli-ft-sec-exc-read-parent
+        namespace_type: single
+        ignore: [404]
+---
+"security-exceptions-api read exception list item":
+  - do:
+      security-exceptions-api.read_exception_list_item:
+        item_id: cli-ft-sec-exc-read-list-item
+        namespace_type: single
+  - match: {item_id: cli-ft-sec-exc-read-list-item}
+  - match: {name: CLI FT Read Exception List Item}
+  - is_true: id

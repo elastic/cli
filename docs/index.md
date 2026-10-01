@@ -8,13 +8,28 @@ type: overview
 
 # Elastic CLI
 
-The Elastic CLI (`elastic`) is the command-line interface for Elasticsearch, Kibana, and Elastic Cloud resources. It supports self-managed Elastic Stack deployments, Elastic Cloud Hosted, and Elastic Serverless projects.
+The Elastic CLI (`elastic`) provides a single command-line interface for {{es}}, {{kib}}, and {{ecloud}}. Use it to interact directly with {{es}} and {{kib}} across deployment types, or to manage {{ech}} deployments and {{serverless-full}} projects through the {{ecloud}} API.
+
+The CLI groups its API commands into two main namespaces:
+
+- **`elastic stack`:** Connect directly to {{es}} and {{kib}} APIs across fully self-managed deployments, {{eck}}, {{ece}}, {{ech}}, and {{serverless-full}} projects. You can use `elastic es` and `elastic kb` as shorter forms.
+- **`elastic cloud`:** Use {{ecloud}} APIs to manage {{ech}} deployments and {{serverless-full}} projects.
+
+Use named contexts to save and switch between service connections. Commands support structured output for scripts, agents, and other tools.
 
 :::{note}
-The Elastic CLI is a technical preview and is under active development. Not all features and APIs are supported yet.
+The Elastic CLI is a technical preview and is under active development. Not all Elastic APIs are available as CLI commands. Refer to the [Elastic CLI command reference](./cli/index.md) for the available commands.
 :::
 
-To get started, visit [Install the Elastic CLI](./cli/installation.md) and [Configure the Elastic CLI](./cli/configuration.md). 
+## Get started
 
-For a full list of available commands, refer to the [Elastic CLI command reference](./cli/index.md).
+The following resources help you start using the Elastic CLI:
 
+- Follow the [Elastic CLI quickstart](./cli/quickstart.md) to install the CLI, configure an {{es}} connection, and run your first commands.
+- Refer to [Install the Elastic CLI](./cli/installation.md) for detailed instructions to install, update, or uninstall the CLI.
+- Refer to [Configure the Elastic CLI](./cli/configuration.md) to manage connection contexts and credentials.
+
+## Learn more
+
+- Refer to the [Elastic CLI command reference](./cli/index.md) for commands, options, and input schemas.
+- Follow [Connect to {{ecloud}} with the Elastic CLI](./cli/manage-elastic-cloud.md) to configure a connection and run example operations against the {{ecloud}} API.

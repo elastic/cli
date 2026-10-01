@@ -1,0 +1,15 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-managed-integrations API: preview a managed integrations upgrade.
+---
+requires:
+  serverless: false
+  stack: false
+---
+"fleet-managed-integrations post fleet managed integrations upgrade dryrun":
+  - do:
+      fleet-managed-integrations.post_fleet_managed_integrations_upgrade_dryrun:
+        body:
+          policyIds: []
+  - is_true: ""

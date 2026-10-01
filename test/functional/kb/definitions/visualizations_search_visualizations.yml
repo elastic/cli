@@ -1,0 +1,27 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana visualizations API: search visualizations.
+---
+requires:
+  serverless: false
+  stack: false
+---
+teardown:
+  - do:
+      visualizations.delete_visualization:
+        id: cli-ft-visualization-search
+        ignore: [404]
+---
+"visualizations search":
+  - do:
+      visualizations.upsert_visualization:
+        id: cli-ft-visualization-search
+
+  - do:
+      visualizations.search_visualizations:
+  - is_true: ""
+
+  - do:
+      visualizations.delete_visualization:
+        id: cli-ft-visualization-search

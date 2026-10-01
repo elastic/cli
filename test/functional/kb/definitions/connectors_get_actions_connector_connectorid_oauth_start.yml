@@ -1,0 +1,17 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana connectors API: start OAuth authorization flow.
+# The endpoint redirects to the identity provider, so a real OAuth flow
+# cannot be exercised in automated tests.  The test calls the endpoint with
+# a non-existent connector ID; Kibana returns 404, which is ignored.
+---
+requires:
+  serverless: false
+  stack: false
+---
+"connector OAuth start - unknown connector":
+  - do:
+      connectors.get_actions_connector_connectorid_oauth_start:
+        connector_id: d3ceaf3a-2fc9-4a9c-9f2a-2f0d4b6f9a10
+        ignore: [404]

@@ -1,6 +1,7 @@
 node_modules
 dist
 build
+!.agents/skills/build/
 *.tsbuildinfo
 *.log
 .env*
@@ -17,6 +18,8 @@ megalinter-reports/
 
 # Generated functional test scripts
 test/functional/es/
+test/functional/kb/generated/
+test/functional/cloud/generated/
 
 # docs-builder local build output
 docs/.artifacts

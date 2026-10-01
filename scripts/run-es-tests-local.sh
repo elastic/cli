@@ -17,7 +17,7 @@
 set -euo pipefail
 
 NODE_VERSION="${NODE_VERSION:-22}"
-STACK_VERSION="${STACK_VERSION:-9.3.0}"
+STACK_VERSION="${STACK_VERSION:-9.5.3}"
 ES_CONTAINER_NAME="elastic-cli-es-local"
 NETWORK_NAME="elastic-cli-local-net"
 TESTS_REPO="https://github.com/elastic/elasticsearch-clients-tests.git"
@@ -110,7 +110,7 @@ echo "--- Cloning elasticsearch-clients-tests into $TESTS_DIR"
 git clone --depth 1 "$TESTS_REPO" "$TESTS_DIR"
 
 echo "--- Generating functional test scripts"
-npx tsx codegen/functional/index.ts --tests-dir "$TESTS_DIR/tests"
+npx tsx codegen/functional/es.ts --tests-dir "$TESTS_DIR/tests"
 
 echo "+++ Running ES functional tests"
 npm run test:functional:es

@@ -1,0 +1,21 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agents API: bulk change the privilege level of enrolled agents.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agents.get_fleet_agents: {}
+  - set: {"items.0.id": agent_id}
+---
+"elastic-agents post fleet agents bulk privilege level change":
+  - do:
+      elastic-agents.post_fleet_agents_bulk_privilege_level_change:
+        body:
+          agents:
+            - $agent_id
+  - is_true: actionId

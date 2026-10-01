@@ -1,22 +1,26 @@
 # Auto PR context — elastic/cli
 
-This repo is the Elastic CLI tool. Source code lives under `packages/` with one package per CLI command group.
+Elastic CLI. TypeScript. Commands live under `src/` (`es`, `kb`, `cloud`, `factory`). Tests under `test/`. Functional YAML under `test/functional/`.
 
 ## File layout
 
-- `packages/` — CLI command implementations (TypeScript)
-- `codegen/` — code generation utilities
-- `docs/` — documentation
+- `src/` — CLI implementation
+- `packages/config-resolver` — config package
+- `codegen/` — functional test codegen
+- `docs/` — docs
+- `.github/workflows/` — CI
 
 ## Fix conventions
 
-- Only modify files under `packages/` unless the issue explicitly mentions another directory
-- Follow existing TypeScript patterns in the affected package
-- Do not modify generated files or `dist/`
+- Prefer `src/` and `test/`
+- Do not edit generated files: `src/es/apis/*.ts`, `src/es/api-manifest.ts`, `src/kb/apis.ts`, `src/kb/api-manifest.ts`
+- Do not edit `.github/workflows/`
+- After `package.json` changes, run `node scripts/generate-notice.mjs`
+- After command or flag changes, run `npm run build:schema` and commit `docs/cli/schema.json`
 
 ## Search hints
 
-Command names, flag names, or error messages in the issue body map to files in `packages/`.
+Command names, flags, and error strings map to `src/` and `test/`.
 
 ## Post-fix steps
 

@@ -1,0 +1,7 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get all API keys (GET /api/v1/users/auth/keys)
+---
+"authentication get-api-keys":
+  - do:
+      authentication.get-api-keys: {}

@@ -1,0 +1,47 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: get a step execution by ID.
+---
+requires:
+  serverless: true
+---
+setup:
+  - do:
+      workflows.post_workflows_workflow:
+        body:
+          id: cli-ft-workflow-exec-step
+          yaml: |
+            version: '1'
+            name: CLI FT Workflow Exec Step
+            triggers:
+              - type: manual
+            steps:
+              - id: wait-step
+                type: waitForInput
+                configuration:
+                  inputSchema: {}
+  - do:
+      workflows.post_workflows_workflow_id_run:
+        id: cli-ft-workflow-exec-step
+        body:
+          inputs: {}
+  - set: {executionId: execution_id}
+  - do:
+      workflows.get_workflows_workflow_workflowid_executions_steps:
+        workflow_id: cli-ft-workflow-exec-step
+  - set: {"results.0.id": step_execution_id}
+---
+teardown:
+  - do:
+      workflows.delete_workflows_workflow_id:
+        id: cli-ft-workflow-exec-step
+        force: true
+        ignore: [404]
+---
+"workflows get workflows executions executionid step stepexecutionid":
+  - do:
+      workflows.get_workflows_executions_executionid_step_stepexecutionid:
+        execution_id: $execution_id
+        step_execution_id: $step_execution_id
+  - is_true: id

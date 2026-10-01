@@ -59,6 +59,7 @@ export interface ConfigFile {
   commands?: CommandPolicy
   default_profile?: BuiltInProfile
   banner?: boolean
+  telemetry?: boolean
 }
 
 /** The active context after resolution — only its configured service blocks, no extras. */
@@ -75,4 +76,6 @@ export interface ResolvedConfig {
   commands?: CommandPolicy
   /** Whether to show the startup banner. Defaults to true when absent. */
   banner?: boolean
+  /** Whether to send the x-elastic-client-meta telemetry header. Defaults to true when absent. */
+  telemetry?: boolean
 }

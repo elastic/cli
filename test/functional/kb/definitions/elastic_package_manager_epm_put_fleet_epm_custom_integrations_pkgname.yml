@@ -1,0 +1,31 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-package-manager-epm API: update a custom integration.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-package-manager-epm.post_fleet_epm_custom_integrations:
+        body:
+          integrationName: cli_ft_epm_custom_put
+          datasets:
+            - name: cli_ft_epm_custom_put.logs
+              type: logs
+---
+teardown:
+  - do:
+      elastic-package-manager-epm.delete_fleet_epm_packages_pkgname:
+        pkg_name: cli_ft_epm_custom_put
+        ignore: [404]
+---
+"elastic-package-manager-epm put fleet epm custom integrations pkgname":
+  - do:
+      elastic-package-manager-epm.put_fleet_epm_custom_integrations_pkgname:
+        pkg_name: cli_ft_epm_custom_put
+        body:
+          readMeData: "# cli-ft-epm-custom-put"
+  - is_true: ""

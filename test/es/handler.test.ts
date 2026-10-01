@@ -11,6 +11,9 @@ import type { EsApiDefinition } from '../../src/es/types.ts'
 import { createEsHandler } from '../../src/es/handler.ts'
 import type { EsHandlerDeps } from '../../src/es/handler.ts'
 import type { ParsedResult } from '../../src/factory.ts'
+import { formatTextResponse } from '../../src/output.ts'
+import { apiManifest } from '../../src/es/api-manifest.ts'
+import { loadEsApi } from '../../src/es/apis.ts'
 
 function makeDef(overrides: Partial<EsApiDefinition> = {}): EsApiDefinition {
   return {
@@ -161,7 +164,23 @@ describe('createEsHandler', () => {
     await assert.rejects(() => handler(parsedInput()), /unexpected bug/)
   })
 
-  it('returns transport_error with status code and ES body for EsResponseError', async () => {
+  it('adds error.hint on 401 naming status', async () => {
+    const deps = makeDeps({
+      getEsClient: () => ({
+        request: async () => { throw new EsResponseError(401, { error: 'unauthorized' }) },
+      } as unknown as EsClient),
+    })
+
+    const handler = createEsHandler(makeDef({ name: 'ping', path: '/' }), [], deps)
+    const result = await handler(parsedInput()) as Record<string, unknown>
+    const err = result['error'] as Record<string, unknown>
+    assert.equal(err['code'], 'auth_required')
+    assert.equal(err['status_code'], 401)
+    assert.match(String(err['hint'] ?? ''), /elastic status/)
+    assert.match(String(err['hint'] ?? ''), /config context edit/)
+  })
+
+  it('returns not_found with status code and ES body for EsResponseError 404', async () => {
     const esErrorBody = { error: { type: 'index_not_found_exception', reason: 'no such index' }, status: 404 }
     const responseError = new EsResponseError(404, esErrorBody)
     const deps = makeDeps({
@@ -174,8 +193,26 @@ describe('createEsHandler', () => {
     const result = await handler(parsedInput()) as Record<string, unknown>
 
     const err = result['error'] as Record<string, unknown>
-    assert.equal(err['code'], 'transport_error')
+    assert.equal(err['code'], 'not_found')
     assert.equal(err['status_code'], 404)
+    assert.deepEqual(err['body'], esErrorBody)
+  })
+
+  it('returns transport_error with status code and ES body for EsResponseError 500', async () => {
+    const esErrorBody = { error: { type: 'internal', reason: 'boom' }, status: 500 }
+    const responseError = new EsResponseError(500, esErrorBody)
+    const deps = makeDeps({
+      getEsClient: () => ({
+        request: async () => { throw responseError },
+      } as unknown as EsClient),
+    })
+
+    const handler = createEsHandler(makeDef(), [], deps)
+    const result = await handler(parsedInput()) as Record<string, unknown>
+
+    const err = result['error'] as Record<string, unknown>
+    assert.equal(err['code'], 'transport_error')
+    assert.equal(err['status_code'], 500)
     assert.deepEqual(err['body'], esErrorBody)
   })
 
@@ -321,5 +358,26 @@ describe('createEsHandler', () => {
 
     assert.deepEqual(result, jsonBody)
     assert.equal(capturedParams[0]?.querystring, undefined)
+  })
+})
+
+describe('empty text responses (#623)', () => {
+  it('every schema text API prints nothing for an empty object body', async () => {
+    const candidates = apiManifest.filter((m) => m.namespace === 'cat' || m.name === 'hot-threads')
+    assert.ok(candidates.length >= 28, `expected cat + hot-threads, got ${candidates.length}`)
+    let textCount = 0
+    for (const meta of candidates) {
+      const def = await loadEsApi(meta)
+      if (def.responseType !== 'text') continue
+      textCount++
+      const handler = createEsHandler(def, [], makeDeps({
+        getEsClient: () => ({ request: async () => ({}) } as unknown as EsClient),
+      }))
+      const result = await handler(parsedInput())
+      const out = formatTextResponse(result)
+      assert.equal(out.includes('[object Object]'), false, meta.id)
+      assert.equal(out, '', meta.id)
+    }
+    assert.equal(textCount, candidates.length)
   })
 })

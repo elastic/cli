@@ -7,6 +7,7 @@ import type { HttpMethod } from '../cloud/types.ts'
 import { getResolvedConfig } from '../config/store.ts'
 import { isLoopbackUrl } from './is-loopback-host.ts'
 import { clientHeaders } from './meta.ts'
+import { YamlResponse, isYamlContentType } from './yaml-response.ts'
 
 /**
  * Parameters for a single Cloud API request.
@@ -76,8 +77,13 @@ export class CloudClient {
       throw new Error(`Cloud API error ${response.status}: ${text}`)
     }
 
+    const contentType = response.headers.get('content-type') ?? ''
     const text = await response.text()
-    return text.length > 0 ? JSON.parse(text) : {}
+    if (text.length === 0) return {}
+    // YAML bodies are wrapped so the output layer prints them verbatim by default and parses
+    // them to JSON only under `--json`.
+    if (isYamlContentType(contentType)) return new YamlResponse(text)
+    return JSON.parse(text)
   }
 
   /**
@@ -105,7 +111,7 @@ export function getCloudClient(): CloudClient {
   if (cloud == null) {
     throw new Error(
       'missing_config: No Cloud connection configured in the active context. ' +
-      'Run `elastic config set` to configure a Cloud endpoint.'
+      'Run `elastic config context add` with `--cloud-api-key`.'
     )
   }
 
@@ -116,7 +122,7 @@ export function getCloudClient(): CloudClient {
   if (apiKey == null) {
     throw new Error(
       'missing_config: Cloud auth requires an api_key. ' +
-      'Run `elastic config set` to configure Cloud credentials.'
+      'Run `elastic config context add` with `--cloud-api-key`.'
     )
   }
 

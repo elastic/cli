@@ -84,6 +84,8 @@ describe('extractSchemaArgs', () => {
     assert.equal(typeMap.get('mappings'), 'object')
     assert.equal(typeMap.get('tags'), 'array')
     assert.equal(typeMap.get('level'), 'enum')
+    const level = extractSchemaArgs(s).find((a) => a.schemaKey === 'level')
+    assert.deepEqual(level?.enumValues, ['low', 'medium', 'high'])
   })
 
   it('determines required status from "required" array', () => {
@@ -172,6 +174,18 @@ describe('extractSchemaArgs', () => {
 
   it('does not flag a plain array property', () => {
     const s = schema({ tags: { type: 'array', items: { type: 'string' } } })
+    const args = extractSchemaArgs(s)
+    assert.equal(args[0]?.type, 'array')
+    assert.notEqual(args[0]?.acceptsArrayForm, true)
+  })
+
+  it('treats oneOf(array, null) as array', () => {
+    const s = schema({
+      ids: {
+        oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'null' }],
+        'x-found-in': 'body',
+      },
+    })
     const args = extractSchemaArgs(s)
     assert.equal(args[0]?.type, 'array')
     assert.notEqual(args[0]?.acceptsArrayForm, true)

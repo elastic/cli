@@ -1,0 +1,57 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana significantevents API: read significant events for a stream.
+---
+requires:
+  serverless: true
+  stack: true
+  serverless_project: observability
+---
+setup:
+  - do:
+      streams.put_streams_name:
+        name: logs.otel.cli-ft-se-events
+        body:
+          dashboards: []
+          rules: []
+          stream:
+            description: ""
+            type: wired
+            ingest:
+              lifecycle: {inherit: {}}
+              processing:
+                steps: []
+              settings: {}
+              failure_store: {inherit: {}}
+              wired:
+                fields: {}
+                routing: []
+  - do:
+      significantevents.put_streams_name_queries_queryid:
+        name: logs.otel.cli-ft-se-events
+        query_id: cli-ft-se-events-query
+        body:
+          title: CLI FT Events Query
+          esql:
+            query: "FROM logs.otel.cli-ft-se-events, logs.otel.cli-ft-se-events.* METADATA _id, _source"
+---
+teardown:
+  - do:
+      significantevents.delete_streams_name_queries_queryid:
+        name: logs.otel.cli-ft-se-events
+        query_id: cli-ft-se-events-query
+        ignore: [404]
+  - do:
+      streams.delete_streams_name:
+        name: logs.otel.cli-ft-se-events
+        ignore: [404]
+---
+"significantevents get streams name significant events":
+  - do:
+      significantevents.get_streams_name_significant_events:
+        name: logs.otel.cli-ft-se-events
+        from: "2024-01-01T00:00:00.000Z"
+        to: "2024-01-02T00:00:00.000Z"
+        bucket_size: "1h"
+  - is_true: ""

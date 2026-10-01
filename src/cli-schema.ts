@@ -37,7 +37,7 @@ type CliNamespace = SpecNamespace & { commands: CliCommand[], namespaces: CliNam
 
 // ---------------------------------------------------------------------------
 // Environment declaration (sources: src/config/loader.ts, src/lib/logo.ts,
-//                                   src/lib/cloud-client.ts)
+//                                   src/lib/cloud-client.ts, src/lib/meta.ts)
 // ---------------------------------------------------------------------------
 
 const ENVIRONMENT: CliEnvironment = {
@@ -56,6 +56,11 @@ const ENVIRONMENT: CliEnvironment = {
       name: 'ELASTIC_CLOUD_ADMIN_API',
       required: false,
       description: 'Override the Elastic Cloud admin API base URL',
+    },
+    {
+      name: 'ELASTIC_CLI_TELEMETRY',
+      required: false,
+      description: 'Set to a falsey value (false/0/no/off) to turn off collection of anonymous telemetry; overrides the config telemetry field',
     },
   ],
   configFiles: [
@@ -265,7 +270,7 @@ function buildCommandParams (cmd: OpaqueCommandHandle): CliParameter[] {
         required: arg.required,
         ...(arg.description && { summary: arg.description }),
         ...(arg.defaultValue != null && { defaultValue: String(arg.defaultValue) }),
-        ...(arg.acceptsArrayForm === true && { repeatable: true }),
+        ...((arg.acceptsArrayForm === true || arg.type === 'array') && { repeatable: true }),
         // `acceptsArrayForm` fields routed to the request body need a CSV separator in their
         // help text: ES does not split comma-separated values inside JSON bodies, only in
         // querystrings and paths.
@@ -526,11 +531,8 @@ export async function registerCliSchemaCommand (
       const schemaRoot = new Command(rootProgram?.name() ?? 'elastic')
       schemaRoot.description(rootProgram?.description() ?? '')
 
-      schemaRoot.addCommand(defineCommand({
-        name: 'version',
-        description: 'Print the elastic CLI version',
-        handler: () => ({ version }),
-      }))
+      schemaRoot.addCommand(new Command('version').description('Print the elastic CLI version'))
+      schemaRoot.addCommand(new Command('help').description('Show help topics'))
 
       const loaded = await Promise.all(namespaces.map((ns) => ns.load({ eager: true })))
       for (const ns of loaded) schemaRoot.addCommand(ns)
@@ -540,7 +542,8 @@ export async function registerCliSchemaCommand (
       // Build the set of namespace names that don't require context/auth
       const noContextNames = new Set<string>([
         ...namespaces.filter(ns => ns.requiresContext === false).map(ns => ns.name),
-        'version', // root-level version command needs no auth
+        'version',
+        'help',
       ])
 
       return buildCliSchema(schemaRoot, globalOptions, version, noContextNames) as unknown as JsonValue

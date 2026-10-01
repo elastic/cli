@@ -1,0 +1,43 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana alerting API: inspect the Elasticsearch query for a rule.
+# Uses searchType esQuery (not esqlQuery) which supports query inspection.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      alerting.post_alerting_rule_id:
+        id: cli-ft-rule-qi
+        body:
+          consumer: stackAlerts
+          name: CLI FT Rule QI
+          rule_type_id: ".es-query"
+          schedule: {interval: "1m"}
+          params:
+            searchType: esQuery
+            esQuery: "{\"query\":{\"match_all\":{}}}"
+            index:
+              - "*"
+            timeWindowSize: 5
+            timeWindowUnit: m
+            threshold: [0]
+            thresholdComparator: ">"
+            size: 0
+            timeField: "@timestamp"
+---
+teardown:
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-qi
+        ignore: [404]
+---
+"alerting get rule query inspector":
+  - do:
+      alerting.get_alerting_rule_id_query_inspector:
+        id: cli-ft-rule-qi
+        mode: build
+  - is_true: queries

@@ -1,0 +1,22 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agents API: update a Fleet agent by ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agents.get_fleet_agents: {}
+  - set: {"items.0.id": agent_id}
+---
+"elastic-agents put fleet agents agentid":
+  - do:
+      elastic-agents.put_fleet_agents_agentid:
+        agent_id: $agent_id
+        body:
+          tags:
+            - test-tag
+  - is_true: item.id

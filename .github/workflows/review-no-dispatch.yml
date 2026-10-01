@@ -1,0 +1,53 @@
+name: Review no dispatch
+
+on:
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  dispatch:
+    if: >-
+      github.event.comment.user.login != 'github-actions[bot]' &&
+      (github.event.comment.author_association == 'OWNER' ||
+       github.event.comment.author_association == 'MEMBER')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout default branch tools
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Save comment id
+        env:
+          BODY: ${{ github.event.comment.body }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "${BODY:-}" > /tmp/body.txt
+          if [ ! -f scripts/repair-loop.mjs ]; then
+            echo "scripts/repair-loop.mjs missing on default branch"
+            exit 0
+          fi
+          if ! node scripts/repair-loop.mjs has-bad /tmp/body.txt; then
+            echo "No /bad"
+            exit 0
+          fi
+          mkdir -p .review-no-event
+          jq -n --arg source pull_request_review_comment --arg id "${COMMENT_ID}" \
+            '{source:$source, comment_id:($id|tonumber)}' > .review-no-event/event.json
+
+      - name: Upload comment id
+        if: hashFiles('.review-no-event/event.json') != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: review-no-event
+          path: .review-no-event/event.json
+          if-no-files-found: error

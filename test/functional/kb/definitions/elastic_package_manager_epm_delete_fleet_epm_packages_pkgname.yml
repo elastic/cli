@@ -1,0 +1,29 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-package-manager-epm API: delete a package.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-package-manager-epm.post_fleet_epm_custom_integrations:
+        body:
+          integrationName: cli_ft_epm_delete_pkg
+          datasets:
+            - name: cli_ft_epm_delete_pkg.logs
+              type: logs
+---
+teardown:
+  - do:
+      elastic-package-manager-epm.delete_fleet_epm_packages_pkgname:
+        pkg_name: cli_ft_epm_delete_pkg
+        ignore: [404]
+---
+"elastic-package-manager-epm delete fleet epm packages pkgname":
+  - do:
+      elastic-package-manager-epm.delete_fleet_epm_packages_pkgname:
+        pkg_name: cli_ft_epm_delete_pkg
+  - is_true: ""

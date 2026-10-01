@@ -1,0 +1,49 @@
+name: Validate PR
+
+on:
+  pull_request:
+    # Includes "edited" so title-validation re-runs when the PR title changes,
+    # without triggering the full test suite in ci.yml.
+    types: [opened, synchronize, reopened, edited]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  validate-pr-title:
+    name: Validate PR title
+    permissions:
+      pull-requests: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: PR Conventional Commit Validation
+        uses: ytanikin/pr-conventional-commits@639145d78959c53c43112365837e3abd21ed67c1 # v1.5.2
+        with:
+          task_types: '["feat","fix","docs","test","ci","refactor","perf","chore","revert"]'
+          add_label: "false"
+
+  dispatch-type-check:
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    name: Dispatch PR type check
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ok
+
+  pr:
+    name: PR Result
+    if: always()
+    runs-on: ubuntu-latest
+    needs:
+      - validate-pr-title
+      - dispatch-type-check
+    steps:
+      - run: |
+          if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "One or more required jobs failed or were cancelled."
+            exit 1
+          fi

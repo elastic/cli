@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-proxies API: get proxies.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"fleet-proxies get fleet proxies":
+  - do:
+      fleet-proxies.get_fleet_proxies: {}
+  - is_true: items

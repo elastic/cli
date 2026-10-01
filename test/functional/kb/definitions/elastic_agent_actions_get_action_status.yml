@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agent-actions API: get fleet agent action status.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"elastic-agent-actions get fleet agents action status":
+  - do:
+      elastic-agent-actions.get_fleet_agents_action_status: {}
+  - is_true: ""

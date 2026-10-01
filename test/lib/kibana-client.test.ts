@@ -5,6 +5,7 @@
 
 import { describe, it, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
+import { YamlResponse } from '../../src/lib/yaml-response.ts'
 import { KibanaClient, getKibanaClient, _testResetKibanaClient } from '../../src/lib/kibana-client.ts'
 import { setResolvedConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
@@ -178,7 +179,7 @@ describe('KibanaClient.request', () => {
     assert.deepEqual(result, {})
   })
 
-  it('sets redirect to error', async () => {
+  it('follows redirects (so same-host redirect routes resolve instead of rejecting)', async () => {
     const client = makeClient()
     let capturedInit: RequestInit = {}
     client._testSetFetch(((url: string, init: RequestInit) => {
@@ -187,6 +188,212 @@ describe('KibanaClient.request', () => {
     }) as typeof fetch)
 
     await client.request({ method: 'GET', path: '/api/status' })
-    assert.equal(capturedInit.redirect, 'error')
+    assert.equal(capturedInit.redirect, 'follow')
+  })
+
+  it('rejects a response that landed on a different origin after a redirect', async () => {
+    const client = makeClient()
+    client._testSetFetch(((() => {
+      const resp = new Response('{}', { status: 200 })
+      Object.defineProperty(resp, 'url', { value: 'https://evil.example.com/api/status' })
+      return Promise.resolve(resp)
+    }) as typeof fetch))
+
+    await assert.rejects(
+      client.request({ method: 'GET', path: '/api/status' }),
+      /different origin/
+    )
+  })
+
+  it('accepts a response that stayed on the configured origin after a redirect', async () => {
+    const client = makeClient()
+    client._testSetFetch(((() => {
+      const resp = new Response('{"ok":true}', { status: 200 })
+      Object.defineProperty(resp, 'url', { value: 'http://localhost:5601/api/status/' })
+      return Promise.resolve(resp)
+    }) as typeof fetch))
+
+    assert.deepEqual(await client.request({ method: 'GET', path: '/api/status' }), { ok: true })
+  })
+})
+
+describe('KibanaClient.request Server-Sent Events', () => {
+  function makeClient () {
+    return new KibanaClient('http://localhost:5601', { api_key: 'test-key' })
+  }
+
+  /** Builds a fetch stub that returns `body` with the given content-type. */
+  function sseFetch (body: string, contentType: string): typeof fetch {
+    return ((): Promise<Response> =>
+      Promise.resolve(new Response(body, { status: 200, headers: { 'content-type': contentType } }))
+    ) as typeof fetch
+  }
+
+  it('parses a single text/event-stream event into [{ event, data }]', async () => {
+    const client = makeClient()
+    const body = 'event: conversation_id_set\ndata: {"data":{"conversation_id":"abc"}}\n\n'
+    client._testSetFetch(sseFetch(body, 'text/event-stream'))
+
+    const result = await client.request({ method: 'POST', path: '/api/agent_builder/converse/async', body: {} })
+    assert.deepEqual(result, [
+      { event: 'conversation_id_set', data: { data: { conversation_id: 'abc' } } },
+    ])
+  })
+
+  it('parses SSE served as application/octet-stream (Kibana proxy workaround)', async () => {
+    const client = makeClient()
+    const body =
+      'event: conversation_id_set\ndata: {"data":{"conversation_id":"ba61"}}\n\n' +
+      ': 000000000000000000000000\n\n' +
+      'event: round_complete\ndata: {"done":true}\n\n'
+    client._testSetFetch(sseFetch(body, 'application/octet-stream'))
+
+    const result = await client.request({ method: 'POST', path: '/api/agent_builder/converse/async', body: {} })
+    assert.deepEqual(result, [
+      { event: 'conversation_id_set', data: { data: { conversation_id: 'ba61' } } },
+      { event: 'round_complete', data: { done: true } },
+    ])
+  })
+
+  it('keeps non-JSON data as a raw string', async () => {
+    const client = makeClient()
+    const body = 'event: note\ndata: hello world\n\n'
+    client._testSetFetch(sseFetch(body, 'text/event-stream'))
+
+    const result = await client.request({ method: 'POST', path: '/x', body: {} })
+    assert.deepEqual(result, [{ event: 'note', data: 'hello world' }])
+  })
+
+  it('matches text/event-stream with a charset suffix', async () => {
+    const client = makeClient()
+    const body = 'event: e\ndata: {"a":1}\n\n'
+    client._testSetFetch(sseFetch(body, 'text/event-stream; charset=utf-8'))
+
+    const result = await client.request({ method: 'POST', path: '/x', body: {} })
+    assert.deepEqual(result, [{ event: 'e', data: { a: 1 } }])
+  })
+
+  it('does NOT treat an application/json body as SSE', async () => {
+    const client = makeClient()
+    client._testSetFetch(sseFetch('{"ok":true}', 'application/json'))
+
+    const result = await client.request({ method: 'POST', path: '/x', body: {} })
+    assert.deepEqual(result, { ok: true })
+  })
+
+  it('does NOT treat a non-SSE application/octet-stream body as SSE', async () => {
+    const client = makeClient()
+    client._testSetFetch(sseFetch('{"ok":true}', 'application/octet-stream'))
+
+    const result = await client.request({ method: 'POST', path: '/x', body: {} })
+    assert.deepEqual(result, { ok: true })
+  })
+
+  it('parses SSE when the content-type header is absent/empty', async () => {
+    const client = makeClient()
+    client._testSetFetch(sseFetch('event: e\ndata: {"a":1}\n\n', ''))
+
+    const result = await client.request({ method: 'POST', path: '/x', body: {} })
+    assert.deepEqual(result, [{ event: 'e', data: { a: 1 } }])
+  })
+})
+
+describe('KibanaClient.request non-JSON bodies', () => {
+  function makeClient () {
+    return new KibanaClient('http://localhost:5601', { api_key: 'test-key' })
+  }
+
+  function rawFetch (body: string, contentType: string): typeof fetch {
+    return ((): Promise<Response> =>
+      Promise.resolve(new Response(body, { status: 200, headers: { 'content-type': contentType } }))
+    ) as typeof fetch
+  }
+
+  it('wraps an application/yaml body in a YamlResponse (agent-policy/k8s manifest download)', async () => {
+    const client = makeClient()
+    const yaml = 'apiVersion: v1\nkind: ConfigMap\n'
+    client._testSetFetch(rawFetch(yaml, 'application/yaml'))
+
+    const result = await client.request({ method: 'GET', path: '/api/fleet/kubernetes/download' })
+    assert.ok(result instanceof YamlResponse)
+    assert.equal(result.text, yaml)
+  })
+
+  it('wraps a text/yaml body in a YamlResponse (#588)', async () => {
+    const client = makeClient()
+    const yaml = 'kind: ConfigMap\n'
+    client._testSetFetch(rawFetch(yaml, 'text/yaml'))
+
+    const result = await client.request({ method: 'GET', path: '/api/fleet/kubernetes/download' })
+    assert.ok(result instanceof YamlResponse)
+    assert.equal(result.text, yaml)
+  })
+
+  it('parses application/x-ndjson into an array of objects (#588)', async () => {
+    const client = makeClient()
+    const ndjson = '{"list_id":"a","value":"1"}\n{"list_id":"a","value":"2"}\n'
+    client._testSetFetch(rawFetch(ndjson, 'application/x-ndjson'))
+
+    const result = await client.request({ method: 'POST', path: '/api/lists/items/_export' })
+    assert.deepEqual(result, [
+      { list_id: 'a', value: '1' },
+      { list_id: 'a', value: '2' },
+    ])
+  })
+
+  it('keeps non-JSON ndjson lines as strings (lists export is value per line)', async () => {
+    const client = makeClient()
+    const ndjson = '127.0.0.1\n127.0.0.2\n'
+    client._testSetFetch(rawFetch(ndjson, 'application/ndjson'))
+
+    const result = await client.request({ method: 'POST', path: '/api/lists/items/_export' }, 'ndjson')
+    assert.deepEqual(result, ['127.0.0.1', '127.0.0.2'])
+  })
+
+  it('keeps a dotted IP as a string, not a failed JSON number', async () => {
+    const client = makeClient()
+    client._testSetFetch(rawFetch('192.0.2.1\n', 'application/x-ndjson'))
+
+    const result = await client.request({ method: 'POST', path: '/api/lists/items/_export' }, 'ndjson')
+    assert.deepEqual(result, ['192.0.2.1'])
+  })
+
+  it('decodes ndjson when Content-Type is application/json but responseType is ndjson (#588)', async () => {
+    const client = makeClient()
+    const ndjson = '{"list_id":"a"}\n{"list_id":"b"}\n'
+    client._testSetFetch(rawFetch(ndjson, 'application/json'))
+
+    const result = await client.request({ method: 'POST', path: '/api/lists/items/_export' }, 'ndjson')
+    assert.deepEqual(result, [{ list_id: 'a' }, { list_id: 'b' }])
+  })
+
+  it('returns a yaml body advertised as application/json as raw text (#588)', async () => {
+    const client = makeClient()
+    const yaml = 'apiVersion: v1\nkind: ConfigMap\n'
+    client._testSetFetch(rawFetch(yaml, 'application/json'))
+
+    const result = await client.request({ method: 'GET', path: '/api/fleet/kubernetes/download' })
+    assert.equal(result, yaml)
+  })
+
+  it('sends Accept: application/x-ndjson when responseType is ndjson', async () => {
+    const client = makeClient()
+    let captured: Record<string, string> = {}
+    client._testSetFetch(((url: string, init: RequestInit) => {
+      captured = init.headers as Record<string, string>
+      return Promise.resolve(new Response('{"id":"1"}\n', { status: 200, headers: { 'content-type': 'application/x-ndjson' } }))
+    }) as typeof fetch)
+
+    await client.request({ method: 'POST', path: '/api/lists/items/_export' }, 'ndjson')
+    assert.equal(captured['Accept'], 'application/x-ndjson')
+  })
+
+  it('returns a raw JavaScript body verbatim (oauth callback script)', async () => {
+    const client = makeClient()
+    const js = '(() => { window.location = "/" })()'
+    client._testSetFetch(rawFetch(js, 'text/javascript'))
+
+    const result = await client.request({ method: 'GET', path: '/oauth/callback' })
+    assert.equal(result, js)
   })
 })

@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-service-tokens API: create a Fleet service token.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"fleet-service-tokens post fleet service tokens":
+  - do:
+      fleet-service-tokens.post_fleet_service_tokens: {}
+  - is_true: name
+  - is_true: value

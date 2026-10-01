@@ -1,0 +1,31 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana data-views API: update a data view.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      data-views.create_data_view_default:
+        body:
+          data_view: {title: "cli-ft-dv-update-*", name: cli-ft-dv-update}
+  - set: {data_view.id: view_id}
+---
+teardown:
+  - do:
+      data-views.delete_data_view_default:
+        viewId: $view_id
+        ignore: [404]
+---
+"data views update":
+  - do:
+      data-views.update_data_view_default:
+        viewId: $view_id
+        body:
+          data_view: {name: cli-ft-dv-update-renamed}
+  - is_true: data_view.id
+  - match: {data_view.name: cli-ft-dv-update-renamed}
+  - match: {data_view.title: "cli-ft-dv-update-*"}

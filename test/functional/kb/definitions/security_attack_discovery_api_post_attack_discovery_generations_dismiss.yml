@@ -1,0 +1,15 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-attack-discovery-api: dismiss an attack discovery generation by UUID.
+# Uses a non-existent UUID to verify the CLI correctly routes the request.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-attack-discovery-api post attack discovery generations dismiss":
+  - do:
+      catch: missing
+      security-attack-discovery-api.post_attack_discovery_generations_dismiss:
+        execution_uuid: "non-existent-execution-uuid"

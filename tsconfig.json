@@ -29,9 +29,15 @@
   "include": [
     "src/**/*"
   ],
+  "exclude": [
+    "src/bun-entry.ts"
+  ],
   "references": [
     {
       "path": "./packages/config-resolver"
+    },
+    {
+      "path": "./packages/agent-env"
     }
   ]
 }

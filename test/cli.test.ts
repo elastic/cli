@@ -118,10 +118,61 @@ describe('elastic CLI -- preAction config error handling', () => {
   it('exits with error when no config file is found', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-'))
     try {
-      const { code, stderr } = await runCli(['stack', 'es', 'info'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } })
+      const { code, stderr } = await runCli(['stack', 'es', 'ping'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir, ELASTIC_CLI_CONFIG_FILE: '' } })
       assert.equal(code, 1, `expected exit code 1, got ${code}`)
       assert.ok(stderr.includes('Error:'), `expected stderr to contain "Error:", got: ${stderr}`)
       assert.ok(stderr.includes('No configuration file found'), `expected config error message, got: ${stderr}`)
+      assert.ok(stderr.includes('elastic config context add'), `expected next command, got: ${stderr}`)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('emits error.code and error.message under --json when no config file is found', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-json-'))
+    try {
+      const { code, stderr, stdout } = await runCli(
+        ['--json', 'stack', 'es', 'ping'],
+        { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir, ELASTIC_CLI_CONFIG_FILE: '' } },
+      )
+      assert.equal(code, 1, `expected exit code 1, got ${code}`)
+      assert.equal(stdout, '')
+      const parsed = JSON.parse(stderr) as { error: { code: string, message: string } }
+      assert.equal(parsed.error.code, 'missing_config')
+      assert.match(parsed.error.message, /elastic config context add/)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('emits missing_config JSON when --json and no config file is found', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-json-'))
+    try {
+      const { code, stderr } = await runCli(
+        ['--json', 'stack', 'es', 'info'],
+        { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } },
+      )
+      assert.equal(code, 1, `expected exit code 1, got ${code}`)
+      const parsed = JSON.parse(stderr) as { error: { code: string, message: string } }
+      assert.equal(parsed.error.code, 'missing_config')
+      assert.ok(parsed.error.message.includes('No configuration file found'))
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('emits config_invalid JSON when --json and the config file is malformed', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-badyaml-'))
+    try {
+      const configPath = join(dir, '.elasticrc.yml')
+      await writeFile(configPath, 'contexts: [\nnot yaml\n')
+      const { code, stderr } = await runCli(
+        ['--json', '--config-file', configPath, 'stack', 'es', 'info'],
+        { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } },
+      )
+      assert.equal(code, 1, `expected exit code 1, got ${code}`)
+      const parsed = JSON.parse(stderr) as { error: { code: string, message: string } }
+      assert.equal(parsed.error.code, 'config_invalid')
     } finally {
       await rm(dir, { recursive: true })
     }
@@ -257,6 +308,19 @@ describe('elastic CLI -- stack command tree', () => {
       assert.match(stdout, /^\s*stack\s/m, 'expected `stack` in top-level help')
       assert.doesNotMatch(stdout, /^\s*es\s/m, '`es` must not appear as a top-level command')
       assert.doesNotMatch(stdout, /^\s*kb\s/m, '`kb` must not appear as a top-level command')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('top-level help points agents at schema discovery', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-help-agents-'))
+    try {
+      const { code, stdout } = await runCli(['--help'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      assert.match(stdout, /LEARN MORE/, 'expected LEARN MORE footer in top-level help')
+      assert.match(stdout, /cli-schema/, 'expected cli-schema pointer in top-level help')
+      assert.match(stdout, /--help --json/, 'expected --help --json pointer in top-level help')
     } finally {
       await rm(dir, { recursive: true })
     }
@@ -428,6 +492,31 @@ describe('elastic CLI -- command and option error ordering', () => {
       assert.equal(code, 1)
       assert.match(stderr, /unknown command: serch/)
       assert.doesNotMatch(stderr, /unknown option/)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('suggests the closest sibling for a near misspelling', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-suggest-command-'))
+    await writeFile(join(dir, '.elasticrc.yml'), [
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '',
+    ].join('\n'))
+
+    try {
+      const { code, stderr } = await runCli(
+        ['stack', 'es', 'indice'],
+        { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } }
+      )
+
+      assert.equal(code, 1)
+      assert.match(stderr, /unknown command: indice/)
+      assert.match(stderr, /Did you mean indices/)
     } finally {
       await rm(dir, { recursive: true })
     }

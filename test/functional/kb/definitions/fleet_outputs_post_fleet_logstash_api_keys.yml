@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-outputs API: generate a Logstash API key.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"fleet-outputs post fleet logstash api keys":
+  - do:
+      fleet-outputs.post_fleet_logstash_api_keys: {}
+  - is_true: api_key

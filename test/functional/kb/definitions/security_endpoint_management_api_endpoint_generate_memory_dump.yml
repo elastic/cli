@@ -1,0 +1,20 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-management-api: generate a memory dump from an endpoint.
+# No real endpoint exists in a test environment, so a fake UUID is used and a
+# 404 is expected.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-endpoint-management-api endpoint generate memory dump":
+  - do:
+      catch: missing
+      security-endpoint-management-api.endpoint_generate_memory_dump:
+        body:
+          endpoint_ids:
+            - "00000000-0000-0000-0000-000000000000"
+          parameters:
+            type: "kernel"

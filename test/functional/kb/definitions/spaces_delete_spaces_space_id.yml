@@ -1,0 +1,26 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana spaces API: create a space then delete it.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      spaces.post_spaces_space:
+        body:
+          id: cli-ft-spaces-delete
+          name: CLI FT Spaces Delete
+---
+teardown:
+  - do:
+      spaces.delete_spaces_space_id:
+        id: cli-ft-spaces-delete
+        ignore: [404]
+---
+"delete space":
+  - do:
+      spaces.delete_spaces_space_id:
+        id: cli-ft-spaces-delete

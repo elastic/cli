@@ -5,7 +5,33 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { renderText, renderTable, formatHandlerError } from '../src/output.ts'
+import { renderText, renderTable, formatHandlerError, formatTextResponse } from '../src/output.ts'
+
+describe('formatTextResponse', () => {
+  it('prints nothing for an empty CAT body', () => {
+    assert.equal(formatTextResponse({}), '')
+    assert.equal(formatTextResponse([]), '')
+    assert.equal(formatTextResponse(''), '')
+    assert.equal(formatTextResponse(null), '')
+    assert.equal(formatTextResponse(undefined), '')
+  })
+
+  it('does not stringify objects to [object Object]', () => {
+    assert.equal(formatTextResponse({ health: 'green' }).includes('[object Object]'), false)
+    assert.equal(formatTextResponse({ health: 'green' }), '')
+  })
+
+  it('prints CAT text and adds a trailing newline when missing', () => {
+    assert.equal(formatTextResponse('green open my-index\n'), 'green open my-index\n')
+    assert.equal(formatTextResponse('green open my-index'), 'green open my-index\n')
+  })
+
+  it('does not treat adversarial strings as objects', () => {
+    assert.equal(formatTextResponse('../'), '../\n')
+    assert.equal(formatTextResponse('?#'), '?#\n')
+    assert.equal(formatTextResponse('[object Object]'), '[object Object]\n')
+  })
+})
 
 describe('renderTable', () => {
   it('returns empty string for an empty array', () => {
@@ -158,6 +184,17 @@ describe('renderText', () => {
 })
 
 describe('formatHandlerError', () => {
+  it('extracts type and reason from not_found with ES body', () => {
+    const val = {
+      error: {
+        code: 'not_found',
+        status_code: 404,
+        body: { error: { type: 'index_not_found_exception', reason: 'no such index [foo]', root_cause: [] } }
+      }
+    }
+    assert.equal(formatHandlerError(val), 'index_not_found_exception: no such index [foo]')
+  })
+
   it('extracts type and reason from transport_error with ES body', () => {
     const val = {
       error: {
@@ -179,6 +216,11 @@ describe('formatHandlerError', () => {
     assert.equal(formatHandlerError(val), 'request failed with status 503')
   })
 
+  it('does not invent an auth hint when error.hint is absent', () => {
+    const val = { error: { code: 'transport_error', status_code: 401, body: { ok: false } } }
+    assert.equal(formatHandlerError(val), 'request failed with status 401')
+  })
+
   it('returns message for missing_config', () => {
     const val = { error: { code: 'missing_config', message: 'No Elasticsearch connection configured' } }
     assert.equal(formatHandlerError(val), 'No Elasticsearch connection configured')
@@ -197,5 +239,20 @@ describe('formatHandlerError', () => {
   it('returns fallback for unknown code without message', () => {
     const val = { error: { code: 'weird_error' } }
     assert.equal(formatHandlerError(val), 'unknown error (code: weird_error)')
+  })
+
+  it('appends error.hint after the original message', () => {
+    const val = {
+      error: {
+        code: 'transport_error',
+        status_code: 401,
+        body: { error: 'unauthorized' },
+        hint: 'Run `elastic status --json` then `elastic config context edit`.',
+      },
+    }
+    assert.equal(
+      formatHandlerError(val),
+      'unauthorized\nRun `elastic status --json` then `elastic config context edit`.',
+    )
   })
 })

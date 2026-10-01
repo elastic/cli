@@ -79,4 +79,38 @@ describe('createReadCommand', () => {
     assert.equal(process.exitCode, 1)
     process.exitCode = 0 // reset
   })
+
+  it('returns missing_input error when no path is given', async () => {
+    let err = ''
+    const cmd = createReadCommand({
+      resolveDocsPath: async (input) => input,
+      docsRead: async () => '# unused',
+      stdout: { write: () => true },
+    })
+    cmd.exitOverride()
+    cmd.configureOutput({ writeErr: (s) => { err += s } })
+    const restoreStdin = _testSetStdinReader(() => '')
+    try {
+      await cmd.parseAsync([], { from: 'user' })
+    } catch { /* exitOverride on error result */ } finally { restoreStdin() }
+    assert.match(err, /path is required/)
+    process.exitCode = 0
+  })
+
+  it('surfaces a non-Error thrown value via String(err)', async () => {
+    let err = ''
+    const cmd = createReadCommand({
+      resolveDocsPath: async (input) => input,
+      docsRead: async () => { throw 'plain string failure' },
+      stdout: { write: () => true },
+    })
+    cmd.exitOverride()
+    cmd.configureOutput({ writeErr: (s) => { err += s } })
+    const restoreStdin = _testSetStdinReader(() => '')
+    try {
+      await cmd.parseAsync(['--path', '/bad-path'], { from: 'user' })
+    } catch { /* exitOverride on error result */ } finally { restoreStdin() }
+    assert.match(err, /plain string failure/)
+    process.exitCode = 0
+  })
 })

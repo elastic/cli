@@ -5,7 +5,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { loadKbApisInFile } from '../../src/kb/apis.ts'
+import { kbApiManifest, loadKbApi, loadKbApisInFile } from '../../src/kb/apis.ts'
 
 describe('loadKbApisInFile', () => {
   it('flattens post-alerting-rule-id\'s allOf body into top-level properties', async () => {
@@ -76,5 +76,31 @@ describe('loadKbApisInFile', () => {
     for (const ref of refs) {
       assert.ok(ref.slice('#/$defs/'.length) in $defs, `missing $defs entry for ${ref}`)
     }
+  })
+
+  it('returns the cached promise on a repeated call for the same namespace file', async () => {
+    const [first, second] = await Promise.all([
+      loadKbApisInFile('post_actions_connector_id'),
+      loadKbApisInFile('post_actions_connector_id'),
+    ])
+    assert.equal(first, second)
+    assert.ok(first.length > 0)
+  })
+})
+
+describe('loadKbApi', () => {
+  it('locates a definition by manifest entry', async () => {
+    const meta = kbApiManifest.find((m) => m.name === 'get-spaces-space') ?? kbApiManifest[0]!
+    const def = await loadKbApi(meta)
+    assert.equal(def.name, meta.name)
+    assert.equal(def.namespace, meta.namespace)
+  })
+
+  it('throws when the manifest entry has no match in its namespace file', async () => {
+    const meta = kbApiManifest[0]!
+    await assert.rejects(
+      async () => loadKbApi({ ...meta, name: 'does-not-exist-in-file' }),
+      /internal error: manifest entry ".*" has no match in/
+    )
   })
 })

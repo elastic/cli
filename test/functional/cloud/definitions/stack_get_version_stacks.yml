@@ -1,0 +1,7 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get stack versions (GET /api/v1/stack/versions)
+---
+"stack get-version-stacks":
+  - do:
+      stack.get-version-stacks: {}

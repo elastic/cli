@@ -1,0 +1,18 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-endpoint-management-api: create or update a protection updates note.
+# No real package policy exists in a test environment, so a fake UUID is used and a
+# 404 is expected.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-endpoint-management-api create update protection updates note":
+  - do:
+      catch: missing
+      security-endpoint-management-api.create_update_protection_updates_note:
+        package_policy_id: "00000000-0000-0000-0000-000000000000"
+        body:
+          note: "test note"

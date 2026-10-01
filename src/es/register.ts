@@ -11,6 +11,7 @@ import { inferIntentFromHttp } from '@cli-schema/spec'
 import type { EsApiDefinition } from './types.ts'
 import { validateApiDefinition } from './types.ts'
 import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
+import { formatTextResponse } from '../output.ts'
 import { apiManifest } from './apis.ts'
 import type { EsApiMeta } from './apis.ts'
 
@@ -68,7 +69,7 @@ function buildLeafHandle (
       : {}),
   }
   if (def.responseType === 'text') {
-    config.formatOutput = (result) => String(result)
+    config.formatOutput = formatTextResponse
   }
   const bodyRootArg = schemaArgs.find(
     (a) => (a.foundIn === 'body' || a.foundIn === undefined) && a.required && a.bodyRoot === true

@@ -1,0 +1,29 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-store: get resolution group for an entity.
+# Verifies that get-security-entity-store-resolution-group returns without error.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-entity-store.post_security_entity_store_entities_entitytype:
+        entity_type: host
+        body:
+          host:
+            name: cli-ft-entity-resolution-group
+---
+teardown:
+  - do:
+      security-entity-store.delete_security_entity_store_entities:
+        entity_id: host:cli-ft-entity-resolution-group
+        ignore: [404]
+---
+"security-entity-store get security entity store resolution group":
+  - do:
+      security-entity-store.get_security_entity_store_resolution_group:
+        entity_id: host:cli-ft-entity-resolution-group
+  - is_true: ""

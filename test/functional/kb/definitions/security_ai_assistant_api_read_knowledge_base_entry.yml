@@ -1,0 +1,32 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-ai-assistant-api: read knowledge base entry.
+# Creates an entry in setup, then verifies read-knowledge-base-entry returns it.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-ai-assistant-api.create_knowledge_base_entry:
+        body:
+          name: CLI FT read-knowledge-base-entry test
+          type: document
+          kbResource: user
+          source: test-source
+          text: This is a test knowledge base entry created by the CLI functional test.
+  - set: {id: entry_id}
+---
+teardown:
+  - do:
+      security-ai-assistant-api.delete_knowledge_base_entry:
+        id: $entry_id
+        ignore: [404]
+---
+"security-ai-assistant-api read knowledge base entry":
+  - do:
+      security-ai-assistant-api.read_knowledge_base_entry:
+        id: $entry_id
+  - is_true: id

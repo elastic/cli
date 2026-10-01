@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get a region (GET /api/v1/serverless/regions/{id})
+# Id for {id} is derived from regions.list-regions.
+# TODO: verify the response path in the `set` step against a live API.
+---
+"regions get-region":
+  - do:
+      regions.list-regions: {}
+  - set: {regions.0.id: id}
+  - do:
+      regions.get-region:
+        id: $id

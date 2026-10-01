@@ -1,0 +1,63 @@
+name: CI repair on auto-loop
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  actions: write
+  pull-requests: read
+
+jobs:
+  dispatch:
+    if: >-
+      github.event.label.name == 'auto-loop' &&
+      github.event.issue.pull_request != null
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      pull-requests: read
+    steps:
+      - name: Dispatch CI and review repair loops
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.issue.number }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          META=$(gh pr view "$PR" --json isDraft,headRefOid,headRefName,headRepository,headRepositoryOwner,labels)
+          DRAFT=$(printf '%s' "$META" | jq -r '.isDraft')
+          SHA=$(printf '%s' "$META" | jq -r '.headRefOid // empty')
+          REF=$(printf '%s' "$META" | jq -r '.headRefName // empty')
+          HEAD_OWNER=$(printf '%s' "$META" | jq -r '.headRepositoryOwner.login // empty')
+          HEAD_NAME=$(printf '%s' "$META" | jq -r '.headRepository.name // empty')
+          HEAD_REPO="${HEAD_OWNER}/${HEAD_NAME}"
+          if [ "$DRAFT" = true ]; then
+            echo "Draft PR"
+            exit 0
+          fi
+          if [ "$HEAD_REPO" != "$GH_REPO" ]; then
+            echo "Fork PR"
+            exit 0
+          fi
+          if [ "$REF" = "ai/review-memory" ]; then
+            echo "Memory skill PR"
+            exit 0
+          fi
+          if printf '%s' "$META" | jq -e '.labels | any(.name == "ai-review-memory")' >/dev/null; then
+            echo "Memory skill PR"
+            exit 0
+          fi
+          gh workflow run review-repair-loop-run.yml --ref "$DEFAULT_BRANCH" -f "pr=${PR}"
+          RUN_ID=$(gh api -X GET "repos/${GH_REPO}/actions/runs" \
+            -f head_sha="$SHA" \
+            -f event=pull_request \
+            -f status=completed \
+            --jq '.workflow_runs[] | select((.path // "") == ".github/workflows/ci.yml" and (.conclusion // "") == "failure") | .id' \
+            | head -n 1 || true)
+          if [ -z "$RUN_ID" ]; then
+            echo "No failed CI run for ${SHA}"
+            exit 0
+          fi
+          gh workflow run ci-repair-loop.yml --ref "$DEFAULT_BRANCH" -f "run_id=${RUN_ID}"

@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agent-binary-download-sources API: get agent binary download sources.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"elastic-agent-binary-download-sources get fleet agent download sources":
+  - do:
+      elastic-agent-binary-download-sources.get_fleet_agent_download_sources: {}
+  - is_true: items

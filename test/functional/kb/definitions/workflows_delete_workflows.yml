@@ -1,0 +1,33 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: create a workflow then bulk-delete it by ID.
+---
+requires:
+  serverless: true
+---
+setup:
+  - do:
+      workflows.post_workflows_workflow:
+        body:
+          id: cli-ft-workflow-bulk-delete
+          yaml: |
+            version: '1'
+            name: CLI FT Workflow Bulk Delete
+            triggers:
+              - type: manual
+            steps: []
+---
+teardown:
+  - do:
+      workflows.delete_workflows_workflow_id:
+        id: cli-ft-workflow-bulk-delete
+        force: true
+        ignore: [404]
+---
+"workflows bulk delete workflows":
+  - do:
+      workflows.delete_workflows:
+        body:
+          ids:
+            - cli-ft-workflow-bulk-delete

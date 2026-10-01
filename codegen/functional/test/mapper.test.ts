@@ -45,6 +45,49 @@ const testDefs: EsApiDefinition[] = [
     description: 'Get cluster info',
     method: 'GET',
     path: '/'
+  },
+  {
+    name: 'delete',
+    namespace: 'indices',
+    description: 'Delete an index',
+    method: 'DELETE',
+    path: '/{index}',
+    input: {
+      type: 'object',
+      properties: {
+        index: { type: 'string', 'x-found-in': 'path' },
+      },
+      required: ['index'],
+    }
+  },
+  {
+    name: 'forcemerge',
+    namespace: 'indices',
+    description: 'Force merge an index',
+    method: 'POST',
+    path: '/{index}/_forcemerge',
+    intent: { destructive: true },
+    input: {
+      type: 'object',
+      properties: {
+        index: { type: 'string', 'x-found-in': 'path' },
+      },
+      required: ['index'],
+    }
+  },
+  {
+    name: 'upgrade',
+    namespace: 'agents',
+    description: 'Upgrade an agent',
+    method: 'POST',
+    path: '/agents/{agentId}/upgrade',
+    input: {
+      type: 'object',
+      properties: {
+        agentId: { type: 'string', 'x-found-in': 'path' },
+      },
+      required: ['agentId'],
+    }
   }
 ]
 
@@ -106,5 +149,29 @@ describe('mapAction', () => {
     const result = mapAction('indices.create', { index: 'test', wait_for_active_shards: '1' }, actionMap)
     assert.ok(result)
     assert.ok(result.cliArgs.includes('--wait-for-active-shards'))
+  })
+
+  it('maps a snake_case param to a camelCase schema key (e.g. agent_id -> agentId)', () => {
+    const result = mapAction('agents.upgrade', { agent_id: 'a1' }, actionMap)
+    assert.ok(result)
+    assert.deepStrictEqual(result.cliArgs, ['stack', 'es', 'agents', 'upgrade', '--agent-id', 'a1'])
+  })
+
+  it('appends --yes for a DELETE action so non-interactive test runs do not prompt', () => {
+    const result = mapAction('indices.delete', { index: 'test' }, actionMap)
+    assert.ok(result)
+    assert.deepStrictEqual(result.cliArgs, ['stack', 'es', 'indices', 'delete', '--yes', '--index', 'test'])
+  })
+
+  it('appends --yes when intent.destructive is set even if the method is not DELETE', () => {
+    const result = mapAction('indices.forcemerge', { index: 'test' }, actionMap)
+    assert.ok(result)
+    assert.deepStrictEqual(result.cliArgs, ['stack', 'es', 'indices', 'forcemerge', '--yes', '--index', 'test'])
+  })
+
+  it('does not append --yes for a non-destructive action', () => {
+    const result = mapAction('indices.create', { index: 'test' }, actionMap)
+    assert.ok(result)
+    assert.ok(!result.cliArgs.includes('--yes'))
   })
 })

@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-store: get security entity store entities.
+# Verifies that get-security-entity-store-entities returns without error.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-entity-store get security entity store entities":
+  - do:
+      security-entity-store.get_security_entity_store_entities: {}
+  - is_true: ""

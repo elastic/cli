@@ -1,0 +1,36 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana agent-builder API: delete an attachment from a conversation.
+---
+requires:
+  serverless: true
+---
+teardown:
+  - do:
+      agent-builder.delete_agent_builder_conversations_conversation_id:
+        conversation_id: $conv_id
+        ignore: [404]
+---
+"agent-builder delete conversation attachment":
+  - do:
+      agent-builder.post_agent_builder_converse:
+        body:
+          input: ping
+  - set: {conversation_id: conv_id}
+  - is_true: conversation_id
+
+  - do:
+      agent-builder.post_agent_builder_conversations_conversation_id_attachments:
+        conversation_id: $conv_id
+        body:
+          type: text
+          data:
+            content: hello
+  - set: {"attachment.id": attachment_id}
+  - is_true: attachment.id
+
+  - do:
+      agent-builder.delete_agent_builder_conversations_conversation_id_attachments_attachment_id:
+        conversation_id: $conv_id
+        attachment_id: $attachment_id

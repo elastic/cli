@@ -5,6 +5,7 @@
 
 import { Command } from 'commander'
 import { readFileSync, writeSync } from 'node:fs'
+import { createInterface } from 'node:readline'
 import assert from 'node:assert/strict'
 import { getResolvedConfig } from './config/store.ts'
 import { extractSchemaArgs, validateSchemaArgs } from './lib/json-schema-args.ts'
@@ -14,12 +15,14 @@ import { pickFields, parseFieldList, applyTemplate, TemplateAgainstPrimitiveErro
 import { validateName, hasGlobalJsonFlag, configureErrorOutput, commandPath, isCommandAllowed, stripTransportMeta } from './factory-core.ts'
 import type { OpaqueCommandHandle, JsonValue, CommandConfig, ParsedResult } from './factory-core.ts'
 import { RawJsonValue } from './factory-core.ts'
+import { YamlResponse } from './lib/yaml-response.ts'
 
 // Re-export from factory-core for backward compatibility
 export {
   type CommandIntent,
   type OptionDefinition,
   type JsonValue,
+  type HandlerResult,
   RawJsonValue,
   type ParsedResult,
   type CommandConfig,
@@ -60,6 +63,66 @@ export function _testSetStdinReader (fn: () => string): () => void {
   const prev = stdinReader
   stdinReader = fn
   return () => { stdinReader = prev }
+}
+
+/**
+ * Module-level TTY detector - swappable in tests via {@link _testSetIsTTY}.
+ * Production default reads `process.stderr.isTTY`.
+ */
+let isTTYFn: () => boolean = () => process.stderr.isTTY === true
+
+/**
+ * Test-only seam: overrides the TTY detection function and returns a restore callback.
+ * Always call the returned function in a `finally` block to avoid test pollution.
+ *
+ * @internal not part of the public API
+ */
+export function _testSetIsTTY (value: boolean): () => void {
+  const prev = isTTYFn
+  isTTYFn = () => value
+  return () => { isTTYFn = prev }
+}
+
+/**
+ * Module-level confirm reader - swappable in tests via {@link _testSetConfirmReader}.
+ * Production default prompts on stderr and reads a line from stdin via readline.
+ * `null` means use the real readline prompt.
+ */
+let confirmReader: (() => Promise<boolean>) | null = null
+
+/**
+ * Test-only seam: replaces the confirm reader with `fn` and returns a restore callback.
+ * Always call the returned function in a `finally` block to avoid test pollution.
+ *
+ * @internal not part of the public API
+ */
+export function _testSetConfirmReader (fn: () => Promise<boolean>): () => void {
+  const prev = confirmReader
+  confirmReader = fn
+  return () => { confirmReader = prev }
+}
+
+/** Error envelope for a prompt that cannot run without a TTY. Message lists the flags that replace it. */
+export function ttyRequiredError (flags: readonly string[]): { error: { code: string; message: string } } {
+  const named = flags.map((f) => f.startsWith('--') ? f : `--${f}`).join(', ')
+  return {
+    error: {
+      code: 'confirmation_required',
+      message: `Pass ${named} (not a TTY).`,
+    },
+  }
+}
+
+/** Prompts the user on stderr and reads one line from stdin to confirm a destructive action. */
+async function promptConfirm (): Promise<boolean> {
+  if (confirmReader != null) return confirmReader()
+  return new Promise(resolve => {
+    const rl = createInterface({ input: process.stdin, output: process.stderr })
+    rl.question('This action is destructive. Continue? [y/N] ', answer => {
+      rl.close()
+      resolve(answer.trim().toLowerCase() === 'y')
+    })
+  })
 }
 
 /** converts a kebab-case option name to camelCase to match Commander's opts() keys */
@@ -105,6 +168,33 @@ function stringAccumulator (cmd: Command, attrName: string): (value: string, pre
   }
 }
 
+/** Parses one `--flag` occurrence into array elements: JSON arrays as-is, anything else as a single element. */
+function coerceToArray (raw: string): unknown[] {
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : [parsed]
+  } catch {
+    return [raw]
+  }
+}
+
+/**
+ * Accumulates repeated array-typed flags into a JSON array string.
+ * First occurrence wraps a scalar (`abc` → `["abc"]`); later ones append.
+ */
+function arrayAccumulator (cmd: Command, attrName: string): (value: string, previous: string | undefined) => string {
+  return (value: string, previous: string | undefined): string => {
+    const items = coerceToArray(value)
+    if (cmd.getOptionValueSource(attrName) === 'cli' && previous != null) {
+      try {
+        const prev = JSON.parse(previous)
+        if (Array.isArray(prev)) return JSON.stringify([...prev, ...items])
+      } catch { /* previous wasn't our JSON array; start fresh */ }
+    }
+    return JSON.stringify(items)
+  }
+}
+
 /**
  * Creates a parseArg function that rejects repeated flag occurrences for singular-value options.
  * Wraps an optional inner parser (e.g. number coercion) and errors via Commander
@@ -139,6 +229,10 @@ function validateOptions (options: import('./factory-core.ts').OptionDefinition[
     if (seenLong.has(opt.long)) throw new Error(`duplicate option long name: --${opt.long}`)
     seenLong.add(opt.long)
     if (opt.long === 'dry-run') throw new Error('option --dry-run is reserved')
+    if (opt.long === 'no-validate') throw new Error('option --no-validate is reserved')
+    // Commander stores the negated --no-validate flag under the synthetic 'validate' key;
+    // reserve it so an author-defined 'validate' option cannot collide with that slot.
+    if (opt.long === 'validate') throw new Error('option --validate is reserved')
     if (opt.short !== undefined) {
       if (seenShort.has(opt.short)) throw new Error(`duplicate option short alias: -${opt.short}`)
       seenShort.add(opt.short)
@@ -376,9 +470,12 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
           return n!
         }
         cmd.option(`--${arg.cliFlag} <number>`, desc, singleValueGuard(cmd, attrName, `--${arg.cliFlag}`, parseNum))
-      } else if (arg.type === 'object' || arg.type === 'array') {
+      } else if (arg.type === 'object') {
         const attrName = camelCase(arg.cliFlag)
         cmd.option(`--${arg.cliFlag} <json>`, desc, singleValueGuard<string>(cmd, attrName, `--${arg.cliFlag}`))
+      } else if (arg.type === 'array') {
+        const attrName = camelCase(arg.cliFlag)
+        cmd.option(`--${arg.cliFlag} <value>`, desc, arrayAccumulator(cmd, attrName))
       } else if (arg.type === 'enum') {
         const attrName = camelCase(arg.cliFlag)
         cmd.option(`--${arg.cliFlag} <value>`, desc, singleValueGuard<string>(cmd, attrName, `--${arg.cliFlag}`))
@@ -405,6 +502,13 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
   if (!schemaClaimsDryRun && !hideNoInputFlags) {
     cmd.option('--dry-run', 'validate all inputs and exit without performing any action')
   }
+  if (isJsonSchemaInput(config.input) && !hideNoInputFlags) {
+    cmd.option('--no-validate', 'skip input validation and send the request as-is')
+  }
+
+  if (config.intent?.destructive === true || config.intent?.requiresConfirmation === true) {
+    cmd.option('--yes', 'confirm destructive action without prompting')
+  }
 
   configureHelpWithSchema(cmd, isJsonSchemaInput(config.input) ? config.input : undefined)
 
@@ -429,9 +533,12 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
       }
     }
 
+    // 'validate' is Commander's synthetic affirmative for --no-validate; prevent it from
+    // leaking into user-facing parsed.options (noValidate is the negation key, also excluded)
+    const noValidateKeys = new Set(['noValidate', 'validate'])
     const declaredKeys = new Set(optDefs.map((o) => camelCase(o.long)))
     for (const [camelKey, val] of Object.entries(allRaw)) {
-      if (!declaredKeys.has(camelKey) && (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean')) {
+      if (!declaredKeys.has(camelKey) && !noValidateKeys.has(camelKey) && (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean')) {
         const kebabKey = camelKey.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)
         options[kebabKey] = val
       }
@@ -490,7 +597,18 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
         // boolean coercion: --flag (no value) -> true, --flag false -> false
         if (arg.type === 'boolean') {
           cliInput[arg.schemaKey] = raw !== 'false'
-        } else if (arg.type === 'object' || arg.type === 'array') {
+        } else if (arg.type === 'array') {
+          try {
+            const parsed = JSON.parse(raw as string)
+            cliInput[arg.schemaKey] = Array.isArray(parsed) ? parsed : [parsed]
+          } catch {
+            cliInput[arg.schemaKey] = [raw]
+          }
+          const value = cliInput[arg.schemaKey]
+          if (arg.foundIn === 'body' || arg.foundIn === undefined) {
+            rawBodyValues[arg.schemaKey] = new RawJsonValue(JSON.stringify(value), value)
+          }
+        } else if (arg.type === 'object') {
           try {
             const parsed = JSON.parse(raw as string)
             cliInput[arg.schemaKey] = parsed
@@ -574,61 +692,95 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
     if (inputValue !== undefined) {
       assert(isJsonSchemaInput(config.input), `command ${JSON.stringify(config.name)}: input must be a JSON Schema object`)
 
-      const { validateWithJsonSchema, formatValidationErrors } = await import('./lib/ajv-validate.js')
+      // --no-validate skips schema validation and sends the input as-is (#530 escape
+      // hatch): neutralizes false rejections when the shipped schema is stricter than the
+      // target server (e.g. a new enum value or tightened type on a top-level scalar param).
+      if (allRaw['validate'] !== false) {
+        const { validateWithJsonSchema, formatValidationErrors } = await import('./lib/ajv-validate.js')
 
-      // Relax schema for sort-pairs and x-found-in: body object/array fields, regardless
-      // of input source (CLI flag, stdin, or --input-file):
-      // - sort-pairs: parsed to [{field: dir}] which won't match string schema
-      // - body object/array fields: full DSL (e.g. query, _source) may not match strict schema
-      // Fields with no x-found-in are validated strictly.
-      let validationSchema: Record<string, unknown> = config.input
-      const relaxFields = schemaArgs.filter(
-        (a) =>
-          sortParsedKeys.has(a.schemaKey) ||
-          (a.foundIn === 'body' && (a.type === 'object' || a.type === 'array'))
-      )
-      if (relaxFields.length > 0 && typeof config.input['properties'] === 'object') {
-        const props = { ...(config.input['properties'] as Record<string, unknown>) }
-        for (const f of relaxFields) {
-          if (f.schemaKey in props) {
-            // Accept any value for these relaxed fields
-            props[f.schemaKey] = {}
+        // Relax schema for sort-pairs and x-found-in: body object/array fields, regardless
+        // of input source (CLI flag, stdin, or --input-file):
+        // - sort-pairs: parsed to [{field: dir}] which won't match string schema
+        // - body object/array fields: full DSL (e.g. query, _source) may not match strict schema
+        // Fields with no x-found-in are validated strictly.
+        let validationSchema: Record<string, unknown> = config.input
+        const relaxFields = schemaArgs.filter(
+          (a) =>
+            sortParsedKeys.has(a.schemaKey) ||
+            (a.foundIn === 'body' && (a.type === 'object' || a.type === 'array'))
+        )
+        if (relaxFields.length > 0 && typeof config.input['properties'] === 'object') {
+          const props = { ...(config.input['properties'] as Record<string, unknown>) }
+          for (const f of relaxFields) {
+            if (f.schemaKey in props) {
+              // Accept any value for these relaxed fields
+              props[f.schemaKey] = {}
+            }
           }
+          validationSchema = { ...config.input, properties: props }
         }
-        validationSchema = { ...config.input, properties: props }
+
+        const result = validateWithJsonSchema(validationSchema, inputValue)
+
+        if (!result.success) {
+          if (jsonFormat === true) {
+            writeErr(cmd, JSON.stringify({
+              error: {
+                code: 'input_validation_failed',
+                message: `Input validation failed with ${result.errors.length} issue(s)`,
+                // Emit path as array (like Zod) for API compatibility
+                issues: result.errors.map(e => ({ code: e.code, path: e.path_array, message: e.message }))
+              }
+            }) + '\n')
+            // throw to prevent handler execution - mirrors cmd.error() behaviour
+            throw Object.assign(new Error('input_validation_failed'), { exitCode: 1 })
+          }
+          return cmd.error(`input validation failed:\n${formatValidationErrors(result.errors)}`)
+        }
+
+        inputValue = result.data
       }
 
-      const result = validateWithJsonSchema(validationSchema, inputValue)
-
-      if (result.success) {
-        parsed.input = result.data
-        if (Object.keys(rawBodyValues).length > 0) {
-          parsed.rawBodyValues = rawBodyValues
-        }
-      } else {
-        if (jsonFormat === true) {
-          writeErr(cmd, JSON.stringify({
-            error: {
-              code: 'input_validation_failed',
-              message: `Input validation failed with ${result.errors.length} issue(s)`,
-              // Emit path as array (like Zod) for API compatibility
-              issues: result.errors.map(e => ({ code: e.code, path: e.path_array, message: e.message }))
-            }
-          }) + '\n')
-          // throw to prevent handler execution - mirrors cmd.error() behaviour
-          throw Object.assign(new Error('input_validation_failed'), { exitCode: 1 })
-        }
-        return cmd.error(`input validation failed:\n${formatValidationErrors(result.errors)}`)
+      parsed.input = inputValue as Record<string, unknown>
+      if (Object.keys(rawBodyValues).length > 0) {
+        parsed.rawBodyValues = rawBodyValues
       }
     }
 
     if (allRaw['dryRun'] === true) {
       if (jsonFormat) {
-        process.stdout.write(JSON.stringify({ success: true }) + '\n')
+        const validationSkipped = allRaw['validate'] === false
+        process.stdout.write(JSON.stringify({ success: true, ...(validationSkipped ? { validationSkipped: true } : {}) }) + '\n')
       } else {
-        process.stdout.write('dry run: inputs valid, no action performed\n')
+        const validationNote = allRaw['validate'] === false ? ' (validation skipped)' : ''
+        process.stdout.write(`dry run: inputs valid${validationNote}, no action performed\n`)
       }
       return
+    }
+
+    if (config.intent?.destructive === true || config.intent?.requiresConfirmation === true) {
+      if (allRaw['yes'] !== true) {
+        if (isTTYFn()) {
+          const confirmed = await promptConfirm()
+          if (!confirmed) {
+            const errObj = { error: { code: 'confirmation_required', message: 'Aborted.' } }
+            if (jsonFormat === true) {
+              writeErr(cmd, JSON.stringify(errObj) + '\n')
+            } else {
+              writeErr(cmd, 'Error: Aborted.\n')
+            }
+            throw Object.assign(new Error('confirmation_required'), { exitCode: 1 })
+          }
+        } else {
+          const errObj = { error: { code: 'confirmation_required', message: 'Pass --yes to confirm this destructive action.' } }
+          if (jsonFormat === true) {
+            writeErr(cmd, JSON.stringify(errObj) + '\n')
+          } else {
+            writeErr(cmd, 'Error: Pass --yes to confirm this destructive action.\n')
+          }
+          throw Object.assign(new Error('confirmation_required'), { exitCode: 1 })
+        }
+      }
     }
 
     const handlerResult = await config.handler(parsed)
@@ -636,17 +788,37 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
     const { renderText, formatHandlerError } = await getOutput()
     assert(handlerResult !== undefined, `command ${JSON.stringify(config.name)}: handler must return a JsonValue`)
 
-    if (isErrorResult(handlerResult)) {
+    // A YAML body is printed verbatim by default; `--json` parses it into structured JSON that then
+    // flows through the normal field-selection / template / JSON-output pipeline below.
+    let result: JsonValue
+    if (handlerResult instanceof YamlResponse) {
+      if (jsonFormat !== true) {
+        const text = handlerResult.text
+        process.stdout.write(text.endsWith('\n') ? text : text + '\n')
+        return
+      }
+      const { parse: parseYaml } = await import('yaml')
+      try {
+        result = parseYaml(handlerResult.text) as JsonValue
+      } catch {
+        // Multi-doc manifests (k8s `---` separators) throw; keep the raw body so --json still exits 0.
+        result = handlerResult.text
+      }
+    } else {
+      result = handlerResult
+    }
+
+    if (isErrorResult(result)) {
       if (jsonFormat === true) {
-        writeErr(cmd, JSON.stringify(handlerResult) + '\n')
+        writeErr(cmd, JSON.stringify(result) + '\n')
       } else {
-        writeErr(cmd, `Error: ${formatHandlerError(handlerResult)}\n`)
+        writeErr(cmd, `Error: ${formatHandlerError(result)}\n`)
       }
       process.exitCode = 1
     } else {
       const fieldsRaw = allRaw.outputFields as string | undefined
       const templateRaw = allRaw.outputTemplate as string | undefined
-      let output = handlerResult
+      let output = result
       if (fieldsRaw != null) {
         output = pickFields(output, parseFieldList(fieldsRaw))
       }

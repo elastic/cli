@@ -1,0 +1,22 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-ai-assistant-api: create conversation.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      security-ai-assistant-api.delete_conversation:
+        id: $conv_id
+        ignore: [404]
+---
+"security-ai-assistant-api create conversation":
+  - do:
+      security-ai-assistant-api.create_conversation:
+        body:
+          title: CLI FT create-conversation test
+  - set: {id: conv_id}
+  - is_true: id

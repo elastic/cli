@@ -12,6 +12,7 @@ import { validateKbApiDefinition } from './types.ts'
 import { kbApiManifest, loadKbApi } from './apis.ts'
 import type { KbApiMeta } from './apis.ts'
 import { createKbHandler } from './handler.ts'
+import { formatTextResponse } from '../output.ts'
 
 // Every Kibana definition passes `validateKbApiDefinition` as of @elastic/schemas 0.5.1;
 // the five upstream path-param defects that used to need an allowlist here are fixed.
@@ -31,7 +32,7 @@ function buildLeafHandle (def: KbApiDefinition): OpaqueCommandHandle {
     ...(def.intent != null || inferIntentFromHttp(def.method) != null
       ? { intent: def.intent ?? inferIntentFromHttp(def.method)! }
       : {}),
-    ...(def.responseType === 'text' ? { formatOutput: (result) => String(result) } : {}),
+    ...(def.responseType === 'text' ? { formatOutput: formatTextResponse } : {}),
   })
 }
 

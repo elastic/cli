@@ -1,0 +1,25 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agent-actions API: post a SETTINGS action to an enrolled agent.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agents.get_fleet_agents: {}
+  - set: {"items.0.id": agent_id}
+---
+"elastic-agent-actions post fleet agents agentid actions":
+  - do:
+      elastic-agent-actions.post_fleet_agents_agentid_actions:
+        agent_id: $agent_id
+        body:
+          action:
+            type: SETTINGS
+            data:
+              log_level: info
+  - is_true: item.id
+  - match: {item.type: SETTINGS}

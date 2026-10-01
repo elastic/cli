@@ -1,0 +1,32 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-package-manager-epm API: install Kibana alert rule assets for a package version.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-package-manager-epm.get_fleet_epm_packages_pkgname:
+        pkg_name: apache
+  - set: {"item.version": pkg_version}
+  - do:
+      elastic-package-manager-epm.post_fleet_epm_packages_pkgname_pkgversion:
+        pkg_name: apache
+        pkg_version: $pkg_version
+---
+teardown:
+  - do:
+      elastic-package-manager-epm.delete_fleet_epm_packages_pkgname_pkgversion:
+        pkg_name: apache
+        pkg_version: $pkg_version
+        ignore: [404]
+---
+"elastic-package-manager-epm post fleet epm packages pkgname pkgversion rule assets":
+  - do:
+      elastic-package-manager-epm.post_fleet_epm_packages_pkgname_pkgversion_rule_assets:
+        pkg_name: apache
+        pkg_version: $pkg_version
+  - is_true: ""

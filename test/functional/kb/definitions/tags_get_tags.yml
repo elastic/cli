@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana tags API: search tags.
+---
+requires:
+  serverless: false
+  stack: false
+---
+"tags get tags":
+  - do:
+      tags.get_tags: {}
+  - is_true: meta

@@ -1,0 +1,23 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana markdowns API: upsert a markdown library item by ID.
+---
+requires:
+  serverless: false
+  stack: false
+---
+teardown:
+  - do:
+      markdowns.delete_markdowns_id:
+        id: test-markdown-put-id
+        ignore: [404]
+---
+"markdowns put markdowns id":
+  - do:
+      markdowns.put_markdowns_id:
+        id: test-markdown-put-id
+        body:
+          content: "# Hello"
+          title: test-markdown-put
+  - is_true: id

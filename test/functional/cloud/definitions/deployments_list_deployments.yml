@@ -1,0 +1,7 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: List Deployments (GET /api/v1/deployments)
+---
+"deployments list-deployments":
+  - do:
+      deployments.list-deployments: {}

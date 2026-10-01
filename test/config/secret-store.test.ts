@@ -5,10 +5,12 @@
 
 import { describe, it, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import type { execSync as ExecSyncFn } from 'node:child_process'
+import { spawnSync, type execSync as ExecSyncFn, type spawnSync as SpawnSyncFn } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import {
   getSecretStore,
   _testSetExecSync,
+  _testSetSpawnSync,
   _testSetPlatform,
   _testStores,
 } from '../../src/config/secret-store.ts'
@@ -33,6 +35,36 @@ function makeExec (
     }
     return ''
   }) as unknown as typeof ExecSyncFn
+  return { fn, calls }
+}
+
+interface SpawnCall { file: string; args: string[]; options: Record<string, unknown> | undefined }
+function makeSpawn (
+  handlers: Array<{ match: string; result?: Partial<{ status: number | null; stderr: string; stdout: string; error: Error }> }>
+): { fn: typeof SpawnSyncFn; calls: SpawnCall[] } {
+  const calls: SpawnCall[] = []
+  const fn = ((file: string, args?: string[], options?: Record<string, unknown>) => {
+    const argv = args ?? []
+    calls.push({ file, args: argv, options })
+    const joined = [file, ...argv].join(' ')
+    for (const h of handlers) {
+      if (joined.includes(h.match)) {
+        if (h.result?.error != null) {
+          return { status: null, stderr: '', stdout: '', error: h.result.error, pid: 0, output: [null, '', ''], signal: null }
+        }
+        return {
+          status: h.result?.status ?? 0,
+          stderr: h.result?.stderr ?? '',
+          stdout: h.result?.stdout ?? '',
+          error: undefined,
+          pid: 0,
+          output: [null, h.result?.stdout ?? '', h.result?.stderr ?? ''],
+          signal: null,
+        }
+      }
+    }
+    return { status: 0, stderr: '', stdout: '', error: undefined, pid: 0, output: [null, '', ''], signal: null }
+  }) as unknown as typeof SpawnSyncFn
   return { fn, calls }
 }
 
@@ -92,20 +124,22 @@ describe('MacOSKeychainStore', () => {
     while (restores.length > 0) restores.pop()!()
   })
 
-  it('put invokes `security add-generic-password -U` with shell-escaped values and passes secret via stdin', async () => {
-    const { fn, calls } = makeExec([{ match: 'security ', result: '' }])
-    restores.push(_testSetExecSync(fn))
+  it('put feeds the password on stdin after dropping the controlling TTY', async () => {
+    const { fn, calls } = makeSpawn([{ match: 'add-generic-password' }])
+    restores.push(_testSetSpawnSync(fn))
     const store = new _testStores.MacOSKeychainStore()
     await store.put('elastic-cli', 'prod:es.api_key', "it's secret")
-    const put = calls.find(c => c.cmd.includes('add-generic-password'))!
+    const put = calls.find(c => c.args.includes('add-generic-password'))!
     assert.ok(put)
-    assert.match(put.cmd, /-U /)
-    assert.match(put.cmd, /-s 'elastic-cli'/)
-    assert.match(put.cmd, /-a 'prod:es.api_key'/)
-    // Secret must NOT appear in the command string (would be visible in `ps`)
-    assert.ok(!put.cmd.includes("it's secret"), 'secret must not be in argv')
-    // Secret IS passed via stdin
-    assert.equal((put.options as { input?: string }).input, "it's secret")
+    assert.equal(put.file, '/usr/bin/perl')
+    assert.ok(put.args.includes('security'))
+    assert.ok(put.args.includes('-U'))
+    assert.deepEqual(
+      put.args.slice(put.args.indexOf('-s'), put.args.indexOf('-s') + 5),
+      ['-s', 'elastic-cli', '-a', 'prod:es.api_key', '-w']
+    )
+    assert.ok(!put.args.includes("it's secret"), 'secret must not be in argv')
+    assert.equal((put.options as { input?: string }).input, "it's secret\nit's secret\n")
   })
 
   it('delete swallows errors (idempotent)', async () => {
@@ -146,16 +180,75 @@ describe('MacOSKeychainStore', () => {
     await assert.rejects(() => store.put('svc', 'ac\u0000count', 'x'), /non-printable/)
   })
 
-  it('wraps underlying errors with context', async () => {
-    const { fn } = makeExec([
-      { match: 'security ', result: new Error('permission denied') },
+  it('wraps underlying errors with context and redacts the secret', async () => {
+    const { fn } = makeSpawn([
+      { match: 'add-generic-password', result: { status: 1, stderr: 'permission denied for hunter2' } },
     ])
-    restores.push(_testSetExecSync(fn))
+    restores.push(_testSetSpawnSync(fn))
     const store = new _testStores.MacOSKeychainStore()
     await assert.rejects(
-      () => store.put('svc', 'acct', 'x'),
-      /Keychain write failed for service="svc", account="acct".*permission denied/
+      () => store.put('svc', 'acct', 'hunter2'),
+      /Keychain write failed for service="svc", account="acct".*permission denied for \[redacted\]/
     )
+  })
+
+  it('put stores the password when a TTY is present', {
+    skip: process.platform !== 'darwin',
+  }, () => {
+    const account = `cli-tty-${process.pid}-${Date.now()}`
+    const secret = 'tty-secret-620'
+    const storePath = fileURLToPath(new URL('../../src/config/secret-store.ts', import.meta.url))
+    const childArgv = [
+      process.execPath,
+      '--import', 'tsx',
+      '--input-type=module',
+      '-e',
+      `
+        import { _testStores } from ${JSON.stringify(storePath)}
+        const store = new _testStores.MacOSKeychainStore()
+        await store.put('elastic-cli', ${JSON.stringify(account)}, ${JSON.stringify(secret)})
+      `,
+    ]
+    const py = `
+import os, pty, select, sys
+pid, fd = pty.fork()
+if pid == 0:
+    os.execvpe(${JSON.stringify(childArgv[0])}, ${JSON.stringify(childArgv)}, os.environ)
+status = None
+while True:
+    r, _, _ = select.select([fd], [], [], 0.1)
+    if r:
+        try:
+            data = os.read(fd, 4096)
+        except OSError:
+            break
+        if not data:
+            break
+        sys.stdout.buffer.write(data)
+        sys.stdout.buffer.flush()
+    wpid, st = os.waitpid(pid, os.WNOHANG)
+    if wpid != 0:
+        status = st
+        break
+if status is None:
+    status = os.waitpid(pid, 0)[1]
+os.close(fd)
+sys.exit(os.waitstatus_to_exitcode(status))
+`
+    const child = spawnSync('python3', ['-c', py], { encoding: 'utf-8', timeout: 15_000 })
+    try {
+      assert.equal(child.status, 0, `${child.stderr}\n${child.stdout}`)
+      assert.doesNotMatch(child.stdout + child.stderr, /password data for new item/)
+      const stored = spawnSync(
+        'security',
+        ['find-generic-password', '-s', 'elastic-cli', '-a', account, '-w'],
+        { encoding: 'utf-8' }
+      )
+      assert.equal(stored.status, 0, stored.stderr)
+      assert.equal(stored.stdout.replace(/\n$/, ''), secret)
+    } finally {
+      spawnSync('security', ['delete-generic-password', '-s', 'elastic-cli', '-a', account])
+    }
   })
 })
 

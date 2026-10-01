@@ -1,0 +1,14 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-store: list entity resolution rules.
+# Verifies that get-security-entity-store-resolution-rules returns without error.
+---
+requires:
+  serverless: false
+  stack: false
+---
+"security-entity-store get security entity store resolution rules":
+  - do:
+      security-entity-store.get_security_entity_store_resolution_rules: {}
+  - is_true: ""

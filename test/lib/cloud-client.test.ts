@@ -18,7 +18,13 @@ afterEach(() => {
 describe('getCloudClient', () => {
   it('throws missing_config when no cloud service is configured', () => {
     setResolvedConfig({ context: { elasticsearch: { url: 'http://localhost:9200', auth: { api_key: 'x' } } } })
-    assert.throws(() => getCloudClient(), /missing_config/)
+    assert.throws(() => getCloudClient(), (err: Error) => {
+      assert.match(err.message, /missing_config/)
+      assert.match(err.message, /elastic config context add/)
+      assert.match(err.message, /--cloud-api-key/)
+      assert.doesNotMatch(err.message, /config set/)
+      return true
+    })
   })
 
   it('throws missing_config when no config is set at all', () => {
@@ -147,7 +153,13 @@ describe('getCloudClient', () => {
 
   it('throws missing_config when auth has no api_key', () => {
     setResolvedConfig({ context: { cloud: { url: 'https://api.elastic-cloud.com', auth: {} } } } as unknown as ResolvedConfig)
-    assert.throws(() => getCloudClient(), /missing_config/)
+    assert.throws(() => getCloudClient(), (err: Error) => {
+      assert.match(err.message, /missing_config/)
+      assert.match(err.message, /elastic config context add/)
+      assert.match(err.message, /--cloud-api-key/)
+      assert.doesNotMatch(err.message, /config set/)
+      return true
+    })
   })
 
   it('handles empty response body without throwing', async () => {

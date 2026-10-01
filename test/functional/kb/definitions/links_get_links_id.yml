@@ -1,0 +1,31 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana links API: create a links library item / get it by ID / verify response.
+---
+requires:
+  serverless: false
+  stack: false
+---
+teardown:
+  - do:
+      links.delete_links_id:
+        id: $created_id
+        ignore: [404]
+---
+"links get links item by id":
+  - do:
+      links.post_links:
+        body:
+          title: CLI FT Links Get By Id
+          links:
+            - type: externalLink
+              destination: https://elastic.co
+  - set: {id: created_id}
+  - is_true: id
+
+  - do:
+      links.get_links_id:
+        id: $created_id
+  - match: {id: $created_id}
+  - match: {data.title: CLI FT Links Get By Id}

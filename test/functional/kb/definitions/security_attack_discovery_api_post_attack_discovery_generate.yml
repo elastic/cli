@@ -1,0 +1,43 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-attack-discovery-api: generate attack discoveries from alerts.
+# Creates a .gen-ai connector as a prerequisite.
+# Expects a request error because no real LLM backend is available in CI;
+# the test validates that the CLI correctly constructs and routes the request.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      connectors.delete_actions_connector_id:
+        id: cli-ft-attack-discovery-connector
+        ignore: [404]
+---
+"security-attack-discovery-api post attack discovery generate":
+  - do:
+      connectors.post_actions_connector_id:
+        id: cli-ft-attack-discovery-connector
+        body:
+          connector_type_id: ".gen-ai"
+          name: CLI FT Attack Discovery Connector
+          config:
+            apiProvider: OpenAI
+            apiUrl: "https://api.openai.com/v1"
+          secrets:
+            apiKey: "placeholder-key"
+  - match: {id: cli-ft-attack-discovery-connector}
+
+  - do:
+      catch: request
+      security-attack-discovery-api.post_attack_discovery_generate:
+        body:
+          alertsIndexPattern: ".alerts-security.alerts-default"
+          anonymizationFields: []
+          apiConfig:
+            connectorId: cli-ft-attack-discovery-connector
+            actionTypeId: ".gen-ai"
+          size: 20
+          subAction: invokeAI

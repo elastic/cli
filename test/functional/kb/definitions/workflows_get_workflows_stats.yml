@@ -1,0 +1,12 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: get workflow statistics.
+---
+requires:
+  serverless: true
+---
+"workflows get workflows stats":
+  - do:
+      workflows.get_workflows_stats: {}
+  - is_true: ""

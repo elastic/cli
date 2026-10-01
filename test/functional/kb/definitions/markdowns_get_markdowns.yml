@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana markdowns API: list markdown library items.
+---
+requires:
+  serverless: false
+  stack: false
+---
+"markdowns get markdowns":
+  - do:
+      markdowns.get_markdowns: {}
+  - is_true: ""

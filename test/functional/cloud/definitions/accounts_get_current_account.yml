@@ -1,0 +1,7 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Fetch current account information (GET /api/v1/account)
+---
+"accounts get-current-account":
+  - do:
+      accounts.get-current-account: {}

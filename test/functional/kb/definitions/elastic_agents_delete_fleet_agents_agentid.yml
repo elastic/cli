@@ -1,0 +1,20 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agents API: delete a Fleet agent (must be unenrolled first).
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agents.get_fleet_agents:
+        kuery: "status:unenrolled"
+        show_inactive: true
+  - set: {"items.0.id": agent_id}
+---
+"elastic-agents delete fleet agents agentid":
+  - do:
+      elastic-agents.delete_fleet_agents_agentid:
+        agent_id: $agent_id

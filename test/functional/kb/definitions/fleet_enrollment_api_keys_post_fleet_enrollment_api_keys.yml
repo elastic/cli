@@ -1,0 +1,36 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana fleet-enrollment-api-keys API: create an enrollment API key.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agent-policies.post_fleet_agent_policies:
+        body:
+          name: cli-ft-fleet-enroll-key-policy
+          namespace: testprefix
+  - set: {"item.id": policy_id}
+---
+teardown:
+  - do:
+      fleet-enrollment-api-keys.delete_fleet_enrollment_api_keys_keyid:
+        key_id: $key_id
+        ignore: [404]
+  - do:
+      elastic-agent-policies.post_fleet_agent_policies_delete:
+        body:
+          agentPolicyId: $policy_id
+        ignore: [404]
+---
+"fleet-enrollment-api-keys post fleet enrollment api keys":
+  - do:
+      fleet-enrollment-api-keys.post_fleet_enrollment_api_keys:
+        body:
+          policy_id: $policy_id
+  - set: {"item.id": key_id}
+  - is_true: item.id
+  - is_true: item.policy_id

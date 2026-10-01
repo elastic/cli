@@ -1,0 +1,18 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-osquery-api: export scheduled query results.
+# No real scheduled query execution exists in a test environment, so a fake
+# UUID is used for schedule_id and a 404 is expected.
+---
+requires:
+  serverless: false
+  stack: false
+---
+"security-osquery-api export scheduled query results":
+  - do:
+      catch: missing
+      security-osquery-api.osquery_export_scheduled_query_results:
+        schedule_id: "00000000-0000-0000-0000-000000000000"
+        execution_count: "0"
+        format: ndjson

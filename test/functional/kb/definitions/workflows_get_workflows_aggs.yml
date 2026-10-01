@@ -1,0 +1,33 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: get workflow aggregations.
+---
+requires:
+  serverless: true
+---
+setup:
+  - do:
+      workflows.post_workflows_workflow:
+        body:
+          id: cli-ft-workflow-get-aggs
+          yaml: |
+            version: '1'
+            name: CLI FT Workflow Get Aggs
+            triggers:
+              - type: manual
+            steps: []
+---
+teardown:
+  - do:
+      workflows.delete_workflows_workflow_id:
+        id: cli-ft-workflow-get-aggs
+        force: true
+        ignore: [404]
+---
+"workflows get workflows aggs":
+  - do:
+      workflows.get_workflows_aggs:
+        fields:
+          - managed
+  - is_true: managed

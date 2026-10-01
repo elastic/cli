@@ -1,0 +1,26 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana roles API: create a role then delete it by name.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      roles.delete_security_role_name:
+        name: cli-ft-role-delete
+        ignore: [404]
+---
+"roles delete security role name":
+  - do:
+      roles.put_security_role_name:
+        name: cli-ft-role-delete
+        body:
+          elasticsearch: {}
+  - is_true: ""
+
+  - do:
+      roles.delete_security_role_name:
+        name: cli-ft-role-delete

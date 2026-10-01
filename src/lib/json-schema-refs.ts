@@ -14,6 +14,46 @@
  * self-contained schema so they never need file-system/package awareness.
  */
 
+import { createRequire } from 'node:module'
+
+const schemaRequire = createRequire(import.meta.url)
+
+export type SchemaLoader = () => Promise<unknown>
+
+let schemaLoaders: Record<string, SchemaLoader> = {}
+
+/**
+ * Registers literal `import()` loaders so `bun build --compile` can embed
+ * `@elastic/schemas` files. Call this from the binary entry before loading
+ * the CLI. Node tests leave this empty and fall through to `createRequire`.
+ */
+export function setSchemaLoaders (loaders: Record<string, SchemaLoader>): void {
+  schemaLoaders = loaders
+}
+
+function unwrapSchemaModule <T> (subpath: string, mod: unknown): T {
+  if (subpath.endsWith('.json') && mod != null && typeof mod === 'object' && 'default' in mod) {
+    return (mod as { default: T }).default
+  }
+  return mod as T
+}
+
+/**
+ * Loads a CommonJS module or JSON file from `@elastic/schemas` by subpath.
+ *
+ * Compiled binaries use registered `import()` loaders (string literals the
+ * bundler can see). Node uses `require` via the package's `require` export
+ * condition.
+ */
+export async function requireSchemaModule <T = Record<string, unknown>> (subpath: string): Promise<T> {
+  if (!subpath.startsWith('@elastic/schemas/')) {
+    throw new Error(`refusing to load schema module ${subpath}`)
+  }
+  const load = schemaLoaders[subpath]
+  if (load != null) return unwrapSchemaModule<T>(subpath, await load())
+  return schemaRequire(subpath) as T
+}
+
 /** Fragment prefix of a same-document ref, i.e. one pointing into the schema's own `$defs`. */
 const SAME_DOC_PREFIX = '#/$defs/'
 
@@ -210,12 +250,9 @@ export async function resolveSidecarRefs (
 export function createDefinitionResolver <T extends { input?: Record<string, unknown> }> (
   jsonSubpath: string
 ): (def: T) => Promise<T> {
-  const loadSidecar = createSidecarResolver(async (filename) => {
-    // import.meta.resolve yields a file URL so dynamic import works under tsx and native Node alike.
-    const fileUrl = import.meta.resolve(`${jsonSubpath}/${filename}`)
-    const mod = await import(fileUrl, { with: { type: 'json' } }) as { default: Record<string, unknown> }
-    return mod.default
-  })
+  const loadSidecar = createSidecarResolver(async (filename) =>
+    requireSchemaModule<Record<string, unknown>>(`${jsonSubpath}/${filename}`)
+  )
 
   return async (def: T): Promise<T> => {
     if (def.input == null) return def

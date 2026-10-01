@@ -1,0 +1,25 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana tags API: delete a tag by ID.
+---
+requires:
+  serverless: false
+  stack: false
+---
+setup:
+  - do:
+      tags.post_tags:
+        body:
+          name: cli-ft-tags-delete
+          color: "#112233"
+  - set: {id: tag_id}
+---
+"tags delete tags id":
+  - do:
+      tags.delete_tags_id:
+        id: $tag_id
+  - do:
+      catch: missing
+      tags.delete_tags_id:
+        id: $tag_id

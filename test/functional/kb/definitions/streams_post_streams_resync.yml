@@ -1,0 +1,21 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana streams API: resync streams.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      streams.post_streams_enable: {}
+---
+teardown:
+  - do:
+      streams.post_streams_disable: {}
+---
+"streams post streams resync":
+  - do:
+      streams.post_streams_resync: {}
+  - is_true: acknowledged

@@ -1,0 +1,28 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-store API: create an entity then delete it by ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      security-entity-store.post_security_entity_store_entities_entitytype:
+        entity_type: host
+        body:
+          host:
+            name: cli-ft-entity-delete
+---
+teardown:
+  - do:
+      security-entity-store.delete_security_entity_store_entities:
+        entity_id: host:cli-ft-entity-delete
+        ignore: [404]
+---
+"security-entity-store delete security entity store entities":
+  - do:
+      security-entity-store.delete_security_entity_store_entities:
+        entity_id: host:cli-ft-entity-delete
+  - is_true: ""

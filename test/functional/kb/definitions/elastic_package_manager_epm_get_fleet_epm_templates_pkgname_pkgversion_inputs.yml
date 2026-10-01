@@ -1,0 +1,20 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-package-manager-epm API: get inputs template for a specific version of a package.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"elastic-package-manager-epm get fleet epm templates pkgname pkgversion inputs":
+  - do:
+      elastic-package-manager-epm.get_fleet_epm_packages_pkgname:
+        pkg_name: system
+  - set: {"item.version": pkg_version}
+
+  - do:
+      elastic-package-manager-epm.get_fleet_epm_templates_pkgname_pkgversion_inputs:
+        pkg_name: system
+        pkg_version: $pkg_version
+  - is_true: inputs

@@ -1,0 +1,36 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: cancel all active executions for a workflow.
+---
+requires:
+  serverless: true
+---
+setup:
+  - do:
+      workflows.post_workflows_workflow:
+        body:
+          id: cli-ft-workflow-cancel-all-executions
+          yaml: |
+            version: '1'
+            name: CLI FT Workflow Cancel All Executions
+            triggers:
+              - type: manual
+            steps: []
+  - do:
+      workflows.post_workflows_workflow_id_run:
+        id: cli-ft-workflow-cancel-all-executions
+        body:
+          inputs: {}
+---
+teardown:
+  - do:
+      workflows.delete_workflows_workflow_id:
+        id: cli-ft-workflow-cancel-all-executions
+        force: true
+        ignore: [404]
+---
+"workflows post workflows workflow workflowid executions cancel":
+  - do:
+      workflows.post_workflows_workflow_workflowid_executions_cancel:
+        workflow_id: cli-ft-workflow-cancel-all-executions

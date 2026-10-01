@@ -1,0 +1,34 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana workflows API: get workflows by IDs.
+---
+requires:
+  serverless: true
+---
+setup:
+  - do:
+      workflows.post_workflows_workflow:
+        body:
+          id: cli-ft-workflow-mget
+          yaml: |
+            version: '1'
+            name: CLI FT Workflow Mget
+            triggers:
+              - type: manual
+            steps: []
+---
+teardown:
+  - do:
+      workflows.delete_workflows_workflow_id:
+        id: cli-ft-workflow-mget
+        force: true
+        ignore: [404]
+---
+"workflows post workflows mget":
+  - do:
+      workflows.post_workflows_mget:
+        body:
+          ids:
+            - cli-ft-workflow-mget
+  - is_true: 0.id

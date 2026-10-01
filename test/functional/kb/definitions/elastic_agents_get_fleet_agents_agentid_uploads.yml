@@ -1,0 +1,19 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agents API: get upload files for a Fleet agent.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      elastic-agents.get_fleet_agents: {}
+  - set: {"items.0.id": agent_id}
+---
+"elastic-agents get fleet agents agentid uploads":
+  - do:
+      elastic-agents.get_fleet_agents_agentid_uploads:
+        agent_id: $agent_id
+  - is_true: items

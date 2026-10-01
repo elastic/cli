@@ -17,7 +17,8 @@ import {
   isCredentialCommand,
   readCredentialPolicyOptions,
 } from './credentials.ts'
-import type { JsonValue, ParsedResult } from '../factory.ts'
+import type { HandlerResult, ParsedResult } from '../factory.ts'
+import { YamlResponse } from '../lib/yaml-response.ts'
 
 /**
  * Maps project-type namespaces from codegen to short CLI group names.
@@ -25,7 +26,7 @@ import type { JsonValue, ParsedResult } from '../factory.ts'
  * `elastic cloud serverless projects search <action>`.
  * The elasticsearch type also gets an `elasticsearch` alias.
  */
-const PROJECT_NAMESPACES: Record<string, string> = {
+export const PROJECT_NAMESPACES: Record<string, string> = {
   'elasticsearch-projects': 'search',
   'observability-projects': 'observability',
   'security-projects': 'security',
@@ -45,7 +46,7 @@ import { PROMOTED_NAMESPACES } from './constants.ts'
  * Serverless namespaces whose commands are merged into a single `cross-project`
  * group rather than exposed as two separate namespaces.
  */
-const CROSS_PROJECT_NAMESPACES = new Set<string>([
+export const CROSS_PROJECT_NAMESPACES = new Set<string>([
   'linked-projects',
   'linked-candidate-projects',
 ])
@@ -53,7 +54,7 @@ const CROSS_PROJECT_NAMESPACES = new Set<string>([
 /**
  * Display name overrides for hosted namespaces.
  */
-const HOSTED_NAMESPACE_RENAMES = new Map<string, string>([
+export const HOSTED_NAMESPACE_RENAMES = new Map<string, string>([
   ['deployments-traffic-filter', 'traffic-filters'],
 ])
 
@@ -62,7 +63,7 @@ const HOSTED_NAMESPACE_RENAMES = new Map<string, string>([
  * from the serverless definitions so callers passing synthetic definitions to
  * `registerCloudCommands` still partition deterministically.
  */
-const SERVERLESS_NAMESPACES = new Set<string>([
+export const SERVERLESS_NAMESPACES = new Set<string>([
   'elasticsearch-projects',
   'observability-projects',
   'security-projects',
@@ -116,6 +117,7 @@ function buildFlatLeaf (def: CloudApiDefinition): OpaqueCommandHandle {
     input: schema,
     readOnly: def.method === 'GET',
     handler: createCloudHandler(def),
+    intent: { destructive: def.destructive },
   })
 }
 
@@ -156,7 +158,7 @@ function buildServerlessTypeGroup (
     const shortName = simplifyProjectCommandName(def.name, namespace)
     const schema = buildCloudJsonSchema(def)
     const baseHandler = createCloudHandler(def)
-    const handler: (parsed: ParsedResult) => Promise<JsonValue> = isCredentialCommand(def.name)
+    const handler: (parsed: ParsedResult) => Promise<HandlerResult> = isCredentialCommand(def.name)
       ? async (parsed) => wrapWithCredentialPolicy(def.name, baseHandler, parsed)
       : baseHandler
     const cmd = defineCommand({
@@ -165,6 +167,7 @@ function buildServerlessTypeGroup (
       input: schema,
       readOnly: def.method === 'GET',
       handler,
+      intent: { destructive: def.destructive },
     })
     if (isCreateProjectCommand(def.name)) {
       (cmd as Command).option('--wait', 'Wait for the project to reach "initialized" phase before returning')
@@ -278,10 +281,12 @@ function partitionDefinitions (definitions: CloudApiDefinition[]): PartitionedDe
  */
 async function wrapWithCredentialPolicy (
   cmdName: string,
-  baseHandler: (parsed: ParsedResult) => Promise<JsonValue>,
+  baseHandler: (parsed: ParsedResult) => Promise<HandlerResult>,
   parsed: ParsedResult,
-): Promise<JsonValue> {
+): Promise<HandlerResult> {
   const body = await baseHandler(parsed)
+  // Credential commands never return YAML; pass any YAML body straight through untouched.
+  if (body instanceof YamlResponse) return body
   // If the base handler itself returned an error envelope, don't touch it.
   if (body != null && typeof body === 'object' && !Array.isArray(body) && 'error' in body) return body
   const opts = readCredentialPolicyOptions(parsed.options)

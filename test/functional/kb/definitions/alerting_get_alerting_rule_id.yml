@@ -1,0 +1,42 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana alerting API: create a rule then retrieve it by ID.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      alerting.delete_alerting_rule_id:
+        id: cli-ft-rule-get
+        ignore: [404]
+---
+"alerting get rule by ID":
+  - do:
+      alerting.post_alerting_rule_id:
+        id: cli-ft-rule-get
+        body:
+          consumer: stackAlerts
+          name: CLI FT Rule Get
+          rule_type_id: ".es-query"
+          schedule: {interval: "1m"}
+          params:
+            searchType: esqlQuery
+            esqlQuery: {esql: "FROM * | LIMIT 1"}
+            timeWindowSize: 5
+            timeWindowUnit: m
+            threshold: [0]
+            thresholdComparator: ">"
+            size: 0
+            timeField: "@timestamp"
+  - match: {id: cli-ft-rule-get}
+
+  - do:
+      alerting.get_alerting_rule_id:
+        id: cli-ft-rule-get
+  - match: {id: cli-ft-rule-get}
+  - match: {name: CLI FT Rule Get}
+  - match: {rule_type_id: ".es-query"}
+  - is_true: enabled

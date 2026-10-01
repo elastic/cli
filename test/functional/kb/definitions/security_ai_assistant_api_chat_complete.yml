@@ -1,0 +1,41 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-ai-assistant-api: chat complete.
+# Creates a stub .gen-ai connector with fake credentials; the AI call is
+# expected to fail (upstream service unreachable), so catch: request verifies
+# the CLI routes the request correctly to the Kibana endpoint.
+---
+requires:
+  serverless: true
+  stack: true
+---
+setup:
+  - do:
+      connectors.post_actions_connector_id:
+        id: f1e2d3c4-b5a6-7890-cdef-012345678906
+        body:
+          connector_type_id: ".gen-ai"
+          name: CLI FT Security AI Chat Connector
+          config:
+            apiProvider: OpenAI
+            apiUrl: https://example.invalid/v1
+          secrets:
+            apiKey: test-key-not-real
+---
+teardown:
+  - do:
+      connectors.delete_actions_connector_id:
+        id: f1e2d3c4-b5a6-7890-cdef-012345678906
+        ignore: [404]
+---
+"security-ai-assistant-api chat complete":
+  - do:
+      catch: request
+      security-ai-assistant-api.chat_complete:
+        body:
+          connectorId: f1e2d3c4-b5a6-7890-cdef-012345678906
+          messages:
+            - role: user
+              content: Hello
+          persist: false

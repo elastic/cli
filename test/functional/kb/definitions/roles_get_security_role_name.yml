@@ -1,0 +1,28 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana roles API: get a single role by name.
+# Creates a role in the test body; teardown removes it.
+---
+requires:
+  serverless: true
+  stack: true
+---
+teardown:
+  - do:
+      roles.delete_security_role_name:
+        name: cli-ft-role-get
+        ignore: [404]
+---
+"roles get security role name":
+  - do:
+      roles.put_security_role_name:
+        name: cli-ft-role-get
+        body:
+          elasticsearch: {}
+  - is_true: ""
+
+  - do:
+      roles.get_security_role_name:
+        name: cli-ft-role-get
+  - is_true: "name"

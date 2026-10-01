@@ -170,6 +170,16 @@ describe('resolveContext', () => {
     assert.ok(!('contexts' in resolved), 'resolved output must not contain other contexts')
     assert.ok(!('current_context' in resolved), 'resolved output must not contain current_context')
   })
+
+  it('propagates root-level telemetry:false into the ResolvedConfig', () => {
+    const resolved = resolveContext({ ...VALID_CONFIG_OBJECT, telemetry: false }, 'local')
+    assert.equal(resolved.telemetry, false)
+  })
+
+  it('omits telemetry when absent (defaults to enabled downstream)', () => {
+    const resolved = resolveContext(VALID_CONFIG_OBJECT, 'local')
+    assert.ok(!('telemetry' in resolved))
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -306,6 +316,19 @@ describe('loadConfig -- --config-file override', () => {
   it('returns an error when the explicit path does not exist', async () => {
     const result = await loadConfig({ configPath: join(tmpDir, 'does-not-exist.yml') })
     assert.ok(!result.ok, 'loadConfig should fail for a nonexistent explicit config path')
+    if (result.ok) return
+    assert.equal(result.error.code, 'config_not_found')
+    assert.match(result.error.message, /elastic config context add/)
+  })
+
+  it('names the next command when current_context is empty', async () => {
+    const emptyPath = join(tmpDir, 'empty-context.yml')
+    await writeFile(emptyPath, 'current_context: ""\ncontexts: {}\n')
+    const result = await loadConfig({ configPath: emptyPath })
+    assert.ok(!result.ok)
+    if (result.ok) return
+    assert.equal(result.error.code, 'config_empty_context')
+    assert.match(result.error.message, /elastic config context add/)
   })
 })
 
@@ -652,7 +675,11 @@ contexts:
     const result = await loadConfig({ configPath })
     assert.ok(!result.ok, 'expected failure for unresolvable active context expression')
     if (result.ok) return
+    assert.equal(result.error.code, 'config_unresolved')
     assert.match(result.error.message, new RegExp(ACTIVE_VAR))
+    assert.match(result.error.message, /Failed to resolve config expressions/)
+    assert.doesNotMatch(result.error.message, /elastic config context add/)
+    assert.doesNotMatch(result.error.message, /ELASTIC_CLI_CONFIG_FILE/)
   })
 
   it('resolves expressions in the active context selected via --use-context', async () => {

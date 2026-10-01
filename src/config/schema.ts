@@ -175,6 +175,7 @@ const configFileSchema: Record<string, unknown> = {
     commands: commandPolicySchema,
     default_profile: { type: 'string', enum: [...BUILT_IN_PROFILES] },
     banner: { type: 'boolean' },
+    telemetry: { type: 'boolean' },
   },
   required: ['current_context', 'contexts'],
 }
@@ -191,6 +192,7 @@ const structuralConfigSchema: Record<string, unknown> = {
     commands: { type: 'object' },
     default_profile: {},
     banner: { type: 'boolean' },
+    telemetry: { type: 'boolean' },
   },
   required: ['current_context', 'contexts'],
 }
@@ -362,6 +364,7 @@ export const ConfigFileSchema = {
       contexts: {},
     }
     if (typeof raw['banner'] === 'boolean') cfg.banner = raw['banner']
+    if (typeof raw['telemetry'] === 'boolean') cfg.telemetry = raw['telemetry']
     if (typeof raw['default_profile'] === 'string' && (BUILT_IN_PROFILES as readonly string[]).includes(raw['default_profile'])) {
       cfg.default_profile = raw['default_profile'] as BuiltInProfile
     }
@@ -400,6 +403,7 @@ export const StructuralConfigSchema = {
     commands?: unknown
     default_profile?: unknown
     banner?: boolean
+    telemetry?: boolean
   }> {
     const r = validate(structuralConfigSchema, input)
     if (!r.ok) return { success: false, errors: r.errors }
@@ -412,6 +416,7 @@ export const StructuralConfigSchema = {
         ...(raw['commands'] != null && { commands: raw['commands'] }),
         ...(raw['default_profile'] !== undefined && { default_profile: raw['default_profile'] }),
         ...(raw['banner'] !== undefined && { banner: raw['banner'] as boolean }),
+        ...(raw['telemetry'] !== undefined && { telemetry: raw['telemetry'] as boolean }),
       },
     }
   },

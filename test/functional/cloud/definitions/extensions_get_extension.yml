@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get Extension (GET /api/v1/deployments/extensions/{extension_id})
+# Id for {extension_id} is derived from extensions.list-extensions.
+# TODO: verify the response path in the `set` step against a live API.
+---
+"extensions get-extension":
+  - do:
+      extensions.list-extensions: {}
+  - set: {extensions.0.id: extension_id}
+  - do:
+      extensions.get-extension:
+        extension_id: $extension_id

@@ -31,6 +31,16 @@ export const MULTIPART_ENDPOINTS = new Set([
   'security-entity-analytics-api upload-watchlist-csv',
   'security-exceptions-api import-exception-list',
   'security-lists-api import-list-items',
+  'streams post-streams-name-content-import',
+])
+
+/**
+ * OAS still documents these at `/internal`; Kibana 9.5+ registers `/api`.
+ * Keyed by `"<namespace> <name>"`. Delete an entry when `@elastic/schemas`
+ * publishes the public path.
+ */
+export const PATH_OVERRIDES = new Map([
+  ['slo get-definitions-op', '/s/{spaceId}/api/observability/slos/_definitions'],
 ])
 
 /**
@@ -53,7 +63,12 @@ export function buildKibanaRequestParams (
   const props = ((def.input?.['properties'] ?? {}) as Record<string, Record<string, unknown>>)
 
   const required = new Set(Array.isArray(def.input?.['required']) ? def.input!['required'] as string[] : [])
-  const path = interpolatePath(def.path, props, required, input)
+  const path = interpolatePath(
+    PATH_OVERRIDES.get(`${def.namespace} ${def.name}`) ?? def.path,
+    props,
+    required,
+    input
+  )
   const querystring = buildQuerystring(props, input)
 
   const params: KibanaRequestParams = { method: def.method, path }
@@ -66,12 +81,22 @@ export function buildKibanaRequestParams (
   // because these endpoints require siblings alongside the file (e.g. saved-objects
   // resolve-import-errors needs `retries`).
   const fields = isPlainObject(body) ? body : undefined
-  if (fields != null && MULTIPART_ENDPOINTS.has(`${def.namespace} ${def.name}`)) {
+  const isMultipart = MULTIPART_ENDPOINTS.has(`${def.namespace} ${def.name}`)
+  if (fields != null && isMultipart) {
     params.multipartFields = Object.fromEntries(
       Object.entries(fields).map(([key, value]) => [key, typeof value === 'string' ? value : String(value)])
     )
   } else if (body !== undefined) {
     params.body = body
+  } else if (
+    // POST/PUT/PATCH/DELETE with schema-defined body properties must send at minimum `{}`.
+    // Kibana treats a missing body as `null` for these endpoints and rejects with
+    // "expected a plain object value, but found [null]". GET/HEAD never carry a body.
+    def.method !== 'GET' && def.method !== 'HEAD' &&
+    !isMultipart &&
+    Object.values(props).some((p) => p['x-found-in'] === 'body' || p['x-found-in'] === undefined)
+  ) {
+    params.body = {}
   }
 
   return params
@@ -111,7 +136,7 @@ function buildQuerystring (
   for (const [key, prop] of Object.entries(props)) {
     if (prop['x-found-in'] !== 'query') continue
     const value = input[key]
-    if (value !== undefined) qs[key] = String(value)
+    if (value !== undefined) qs[key] = Array.isArray(value) ? JSON.stringify(value) : String(value)
   }
   return qs
 }

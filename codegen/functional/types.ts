@@ -28,10 +28,34 @@ export interface TestFile {
   tests: TestSection[]
 }
 
+export type ServerlessProject = 'security' | 'observability' | 'elasticsearch'
+
 export interface Requires {
   serverless: boolean
   /** true = runs on stack, false = explicitly excluded from stack, null = not specified */
   stack: boolean | null
+  /** Serverless project types this definition may run against. Absent means any. */
+  serverlessProject?: ServerlessProject[]
+}
+
+/**
+ * Minimal structural view of a client API definition needed by the codegen
+ * mapper/generator. Both `EsApiDefinition` and `KbApiDefinition` satisfy it,
+ * so the same rendering pipeline can target either client.
+ */
+export interface ApiActionDef {
+  name: string
+  namespace?: string
+  method: string
+  input?: Record<string, unknown>
+  intent?: { destructive?: boolean, requiresConfirmation?: boolean }
+  /**
+   * Explicit CLI arg path (after the leading client args) for clients whose
+   * command tree is restructured away from a flat `namespace name` layout
+   * (e.g. Cloud). When set, the mapper emits these tokens instead of
+   * `namespace` + `name`.
+   */
+  cliPath?: string[]
 }
 
 /** A named test section (e.g. "get", "Basic bulk operation"). */
@@ -57,6 +81,8 @@ export type Step =
   | LteStep
   | ContainsStep
   | SkipStep
+  | WriteNdjsonTempStep
+  | WriteTempStep
 
 export interface DoStep {
   kind: 'do'
@@ -135,4 +161,29 @@ export interface ContainsStep {
 /** No-op — the skip action is parsed but does not produce output. */
 export interface SkipStep {
   kind: 'skip'
+}
+
+/**
+ * Writes the current `$RESPONSE` (an NDJSON export decoded to a JSON array by
+ * the Kibana client) back to a temp NDJSON file and binds its path to a
+ * variable, so a later import step can pass it via `--file`.
+ */
+export interface WriteNdjsonTempStep {
+  kind: 'write_ndjson_temp'
+  /** Variable name to bind the temp file path to (e.g. "export_file"). */
+  varName: string
+}
+
+/**
+ * Writes declared fixture content to a temp file and binds its path to a
+ * variable, so a later multipart upload can pass it via `--file`.
+ */
+export interface WriteTempStep {
+  kind: 'write_temp'
+  /** Variable name to bind the temp file path to (e.g. "items_file"). */
+  varName: string
+  /** Fixture bytes written to the temp file. */
+  content: string
+  /** Optional filename suffix including the dot (e.g. ".csv"). */
+  suffix?: string
 }

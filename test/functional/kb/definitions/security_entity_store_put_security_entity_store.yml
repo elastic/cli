@@ -1,0 +1,16 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana security-entity-store: put security entity store.
+# Verifies that put-security-entity-store updates the Entity Store without error.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"security-entity-store put security entity store":
+  - do:
+      security-entity-store.put_security_entity_store:
+        body:
+          logExtraction: {}
+  - is_true: ""

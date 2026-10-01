@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-agents API: get Fleet agent setup info.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"elastic-agents get fleet agents setup":
+  - do:
+      elastic-agents.get_fleet_agents_setup: {}
+  - is_true: isReady

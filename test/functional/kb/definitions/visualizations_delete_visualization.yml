@@ -1,0 +1,29 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana visualizations API: delete a visualization by id.
+---
+requires:
+  serverless: false
+  stack: false
+---
+setup:
+  - do:
+      visualizations.upsert_visualization:
+        id: cli-ft-visualization-delete
+---
+teardown:
+  - do:
+      visualizations.delete_visualization:
+        id: cli-ft-visualization-delete
+        ignore: [404]
+---
+"visualizations delete visualization":
+  - do:
+      visualizations.delete_visualization:
+        id: cli-ft-visualization-delete
+
+  - do:
+      catch: missing
+      visualizations.get_visualization:
+        id: cli-ft-visualization-delete

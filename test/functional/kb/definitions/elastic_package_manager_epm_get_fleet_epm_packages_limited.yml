@@ -1,0 +1,13 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kibana elastic-package-manager-epm API: get a limited package list.
+---
+requires:
+  serverless: true
+  stack: true
+---
+"elastic-package-manager-epm get fleet epm packages limited":
+  - do:
+      elastic-package-manager-epm.get_fleet_epm_packages_limited: {}
+  - is_true: items

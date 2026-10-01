@@ -1,7 +1,7 @@
 # Functional test pipeline for the Elastic CLI.
 #
 # Runs ES functional tests (Docker Elasticsearch + codegen'd bash scripts)
-# and Cloud smoke tests (against the QA Cloud API).
+# and Cloud functional tests (against the QA Cloud API).
 #
 # Vault paths must be registered before Cloud tests work:
 #   secret/ci/elastic-cli/cloud-access
@@ -13,7 +13,12 @@ env:
   NODE_VERSION: "22"
 
 steps:
+  - label: "Skill memory PR"
+    if: build.branch == "ai/review-memory"
+    command: echo "skip functional tests on ai/review-memory"
+
   - group: "ES Functional Tests"
+    if: build.branch != "ai/review-memory"
     steps:
       - label: ":elasticsearch: ES functional tests — Node {{matrix.node}}"
         key: "es-functional"
@@ -27,10 +32,11 @@ steps:
           image: family/core-ubuntu-2204
         env:
           NODE_VERSION: "{{matrix.node}}"
-          STACK_VERSION: "9.3.0"
+          STACK_VERSION: "9.5.3"
         command: ".buildkite/run-es-tests.sh"
 
   - group: "KB Functional Tests"
+    if: build.branch != "ai/review-memory"
     steps:
       - label: ":kibana: KB functional tests — Node {{matrix.node}}"
         key: "kb-functional"
@@ -43,15 +49,17 @@ steps:
           provider: gcp
           image: family/kibana-ubuntu-2404
           machineType: n2-standard-4
+          diskSizeGb: 130
         env:
           NODE_VERSION: "{{matrix.node}}"
-          STACK_VERSION: "9.3.0"
+          STACK_VERSION: "9.5.3"
         command: ".buildkite/run-kb-tests.sh"
 
-  - group: "Cloud Smoke Tests"
+  - group: "Cloud Functional Tests"
+    if: build.branch != "ai/review-memory"
     steps:
-      - label: ":cloud: Cloud smoke tests — Node {{matrix.node}}"
-        key: "cloud-smoke"
+      - label: ":cloud: Cloud functional tests — Node {{matrix.node}}"
+        key: "cloud-functional"
         matrix:
           setup:
             node:
@@ -65,4 +73,16 @@ steps:
         command: ".buildkite/run-cloud-tests.sh"
         artifact_paths:
           - "test/functional/cloud/*.log"
-        soft_fail: true
+
+  - wait: ~
+    continue_on_failure: true
+    if: build.branch != "ai/review-memory"
+
+  - label: "First failure summary"
+    key: first-failure
+    soft_fail: true
+    if: build.branch != "ai/review-memory"
+    agents:
+      provider: gcp
+      image: family/core-ubuntu-2204
+    command: ".buildkite/print-first-failure.sh"
