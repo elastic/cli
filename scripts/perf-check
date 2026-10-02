@@ -108,7 +108,8 @@ try {
   // `named` maps hyperfine -n labels in order to the command token arrays.
   function hyperfine (named) {
     const jsonOut = join(tmpDir, `result-${Math.random().toString(36).slice(2)}.json`)
-    const args = ["-N", "--warmup", String(WARMUP), "--min-runs", String(MIN_RUNS), "--export-json", jsonOut]
+    // --shell=none (not the -N alias, which needs hyperfine >=1.19; apt on ubuntu-24.04 ships 1.18).
+    const args = ["--shell=none", "--warmup", String(WARMUP), "--min-runs", String(MIN_RUNS), "--export-json", jsonOut]
     for (const [name, tokens] of named) args.push("-n", name, tokens.join(" "))
     execFileSync("hyperfine", args, { stdio: "inherit", env })
     return JSON.parse(readFileSync(jsonOut, "utf8")).results
