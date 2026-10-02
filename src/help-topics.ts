@@ -4,7 +4,6 @@
  */
 
 import type { Command } from 'commander'
-import { formatExitCodesHelp } from './exit-codes.js'
 
 export const HELP_TOPIC_NAMES = Object.freeze(['formatting', 'environment', 'exit-codes'] as const)
 export type HelpTopicName = typeof HELP_TOPIC_NAMES[number]
@@ -14,6 +13,9 @@ export function isHelpTopicName (name: string): name is HelpTopicName {
 }
 
 function buildHelpTopics (): Record<HelpTopicName, string> {
+  // Imported lazily so the exit-codes module is not evaluated at CLI startup
+  // for commands that never need help text (e.g. `elastic kb`).
+  const { formatExitCodesHelp } = require('./exit-codes.js') as typeof import('./exit-codes.js')
   return {
     formatting: [
       'OUTPUT FORMATTING',
@@ -88,7 +90,14 @@ export function getLearnMore (): string {
   ].join('\n')
 }
 
-export const LEARN_MORE: string = getLearnMore()
+// Lazy: only computed when first accessed so module load stays cheap.
+let _learnMore: string | undefined
+export const LEARN_MORE: string = new Proxy({} as unknown as string, {
+  get (_target, prop) {
+    if (!_learnMore) _learnMore = getLearnMore()
+    return (_learnMore as unknown as Record<string | symbol, unknown>)[prop]
+  },
+}) as unknown as string
 
 export function formatHelpTopicIndex (): string {
   return [
