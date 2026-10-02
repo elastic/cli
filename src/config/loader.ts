@@ -25,16 +25,19 @@
  * - Structured error payloads (code + message)
  */
 
-import { access, constants, readFile, stat } from 'node:fs/promises'
-import { homedir } from 'node:os'
-import { extname, join } from 'node:path'
+import { readFile, stat } from 'node:fs/promises'
+import { extname } from 'node:path'
 import { parse as parseYaml } from 'yaml'
 import { ContextSchema, CommandPolicySchema, StructuralConfigSchema } from './schema.ts'
 import { resolveExpressions } from '@elastic/config-resolver'
+import { ENV_CONFIG_FILE, discoverConfigFile } from './discover.ts'
 import { hasInlineSecrets, type RawConfig } from './writer.ts'
 import type { ConfigFile, ResolvedConfig, ResolvedContext } from './types.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './profiles.ts'
 import { withSetupHint } from './next-command.ts'
+
+// Re-exported so existing callers (completion, tests) keep importing it from here.
+export { discoverConfigFile } from './discover.ts'
 
 function formatAjvErrors (errors: Array<{ path: string; message: string }> | undefined): string {
   if (!errors || errors.length === 0) return 'Invalid configuration'
@@ -44,37 +47,11 @@ function formatAjvErrors (errors: Array<{ path: string; message: string }> | und
 /** Extensions that are rejected to prevent arbitrary code execution. */
 const EXECUTABLE_EXTENSIONS = new Set(['.js', '.ts', '.mjs', '.cjs'])
 
-/** File names checked during home-directory discovery, in priority order. */
-const CONFIG_FILE_NAMES = ['.elasticrc', '.elasticrc.json', '.elasticrc.yaml', '.elasticrc.yml']
-
-/** Environment variable that overrides config file discovery with an explicit path. */
-const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
-
 let looseInlineSecretWarningEmitted = false
 
 /** @internal test seam */
 export function _testResetLooseInlineSecretWarning (): void {
   looseInlineSecretWarningEmitted = false
-}
-
-/**
- * Searches a single directory for the first readable config file.
- *
- * Checks each file name in {@link CONFIG_FILE_NAMES} order. Returns the
- * absolute path of the first readable match, or `null` if none is found.
- *
- * @param dir - Directory to search. Defaults to the user's home directory.
- */
-export async function discoverConfigFile (dir?: string): Promise<string | null> {
-  const searchDir = dir ?? homedir()
-  for (const name of CONFIG_FILE_NAMES) {
-    const candidate = join(searchDir, name)
-    try {
-      await access(candidate, constants.R_OK)
-      return candidate
-    } catch { continue }
-  }
-  return null
 }
 
 /**

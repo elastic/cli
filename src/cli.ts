@@ -158,20 +158,27 @@ if (firstArg != null && !SKIP_EARLY_CONFIG.has(firstArg)) {
   const earlyConfigPath = sniffArg('--config-file')
   const hasOverrides = earlyConfigPath != null || earlyContext != null || earlyProfile != null
 
-  const { loadConfig } = await import('./config/loader.js')
-  earlyConfig = await loadConfig({
-    ...(earlyConfigPath != null && { configPath: earlyConfigPath }),
-    ...(earlyContext != null && { contextName: earlyContext }),
-    ...(earlyProfile != null && { profileName: earlyProfile }),
-    refresh: hasOverrides,
-    // Registration/help only needs version hints + command policy. Skip resolving
-    // the active context so `--help` never spawns `$(cmd:...)` secret subprocesses;
-    // the preAction hook does the full resolve before any handler runs. See #706.
-    skipContextResolve: true,
-  })
-  if (earlyConfig.ok) {
-    const { setResolvedConfig } = await import('./config/store.js')
-    setResolvedConfig(earlyConfig.value)
+  // Cheap gate: with no overrides and no config file on disk there is no version
+  // hint and no command policy, so registration/help needs nothing from config.
+  // Skip the heavy `config/loader` import (ajv + yaml + resolver) in that case so
+  // `--help` and bare-namespace startup stay off the config stack. See #706.
+  const { hasConfigSource } = await import('./config/discover.js')
+  if (hasOverrides || await hasConfigSource()) {
+    const { loadConfig } = await import('./config/loader.js')
+    earlyConfig = await loadConfig({
+      ...(earlyConfigPath != null && { configPath: earlyConfigPath }),
+      ...(earlyContext != null && { contextName: earlyContext }),
+      ...(earlyProfile != null && { profileName: earlyProfile }),
+      refresh: hasOverrides,
+      // Registration/help only needs version hints + command policy. Skip resolving
+      // the active context so `--help` never spawns `$(cmd:...)` secret subprocesses;
+      // the preAction hook does the full resolve before any handler runs. See #706.
+      skipContextResolve: true,
+    })
+    if (earlyConfig.ok) {
+      const { setResolvedConfig } = await import('./config/store.js')
+      setResolvedConfig(earlyConfig.value)
+    }
   }
 }
 
