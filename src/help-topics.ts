@@ -13,44 +13,67 @@ export function isHelpTopicName (name: string): name is HelpTopicName {
   return (HELP_TOPIC_NAMES as readonly string[]).includes(name)
 }
 
-export const HELP_TOPICS: Record<HelpTopicName, string> = {
-  formatting: [
-    'OUTPUT FORMATTING',
-    '',
-    'By default the CLI prints human-readable tables. Pass one of the flags below to',
-    'change the output format for any command that returns structured data.',
-    '',
-    '  --json                    Print raw JSON output.',
-    '  --output-fields <fields>  Comma-separated list of fields to include in output.',
-    '  --output-template <tmpl>  Handlebars template string for each result row.',
-    '',
-    'You can also inspect the JSON schema for any command:',
-    '',
-    '  elastic <command> --help --json',
-    '',
-    'Result shape (table columns, JSON keys) is driven by the command schema.',
-  ].join('\n'),
+function buildHelpTopics (): Record<HelpTopicName, string> {
+  return {
+    formatting: [
+      'OUTPUT FORMATTING',
+      '',
+      'By default the CLI prints human-readable tables. Pass one of the flags below to',
+      'change the output format for any command that returns structured data.',
+      '',
+      '  --json                    Print raw JSON output.',
+      '  --output-fields <fields>  Comma-separated list of fields to include in output.',
+      '  --output-template <tmpl>  Handlebars template string for each result row.',
+      '',
+      'You can also inspect the JSON schema for any command:',
+      '',
+      '  elastic <command> --help --json',
+      '',
+      'Result shape (table columns, JSON keys) is driven by the command schema.',
+    ].join('\n'),
 
-  environment: [
-    'ENVIRONMENT VARIABLES',
-    '',
-    '  ELASTIC_CLI_CONFIG_FILE   Path to an alternate config file.',
-    '                            Default: ~/.elasticrc.yml',
-    '',
-    '  ELASTIC_CLI_TELEMETRY     Set to "false" to opt out of telemetry.',
-    '',
-    '  ELASTIC_NO_BANNER         Set to "1" to suppress the startup banner.',
-    '',
-    '  NO_COLOR                  Disable ANSI color output (honoured automatically).',
-    '',
-    'CONFIG FILE',
-    '',
-    '  ~/.elasticrc.yml stores default profile settings and credentials.',
-    '  Credentials are stored in the system keychain when available.',
-  ].join('\n'),
+    environment: [
+      'ENVIRONMENT VARIABLES',
+      '',
+      '  ELASTIC_CLI_CONFIG_FILE   Path to an alternate config file.',
+      '                            Default: ~/.elasticrc.yml',
+      '',
+      '  ELASTIC_CLI_TELEMETRY     Set to "false" to opt out of telemetry.',
+      '',
+      '  ELASTIC_NO_BANNER         Set to "1" to suppress the startup banner.',
+      '',
+      '  NO_COLOR                  Disable ANSI color output (honoured automatically).',
+      '',
+      'CONFIG FILE',
+      '',
+      '  ~/.elasticrc.yml stores default profile settings and credentials.',
+      '  Credentials are stored in the system keychain when available.',
+    ].join('\n'),
 
-  'exit-codes': formatExitCodesHelp(),
+    'exit-codes': formatExitCodesHelp(),
+  }
 }
+
+let _helpTopics: Record<HelpTopicName, string> | undefined
+
+export const HELP_TOPICS: Record<HelpTopicName, string> = new Proxy({} as Record<HelpTopicName, string>, {
+  get (_target, prop: string) {
+    if (!_helpTopics) _helpTopics = buildHelpTopics()
+    return _helpTopics[prop as HelpTopicName]
+  },
+  ownKeys () {
+    if (!_helpTopics) _helpTopics = buildHelpTopics()
+    return Reflect.ownKeys(_helpTopics)
+  },
+  getOwnPropertyDescriptor (_target, prop: string) {
+    if (!_helpTopics) _helpTopics = buildHelpTopics()
+    return Object.getOwnPropertyDescriptor(_helpTopics, prop)
+  },
+  has (_target, prop: string) {
+    if (!_helpTopics) _helpTopics = buildHelpTopics()
+    return prop in _helpTopics
+  },
+})
 
 export function getLearnMore (): string {
   return [
@@ -65,7 +88,17 @@ export function getLearnMore (): string {
   ].join('\n')
 }
 
-export const LEARN_MORE: string = getLearnMore()
+let _learnMore: string | undefined
+
+export const LEARN_MORE: string = new Proxy(Object.create(null) as { valueOf(): string; toString(): string }, {
+  get (_target, prop) {
+    if (!_learnMore) _learnMore = getLearnMore()
+    if (prop === Symbol.toPrimitive || prop === 'valueOf' || prop === 'toString') {
+      return () => _learnMore
+    }
+    return (_learnMore as unknown as Record<string | symbol, unknown>)[prop]
+  },
+}) as unknown as string
 
 export function formatHelpTopicIndex (): string {
   return [
