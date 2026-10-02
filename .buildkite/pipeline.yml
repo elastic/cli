@@ -20,56 +20,49 @@ steps:
   - group: "ES Functional Tests"
     if: build.branch != "ai/review-memory"
     steps:
-      - label: ":elasticsearch: ES functional tests — Node {{matrix.node}}"
+      - label: ":elasticsearch: ES functional tests — ES {{matrix.stack_version}}"
         key: "es-functional"
         matrix:
           setup:
-            node:
-              - "22"
-              - "24"
+            stack_version:
+              - "9.5.3"
         agents:
           provider: gcp
           image: family/core-ubuntu-2204
         env:
-          NODE_VERSION: "{{matrix.node}}"
-          STACK_VERSION: "9.5.3"
+          NODE_VERSION: 26
+          STACK_VERSION: "{{ matrix.stack_version }}"
         command: ".buildkite/run-es-tests.sh"
 
   - group: "KB Functional Tests"
     if: build.branch != "ai/review-memory"
     steps:
-      - label: ":kibana: KB functional tests — Node {{matrix.node}}"
+      - label: ":kibana: KB functional tests — Kibana {{matrix.stack_version}}"
         key: "kb-functional"
         matrix:
           setup:
-            node:
-              - "22"
-              - "24"
+            stack_version:
+              - "9.5.3"
         agents:
           provider: gcp
           image: family/kibana-ubuntu-2404
           machineType: n2-standard-4
           diskSizeGb: 130
         env:
-          NODE_VERSION: "{{matrix.node}}"
-          STACK_VERSION: "9.5.3"
+          NODE_VERSION: 26
+          STACK_VERSION: "{{matrix.stack_version}}"
         command: ".buildkite/run-kb-tests.sh"
 
   - group: "Cloud Functional Tests"
     if: build.branch != "ai/review-memory"
     steps:
-      - label: ":cloud: Cloud functional tests — Node {{matrix.node}}"
+      - label: ":cloud: Cloud functional tests"
         key: "cloud-functional"
-        matrix:
-          setup:
-            node:
-              - "22"
-              - "24"
         agents:
           provider: gcp
           image: family/core-ubuntu-2204
         env:
-          NODE_VERSION: "{{matrix.node}}"
+          NODE_VERSION: 26
         command: ".buildkite/run-cloud-tests.sh"
         artifact_paths:
           - "test/functional/cloud/*.log"
