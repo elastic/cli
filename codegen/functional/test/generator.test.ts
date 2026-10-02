@@ -536,9 +536,19 @@ describe('generateRunner', () => {
     assert.ok(runner.includes('exit 1'))
   })
 
-  it('bare string paths always run (guard true true)', () => {
+  it('bare string paths always run (guard false false)', () => {
     const runner = generateRunner(['plain.sh'])
-    assert.ok(runner.includes('if should_run false false; then'))
+    assert.ok(runner.includes('"false false plain.sh"'))
+  })
+
+  it('runs tests concurrently with a configurable, default-4 limit', () => {
+    const runner = generateRunner(['get.sh'])
+    assert.ok(runner.includes('CONCURRENCY="${ELASTIC_FT_CONCURRENCY:-4}"'))
+  })
+
+  it('forces sequential execution under --bail', () => {
+    const runner = generateRunner(['get.sh'])
+    assert.ok(runner.includes('CONCURRENCY=1'))
   })
 })
 
