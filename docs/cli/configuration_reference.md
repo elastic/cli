@@ -42,7 +42,7 @@ The endpoint URL and authentication credentials for a single service.
 | - | - | - | - | - |
 | `url` | string | yes | - | Service endpoint URL. Must be a valid URL using the `http://` or `https://` scheme. |
 | `auth` | object | no | - | Authentication credentials for the service. {{es}} and {{kib}} support [API key](#auth-api-key) or [basic authentication](#auth-basic); {{ecloud}} requires an [API key](#auth-api-key). |
-| `version` | string | no | - | Target version hint for availability filtering. Accepts a semver string (e.g. `9.2` or `9.2.3`) or the literal `serverless`. When absent, no filtering is applied. |
+| `version` | string | no | - | Target version hint for availability filtering. Accepts a version string (examples: `9.2`, `9.2.3`) or the literal `serverless`. When absent, no filtering is applied. |
 
 ##### Auth: API key [auth-api-key]
 
