@@ -222,7 +222,7 @@ describe('elastic CLI -- config caching (preAction reuse)', () => {
     }
   })
 
-  it('loads config twice when --config-file override is specified', async () => {
+  it('resolves config once even when --config-file override is specified', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-cache-override-'))
     const counterFile = join(dir, 'load-count.txt')
     const scriptFile = join(dir, 'counter.js')
@@ -245,7 +245,52 @@ describe('elastic CLI -- config caching (preAction reuse)', () => {
       await runCli(['stack', 'es', 'info', '--json', '--config-file', configPath], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } })
       const content = await readFile(counterFile, 'utf-8')
       const invocations = content.trim().split('\n').length
-      assert.equal(invocations, 2, `expected resolver to run twice (early + override), but ran ${invocations} times`)
+      // The early registration load skips context expression resolution (#706),
+      // so it never spawns the resolver; only the preAction hook resolves secrets.
+      assert.equal(invocations, 1, `expected resolver to run once, but ran ${invocations} times`)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+})
+
+describe('elastic CLI -- availability filtering honors --use-context', () => {
+  // The `es get` flag --source-exclude-vectors is stack-gated since 9.2.0, so a 9.1
+  // context must filter it out. The early config load (which resolves the availability
+  // target before command registration) must therefore honor --use-context.
+  async function writeConfig (): Promise<string> {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-avail-'))
+    const { writeFile } = await import('node:fs/promises')
+    const configYaml = [
+      'current_context: unset',
+      'contexts:',
+      '  unset:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '  stack91:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '      version: "9.1"',
+    ].join('\n')
+    await writeFile(join(dir, '.elasticrc.yml'), configYaml)
+    return dir
+  }
+
+  it('shows the stack-9.2 flag when the active context has no version', async () => {
+    const dir = await writeConfig()
+    try {
+      const { stdout } = await runCli(['es', 'get', '--help'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } })
+      assert.ok(stdout.includes('--source-exclude-vectors'), 'expected flag visible with no version target')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('hides the stack-9.2 flag when --use-context selects a 9.1 context', async () => {
+    const dir = await writeConfig()
+    try {
+      const { stdout } = await runCli(['--use-context', 'stack91', 'es', 'get', '--help'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } })
+      assert.ok(!stdout.includes('--source-exclude-vectors'), 'expected flag filtered for 9.1 context target')
     } finally {
       await rm(dir, { recursive: true })
     }

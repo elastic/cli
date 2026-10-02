@@ -10,6 +10,9 @@
  * as produced by @elastic/schemas (properties carry `x-found-in` routing).
  */
 
+import type { AvailabilityTarget } from './availability.ts'
+import { filterSchemaByAvailability } from './availability.ts'
+
 /**
  * Represents a single CLI argument derived from a top-level key in a command's input schema.
  */
@@ -180,9 +183,9 @@ function resolveType (
  *
  * Returns an empty array if `schema` is not a valid JSON Schema object.
  */
-export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
+export function extractSchemaArgs (schema: unknown, target?: AvailabilityTarget): SchemaArgDefinition[] {
   if (schema == null || typeof schema !== 'object') return []
-  const s = schema as Record<string, unknown>
+  const s = target != null ? filterSchemaByAvailability(schema as Record<string, unknown>, target) : schema as Record<string, unknown>
   const properties = s['properties'] as Record<string, JsonSchemaProp> | undefined
   if (properties == null) return []
   const defs = (s['$defs'] ?? {}) as Record<string, JsonSchemaProp>

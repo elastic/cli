@@ -25,16 +25,19 @@
  * - Structured error payloads (code + message)
  */
 
-import { access, constants, readFile, stat } from 'node:fs/promises'
-import { homedir } from 'node:os'
-import { extname, join } from 'node:path'
+import { readFile, stat } from 'node:fs/promises'
+import { extname } from 'node:path'
 import { parse as parseYaml } from 'yaml'
 import { ContextSchema, CommandPolicySchema, StructuralConfigSchema } from './schema.ts'
 import { resolveExpressions } from '@elastic/config-resolver'
+import { ENV_CONFIG_FILE, discoverConfigFile } from './discover.ts'
 import { hasInlineSecrets, type RawConfig } from './writer.ts'
 import type { ConfigFile, ResolvedConfig, ResolvedContext } from './types.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './profiles.ts'
 import { withSetupHint } from './next-command.ts'
+
+// Re-exported so existing callers (completion, tests) keep importing it from here.
+export { discoverConfigFile } from './discover.ts'
 
 function formatAjvErrors (errors: Array<{ path: string; message: string }> | undefined): string {
   if (!errors || errors.length === 0) return 'Invalid configuration'
@@ -44,37 +47,11 @@ function formatAjvErrors (errors: Array<{ path: string; message: string }> | und
 /** Extensions that are rejected to prevent arbitrary code execution. */
 const EXECUTABLE_EXTENSIONS = new Set(['.js', '.ts', '.mjs', '.cjs'])
 
-/** File names checked during home-directory discovery, in priority order. */
-const CONFIG_FILE_NAMES = ['.elasticrc', '.elasticrc.json', '.elasticrc.yaml', '.elasticrc.yml']
-
-/** Environment variable that overrides config file discovery with an explicit path. */
-const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
-
 let looseInlineSecretWarningEmitted = false
 
 /** @internal test seam */
 export function _testResetLooseInlineSecretWarning (): void {
   looseInlineSecretWarningEmitted = false
-}
-
-/**
- * Searches a single directory for the first readable config file.
- *
- * Checks each file name in {@link CONFIG_FILE_NAMES} order. Returns the
- * absolute path of the first readable match, or `null` if none is found.
- *
- * @param dir - Directory to search. Defaults to the user's home directory.
- */
-export async function discoverConfigFile (dir?: string): Promise<string | null> {
-  const searchDir = dir ?? homedir()
-  for (const name of CONFIG_FILE_NAMES) {
-    const candidate = join(searchDir, name)
-    try {
-      await access(candidate, constants.R_OK)
-      return candidate
-    } catch { continue }
-  }
-  return null
 }
 
 /**
@@ -239,6 +216,13 @@ export interface LoadConfigOptions {
    * the new result for subsequent calls). Defaults to `false`.
    */
   refresh?: boolean
+  /**
+   * When `true`, skip resolving the active context's expressions and skip the
+   * result cache. Used by command registration / help, which need only version
+   * hints and the command policy -- never resolved credentials. Avoids spawning
+   * subprocesses for `$(cmd:...)` secrets on every `--help` invocation (#706).
+   */
+  skipContextResolve?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -283,9 +267,9 @@ export type LoadConfigResult = LoadConfigOk | LoadConfigErr
  * @returns A `LoadConfigResult` discriminated union.
  */
 export async function loadConfig (options: LoadConfigOptions = {}): Promise<LoadConfigResult> {
-  const { configPath, contextName, profileName, refresh = false } = options
+  const { configPath, contextName, profileName, refresh = false, skipContextResolve = false } = options
 
-  if (!refresh && _cachedConfig !== undefined) return _cachedConfig
+  if (!refresh && !skipContextResolve && _cachedConfig !== undefined) return _cachedConfig
 
   // Validate profileName early (before any I/O) so the error is immediate and clear
   if (profileName != null && !(BUILT_IN_PROFILES as readonly string[]).includes(profileName)) {
@@ -380,7 +364,12 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
   let resolvedRawCommands: unknown
   try {
     [resolvedRawContext, resolvedRawCommands] = await Promise.all([
-      resolveExpressions(contexts[resolvedContextName], `contexts.${resolvedContextName}`),
+      // Registration/help loads only need version hints + command policy, so they
+      // skip resolving the active context -- its `$(cmd:...)` secrets would spawn
+      // subprocesses that are useless for building help output. See #706.
+      skipContextResolve
+        ? contexts[resolvedContextName]
+        : resolveExpressions(contexts[resolvedContextName], `contexts.${resolvedContextName}`),
       rawCommands != null ? resolveExpressions(rawCommands, 'commands') : undefined,
     ])
   } catch (err) {
@@ -391,12 +380,19 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     }
   }
 
-  // Step 5: validate active context and commands with full schemas
-  const contextParsed = ContextSchema.safeParse(resolvedRawContext)
-  if (!contextParsed.success) {
-    return { ok: false, error: { message: formatAjvErrors(contextParsed.errors) } }
+  // Step 5: validate active context and commands with full schemas. In
+  // skipContextResolve mode the context still holds unresolved expressions, so
+  // it cannot pass ContextSchema; pass it through raw (only version/commands are read).
+  let ctx: ConfigFile['contexts'][string]
+  if (skipContextResolve) {
+    ctx = resolvedRawContext as ConfigFile['contexts'][string]
+  } else {
+    const contextParsed = ContextSchema.safeParse(resolvedRawContext)
+    if (!contextParsed.success) {
+      return { ok: false, error: { message: formatAjvErrors(contextParsed.errors) } }
+    }
+    ctx = contextParsed.data
   }
-  const ctx = contextParsed.data
 
   let commands: ConfigFile['commands']
   if (resolvedRawCommands != null) {
@@ -423,6 +419,6 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     const message = err instanceof Error ? err.message : String(err)
     result = { ok: false, error: { message } }
   }
-  _cachedConfig = result
+  if (!skipContextResolve) _cachedConfig = result
   return result
 }

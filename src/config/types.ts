@@ -35,6 +35,8 @@ export type Auth = ApiKeyAuth | BasicAuth
 export interface ServiceBlock {
   url: string
   auth?: Auth
+  /** Target version hint: a semver string (e.g. "9.2" or "9.2.3") or "serverless". */
+  version?: string
 }
 
 /** Policy controlling which commands are permitted to run. */

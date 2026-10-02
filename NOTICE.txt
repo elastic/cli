@@ -619,7 +619,7 @@ License: UNLICENSED
 
 
 ------------------------------------------------------------------------
-@elastic/schemas@0.7.3
+@elastic/schemas@0.9.1
 License: Apache-2.0
 Repository: https://github.com/elastic/schemas-js
 Publisher: Elastic Client Library Maintainers

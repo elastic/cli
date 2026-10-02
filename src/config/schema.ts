@@ -4,6 +4,7 @@
  */
 
 import { validateWithJsonSchema } from '../lib/ajv-validate.ts'
+import { parseVersionHint } from '../lib/availability.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './profiles.ts'
 import type {
   Auth,
@@ -24,8 +25,9 @@ import type {
  *
  * Unknown fields are stripped by the `strip*` helpers rather than by the schemas
  * themselves. Cross-field business rules (at-least-one-service, non-empty contexts
- * map, valid current_context key, URL scheme) are enforced in `safeParse` because
- * they cannot be expressed as plain JSON Schema constraints with useful messages.
+ * map, valid current_context key, URL scheme, version format) are enforced in
+ * `safeParse` because they cannot be expressed as plain JSON Schema constraints
+ * with useful messages.
  */
 
 // ---------------------------------------------------------------------------
@@ -92,6 +94,15 @@ function urlError (url: unknown, path: string): FieldError | undefined {
   return undefined
 }
 
+
+/** Verifies a version hint is a valid semver (major.minor[.patch]) or the literal "serverless". */
+function versionError (version: unknown, path: string): FieldError | undefined {
+  if (version === undefined) return undefined
+  if (typeof version !== 'string') return undefined // shape errors are AJV's job
+  if (parseVersionHint(version) != null) return undefined
+  return { path, message: 'must be a semver version (e.g. "9.2" or "9.2.3") or "serverless"' }
+}
+
 /** Collects URL errors for every service block present on a context. */
 function contextUrlErrors (raw: unknown, prefix: string): FieldError[] {
   if (raw == null || typeof raw !== 'object') return []
@@ -101,6 +112,20 @@ function contextUrlErrors (raw: unknown, prefix: string): FieldError[] {
     const block = r[service]
     if (block == null || typeof block !== 'object') continue
     const err = urlError((block as Record<string, unknown>)['url'], `${prefix}.${service}.url`)
+    if (err != null) errors.push(err)
+  }
+  return errors
+}
+
+/** Collects version errors for every service block present on a context. */
+function contextVersionErrors (raw: unknown, prefix: string): FieldError[] {
+  if (raw == null || typeof raw !== 'object') return []
+  const r = raw as Record<string, unknown>
+  const errors: FieldError[] = []
+  for (const service of ['elasticsearch', 'kibana'] as const) {
+    const block = r[service]
+    if (block == null || typeof block !== 'object') continue
+    const err = versionError((block as Record<string, unknown>)['version'], `${prefix}.${service}.version`)
     if (err != null) errors.push(err)
   }
   return errors
@@ -136,6 +161,7 @@ const serviceBlockSchema: Record<string, unknown> = {
   properties: {
     url: { type: 'string', minLength: 1 },
     auth: authSchema,
+    version: { type: 'string', minLength: 1 },
   },
   required: ['url'],
 }
@@ -219,6 +245,7 @@ function stripServiceBlock (raw: unknown): ServiceBlock | undefined {
     const auth = stripAuth(r['auth'])
     if (auth != null) out.auth = auth
   }
+  if (typeof r['version'] === 'string') out.version = r['version']
   return out
 }
 
@@ -298,6 +325,8 @@ export const ServiceBlockSchema = {
     const block = stripServiceBlock(r.data)!
     const err = urlError(block.url, '.url')
     if (err != null) return { success: false, errors: [err] }
+    const verErr = versionError((r.data as Record<string, unknown>)['version'], '.version')
+    if (verErr != null) return { success: false, errors: [verErr] }
     return { success: true, data: block }
   },
 }
@@ -341,6 +370,8 @@ export const ContextSchema = {
     }
     const urlErrors = contextUrlErrors(r.data, '')
     if (urlErrors.length > 0) return { success: false, errors: urlErrors }
+    const versionErrors = contextVersionErrors(r.data, '')
+    if (versionErrors.length > 0) return { success: false, errors: versionErrors }
     return { success: true, data: ctx }
   },
 }
@@ -383,6 +414,8 @@ export const ConfigFileSchema = {
       }
       const urlErrors = contextUrlErrors((raw['contexts'] as Record<string, unknown>)[key], `.contexts.${key}`)
       if (urlErrors.length > 0) return { success: false, errors: urlErrors }
+      const versionErrors = contextVersionErrors((raw['contexts'] as Record<string, unknown>)[key], `.contexts.${key}`)
+      if (versionErrors.length > 0) return { success: false, errors: versionErrors }
     }
     if (raw['commands'] != null) {
       cfg.commands = stripCommandPolicy(raw['commands'])!
