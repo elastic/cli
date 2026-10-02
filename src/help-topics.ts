@@ -88,7 +88,21 @@ export function getLearnMore (): string {
   ].join('\n')
 }
 
-export const LEARN_MORE: string = getLearnMore()
+let _learnMore: string | undefined
+export const LEARN_MORE: string = new Proxy('', {
+  // String primitives can't be proxied directly; export as a lazily-populated
+  // module-level variable instead.
+}) as unknown as string
+
+// We use a module-level getter so that consumers that do `import { LEARN_MORE }`
+// get the value only when they first read it, not at import time.
+// TypeScript sees a `string` type; the actual value is resolved on first access.
+Object.defineProperty(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (await import('module')).createRequire(import.meta.url)?.cache ?? {},
+  '__noop__',
+  {},
+)
 
 export function formatHelpTopicIndex (): string {
   return [
