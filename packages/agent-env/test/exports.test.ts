@@ -33,14 +33,16 @@ describe('published entry', () => {
       filter: (src) => !src.includes(`${pkgRoot}/test`) && !src.includes(`${pkgRoot}/node_modules`),
     })
     writeFileSync(join(dir, 'load.mjs'), `
-      const url = import.meta.resolve('@elastic/agent-env')
-      const mod = await import(url)
+      const mod = await import('@elastic/agent-env')
       if (typeof mod.detectAgent !== 'function') throw new Error('detectAgent missing')
-      console.log(url)
+      const { createRequire } = await import('node:module')
+      const req = createRequire(import.meta.url)
+      const resolved = req.resolve('@elastic/agent-env')
+      console.log(resolved)
     `)
     try {
-      const url = execFileSync(process.execPath, ['load.mjs'], { cwd: dir, encoding: 'utf8' }).trim()
-      assert.match(url, /\/node_modules\/@elastic\/agent-env\/dist\/index\.js$/)
+      const resolved = execFileSync(process.execPath, ['load.mjs'], { cwd: dir, encoding: 'utf8' }).trim()
+      assert.match(resolved, /\/node_modules\/@elastic\/agent-env\/dist\/index\.js$/)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
