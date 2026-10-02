@@ -4,6 +4,7 @@
  */
 
 import type { Command } from 'commander'
+import { formatExitCodesHelp } from './exit-codes'
 
 export const HELP_TOPIC_NAMES = Object.freeze(['formatting', 'environment', 'exit-codes'] as const)
 export type HelpTopicName = typeof HELP_TOPIC_NAMES[number]
@@ -12,94 +13,59 @@ export function isHelpTopicName (name: string): name is HelpTopicName {
   return (HELP_TOPIC_NAMES as readonly string[]).includes(name)
 }
 
-function lazyTopics (): Record<HelpTopicName, string> {
-  return {
-    formatting: [
-      'OUTPUT FORMATTING',
-      '',
-      'By default the CLI prints human-readable tables. Pass one of the flags below to',
-      'change the output format for any command that returns structured data.',
-      '',
-      '  --json                    Print raw JSON output.',
-      '  --output-fields <fields>  Comma-separated list of fields to include in output.',
-      '  --output-template <tmpl>  Handlebars template string for each result row.',
-      '',
-      'You can also inspect the JSON schema for any command:',
-      '',
-      '  elastic <command> --help --json',
-      '',
-      'Result shape (table columns, JSON keys) is driven by the command schema.',
-    ].join('\n'),
+export const HELP_TOPICS: Record<HelpTopicName, string> = {
+  formatting: [
+    'OUTPUT FORMATTING',
+    '',
+    'By default the CLI prints human-readable tables. Pass one of the flags below to',
+    'change the output format for any command that returns structured data.',
+    '',
+    '  --json                    Print raw JSON output.',
+    '  --output-fields <fields>  Comma-separated list of fields to include in output.',
+    '  --output-template <tmpl>  Handlebars template string for each result row.',
+    '',
+    'You can also inspect the JSON schema for any command:',
+    '',
+    '  elastic <command> --help --json',
+    '',
+    'Result shape (table columns, JSON keys) is driven by the command schema.',
+  ].join('\n'),
 
-    environment: [
-      'ENVIRONMENT VARIABLES',
-      '',
-      '  ELASTIC_CLI_CONFIG_FILE   Path to an alternate config file.',
-      '                            Default: ~/.elasticrc.yml',
-      '',
-      '  ELASTIC_CLI_TELEMETRY     Set to "false" to opt out of telemetry.',
-      '',
-      '  ELASTIC_NO_BANNER         Set to "1" to suppress the startup banner.',
-      '',
-      '  NO_COLOR                  Disable ANSI color output (honoured automatically).',
-      '',
-      'CONFIG FILE',
-      '',
-      '  ~/.elasticrc.yml stores default profile settings and credentials.',
-      '  Credentials are stored in the system keychain when available.',
-    ].join('\n'),
+  environment: [
+    'ENVIRONMENT VARIABLES',
+    '',
+    '  ELASTIC_CLI_CONFIG_FILE   Path to an alternate config file.',
+    '                            Default: ~/.elasticrc.yml',
+    '',
+    '  ELASTIC_CLI_TELEMETRY     Set to "false" to opt out of telemetry.',
+    '',
+    '  ELASTIC_NO_BANNER         Set to "1" to suppress the startup banner.',
+    '',
+    '  NO_COLOR                  Disable ANSI color output (honoured automatically).',
+    '',
+    'CONFIG FILE',
+    '',
+    '  ~/.elasticrc.yml stores default profile settings and credentials.',
+    '  Credentials are stored in the system keychain when available.',
+  ].join('\n'),
 
-    'exit-codes': [
-      'EXIT CODES',
-      '',
-      '0  success \u2013 the command completed without error.',
-      '1  error   \u2013 a recoverable or user-facing error occurred.',
-      '',
-      'Codes 2-127 are reserved for future use.',
-    ].join('\n'),
-  }
+  'exit-codes': formatExitCodesHelp(),
 }
-
-let _topics: Record<HelpTopicName, string> | undefined
-
-export const HELP_TOPICS: Record<HelpTopicName, string> = new Proxy({} as Record<HelpTopicName, string>, {
-  get (_target, prop: string) {
-    if (!_topics) _topics = lazyTopics()
-    return (_topics as Record<string, string>)[prop]
-  },
-})
-
-let _learnMore: string | undefined
 
 export function getLearnMore (): string {
-  if (!_learnMore) {
-    _learnMore = [
-      'LEARN MORE',
-      '',
-      '  elastic help formatting',
-      '  elastic help environment',
-      '  elastic help exit-codes',
-      '',
-      '  elastic <command> --help --json',
-      '  elastic cli-schema',
-    ].join('\n')
-  }
-  return _learnMore
+  return [
+    'LEARN MORE',
+    '',
+    '  elastic help formatting',
+    '  elastic help environment',
+    '  elastic help exit-codes',
+    '',
+    '  elastic <command> --help --json',
+    '  elastic cli-schema',
+  ].join('\n')
 }
 
-// Lazy accessor kept for backwards compatibility with any internal consumers.
-// Using a getter on a plain object avoids any cost at module-load time.
-export const LEARN_MORE: string = new Proxy('' as unknown as string, {
-  get (_target, prop) {
-    const val = getLearnMore()
-    const descriptor = Object.getOwnPropertyDescriptor(String.prototype, prop)
-      ?? Object.getOwnPropertyDescriptor(Object.prototype, prop)
-    if (descriptor && typeof descriptor.value === 'function') {
-      return (descriptor.value as Function).bind(val)
-    }
-    return (val as unknown as Record<string | symbol, unknown>)[prop as string | symbol]
-  },
-}) as unknown as string
+export const LEARN_MORE: string = getLearnMore()
 
 export function formatHelpTopicIndex (): string {
   return [
