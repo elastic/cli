@@ -3,18 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { detectAgent, AgentInfo } from '@elastic/agent-env'
+import type { AgentInfo } from '@elastic/agent-env'
+import { detectAgent } from '@elastic/agent-env'
 
-/**
- * Returns metadata about the current process environment, including
- * which coding-agent harness (if any) spawned this process.
- */
-export interface Meta {
-  agent: AgentInfo | null
-}
+const agent: AgentInfo | null = detectAgent()
 
-export function getMeta(): Meta {
-  return {
-    agent: detectAgent(),
+export function clientHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {}
+  if (agent) {
+    headers['x-elastic-agent'] = agent.name
   }
+  return headers
 }
