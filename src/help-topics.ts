@@ -88,17 +88,7 @@ export function getLearnMore (): string {
   ].join('\n')
 }
 
-let _learnMore: string | undefined
-
-export const LEARN_MORE: string = new Proxy(Object.create(null) as { valueOf(): string; toString(): string }, {
-  get (_target, prop) {
-    if (!_learnMore) _learnMore = getLearnMore()
-    if (prop === Symbol.toPrimitive || prop === 'valueOf' || prop === 'toString') {
-      return () => _learnMore
-    }
-    return (_learnMore as unknown as Record<string | symbol, unknown>)[prop]
-  },
-}) as unknown as string
+export const LEARN_MORE: string = getLearnMore()
 
 export function formatHelpTopicIndex (): string {
   return [
