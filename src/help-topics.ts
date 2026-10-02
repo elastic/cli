@@ -4,7 +4,7 @@
  */
 
 import type { Command } from 'commander'
-import { formatExitCodesHelp } from './exit-codes'
+import { formatExitCodesHelp } from './exit-codes.js'
 
 export const HELP_TOPIC_NAMES = Object.freeze(['formatting', 'environment', 'exit-codes'] as const)
 export type HelpTopicName = typeof HELP_TOPIC_NAMES[number]
