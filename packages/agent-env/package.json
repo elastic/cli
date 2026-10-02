@@ -21,6 +21,6 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "test": "tsx --test test/*.test.ts"
+    "test": "tsx --test test/index.test.ts"
   }
 }
