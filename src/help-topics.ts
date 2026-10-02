@@ -69,16 +69,37 @@ export const HELP_TOPICS: Record<HelpTopicName, string> = new Proxy({} as Record
   },
 })
 
-export const LEARN_MORE = [
-  'LEARN MORE',
-  '',
-  '  elastic help formatting',
-  '  elastic help environment',
-  '  elastic help exit-codes',
-  '',
-  '  elastic <command> --help --json',
-  '  elastic cli-schema',
-].join('\n')
+let _learnMore: string | undefined
+
+export function getLearnMore (): string {
+  if (!_learnMore) {
+    _learnMore = [
+      'LEARN MORE',
+      '',
+      '  elastic help formatting',
+      '  elastic help environment',
+      '  elastic help exit-codes',
+      '',
+      '  elastic <command> --help --json',
+      '  elastic cli-schema',
+    ].join('\n')
+  }
+  return _learnMore
+}
+
+// Lazy accessor kept for backwards compatibility with any internal consumers.
+// Using a getter on a plain object avoids any cost at module-load time.
+export const LEARN_MORE: string = new Proxy('' as unknown as string, {
+  get (_target, prop) {
+    const val = getLearnMore()
+    const descriptor = Object.getOwnPropertyDescriptor(String.prototype, prop)
+      ?? Object.getOwnPropertyDescriptor(Object.prototype, prop)
+    if (descriptor && typeof descriptor.value === 'function') {
+      return (descriptor.value as Function).bind(val)
+    }
+    return (val as unknown as Record<string | symbol, unknown>)[prop as string | symbol]
+  },
+}) as unknown as string
 
 export function formatHelpTopicIndex (): string {
   return [
