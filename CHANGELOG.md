@@ -4,6 +4,20 @@
 
 Process exit stays 1. Codes 2-5 are reserved and not emitted. `--json` config-load failures use `missing_config` or `config_invalid`. HTTP 401 is `auth_required`, 404 is `not_found`. See `elastic help exit-codes`. Relates to #634.
 
+## [0.6.1](https://github.com/elastic/cli/compare/v0.6.0...v0.6.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* Point agent env export at dist ([#712](https://github.com/elastic/cli/issues/712)) ([e2f1e2c](https://github.com/elastic/cli/commit/e2f1e2cc03e6d1ebabf993beda1ef5d5262cf84f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @elastic/agent-env bumped from 0.1.1 to 0.1.2
+
 ## [0.6.0](https://github.com/elastic/cli/compare/v0.5.0...v0.6.0) (2026-10-01)
 
 
