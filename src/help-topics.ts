@@ -4,131 +4,111 @@
  */
 
 import type { Command } from 'commander'
-import { formatExitCodesHelp } from './exit-codes.js'
+import { formatExitCodesHelp } from './help/catalog.ts'
 
-export const HELP_TOPIC_NAMES = Object.freeze(['formatting', 'environment', 'exit-codes'] as const)
-export type HelpTopicName = typeof HELP_TOPIC_NAMES[number]
+export const HELP_TOPIC_NAMES = ['formatting', 'environment', 'exit-codes'] as const
+export type HelpTopicName = (typeof HELP_TOPIC_NAMES)[number]
+
+const _helpTopics: Partial<Record<HelpTopicName, string>> = {
+  formatting: `Output flags (global)
+
+--json                 Print the response as JSON (pretty-printed).
+--output-fields <list> Keep only these fields (comma-separated, dot-notation).
+--output-template <s>  Render each object with a Mustache-like template, e.g. "{{id}}: {{name}}".
+                       Use {{.}} for the raw value.
+
+Default text (no --json):
+  array of flat objects  table
+  array of primitives    one value per line
+  everything else        pretty JSON
+
+--help --json prints machine-readable help (command tree, or the leaf JSON Schema).
+Flag order does not matter: elastic --json --help and elastic --help --json are the same.
+`,
+  environment: `Config file
+
+Precedence: --config-file, then ELASTIC_CLI_CONFIG_FILE, then the home directory.
+Discovery names (first readable wins): .elasticrc, .elasticrc.json, .elasticrc.yaml, .elasticrc.yml
+
+Environment
+
+ELASTIC_CLI_CONFIG_FILE   Config path (same as --config-file)
+ELASTIC_CLI_TELEMETRY     false/0/no/off disables anonymous telemetry (overrides config)
+ELASTIC_NO_BANNER         1 hides the startup logo
+NO_COLOR                  set (any value) disables color on the logo
+ELASTIC_CLOUD_ADMIN_API   Override the Cloud admin API base URL
+
+Secrets
+
+elastic config stores secrets in the OS store when one is available:
+  macOS    Keychain (security)
+  Linux    libsecret (secret-tool) or pass
+  Windows  Credential Manager
+The YAML then holds $(keychain:...) expressions. Pass --inline-secrets to keep secrets in the file.
+`,
+}
+
+export const HELP_TOPICS: Record<HelpTopicName, string> = {
+  get formatting () { return _helpTopics.formatting! },
+  get environment () { return _helpTopics.environment! },
+  get 'exit-codes' () {
+    if (_helpTopics['exit-codes'] == null) {
+      _helpTopics['exit-codes'] = formatExitCodesHelp()
+    }
+    return _helpTopics['exit-codes']
+  },
+}
+
+export const LEARN_MORE = `
+LEARN MORE
+  elastic help formatting     output flags and default rendering
+  elastic help environment    config file, env vars, keychain
+  elastic help exit-codes     process exit codes
+`
 
 export function isHelpTopicName (name: string): name is HelpTopicName {
   return (HELP_TOPIC_NAMES as readonly string[]).includes(name)
 }
 
-function buildHelpTopics (): Record<HelpTopicName, string> {
-  return {
-    formatting: [
-      'OUTPUT FORMATTING',
-      '',
-      'By default the CLI prints human-readable tables. Pass one of the flags below to',
-      'change the output format for any command that returns structured data.',
-      '',
-      '  --json                    Print raw JSON output.',
-      '  --output-fields <fields>  Comma-separated list of fields to include in output.',
-      '  --output-template <tmpl>  Handlebars template string for each result row.',
-      '',
-      'You can also inspect the JSON schema for any command:',
-      '',
-      '  elastic <command> --help --json',
-      '',
-      'Result shape (table columns, JSON keys) is driven by the command schema.',
-    ].join('\n'),
-
-    environment: [
-      'ENVIRONMENT VARIABLES',
-      '',
-      '  ELASTIC_CLI_CONFIG_FILE   Path to an alternate config file.',
-      '                            Default: ~/.elasticrc.yml',
-      '',
-      '  ELASTIC_CLI_TELEMETRY     Set to "false" to opt out of telemetry.',
-      '',
-      '  ELASTIC_NO_BANNER         Set to "1" to suppress the startup banner.',
-      '',
-      '  NO_COLOR                  Disable ANSI color output (honoured automatically).',
-      '',
-      'CONFIG FILE',
-      '',
-      '  ~/.elasticrc.yml stores default profile settings and credentials.',
-      '  Credentials are stored in the system keychain when available.',
-    ].join('\n'),
-
-    'exit-codes': formatExitCodesHelp(),
-  }
-}
-
-let _helpTopics: Record<HelpTopicName, string> | undefined
-
-export const HELP_TOPICS: Record<HelpTopicName, string> = new Proxy({} as Record<HelpTopicName, string>, {
-  get (_target, prop: string) {
-    if (!_helpTopics) _helpTopics = buildHelpTopics()
-    return _helpTopics[prop as HelpTopicName]
-  },
-  ownKeys () {
-    if (!_helpTopics) _helpTopics = buildHelpTopics()
-    return Reflect.ownKeys(_helpTopics)
-  },
-  getOwnPropertyDescriptor (_target, prop: string) {
-    if (!_helpTopics) _helpTopics = buildHelpTopics()
-    return Object.getOwnPropertyDescriptor(_helpTopics, prop)
-  },
-  has (_target, prop: string) {
-    if (!_helpTopics) _helpTopics = buildHelpTopics()
-    return prop in _helpTopics
-  },
-})
-
-export function getLearnMore (): string {
-  return [
-    'LEARN MORE',
-    '',
-    '  elastic help formatting',
-    '  elastic help environment',
-    '  elastic help exit-codes',
-    '',
-    '  elastic <command> --help --json',
-    '  elastic cli-schema',
-  ].join('\n')
-}
-
-export const LEARN_MORE: string = getLearnMore()
-
 export function formatHelpTopicIndex (): string {
   return [
-    'Available help topics:',
-    '',
-    ...HELP_TOPIC_NAMES.map((n) => `  ${n}`),
-    '',
     'Usage: elastic help <topic>',
+    '',
+    'Topics:',
+    '  formatting     output flags and default rendering',
+    '  environment    config file, env vars, keychain',
+    '  exit-codes     process exit codes',
+    '',
   ].join('\n')
 }
 
-export function helpTopicResult (
-  name: string | undefined,
-  json: boolean,
-): { code: number; stdout: string; stderr: string } {
-  if (name === undefined) {
-    if (json) {
-      return { code: 0, stdout: JSON.stringify({ topics: [...HELP_TOPIC_NAMES] }) + '\n', stderr: '' }
+export type HelpTopicResult = {
+  stdout: string
+  stderr: string
+  code: number
+}
+
+export function helpTopicResult (topic: string | undefined, json: boolean): HelpTopicResult {
+  if (topic == null || topic === '') {
+    if (json) return { stdout: JSON.stringify({ topics: [...HELP_TOPIC_NAMES] }) + '\n', stderr: '', code: 0 }
+    return { stdout: formatHelpTopicIndex(), stderr: '', code: 0 }
+  }
+  if (!isHelpTopicName(topic)) {
+    return {
+      stdout: '',
+      stderr: `Error: unknown help topic "${topic}". Topics: ${HELP_TOPIC_NAMES.join(', ')}\n`,
+      code: 1,
     }
-    return { code: 0, stdout: formatHelpTopicIndex() + '\n', stderr: '' }
   }
-  if (!isHelpTopicName(name)) {
-    return { code: 1, stdout: '', stderr: `unknown help topic: ${name}\n` }
-  }
-  const body = HELP_TOPICS[name]
-  if (json) {
-    return { code: 0, stdout: JSON.stringify({ topic: name, body }) + '\n', stderr: '' }
-  }
-  return { code: 0, stdout: body + '\n', stderr: '' }
+  const body = HELP_TOPICS[topic]
+  if (json) return { stdout: JSON.stringify({ topic, body }) + '\n', stderr: '', code: 0 }
+  return { stdout: body.endsWith('\n') ? body : `${body}\n`, stderr: '', code: 0 }
 }
 
 export function registerHelpCommand (program: Command): Command {
+  program.addHelpCommand(false)
   return program
-    .command('help [topic]')
-    .description('Show help for a topic (formatting, environment, exit-codes)')
-    .action((topic: string | undefined) => {
-      const json = !!(program.opts() as Record<string, unknown>).json
-      const result = helpTopicResult(topic, json)
-      if (result.stdout) process.stdout.write(result.stdout)
-      if (result.stderr) process.stderr.write(result.stderr)
-      process.exitCode = result.code
-    })
+    .command('help')
+    .description('Print a help topic (formatting, environment, exit-codes)')
+    .argument('[topic]', 'formatting, environment, or exit-codes')
 }
