@@ -4,6 +4,7 @@
  */
 
 import type { CloudApiDefinition } from './types.ts'
+import { requireSchemaModule } from '../lib/json-schema-refs.ts'
 import { serverlessManifest } from '@elastic/schemas/serverless/tools/manifest.js'
 
 /** Lazily loaded cache of all Serverless API definitions. */
@@ -21,7 +22,7 @@ export async function loadServerlessApis (): Promise<CloudApiDefinition[]> {
   const namespaceFiles = [...new Set(serverlessManifest.map(e => e.namespaceFile))]
 
   const modules = await Promise.all(
-    namespaceFiles.map(nf => import(`@elastic/schemas/serverless/tools/apis/${nf}.js`))
+    namespaceFiles.map(nf => requireSchemaModule(`@elastic/schemas/serverless/tools/apis/${nf}.js`))
   )
 
   _allServerlessApis = modules.flatMap((mod, i) => {

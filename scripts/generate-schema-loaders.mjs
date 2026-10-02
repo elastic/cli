@@ -45,6 +45,7 @@ export async function generateSchemaLoaders () {
     { dir: join(schemasRoot, 'lib', 'es', 'tools', 'apis'), spec: '@elastic/schemas/es/tools/apis', json: false },
     { dir: join(schemasRoot, 'lib', 'kibana', 'tools', 'apis'), spec: '@elastic/schemas/kibana/tools/apis', json: false },
     { dir: join(schemasRoot, 'lib', 'cloud', 'tools', 'apis'), spec: '@elastic/schemas/cloud/tools/apis', json: false },
+    { dir: join(schemasRoot, 'lib', 'serverless', 'tools', 'apis'), spec: '@elastic/schemas/serverless/tools/apis', json: false },
   ]
 
   const lines = [
