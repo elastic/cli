@@ -19,7 +19,7 @@ export interface AgentInfo {
  */
 export function detectAgent(): AgentInfo | null {
   // Claude Code / claude-code CLI
-  if (process.env['CLAUDE_CODE'] || process.env['ANTHROPIC_API_KEY'] && process.env['CLAUDE_CODE_ENTRYPOINT']) {
+  if (process.env['CLAUDE_CODE'] || (process.env['ANTHROPIC_API_KEY'] && process.env['CLAUDE_CODE_ENTRYPOINT'])) {
     return { name: 'claude-code' }
   }
 
