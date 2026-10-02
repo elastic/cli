@@ -20,9 +20,11 @@ jobs:
   compare:
     name: Startup A/B vs merge-base
     if: github.event_name == 'pull_request'
+    # No pull-requests: write. This job runs untrusted PR code (npm ci, build,
+    # perf-check), so it must not hold a token that can modify the repo or PRs.
+    # The perf-comment workflow posts the result from the trusted default branch.
     permissions:
       contents: read
-      pull-requests: write
     runs-on: ubuntu-latest
     env:
       NODE_OPTIONS: --max-old-space-size=6144
@@ -49,26 +51,17 @@ jobs:
         run: sudo apt-get install -y hyperfine
 
       - name: Compare
-        run: scripts/perf-check --compare /tmp/base --md perf.md
+        run: scripts/perf-check --compare /tmp/base --json perf.json
 
-      # Always post the table, pass or fail, so the comment reflects the latest push.
-      - name: Post sticky comment
-        if: always() && hashFiles('perf.md') != ''
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+      # Hand the numeric result to the perf-comment workflow. It renders and
+      # posts the comment from the trusted default branch: the PR number is
+      # resolved there from the commit SHA, not trusted from this artifact.
+      - name: Upload perf report
+        if: always() && hashFiles('perf.json') != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          script: |
-            const fs = require('node:fs')
-            const marker = '<!-- perf-report -->'
-            const body = marker + '\n' + fs.readFileSync('perf.md', 'utf8')
-            const { owner, repo } = context.repo
-            const issue_number = context.issue.number
-            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number })
-            const existing = comments.find((c) => c.body.startsWith(marker))
-            if (existing) {
-              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body })
-            } else {
-              await github.rest.issues.createComment({ owner, repo, issue_number, body })
-            }
+          name: perf-report
+          path: perf.json
 
   # Trend signal on push-to-main: runs the absolute baseline check.
   baseline:
