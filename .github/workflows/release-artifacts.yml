@@ -45,6 +45,8 @@ jobs:
 
       - name: Build config-resolver
         run: bunx tsc -b packages/config-resolver
+      - name: Build agent-env
+        run: bunx tsc -b packages/agent-env
 
       - name: Generate schema loaders
         run: node scripts/generate-schema-loaders.mjs
