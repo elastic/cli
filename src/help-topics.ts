@@ -110,8 +110,8 @@ export function helpTopicResult (
   return { code: 0, stdout: body + '\n', stderr: '' }
 }
 
-export function registerHelpCommand (program: Command): void {
-  program
+export function registerHelpCommand (program: Command): Command {
+  return program
     .command('help [topic]')
     .description('Show help for a topic (formatting, environment, exit-codes)')
     .action((topic: string | undefined) => {
