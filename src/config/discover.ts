@@ -12,7 +12,7 @@
  */
 
 import { access, constants } from 'node:fs/promises'
-import { homedir } from 'node:os'
+import { homedir, platform } from 'node:os'
 import { join } from 'node:path'
 
 /** File names checked during home-directory discovery, in priority order. */
@@ -30,7 +30,8 @@ export const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
  * @param dir - Directory to search. Defaults to the user's home directory.
  */
 export async function discoverConfigFile (dir?: string): Promise<string | null> {
-  const searchDir = dir ?? homedir()
+  // ponytail: read env directly so tests can override HOME/USERPROFILE at runtime (Bun caches homedir())
+  const searchDir = dir ?? (platform() === 'win32' ? process.env.USERPROFILE : process.env.HOME) ?? homedir()
   for (const name of CONFIG_FILE_NAMES) {
     const candidate = join(searchDir, name)
     try {
