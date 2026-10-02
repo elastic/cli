@@ -88,13 +88,7 @@ export function getLearnMore (): string {
   ].join('\n')
 }
 
-let _learnMore: string | undefined
-export const LEARN_MORE: string = new Proxy({} as unknown as string, {
-  get (_target, prop) {
-    if (!_learnMore) _learnMore = getLearnMore()
-    return (_learnMore as unknown as Record<string | symbol, unknown>)[prop]
-  },
-}) as unknown as string
+export const LEARN_MORE: string = getLearnMore()
 
 export function formatHelpTopicIndex (): string {
   return [
