@@ -239,6 +239,13 @@ export interface LoadConfigOptions {
    * the new result for subsequent calls). Defaults to `false`.
    */
   refresh?: boolean
+  /**
+   * When `true`, skip resolving the active context's expressions and skip the
+   * result cache. Used by command registration / help, which need only version
+   * hints and the command policy -- never resolved credentials. Avoids spawning
+   * subprocesses for `$(cmd:...)` secrets on every `--help` invocation (#706).
+   */
+  skipContextResolve?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -283,9 +290,9 @@ export type LoadConfigResult = LoadConfigOk | LoadConfigErr
  * @returns A `LoadConfigResult` discriminated union.
  */
 export async function loadConfig (options: LoadConfigOptions = {}): Promise<LoadConfigResult> {
-  const { configPath, contextName, profileName, refresh = false } = options
+  const { configPath, contextName, profileName, refresh = false, skipContextResolve = false } = options
 
-  if (!refresh && _cachedConfig !== undefined) return _cachedConfig
+  if (!refresh && !skipContextResolve && _cachedConfig !== undefined) return _cachedConfig
 
   // Validate profileName early (before any I/O) so the error is immediate and clear
   if (profileName != null && !(BUILT_IN_PROFILES as readonly string[]).includes(profileName)) {
@@ -380,7 +387,12 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
   let resolvedRawCommands: unknown
   try {
     [resolvedRawContext, resolvedRawCommands] = await Promise.all([
-      resolveExpressions(contexts[resolvedContextName], `contexts.${resolvedContextName}`),
+      // Registration/help loads only need version hints + command policy, so they
+      // skip resolving the active context -- its `$(cmd:...)` secrets would spawn
+      // subprocesses that are useless for building help output. See #706.
+      skipContextResolve
+        ? contexts[resolvedContextName]
+        : resolveExpressions(contexts[resolvedContextName], `contexts.${resolvedContextName}`),
       rawCommands != null ? resolveExpressions(rawCommands, 'commands') : undefined,
     ])
   } catch (err) {
@@ -391,12 +403,19 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     }
   }
 
-  // Step 5: validate active context and commands with full schemas
-  const contextParsed = ContextSchema.safeParse(resolvedRawContext)
-  if (!contextParsed.success) {
-    return { ok: false, error: { message: formatAjvErrors(contextParsed.errors) } }
+  // Step 5: validate active context and commands with full schemas. In
+  // skipContextResolve mode the context still holds unresolved expressions, so
+  // it cannot pass ContextSchema; pass it through raw (only version/commands are read).
+  let ctx: ConfigFile['contexts'][string]
+  if (skipContextResolve) {
+    ctx = resolvedRawContext as ConfigFile['contexts'][string]
+  } else {
+    const contextParsed = ContextSchema.safeParse(resolvedRawContext)
+    if (!contextParsed.success) {
+      return { ok: false, error: { message: formatAjvErrors(contextParsed.errors) } }
+    }
+    ctx = contextParsed.data
   }
-  const ctx = contextParsed.data
 
   let commands: ConfigFile['commands']
   if (resolvedRawCommands != null) {
@@ -423,6 +442,6 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     const message = err instanceof Error ? err.message : String(err)
     result = { ok: false, error: { message } }
   }
-  _cachedConfig = result
+  if (!skipContextResolve) _cachedConfig = result
   return result
 }

@@ -15,10 +15,14 @@ const VERSION_RE = /^\d+\.\d+(\.\d+)?$/
  * - `'9.2'` or `'9.2.3'` → `[9, 2]` (patch discarded)
  * - anything else → `undefined`
  */
-export function parseVersionHint (raw: string): [number, number] | 'serverless' | undefined {
-  if (raw === 'serverless') return 'serverless'
-  if (!VERSION_RE.test(raw)) return undefined
-  const [major, minor] = raw.split('.').map(Number)
+export function parseVersionHint (raw: unknown): [number, number] | 'serverless' | undefined {
+  // YAML parses an unquoted `9.1` as a number, and the registration/help config
+  // load skips schema coercion, so the hint may arrive as a non-string. Coerce
+  // defensively; the regex rejects anything that isn't MAJOR.MINOR[.PATCH].
+  const str = typeof raw === 'string' ? raw : String(raw)
+  if (str === 'serverless') return 'serverless'
+  if (!VERSION_RE.test(str)) return undefined
+  const [major, minor] = str.split('.').map(Number)
   return [major as number, minor as number]
 }
 

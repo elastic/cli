@@ -164,6 +164,10 @@ if (firstArg != null && !SKIP_EARLY_CONFIG.has(firstArg)) {
     ...(earlyContext != null && { contextName: earlyContext }),
     ...(earlyProfile != null && { profileName: earlyProfile }),
     refresh: hasOverrides,
+    // Registration/help only needs version hints + command policy. Skip resolving
+    // the active context so `--help` never spawns `$(cmd:...)` secret subprocesses;
+    // the preAction hook does the full resolve before any handler runs. See #706.
+    skipContextResolve: true,
   })
   if (earlyConfig.ok) {
     const { setResolvedConfig } = await import('./config/store.js')
