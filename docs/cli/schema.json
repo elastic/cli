@@ -6828,18 +6828,6 @@
                 "scope": "global",
                 "requiresAuth": true
               }
-            },
-            {
-              "path": [
-                "stack",
-                "es"
-              ],
-              "name": "helpers",
-              "parameters": [],
-              "summary": "High-level helper commands for common Elasticsearch workflows",
-              "intent": {
-                "requiresAuth": true
-              }
             }
           ],
           "namespaces": [
@@ -62117,6 +62105,385 @@
               ],
               "namespaces": [],
               "summary": "Elasticsearch xpack API commands"
+            },
+            {
+              "segment": "helpers",
+              "commands": [
+                {
+                  "path": [
+                    "stack",
+                    "es",
+                    "helpers"
+                  ],
+                  "name": "scroll-search",
+                  "parameters": [
+                    {
+                      "role": "flag",
+                      "name": "index",
+                      "type": "string",
+                      "required": true,
+                      "summary": "Target index"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "query",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Query DSL clause as JSON (wrapped under \"query\"), e.g. '{\"match_all\":{}}'"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "query-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Path to a file containing the full search body JSON (may include query, sort, aggs, ...)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "scroll",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Scroll keep-alive duration",
+                      "defaultValue": "1m"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "size",
+                      "type": "number",
+                      "required": false,
+                      "summary": "Documents per scroll batch",
+                      "defaultValue": "1000"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "max-docs",
+                      "type": "number",
+                      "required": false,
+                      "summary": "Maximum total documents to fetch (default: unlimited)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
+                    }
+                  ],
+                  "summary": "Scroll through all search results, streaming documents as NDJSON to stdout, or returning a single JSON object when --json is set.",
+                  "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
+                    "requiresAuth": true
+                  }
+                },
+                {
+                  "path": [
+                    "stack",
+                    "es",
+                    "helpers"
+                  ],
+                  "name": "bulk-ingest",
+                  "parameters": [
+                    {
+                      "role": "flag",
+                      "name": "index",
+                      "type": "string",
+                      "required": true,
+                      "summary": "Target index"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "data-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Path to data file (NDJSON, JSON array, or CSV)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "data-dir",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Path to directory of data files to ingest"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "glob",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Glob pattern for --data-dir file matching (default: **/*.json, or **/*.csv when --source-format csv)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "no-recursive",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Do not recurse into subdirectories when using --data-dir"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "source-format",
+                      "type": "enum",
+                      "required": false,
+                      "summary": "Input file format: csv, or json-based (ndjson vs json array is auto-detected from content; \"ndjson\" and \"json\" behave identically here)",
+                      "defaultValue": "ndjson",
+                      "enumValues": [
+                        "ndjson",
+                        "json",
+                        "csv"
+                      ]
+                    },
+                    {
+                      "role": "flag",
+                      "name": "csv-delimiter",
+                      "type": "string",
+                      "required": false,
+                      "summary": "CSV column delimiter (default: \",\")"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "csv-columns",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Comma-separated list of column names (overrides CSV header row)"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "skip-header",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "Skip the first row of a CSV file"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "flush-bytes",
+                      "type": "number",
+                      "required": false,
+                      "summary": "Batch size threshold in bytes",
+                      "defaultValue": "5242880"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "concurrency",
+                      "type": "number",
+                      "required": false,
+                      "summary": "Number of parallel bulk requests",
+                      "defaultValue": "5"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "retries",
+                      "type": "number",
+                      "required": false,
+                      "summary": "Max retries per failed batch",
+                      "defaultValue": "3"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "retry-delay",
+                      "type": "number",
+                      "required": false,
+                      "summary": "Initial retry delay in ms (doubles each attempt)",
+                      "defaultValue": "1000"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "pipeline",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Ingest pipeline name"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "routing",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Custom routing value"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
+                    }
+                  ],
+                  "summary": "Bulk-ingest documents from file, directory, or stdin with automatic batching, concurrency, and retries.",
+                  "intent": {
+                    "destructive": false,
+                    "idempotent": false,
+                    "scope": "global",
+                    "requiresAuth": true
+                  }
+                },
+                {
+                  "path": [
+                    "stack",
+                    "es",
+                    "helpers"
+                  ],
+                  "name": "msearch",
+                  "parameters": [
+                    {
+                      "role": "flag",
+                      "name": "index",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Default index for searches"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "query-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Path to JSON file with search array"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "batch-size",
+                      "type": "number",
+                      "required": false,
+                      "summary": "Searches per _msearch request",
+                      "defaultValue": "5"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "concurrency",
+                      "type": "number",
+                      "required": false,
+                      "summary": "Parallel _msearch requests",
+                      "defaultValue": "5"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
+                    }
+                  ],
+                  "summary": "Batch multiple search requests via _msearch with configurable batch size and concurrency.",
+                  "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
+                    "requiresAuth": true
+                  }
+                },
+                {
+                  "path": [
+                    "stack",
+                    "es",
+                    "helpers"
+                  ],
+                  "name": "watch",
+                  "parameters": [
+                    {
+                      "role": "flag",
+                      "name": "index",
+                      "type": "string",
+                      "required": true,
+                      "summary": "Index or data stream to watch"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "query",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Query DSL clause as JSON (wrapped under \"query\"), e.g. '{\"match\":{\"log.level\":\"error\"}}'"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "query-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Path to a file containing the full search body JSON"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "sort-field",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Field to use for ordering and detecting new documents",
+                      "defaultValue": "@timestamp"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "poll-interval",
+                      "type": "number",
+                      "required": false,
+                      "summary": "Polling interval in milliseconds",
+                      "defaultValue": "5000"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "from",
+                      "type": "string",
+                      "required": false,
+                      "summary": "ISO 8601 timestamp to start from (e.g. \"2024-01-01T00:00:00Z\"). Defaults to the most recent document."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "size",
+                      "type": "number",
+                      "required": false,
+                      "summary": "Maximum documents to fetch per poll",
+                      "defaultValue": "100"
+                    },
+                    {
+                      "role": "flag",
+                      "name": "format",
+                      "type": "string",
+                      "required": false,
+                      "summary": "Output template with {field} placeholders, e.g. \"{@timestamp} {message}\". Omit for NDJSON (_source as JSON)."
+                    },
+                    {
+                      "role": "flag",
+                      "name": "input-file",
+                      "type": "string",
+                      "required": false,
+                      "summary": "path to a JSON file to use as command input"
+                    },
+                    {
+                      "role": "dryRun",
+                      "name": "dry-run",
+                      "type": "boolean",
+                      "required": false,
+                      "summary": "validate all inputs and exit without performing any action"
+                    }
+                  ],
+                  "summary": "Watch an index for new documents and stream them to stdout as NDJSON.",
+                  "intent": {
+                    "destructive": false,
+                    "idempotent": true,
+                    "scope": "global",
+                    "requiresAuth": true
+                  }
+                }
+              ],
+              "namespaces": [],
+              "summary": "High-level helper commands for common Elasticsearch workflows"
             }
           ],
           "summary": "Interact with the Elasticsearch API"
