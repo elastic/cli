@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { Command } from 'commander'
+
 export const HELP_TOPIC_NAMES = Object.freeze(['formatting', 'environment', 'exit-codes'] as const)
 export type HelpTopicName = typeof HELP_TOPIC_NAMES[number]
 
@@ -50,8 +52,8 @@ function lazyTopics (): Record<HelpTopicName, string> {
     'exit-codes': [
       'EXIT CODES',
       '',
-      '0  success – the command completed without error.',
-      '1  error   – a recoverable or user-facing error occurred.',
+      '0  success \u2013 the command completed without error.',
+      '1  error   \u2013 a recoverable or user-facing error occurred.',
       '',
       'Codes 2-127 are reserved for future use.',
     ].join('\n'),
@@ -106,4 +108,17 @@ export function helpTopicResult (
     return { code: 0, stdout: JSON.stringify({ topic: name, body }) + '\n', stderr: '' }
   }
   return { code: 0, stdout: body + '\n', stderr: '' }
+}
+
+export function registerHelpCommand (program: Command): void {
+  program
+    .command('help [topic]')
+    .description('Show help for a topic (formatting, environment, exit-codes)')
+    .action((topic: string | undefined) => {
+      const json = !!(program.opts() as Record<string, unknown>).json
+      const result = helpTopicResult(topic, json)
+      if (result.stdout) process.stdout.write(result.stdout)
+      if (result.stderr) process.stderr.write(result.stderr)
+      process.exitCode = result.code
+    })
 }
