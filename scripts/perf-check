@@ -36,6 +36,7 @@ import { tmpdir } from "node:os"
 import { join, dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { parseArgs } from "node:util"
+import { isNoisy, isRegression, relNoise } from "./perf-check-lib.mjs"
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
 
@@ -126,18 +127,15 @@ try {
         ["base", commandTokens(baseRoot, label)],
       ])
       let results = run()
-      const relNoise = (r) => r.stddev / r.mean
       // One retry if either side is too noisy to trust this sample.
-      if (results.some((r) => relNoise(r) > NOISE_RETRY_REL_STDDEV)) results = run()
+      if (isNoisy(results, NOISE_RETRY_REL_STDDEV)) results = run()
 
       const [pr, base] = results
       const ratio = pr.mean / base.mean
-      // Combined relative noise of the ratio (errors add in quadrature).
       const combinedRel = Math.hypot(relNoise(pr), relNoise(base))
-      const confident = (ratio - CONFIDENCE_K * combinedRel) > (1 + REGRESSION_PCT)
+      const ok = !isRegression(pr, base, { regressionPct: REGRESSION_PCT, confidenceK: CONFIDENCE_K })
       const pct = ((ratio - 1) * 100).toFixed(1)
       const sign = ratio >= 1 ? "+" : ""
-      const ok = !confident
       console.log(
         `${ok ? "✓" : "✗"}  ${label.padEnd(24)}  pr ${(pr.mean * 1000).toFixed(1)} ms vs base ${(base.mean * 1000).toFixed(1)} ms  ` +
         `(${sign}${pct}%, noise ±${(combinedRel * 100).toFixed(1)}%)`,
