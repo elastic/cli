@@ -19,9 +19,13 @@ const operandsFromScan: string[] = []
 for (const arg of argv) {
   if (arg === '--help' || arg === '-h') wantsHelp = true
   else if (arg.charCodeAt(0) === 45) { // starts with '-'
-    if (arg.charCodeAt(1) === 45 && arg !== '--json') hasGlobalFlags = true
+    if (arg.charCodeAt(1) === 45 && arg !== '--json' && arg !== '--no-color') hasGlobalFlags = true
   } else operandsFromScan.push(arg)
 }
+
+// --no-color is an alias for NO_COLOR=1: normalize early so every color
+// decision downstream (logo, banners, markdown, status) honors the flag.
+if (argv.includes('--no-color')) process.env.NO_COLOR = '1'
 
 // x-release-please-start-version
 const VERSION = '0.6.0';
@@ -45,6 +49,7 @@ program
   .option('--output-fields <list>', 'comma-separated list of fields to include in output (dot-notation supported)')
   .option('--output-template <string>', 'Mustache-like template for custom text output (e.g. "{{id}}: {{name}}")')
   .option('--json', 'output as JSON')
+  .option('--no-color', 'disable ANSI colors (same as NO_COLOR=1)')
 
 // preAction hook (skipped for --help paths since the hook never fires)
 if (!wantsHelp) {

@@ -844,7 +844,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
       } else if (config.formatOutput !== undefined) {
         process.stdout.write(config.formatOutput(output, parsed))
       } else {
-        process.stdout.write(renderText(output))
+        process.stdout.write(renderText(output, { plain: process.stdout.isTTY !== true }))
       }
     }
   })
