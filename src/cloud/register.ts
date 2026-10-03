@@ -6,6 +6,7 @@
 import { Command } from 'commander'
 import { defineCommand, defineGroup } from '../factory.ts'
 import type { OpaqueCommandHandle } from '../factory.ts'
+import { commandDeprecation } from '../lib/deprecation.ts'
 import type { CloudApiDefinition } from './types.ts'
 import { validateCloudApiDefinition, buildCloudJsonSchema } from './types.ts'
 import { loadCloudApis } from './apis.ts'
@@ -111,9 +112,11 @@ function checkDuplicates (defs: CloudApiDefinition[], namespace: string): void {
 
 function buildFlatLeaf (def: CloudApiDefinition): OpaqueCommandHandle {
   const schema = buildCloudJsonSchema(def)
+  const deprecated = commandDeprecation(def)
   return defineCommand({
     name: def.name,
     description: def.description,
+    ...(deprecated !== undefined ? { deprecated } : {}),
     input: schema,
     readOnly: def.method === 'GET',
     handler: createCloudHandler(def),
@@ -158,12 +161,14 @@ function buildServerlessTypeGroup (
     const shortName = simplifyProjectCommandName(def.name, namespace)
     const schema = buildCloudJsonSchema(def)
     const baseHandler = createCloudHandler(def)
+    const deprecated = commandDeprecation(def)
     const handler: (parsed: ParsedResult) => Promise<HandlerResult> = isCredentialCommand(def.name)
       ? async (parsed) => wrapWithCredentialPolicy(def.name, baseHandler, parsed)
       : baseHandler
     const cmd = defineCommand({
       name: shortName,
       description: def.description,
+      ...(deprecated !== undefined ? { deprecated } : {}),
       input: schema,
       readOnly: def.method === 'GET',
       handler,
