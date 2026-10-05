@@ -32,3 +32,4 @@ Action items for the next AI review. Follow these. Do not repeat the rejected fi
 - Do not re-flag missing exports from next-command.ts. The module already exports isAuthStatus, formatAuthFailure, and withAuthHint.
 - Do not re-flag missing artifact downloads before publish-release.sh runs. The publish step already downloads final/* before the script executes.
 - Do not re-flag the entitlement grep as insufficient. The check already requires <true/> immediately after the key and rejects ad-hoc signatures.
+- Do not re-flag colon-separated PATH construction in CI scripts. Windows CI passes because Git Bash treats colon as the PATH separator, making semicolon separation the wrong fix and the existing colon format correct.
