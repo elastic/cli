@@ -31,3 +31,4 @@ Action items for the next AI review. Follow these. Do not repeat the rejected fi
 - Do not re-flag lone directive lines being offered as tab-completion candidates. The shell already filters them out before candidates are presented.
 - Do not re-flag missing exports from next-command.ts. The module already exports isAuthStatus, formatAuthFailure, and withAuthHint.
 - Do not re-flag missing artifact downloads before publish-release.sh runs. The publish step already downloads final/* before the script executes.
+- Do not re-flag the entitlement grep as insufficient. The check already requires <true/> immediately after the key and rejects ad-hoc signatures.
