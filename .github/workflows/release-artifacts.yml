@@ -1,4 +1,5 @@
 name: Release Artifacts
+# macOS and Windows assets are replaced by .buildkite/release.yml once signing succeeds.
 
 on:
   release:
