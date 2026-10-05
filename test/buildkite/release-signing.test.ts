@@ -43,7 +43,9 @@ describe('pack-sign.sh', () => {
     const result = run('bash', [join(scripts, 'pack-sign.sh'), bashPath(src), bashPath(out)])
     assert.equal(result.status, 0, result.stderr)
 
-    const listing = spawnSync('tar', ['-tzf', join(out, 'elastic-macos-arm64.tar.gz')], { encoding: 'utf8' })
+    const archive = bashPath(join(out, 'elastic-macos-arm64.tar.gz'))
+    const listing = run('bash', ['-c', 'tar -tzf "$1"', 'tar', archive])
+    assert.equal(listing.status, 0, listing.stderr)
     assert.equal(listing.stdout.trim(), 'elastic-macos-arm64')
     assert.equal(await readFile(join(out, 'elastic-windows-x64.exe'), 'utf8'), 'exe-x64')
     await rm(dir, { recursive: true })
