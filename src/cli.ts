@@ -10,6 +10,8 @@ import type { OpaqueCommandHandle } from './factory-core.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './config/profiles.ts'
 import { NAMESPACES } from './namespaces.ts'
 import type { LoadConfigResult } from './config/loader.ts'
+import type { EarlyHints } from './config/early-scan.ts'
+import type { ResolvedConfig } from './config/types.ts'
 
 // Argv pre-scan (single pass to detect flags, help, and operands)
 const argv = process.argv.slice(2)
@@ -162,22 +164,40 @@ if (firstArg != null && !SKIP_EARLY_CONFIG.has(firstArg)) {
   // hint and no command policy, so registration/help needs nothing from config.
   // Skip the heavy `config/loader` import (ajv + yaml + resolver) in that case so
   // `--help` and bare-namespace startup stay off the config stack. See #706.
-  const { hasConfigSource } = await import('./config/discover.js')
-  if (hasOverrides || await hasConfigSource()) {
-    const { loadConfig } = await import('./config/loader.js')
-    earlyConfig = await loadConfig({
-      ...(earlyConfigPath != null && { configPath: earlyConfigPath }),
-      ...(earlyContext != null && { contextName: earlyContext }),
-      ...(earlyProfile != null && { profileName: earlyProfile }),
-      refresh: hasOverrides,
-      // Registration/help only needs version hints + command policy. Skip resolving
-      // the active context so `--help` never spawns `$(cmd:...)` secret subprocesses;
-      // the preAction hook does the full resolve before any handler runs. See #706.
-      skipContextResolve: true,
-    })
-    if (earlyConfig.ok) {
+  const { discoverConfigFile, ENV_CONFIG_FILE } = await import('./config/discover.js')
+  const envConfigFile = process.env[ENV_CONFIG_FILE]
+  const earlyPath = earlyConfigPath ?? (envConfigFile != null && envConfigFile.length > 0 ? envConfigFile : await discoverConfigFile())
+  if (earlyPath != null || hasOverrides) {
+    // Fast path: a dependency-free scan of the version hints avoids loading `yaml`
+    // (~60 modules). Command policies and anything it cannot prove it understands
+    // fall through to the full loader below.
+    let hints: EarlyHints | 'unsupported' = 'unsupported'
+    if (earlyPath != null && earlyProfile == null) {
+      const { scanEarlyConfigFile } = await import('./config/early-scan.js')
+      hints = await scanEarlyConfigFile(earlyPath, earlyContext)
+    }
+    if (hints !== 'unsupported') {
       const { setResolvedConfig } = await import('./config/store.js')
-      setResolvedConfig(earlyConfig.value)
+      setResolvedConfig({ context: {
+        ...(hints.elasticsearch != null && { elasticsearch: { version: hints.elasticsearch } }),
+        ...(hints.kibana != null && { kibana: { version: hints.kibana } }),
+      } } as ResolvedConfig)
+    } else {
+      const { loadConfig } = await import('./config/loader.js')
+      earlyConfig = await loadConfig({
+        ...(earlyConfigPath != null && { configPath: earlyConfigPath }),
+        ...(earlyContext != null && { contextName: earlyContext }),
+        ...(earlyProfile != null && { profileName: earlyProfile }),
+        refresh: hasOverrides,
+        // Registration/help only needs version hints + command policy. Skip resolving
+        // the active context so `--help` never spawns `$(cmd:...)` secret subprocesses;
+        // the preAction hook does the full resolve before any handler runs. See #706.
+        skipContextResolve: true,
+      })
+      if (earlyConfig.ok) {
+        const { setResolvedConfig } = await import('./config/store.js')
+        setResolvedConfig(earlyConfig.value)
+      }
     }
   }
 }
