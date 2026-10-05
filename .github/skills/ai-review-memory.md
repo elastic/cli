@@ -30,3 +30,4 @@ Action items for the next AI review. Follow these. Do not repeat the rejected fi
 - Do not re-flag console.log usage in Command .action() handlers that delegate output to a factory or defineCommand wrapper, as the direct print has already been replaced by the proper output layer.
 - Do not re-flag lone directive lines being offered as tab-completion candidates. The shell already filters them out before candidates are presented.
 - Do not re-flag missing exports from next-command.ts. The module already exports isAuthStatus, formatAuthFailure, and withAuthHint.
+- Do not re-flag missing artifact downloads before publish-release.sh runs. The publish step already downloads final/* before the script executes.
