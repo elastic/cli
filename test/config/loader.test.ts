@@ -244,6 +244,35 @@ describe('loadConfig -- inline secret permission warning', () => {
     const warnings = chunks.join('').match(/contains inline secrets/g) ?? []
     assert.equal(warnings.length, 1)
   })
+
+  it('does not emit the warning on the skipContextResolve (help) path', { skip: process.platform === 'win32' }, async () => {
+    const tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-warning-'))
+    const configPath = join(tmpDir, '.elasticrc.yml')
+    await writeFile(configPath, VALID_CONFIG_YAML)
+    await chmod(configPath, 0o644)
+
+    const originalWrite = process.stderr.write.bind(process.stderr)
+    const chunks: string[] = []
+    process.stderr.write = ((chunk: string | Uint8Array) => {
+      chunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
+      return true
+    }) as typeof process.stderr.write
+
+    _testResetLooseInlineSecretWarning()
+    try {
+      const help = await loadConfig({ configPath, skipContextResolve: true, refresh: true })
+      assert.equal(help.ok, true)
+      assert.equal(chunks.join(''), '')
+      const full = await loadConfig({ configPath, refresh: true })
+      assert.equal(full.ok, true)
+    } finally {
+      process.stderr.write = originalWrite
+      _testResetLooseInlineSecretWarning()
+      await rm(tmpDir, { recursive: true })
+    }
+
+    assert.equal((chunks.join('').match(/contains inline secrets/g) ?? []).length, 1)
+  })
 })
 
 // ---------------------------------------------------------------------------

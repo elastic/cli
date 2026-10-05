@@ -355,12 +355,13 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     }
   }
 
+  if (skipContextResolve) return resolveHelpConfig(raw, contextName, profileName)
+
   // Warn (stderr only) when the file has inline secrets AND looser-than-0600 perms.
+  // Only on the executing path: help/registration must stay silent and fast.
   if (resolvedPath != null) {
     await warnOnLoosePermsIfInlineSecrets(resolvedPath, raw)
   }
-
-  if (skipContextResolve) return resolveHelpConfig(raw, contextName, profileName)
 
   const { StructuralConfigSchema, ContextSchema, CommandPolicySchema } = await import('./schema.js')
   const { resolveExpressions } = await import('@elastic/config-resolver')
