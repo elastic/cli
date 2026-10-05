@@ -13,6 +13,15 @@ import { fileURLToPath } from 'node:url'
 
 const scripts = fileURLToPath(new URL('../../.buildkite/scripts/', import.meta.url))
 
+// GNU tar treats C:\... as a remote host. Git bash wants /c/...
+function bashPath (p: string): string {
+  if (process.platform !== 'win32') return p
+  const slashed = p.replaceAll('\\', '/')
+  const drive = /^([A-Za-z]):\/(.*)$/.exec(slashed)
+  if (!drive) return slashed
+  return `/${drive[1].toLowerCase()}/${drive[2]}`
+}
+
 function run (cmd: string, args: string[], env: NodeJS.ProcessEnv = {}) {
   return spawnSync(cmd, args, {
     encoding: 'utf8',
@@ -31,7 +40,7 @@ describe('pack-sign.sh', () => {
     await writeFile(join(src, 'elastic-windows-x64.exe'), 'exe-x64')
     await writeFile(join(src, 'elastic-windows-arm64.exe'), 'exe-arm64')
 
-    const result = run('bash', [join(scripts, 'pack-sign.sh'), src, out])
+    const result = run('bash', [join(scripts, 'pack-sign.sh'), bashPath(src), bashPath(out)])
     assert.equal(result.status, 0, result.stderr)
 
     const listing = spawnSync('tar', ['-tzf', join(out, 'elastic-macos-arm64.tar.gz')], { encoding: 'utf8' })
@@ -50,12 +59,12 @@ describe('pack-sign.sh', () => {
     await writeFile(join(src, 'elastic-windows-x64.exe'), 'exe-x64')
     await writeFile(join(src, 'elastic-windows-arm64.exe'), 'exe-arm64')
 
-    const linked = run('bash', [join(scripts, 'pack-sign.sh'), src, join(dir, 'out')])
+    const linked = run('bash', [join(scripts, 'pack-sign.sh'), bashPath(src), bashPath(join(dir, 'out'))])
     assert.notEqual(linked.status, 0)
     assert.match(linked.stderr, /refusing symlink elastic-macos-x64/)
 
     await rm(join(src, 'elastic-macos-x64'))
-    const missing = run('bash', [join(scripts, 'pack-sign.sh'), src, join(dir, 'out2')])
+    const missing = run('bash', [join(scripts, 'pack-sign.sh'), bashPath(src), bashPath(join(dir, 'out2'))])
     assert.notEqual(missing.status, 0)
     assert.match(missing.stderr, /missing elastic-macos-x64/)
     await rm(dir, { recursive: true })
@@ -134,16 +143,17 @@ describe('verify-macos-signature.sh', () => {
 })
 
 describe('lookup_triggered_build_id', () => {
+  // A function, not a PATH entry. Windows CI has curl.exe, and a drive-letter
+  // PATH entry is not a directory bash searches first.
+  const script = [
+    'curl() { printf \'%s\\n\' "$@" > "$CURL_ARGS"; printf \'%s\' "$CURL_BODY"; }',
+    'source "$LIB"',
+    'lookup_triggered_build_id macos-sign-service',
+  ].join('\n')
+
   it('returns the one triggered build and ignores a bad jobs payload', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'bk-lookup-'))
     const recorded = join(dir, 'curl-args')
-    await writeFile(join(dir, 'curl'), [
-      '#!/bin/bash',
-      `printf '%s\\n' "$@" > ${JSON.stringify(recorded)}`,
-      'printf \'%s\' "$CURL_BODY"',
-      '',
-    ].join('\n'))
-    await chmod(join(dir, 'curl'), 0o755)
     const body = JSON.stringify({
       jobs: [
         { step_key: 'macos-sign-service', triggered_build: { id: 'build-mac' } },
@@ -151,17 +161,13 @@ describe('lookup_triggered_build_id', () => {
         { step_key: 'macos-sign-service-extra', triggered_build: { id: 'other' } },
       ],
     })
-    const script = [
-      'source "$LIB"',
-      'lookup_triggered_build_id macos-sign-service',
-    ].join('\n')
-    const ok = run('bash', ['-c', script], {
+    const env = {
       LIB: join(scripts, 'lib.sh'),
-      PATH: `${dir}:${process.env.PATH}`,
-      CURL_BODY: body,
+      CURL_ARGS: bashPath(recorded),
       BUILDKITE_TOKEN_SECRET: 'super-secret-token',
       BUILDKITE_BUILD_NUMBER: '42',
-    })
+    }
+    const ok = run('bash', ['-c', script], { ...env, CURL_BODY: body })
     assert.equal(ok.status, 0, ok.stderr)
     assert.equal(ok.stdout.trim(), 'build-mac')
     assert.doesNotMatch(ok.stdout, /super-secret-token/)
@@ -169,43 +175,39 @@ describe('lookup_triggered_build_id', () => {
     assert.match(args, /pipelines\/elastic-cli-release\/builds\/42/)
     assert.match(args, /Bearer super-secret-token/)
 
-    const empty = run('bash', ['-c', script], {
-      LIB: join(scripts, 'lib.sh'),
-      PATH: `${dir}:${process.env.PATH}`,
-      CURL_BODY: JSON.stringify({}),
-      BUILDKITE_TOKEN_SECRET: 'super-secret-token',
-      BUILDKITE_BUILD_NUMBER: '42',
-    })
+    const empty = run('bash', ['-c', script], { ...env, CURL_BODY: JSON.stringify({}) })
     assert.notEqual(empty.status, 0)
 
     const dup = run('bash', ['-c', script], {
-      LIB: join(scripts, 'lib.sh'),
-      PATH: `${dir}:${process.env.PATH}`,
+      ...env,
       CURL_BODY: JSON.stringify({
         jobs: [
           { step_key: 'macos-sign-service', triggered_build: { id: 'a' } },
           { step_key: 'macos-sign-service', triggered_build: { id: 'b' } },
         ],
       }),
-      BUILDKITE_TOKEN_SECRET: 'super-secret-token',
-      BUILDKITE_BUILD_NUMBER: '42',
     })
     assert.notEqual(dup.status, 0)
     await rm(dir, { recursive: true })
   })
 
-  it('fails when the API call fails', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'bk-lookup-fail-'))
-    await writeFile(join(dir, 'curl'), '#!/bin/bash\nexit 22\n')
-    await chmod(join(dir, 'curl'), 0o755)
-    const result = run('bash', ['-c', 'source "$LIB"; lookup_triggered_build_id macos-sign-service'], {
+  it('fails when the API call fails', () => {
+    const result = run('bash', ['-c', 'curl() { return 22; }; source "$LIB"; lookup_triggered_build_id macos-sign-service'], {
       LIB: join(scripts, 'lib.sh'),
-      PATH: `${dir}:${process.env.PATH}`,
       BUILDKITE_TOKEN_SECRET: 'token',
       BUILDKITE_BUILD_NUMBER: '7',
     })
     assert.notEqual(result.status, 0)
-    await rm(dir, { recursive: true })
+  })
+})
+
+describe('release.yml publish step', () => {
+  it('downloads final artifacts onto the fresh agent', async () => {
+    const yml = await readFile(new URL('../../.buildkite/release.yml', import.meta.url), 'utf8')
+    const publish = yml.slice(yml.indexOf('key: publish-release'))
+    assert.match(publish, /buildkite-agent artifact download "final\/\*" \./)
+    const verify = yml.slice(yml.indexOf('key: verify-macos'), yml.indexOf('key: publish-release'))
+    assert.match(verify, /buildkite-agent artifact download "final\/elastic-macos-\*" \./)
   })
 })
 

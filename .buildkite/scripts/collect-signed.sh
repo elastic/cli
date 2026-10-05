@@ -7,6 +7,7 @@
 
 set -euo pipefail
 
+# shellcheck source=lib.sh
 source "$(dirname "$0")/lib.sh"
 
 : "${BUILDKITE_READ_PATH:=secret/ci/elastic-cli/buildkite-read}"

@@ -100,4 +100,6 @@ steps:
       - elastic/vault-github-token#v0.2.1:
       - elastic/gh-cli#v0.1.1:
           version: "2.92.0"
-    command: .buildkite/scripts/publish-release.sh
+    command: |
+      buildkite-agent artifact download "final/*" .
+      .buildkite/scripts/publish-release.sh
