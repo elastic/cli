@@ -28,8 +28,7 @@
 import { readFile, stat } from 'node:fs/promises'
 import { extname } from 'node:path'
 import { parse as parseYaml } from 'yaml'
-import { ContextSchema, CommandPolicySchema, StructuralConfigSchema } from './schema.ts'
-import { resolveExpressions } from '@elastic/config-resolver'
+// ./schema (ajv) and @elastic/config-resolver are imported lazily in loadConfig so the help path skips them
 import { ENV_CONFIG_FILE, discoverConfigFile } from './discover.ts'
 import { hasInlineSecrets, type RawConfig } from './writer.ts'
 import type { ConfigFile, ResolvedConfig, ResolvedContext } from './types.ts'
@@ -170,6 +169,48 @@ export function resolveContext (config: ConfigFile, contextName: string, profile
   if (config.banner != null) result.banner = config.banner
   if (config.telemetry != null) result.telemetry = config.telemetry
   return result
+}
+
+/** True when `v` is absent or a string array; guards the unvalidated help-path policy. */
+function isOptionalStringArray (v: unknown): boolean {
+  return v === undefined || (Array.isArray(v) && v.every(x => typeof x === 'string'))
+}
+
+/**
+ * Builds a `ResolvedConfig` for command registration/help straight from the parsed
+ * file, skipping ajv validation and expression resolution. Only version hints and
+ * the command policy are needed there, and importing ajv alone costs ~40ms. Full
+ * validation still runs in the preAction hook before any handler. Fails open: a
+ * malformed config returns an error, which the early loader ignores. See #706.
+ */
+function resolveHelpConfig (raw: unknown, contextName: string | undefined, profileName: BuiltInProfile | undefined): LoadConfigResult {
+  const invalid: LoadConfigResult = { ok: false, error: { message: 'Invalid configuration' } }
+  if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) return invalid
+  const r = raw as Record<string, unknown>
+  const contexts = r['contexts']
+  if (contexts == null || typeof contexts !== 'object' || Array.isArray(contexts)) return invalid
+  const name = contextName ?? r['current_context']
+  if (typeof name !== 'string' || !(name in contexts)) return invalid
+
+  const ctx = (contexts as Record<string, ConfigFile['contexts'][string] | null>)[name]
+  if (ctx == null || typeof ctx !== 'object') return invalid
+  const defaultProfile = r['default_profile']
+  const config: ConfigFile = {
+    current_context: name,
+    contexts: { [name]: ctx },
+    ...(r['commands'] != null && { commands: r['commands'] as NonNullable<ConfigFile['commands']> }),
+    ...(typeof defaultProfile === 'string' && (BUILT_IN_PROFILES as readonly string[]).includes(defaultProfile) && { default_profile: defaultProfile as BuiltInProfile }),
+    ...(r['banner'] != null && { banner: r['banner'] as NonNullable<ConfigFile['banner']> }),
+    ...(r['telemetry'] != null && { telemetry: r['telemetry'] as NonNullable<ConfigFile['telemetry']> }),
+  }
+  // unvalidated policy reaches hideBlockedCommands, which assumes string arrays
+  const wellFormed = [config.commands, ctx.commands].every(p => p == null || (typeof p === 'object' && isOptionalStringArray(p.allowed) && isOptionalStringArray(p.blocked)))
+  if (!wellFormed) return invalid
+  try {
+    return { ok: true, value: resolveContext(config, name, profileName), contextName: name }
+  } catch (err) {
+    return { ok: false, error: { message: err instanceof Error ? err.message : String(err) } }
+  }
 }
 
 /**
@@ -319,6 +360,10 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     await warnOnLoosePermsIfInlineSecrets(resolvedPath, raw)
   }
 
+  if (skipContextResolve) return resolveHelpConfig(raw, contextName, profileName)
+
+  const { StructuralConfigSchema, ContextSchema, CommandPolicySchema } = await import('./schema.js')
+  const { resolveExpressions } = await import('@elastic/config-resolver')
   // Step 2: structural validation (shape only, no deep context validation)
   const structural = StructuralConfigSchema.safeParse(raw)
   if (!structural.success) {
@@ -364,12 +409,7 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
   let resolvedRawCommands: unknown
   try {
     [resolvedRawContext, resolvedRawCommands] = await Promise.all([
-      // Registration/help loads only need version hints + command policy, so they
-      // skip resolving the active context -- its `$(cmd:...)` secrets would spawn
-      // subprocesses that are useless for building help output. See #706.
-      skipContextResolve
-        ? contexts[resolvedContextName]
-        : resolveExpressions(contexts[resolvedContextName], `contexts.${resolvedContextName}`),
+      resolveExpressions(contexts[resolvedContextName], `contexts.${resolvedContextName}`),
       rawCommands != null ? resolveExpressions(rawCommands, 'commands') : undefined,
     ])
   } catch (err) {
@@ -380,19 +420,12 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     }
   }
 
-  // Step 5: validate active context and commands with full schemas. In
-  // skipContextResolve mode the context still holds unresolved expressions, so
-  // it cannot pass ContextSchema; pass it through raw (only version/commands are read).
-  let ctx: ConfigFile['contexts'][string]
-  if (skipContextResolve) {
-    ctx = resolvedRawContext as ConfigFile['contexts'][string]
-  } else {
-    const contextParsed = ContextSchema.safeParse(resolvedRawContext)
-    if (!contextParsed.success) {
-      return { ok: false, error: { message: formatAjvErrors(contextParsed.errors) } }
-    }
-    ctx = contextParsed.data
+  // Step 5: validate active context and commands with full schemas.
+  const contextParsed = ContextSchema.safeParse(resolvedRawContext)
+  if (!contextParsed.success) {
+    return { ok: false, error: { message: formatAjvErrors(contextParsed.errors) } }
   }
+  const ctx = contextParsed.data
 
   let commands: ConfigFile['commands']
   if (resolvedRawCommands != null) {
@@ -419,6 +452,6 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     const message = err instanceof Error ? err.message : String(err)
     result = { ok: false, error: { message } }
   }
-  if (!skipContextResolve) _cachedConfig = result
+  _cachedConfig = result
   return result
 }

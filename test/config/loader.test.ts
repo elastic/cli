@@ -795,6 +795,105 @@ contexts:
   })
 })
 
+describe('loadConfig -- skipContextResolve (registration/help fast path)', () => {
+  let tmpDir: string
+  before(async () => { tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-skip-')) })
+  after(async () => { await rm(tmpDir, { recursive: true, force: true }) })
+
+  async function load (yaml: string, extra: Parameters<typeof loadConfig>[0] = {}): Promise<Awaited<ReturnType<typeof loadConfig>>> {
+    const configPath = join(tmpDir, 'skip.yml')
+    await writeFile(configPath, yaml)
+    return loadConfig({ configPath, skipContextResolve: true, refresh: true, ...extra })
+  }
+
+  it('returns version hints without resolving expressions or validating the url', async () => {
+    const result = await load(`
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      version: "9.2"
+      url: $(cmd:exit 1)
+      auth:
+        api_key: $(cmd:exit 1)
+`.trimStart())
+    assert.ok(result.ok, !result.ok ? result.error.message : '')
+    assert.equal(result.value.context.elasticsearch?.version, '9.2')
+  })
+
+  it('honours contextName over current_context', async () => {
+    const result = await load(`
+current_context: a
+contexts:
+  a: { elasticsearch: { version: "9.1" } }
+  b: { kibana: { version: "9.3" } }
+`.trimStart(), { contextName: 'b' })
+    assert.ok(result.ok, !result.ok ? result.error.message : '')
+    assert.equal(result.contextName, 'b')
+    assert.equal(result.value.context.kibana?.version, '9.3')
+    assert.equal(result.value.context.elasticsearch, undefined)
+  })
+
+  it('threads command policy, default_profile, banner and telemetry', async () => {
+    const result = await load(`
+current_context: a
+default_profile: stack
+banner: false
+telemetry: false
+commands:
+  blocked: [es.delete]
+contexts:
+  a: { elasticsearch: { version: "9.1" } }
+`.trimStart())
+    assert.ok(result.ok, !result.ok ? result.error.message : '')
+    assert.deepEqual(result.value.commands, { profile: 'stack', blocked: ['es.delete'] })
+    assert.equal(result.value.banner, false)
+    assert.equal(result.value.telemetry, false)
+  })
+
+  it('ignores an unknown default_profile', async () => {
+    const result = await load(`
+current_context: a
+default_profile: bogus
+contexts:
+  a: { elasticsearch: { version: "9.1" } }
+`.trimStart())
+    assert.ok(result.ok, !result.ok ? result.error.message : '')
+    assert.equal(result.value.commands, undefined)
+  })
+
+  it('does not populate the result cache', async () => {
+    const yaml = 'current_context: a\ncontexts:\n  a: { elasticsearch: { version: "9.1" } }\n'
+    await load(yaml)
+    const full = await loadConfig({ configPath: join(tmpDir, 'skip.yml') })
+    assert.ok(!full.ok, 'cached fast-path result must not satisfy a full load (url/auth missing)')
+  })
+
+  for (const [label, yaml] of [
+    ['a non-object file', '- a\n- b\n'],
+    ['missing contexts', 'current_context: a\n'],
+    ['array contexts', 'current_context: a\ncontexts: [a]\n'],
+    ['missing current_context', 'contexts:\n  a: { elasticsearch: { version: "9.1" } }\n'],
+    ['an empty active context', 'current_context: a\ncontexts:\n  a:\n'],
+    ['unknown current_context', 'current_context: z\ncontexts:\n  a: { elasticsearch: { version: "9.1" } }\n'],
+    ['non-array commands.allowed', 'current_context: a\ncommands: { allowed: 5 }\ncontexts:\n  a: { elasticsearch: { version: "9.1" } }\n'],
+    ['non-string commands.blocked entries', 'current_context: a\ncontexts:\n  a:\n    elasticsearch: { version: "9.1" }\n    commands: { blocked: [1] }\n'],
+  ] as const) {
+    it(`fails open (error result, no throw) for ${label}`, async () => {
+      const result = await load(yaml)
+      assert.ok(!result.ok)
+    })
+  }
+
+  it('returns an error for an invalid profile/allowed combination', async () => {
+    const result = await load(
+      'current_context: a\ncommands: { allowed: [ping] }\ncontexts:\n  a: { elasticsearch: { version: "9.1" } }\n',
+      { profileName: 'stack' }
+    )
+    assert.ok(!result.ok)
+  })
+})
+
 describe('security: executable config formats are rejected', () => {
   let tmpDir: string
   before(async () => {
