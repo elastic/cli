@@ -83,6 +83,10 @@ describe('verify-macos-signature.sh', () => {
       'if [[ "$1" == "--verify" ]]; then',
       '  exit "${VERIFY_EXIT:-0}"',
       'fi',
+      'if [[ "$1" == "-dv" ]]; then',
+      '  printf \'%s\\n\' "$CODESIGN_DV"',
+      '  exit 0',
+      'fi',
       'if [[ "$1" == "-d" ]]; then',
       '  printf \'%s\\n\' "$ENTITLEMENTS_XML"',
       '  exit 0',
@@ -100,8 +104,11 @@ describe('verify-macos-signature.sh', () => {
 
   const plist = [
     '<key>com.apple.security.cs.allow-jit</key>',
+    '<true/>',
     '<key>com.apple.security.cs.allow-unsigned-executable-memory</key>',
+    '<true/>',
   ].join('\n')
+  const developerId = 'Authority=Developer ID Application: Elasticsearch, Inc (TEST)'
 
   async function binaries () {
     const dir = await mkdtemp(join(tmpdir(), 'verify-macos-'))
@@ -115,6 +122,7 @@ describe('verify-macos-signature.sh', () => {
     const result = run('bash', [join(scripts, 'verify-macos-signature.sh'), dir], {
       PATH: `${binDir}:${process.env.PATH}`,
       ENTITLEMENTS_XML: plist,
+      CODESIGN_DV: developerId,
       VERIFY_EXIT: '0',
     })
     assert.equal(result.status, 0, result.stderr)
@@ -125,7 +133,8 @@ describe('verify-macos-signature.sh', () => {
     const dir = await binaries()
     const result = run('bash', [join(scripts, 'verify-macos-signature.sh'), dir], {
       PATH: `${binDir}:${process.env.PATH}`,
-      ENTITLEMENTS_XML: '<key>com.apple.security.cs.allow-unsigned-executable-memory</key>',
+      ENTITLEMENTS_XML: '<key>com.apple.security.cs.allow-unsigned-executable-memory</key><true/>',
+      CODESIGN_DV: developerId,
     })
     assert.notEqual(result.status, 0)
     assert.match(result.stderr, /missing com\.apple\.security\.cs\.allow-jit/)
@@ -137,10 +146,109 @@ describe('verify-macos-signature.sh', () => {
     const result = run('bash', [join(scripts, 'verify-macos-signature.sh'), dir], {
       PATH: `${binDir}:${process.env.PATH}`,
       ENTITLEMENTS_XML: plist,
+      CODESIGN_DV: developerId,
       VERIFY_EXIT: '1',
     })
     assert.notEqual(result.status, 0)
     await rm(dir, { recursive: true })
+  })
+
+  it('rejects an entitlement set to false', async () => {
+    const dir = await binaries()
+    const result = run('bash', [join(scripts, 'verify-macos-signature.sh'), dir], {
+      PATH: `${binDir}:${process.env.PATH}`,
+      ENTITLEMENTS_XML: [
+        '<key>com.apple.security.cs.allow-jit</key>',
+        '<false/>',
+        '<key>com.apple.security.cs.allow-unsigned-executable-memory</key>',
+        '<true/>',
+      ].join('\n'),
+      CODESIGN_DV: developerId,
+    })
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /missing com\.apple\.security\.cs\.allow-jit/)
+    await rm(dir, { recursive: true })
+  })
+
+  it('rejects an ad-hoc signature', async () => {
+    const dir = await binaries()
+    const result = run('bash', [join(scripts, 'verify-macos-signature.sh'), dir], {
+      PATH: `${binDir}:${process.env.PATH}`,
+      ENTITLEMENTS_XML: plist,
+      CODESIGN_DV: 'Signature=adhoc',
+    })
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /ad-hoc signed/)
+    await rm(dir, { recursive: true })
+  })
+
+  it('rejects a signature that is not Developer ID', async () => {
+    const dir = await binaries()
+    const result = run('bash', [join(scripts, 'verify-macos-signature.sh'), dir], {
+      PATH: `${binDir}:${process.env.PATH}`,
+      ENTITLEMENTS_XML: plist,
+      CODESIGN_DV: 'Authority=Developer ID Application: Other, Inc (TEST)',
+    })
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /not Developer ID signed/)
+    await rm(dir, { recursive: true })
+  })
+})
+
+describe('verify-signed-payload.sh', () => {
+  const names = ['elastic-macos-x64', 'elastic-macos-arm64', 'elastic-windows-x64.exe', 'elastic-windows-arm64.exe']
+
+  async function tree (signedBody: (name: string) => string) {
+    const root = await mkdtemp(join(tmpdir(), 'signed-payload-'))
+    const unsigned = join(root, 'unsigned')
+    const signed = join(root, 'final')
+    await mkdir(unsigned)
+    await mkdir(signed)
+    for (const name of names) {
+      await writeFile(join(unsigned, name), `unsigned-${name}`)
+      await writeFile(join(signed, name), signedBody(name))
+    }
+    return { root, unsigned, signed }
+  }
+
+  function runPayload (unsigned: string, signed: string, exitCode = '0') {
+    const recorded = join(unsigned, '..', 'ossl-args')
+    const result = run('bash', ['-c', [
+      'osslsigncode() { printf \'%s\\n\' "$@" >> "$OSSLSIGNCODE_ARGS"; return "${OSSLSIGNCODE_EXIT:-0}"; }',
+      'export -f osslsigncode',
+      '"$SCRIPT" "$1" "$2"',
+    ].join('\n'), 'bash', bashPath(unsigned), bashPath(signed)], {
+      SCRIPT: bashPath(join(scripts, 'verify-signed-payload.sh')),
+      OSSLSIGNCODE_ARGS: bashPath(recorded),
+      OSSLSIGNCODE_EXIT: exitCode,
+    })
+    return { recorded, result }
+  }
+
+  it('rejects a file the signer did not change', async () => {
+    const { root, unsigned, signed } = await tree((name) => `unsigned-${name}`)
+    const { result } = runPayload(unsigned, signed)
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /unchanged from the unsigned build/)
+    await rm(root, { recursive: true })
+  })
+
+  it('verifies both windows exes when every file changed', async () => {
+    const { root, unsigned, signed } = await tree((name) => `signed-${name}`)
+    const { recorded, result } = runPayload(unsigned, signed)
+    assert.equal(result.status, 0, result.stderr)
+    const args = await readFile(recorded, 'utf8')
+    assert.match(args, /-in/)
+    assert.match(args, /elastic-windows-x64\.exe/)
+    assert.match(args, /elastic-windows-arm64\.exe/)
+    await rm(root, { recursive: true })
+  })
+
+  it('rejects an exe osslsigncode will not verify', async () => {
+    const { root, unsigned, signed } = await tree((name) => `signed-${name}`)
+    const { result } = runPayload(unsigned, signed, '1')
+    assert.notEqual(result.status, 0)
+    await rm(root, { recursive: true })
   })
 })
 
@@ -210,6 +318,13 @@ describe('release.yml publish step', () => {
     assert.match(publish, /buildkite-agent artifact download "final\/\*" \./)
     const verify = yml.slice(yml.indexOf('key: verify-macos'), yml.indexOf('key: publish-release'))
     assert.match(verify, /buildkite-agent artifact download "final\/elastic-macos-\*" \./)
+  })
+
+  it('leaves macOS and Windows off the GitHub release workflow', async () => {
+    const yml = await readFile(new URL('../../.github/workflows/release-artifacts.yml', import.meta.url), 'utf8')
+    assert.match(yml, /elastic-linux-x64/)
+    assert.doesNotMatch(yml, /elastic-macos/)
+    assert.doesNotMatch(yml, /elastic-windows/)
   })
 })
 

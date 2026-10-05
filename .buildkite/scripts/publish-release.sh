@@ -2,8 +2,8 @@
 # Copyright Elasticsearch B.V. and contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Replace the unsigned macOS and Windows assets on the GitHub release.
-# Linux assets stay as release-artifacts.yml uploaded them.
+# Upload the signed macOS and Windows assets.
+# Linux assets stay on the GitHub release workflow.
 
 set -euo pipefail
 

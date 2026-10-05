@@ -6,8 +6,9 @@
 #   secret/ci/elastic-cli/buildkite-read field buildkite_token (read_builds)
 #   slug elastic-cli-release allowlisted on unified-release-macos-signing
 #   and unified-release-windows-signing
-# Publish runs only after codesign shows the bun JIT entitlements, so a
-# signer that ignores MACOS_ENTITLEMENTS_PROFILE cannot replace the release.
+# Publish runs only after the macOS binaries are Developer ID signed with the
+# bun JIT entitlements, and the Windows exes pass osslsigncode.
+# Bun 1.3.12 Mach-O is rejected by codesign (fixed in 1.3.13).
 
 env:
   BUN_VERSION: "1.3.14"
@@ -87,9 +88,29 @@ steps:
       buildkite-agent artifact download "final/elastic-macos-*" .
       .buildkite/scripts/verify-macos-signature.sh final
 
+  - label: ":lock: verify signed payloads"
+    key: verify-signed
+    depends_on: collect
+    if: build.branch =~ /^ci\// || build.tag =~ /^v/
+    agents:
+      provider: gcp
+      image: family/core-ubuntu-2204
+    command: |
+      mkdir -p unsigned
+      buildkite-agent artifact download "elastic-macos-*" unsigned/
+      buildkite-agent artifact download "elastic-windows-*.exe" unsigned/
+      buildkite-agent artifact download "final/*" .
+      if ! command -v osslsigncode >/dev/null 2>&1; then
+        sudo -n apt-get update -qq
+        sudo -n apt-get install -y osslsigncode
+      fi
+      .buildkite/scripts/verify-signed-payload.sh unsigned final
+
   - label: ":rocket: publish signed release assets"
     key: publish-release
-    depends_on: verify-macos
+    depends_on:
+      - verify-macos
+      - verify-signed
     if: build.tag =~ /^v/
     env:
       GH_REPO: elastic/cli

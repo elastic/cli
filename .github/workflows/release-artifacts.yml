@@ -1,5 +1,5 @@
 name: Release Artifacts
-# macOS and Windows assets are replaced by .buildkite/release.yml once signing succeeds.
+# Linux only. macOS and Windows are published by .buildkite/release.yml.
 
 on:
   release:
@@ -21,18 +21,6 @@ jobs:
           - os: Linux (arm64)
             target: bun-linux-arm64
             artifact: elastic-linux-arm64
-          - os: macOS (x64)
-            target: bun-darwin-x64
-            artifact: elastic-macos-x64
-          - os: macOS (arm64)
-            target: bun-darwin-arm64
-            artifact: elastic-macos-arm64
-          - os: Windows (x64)
-            target: bun-windows-x64
-            artifact: elastic-windows-x64.exe
-          - os: Windows (arm64)
-            target: bun-windows-arm64
-            artifact: elastic-windows-arm64.exe
 
     steps:
       - name: Checkout
