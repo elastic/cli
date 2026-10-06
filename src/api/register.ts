@@ -97,8 +97,7 @@ export function registerApiCommand (): OpaqueCommandHandle {
     handler: (parsed: ParsedResult<unknown>) => apiHandler(parsed, resolvedCmd as Command),
   })
   resolvedCmd = handle as unknown as Command
-  const cmd = handle as unknown as Command
-  cmd.argument('<path>', 'request path, for example / or /_cluster/health')
-  cmd.option('-H, --header <header>', 'extra request header as Name: value (repeatable)', collectHeader, [])
+  resolvedCmd.argument('<path>', 'request path, for example / or /_cluster/health')
+  resolvedCmd.option('-H, --header <header>', 'extra request header as Name: value (repeatable)', collectHeader, [])
   return handle
 }
