@@ -277,7 +277,9 @@ if (firstArg == null || firstArg === 'help') {
     if (result.code !== 0) process.exit(result.code)
   })
   if (firstArg == null) {
-    program.addHelpText('after', () => hasGlobalJsonFlag(program) ? '' : LEARN_MORE)
+    program.addHelpText('after', () => hasGlobalJsonFlag(program) ? '' : `${LEARN_MORE.trimEnd()}
+  See JSON schema for this command's accepted inputs: elastic <command> --help --json
+  See schemas for the entire command tree: elastic cli-schema`)
   }
 }
 
@@ -285,16 +287,6 @@ if (firstArg == null && !process.argv.includes('--json') && !(earlyConfig?.ok ==
   const { renderLogo } = await import('./lib/logo.js')
   program.addHelpText('before', () => renderLogo(VERSION).replace(/\n$/, ''))
 }
-
-// Learn-more footer (root help only): point humans and agents at schema discovery.
-// Skipped for --json so structured help stays parseable; evaluated at render
-// time so the parsed global flag is visible.
-program.addHelpText('after', () => hasGlobalJsonFlag(program) ? '' : [
-  '',
-  'LEARN MORE',
-  '  See JSON schema for this command\'s accepted inputs: elastic <command> --help --json',
-  '  See schemas for the entire command tree: elastic cli-schema',
-].join('\n'))
 
 // Bare invocation: show help
 if (argv.length === 0) {
