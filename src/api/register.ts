@@ -11,10 +11,9 @@
  */
 
 import type { Command } from 'commander'
-import { defineCommand } from '../factory.ts'
+import { defineCommand, inputError, missingConfigError, transportError } from '../factory.ts'
 import type { HandlerResult, JsonValue, OpaqueCommandHandle, ParsedResult } from '../factory.ts'
 import { getResolvedConfig } from '../config/store.ts'
-import { inputError, missingConfigError, transportError } from '../factory-core.ts'
 import { buildApiRequest, redactRequest, sendApiRequest } from './request.ts'
 
 function collectHeader (value: string, previous: string[]): string[] {
