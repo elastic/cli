@@ -4,36 +4,25 @@
  */
 
 /**
- * Percent-encodes a single path parameter value for use in a URL path segment.
- * Encodes all characters that are not unreserved (RFC 3986) plus `/`, `?`, and
- * `#` (handled by encodeURIComponent) so that the value cannot escape its path
- * segment. Sub-delimiters such as `!`, `'`, `(`, `)`, and critically `*` are
- * left unencoded – `*` must survive so that ES wildcard patterns like `logs-*`
- * continue to work.
- *
- * Empty, `.`, and `..` values are rejected by callers before this function is
- * reached (see buildCloudRequestParams / the ES path builder).
+ * Encodes a single decoded path segment value so it is safe to embed in a URL
+ * path. Uses encodeURIComponent as the base (encodes everything except
+ * unreserved characters) and then restores characters that are explicitly
+ * allowed in a path segment by RFC 3986 (sub-delimiters + `:` `@`) so that
+ * values like "my:index" or "user@host" round-trip without double-encoding.
  */
 export function encodePathParam (value: string): string {
   return encodeURIComponent(value)
-    // encodeURIComponent leaves `!`, `'`, `(`, `)`, `*` unencoded per the
-    // spec.  We deliberately do NOT re-encode `*` so that ES multi-target
-    // wildcard patterns (e.g. `logs-*`) survive round-tripping through URL
-    // construction.  Re-encode only `!`, `'`, `(`, `)` which have no
-    // special meaning in ES path params and could confuse some HTTP stacks.
-    .replace(/[!'()]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
-}
-
-/**
- * Encodes a multi-target path parameter (e.g. comma-separated index names).
- * Each individual target is encoded with `encodePathParam`, and commas that
- * separate targets are preserved so the cluster can still resolve them.
- *
- * Example: `"my-index,logs-*"` → `"my-index,logs-*"` (wildcard preserved)
- */
-export function encodeMultiTargetPathParam (value: string): string {
-  return value
-    .split(',')
-    .map((target) => encodePathParam(target.trim()))
-    .join(',')
+    .replace(/%21/g, '!')
+    .replace(/%24/g, '$')
+    .replace(/%26/g, '&')
+    .replace(/%27/g, "'")
+    .replace(/%28/g, '(')
+    .replace(/%29/g, ')')
+    .replace(/%2A/gi, '*')
+    .replace(/%2B/gi, '+')
+    .replace(/%2C/gi, ',')
+    .replace(/%3A/gi, ':')
+    .replace(/%3B/gi, ';')
+    .replace(/%3D/gi, '=')
+    .replace(/%40/gi, '@')
 }
