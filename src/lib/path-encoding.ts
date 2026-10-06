@@ -4,23 +4,18 @@
  */
 
 /**
- * Percent-encodes a single path parameter value.
+ * Encodes a single path segment value for safe use in a URL path.
  *
- * Encodes all characters that are not unreserved (RFC 3986) or sub-delimiters,
- * plus forward-slash, so that a caller cannot traverse to a parent resource
- * via a crafted parameter value.
+ * Uses encodeURIComponent as the baseline (encodes everything except
+ * A-Z a-z 0-9 - _ . ! ~ * ' ( )) then additionally encodes characters
+ * that are technically allowed by encodeURIComponent but have special
+ * meaning inside path segments: '!' '\'' '(' ')' '*' and '~' are left
+ * as-is by encodeURIComponent but are harmless in path segments, so we
+ * keep the standard encodeURIComponent output.
+ *
+ * This intentionally does NOT preserve slashes — callers must split on
+ * '/' before calling this function.
  */
 export function encodePathParam (value: string): string {
-  return encodeURIComponent(value).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
-}
-
-/**
- * Encodes a multi-target path parameter (comma-separated list of index/alias
- * names) by encoding each target individually and rejoining with a comma.
- *
- * This preserves the comma as a separator while ensuring each individual
- * target name is safely percent-encoded.
- */
-export function encodeMultiTargetPathParam (value: string): string {
-  return value.split(',').map((target) => encodePathParam(target.trim())).join(',')
+  return encodeURIComponent(value)
 }
