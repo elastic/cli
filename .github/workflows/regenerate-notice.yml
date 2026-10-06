@@ -1,13 +1,8 @@
 name: Regenerate NOTICE.txt
-# Runs on any PR that updates package.json / package-lock.json (human or bot)
-# and on direct pushes to main, so NOTICE.txt is always kept in sync with the
-# dependency tree and the notice-file CI check never fails spuriously.
+# Trusted main only. PRs must run `npm run generate:notice` locally; CI
+# `notice-file` (contents: read) fails the PR if NOTICE.txt is stale.
+# Do not re-add a pull_request trigger that runs npm under contents: write.
 on:
-  pull_request:
-    types: [opened, synchronize]
-    paths:
-      - package.json
-      - package-lock.json
   push:
     branches:
       - main
@@ -20,18 +15,11 @@ permissions: {}
 jobs:
   regenerate:
     runs-on: ubuntu-latest
-    # Skip fork PRs — GITHUB_TOKEN can't push to a fork's branch.
-    if: >
-      github.event_name == 'push' ||
-      github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          # For PRs, check out the head branch so we can push back to it.
-          # For pushes to main, this defaults to the pushed commit.
-          ref: ${{ github.head_ref || github.ref }}
           token: ${{ github.token }}
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -40,7 +28,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Regenerate NOTICE.txt
         run: node scripts/generate-notice.mjs
