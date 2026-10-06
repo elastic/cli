@@ -609,16 +609,10 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
             rawBodyValues[arg.schemaKey] = new RawJsonValue(JSON.stringify(value), value)
           }
         } else if (arg.type === 'object') {
-          try {
-            const parsed = JSON.parse(raw as string)
-            cliInput[arg.schemaKey] = parsed
-            if (arg.foundIn === 'body' || arg.foundIn === undefined) {
-              rawBodyValues[arg.schemaKey] = new RawJsonValue(raw as string, parsed)
-            }
-          } catch {
-            // If JSON parse fails, pass the raw value - handles schema-less fields
-            // that accept plain strings (e.g. connector update-error --error)
-            cliInput[arg.schemaKey] = raw
+          const parsed = parseJsonContent(raw as string, `--${arg.cliFlag}`, cmd)
+          cliInput[arg.schemaKey] = parsed
+          if (arg.foundIn === 'body' || arg.foundIn === undefined) {
+            rawBodyValues[arg.schemaKey] = new RawJsonValue(raw as string, parsed)
           }
         } else if (
           arg.parseStyle === 'sort-pairs' &&
