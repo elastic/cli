@@ -11,7 +11,7 @@
  */
 
 import type { Command } from 'commander'
-import { defineCommand, inputError, missingConfigError, transportError } from '../factory.ts'
+import { defineCommand } from '../factory.ts'
 import type { HandlerResult, JsonValue, OpaqueCommandHandle, ParsedResult } from '../factory.ts'
 import { getResolvedConfig } from '../config/store.ts'
 import { buildApiRequest, redactRequest, sendApiRequest } from './request.ts'
@@ -23,6 +23,21 @@ function collectHeader (value: string, previous: string[]): string[] {
 function extraHeaders (cmd: Command): string[] {
   const raw = cmd.getOptionValue('header')
   return Array.isArray(raw) ? raw as string[] : []
+}
+
+function inputError (err: unknown): HandlerResult {
+  const message = err instanceof Error ? err.message : String(err)
+  return { error: { code: 'input_error', message } } as unknown as HandlerResult
+}
+
+function missingConfigError (err: unknown): HandlerResult {
+  const message = err instanceof Error ? err.message : String(err)
+  return { error: { code: 'missing_config', message } } as unknown as HandlerResult
+}
+
+function transportError (err: unknown): HandlerResult {
+  const message = err instanceof Error ? err.message : String(err)
+  return { error: { code: 'transport_error', message } } as unknown as HandlerResult
 }
 
 async function apiHandler (parsed: ParsedResult, cmd: Command): Promise<HandlerResult> {
