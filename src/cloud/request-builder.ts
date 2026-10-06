@@ -56,7 +56,9 @@ function extractTemplatePlaceholders (template: string): string[] {
   const re = /\{([^}]+)\}/g
   let m: RegExpExecArray | null
   while ((m = re.exec(template)) !== null) {
-    found.push(m[1])
+    if (m[1] != null) {
+      found.push(m[1])
+    }
   }
   return found
 }
