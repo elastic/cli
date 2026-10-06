@@ -96,7 +96,7 @@ function serviceBlock (service: ApiService, config: ResolvedConfig | undefined) 
       'Run `elastic config context add` with `--cloud-api-key`.'
     )
   }
-  if (block.auth == null || !('api_key' in block.auth)) {
+  if (block.auth == null || !(('api_key' in block.auth))) {
     throw new Error(
       'missing_config: Cloud auth requires an api_key. ' +
       'Run `elastic config context add` with `--cloud-api-key`.'
@@ -114,7 +114,8 @@ export function redactRequest (req: ResolvedApiRequest): ResolvedApiRequest {
   const headers = { ...req.headers }
   for (const key of Object.keys(headers)) {
     if (key.toLowerCase() === 'authorization') {
-      const scheme = headers[key].split(' ')[0] ?? 'ApiKey'
+      const parts = headers[key].split(' ')
+      const scheme = parts.length > 0 ? parts[0] : 'ApiKey'
       headers[key] = `${scheme} ***`
     }
   }

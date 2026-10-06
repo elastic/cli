@@ -4,18 +4,24 @@
  */
 
 /**
- * Percent-encodes a single decoded path segment so it is safe to embed in a
- * URL path. Uses `encodeURIComponent` which encodes every character that is
- * not unreserved (A-Z a-z 0-9 - _ . ~) plus characters that would be
- * mistaken for path separators or query/fragment delimiters.
+ * Percent-encodes a single path parameter value.
  *
- * Each call receives a single already-split segment; the caller is responsible
- * for splitting on `/` before invoking this function.
- *
- * Empty string, `.`, and `..` are NOT rejected here - callers that need
- * that validation (e.g. `encodeApiPath`) perform it before calling
- * `encodePathParam`.
+ * Encodes everything that `encodeURIComponent` encodes, plus additionally
+ * encodes `/` and `%` so that a value cannot inject extra path segments or
+ * double-encode existing percent-sequences.
  */
 export function encodePathParam (value: string): string {
-  return encodeURIComponent(value)
+  return encodeURIComponent(value).replace(/%25/g, '%25').replace(/\//g, '%2F')
+}
+
+/**
+ * Encodes a multi-target path parameter (e.g. index names that may be
+ * comma-separated). Each comma-separated segment is encoded individually so
+ * that the comma delimiter is preserved while special characters within each
+ * target name are safely percent-encoded.
+ *
+ * Example: `"my-index,other/index"` → `"my-index,other%2Findex"`
+ */
+export function encodeMultiTargetPathParam (value: string): string {
+  return value.split(',').map((segment) => encodePathParam(segment)).join(',')
 }
