@@ -14,8 +14,8 @@ import type { Command } from 'commander'
 import { defineCommand } from '../factory.ts'
 import type { HandlerResult, JsonValue, OpaqueCommandHandle, ParsedResult } from '../factory.ts'
 import { getResolvedConfig } from '../config/store.ts'
+import { inputError, missingConfigError, transportError } from '../es/errors.ts'
 import { buildApiRequest, redactRequest, sendApiRequest } from './request.ts'
-import { EsResponseError, EsConnectionError } from '../lib/es-client.ts'
 
 function collectHeader (value: string, previous: string[]): string[] {
   return [...previous, value]
@@ -26,19 +26,9 @@ function extraHeaders (cmd: Command): string[] {
   return Array.isArray(raw) ? raw as string[] : []
 }
 
-function inputError (err: unknown): HandlerResult {
-  const message = err instanceof Error ? err.message : String(err)
-  return { error: { code: 'input_error', message } } as unknown as HandlerResult
-}
-
-function missingConfigError (err: unknown): HandlerResult {
-  const message = err instanceof Error ? err.message : String(err)
-  return { error: { code: 'missing_config', message } } as unknown as HandlerResult
-}
-
-async function apiHandler (parsed: ParsedResult<unknown>, liveCmd: Command): Promise<HandlerResult> {
+async function apiHandler (parsed: ParsedResult, cmd: Command): Promise<HandlerResult> {
   const method = parsed.arg ?? ''
-  const path = typeof liveCmd.processedArgs[1] === 'string' ? liveCmd.processedArgs[1] : ''
+  const path = typeof cmd.processedArgs[1] === 'string' ? cmd.processedArgs[1] : ''
   const service = String(parsed.options['service'] ?? '')
   const fromFile = parsed.options['input-file'] != null
   const input = parsed.input
@@ -50,7 +40,7 @@ async function apiHandler (parsed: ParsedResult<unknown>, liveCmd: Command): Pro
       method,
       path,
       service,
-      extraHeaders: extraHeaders(liveCmd),
+      extraHeaders: extraHeaders(cmd),
       body,
       config: parsed.config ?? getResolvedConfig(),
     })
@@ -59,22 +49,13 @@ async function apiHandler (parsed: ParsedResult<unknown>, liveCmd: Command): Pro
     }
     return await sendApiRequest(req) as JsonValue
   } catch (err) {
-    // Let EsResponseError (HTTP 4xx/5xx) and EsConnectionError bubble up so the
-    // top-level error handler can apply the usual auth_required / status_code
-    // mapping instead of collapsing them into a generic transport_error.
-    if (err instanceof EsResponseError || err instanceof EsConnectionError) {
-      throw err
-    }
-
     const code = err != null && typeof err === 'object' && 'code' in err
       ? (err as { code?: unknown }).code
       : undefined
     if (code === 'input_error') return inputError(err)
     const message = err instanceof Error ? err.message : String(err)
     if (message.startsWith('missing_config')) return missingConfigError(err)
-
-    // Re-throw anything else we don't recognise so it surfaces clearly.
-    throw err
+    return transportError(err)
   }
 }
 
@@ -83,9 +64,7 @@ async function apiHandler (parsed: ParsedResult<unknown>, liveCmd: Command): Pro
  * the factory only wires one; the path argument is registered after defineCommand.
  */
 export function registerApiCommand (): OpaqueCommandHandle {
-  let resolvedCmd: Command | undefined
-
-  const handle = defineCommand({
+  const cmd = defineCommand({
     name: 'api',
     description: 'Send an untyped HTTP request using the active context (prefer generated commands)',
     positionalArg: { name: 'method', description: 'HTTP method (GET, POST, PUT, DELETE, HEAD, PATCH)', required: true },
@@ -94,10 +73,9 @@ export function registerApiCommand (): OpaqueCommandHandle {
     ],
     input: { type: 'object', additionalProperties: true },
     passthroughDryRun: true,
-    handler: (parsed: ParsedResult<unknown>) => apiHandler(parsed, resolvedCmd as Command),
+    handler: (parsed) => apiHandler(parsed, cmd),
   })
-  resolvedCmd = handle as unknown as Command
-  resolvedCmd.argument('<path>', 'request path, for example / or /_cluster/health')
-  resolvedCmd.option('-H, --header <header>', 'extra request header as Name: value (repeatable)', collectHeader, [])
-  return handle
+  cmd.argument('<path>', 'request path, for example / or /_cluster/health')
+  cmd.option('-H, --header <header>', 'extra request header as Name: value (repeatable)', collectHeader, [])
+  return cmd
 }

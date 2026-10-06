@@ -7,10 +7,10 @@ import { encodePathParam } from '../lib/path-encoding.ts'
 
 export interface EncodedApiPath {
   pathname: string
-  query: Array<[string, string]>
+  query: Record<string, string>
 }
 
-export function inputError (message: string): never {
+function inputError (message: string): never {
   throw Object.assign(new Error(message), { code: 'input_error' })
 }
 
@@ -23,27 +23,11 @@ function decodeSegment (segment: string, original: string): string {
 }
 
 /**
- * Validates a named path parameter value, throwing with code 'input_error' if
- * the value is empty, '.', or '..' (which would widen or traverse the request scope).
- */
-export function validatePathParam (name: string, value: string): void {
-  if (value === '') {
-    inputError(`Invalid path parameter "${name}": empty string would widen the request scope instead of targeting a specific resource`)
-  }
-  if (value === '.' || value === '..') {
-    inputError(`Invalid path parameter "${name}": value "${value}" resolves to the parent/root resource instead of a specific target`)
-  }
-}
-
-/**
- * Splits a user-supplied request path into an encoded pathname and query pairs.
+ * Splits a user-supplied request path into an encoded pathname and query map.
  *
  * Query string and fragment are stripped before encoding. Each path segment is
  * decoded, rejected if it is empty / `.` / `..`, then percent-encoded so a
  * caller cannot traverse to the parent resource via `../` or `%2e%2e`.
- *
- * Repeated query keys (e.g. `?a=1&a=2`) are preserved as separate pairs so
- * that the downstream request is sent exactly as given.
  */
 export function encodeApiPath (raw: string): EncodedApiPath {
   const hash = raw.indexOf('#')
@@ -61,18 +45,14 @@ export function encodeApiPath (raw: string): EncodedApiPath {
       if (i === segments.length - 1) continue
       inputError(`Invalid path parameter "" (within "${raw}"): empty, ".", and ".." segments are rejected because they resolve to the parent/root resource instead of a specific target`)
     }
-    const decoded = decodeSegment(seg, raw)
-    if (decoded === '.' || decoded === '..') {
-      inputError(`Invalid path parameter "${seg}" (within "${raw}"): empty, ".", and ".." segments are rejected because they resolve to the parent/root resource instead of a specific target`)
-    }
-    encoded.push(encodePathParam(decoded))
+    encoded.push(encodePathParam(decodeSegment(seg, raw)))
   }
   const pathname = encoded.length === 1 ? '/' : encoded.join('/')
 
-  const query: Array<[string, string]> = []
+  const query: Record<string, string> = {}
   if (queryPart !== '') {
-    for (const pair of new URLSearchParams(queryPart)) {
-      query.push(pair as [string, string])
+    for (const [key, value] of new URLSearchParams(queryPart)) {
+      query[key] = value
     }
   }
   return { pathname, query }

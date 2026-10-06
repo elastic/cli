@@ -3,39 +3,36 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * Characters that must be percent-encoded in a path segment but are NOT
- * encoded by encodeURIComponent (which follows RFC 3986 unreserved chars).
- *
- * We additionally encode `/` and `+` to prevent path traversal and avoid
- * ambiguity with legacy `application/x-www-form-urlencoded` encoding.
- */
-const EXTRA_ENCODE_RE = /[!*'();:@&=+$,/?#\[\]]/g
+// `encodeURIComponent` leaves `.` and `..` untouched (they're unreserved), and
+// encodes an empty string to `''`. A URL-consuming layer normalizes `/./`,
+// `/../`, and empty segments out of the path, silently widening a single-target
+// request (e.g. a specific index) to the resource root (e.g. the whole cluster).
+// Reject these before they ever reach a path.
+export function assertSafePathSegment (segment: string, original: string): void {
+  if (segment === '' || segment === '.' || segment === '..') {
+    const context = segment === original ? '' : ` (within "${original}")`
+    throw Object.assign(
+      new Error(`Invalid path parameter "${segment}"${context}: empty, ".", and ".." segments are rejected because they resolve to the parent/root resource instead of a specific target`),
+      { code: 'input_error' }
+    )
+  }
+}
 
-/**
- * Percent-encodes a single path parameter value.
- *
- * encodeURIComponent handles most special chars; we additionally encode the
- * few characters it leaves unescaped that could affect URL interpretation.
- */
+/** Encodes a single path parameter value, rejecting empty, `.`, and `..`. */
 export function encodePathParam (value: string): string {
-  return encodeURIComponent(value).replace(EXTRA_ENCODE_RE, (c) => {
-    const code = c.charCodeAt(0).toString(16).toUpperCase()
-    return `%${code.length === 1 ? '0' + code : code}`
-  })
+  assertSafePathSegment(value, value)
+  return encodeURIComponent(value)
 }
 
 /**
- * Encodes a multi-target path parameter — a comma-separated list of index
- * names or aliases (e.g. `"logs-*,metrics-*"`) — by encoding each target
- * individually and rejoining with commas.
- *
- * Commas that separate targets are NOT encoded so that Elasticsearch receives
- * a proper multi-target selector.
+ * Encodes a path parameter that may use Elasticsearch multi-target syntax
+ * (e.g. `"idx1,idx2"`). Each comma-separated segment is trimmed, validated,
+ * and percent-encoded individually; commas are preserved as separators.
  */
 export function encodeMultiTargetPathParam (value: string): string {
-  return value
-    .split(',')
-    .map((target) => encodePathParam(target.trim()))
-    .join(',')
+  return value.split(',').map((s) => {
+    const trimmed = s.trim()
+    assertSafePathSegment(trimmed, value)
+    return encodeURIComponent(trimmed)
+  }).join(',')
 }

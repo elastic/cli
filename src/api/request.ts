@@ -96,7 +96,7 @@ function serviceBlock (service: ApiService, config: ResolvedConfig | undefined) 
       'Run `elastic config context add` with `--cloud-api-key`.'
     )
   }
-  if (block.auth == null || !(('api_key' in block.auth))) {
+  if (block.auth == null || !('api_key' in block.auth)) {
     throw new Error(
       'missing_config: Cloud auth requires an api_key. ' +
       'Run `elastic config context add` with `--cloud-api-key`.'
@@ -105,19 +105,11 @@ function serviceBlock (service: ApiService, config: ResolvedConfig | undefined) 
   return block
 }
 
-/**
- * Returns a copy of `req` with any Authorization header (regardless of
- * capitalisation) replaced by a redacted placeholder so it is safe to print
- * during `--dry-run`.
- */
 export function redactRequest (req: ResolvedApiRequest): ResolvedApiRequest {
   const headers = { ...req.headers }
-  for (const key of Object.keys(headers)) {
-    if (key.toLowerCase() === 'authorization') {
-      const value = headers[key] ?? ''
-      const scheme: string = value.split(' ')[0] ?? 'ApiKey'
-      headers[key] = `${scheme} ***`
-    }
+  if (headers['Authorization'] != null) {
+    const scheme = headers['Authorization'].split(' ')[0] ?? 'ApiKey'
+    headers['Authorization'] = `${scheme} ***`
   }
   return { ...req, headers }
 }
@@ -134,8 +126,9 @@ export function buildApiRequest (args: BuildApiRequestArgs): ResolvedApiRequest 
   }
 
   let url = `${baseUrl}${pathname}`
-  if (query.length > 0) {
-    const pieces = query.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+  const queryKeys = Object.keys(query)
+  if (queryKeys.length > 0) {
+    const pieces = queryKeys.map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(query[k]!)}`)
     url += `?${pieces.join('&')}`
   }
 
