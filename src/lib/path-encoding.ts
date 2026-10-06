@@ -4,12 +4,14 @@
  */
 
 /**
- * Encodes a single path segment value so it is safe to embed in a URI path.
+ * Percent-encodes a single path segment value so it is safe to embed in a URL
+ * path. Uses `encodeURIComponent` which encodes all characters except
+ * `A-Z a-z 0-9 - _ . ! ~ * ' ( )`, then additionally encodes `!`, `'`, `(`,
+ * `)`, and `*` which are technically sub-delimiters that some servers may
+ * misinterpret when left unencoded in a path segment.
  *
- * Uses `encodeURIComponent` as the base, which encodes everything except
- * A-Z a-z 0-9 - _ . ! ~ * ' ( ).  This is intentionally stricter than the
- * set of characters that are technically allowed unencoded in a path segment
- * so that values such as `/` cannot introduce extra path segments.
+ * Does NOT encode the `/` separator (callers must not pass multi-segment
+ * strings here; each segment should be encoded individually).
  */
 export function encodePathParam (value: string): string {
   return encodeURIComponent(value)
