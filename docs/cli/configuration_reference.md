@@ -31,6 +31,7 @@ Each entry in `contexts` is a named context: a collection of optional service bl
 | `kibana` | object | no^1^ | - | {{kib}} service block. See [Service block](#service-block). |
 | `cloud` | object | no^1^ | - | {{ecloud}} service block. See [Service block](#service-block). |
 | `commands` | object | no | - | Per-context command allow/deny policy. Takes precedence over the root-level `commands` policy. |
+| `allow_context_override` | boolean | no | `true` | When `false` and this context is current, the CLI rejects `--use-context` and `--config-file`. Use this on an agent context so an allow-list cannot be escaped by switching to another context in the same file. Does not stop a caller from changing `ELASTIC_CLI_CONFIG_FILE`. |
 
 ^1^ At least one of `elasticsearch`, `kibana`, or `cloud` must be present.
 
