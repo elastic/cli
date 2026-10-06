@@ -14,8 +14,13 @@ export interface CloudRequestDef {
   queryParams?: string[]
 }
 
-/** Alias kept for compatibility with handler.ts */
-export type CloudApiDefinition = CloudRequestDef
+/** Definition shape used by generated cloud command handlers (uses `path` instead of `pathTemplate`). */
+export interface CloudApiDefinition {
+  method: HttpMethod
+  path: string
+  pathParams?: string[]
+  queryParams?: string[]
+}
 
 export interface CloudRequestParams {
   method: HttpMethod
@@ -24,10 +29,11 @@ export interface CloudRequestParams {
 }
 
 export function buildCloudRequestParams (
-  def: CloudRequestDef,
+  def: CloudApiDefinition | CloudRequestDef,
   parsed: Record<string, unknown>
 ): CloudRequestParams {
-  let path = def.pathTemplate
+  const pathTemplate = 'pathTemplate' in def ? def.pathTemplate : def.path
+  let path = pathTemplate
 
   for (const param of def.pathParams ?? []) {
     const value = parsed[param]
