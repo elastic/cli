@@ -37,9 +37,22 @@ export function buildCloudRequestParams (
   let path = pathTemplate
 
   const parsedMap = parsed as Record<string, unknown>
+  const options = (parsedMap['options'] != null && typeof parsedMap['options'] === 'object'
+    ? parsedMap['options']
+    : {}) as Record<string, unknown>
+  const args = (parsedMap['args'] != null && typeof parsedMap['args'] === 'object'
+    ? parsedMap['args']
+    : {}) as Record<string, unknown>
+
+  function getValue (param: string): unknown {
+    if (parsedMap[param] !== undefined) return parsedMap[param]
+    if (options[param] !== undefined) return options[param]
+    if (args[param] !== undefined) return args[param]
+    return undefined
+  }
 
   for (const param of def.pathParams ?? []) {
-    const value = parsedMap[param]
+    const value = getValue(param)
     if (typeof value !== 'string') {
       inputError(`Missing required path parameter "${param}"`)
     }
@@ -54,7 +67,7 @@ export function buildCloudRequestParams (
 
   const query: Record<string, string> = {}
   for (const param of def.queryParams ?? []) {
-    const value = parsedMap[param]
+    const value = getValue(param)
     if (typeof value === 'string') {
       query[param] = value
     }
