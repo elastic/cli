@@ -4,61 +4,46 @@
  */
 
 /**
- * Characters that are safe to leave unencoded inside a single path segment.
- * RFC 3986 unreserved chars plus the subset of sub-delimiters that
- * Elasticsearch accepts in index/alias names.
- */
-const SAFE = /[A-Za-z0-9\-._~!$&'()*+,;=@]/
-
-/**
- * Percent-encode a single path parameter value.
+ * Encodes a single path segment value for safe inclusion in a URL path.
  *
- * Every character that is not in the RFC 3986 unreserved set or a small set
- * of sub-delimiters is percent-encoded. In particular `/` and `?` are always
- * encoded so a caller cannot inject extra path segments or a query string.
+ * Uses encodeURIComponent as the base (which encodes everything except
+ * unreserved characters: A-Z a-z 0-9 - _ . ~) and additionally restores
+ * sub-delimiters that are safe within a path segment per RFC 3986:
+ *   ! $ & ' ( ) * + , ; =
+ *
+ * Critically, `/` is NOT restored, preventing path traversal via encoded
+ * slashes. `%` is encoded by encodeURIComponent so double-encoding is avoided.
+ *
+ * Empty string, `.`, and `..` are rejected because they would widen or
+ * traverse the request scope.
  */
 export function encodePathParam (value: string): string {
-  let out = ''
-  for (const char of value) {
-    if (SAFE.test(char)) {
-      out += char
-    } else {
-      const bytes = new TextEncoder().encode(char)
-      for (const byte of bytes) {
-        out += '%' + byte.toString(16).toUpperCase().padStart(2, '0')
-      }
-    }
+  if (value === '') {
+    throw Object.assign(
+      new Error('Invalid path parameter: empty string would widen the request scope instead of targeting a specific resource'),
+      { code: 'input_error' }
+    )
   }
-  return out
-}
+  if (value === '.' || value === '..') {
+    throw Object.assign(
+      new Error(`Invalid path parameter: value "${value}" resolves to the parent/root resource instead of a specific target`),
+      { code: 'input_error' }
+    )
+  }
 
-/**
- * Encode a multi-target path parameter (comma-separated list of index names,
- * aliases, data-stream names, or wildcard expressions).
- *
- * Each individual target is encoded with `encodePathParam` so that special
- * characters within a name are safely escaped, but the comma separators and
- * `*` wildcard characters are preserved so that Elasticsearch receives them
- * as intended.
- */
-export function encodeMultiTargetPathParam (value: string): string {
-  return value
-    .split(',')
-    .map((target) => {
-      // Preserve leading `-` (exclusion prefix) and encode the rest.
-      // Wildcards (`*`, `?`) are valid Elasticsearch name characters and must
-      // not be percent-encoded so patterns like `logs-*` continue to work.
-      const trimmed = target.trim()
-      if (trimmed === '') return trimmed
-      return trimmed
-        .split('*')
-        .map((part) =>
-          part
-            .split('?')
-            .map((segment) => encodePathParam(segment))
-            .join('?')
-        )
-        .join('*')
-    })
-    .join(',')
+  // encodeURIComponent covers everything; restore safe sub-delimiters.
+  return encodeURIComponent(value)
+    .replace(/%21/g, '!')
+    .replace(/%24/g, '$')
+    .replace(/%26/g, '&')
+    .replace(/%27/g, "'")
+    .replace(/%28/g, '(')
+    .replace(/%29/g, ')')
+    .replace(/%2A/gi, '*')
+    .replace(/%2B/gi, '+')
+    .replace(/%2C/gi, ',')
+    .replace(/%3B/gi, ';')
+    .replace(/%3D/gi, '=')
+    .replace(/%40/gi, '@')
+    .replace(/%3A/gi, ':')
 }
