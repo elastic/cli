@@ -15,16 +15,14 @@
 /** A failure with a stable machine-readable code. */
 export class QuickstartError extends Error {
   readonly code: string
-  readonly exitCode: number
   /** Commands or steps rendered under the message for humans. */
   readonly nextSteps: readonly string[]
 
-  constructor (code: string, message: string, nextSteps: readonly string[] = [], exitCode = 1) {
+  constructor (code: string, message: string, nextSteps: readonly string[] = []) {
     super(message)
     this.name = 'QuickstartError'
     this.code = code
     this.nextSteps = nextSteps
-    this.exitCode = exitCode
   }
 }
 
@@ -37,6 +35,9 @@ export function toEnvelope (err: unknown): { code: string, message: string } {
 /**
  * Writes the single-line JSON envelope the CLI's own executor scans for, then
  * the human-readable next steps. Returns the exit code the caller should use.
+ *
+ * Always 1: AGENTS.md reserves 2-5 and states that nothing may emit them yet,
+ * so failures here must not be distinguishable by exit status.
  */
 export function reportError (err: unknown, stderr: NodeJS.WritableStream): number {
   const envelope = toEnvelope(err)
@@ -44,5 +45,5 @@ export function reportError (err: unknown, stderr: NodeJS.WritableStream): numbe
   if (err instanceof QuickstartError && err.nextSteps.length > 0) {
     stderr.write(`\nNext steps:\n${err.nextSteps.map((s) => `  - ${s}`).join('\n')}\n`)
   }
-  return err instanceof QuickstartError ? err.exitCode : 1
+  return 1
 }

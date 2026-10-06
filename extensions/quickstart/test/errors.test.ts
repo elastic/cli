@@ -40,7 +40,12 @@ test('next steps render after the envelope, not inside it', () => {
   assert.match(stderr.text, /Next steps:\n {2}- npm install -g @elastic\/cli/)
 })
 
-test('exit code is carried by the error', () => {
+// AGENTS.md reserves exit codes 2-5 and forbids emitting them, so every
+// failure path has to come back as 1 regardless of the error.
+test('every failure exits 1, never a reserved code', () => {
   const stderr = new Collector()
-  assert.equal(reportError(new QuickstartError('halt', 'stop', [], 2), stderr as never), 2)
+  assert.equal(reportError(new QuickstartError('halt', 'stop'), stderr as never), 1)
+  assert.equal(reportError(new QuickstartError('bad_env', 'nope', ['retry']), stderr as never), 1)
+  assert.equal(reportError(new Error('uncoded'), stderr as never), 1)
+  assert.equal(reportError('a string', stderr as never), 1)
 })
