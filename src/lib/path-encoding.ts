@@ -4,28 +4,28 @@
  */
 
 /**
- * Percent-encodes a single decoded path segment value for use in a URL path.
- *
- * Uses encodeURIComponent as the base (encodes everything except unreserved
- * characters A-Z a-z 0-9 - _ . ~) then restores the additional characters
- * that are safe inside a path segment per RFC 3986 sub-delims and pchar.
- *
- * Critically, / is NOT restored so a value containing a slash cannot
- * introduce extra path segments, and . / .. are rejected by the caller.
+ * Percent-encodes a single path parameter value for use in a URL path segment.
+ * Encodes all characters that are not unreserved (RFC 3986) plus a safe subset
+ * of sub-delimiters, ensuring the value cannot escape its path segment.
  */
 export function encodePathParam (value: string): string {
   return encodeURIComponent(value)
-    .replace(/%21/g, '!')
-    .replace(/%24/g, '$')
-    .replace(/%26/g, '&')
-    .replace(/%27/g, "'")
-    .replace(/%28/g, '(')
-    .replace(/%29/g, ')')
-    .replace(/%2A/gi, '*')
-    .replace(/%2B/gi, '+')
-    .replace(/%2C/gi, ',')
-    .replace(/%3B/gi, ';')
-    .replace(/%3D/gi, '=')
-    .replace(/%3A/gi, ':')
-    .replace(/%40/gi, '@')
+    // encodeURIComponent does not encode these sub-delimiters; re-encode them
+    // so that e.g. a slash inside a param value cannot split the path.
+    .replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+}
+
+/**
+ * Encodes a multi-target path parameter (e.g. comma-separated index names).
+ * Each individual target is encoded with `encodePathParam`, and commas that
+ * separate targets are preserved so the cluster can still resolve them.
+ *
+ * For example: `"my-index,logs-*"` → `"my-index%2Clogs-*"` is NOT what we
+ * want; instead we encode each segment individually and rejoin with commas.
+ */
+export function encodeMultiTargetPathParam (value: string): string {
+  return value
+    .split(',')
+    .map((target) => encodePathParam(target.trim()))
+    .join(',')
 }
