@@ -10,7 +10,7 @@ export interface EncodedApiPath {
   query: Array<[string, string]>
 }
 
-function inputError (message: string): never {
+export function inputError (message: string): never {
   throw Object.assign(new Error(message), { code: 'input_error' })
 }
 
@@ -19,6 +19,19 @@ function decodeSegment (segment: string, original: string): string {
     return decodeURIComponent(segment)
   } catch {
     inputError(`Invalid path parameter "${segment}" (within "${original}"): malformed percent-encoding`)
+  }
+}
+
+/**
+ * Validates a named path parameter value, throwing with code 'input_error' if
+ * the value is empty, '.', or '..' (which would widen or traverse the request scope).
+ */
+export function validatePathParam (name: string, value: string): void {
+  if (value === '') {
+    inputError(`Invalid path parameter "${name}": empty string would widen the request scope instead of targeting a specific resource`)
+  }
+  if (value === '.' || value === '..') {
+    inputError(`Invalid path parameter "${name}": value "${value}" resolves to the parent/root resource instead of a specific target`)
   }
 }
 
