@@ -30,3 +30,7 @@ Action items for the next AI review. Follow these. Do not repeat the rejected fi
 - Do not re-flag console.log usage in Command .action() handlers that delegate output to a factory or defineCommand wrapper, as the direct print has already been replaced by the proper output layer.
 - Do not re-flag lone directive lines being offered as tab-completion candidates. The shell already filters them out before candidates are presented.
 - Do not re-flag missing exports from next-command.ts. The module already exports isAuthStatus, formatAuthFailure, and withAuthHint.
+- Do not re-flag missing artifact downloads before publish-release.sh runs. The publish step already downloads final/* before the script executes.
+- Do not re-flag the entitlement grep as insufficient. The check already requires <true/> immediately after the key and rejects ad-hoc signatures.
+- Do not re-flag colon-separated PATH construction in CI scripts. Windows CI passes because Git Bash treats colon as the PATH separator, making semicolon separation the wrong fix and the existing colon format correct.
+- Do not re-flag unsigned macOS/Windows assets being uploaded in release-artifacts.yml. The workflow already uploads Linux only and the other platforms are not present.
