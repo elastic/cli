@@ -4,30 +4,44 @@
  */
 
 /**
- * Percent-encodes a single path segment value so it is safe to embed in a URL
- * path without being misinterpreted as a path separator or query delimiter.
+ * Characters that must NOT be percent-encoded in a path segment, per RFC 3986
+ * unreserved + sub-delimiters + `:` + `@`.
  *
- * Uses `encodeURIComponent` as the base (which encodes everything except
- * unreserved characters: A-Z a-z 0-9 - _ . ~) and then restores the
- * sub-delimiters that are legal unencoded within a path segment per RFC 3986
- * section 3.3: ! $ & ' ( ) * + , ; =
+ * We intentionally exclude `/` (path separator) and `?` / `#` (query/fragment
+ * delimiters) so they are always encoded when they appear inside a segment.
+ */
+const PATH_PARAM_SAFE = /[A-Za-z0-9\-._~!$&'()*+,;=:@]/
+
+/**
+ * Percent-encodes a single path segment value.
  *
- * Crucially, `/` is NOT restored so that a value containing a slash cannot
- * traverse into a different path segment.
+ * Uses `encodeURIComponent` as a base (which encodes everything except
+ * unreserved characters) then restores the small set of sub-delimiters and
+ * other characters that are safe inside a path segment.
  */
 export function encodePathParam (value: string): string {
-  return encodeURIComponent(value)
-    .replace(/%21/g, '!')
-    .replace(/%24/g, '$')
-    .replace(/%26/g, '&')
-    .replace(/%27/g, "'")
-    .replace(/%28/g, '(')
-    .replace(/%29/g, ')')
-    .replace(/%2A/gi, '*')
-    .replace(/%2B/gi, '+')
-    .replace(/%2C/gi, ',')
-    .replace(/%3B/gi, ';')
-    .replace(/%3D/gi, '=')
-    .replace(/%40/gi, '@')
-    .replace(/%3A/gi, ':')
+  return encodeURIComponent(value).replace(
+    /%[0-9A-F]{2}/g,
+    (pct) => {
+      const ch = decodeURIComponent(pct)
+      return PATH_PARAM_SAFE.test(ch) ? ch : pct
+    }
+  )
+}
+
+/**
+ * Encodes a multi-target path parameter (comma-separated list of index names /
+ * data-stream names / aliases).
+ *
+ * Each individual target is encoded with `encodePathParam`; the commas that
+ * separate targets are preserved so that Elasticsearch receives them as the
+ * standard multi-target syntax.
+ *
+ * Example: `"my-index,logs-*"` → `"my-index,logs-%2A"` (if `*` were not safe)
+ */
+export function encodeMultiTargetPathParam (value: string): string {
+  return value
+    .split(',')
+    .map((target) => encodePathParam(target.trim()))
+    .join(',')
 }
