@@ -67,6 +67,8 @@ export function buildCloudRequestParams (
     if (typeof value !== 'string') {
       inputError(`Missing required path parameter "${param}"`)
     }
+    // encodePathParam already rejects empty, '.', and '..' – no duplicate
+    // guard needed here, but we surface a clearer param name in the message.
     if (value === '') {
       inputError(
         `Invalid path parameter "${param}": empty string would widen the request scope instead of targeting a specific resource`
@@ -80,11 +82,24 @@ export function buildCloudRequestParams (
     path = path.replace(`{${param}}`, encodePathParam(value))
   }
 
+  // Verify no unresolved placeholders remain (catches missing pathParams entries).
+  const unresolved = path.match(/\{[^}]+\}/g)
+  if (unresolved != null) {
+    inputError(`Unresolved path placeholders: ${unresolved.join(', ')}`)
+  }
+
   // ── x-found-in routing override ────────────────────────────────────────────
   if (def.foundIn != null) {
     const override = getValue(def.foundIn)
     if (typeof override === 'string' && override !== '') {
-      path = `/${override.replace(/^\//, '')}${path.startsWith('/') ? path : `/${path}`}`
+      // Encode each segment of the override prefix so arbitrary user input
+      // cannot inject path separators or other special characters.
+      const encodedPrefix = override
+        .replace(/^\//, '')
+        .split('/')
+        .map((seg) => encodePathParam(seg))
+        .join('/')
+      path = `/${encodedPrefix}${path.startsWith('/') ? path : `/${path}`}`
     }
   }
 
@@ -101,15 +116,18 @@ export function buildCloudRequestParams (
 
   // ── Body ───────────────────────────────────────────────────────────────────
   // 1. Explicit x-body-root param.
-  // 2. For passthrough POST/PUT/PATCH with no bodyParam, forward the entire
-  //    input as the body so that callers do not have to know the schema shape.
+  // 2. For passthrough POST/PUT/PATCH/DELETE with no bodyParam, forward
+  //    unconsumed keys so callers do not need to know the schema shape.
+  //    DELETE is excluded here to avoid inadvertently sending a body on
+  //    requests that have no remaining keys – callers that need a DELETE body
+  //    must declare bodyParam explicitly.
   let body: unknown
   const method = def.method
   if (def.bodyParam != null) {
     const v = getValue(def.bodyParam)
     if (v !== undefined) body = v
   } else if (
-    (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') &&
+    (method === 'POST' || method === 'PUT' || method === 'PATCH') &&
     Object.keys(inputMap).length > 0
   ) {
     // Collect keys that were not already consumed by path or query params.

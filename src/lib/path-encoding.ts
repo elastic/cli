@@ -7,11 +7,24 @@
  * Percent-encodes a single path parameter value so it is safe to embed in a
  * URL path segment. Characters that are valid in a path segment per RFC 3986
  * but could alter routing (e.g. `/`) are encoded.
+ *
+ * Rejects empty strings, `.`, and `..` because a URL-normalizing proxy would
+ * collapse them and potentially widen the request scope to the resource root.
  */
 export function encodePathParam (value: string): string {
+  if (value === '') {
+    throw Object.assign(
+      new Error('Invalid path parameter: empty string would widen the request scope instead of targeting a specific resource'),
+      { code: 'input_error' }
+    )
+  }
+  if (value === '.' || value === '..') {
+    throw Object.assign(
+      new Error(`Invalid path parameter: value "${value}" resolves to the parent/root resource instead of a specific target`),
+      { code: 'input_error' }
+    )
+  }
   // encodeURIComponent encodes everything except: A-Z a-z 0-9 - _ . ! ~ * ' ( )
-  // We additionally encode `.` sequences handled by the caller, but for a
-  // single segment value this is sufficient.
   return encodeURIComponent(value)
 }
 

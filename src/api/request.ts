@@ -105,11 +105,18 @@ function serviceBlock (service: ApiService, config: ResolvedConfig | undefined) 
   return block
 }
 
+/**
+ * Returns a copy of `req` with any Authorization header (regardless of
+ * capitalisation) replaced by a redacted placeholder so it is safe to print
+ * during `--dry-run`.
+ */
 export function redactRequest (req: ResolvedApiRequest): ResolvedApiRequest {
   const headers = { ...req.headers }
-  if (headers['Authorization'] != null) {
-    const scheme = headers['Authorization'].split(' ')[0] ?? 'ApiKey'
-    headers['Authorization'] = `${scheme} ***`
+  for (const key of Object.keys(headers)) {
+    if (key.toLowerCase() === 'authorization') {
+      const scheme = headers[key].split(' ')[0] ?? 'ApiKey'
+      headers[key] = `${scheme} ***`
+    }
   }
   return { ...req, headers }
 }
