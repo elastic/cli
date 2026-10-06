@@ -45,7 +45,11 @@ export function encodeApiPath (raw: string): EncodedApiPath {
       if (i === segments.length - 1) continue
       inputError(`Invalid path parameter "" (within "${raw}"): empty, ".", and ".." segments are rejected because they resolve to the parent/root resource instead of a specific target`)
     }
-    encoded.push(encodePathParam(decodeSegment(seg, raw)))
+    const decoded = decodeSegment(seg, raw)
+    if (decoded === '.' || decoded === '..') {
+      inputError(`Invalid path parameter "${seg}" (within "${raw}"): empty, ".", and ".." segments are rejected because they resolve to the parent/root resource instead of a specific target`)
+    }
+    encoded.push(encodePathParam(decoded))
   }
   const pathname = encoded.length === 1 ? '/' : encoded.join('/')
 
