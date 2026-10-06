@@ -92,7 +92,7 @@ export function registerApiCommand (): OpaqueCommandHandle {
     ],
     input: { type: 'object', additionalProperties: true },
     passthroughDryRun: true,
-    handler: (parsed) => apiHandler(parsed, cmd),
+    handler: (parsed, liveCmd) => apiHandler(parsed, liveCmd as unknown as Command),
   })
   cmd.argument('<path>', 'request path, for example / or /_cluster/health')
   cmd.option('-H, --header <header>', 'extra request header as Name: value (repeatable)', collectHeader, [])
