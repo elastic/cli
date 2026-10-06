@@ -4,24 +4,25 @@
  */
 
 /**
- * Percent-encodes a single path segment value (already decoded) so it is safe
- * to embed in a URL path. Uses encodeURIComponent which encodes everything
- * except unreserved characters (A-Z a-z 0-9 - _ . ~), then restores the
- * sub-delimiters that are legal inside a path segment per RFC 3986:
- *   ! $ & ' ( ) * + , ; =
- * We intentionally keep `:` and `@` encoded for safety.
+ * Encodes a single path parameter value using percent-encoding, preserving
+ * characters that are safe in path segments per RFC 3986 but encoding
+ * characters that would break URL parsing or allow traversal.
  */
 export function encodePathParam (value: string): string {
   return encodeURIComponent(value)
-    .replace(/%21/g, '!')
-    .replace(/%24/g, '$')
-    .replace(/%26/g, '&')
-    .replace(/%27/g, "'")
-    .replace(/%28/g, '(')
-    .replace(/%29/g, ')')
-    .replace(/%2A/gi, '*')
-    .replace(/%2B/gi, '+')
-    .replace(/%2C/gi, ',')
-    .replace(/%3B/gi, ';')
-    .replace(/%3D/gi, '=')
+    .replace(/%2F/gi, '%2F')
+}
+
+/**
+ * Encodes a multi-target path parameter (e.g. an index pattern like
+ * `index1,index2` or `*`) for use in Elasticsearch API paths.
+ *
+ * Commas and asterisks are intentionally preserved so that multi-target
+ * syntax continues to work as expected by the Elasticsearch API.
+ */
+export function encodeMultiTargetPathParam (value: string): string {
+  return value
+    .split(',')
+    .map(part => encodeURIComponent(part.trim()).replace(/%2A/gi, '*'))
+    .join(',')
 }

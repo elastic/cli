@@ -4,7 +4,8 @@
  */
 
 import { inputError } from '../api/path.ts'
-import type { HttpMethod } from '../lib/cloud-client.ts'
+
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD'
 
 export interface CloudRequestDef {
   method: HttpMethod
