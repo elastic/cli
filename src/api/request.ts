@@ -114,8 +114,8 @@ export function redactRequest (req: ResolvedApiRequest): ResolvedApiRequest {
   const headers = { ...req.headers }
   for (const key of Object.keys(headers)) {
     if (key.toLowerCase() === 'authorization') {
-      const parts = headers[key].split(' ')
-      const scheme: string = parts[0] !== undefined ? parts[0] : 'ApiKey'
+      const value = headers[key] ?? ''
+      const scheme: string = value.split(' ')[0] ?? 'ApiKey'
       headers[key] = `${scheme} ***`
     }
   }
