@@ -5,14 +5,23 @@
 
 /**
  * Percent-encodes a single path parameter value for use in a URL path segment.
- * Encodes all characters that are not unreserved (RFC 3986) plus a safe subset
- * of sub-delimiters, ensuring the value cannot escape its path segment.
+ * Encodes all characters that are not unreserved (RFC 3986) plus `/`, `?`, and
+ * `#` (handled by encodeURIComponent) so that the value cannot escape its path
+ * segment. Sub-delimiters such as `!`, `'`, `(`, `)`, and critically `*` are
+ * left unencoded – `*` must survive so that ES wildcard patterns like `logs-*`
+ * continue to work.
+ *
+ * Empty, `.`, and `..` values are rejected by callers before this function is
+ * reached (see buildCloudRequestParams / the ES path builder).
  */
 export function encodePathParam (value: string): string {
   return encodeURIComponent(value)
-    // encodeURIComponent does not encode these sub-delimiters; re-encode them
-    // so that e.g. a slash inside a param value cannot split the path.
-    .replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+    // encodeURIComponent leaves `!`, `'`, `(`, `)`, `*` unencoded per the
+    // spec.  We deliberately do NOT re-encode `*` so that ES multi-target
+    // wildcard patterns (e.g. `logs-*`) survive round-tripping through URL
+    // construction.  Re-encode only `!`, `'`, `(`, `)` which have no
+    // special meaning in ES path params and could confuse some HTTP stacks.
+    .replace(/[!'()]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
 }
 
 /**
@@ -20,8 +29,7 @@ export function encodePathParam (value: string): string {
  * Each individual target is encoded with `encodePathParam`, and commas that
  * separate targets are preserved so the cluster can still resolve them.
  *
- * For example: `"my-index,logs-*"` → `"my-index%2Clogs-*"` is NOT what we
- * want; instead we encode each segment individually and rejoin with commas.
+ * Example: `"my-index,logs-*"` → `"my-index,logs-*"` (wildcard preserved)
  */
 export function encodeMultiTargetPathParam (value: string): string {
   return value
