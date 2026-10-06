@@ -35,7 +35,7 @@ export interface CloudApiDefinition {
 export interface CloudRequestParams {
   method: HttpMethod
   path: string
-  query: Record<string, string>
+  querystring: Record<string, string>
   body?: unknown
 }
 
@@ -105,18 +105,22 @@ export function buildCloudRequestParams (
   }
 
   // Use explicitly declared pathParams when provided; otherwise auto-extract
-  // from the template so all {placeholder} tokens are always resolved.
+  // from the template so all {placeholder} tokens are resolved when present.
   const pathParamNames: string[] =
     (def.pathParams != null && def.pathParams.length > 0)
       ? def.pathParams
       : extractTemplatePlaceholders(pathTemplate)
 
-  // Path params
+  // Path params: coerce non-string scalars via String(); strip placeholder
+  // when value is absent (optional params); reject empty / dot-dot values.
   for (const param of pathParamNames) {
-    const value = getValue(param)
-    if (typeof value !== 'string') {
-      inputError(`Missing required path parameter "${param}"`)
+    const raw = getValue(param)
+    if (raw === undefined || raw === null) {
+      // Optional param: remove the placeholder and any adjacent slash.
+      path = path.replace(new RegExp(`/?\\{${param}\\}`, 'g'), '')
+      continue
     }
+    const value = typeof raw === 'string' ? raw : String(raw)
     if (value === '') {
       inputError(
         `Invalid path parameter "${param}": empty string would widen the request scope instead of targeting a specific resource`
@@ -136,38 +140,47 @@ export function buildCloudRequestParams (
     inputError(`Unresolved path placeholders: ${unresolved.join(', ')}`)
   }
 
-  // x-found-in routing override
+  // x-found-in routing override: prepend an encoded prefix derived from the
+  // param value. Each segment is validated against empty / dot-dot traversal.
   if (def.foundIn != null) {
     const override = getValue(def.foundIn)
-    if (typeof override === 'string' && override !== '') {
-      const encodedPrefix = override
-        .replace(/^\//, '')
-        .split('/')
-        .map((seg) => encodePathParam(seg))
-        .join('/')
-      path = `/${encodedPrefix}${path.startsWith('/') ? path : `/${path}`}`
+    if (override !== undefined && override !== null) {
+      const overrideStr = typeof override === 'string' ? override : String(override)
+      if (overrideStr !== '') {
+        const segments = overrideStr.replace(/^\//, '').split('/')
+        for (const seg of segments) {
+          if (seg === '' || seg === '.' || seg === '..') {
+            inputError(
+              `Invalid foundIn value "${overrideStr}": segment "${seg}" would traverse outside the expected path`
+            )
+          }
+        }
+        const encodedPrefix = segments.map((seg) => encodePathParam(seg)).join('/')
+        path = `/${encodedPrefix}${path.startsWith('/') ? path : `/${path}`}`
+      }
     }
   }
 
-  // Query params
-  const query: Record<string, string> = {}
+  // Query params: coerce number/boolean to string; skip absent/null values.
+  const querystring: Record<string, string> = {}
   for (const param of def.queryParams ?? []) {
     const value = getValue(param)
     if (typeof value === 'string') {
-      query[param] = value
+      querystring[param] = value
     } else if (typeof value === 'number' || typeof value === 'boolean') {
-      query[param] = String(value)
+      querystring[param] = String(value)
     }
   }
 
-  // Body
+  // Body: use explicit bodyParam when declared; for mutating methods without
+  // a bodyParam, collect keys not consumed by path/query/foundIn.
   let body: unknown
   const method = def.method
   if (def.bodyParam != null) {
     const v = getValue(def.bodyParam)
     if (v !== undefined) body = v
   } else if (
-    (method === 'POST' || method === 'PUT' || method === 'PATCH') &&
+    (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') &&
     Object.keys(inputMap).length > 0
   ) {
     // Collect keys consumed by path/query params, accounting for both
@@ -190,6 +203,6 @@ export function buildCloudRequestParams (
   }
 
   return body !== undefined
-    ? { method, path, query, body }
-    : { method, path, query }
+    ? { method, path, querystring, body }
+    : { method, path, querystring }
 }
