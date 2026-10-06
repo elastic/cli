@@ -4,16 +4,20 @@
  */
 
 import { inputError } from '../api/path.ts'
+import type { HttpMethod } from '../lib/cloud-client.ts'
 
 export interface CloudRequestDef {
-  method: string
+  method: HttpMethod
   pathTemplate: string
   pathParams?: string[]
   queryParams?: string[]
 }
 
+/** Alias kept for compatibility with handler.ts */
+export type CloudApiDefinition = CloudRequestDef
+
 export interface CloudRequestParams {
-  method: string
+  method: HttpMethod
   path: string
   query: Record<string, string>
 }
