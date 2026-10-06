@@ -25,8 +25,20 @@ const SAFE = /[A-Za-z0-9\-._~!$&'()*+,;=:@]/
  *
  * `/`, `?`, and `#` are always encoded so the value cannot escape its
  * segment or inject a query string.
+ *
+ * Throws if `value` is empty or is the dot-segment `.` or `..`, because
+ * those would allow a caller to silently traverse to a parent resource after
+ * URL normalization (the exact attack the original assertSafePathSegment
+ * guard was designed to prevent).
  */
 export function encodePathParam (value: string): string {
+  if (value === '') {
+    throw new Error('Path parameter value must not be empty')
+  }
+  if (value === '.' || value === '..') {
+    throw new Error(`Path parameter value must not be a dot-segment: '${value}'`)
+  }
+
   let out = ''
   for (const ch of value) {
     if (SAFE.test(ch)) {
@@ -48,16 +60,19 @@ export function encodePathParam (value: string): string {
  * Encodes a multi-target Elasticsearch path parameter.
  *
  * A multi-target value is a comma-separated list of index names / patterns
- * (e.g. `"logs-*,metrics-*"`). Each individual target is encoded with
- * `encodePathParam` while the commas that separate them are preserved so
- * that Elasticsearch receives the full multi-target syntax.
+ * (e.g. `"logs-*,metrics-*"`). Each individual target is trimmed and then
+ * encoded with `encodePathParam` while the commas that separate them are
+ * preserved so that Elasticsearch receives the full multi-target syntax.
  *
  * The special catch-all value `"_all"` is returned as-is without encoding.
+ *
+ * Throws if any individual target is empty (e.g. a leading/trailing comma
+ * or consecutive commas) or is a dot-segment.
  */
 export function encodeMultiTargetPathParam (value: string): string {
   if (value === '_all') return value
   return value
     .split(',')
-    .map((target) => encodePathParam(target))
+    .map((target) => encodePathParam(target.trim()))
     .join(',')
 }
