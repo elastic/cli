@@ -4,20 +4,60 @@
  */
 
 /**
- * Percent-encodes a single path segment value so it is safe to embed in a URL
- * path without being interpreted as a path separator or traversal sequence.
+ * Characters that must NOT be percent-encoded in an Elasticsearch path
+ * segment. RFC 3986 unreserved characters plus the sub-delimiters that ES
+ * uses inside a single segment (`:` for date-math, `@` for data-stream
+ * naming conventions, `+` for date-math, `~` kept unreserved).
  *
- * Uses `encodeURIComponent` as the base (which encodes everything except
- * `A-Z a-z 0-9 - _ . ! ~ * ' ( )`) and additionally encodes the characters
- * that `encodeURIComponent` leaves unencoded but that can be significant:
- * `!`, `'`, `(`, `)`, `*`, and `~`.
+ * We deliberately encode `/` so callers cannot accidentally traverse to a
+ * parent resource, and we encode `?` / `#` so they cannot inject a query
+ * string or fragment.
+ */
+const SAFE = /[A-Za-z0-9\-._~!$&'()*+,;=:@]/
+
+/**
+ * Percent-encodes a single Elasticsearch path-parameter value.
+ *
+ * Unlike `encodeURIComponent` this preserves a handful of sub-delimiter
+ * characters that are legal and meaningful inside an ES path segment
+ * (e.g. `:` in date-math expressions, `,` in multi-target syntax when the
+ * whole multi-target string is treated as one segment).
+ *
+ * `/`, `?`, and `#` are always encoded so the value cannot escape its
+ * segment or inject a query string.
  */
 export function encodePathParam (value: string): string {
-  return encodeURIComponent(value)
-    .replace(/!/g, '%21')
-    .replace(/'/g, '%27')
-    .replace(/\(/g, '%28')
-    .replace(/\)/g, '%29')
-    .replace(/\*/g, '%2A')
-    .replace(/~/g, '%7E')
+  let out = ''
+  for (const ch of value) {
+    if (SAFE.test(ch)) {
+      out += ch
+    } else {
+      const cp = ch.codePointAt(0) as number
+      if (cp > 0x7f) {
+        // Encode multi-byte characters via TextEncoder-style UTF-8 byte sequence.
+        out += encodeURIComponent(ch)
+      } else {
+        out += `%${cp.toString(16).toUpperCase().padStart(2, '0')}`
+      }
+    }
+  }
+  return out
+}
+
+/**
+ * Encodes a multi-target Elasticsearch path parameter.
+ *
+ * A multi-target value is a comma-separated list of index names / patterns
+ * (e.g. `"logs-*,metrics-*"`). Each individual target is encoded with
+ * `encodePathParam` while the commas that separate them are preserved so
+ * that Elasticsearch receives the full multi-target syntax.
+ *
+ * The special catch-all value `"_all"` is returned as-is without encoding.
+ */
+export function encodeMultiTargetPathParam (value: string): string {
+  if (value === '_all') return value
+  return value
+    .split(',')
+    .map((target) => encodePathParam(target))
+    .join(',')
 }
