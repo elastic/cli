@@ -4,15 +4,11 @@
  */
 
 /**
- * Encodes a single path segment value for safe inclusion in a URL path.
- *
- * Uses encodeURIComponent as the base (which encodes everything except
- * unreserved characters: A-Z a-z 0-9 - _ . ~) and additionally restores
- * sub-delimiters that are safe within a path segment per RFC 3986:
- *   ! $ & ' ( ) * + , ; =
- *
- * Critically, `/` is NOT restored, preventing path traversal via encoded
- * slashes. `%` is encoded by encodeURIComponent so double-encoding is avoided.
+ * Percent-encodes a single path segment value so it is safe to embed in a URL
+ * path. Uses `encodeURIComponent` as the base (which encodes everything except
+ * `A-Z a-z 0-9 - _ . ! ~ * ' ( )`) then restores the subset of RFC 3986
+ * sub-delimiters / unreserved characters that are legal unencoded inside a
+ * path segment: `! $ & ' ( ) * + , ; = : @`.
  *
  * Empty string, `.`, and `..` are rejected because they would widen or
  * traverse the request scope.
@@ -30,8 +26,8 @@ export function encodePathParam (value: string): string {
       { code: 'input_error' }
     )
   }
-
-  // encodeURIComponent covers everything; restore safe sub-delimiters.
+  // encodeURIComponent encodes everything except: A-Z a-z 0-9 - _ . ! ~ * ' ( )
+  // Restore characters that are safe unencoded in a path segment per RFC 3986.
   return encodeURIComponent(value)
     .replace(/%21/g, '!')
     .replace(/%24/g, '$')
@@ -42,8 +38,8 @@ export function encodePathParam (value: string): string {
     .replace(/%2A/gi, '*')
     .replace(/%2B/gi, '+')
     .replace(/%2C/gi, ',')
+    .replace(/%3A/gi, ':')
     .replace(/%3B/gi, ';')
     .replace(/%3D/gi, '=')
     .replace(/%40/gi, '@')
-    .replace(/%3A/gi, ':')
 }
