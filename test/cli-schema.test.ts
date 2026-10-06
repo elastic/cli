@@ -85,3 +85,17 @@ describe('cli schema', () => {
     assert.equal(routing?.separator, undefined)
   })
 })
+
+describe('cli schema extra positionals', () => {
+  it('emits both method and path for elastic api', async () => {
+    const { Command } = await import('commander')
+    const { registerApiCommand } = await import('../src/api/register.ts')
+    const { buildCliSchema } = await import('../src/cli-schema.ts')
+    const root = new Command('elastic')
+    root.addCommand(registerApiCommand())
+    const schema = buildCliSchema(root, [], '0.0.0', new Set())
+    const api = schema.commands.find((c) => c.name === 'api')
+    const positionals = api?.parameters.filter((p) => p.role === 'positional').map((p) => p.name)
+    assert.deepEqual(positionals, ['method', 'path'])
+  })
+})

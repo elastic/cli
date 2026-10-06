@@ -99,6 +99,14 @@ export const NAMESPACES: NamespaceEntry[] = [
     },
   },
   {
+    name: 'api',
+    description: 'Send an untyped HTTP request using the active context',
+    load: async () => {
+      const { registerApiCommand } = await import('./api/register.ts')
+      return registerApiCommand()
+    },
+  },
+  {
     name: 'cloud',
     description: 'Manage Elastic Cloud (hosted deployments and serverless projects)',
     load: async (opts) => {

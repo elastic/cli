@@ -322,6 +322,19 @@ elastic version
 elastic --json version
 ```
 
+### `api` - untyped HTTP
+
+Send a request using the active context when no generated command exists.
+
+```bash
+elastic api GET / --service es --dry-run
+elastic api GET / --service es
+elastic api POST /my-index/_doc --service es --input-file ./doc.json
+elastic api GET /api/status --service kb -H 'kbn-xsrf: true'
+```
+
+`--service` is `es`, `kb`, or `cloud`. Path segments are percent-encoded. Prefer typed `elastic stack es` / `elastic stack kb` / `elastic cloud` commands.
+
 ### `stack` / `es` / `kb` - Elastic Stack
 
 Interact with Elastic Stack components. `es` and `kb` work as top-level
