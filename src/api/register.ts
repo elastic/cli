@@ -15,6 +15,7 @@ import { defineCommand } from '../factory.ts'
 import type { HandlerResult, JsonValue, OpaqueCommandHandle, ParsedResult } from '../factory.ts'
 import { getResolvedConfig } from '../config/store.ts'
 import { buildApiRequest, redactRequest, sendApiRequest } from './request.ts'
+import { EsResponseError, EsConnectionError } from '@elastic/elasticsearch'
 
 function collectHeader (value: string, previous: string[]): string[] {
   return [...previous, value]
@@ -33,11 +34,6 @@ function inputError (err: unknown): HandlerResult {
 function missingConfigError (err: unknown): HandlerResult {
   const message = err instanceof Error ? err.message : String(err)
   return { error: { code: 'missing_config', message } } as unknown as HandlerResult
-}
-
-function transportError (err: unknown): HandlerResult {
-  const message = err instanceof Error ? err.message : String(err)
-  return { error: { code: 'transport_error', message } } as unknown as HandlerResult
 }
 
 async function apiHandler (parsed: ParsedResult, cmd: Command): Promise<HandlerResult> {
@@ -63,13 +59,22 @@ async function apiHandler (parsed: ParsedResult, cmd: Command): Promise<HandlerR
     }
     return await sendApiRequest(req) as JsonValue
   } catch (err) {
+    // Let EsResponseError (HTTP 4xx/5xx) and EsConnectionError bubble up so the
+    // top-level error handler can apply the usual auth_required / status_code
+    // mapping instead of collapsing them into a generic transport_error.
+    if (err instanceof EsResponseError || err instanceof EsConnectionError) {
+      throw err
+    }
+
     const code = err != null && typeof err === 'object' && 'code' in err
       ? (err as { code?: unknown }).code
       : undefined
     if (code === 'input_error') return inputError(err)
     const message = err instanceof Error ? err.message : String(err)
     if (message.startsWith('missing_config')) return missingConfigError(err)
-    return transportError(err)
+
+    // Re-throw anything else we don't recognise so it surfaces clearly.
+    throw err
   }
 }
 
