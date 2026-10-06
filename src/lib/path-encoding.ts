@@ -4,38 +4,21 @@
  */
 
 /**
- * Percent-encodes a single path parameter value for use in a URL path segment.
+ * Percent-encodes a single path segment value so it is safe to embed in a URI
+ * path without being mistaken for a path separator or a reserved character.
  *
- * Encodes all characters that are not unreserved (RFC 3986) or sub-delimiters,
- * plus `:`, `@`, `!`, `$`, `&`, `'`, `(`, `)`, `*`, `+`, `,`, `;`, `=`
- * (i.e. the pchar production minus `/`). In practice this means all characters
- * that could be misinterpreted as path separators or reserved URI syntax are
- * escaped, while letters, digits, `-`, `.`, `_`, `~` are passed through.
+ * Characters in the RFC 3986 "unreserved" set (ALPHA / DIGIT / "-" / "." /
+ * "_" / "~") are left as-is. Everything else is percent-encoded.
+ *
+ * Note: "." and ".." should be rejected by callers *before* calling this
+ * function; this function encodes them (to "." and "..") rather than blocking
+ * them, because the rejection responsibility belongs to the validation layer.
  */
 export function encodePathParam (value: string): string {
   // encodeURIComponent encodes everything except: A-Z a-z 0-9 - _ . ! ~ * ' ( )
-  // We additionally encode ! ~ * ' ( ) to be conservative.
-  return encodeURIComponent(value).replace(/[!'()*~]/g, (c) => {
+  // We additionally encode ! * ' ( ) to keep only the strict unreserved set
+  // plus the characters that are universally safe inside a path segment.
+  return encodeURIComponent(value).replace(/[!'()*]/g, (c) => {
     return '%' + c.charCodeAt(0).toString(16).toUpperCase()
   })
-}
-
-/**
- * Encodes a multi-target path parameter (e.g. an index pattern like
- * `index1,index2,alias*`) for use in a URL path segment.
- *
- * Each comma-separated target is encoded individually with `encodePathParam`
- * and the results are rejoined with `,`. This preserves the multi-target
- * semantics expected by Elasticsearch while still encoding characters that
- * could be misinterpreted as URL structural characters within each target.
- *
- * A `*` wildcard within an individual target is left encoded (as `%2A`) so
- * that the server receives the literal asterisk only after decoding – this is
- * the same behaviour as encoding the whole string with `encodeURIComponent`.
- */
-export function encodeMultiTargetPathParam (value: string): string {
-  return value
-    .split(',')
-    .map((target) => encodePathParam(target.trim()))
-    .join(',')
 }
