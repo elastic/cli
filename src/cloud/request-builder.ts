@@ -13,6 +13,8 @@ export interface CloudRequestDef {
   method: HttpMethod
   pathTemplate: string
   pathParams?: string[]
+  /** Path params that may be absent; absent required params throw instead. */
+  optionalPathParams?: string[]
   queryParams?: string[]
   /** Optional: which param name contains the request body (x-body-root). */
   bodyParam?: string
@@ -25,6 +27,8 @@ export interface CloudApiDefinition {
   method: HttpMethod
   path: string
   pathParams?: string[]
+  /** Path params that may be absent; absent required params throw instead. */
+  optionalPathParams?: string[]
   queryParams?: string[]
   /** Optional: which param name contains the request body (x-body-root). */
   bodyParam?: string
@@ -111,14 +115,24 @@ export function buildCloudRequestParams (
       ? def.pathParams
       : extractTemplatePlaceholders(pathTemplate)
 
+  // Build a set of params that are explicitly declared optional.
+  const optionalSet = new Set<string>(def.optionalPathParams ?? [])
+
   // Path params: coerce non-string scalars via String(); strip placeholder
-  // when value is absent (optional params); reject empty / dot-dot values.
+  // only when value is absent AND the param is optional; throw for required
+  // params that are missing; reject empty / dot-dot values.
   for (const param of pathParamNames) {
     const raw = getValue(param)
     if (raw === undefined || raw === null) {
-      // Optional param: remove the placeholder and any adjacent slash.
-      path = path.replace(new RegExp(`/?\\{${param}\\}`, 'g'), '')
-      continue
+      if (optionalSet.has(param)) {
+        // Optional param: remove the placeholder and any adjacent slash.
+        path = path.replace(new RegExp(`/?\\{${param}\\}`, 'g'), '')
+        continue
+      }
+      // Required param missing — throw rather than widening the request.
+      inputError(
+        `Missing required path parameter "${param}"`
+      )
     }
     const value = typeof raw === 'string' ? raw : String(raw)
     if (value === '') {
