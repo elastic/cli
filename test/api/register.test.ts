@@ -11,6 +11,7 @@ import { join } from 'node:path'
 import { Command } from 'commander'
 import { registerApiCommand } from '../../src/api/register.ts'
 import { _testSetFetch } from '../../src/api/request.ts'
+import { _testSetStdinReader } from '../../src/factory.ts'
 import { setResolvedConfig, _testResetConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
 
@@ -37,6 +38,9 @@ async function captured (run: () => Promise<void>): Promise<CapturedOutput> {
   const origStdout = process.stdout.write.bind(process.stdout)
   const origStderr = process.stderr.write.bind(process.stderr)
   const origExit = process.exitCode
+  // Commands with an input schema call readFileSync(0) when stdin is not a TTY.
+  // On Windows CI that fd never EOFs, so the call blocks until the test timeout.
+  const restoreStdin = _testSetStdinReader(() => '')
   process.stdout.write = ((chunk: unknown) => { if (typeof chunk === 'string') stdoutChunks.push(chunk); return true }) as typeof process.stdout.write
   process.stderr.write = ((chunk: unknown) => { if (typeof chunk === 'string') stderrChunks.push(chunk); return true }) as typeof process.stderr.write
   process.exitCode = undefined
@@ -45,6 +49,7 @@ async function captured (run: () => Promise<void>): Promise<CapturedOutput> {
   } catch {
     // Commander exitOverride and handler errors: inspect captured streams
   } finally {
+    restoreStdin()
     process.stdout.write = origStdout
     process.stderr.write = origStderr
   }
