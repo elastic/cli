@@ -126,9 +126,8 @@ export function buildApiRequest (args: BuildApiRequestArgs): ResolvedApiRequest 
   }
 
   let url = `${baseUrl}${pathname}`
-  const queryKeys = Object.keys(query)
-  if (queryKeys.length > 0) {
-    const pieces = queryKeys.map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(query[k]!)}`)
+  if (query.length > 0) {
+    const pieces = query.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
     url += `?${pieces.join('&')}`
   }
 
