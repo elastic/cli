@@ -15,7 +15,7 @@ import { defineCommand } from '../factory.ts'
 import type { HandlerResult, JsonValue, OpaqueCommandHandle, ParsedResult } from '../factory.ts'
 import { getResolvedConfig } from '../config/store.ts'
 import { buildApiRequest, redactRequest, sendApiRequest } from './request.ts'
-import { EsResponseError, EsConnectionError } from '@elastic/elasticsearch'
+import { EsResponseError, EsConnectionError } from '../lib/es-client.ts'
 
 function collectHeader (value: string, previous: string[]): string[] {
   return [...previous, value]
