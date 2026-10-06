@@ -4,6 +4,7 @@
  */
 
 import { inputError } from '../api/path.ts'
+import type { ParsedResult } from '../factory.ts'
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD'
 
@@ -30,13 +31,15 @@ export interface CloudRequestParams {
 
 export function buildCloudRequestParams (
   def: CloudApiDefinition | CloudRequestDef,
-  parsed: Record<string, unknown>
+  parsed: ParsedResult<unknown> | Record<string, unknown>
 ): CloudRequestParams {
   const pathTemplate = 'pathTemplate' in def ? def.pathTemplate : def.path
   let path = pathTemplate
 
+  const parsedMap = parsed as Record<string, unknown>
+
   for (const param of def.pathParams ?? []) {
-    const value = parsed[param]
+    const value = parsedMap[param]
     if (typeof value !== 'string') {
       inputError(`Missing required path parameter "${param}"`)
     }
@@ -51,7 +54,7 @@ export function buildCloudRequestParams (
 
   const query: Record<string, string> = {}
   for (const param of def.queryParams ?? []) {
-    const value = parsed[param]
+    const value = parsedMap[param]
     if (typeof value === 'string') {
       query[param] = value
     }
