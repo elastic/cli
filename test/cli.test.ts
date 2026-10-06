@@ -6,7 +6,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
@@ -173,6 +173,69 @@ describe('elastic CLI -- preAction config error handling', () => {
       assert.equal(code, 1, `expected exit code 1, got ${code}`)
       const parsed = JSON.parse(stderr) as { error: { code: string, message: string } }
       assert.equal(parsed.error.code, 'config_invalid')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('emits command_blocked JSON when a locked context is overridden', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-lock-'))
+    try {
+      const configPath = join(dir, 'repro.yml')
+      await writeFile(configPath, [
+        'current_context: agent',
+        'contexts:',
+        '  agent:',
+        '    elasticsearch:',
+        '      url: http://127.0.0.1:9',
+        '      auth:',
+        '        api_key: read-only-key',
+        '    commands:',
+        '      allowed:',
+        '        - status',
+        '    allow_context_override: false',
+        '  admin:',
+        '    elasticsearch:',
+        '      url: http://127.0.0.1:9',
+        '      auth:',
+        '        api_key: admin-key',
+      ].join('\n'))
+      await chmod(configPath, 0o600)
+      const env = { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir, ELASTIC_CLI_CONFIG_FILE: configPath }
+      const cases: string[][] = [
+        ['--json', 'stack', 'es', 'indices', 'delete', '--index', 'products', '--yes', '--use-context', 'admin'],
+        ['--json', 'stack', 'es', 'indices', 'delete', '--index', 'products', '--yes', '--use-context=admin'],
+        ['--json', '--use-context', 'admin', 'stack', 'es', 'indices', 'delete', '--index', 'products', '--yes'],
+        ['--json', 'status', '--use-context=admin'],
+      ]
+      for (const args of cases) {
+        const { code, stderr, stdout } = await runCli(args, { cwd: dir, env })
+        assert.equal(code, 1, `expected exit 1 for ${args.join(' ')}; stderr=${stderr}`)
+        assert.equal(stdout, '')
+        const parsed = JSON.parse(stderr) as { error: { code: string, message: string } }
+        assert.equal(parsed.error.code, 'command_blocked', `code for ${args.join(' ')}`)
+        assert.match(parsed.error.message, /does not allow --use-context/)
+        assert.equal(parsed.error.message.includes('admin-key'), false)
+      }
+      const other = join(dir, 'admin.yml')
+      await writeFile(other, [
+        'current_context: admin',
+        'contexts:',
+        '  admin:',
+        '    elasticsearch:',
+        '      url: http://127.0.0.1:9',
+        '      auth:',
+        '        api_key: admin-key',
+      ].join('\n'))
+      await chmod(other, 0o600)
+      const viaFile = await runCli(
+        ['--json', '--config-file', other, 'stack', 'es', 'indices', 'delete', '--index', 'products', '--yes'],
+        { cwd: dir, env },
+      )
+      assert.equal(viaFile.code, 1)
+      const viaFileParsed = JSON.parse(viaFile.stderr) as { error: { code: string, message: string } }
+      assert.equal(viaFileParsed.error.code, 'command_blocked')
+      assert.match(viaFileParsed.error.message, /does not allow --config-file/)
     } finally {
       await rm(dir, { recursive: true })
     }

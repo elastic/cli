@@ -160,6 +160,7 @@ const contextSchema: Record<string, unknown> = {
     kibana: serviceBlockSchema,
     cloud: serviceBlockSchema,
     commands: commandPolicySchema,
+    allow_context_override: { type: 'boolean' },
   },
 }
 
@@ -253,6 +254,9 @@ function stripContext (raw: unknown): Context | undefined {
   if (r['commands'] != null) {
     const v = stripCommandPolicy(r['commands'])
     if (v != null) out.commands = v
+  }
+  if (typeof r['allow_context_override'] === 'boolean') {
+    out.allow_context_override = r['allow_context_override']
   }
   return out
 }

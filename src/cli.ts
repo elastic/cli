@@ -79,10 +79,10 @@ if (!wantsHelp) {
     if (result.ok) {
       setResolvedConfig(result.value)
     } else {
-      const { classifyConfigLoadError } = await import('./help/catalog.js')
+      const { configLoadErrorCode } = await import('./help/catalog.js')
       const payload = {
         error: {
-          code: classifyConfigLoadError(result.error.message),
+          code: configLoadErrorCode(result.error),
           message: result.error.message,
         },
       }

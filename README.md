@@ -146,6 +146,7 @@ contexts:
 
 Multiple contexts are supported.
 Override `current_context` for a single command with `--use-context <name>`.
+Set `allow_context_override: false` on a context to reject `--use-context` and `--config-file` while that context is current.
 
 Each context can have any combination of service blocks (`elasticsearch`, `kibana`, `cloud`).
 Authentication can also use `username` + `password` instead of `api_key`.

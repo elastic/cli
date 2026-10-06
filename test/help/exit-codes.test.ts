@@ -10,6 +10,7 @@ import {
   ERROR_CODES,
   EXIT_CODES,
   classifyConfigLoadError,
+  configLoadErrorCode,
   formatExitCodesHelp,
   formatTopicsHelp,
 } from '../../src/help/catalog.ts'
@@ -52,6 +53,14 @@ describe('classifyConfigLoadError', () => {
   it('maps parse and validation failures to config_invalid', () => {
     assert.equal(classifyConfigLoadError('contexts.local: required'), 'config_invalid')
     assert.equal(classifyConfigLoadError('Unknown profile "nope"'), 'config_invalid')
+  })
+})
+
+describe('configLoadErrorCode', () => {
+  it('keeps command_blocked and otherwise classifies the message', () => {
+    assert.equal(configLoadErrorCode({ code: 'command_blocked', message: 'context "agent" does not allow --use-context' }), 'command_blocked')
+    assert.equal(configLoadErrorCode({ message: 'No configuration file found.' }), 'missing_config')
+    assert.equal(configLoadErrorCode({ code: 'config_unresolved', message: 'Failed to resolve config expressions' }), 'config_invalid')
   })
 })
 

@@ -263,6 +263,16 @@ describe('ContextSchema', () => {
     assert.equal('extra' in result.data, false)
   })
 
+  it('keeps allow_context_override', () => {
+    const result = ContextSchema.safeParse({
+      elasticsearch: esBlock,
+      allow_context_override: false,
+    })
+    assert.equal(result.success, true)
+    if (!result.success) return
+    assert.equal(result.data.allow_context_override, false)
+  })
+
   it('accepts a per-context commands policy', () => {
     const result = ContextSchema.safeParse({
       elasticsearch: esBlock,
