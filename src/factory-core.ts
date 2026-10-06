@@ -88,6 +88,11 @@ export interface CommandConfig {
    * empty, --input-file and --dry-run are hidden from help (#378).
    */
   readOnly?: boolean
+  /**
+   * When true, `--dry-run` is passed to the handler instead of the factory
+   * short-circuit. Use when the handler itself prints the resolved request.
+   */
+  passthroughDryRun?: boolean
   /** Applied to JSON input (stdin or --input-file) before schema validation. */
   inputTransform?: (input: unknown) => unknown
 }
