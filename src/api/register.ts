@@ -36,9 +36,9 @@ function missingConfigError (err: unknown): HandlerResult {
   return { error: { code: 'missing_config', message } } as unknown as HandlerResult
 }
 
-async function apiHandler (parsed: ParsedResult, cmd: Command): Promise<HandlerResult> {
+async function apiHandler (parsed: ParsedResult<unknown>, liveCmd: Command): Promise<HandlerResult> {
   const method = parsed.arg ?? ''
-  const path = typeof cmd.processedArgs[1] === 'string' ? cmd.processedArgs[1] : ''
+  const path = typeof liveCmd.processedArgs[1] === 'string' ? liveCmd.processedArgs[1] : ''
   const service = String(parsed.options['service'] ?? '')
   const fromFile = parsed.options['input-file'] != null
   const input = parsed.input
@@ -50,7 +50,7 @@ async function apiHandler (parsed: ParsedResult, cmd: Command): Promise<HandlerR
       method,
       path,
       service,
-      extraHeaders: extraHeaders(cmd),
+      extraHeaders: extraHeaders(liveCmd),
       body,
       config: parsed.config ?? getResolvedConfig(),
     })
@@ -83,7 +83,9 @@ async function apiHandler (parsed: ParsedResult, cmd: Command): Promise<HandlerR
  * the factory only wires one; the path argument is registered after defineCommand.
  */
 export function registerApiCommand (): OpaqueCommandHandle {
-  const cmd = defineCommand({
+  let resolvedCmd: Command | undefined
+
+  const handle = defineCommand({
     name: 'api',
     description: 'Send an untyped HTTP request using the active context (prefer generated commands)',
     positionalArg: { name: 'method', description: 'HTTP method (GET, POST, PUT, DELETE, HEAD, PATCH)', required: true },
@@ -92,9 +94,10 @@ export function registerApiCommand (): OpaqueCommandHandle {
     ],
     input: { type: 'object', additionalProperties: true },
     passthroughDryRun: true,
-    handler: (parsed, liveCmd) => apiHandler(parsed, liveCmd as unknown as Command),
+    handler: (parsed: ParsedResult<unknown>) => apiHandler(parsed, resolvedCmd as Command),
   })
-  cmd.argument('<path>', 'request path, for example / or /_cluster/health')
-  cmd.option('-H, --header <header>', 'extra request header as Name: value (repeatable)', collectHeader, [])
-  return cmd
+  resolvedCmd = handle as unknown as Command
+  handle.argument('<path>', 'request path, for example / or /_cluster/health')
+  handle.option('-H, --header <header>', 'extra request header as Name: value (repeatable)', collectHeader, [])
+  return handle
 }
