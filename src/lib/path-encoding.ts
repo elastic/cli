@@ -4,25 +4,13 @@
  */
 
 /**
- * Encodes a single decoded path segment value so it is safe to embed in a URL
- * path. Uses encodeURIComponent as the base (encodes everything except
- * unreserved characters) and then restores characters that are explicitly
- * allowed in a path segment by RFC 3986 (sub-delimiters + `:` `@`) so that
- * values like "my:index" or "user@host" round-trip without double-encoding.
+ * Encodes a single path segment value so it is safe to embed in a URI path.
+ *
+ * Uses `encodeURIComponent` as the base, which encodes everything except
+ * A-Z a-z 0-9 - _ . ! ~ * ' ( ).  This is intentionally stricter than the
+ * set of characters that are technically allowed unencoded in a path segment
+ * so that values such as `/` cannot introduce extra path segments.
  */
 export function encodePathParam (value: string): string {
   return encodeURIComponent(value)
-    .replace(/%21/g, '!')
-    .replace(/%24/g, '$')
-    .replace(/%26/g, '&')
-    .replace(/%27/g, "'")
-    .replace(/%28/g, '(')
-    .replace(/%29/g, ')')
-    .replace(/%2A/gi, '*')
-    .replace(/%2B/gi, '+')
-    .replace(/%2C/gi, ',')
-    .replace(/%3A/gi, ':')
-    .replace(/%3B/gi, ';')
-    .replace(/%3D/gi, '=')
-    .replace(/%40/gi, '@')
 }
