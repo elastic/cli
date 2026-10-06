@@ -65,6 +65,16 @@ export function buildCloudRequestParams (
       ? (parsed.input as Record<string, unknown>)
       : (parsed as Record<string, unknown>)
 
+  // Options map from ParsedResult (Commander stores --foo-bar as fooBar here).
+  const optionsMap: Record<string, unknown> =
+    (parsed != null &&
+      typeof parsed === 'object' &&
+      'options' in parsed &&
+      parsed.options != null &&
+      typeof parsed.options === 'object')
+      ? (parsed.options as Record<string, unknown>)
+      : {}
+
   function getValue (param: string): unknown {
     // Try direct lookup first (snake_case as declared in the API spec).
     if (param in inputMap) return inputMap[param]
@@ -72,6 +82,9 @@ export function buildCloudRequestParams (
     // and snake_case params like api_key_id may be stored as apiKeyId).
     const camel = snakeToCamel(param)
     if (camel !== param && camel in inputMap) return inputMap[camel]
+    // Also check parsed.options (Commander stores CLI flags here).
+    if (param in optionsMap) return optionsMap[param]
+    if (camel !== param && camel in optionsMap) return optionsMap[camel]
     return undefined
   }
 
