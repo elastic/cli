@@ -7,7 +7,7 @@ import { encodePathParam } from '../lib/path-encoding.ts'
 
 export interface EncodedApiPath {
   pathname: string
-  query: Record<string, string>
+  query: Array<[string, string]>
 }
 
 function inputError (message: string): never {
@@ -23,11 +23,14 @@ function decodeSegment (segment: string, original: string): string {
 }
 
 /**
- * Splits a user-supplied request path into an encoded pathname and query map.
+ * Splits a user-supplied request path into an encoded pathname and query pairs.
  *
  * Query string and fragment are stripped before encoding. Each path segment is
  * decoded, rejected if it is empty / `.` / `..`, then percent-encoded so a
  * caller cannot traverse to the parent resource via `../` or `%2e%2e`.
+ *
+ * Repeated query keys (e.g. `?a=1&a=2`) are preserved as separate pairs so
+ * that the downstream request is sent exactly as given.
  */
 export function encodeApiPath (raw: string): EncodedApiPath {
   const hash = raw.indexOf('#')
@@ -53,10 +56,10 @@ export function encodeApiPath (raw: string): EncodedApiPath {
   }
   const pathname = encoded.length === 1 ? '/' : encoded.join('/')
 
-  const query: Record<string, string> = {}
+  const query: Array<[string, string]> = []
   if (queryPart !== '') {
-    for (const [key, value] of new URLSearchParams(queryPart)) {
-      query[key] = value
+    for (const pair of new URLSearchParams(queryPart)) {
+      query.push(pair as [string, string])
     }
   }
   return { pathname, query }
