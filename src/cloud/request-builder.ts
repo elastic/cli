@@ -47,6 +47,20 @@ function snakeToCamel (s: string): string {
   return s.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
 }
 
+/**
+ * Extracts all placeholder names from a path template, e.g.
+ * "/deployments/{deployment_id}/resources" -> ["deployment_id"]
+ */
+function extractTemplatePlaceholders (template: string): string[] {
+  const found: string[] = []
+  const re = /\{([^}]+)\}/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(template)) !== null) {
+    found.push(m[1])
+  }
+  return found
+}
+
 export function buildCloudRequestParams (
   def: CloudApiDefinition | CloudRequestDef,
   parsed: ParsedResult<unknown> | Record<string, unknown>
@@ -88,8 +102,15 @@ export function buildCloudRequestParams (
     return undefined
   }
 
+  // Use explicitly declared pathParams when provided; otherwise auto-extract
+  // from the template so all {placeholder} tokens are always resolved.
+  const pathParamNames: string[] =
+    (def.pathParams != null && def.pathParams.length > 0)
+      ? def.pathParams
+      : extractTemplatePlaceholders(pathTemplate)
+
   // Path params
-  for (const param of def.pathParams ?? []) {
+  for (const param of pathParamNames) {
     const value = getValue(param)
     if (typeof value !== 'string') {
       inputError(`Missing required path parameter "${param}"`)
@@ -150,7 +171,7 @@ export function buildCloudRequestParams (
     // Collect keys consumed by path/query params, accounting for both
     // snake_case names and their camelCase equivalents.
     const consumed = new Set<string>()
-    for (const p of [...(def.pathParams ?? []), ...(def.queryParams ?? [])]) {
+    for (const p of [...pathParamNames, ...(def.queryParams ?? [])]) {
       consumed.add(p)
       consumed.add(snakeToCamel(p))
     }
