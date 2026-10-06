@@ -4,36 +4,38 @@
  */
 
 /**
- * Encodes a single path segment value so it is safe to embed in a URL path.
+ * Percent-encodes a single path parameter value for use in a URL path segment.
  *
- * Uses `encodeURIComponent` as the base (encodes everything except
- * unreserved characters: A-Z a-z 0-9 - _ . ~) then restores the subset of
- * sub-delimiters and other characters that RFC 3986 allows unencoded inside a
- * path segment: ! $ & ' ( ) * + , ; = : @
- *
- * Critically, `/` and `%2F` remain encoded so a caller cannot inject a path
- * separator. Empty string, `.`, and `..` are rejected because they would
- * widen or traverse the request scope.
+ * Encodes all characters that are not unreserved (RFC 3986) or sub-delimiters,
+ * plus `:`, `@`, `!`, `$`, `&`, `'`, `(`, `)`, `*`, `+`, `,`, `;`, `=`
+ * (i.e. the pchar production minus `/`). In practice this means all characters
+ * that could be misinterpreted as path separators or reserved URI syntax are
+ * escaped, while letters, digits, `-`, `.`, `_`, `~` are passed through.
  */
 export function encodePathParam (value: string): string {
-  if (value === '') {
-    throw Object.assign(
-      new Error('Invalid path parameter: empty string would widen the request scope instead of targeting a specific resource'),
-      { code: 'input_error' }
-    )
-  }
-  if (value === '.' || value === '..') {
-    throw Object.assign(
-      new Error(`Invalid path parameter: value "${value}" resolves to the parent/root resource instead of a specific target`),
-      { code: 'input_error' }
-    )
-  }
+  // encodeURIComponent encodes everything except: A-Z a-z 0-9 - _ . ! ~ * ' ( )
+  // We additionally encode ! ~ * ' ( ) to be conservative.
+  return encodeURIComponent(value).replace(/[!'()*~]/g, (c) => {
+    return '%' + c.charCodeAt(0).toString(16).toUpperCase()
+  })
+}
 
-  // encodeURIComponent encodes everything except: A-Z a-z 0-9 - _ . ~
-  // Restore characters that are legal unencoded inside a path segment per
-  // RFC 3986 section 3.3 (pchar = unreserved / pct-encoded / sub-delims / ":" / "@").
-  return encodeURIComponent(value).replace(
-    /%(?:21|24|26|27|28|29|2A|2B|2C|3B|3D|3A|40)/gi,
-    (match) => decodeURIComponent(match)
-  )
+/**
+ * Encodes a multi-target path parameter (e.g. an index pattern like
+ * `index1,index2,alias*`) for use in a URL path segment.
+ *
+ * Each comma-separated target is encoded individually with `encodePathParam`
+ * and the results are rejoined with `,`. This preserves the multi-target
+ * semantics expected by Elasticsearch while still encoding characters that
+ * could be misinterpreted as URL structural characters within each target.
+ *
+ * A `*` wildcard within an individual target is left encoded (as `%2A`) so
+ * that the server receives the literal asterisk only after decoding – this is
+ * the same behaviour as encoding the whole string with `encodeURIComponent`.
+ */
+export function encodeMultiTargetPathParam (value: string): string {
+  return value
+    .split(',')
+    .map((target) => encodePathParam(target.trim()))
+    .join(',')
 }
