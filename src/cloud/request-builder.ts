@@ -39,6 +39,14 @@ export interface CloudRequestParams {
   body?: unknown
 }
 
+/**
+ * Converts a snake_case identifier to camelCase.
+ * e.g. "api_key_id" -> "apiKeyId"
+ */
+function snakeToCamel (s: string): string {
+  return s.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
+}
+
 export function buildCloudRequestParams (
   def: CloudApiDefinition | CloudRequestDef,
   parsed: ParsedResult<unknown> | Record<string, unknown>
@@ -58,17 +66,21 @@ export function buildCloudRequestParams (
       : (parsed as Record<string, unknown>)
 
   function getValue (param: string): unknown {
-    return inputMap[param]
+    // Try direct lookup first (snake_case as declared in the API spec).
+    if (param in inputMap) return inputMap[param]
+    // Fall back to camelCase lookup (Commander converts --foo-bar to fooBar,
+    // and snake_case params like api_key_id may be stored as apiKeyId).
+    const camel = snakeToCamel(param)
+    if (camel !== param && camel in inputMap) return inputMap[camel]
+    return undefined
   }
 
-  // ── Path params ────────────────────────────────────────────────────────────
+  // Path params
   for (const param of def.pathParams ?? []) {
     const value = getValue(param)
     if (typeof value !== 'string') {
       inputError(`Missing required path parameter "${param}"`)
     }
-    // encodePathParam already rejects empty, '.', and '..' – no duplicate
-    // guard needed here, but we surface a clearer param name in the message.
     if (value === '') {
       inputError(
         `Invalid path parameter "${param}": empty string would widen the request scope instead of targeting a specific resource`
@@ -88,12 +100,10 @@ export function buildCloudRequestParams (
     inputError(`Unresolved path placeholders: ${unresolved.join(', ')}`)
   }
 
-  // ── x-found-in routing override ────────────────────────────────────────────
+  // x-found-in routing override
   if (def.foundIn != null) {
     const override = getValue(def.foundIn)
     if (typeof override === 'string' && override !== '') {
-      // Encode each segment of the override prefix so arbitrary user input
-      // cannot inject path separators or other special characters.
       const encodedPrefix = override
         .replace(/^\//, '')
         .split('/')
@@ -103,7 +113,7 @@ export function buildCloudRequestParams (
     }
   }
 
-  // ── Query params ───────────────────────────────────────────────────────────
+  // Query params
   const query: Record<string, string> = {}
   for (const param of def.queryParams ?? []) {
     const value = getValue(param)
@@ -114,13 +124,7 @@ export function buildCloudRequestParams (
     }
   }
 
-  // ── Body ───────────────────────────────────────────────────────────────────
-  // 1. Explicit x-body-root param.
-  // 2. For passthrough POST/PUT/PATCH/DELETE with no bodyParam, forward
-  //    unconsumed keys so callers do not need to know the schema shape.
-  //    DELETE is excluded here to avoid inadvertently sending a body on
-  //    requests that have no remaining keys – callers that need a DELETE body
-  //    must declare bodyParam explicitly.
+  // Body
   let body: unknown
   const method = def.method
   if (def.bodyParam != null) {
@@ -130,9 +134,17 @@ export function buildCloudRequestParams (
     (method === 'POST' || method === 'PUT' || method === 'PATCH') &&
     Object.keys(inputMap).length > 0
   ) {
-    // Collect keys that were not already consumed by path or query params.
-    const consumed = new Set<string>([...(def.pathParams ?? []), ...(def.queryParams ?? [])])
-    if (def.foundIn != null) consumed.add(def.foundIn)
+    // Collect keys consumed by path/query params, accounting for both
+    // snake_case names and their camelCase equivalents.
+    const consumed = new Set<string>()
+    for (const p of [...(def.pathParams ?? []), ...(def.queryParams ?? [])]) {
+      consumed.add(p)
+      consumed.add(snakeToCamel(p))
+    }
+    if (def.foundIn != null) {
+      consumed.add(def.foundIn)
+      consumed.add(snakeToCamel(def.foundIn))
+    }
     const bodyKeys = Object.keys(inputMap).filter((k) => !consumed.has(k))
     if (bodyKeys.length > 0) {
       const bodyObj: Record<string, unknown> = {}
