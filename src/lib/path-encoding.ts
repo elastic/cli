@@ -3,36 +3,34 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// `encodeURIComponent` leaves `.` and `..` untouched (they're unreserved), and
-// encodes an empty string to `''`. A URL-consuming layer normalizes `/./`,
-// `/../`, and empty segments out of the path, silently widening a single-target
-// request (e.g. a specific index) to the resource root (e.g. the whole cluster).
-// Reject these before they ever reach a path.
-export function assertSafePathSegment (segment: string, original: string): void {
-  if (segment === '' || segment === '.' || segment === '..') {
-    const context = segment === original ? '' : ` (within "${original}")`
-    throw Object.assign(
-      new Error(`Invalid path parameter "${segment}"${context}: empty, ".", and ".." segments are rejected because they resolve to the parent/root resource instead of a specific target`),
-      { code: 'input_error' }
-    )
-  }
-}
-
-/** Encodes a single path parameter value, rejecting empty, `.`, and `..`. */
-export function encodePathParam (value: string): string {
-  assertSafePathSegment(value, value)
-  return encodeURIComponent(value)
-}
-
 /**
- * Encodes a path parameter that may use Elasticsearch multi-target syntax
- * (e.g. `"idx1,idx2"`). Each comma-separated segment is trimmed, validated,
- * and percent-encoded individually; commas are preserved as separators.
+ * Percent-encodes a single path segment value (already decoded).
+ *
+ * Uses `encodeURIComponent` as the base (which encodes everything except
+ * `A-Z a-z 0-9 - _ . ! ~ * ' ( )`) then restores characters that are
+ * legal unencoded in a path segment per RFC 3986:
+ *   sub-delimiters : ! $ & ' ( ) * + , ; =
+ *   colon          : (allowed in non-first segments)
+ *   at-sign        : @
+ *
+ * Characters that MUST remain encoded in path segments (e.g. `/`, `?`, `#`,
+ * `[`, `]`) are intentionally left encoded.
  */
-export function encodeMultiTargetPathParam (value: string): string {
-  return value.split(',').map((s) => {
-    const trimmed = s.trim()
-    assertSafePathSegment(trimmed, value)
-    return encodeURIComponent(trimmed)
-  }).join(',')
+export function encodePathParam (value: string): string {
+  return encodeURIComponent(value)
+    // Restore RFC 3986 sub-delimiters that are safe in path segments
+    .replace(/%21/gi, '!')
+    .replace(/%24/gi, '$')
+    .replace(/%26/gi, '&')
+    .replace(/%27/gi, "'")
+    .replace(/%28/gi, '(')
+    .replace(/%29/gi, ')')
+    .replace(/%2A/gi, '*')
+    .replace(/%2B/gi, '+')
+    .replace(/%2C/gi, ',')
+    .replace(/%3B/gi, ';')
+    .replace(/%3D/gi, '=')
+    // Restore colon and at-sign
+    .replace(/%3A/gi, ':')
+    .replace(/%40/gi, '@')
 }
