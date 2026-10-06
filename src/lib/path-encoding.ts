@@ -4,44 +4,18 @@
  */
 
 /**
- * Percent-encodes a single path parameter value so it is safe to embed in a
- * URL path segment. Characters that are valid in a path segment per RFC 3986
- * but could alter routing (e.g. `/`) are encoded.
+ * Percent-encodes a single decoded path segment so it is safe to embed in a
+ * URL path. Uses `encodeURIComponent` which encodes every character that is
+ * not unreserved (A-Z a-z 0-9 - _ . ~) plus characters that would be
+ * mistaken for path separators or query/fragment delimiters.
  *
- * Rejects empty strings, `.`, and `..` because a URL-normalizing proxy would
- * collapse them and potentially widen the request scope to the resource root.
+ * Each call receives a single already-split segment; the caller is responsible
+ * for splitting on `/` before invoking this function.
+ *
+ * Empty string, `.`, and `..` are NOT rejected here - callers that need
+ * that validation (e.g. `encodeApiPath`) perform it before calling
+ * `encodePathParam`.
  */
 export function encodePathParam (value: string): string {
-  if (value === '') {
-    throw Object.assign(
-      new Error('Invalid path parameter: empty string would widen the request scope instead of targeting a specific resource'),
-      { code: 'input_error' }
-    )
-  }
-  if (value === '.' || value === '..') {
-    throw Object.assign(
-      new Error(`Invalid path parameter: value "${value}" resolves to the parent/root resource instead of a specific target`),
-      { code: 'input_error' }
-    )
-  }
-  // encodeURIComponent encodes everything except: A-Z a-z 0-9 - _ . ! ~ * ' ( )
   return encodeURIComponent(value)
-}
-
-/**
- * Encodes a comma-separated multi-target string (e.g. `index1,index2,-index3`).
- * Each individual target is encoded with `encodePathParam`; commas and leading
- * minus signs are preserved so Elasticsearch multi-target syntax is respected.
- */
-export function encodeMultiTargetPathParam (value: string): string {
-  return value
-    .split(',')
-    .map((target) => {
-      const trimmed = target.trim()
-      if (trimmed.startsWith('-')) {
-        return '-' + encodePathParam(trimmed.slice(1))
-      }
-      return encodePathParam(trimmed)
-    })
-    .join(',')
 }
