@@ -4,6 +4,20 @@
  */
 
 /**
+ * Throws if `value` is an empty string, `.`, or `..` – segments that a URL
+ * parser may normalise into a path-traversal before the request hits the wire.
+ *
+ * @internal
+ */
+function validatePathSegment (value: string): void {
+  if (value === '' || value === '.' || value === '..') {
+    throw new Error(
+      `Invalid path segment: ${JSON.stringify(value)} – empty, ".", and ".." segments are not allowed`
+    )
+  }
+}
+
+/**
  * Percent-encodes a single path parameter value using RFC 3986 rules,
  * preserving characters that are safe in a URI path segment.
  *
@@ -14,8 +28,12 @@
  *
  * Characters that ARE encoded: `/`, `?`, `#`, `%`, and everything outside
  * the unreserved + sub-delimiter sets.
+ *
+ * Throws for empty, `.`, and `..` values because `fetch` normalises those
+ * segments before the wire, which would silently retarget the request.
  */
 export function encodePathParam (value: string): string {
+  validatePathSegment(value)
   return encodeURIComponent(value)
     // Restore sub-delimiters and other characters that are safe in path segments
     .replace(/%21/g, '!')
@@ -39,6 +57,8 @@ export function encodePathParam (value: string): string {
  *
  * Each individual target is encoded with `encodePathParam`, so date-math
  * expressions and other sub-delimiter characters remain valid.
+ *
+ * Throws if any individual target is empty, `.`, or `..`.
  */
 export function encodeMultiTargetPathParam (value: string): string {
   return value
