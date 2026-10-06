@@ -50,6 +50,11 @@ export interface Context {
   kibana?: ServiceBlock
   cloud?: ServiceBlock
   commands?: CommandPolicy
+  /**
+   * When false, the CLI rejects `--use-context` and `--config-file` while this
+   * context is the file's current context.
+   */
+  allow_context_override?: boolean
 }
 
 /** The root configuration file structure. */
