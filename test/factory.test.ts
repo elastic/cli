@@ -1685,6 +1685,109 @@ describe('defineCommand', () => {
       assert.deepEqual(input.query, { term: 'canyon' })
     })
 
+    it('rejects malformed JSON on an object body flag before the handler runs', async () => {
+      const schema = jsonSchema({
+        index: { type: 'string', 'x-found-in': 'path' },
+        document: { type: 'object', 'x-found-in': 'body' },
+      })
+      let handlerCalled = false
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: schema,
+        handler: () => { handlerCalled = true; return {} },
+      })
+      const err = await captureErrAsync(cmd, ['--index', 'test-idx', '--document', '{"name":"Alice"invalid}'])
+      assert.equal(handlerCalled, false)
+      assert.match(err, /--document: invalid JSON:/)
+    })
+
+    it('rejects empty, path, and query-like garbage on object flags', async () => {
+      const schema = jsonSchema({
+        document: { type: 'object', 'x-found-in': 'body' },
+      })
+      for (const raw of ['', '   ', '../', '?#', '{', 'not-json']) {
+        let handlerCalled = false
+        const cmd = defineCommand({
+          name: 'index',
+          description: 'Index a document',
+          input: schema,
+          handler: () => { handlerCalled = true; return {} },
+        })
+        const err = await captureErrAsync(cmd, ['--document', raw])
+        assert.equal(handlerCalled, false, `handler ran for ${JSON.stringify(raw)}`)
+        assert.match(err, /--document: invalid JSON:/, `expected invalid JSON for ${JSON.stringify(raw)}`)
+      }
+    })
+
+    it('keeps a plain string on a typeless object property', async () => {
+      const schema = jsonSchema({
+        document: { 'x-found-in': 'body', 'x-body-root': true },
+      })
+      const received: unknown[] = []
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: schema,
+        handler: (parsed) => { received.push(parsed.input); return {} },
+      })
+      for (const raw of ['foo', '../', '?#']) {
+        received.length = 0
+        await invokeAsync(cmd, ['--document', raw])
+        assert.equal((received[0] as Record<string, unknown>).document, raw)
+      }
+    })
+
+    it('rejects broken JSON on a typeless object property', async () => {
+      const schema = jsonSchema({
+        document: { 'x-found-in': 'body' },
+      })
+      for (const raw of ['{"name":"Alice"invalid}', '{', '"unterminated']) {
+        let handlerCalled = false
+        const cmd = defineCommand({
+          name: 'index',
+          description: 'Index a document',
+          input: schema,
+          handler: () => { handlerCalled = true; return {} },
+        })
+        const err = await captureErrAsync(cmd, ['--document', raw])
+        assert.equal(handlerCalled, false, `handler ran for ${JSON.stringify(raw)}`)
+        assert.match(err, /--document: invalid JSON:/, `expected invalid JSON for ${JSON.stringify(raw)}`)
+      }
+    })
+
+    it('still accepts a valid object flag with surrounding whitespace', async () => {
+      const schema = jsonSchema({
+        document: { type: 'object', 'x-found-in': 'body' },
+      })
+      const received: unknown[] = []
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: schema,
+        handler: (parsed) => { received.push(parsed.input); return {} },
+      })
+      await invokeAsync(cmd, ['--document', '  {"name":"Alice"}  '])
+      assert.deepEqual((received[0] as Record<string, unknown>).document, { name: 'Alice' })
+    })
+
+    it('emits input_validation_failed for malformed object JSON when --json is set', async () => {
+      const schema = jsonSchema({
+        document: { type: 'object', 'x-found-in': 'body' },
+      })
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: schema,
+        handler: () => ({}),
+      })
+      const { stderr, exitCode } = await invokeCapturingStreams(cmd, ['--json'], ['--document', '{"name":"Alice"invalid}'])
+      const parsed = JSON.parse(stderr) as { error: { code: string, message: string } }
+      assert.equal(parsed.error.code, 'input_validation_failed')
+      assert.match(parsed.error.message, /--document: invalid JSON:/)
+      assert.equal(exitCode, 1)
+    })
+
     it('still validates path and query params strictly', async () => {
       const schema = jsonSchema({
         index: { type: 'string', 'x-found-in': 'path' },
