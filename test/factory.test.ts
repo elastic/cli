@@ -1720,6 +1720,42 @@ describe('defineCommand', () => {
       }
     })
 
+    it('keeps a plain string on a typeless object property', async () => {
+      const schema = jsonSchema({
+        document: { 'x-found-in': 'body', 'x-body-root': true },
+      })
+      const received: unknown[] = []
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: schema,
+        handler: (parsed) => { received.push(parsed.input); return {} },
+      })
+      for (const raw of ['foo', '../', '?#']) {
+        received.length = 0
+        await invokeAsync(cmd, ['--document', raw])
+        assert.equal((received[0] as Record<string, unknown>).document, raw)
+      }
+    })
+
+    it('rejects broken JSON on a typeless object property', async () => {
+      const schema = jsonSchema({
+        document: { 'x-found-in': 'body' },
+      })
+      for (const raw of ['{"name":"Alice"invalid}', '{', '"unterminated']) {
+        let handlerCalled = false
+        const cmd = defineCommand({
+          name: 'index',
+          description: 'Index a document',
+          input: schema,
+          handler: () => { handlerCalled = true; return {} },
+        })
+        const err = await captureErrAsync(cmd, ['--document', raw])
+        assert.equal(handlerCalled, false, `handler ran for ${JSON.stringify(raw)}`)
+        assert.match(err, /--document: invalid JSON:/, `expected invalid JSON for ${JSON.stringify(raw)}`)
+      }
+    })
+
     it('still accepts a valid object flag with surrounding whitespace', async () => {
       const schema = jsonSchema({
         document: { type: 'object', 'x-found-in': 'body' },
