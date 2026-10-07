@@ -2534,6 +2534,60 @@ describe('text output rendering', () => {
       assert.equal(out, JSON.stringify([{ name: 'foo', tags: ['a', 'b'] }], null, 2) + '\n')
     })
   })
+
+  describe('deprecated commands', () => {
+    it('marks the description in help output', () => {
+      const cmd = defineCommand({
+        name: 'old',
+        description: 'Do things',
+        deprecated: 'since 8.11.0',
+        handler: () => ({}),
+      })
+      assert.match(cmd.helpInformation(), /Do things \(deprecated: since 8\.11\.0\)/)
+    })
+
+    it('leaves the description alone without a note', () => {
+      const cmd = defineCommand({
+        name: 'new',
+        description: 'Do things',
+        handler: () => ({}),
+      })
+      assert.doesNotMatch(cmd.helpInformation(), /deprecated/)
+    })
+
+    it('warns on stderr when a deprecated command runs', async () => {
+      const cmd = defineCommand({
+        name: 'old',
+        description: 'Do things',
+        deprecated: 'since 8.11.0',
+        handler: () => ({ ok: true }),
+      })
+      let err = ''
+      const origWrite = process.stderr.write.bind(process.stderr)
+      process.stderr.write = ((chunk: unknown) => { if (typeof chunk === 'string') err += chunk; return true }) as typeof process.stderr.write
+      try {
+        await invokeText(cmd)
+      } finally {
+        process.stderr.write = origWrite
+      }
+      assert.match(err, /Warning: old is deprecated: since 8\.11\.0\./)
+    })
+
+    it('marks deprecated flags in help output', async () => {
+      const cmd = defineCommand({
+        name: 'get',
+        description: 'Get things',
+        input: {
+          type: 'object',
+          properties: {
+            local: { type: 'boolean', description: 'Local only', 'x-deprecated': { since: '9.0.0' } },
+          },
+        },
+        handler: () => ({}),
+      })
+      assert.match(cmd.helpInformation(), /--local.*\(deprecated: since 9\.0\.0\)/)
+    })
+  })
 })
 
 describe('defineGroup', () => {
