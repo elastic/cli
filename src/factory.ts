@@ -609,10 +609,21 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
             rawBodyValues[arg.schemaKey] = new RawJsonValue(JSON.stringify(value), value)
           }
         } else if (arg.type === 'object') {
-          const parsed = parseJsonContent(raw as string, `--${arg.cliFlag}`, cmd)
-          cliInput[arg.schemaKey] = parsed
-          if (arg.foundIn === 'body' || arg.foundIn === undefined) {
-            rawBodyValues[arg.schemaKey] = new RawJsonValue(raw as string, parsed)
+          const text = raw as string
+          try {
+            const parsed = JSON.parse(text)
+            cliInput[arg.schemaKey] = parsed
+            if (arg.foundIn === 'body' || arg.foundIn === undefined) {
+              rawBodyValues[arg.schemaKey] = new RawJsonValue(text, parsed)
+            }
+          } catch {
+            // Typeless properties accept a plain string. A value that starts
+            // like JSON still has to parse, so malformed objects do not ship.
+            if (arg.plainStringOk === true && !/^\s*[{["]/.test(text)) {
+              cliInput[arg.schemaKey] = text
+            } else {
+              parseJsonContent(text, `--${arg.cliFlag}`, cmd)
+            }
           }
         } else if (
           arg.parseStyle === 'sort-pairs' &&

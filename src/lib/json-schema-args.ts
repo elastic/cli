@@ -58,6 +58,12 @@ export interface SchemaArgDefinition {
    * `'sort-pairs'`: ES Sort fields using `field:direction` syntax.
    */
   parseStyle?: 'sort-pairs'
+
+  /**
+   * True when the schema declares no type (`{}`). The flag is parsed as JSON
+   * when the value looks like JSON, and kept as a raw string otherwise.
+   */
+  plainStringOk?: boolean
 }
 
 /** Valid routing destinations for a parameter. */
@@ -115,7 +121,7 @@ interface JsonSchemaProp {
 function resolveType (
   prop: JsonSchemaProp,
   defs: Record<string, JsonSchemaProp> = {}
-): { type: SchemaArgDefinition['type']; acceptsArrayForm: boolean } {
+): { type: SchemaArgDefinition['type']; acceptsArrayForm: boolean; plainStringOk?: boolean } {
   // enum values
   if (Array.isArray(prop.enum) && prop.enum.length > 0) {
     return { type: 'enum', acceptsArrayForm: false }
@@ -164,9 +170,10 @@ function resolveType (
   if (rawType === 'object') return { type: 'object', acceptsArrayForm: false }
   if (rawType === 'string') return { type: 'string', acceptsArrayForm: false }
 
-  // No type declared at all (e.g. `doc`): ES spec leaves these fully generic,
-  // and CLI users pass JSON for them, so treat as object rather than string.
-  if (rawType === undefined) return { type: 'object', acceptsArrayForm: false }
+  // No type declared at all (e.g. `document`, `doc`): the spec accepts any JSON
+  // value, including a plain string. Parse JSON when the value looks like it,
+  // and keep the raw string otherwise.
+  if (rawType === undefined) return { type: 'object', acceptsArrayForm: false, plainStringOk: true }
 
   // fallback for unrecognized type strings
   return { type: 'string', acceptsArrayForm: false }
@@ -194,7 +201,7 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
   const entries = Object.entries(properties)
   const flagByKey = assignCliFlags(entries.map(([key]) => key))
   return entries.filter(([key]) => flagByKey.has(key)).map(([key, prop]) => {
-    const { type, acceptsArrayForm } = resolveType(prop, defs)
+    const { type, acceptsArrayForm, plainStringOk } = resolveType(prop, defs)
     const defaultValue = prop.default
     const isRequired = requiredKeys.has(key) && defaultValue === undefined
     const description = prop.description ?? ''
@@ -217,6 +224,7 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
       ...(foundIn !== undefined ? { foundIn } : {}),
       ...(prop['x-body-root'] === true ? { bodyRoot: true } : {}),
       ...(acceptsArrayForm ? { acceptsArrayForm: true } : {}),
+      ...(plainStringOk === true ? { plainStringOk: true } : {}),
       ...(isSortField ? { parseStyle: 'sort-pairs' as const } : {}),
       ...(enumValues != null && enumValues.length > 0 ? { enumValues } : {}),
     }
