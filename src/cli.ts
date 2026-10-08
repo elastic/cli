@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import './compile-cache.ts'
 import { Command } from 'commander'
 import { hideBlockedCommands, configureJsonHelp, hasGlobalJsonFlag } from './factory-core.js'
 import type { OpaqueCommandHandle } from './factory-core.ts'
