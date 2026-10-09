@@ -9,6 +9,7 @@ import { BUILT_IN_PROFILES, type BuiltInProfile } from './profiles.ts'
 import type {
   Auth,
   ServiceBlock,
+  VersionedServiceBlock,
   Context,
   ConfigFile,
   CommandPolicy,
@@ -161,9 +162,16 @@ const serviceBlockSchema: Record<string, unknown> = {
   properties: {
     url: { type: 'string', minLength: 1 },
     auth: authSchema,
-    version: { type: 'string', minLength: 1 },
   },
   required: ['url'],
+}
+
+const versionedServiceBlockSchema: Record<string, unknown> = {
+  ...serviceBlockSchema,
+  properties: {
+    ...(serviceBlockSchema['properties'] as Record<string, unknown>),
+    version: { type: 'string', minLength: 1 },
+  },
 }
 
 const commandPolicySchema: Record<string, unknown> = {
@@ -182,8 +190,8 @@ const commandPolicySchema: Record<string, unknown> = {
 const contextSchema: Record<string, unknown> = {
   type: 'object',
   properties: {
-    elasticsearch: serviceBlockSchema,
-    kibana: serviceBlockSchema,
+    elasticsearch: versionedServiceBlockSchema,
+    kibana: versionedServiceBlockSchema,
     cloud: serviceBlockSchema,
     commands: commandPolicySchema,
   },
@@ -245,7 +253,13 @@ function stripServiceBlock (raw: unknown): ServiceBlock | undefined {
     const auth = stripAuth(r['auth'])
     if (auth != null) out.auth = auth
   }
-  if (typeof r['version'] === 'string') out.version = r['version']
+  return out
+}
+
+function stripVersionedServiceBlock (raw: unknown): VersionedServiceBlock | undefined {
+  const out: VersionedServiceBlock | undefined = stripServiceBlock(raw)
+  const version = (raw as Record<string, unknown> | undefined)?.['version']
+  if (out != null && typeof version === 'string') out.version = version
   return out
 }
 
@@ -266,11 +280,11 @@ function stripContext (raw: unknown): Context | undefined {
   const r = raw as Record<string, unknown>
   const out: Context = {}
   if (r['elasticsearch'] != null) {
-    const v = stripServiceBlock(r['elasticsearch'])
+    const v = stripVersionedServiceBlock(r['elasticsearch'])
     if (v != null) out.elasticsearch = v
   }
   if (r['kibana'] != null) {
-    const v = stripServiceBlock(r['kibana'])
+    const v = stripVersionedServiceBlock(r['kibana'])
     if (v != null) out.kibana = v
   }
   if (r['cloud'] != null) {
@@ -317,12 +331,12 @@ export const AuthSchema = {
   },
 }
 
-/** Endpoint URL and authentication credentials for a single service. */
+/** Endpoint URL, authentication credentials, and optional version hint for an Elasticsearch or Kibana service. */
 export const ServiceBlockSchema = {
-  safeParse (input: unknown): ParseResult<ServiceBlock> {
-    const r = validate(serviceBlockSchema, input)
+  safeParse (input: unknown): ParseResult<VersionedServiceBlock> {
+    const r = validate(versionedServiceBlockSchema, input)
     if (!r.ok) return { success: false, errors: r.errors }
-    const block = stripServiceBlock(r.data)!
+    const block = stripVersionedServiceBlock(r.data)!
     const err = urlError(block.url, '.url')
     if (err != null) return { success: false, errors: [err] }
     const verErr = versionError((r.data as Record<string, unknown>)['version'], '.version')

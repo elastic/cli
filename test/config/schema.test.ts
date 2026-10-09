@@ -215,6 +215,15 @@ describe('ServiceBlockSchema', () => {
 })
 
 describe('ContextSchema', () => {
+  it('drops version from the cloud block (only elasticsearch and kibana take a version hint)', () => {
+    const result = ContextSchema.safeParse({ cloud: { ...cloudBlock, version: '9.2' }, elasticsearch: { ...esBlock, version: '9.2' } })
+    assert.equal(result.success, true)
+    if (result.success) {
+      assert.deepEqual(result.data.cloud, cloudBlock)
+      assert.equal(result.data.elasticsearch?.version, '9.2')
+    }
+  })
+
   it('accepts a context with only elasticsearch', () => {
     const result = ContextSchema.safeParse({ elasticsearch: esBlock })
     assert.equal(result.success, true)
