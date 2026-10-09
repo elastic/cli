@@ -350,6 +350,17 @@ describe('loadConfig -- --config-file override', () => {
     assert.match(result.error.message, /elastic config context add/)
   })
 
+  it('classifies a YAML parse error mentioning "not found" as config_error', async () => {
+    // yaml embeds the offending source line in its message, so file content can leak "not found" into it
+    const badPath = join(tmpDir, 'bad-yaml.yml')
+    await writeFile(badPath, 'key: [not found\n')
+    const result = await loadConfig({ configPath: badPath })
+    assert.ok(!result.ok)
+    if (result.ok) return
+    assert.equal(result.error.code, 'config_error')
+    assert.doesNotMatch(result.error.message, /elastic config context add/)
+  })
+
   it('names the next command when current_context is empty', async () => {
     const emptyPath = join(tmpDir, 'empty-context.yml')
     await writeFile(emptyPath, 'current_context: ""\ncontexts: {}\n')

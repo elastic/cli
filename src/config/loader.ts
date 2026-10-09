@@ -359,7 +359,8 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     raw = await loadConfigFile(resolvedPath)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    const missing = /ENOENT|no such file|not found/i.test(message)
+    // Match on errno, not message text: YAML/JSON parse errors quote file content, which may say "not found".
+    const missing = (err as NodeJS.ErrnoException).code === 'ENOENT'
     return {
       ok: false,
       error: {
