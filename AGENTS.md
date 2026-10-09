@@ -92,7 +92,7 @@ All requirements below are non-negotiable and enforced at review time.
 ### Credentials and Configuration
 
 - **No credentials as CLI flags**: API keys, passwords, and tokens belong only in the config file or environment variables. Never as CLI flags.
-- **Named contexts**: Connection info is managed via named contexts in the YAML config (kubectl-style). `--context <name>` MAY override for a single invocation; context fields MUST NOT be duplicated as first-class flags.
+- **Named contexts**: Connection info is managed via named contexts in the YAML config (kubectl-style). `--use-context <name>` MAY override for a single invocation; context fields MUST NOT be duplicated as first-class flags.
 
 ### Transport Abstraction
 

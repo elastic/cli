@@ -8,7 +8,7 @@
 import { enableCompileCache } from 'node:module'
 
 try {
-  // Added in Node 22.1 and absent on some runtimes; engines allows 22.0.0.
+  // Added in Node 22.1; may be absent on Bun, which engines also allows.
   enableCompileCache?.()
 } catch {
   // Unsupported runtime or unwritable cache dir: run uncached.
