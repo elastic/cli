@@ -95,7 +95,6 @@ function urlError (url: unknown, path: string): FieldError | undefined {
   return undefined
 }
 
-
 /** Verifies a version hint is a valid semver (major.minor[.patch]) or the literal "serverless". */
 function versionError (version: unknown, path: string): FieldError | undefined {
   if (version === undefined) return undefined
@@ -131,7 +130,6 @@ function contextVersionErrors (raw: unknown, prefix: string): FieldError[] {
   }
   return errors
 }
-
 
 // ---------------------------------------------------------------------------
 // JSON Schemas (no additionalProperties — we strip manually)

@@ -449,18 +449,15 @@ function errorResult (code: string, message: string): JsonValue {
  * so `ContextSchema` can validate the *shape* without actually resolving
  * secrets. The placeholder is a valid non-empty string.
  */
-function resolveForValidation (ctx: RawContext): unknown {
-  return walk(ctx) as unknown
-  function walk (v: unknown): unknown {
-    if (typeof v === 'string') return v.includes('$(') ? 'placeholder' : v
-    if (Array.isArray(v)) return v.map(walk)
-    if (v != null && typeof v === 'object') {
-      const out: Record<string, unknown> = {}
-      for (const [k, val] of Object.entries(v)) out[k] = walk(val)
-      return out
-    }
-    return v
+function resolveForValidation (v: unknown): unknown {
+  if (typeof v === 'string') return v.includes('$(') ? 'placeholder' : v
+  if (Array.isArray(v)) return v.map(resolveForValidation)
+  if (v != null && typeof v === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [k, val] of Object.entries(v)) out[k] = resolveForValidation(val)
+    return out
   }
+  return v
 }
 
 /**
