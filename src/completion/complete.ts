@@ -34,7 +34,7 @@ import { defineGroup, hideBlockedCommands } from '../factory.ts'
 import type { OpaqueCommandHandle } from '../factory.ts'
 import { rewriteTopLevelAliases } from './argv-aliases.ts'
 import { enumerate, DIRECTIVE_NO_FILE_COMP } from './enumerate.ts'
-import { defaultRegistry } from './registry.ts'
+import { defaultCompleters } from './registry.ts'
 import { StructuralConfigSchema, CommandPolicySchema } from '../config/schema.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from '../config/profiles.ts'
 import type { CommandPolicy } from '../config/types.ts'
@@ -255,7 +255,7 @@ export async function handleComplete (
       hideBlockedCommands(root, await loadCompletionCommandPolicy())
     } catch { /* swallowed by design */ }
 
-    const result = await enumerate(root, rewritten, defaultRegistry)
+    const result = await enumerate(root, rewritten, defaultCompleters)
 
     let out = ''
     for (const c of result.candidates) out += c + '\n'
