@@ -56,7 +56,7 @@
     "NOTICE.txt"
   ],
   "engines": {
-    "node": ">=22.0.0",
+    "node": ">=22.1.0",
     "bun": ">=1.2.0"
   },
   "directories": {
