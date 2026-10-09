@@ -10,31 +10,6 @@ interface Marker {
   value?: string
 }
 
-export type KnownAgent =
-  | 'cowork'
-  | 'claude-code'
-  | 'cursor-cli'
-  | 'cursor'
-  | 'codex'
-  | 'gemini-cli'
-  | 'github-copilot'
-  | 'antigravity'
-  | 'augment-cli'
-  | 'cline'
-  | 'crush'
-  | 'goose'
-  | 'hermes-agent'
-  | 'kilo-code'
-  | 'kiro'
-  | 'openclaw'
-  | 'opencode'
-  | 'pi'
-  | 'replit'
-  | 'trae'
-  | 'vtcode'
-  | 'zed'
-  | 'warp'
-
 export type AgentId = KnownAgent | (string & {})
 
 export interface LlmInfo {
@@ -50,7 +25,8 @@ export interface Detection {
   llm?: LlmInfo
 }
 
-export const AGENT_SHORT_CODES: Record<KnownAgent, string> = {
+// Single source of truth for agent ids: KnownAgent is derived from these keys.
+const SHORT_CODES = {
   cowork: 'cw',
   'claude-code': 'cc',
   'cursor-cli': 'cu',
@@ -75,6 +51,10 @@ export const AGENT_SHORT_CODES: Record<KnownAgent, string> = {
   zed: 'zd',
   warp: 'wp',
 }
+
+export type KnownAgent = keyof typeof SHORT_CODES
+
+export const AGENT_SHORT_CODES: Record<KnownAgent, string> = SHORT_CODES
 
 /**
  * Ordered marker table. Order encodes detection priority for tie-breaking:
