@@ -119,7 +119,7 @@ All code files MUST start with:
  */
 ```
 
-Note the single-asterisk `/*` opener — `scripts/check-spdx` rejects the JSDoc-style `/**` form.
+Note the single-asterisk `/*` opener — `scripts/check-spdx.mjs` rejects the JSDoc-style `/**` form.
 
 ### Standards
 

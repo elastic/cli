@@ -24,7 +24,7 @@
     "test:functional:cloud": "npm run codegen:functional:cloud && bash test/functional/cloud/generated/run.sh",
     "test:functional:kb": "npm run codegen:functional:kb && bash test/functional/kb/generated/run.sh",
     "test:license": "license-checker --production",
-    "test:spdx": "./scripts/check-spdx",
+    "test:spdx": "node scripts/check-spdx.mjs",
     "build:schema": "node --import tsx/esm src/cli.ts cli-schema > docs/cli/schema.json",
     "generate:notice": "node scripts/generate-notice.mjs",
     "test:notice": "node scripts/generate-notice.mjs --check",
