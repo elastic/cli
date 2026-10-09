@@ -92,6 +92,66 @@
       "intent": {
         "requiresAuth": false
       }
+    },
+    {
+      "path": [],
+      "name": "api",
+      "parameters": [
+        {
+          "role": "positional",
+          "name": "method",
+          "type": "string",
+          "required": true,
+          "summary": "HTTP method (GET, POST, PUT, DELETE, HEAD, PATCH)"
+        },
+        {
+          "role": "positional",
+          "name": "path",
+          "type": "string",
+          "required": true,
+          "summary": "request path, for example / or /_cluster/health"
+        },
+        {
+          "role": "flag",
+          "name": "service",
+          "type": "string",
+          "required": true,
+          "summary": "target service: es, kb, or cloud"
+        },
+        {
+          "role": "flag",
+          "name": "input-file",
+          "type": "string",
+          "required": false,
+          "summary": "path to a JSON file to use as command input"
+        },
+        {
+          "role": "dryRun",
+          "name": "dry-run",
+          "type": "boolean",
+          "required": false,
+          "summary": "validate all inputs and exit without performing any action"
+        },
+        {
+          "role": "flag",
+          "name": "no-validate",
+          "type": "boolean",
+          "required": false,
+          "summary": "skip input validation and send the request as-is"
+        },
+        {
+          "role": "flag",
+          "name": "header",
+          "type": "string",
+          "required": false,
+          "shortName": "H",
+          "summary": "extra request header as Name: value (repeatable)"
+        }
+      ],
+      "summary": "Send an untyped HTTP request using the active context (prefer generated commands)",
+      "intent": {
+        "requiresAuth": true
+      }
     }
   ],
   "namespaces": [

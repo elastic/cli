@@ -753,7 +753,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
       }
     }
 
-    if (allRaw['dryRun'] === true) {
+    if (allRaw['dryRun'] === true && config.passthroughDryRun !== true) {
       if (jsonFormat) {
         const validationSkipped = allRaw['validate'] === false
         process.stdout.write(JSON.stringify({ success: true, ...(validationSkipped ? { validationSkipped: true } : {}) }) + '\n')

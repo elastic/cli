@@ -216,6 +216,9 @@ export async function buildCompletionTree (rewrittenWords: readonly string[]): P
   const { registerStatusCommand } = await import('../status/register.ts')
   root.addCommand(registerStatusCommand())
 
+  const { registerApiCommand } = await import('../api/register.ts')
+  root.addCommand(registerApiCommand())
+
   // `completion` placeholder so the command appears as a top-level candidate.
   // The real handler is wired in src/cli.ts; for enumeration we only need
   // the name to be present.
