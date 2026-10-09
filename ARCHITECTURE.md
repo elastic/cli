@@ -52,20 +52,21 @@ Module that introspects the registered Commander tree and each command's attache
 
 ## AJV Validation (`src/lib/ajv-validate.ts`)
 
-Input validation runs the command's JSON Schema `input` through `ajv@6` (`getAjv()`, lazily `require()`d on first use), with `allErrors: true` and `useDefaults: true`. `validateSchema: false` is set because `@elastic/schemas` output contains cosmetic meta-schema violations (e.g. nullable enums with a repeated `null`) that ajv would otherwise reject before validating any input.
+Input validation runs the command's JSON Schema `input` through `ajv@8`. The `Ajv` instance is created once per process on first use (`getAjv()`) with `allErrors: true` and `useDefaults: true` (load-bearing: hand-authored helper schemas declare `default` values their handlers rely on). `validateSchema: false` is set because `@elastic/schemas` output contains cosmetic meta-schema violations (e.g. nullable enums with a repeated `null`) that ajv would otherwise reject before validating any input. `strictSchema: false` stops ajv's strict mode from rejecting `x-` annotations (e.g. `x-found-in`) as unknown keywords, and `validateFormats: false` ignores `format` values ajv doesn't recognize.
 
-**Why ajv@6, not a newer draft**: the schemas declare `$schema` (stripped before compiling) but rely on draft-07-era `dataPath`/`unknownFormats` semantics this codebase already accounts for. See the `ponytail:` comment in `ajv-validate.ts` before upgrading — `strict`, `validateSchema`, and `unknownFormats` all mean something different (or don't exist) under ajv@8/draft2020-12.
+**Why a static import**: `ajv` is imported statically rather than via `createRequire`, so `bun build --compile` (release binaries) can see and embed it. Upstream schemas declare `$schema` draft 2020-12; `validateWithJsonSchema` strips it before compiling because the default `Ajv` class is draft-07 and has no 2020-12 meta-schema registered.
 
 ## Dependencies
 
 | Dependency | Used by | Why it stays |
 |---|---|---|
 | `cli-table3` | `src/output.ts` | Table rendering for human-readable output. `console.table` lacks formatting control. |
-| `csv-parse` | `src/es/helpers/shared.ts` | Full RFC 4180 CSV parsing for bulk ingest. A naive `split()` breaks on quoted fields, escapes, and multi-line values. |
+| `csv-parse` | `src/es/helpers/bulk-ingest.ts` | Full RFC 4180 CSV parsing for bulk ingest. A naive `split()` breaks on quoted fields, escapes, and multi-line values. |
 | `marked` + `marked-terminal` | `src/docs/renderer.ts` (4 consumers) | Terminal markdown rendering for `elastic docs` commands. |
 | `@elastic/config-resolver` | Config subsystem | Internal Elastic package. |
 | `@elastic/schemas` | `src/es/apis.ts`, `src/kb/apis.ts`, `src/es/api-manifest.ts`, `src/kb/api-manifest.ts` | Published source of API manifests and per-endpoint JSON Schema definitions. Replaces the removed Zod-based codegen pipeline (see git history). The CLI tracks the latest stable release; the caret range in `package.json` is the source of truth for the supported version. There is no local regeneration path. |
-| `ajv` (^6.14.0) | `src/lib/ajv-validate.ts` | Validates command input against the JSON Schema `@elastic/schemas` provides. Pinned to v6 for draft-07 semantics this codebase's error handling depends on; see the `ponytail:` comment in `ajv-validate.ts` before upgrading. |
+| `ajv` (^8.0.0) | `src/lib/ajv-validate.ts` | Validates command input against the JSON Schema `@elastic/schemas` provides, and against hand-authored schemas for helper commands. |
+| `cross-spawn` | `src/extension/installer.ts` | Spawns `npm` and other extension install commands with an explicit args array. On Windows, npm is a `.cmd` shim that Node's own `spawnSync` cannot invoke without `shell: true`; `cross-spawn` resolves `.cmd`/`.bat` shims and escapes arguments itself instead of relying on unsafe shell string concatenation. |
 
 ## `cli-schema-intent.ts`
 
