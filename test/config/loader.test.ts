@@ -907,6 +907,11 @@ contexts:
     ['unknown current_context', 'current_context: z\ncontexts:\n  a: { elasticsearch: { version: "9.1" } }\n'],
     ['non-array commands.allowed', 'current_context: a\ncommands: { allowed: 5 }\ncontexts:\n  a: { elasticsearch: { version: "9.1" } }\n'],
     ['non-string commands.blocked entries', 'current_context: a\ncontexts:\n  a:\n    elasticsearch: { version: "9.1" }\n    commands: { blocked: [1] }\n'],
+    ['an unknown commands.profile', 'current_context: a\ncommands: { profile: bogus }\ncontexts:\n  a: { elasticsearch: { version: "9.1" } }\n'],
+    ['an unknown per-context commands.profile', 'current_context: a\ncontexts:\n  a:\n    elasticsearch: { version: "9.1" }\n    commands: { profile: bogus }\n'],
+    ['commands.profile with allowed', 'current_context: a\ncommands: { profile: stack, allowed: [ping] }\ncontexts:\n  a: { elasticsearch: { version: "9.1" } }\n'],
+    ['commands.allowed with blocked', 'current_context: a\ncontexts:\n  a:\n    elasticsearch: { version: "9.1" }\n    commands: { allowed: [ping], blocked: [ping] }\n'],
+    ['empty commands.allowed', 'current_context: a\ncommands: { allowed: [] }\ncontexts:\n  a: { elasticsearch: { version: "9.1" } }\n'],
   ] as const) {
     it(`fails open (error result, no throw) for ${label}`, async () => {
       const result = await load(yaml)

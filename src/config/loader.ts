@@ -171,9 +171,23 @@ export function resolveContext (config: ConfigFile, contextName: string, profile
   return result
 }
 
-/** True when `v` is absent or a string array; guards the unvalidated help-path policy. */
+/** True when `v` is absent or a non-empty string array (mirrors the schema's `minItems: 1`). */
 function isOptionalStringArray (v: unknown): boolean {
-  return v === undefined || (Array.isArray(v) && v.every(x => typeof x === 'string'))
+  return v === undefined || (Array.isArray(v) && v.length > 0 && v.every(x => typeof x === 'string'))
+}
+
+/**
+ * Mirrors the commands-policy schema (profile enum, array shapes, and the
+ * profile/allowed and allowed/blocked exclusions) for the unvalidated help path,
+ * so a bad policy fails open instead of being filtered as if it were valid.
+ */
+function isWellFormedPolicy (p: unknown): boolean {
+  if (p == null) return true
+  if (typeof p !== 'object' || Array.isArray(p)) return false
+  const { profile, allowed, blocked } = p as Record<string, unknown>
+  if (profile !== undefined && !(BUILT_IN_PROFILES as readonly unknown[]).includes(profile)) return false
+  if (allowed !== undefined && (profile !== undefined || blocked !== undefined)) return false
+  return isOptionalStringArray(allowed) && isOptionalStringArray(blocked)
 }
 
 /**
@@ -203,8 +217,8 @@ function resolveHelpConfig (raw: unknown, contextName: string | undefined, profi
     ...(r['banner'] != null && { banner: r['banner'] as NonNullable<ConfigFile['banner']> }),
     ...(r['telemetry'] != null && { telemetry: r['telemetry'] as NonNullable<ConfigFile['telemetry']> }),
   }
-  // unvalidated policy reaches hideBlockedCommands, which assumes string arrays
-  const wellFormed = [config.commands, ctx.commands].every(p => p == null || (typeof p === 'object' && isOptionalStringArray(p.allowed) && isOptionalStringArray(p.blocked)))
+  // unvalidated policy reaches hideBlockedCommands, which assumes the schema's shapes
+  const wellFormed = isWellFormedPolicy(r['commands']) && isWellFormedPolicy(ctx.commands)
   if (!wellFormed) return invalid
   try {
     return { ok: true, value: resolveContext(config, name, profileName), contextName: name }
