@@ -25,16 +25,18 @@
  * - Structured error payloads (code + message)
  */
 
-import { access, constants, readFile, stat } from 'node:fs/promises'
-import { homedir } from 'node:os'
-import { extname, join } from 'node:path'
+import { readFile, stat } from 'node:fs/promises'
+import { extname } from 'node:path'
 import { parse as parseYaml } from 'yaml'
-import { ContextSchema, CommandPolicySchema, StructuralConfigSchema } from './schema.ts'
-import { resolveExpressions } from '@elastic/config-resolver'
+// ./schema (ajv) and @elastic/config-resolver are imported lazily in loadConfig so the help path skips them
+import { ENV_CONFIG_FILE, discoverConfigFile } from './discover.ts'
 import { hasInlineSecrets, type RawConfig } from './writer.ts'
 import type { ConfigFile, ResolvedConfig, ResolvedContext } from './types.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './profiles.ts'
 import { withSetupHint } from './next-command.ts'
+
+// Re-exported so existing callers (completion, tests) keep importing it from here.
+export { discoverConfigFile } from './discover.ts'
 
 function formatAjvErrors (errors: Array<{ path: string; message: string }> | undefined): string {
   if (!errors || errors.length === 0) return 'Invalid configuration'
@@ -44,37 +46,11 @@ function formatAjvErrors (errors: Array<{ path: string; message: string }> | und
 /** Extensions that are rejected to prevent arbitrary code execution. */
 const EXECUTABLE_EXTENSIONS = new Set(['.js', '.ts', '.mjs', '.cjs'])
 
-/** File names checked during home-directory discovery, in priority order. */
-const CONFIG_FILE_NAMES = ['.elasticrc', '.elasticrc.json', '.elasticrc.yaml', '.elasticrc.yml']
-
-/** Environment variable that overrides config file discovery with an explicit path. */
-const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
-
 let looseInlineSecretWarningEmitted = false
 
 /** @internal test seam */
 export function _testResetLooseInlineSecretWarning (): void {
   looseInlineSecretWarningEmitted = false
-}
-
-/**
- * Searches a single directory for the first readable config file.
- *
- * Checks each file name in {@link CONFIG_FILE_NAMES} order. Returns the
- * absolute path of the first readable match, or `null` if none is found.
- *
- * @param dir - Directory to search. Defaults to the user's home directory.
- */
-export async function discoverConfigFile (dir?: string): Promise<string | null> {
-  const searchDir = dir ?? homedir()
-  for (const name of CONFIG_FILE_NAMES) {
-    const candidate = join(searchDir, name)
-    try {
-      await access(candidate, constants.R_OK)
-      return candidate
-    } catch { continue }
-  }
-  return null
 }
 
 /**
@@ -195,6 +171,62 @@ export function resolveContext (config: ConfigFile, contextName: string, profile
   return result
 }
 
+/** True when `v` is absent or a non-empty string array (mirrors the schema's `minItems: 1`). */
+function isOptionalStringArray (v: unknown): boolean {
+  return v === undefined || (Array.isArray(v) && v.length > 0 && v.every(x => typeof x === 'string'))
+}
+
+/**
+ * Mirrors the commands-policy schema (profile enum, array shapes, and the
+ * profile/allowed and allowed/blocked exclusions) for the unvalidated help path,
+ * so a bad policy fails open instead of being filtered as if it were valid.
+ */
+function isWellFormedPolicy (p: unknown): boolean {
+  if (p == null) return true
+  if (typeof p !== 'object' || Array.isArray(p)) return false
+  const { profile, allowed, blocked } = p as Record<string, unknown>
+  if (profile !== undefined && !(BUILT_IN_PROFILES as readonly unknown[]).includes(profile)) return false
+  if (allowed !== undefined && (profile !== undefined || blocked !== undefined)) return false
+  return isOptionalStringArray(allowed) && isOptionalStringArray(blocked)
+}
+
+/**
+ * Builds a `ResolvedConfig` for command registration/help straight from the parsed
+ * file, skipping ajv validation and expression resolution. Only version hints and
+ * the command policy are needed there, and importing ajv alone costs ~40ms. Full
+ * validation still runs in the preAction hook before any handler. Fails open: a
+ * malformed config returns an error, which the early loader ignores. See #706.
+ */
+function resolveHelpConfig (raw: unknown, contextName: string | undefined, profileName: BuiltInProfile | undefined): LoadConfigResult {
+  const invalid: LoadConfigResult = { ok: false, error: { message: 'Invalid configuration' } }
+  if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) return invalid
+  const r = raw as Record<string, unknown>
+  const contexts = r['contexts']
+  if (contexts == null || typeof contexts !== 'object' || Array.isArray(contexts)) return invalid
+  const name = contextName ?? r['current_context']
+  if (typeof name !== 'string' || !(name in contexts)) return invalid
+
+  const ctx = (contexts as Record<string, ConfigFile['contexts'][string] | null>)[name]
+  if (ctx == null || typeof ctx !== 'object') return invalid
+  const defaultProfile = r['default_profile']
+  const config: ConfigFile = {
+    current_context: name,
+    contexts: { [name]: ctx },
+    ...(r['commands'] != null && { commands: r['commands'] as NonNullable<ConfigFile['commands']> }),
+    ...(typeof defaultProfile === 'string' && (BUILT_IN_PROFILES as readonly string[]).includes(defaultProfile) && { default_profile: defaultProfile as BuiltInProfile }),
+    ...(r['banner'] != null && { banner: r['banner'] as NonNullable<ConfigFile['banner']> }),
+    ...(r['telemetry'] != null && { telemetry: r['telemetry'] as NonNullable<ConfigFile['telemetry']> }),
+  }
+  // unvalidated policy reaches hideBlockedCommands, which assumes the schema's shapes
+  const wellFormed = isWellFormedPolicy(r['commands']) && isWellFormedPolicy(ctx.commands)
+  if (!wellFormed) return invalid
+  try {
+    return { ok: true, value: resolveContext(config, name, profileName), contextName: name }
+  } catch (err) {
+    return { ok: false, error: { message: err instanceof Error ? err.message : String(err) } }
+  }
+}
+
 /**
  * Emits a stderr warning when `path` is world/group-readable AND contains at
  * least one unresolved inline secret (password / api_key without `$(...)`).
@@ -239,6 +271,13 @@ export interface LoadConfigOptions {
    * the new result for subsequent calls). Defaults to `false`.
    */
   refresh?: boolean
+  /**
+   * When `true`, skip resolving the active context's expressions and skip the
+   * result cache. Used by command registration / help, which need only version
+   * hints and the command policy -- never resolved credentials. Avoids spawning
+   * subprocesses for `$(cmd:...)` secrets on every `--help` invocation (#706).
+   */
+  skipContextResolve?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -283,9 +322,9 @@ export type LoadConfigResult = LoadConfigOk | LoadConfigErr
  * @returns A `LoadConfigResult` discriminated union.
  */
 export async function loadConfig (options: LoadConfigOptions = {}): Promise<LoadConfigResult> {
-  const { configPath, contextName, profileName, refresh = false } = options
+  const { configPath, contextName, profileName, refresh = false, skipContextResolve = false } = options
 
-  if (!refresh && _cachedConfig !== undefined) return _cachedConfig
+  if (!refresh && !skipContextResolve && _cachedConfig !== undefined) return _cachedConfig
 
   // Validate profileName early (before any I/O) so the error is immediate and clear
   if (profileName != null && !(BUILT_IN_PROFILES as readonly string[]).includes(profileName)) {
@@ -330,11 +369,16 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     }
   }
 
+  if (skipContextResolve) return resolveHelpConfig(raw, contextName, profileName)
+
   // Warn (stderr only) when the file has inline secrets AND looser-than-0600 perms.
+  // Only on the executing path: help/registration must stay silent and fast.
   if (resolvedPath != null) {
     await warnOnLoosePermsIfInlineSecrets(resolvedPath, raw)
   }
 
+  const { StructuralConfigSchema, ContextSchema, CommandPolicySchema } = await import('./schema.js')
+  const { resolveExpressions } = await import('@elastic/config-resolver')
   // Step 2: structural validation (shape only, no deep context validation)
   const structural = StructuralConfigSchema.safeParse(raw)
   if (!structural.success) {
@@ -391,7 +435,7 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     }
   }
 
-  // Step 5: validate active context and commands with full schemas
+  // Step 5: validate active context and commands with full schemas.
   const contextParsed = ContextSchema.safeParse(resolvedRawContext)
   if (!contextParsed.success) {
     return { ok: false, error: { message: formatAjvErrors(contextParsed.errors) } }

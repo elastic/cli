@@ -133,15 +133,17 @@ describe('registerCloudCommands', () => {
       const serverless = group.commands.find((c) => c.name() === 'serverless')!
       const namespaces = serverless.commands.map((c) => c.name())
       assert.ok(namespaces.includes('projects'),       'should have top-level projects group')
-      assert.ok(namespaces.includes('cross-project'),  'should have cross-project group')
       assert.ok(namespaces.includes('regions'))
       assert.ok(namespaces.includes('traffic-filters'))
+      assert.ok(namespaces.includes('capabilities'),   'should have capabilities group (added in 0.9.1)')
       // old flat project-type groups must not exist at serverless level
       assert.ok(!namespaces.includes('es'),            'es must be inside projects now')
       assert.ok(!namespaces.includes('observability'), 'observability must be inside projects now')
       assert.ok(!namespaces.includes('security'),      'security must be inside projects now')
-      assert.ok(!namespaces.includes('linked-projects'),           'merged into cross-project')
-      assert.ok(!namespaces.includes('linked-candidate-projects'), 'merged into cross-project')
+      // linked-projects/linked-candidate-projects merged into elasticsearch-projects in 0.9.1
+      assert.ok(!namespaces.includes('linked-projects'),           'moved to elasticsearch-projects in 0.9.1')
+      assert.ok(!namespaces.includes('linked-candidate-projects'), 'moved to elasticsearch-projects in 0.9.1')
+      assert.ok(!namespaces.includes('cross-project'),             'cross-project gone in 0.9.1')
     })
 
     it('projects group has search|elasticsearch, observability, and security type groups', async () => {
@@ -152,6 +154,7 @@ describe('registerCloudCommands', () => {
       assert.ok(typeNames.includes('search'),       'should have search (was: es)')
       assert.ok(typeNames.includes('observability'))
       assert.ok(typeNames.includes('security'))
+      assert.ok(typeNames.includes('vectordb'),     'should have vectordb (added in 0.9.1)')
     })
 
     it('search type has elasticsearch alias', async () => {
@@ -189,23 +192,6 @@ describe('registerCloudCommands', () => {
         .commands.find((c) => c.name() === 'projects')!
         .commands.find((c) => c.name() === 'observability')!
       assert.deepEqual(observability.commands.map((c) => c.name()), ['list', 'get'])
-    })
-
-    it('merges linked-projects and linked-candidate-projects into cross-project', async () => {
-      const defs: CloudApiDefinition[] = [
-        { name: 'get-elasticsearch-project-can-delete', namespace: 'linked-projects', description: 'Can delete', method: 'GET', path: '/api/v1/serverless/projects/elasticsearch/{id}/can-delete', input: { type: 'object', properties: { id: { type: 'string', description: 'ID', 'x-found-in': 'path' } }, required: ['id'] } },
-        { name: 'get-elasticsearch-project-link-candidates', namespace: 'linked-candidate-projects', description: 'Candidates', method: 'GET', path: '/api/v1/serverless/link-candidates/elasticsearch' },
-      ]
-      const group = await registerCloudCommands(defs)
-      const serverless = group.commands.find((c) => c.name() === 'serverless')!
-      const namespaces = serverless.commands.map((c) => c.name())
-      assert.ok(namespaces.includes('cross-project'), 'cross-project group must exist')
-      assert.ok(!namespaces.includes('linked-projects'))
-      assert.ok(!namespaces.includes('linked-candidate-projects'))
-      const crossProject = serverless.commands.find((c) => c.name() === 'cross-project')!
-      const leafNames = crossProject.commands.map((c) => c.name())
-      assert.ok(leafNames.includes('get-elasticsearch-project-can-delete'))
-      assert.ok(leafNames.includes('get-elasticsearch-project-link-candidates'))
     })
 
     it('keeps non-project serverless namespaces flat with codegen names', async () => {

@@ -56,7 +56,7 @@
     "NOTICE.txt"
   ],
   "engines": {
-    "node": ">=22.0.0",
+    "node": ">=22.1.0",
     "bun": ">=1.2.0"
   },
   "directories": {
@@ -66,7 +66,7 @@
     "@cli-schema/spec": "^0.2.0",
     "@elastic/agent-env": "0.1.1",
     "@elastic/config-resolver": "0.1.2",
-    "@elastic/schemas": "0.7.3",
+    "@elastic/schemas": "0.9.1",
     "ajv": "^8.0.0",
     "cli-table3": "^0.6.5",
     "commander": "^15.0.0",

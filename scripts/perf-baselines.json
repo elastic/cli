@@ -13,15 +13,15 @@
     "elastic es indices update-aliases --help"
   ],
   "baselines_ms": {
-    "elastic": 51.1,
-    "elastic --help": 48.5,
-    "elastic es --help": 59.0,
-    "elastic es": 58.2,
-    "elastic cloud --help": 62.3,
-    "elastic cloud": 42.4,
-    "elastic kb --help": 83.7,
-    "elastic kb": 76.9,
-    "elastic es indices --help": 102.4,
-    "elastic es indices update-aliases --help": 273.0
+    "elastic": 73.3,
+    "elastic --help": 73.9,
+    "elastic es --help": 137.2,
+    "elastic es": 163.1,
+    "elastic cloud --help": 88.3,
+    "elastic cloud": 85.3,
+    "elastic kb --help": 138.6,
+    "elastic kb": 138.6,
+    "elastic es indices --help": 127.5,
+    "elastic es indices update-aliases --help": 238.8
   }
 }
