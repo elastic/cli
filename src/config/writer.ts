@@ -15,8 +15,8 @@
  */
 
 import { chmod, mkdir, rename, stat, writeFile, unlink } from 'node:fs/promises'
-import { execSync, type ExecSyncOptionsWithStringEncoding } from 'node:child_process'
-import { homedir } from 'node:os'
+import { execFileSync, type ExecFileSyncOptionsWithStringEncoding } from 'node:child_process'
+import { homedir, userInfo } from 'node:os'
 import { dirname, join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { stringify as stringifyYaml, parse as parseYaml } from 'yaml'
@@ -39,14 +39,14 @@ export type RawContext = Record<string, unknown>
 // Test seams
 // ---------------------------------------------------------------------------
 
-let _execSync: typeof execSync = execSync
+let _execFileSync: typeof execFileSync = execFileSync
 let _platform: string = process.platform
 
 /** @internal */
-export function _testSetExecSync (fn: typeof execSync): () => void {
-  const prev = _execSync
-  _execSync = fn
-  return () => { _execSync = prev }
+export function _testSetExecFileSync (fn: typeof execFileSync): () => void {
+  const prev = _execFileSync
+  _execFileSync = fn
+  return () => { _execFileSync = prev }
 }
 
 /** @internal */
@@ -56,7 +56,7 @@ export function _testSetPlatform (p: string): () => void {
   return () => { _platform = prev }
 }
 
-function execOpts (timeoutMs: number): ExecSyncOptionsWithStringEncoding {
+function execOpts (timeoutMs: number): ExecFileSyncOptionsWithStringEncoding {
   return { encoding: 'utf-8', timeout: timeoutMs, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true }
 }
 
@@ -235,8 +235,11 @@ export async function writeConfig (
     if (restrictPermissions) {
       if (_platform === 'win32') {
         try {
-          _execSync(
-            `icacls "${path}" /inheritance:r /grant:r "%USERNAME%":F`,
+          // No shell: the path is user-controlled and a `"` or `&` in it would
+          // otherwise break out of cmd.exe quoting.
+          _execFileSync(
+            'icacls',
+            [path, '/inheritance:r', '/grant:r', `${userInfo().username}:F`],
             execOpts(5_000)
           )
           permsEnforced = true
