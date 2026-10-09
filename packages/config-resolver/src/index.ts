@@ -14,29 +14,6 @@ import { execSync, type ExecSyncOptionsWithStringEncoding } from 'node:child_pro
 export type ResolverFn = (params: string) => string | Promise<string>
 
 // ---------------------------------------------------------------------------
-// Registry
-// ---------------------------------------------------------------------------
-
-const registry = new Map<string, ResolverFn>()
-
-/**
- * Registers a resolver under {@link name} so that expressions of the form
- * `$(name:params)` are routed to {@link fn}. Overwrites any previously
- * registered resolver with the same name.
- */
-export function registerResolver (name: string, fn: ResolverFn): void {
-  registry.set(name, fn)
-}
-
-/**
- * Looks up a resolver by name. Returns `undefined` if no resolver has been
- * registered under that name.
- */
-export function getResolver (name: string): ResolverFn | undefined {
-  return registry.get(name)
-}
-
-// ---------------------------------------------------------------------------
 // Expression parser
 // ---------------------------------------------------------------------------
 
@@ -72,11 +49,11 @@ export async function resolveString (
     const full = match[0]
     const name = match[1]!
     const params = match[2]!
-    const resolver = getResolver(name)
+    const resolver = RESOLVERS.get(name)
     if (resolver == null) {
       throw new Error(
         `Unknown resolver "${name}" in expression "${full}" at ${fieldPath}. ` +
-        `Available resolvers: ${[...registry.keys()].join(', ')}`
+        `Available resolvers: ${[...RESOLVERS.keys()].join(', ')}`
       )
     }
     const resolved = await resolver(params)
@@ -95,8 +72,6 @@ export async function resolveString (
  * every string containing resolver expressions with its resolved value.
  * Non-string values are returned unchanged. {@link path} is used internally
  * to build dotted field paths for error messages; callers normally omit it.
- *
- * Prototype-polluting keys (`__proto__`, `constructor`) are skipped.
  */
 export async function resolveExpressions (
   obj: unknown,
@@ -109,18 +84,14 @@ export async function resolveExpressions (
     return Promise.all(obj.map((item, i) => resolveExpressions(item, `${path}[${i}]`)))
   }
   if (obj !== null && typeof obj === 'object') {
-    const entries = Object.entries(obj).filter(([key]) => key !== '__proto__' && key !== 'constructor')
-    const resolved = await Promise.all(
-      entries.map(([key, value]) => {
+    // Object.fromEntries defines own data properties, so a `__proto__` key
+    // stays a plain key instead of rewriting the result's prototype.
+    return Object.fromEntries(await Promise.all(
+      Object.entries(obj).map(async ([key, value]) => {
         const fieldPath = path ? `${path}.${key}` : key
-        return resolveExpressions(value, fieldPath)
+        return [key, await resolveExpressions(value, fieldPath)] as const
       })
-    )
-    const result: Record<string, unknown> = {}
-    for (let i = 0; i < entries.length; i++) {
-      result[entries[i]![0]] = resolved[i]
-    }
-    return result
+    ))
   }
   return obj
 }
@@ -314,28 +285,32 @@ function credentialManagerResolver (params: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Registration
+// Resolver table
 // ---------------------------------------------------------------------------
 
-function registerBuiltins (): void {
-  registerResolver('file', fileResolver)
-  registerResolver('env', envResolver)
-  registerResolver('cmd', cmdResolver)
-  registerResolver('keychain', keychainResolver)
-  registerResolver('secret_service', secretServiceResolver)
-  registerResolver('pass', passResolver)
-  registerResolver('credential_manager', credentialManagerResolver)
-}
-
-registerBuiltins()
+// A Map, not an object literal, so names like `constructor` or `__proto__`
+// can't reach Object.prototype members.
+const RESOLVERS = new Map<string, ResolverFn>([
+  ['file', fileResolver],
+  ['env', envResolver],
+  ['cmd', cmdResolver],
+  ['keychain', keychainResolver],
+  ['secret_service', secretServiceResolver],
+  ['pass', passResolver],
+  ['credential_manager', credentialManagerResolver],
+])
 
 // ---------------------------------------------------------------------------
 // Test seams
 // ---------------------------------------------------------------------------
 
-export function _testResetResolvers (): void {
-  registry.clear()
-  registerBuiltins()
+export function _testSetResolver (name: string, fn: ResolverFn): () => void {
+  const prev = RESOLVERS.get(name)
+  RESOLVERS.set(name, fn)
+  return () => {
+    if (prev == null) RESOLVERS.delete(name)
+    else RESOLVERS.set(name, prev)
+  }
 }
 
 export function _testSetExecSync (fn: typeof execSync): () => void {

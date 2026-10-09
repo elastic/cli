@@ -13,14 +13,29 @@ import {
   containsExpression,
   resolveString,
   resolveExpressions,
-  registerResolver,
-  _testResetResolvers,
+  _testSetResolver,
   _testSetExecSync,
   _testSetPlatform,
 } from '../src/index.ts'
 
+// Synthetic resolvers exercise the expression engine independently of the
+// built-ins (none of which are async).
+let restoreResolvers: Array<() => void> = []
+before(() => {
+  restoreResolvers = [
+    _testSetResolver('echo', (params) => params),
+    _testSetResolver('async_echo', async (params) => params),
+    _testSetResolver('slow', async () => {
+      await new Promise(resolve => setTimeout(resolve, 50))
+      return 'done'
+    }),
+  ]
+})
+after(() => {
+  for (const restore of restoreResolvers) restore()
+})
+
 afterEach(() => {
-  _testResetResolvers()
   clearConfigCache()
 })
 
@@ -58,19 +73,16 @@ describe('resolveString', () => {
   })
 
   it('resolves a single expression that is the entire value', async () => {
-    registerResolver('echo', (params) => params)
     const result = await resolveString('$(echo:hello)', 'test')
     assert.equal(result, 'hello')
   })
 
   it('resolves an expression embedded in a string', async () => {
-    registerResolver('echo', (params) => params)
     const result = await resolveString('https://$(echo:myhost):9200', 'test')
     assert.equal(result, 'https://myhost:9200')
   })
 
   it('resolves multiple expressions in one string', async () => {
-    registerResolver('echo', (params) => params)
     const result = await resolveString('$(echo:https)://$(echo:myhost)', 'test')
     assert.equal(result, 'https://myhost')
   })
@@ -86,14 +98,21 @@ describe('resolveString', () => {
     )
   })
 
+  it('does not treat Object.prototype members as resolvers', async () => {
+    for (const name of ['constructor', '__proto__', 'tostring']) {
+      await assert.rejects(
+        () => resolveString(`$(${name}:x)`, 'test'),
+        new RegExp(`Unknown resolver "${name}"`)
+      )
+    }
+  })
+
   it('replaces all occurrences of the same expression', async () => {
-    registerResolver('echo', (params) => params)
     const result = await resolveString('$(echo:val)-$(echo:val)', 'test')
     assert.equal(result, 'val-val')
   })
 
   it('supports async resolvers', async () => {
-    registerResolver('async_echo', async (params) => params)
     const result = await resolveString('$(async_echo:world)', 'test')
     assert.equal(result, 'world')
   })
@@ -115,7 +134,6 @@ describe('resolveExpressions', () => {
   })
 
   it('resolves expressions in nested objects', async () => {
-    registerResolver('echo', (params) => params)
     const input = {
       level1: {
         level2: '$(echo:deep)',
@@ -132,14 +150,12 @@ describe('resolveExpressions', () => {
   })
 
   it('resolves expressions in arrays', async () => {
-    registerResolver('echo', (params) => params)
     const input = ['$(echo:a)', 'plain', '$(echo:b)']
     const result = await resolveExpressions(input)
     assert.deepEqual(result, ['a', 'plain', 'b'])
   })
 
   it('preserves non-string values in mixed objects', async () => {
-    registerResolver('echo', (params) => params)
     const input = {
       str: '$(echo:resolved)',
       num: 123,
@@ -153,6 +169,16 @@ describe('resolveExpressions', () => {
       bool: false,
       nil: null,
     })
+  })
+
+  it('keeps a __proto__ key as plain data without polluting prototypes', async () => {
+    const input = JSON.parse('{"__proto__": {"polluted": "$(echo:yes)"}, "ok": 1}')
+    const result = await resolveExpressions(input) as Record<string, unknown>
+    assert.equal(Object.getPrototypeOf(result), Object.prototype)
+    assert.equal(({} as Record<string, unknown>)['polluted'], undefined)
+    assert.equal(result['polluted'], undefined)
+    assert.deepEqual(Object.getOwnPropertyDescriptor(result, '__proto__')?.value, { polluted: 'yes' })
+    assert.equal(result['ok'], 1)
   })
 
   it('includes field path in error messages for nested values', async () => {
@@ -174,11 +200,6 @@ describe('resolveExpressions', () => {
   })
 
   it('resolves object values concurrently, not sequentially', async () => {
-    registerResolver('slow', async () => {
-      await new Promise(resolve => setTimeout(resolve, 50))
-      return 'done'
-    })
-
     // Calibrate: measure average single-resolver run over 10 iterations
     let totalSingle = 0
     for (let i = 0; i < 10; i++) {
