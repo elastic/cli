@@ -128,6 +128,17 @@ describe('elastic CLI -- preAction config error handling', () => {
     }
   })
 
+  it('loads config for leaf commands named like skipped top-level commands (cat help)', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-leafname-'))
+    try {
+      const { code, stderr } = await runCli(['stack', 'es', 'cat', 'help'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir, ELASTIC_CLI_CONFIG_FILE: '' } })
+      assert.equal(code, 1)
+      assert.ok(stderr.includes('No configuration file found'), `expected preAction config error, got: ${stderr}`)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
   it('emits error.code and error.message under --json when no config file is found', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-json-'))
     try {

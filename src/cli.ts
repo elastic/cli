@@ -53,15 +53,16 @@ program
 if (!wantsHelp) {
   program.hook('preAction', async (thisCommand, actionCommand) => {
     const skipActionNames: ReadonlySet<string> = new Set(['version', 'completion', '__complete', 'status', 'help'])
-    if (skipActionNames.has(actionCommand.name())) return
+    // Match only top-level commands: leaves like `cat help` or `async-search status` share names.
+    if (actionCommand.parent === thisCommand && skipActionNames.has(actionCommand.name())) return
     // Groups with no sub-command will just call group.help() — no real action fires.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((actionCommand as any)._isGroup === true && actionCommand.args.length === 0) return
 
     const skipConfigNames: ReadonlySet<string> = new Set(['docs', 'config', 'sanitize', 'cli-schema', 'help'])
-    for (let c: Command | null = actionCommand; c != null; c = c.parent) {
-      if (skipConfigNames.has(c.name())) return
-    }
+    let top: Command = actionCommand
+    while (top.parent != null && top.parent !== thisCommand) top = top.parent
+    if (skipConfigNames.has(top.name())) return
 
     for (let c = actionCommand.parent; c != null; c = c.parent) {
       if (c.name() === 'extension') return
