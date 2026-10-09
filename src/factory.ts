@@ -334,6 +334,14 @@ function writeErr (cmd: OpaqueCommandHandle, str: string): void {
   write(str)
 }
 
+/**
+ * Writes a failure to stderr as `{"error": {...}}` under `--json`, or `Error: <message>`
+ * otherwise. Exit/throw semantics differ per call site, so they stay with the caller.
+ */
+function emitError (cmd: OpaqueCommandHandle, jsonFormat: unknown, error: { code: string, message: string, [extra: string]: unknown }): void {
+  writeErr(cmd, jsonFormat === true ? JSON.stringify({ error }) + '\n' : `Error: ${error.message}\n`)
+}
+
 function isErrorResult (value: JsonValue): boolean {
   return (
     typeof value === 'object' &&
@@ -677,12 +685,10 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
       const dotPath = (parts.length > 1 ? parts.slice(1) : parts).join('.')
       if (!isCommandAllowed(dotPath, resolvedConfig.commands)) {
         if (jsonFormat === true) {
-          writeErr(cmd, JSON.stringify({
-            error: {
-              code: 'command_blocked',
-              message: `command "${dotPath}" is not allowed by the current policy`,
-            },
-          }) + '\n')
+          emitError(cmd, jsonFormat, {
+            code: 'command_blocked',
+            message: `command "${dotPath}" is not allowed by the current policy`,
+          })
           throw Object.assign(new Error('command_blocked'), { exitCode: 1 })
         }
         return cmd.error(`command "${dotPath}" is not allowed by the current policy`)
@@ -730,14 +736,12 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
 
         if (!result.success) {
           if (jsonFormat === true) {
-            writeErr(cmd, JSON.stringify({
-              error: {
-                code: 'input_validation_failed',
-                message: `Input validation failed with ${result.errors.length} issue(s)`,
-                // Emit path as array (like Zod) for API compatibility
-                issues: result.errors.map(e => ({ code: e.code, path: e.path_array, message: e.message }))
-              }
-            }) + '\n')
+            emitError(cmd, jsonFormat, {
+              code: 'input_validation_failed',
+              message: `Input validation failed with ${result.errors.length} issue(s)`,
+              // Emit path as array (like Zod) for API compatibility
+              issues: result.errors.map(e => ({ code: e.code, path: e.path_array, message: e.message }))
+            })
             // throw to prevent handler execution - mirrors cmd.error() behaviour
             throw Object.assign(new Error('input_validation_failed'), { exitCode: 1 })
           }
@@ -766,24 +770,12 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
 
     if (config.intent?.destructive === true || config.intent?.requiresConfirmation === true) {
       if (allRaw['yes'] !== true) {
-        if (isTTYFn()) {
-          const confirmed = await promptConfirm()
-          if (!confirmed) {
-            const errObj = { error: { code: 'confirmation_required', message: 'Aborted.' } }
-            if (jsonFormat === true) {
-              writeErr(cmd, JSON.stringify(errObj) + '\n')
-            } else {
-              writeErr(cmd, 'Error: Aborted.\n')
-            }
-            throw Object.assign(new Error('confirmation_required'), { exitCode: 1 })
-          }
-        } else {
-          const errObj = { error: { code: 'confirmation_required', message: 'Pass --yes to confirm this destructive action.' } }
-          if (jsonFormat === true) {
-            writeErr(cmd, JSON.stringify(errObj) + '\n')
-          } else {
-            writeErr(cmd, 'Error: Pass --yes to confirm this destructive action.\n')
-          }
+        const tty = isTTYFn()
+        if (!tty || !(await promptConfirm())) {
+          emitError(cmd, jsonFormat, {
+            code: 'confirmation_required',
+            message: tty ? 'Aborted.' : 'Pass --yes to confirm this destructive action.',
+          })
           throw Object.assign(new Error('confirmation_required'), { exitCode: 1 })
         }
       }
@@ -833,13 +825,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
           process.stdout.write(applyTemplate(output, templateRaw))
         } catch (err) {
           if (err instanceof TemplateAgainstPrimitiveError) {
-            if (jsonFormat === true) {
-              writeErr(cmd, JSON.stringify({
-                error: { code: 'output_template_error', message: err.message },
-              }) + '\n')
-            } else {
-              writeErr(cmd, `Error: ${err.message}\n`)
-            }
+            emitError(cmd, jsonFormat, { code: 'output_template_error', message: err.message })
             process.exitCode = 1
           } else {
             throw err
