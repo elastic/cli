@@ -6,6 +6,7 @@
 import { getResolvedConfig } from '../config/store.ts'
 import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
 import { clientHeaders } from './meta.ts'
+import { isLoopbackUrl } from './is-loopback-host.ts'
 import { YamlResponse, isYamlContentType } from './yaml-response.ts'
 
 /** Parameters for a single Elasticsearch API request. */
@@ -61,7 +62,7 @@ export class EsClient {
   constructor (url: string, auth?: ApiKeyOrBasicAuth) {
     this.baseUrl = url.replace(/\/+$/, '')
     this.authHeader = buildAuthHeader(auth)
-    if (this.baseUrl.startsWith('http://') && !/localhost|127\.0\.0\.1/.test(this.baseUrl)) {
+    if (this.baseUrl.startsWith('http://') && !isLoopbackUrl(this.baseUrl)) {
       process.stderr.write('Warning: using plaintext HTTP. Credentials will be sent unencrypted.\n')
     }
   }
