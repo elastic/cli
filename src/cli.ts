@@ -154,8 +154,10 @@ const SKIP_EARLY_CONFIG: ReadonlySet<string> = new Set([
 ])
 if (firstArg != null && !SKIP_EARLY_CONFIG.has(firstArg)) {
   const sniffArg = (flag: string): string | undefined => {
-    const idx = process.argv.indexOf(flag)
-    return idx !== -1 ? process.argv[idx + 1] : undefined
+    const idx = process.argv.findIndex((a) => a === flag || a.startsWith(`${flag}=`))
+    const arg = process.argv[idx]
+    if (arg == null) return undefined
+    return arg.startsWith(`${flag}=`) ? arg.slice(flag.length + 1) : process.argv[idx + 1]
   }
   const earlyProfile = sniffArg('--command-profile') as BuiltInProfile | undefined
   const earlyContext = sniffArg('--use-context')

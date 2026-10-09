@@ -306,6 +306,28 @@ describe('elastic CLI -- availability filtering honors --use-context', () => {
       await rm(dir, { recursive: true })
     }
   })
+
+  it('hides the stack-9.2 flag when --use-context=name (equals form) selects a 9.1 context', async () => {
+    const dir = await writeConfig()
+    try {
+      const { stdout } = await runCli(['--use-context=stack91', 'es', 'get', '--help'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } })
+      assert.ok(!stdout.includes('--source-exclude-vectors'), 'expected flag filtered for 9.1 context target')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('honors --config-file=path (equals form)', async () => {
+    const dir = await writeConfig()
+    const other = await mkdtemp(join(tmpdir(), 'elastic-cli-empty-'))
+    try {
+      const { stdout } = await runCli([`--config-file=${join(dir, '.elasticrc.yml')}`, '--use-context=stack91', 'es', 'get', '--help'], { cwd: other, env: { HOME: other, USERPROFILE: other, XDG_CONFIG_HOME: other } })
+      assert.ok(!stdout.includes('--source-exclude-vectors'), 'expected flag filtered for 9.1 context target')
+    } finally {
+      await rm(dir, { recursive: true })
+      await rm(other, { recursive: true })
+    }
+  })
 })
 
 describe('elastic CLI -- config-free commands', () => {
