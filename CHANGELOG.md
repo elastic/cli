@@ -4,6 +4,28 @@
 
 Process exit stays 1. Codes 2-5 are reserved and not emitted. `--json` config-load failures use `missing_config` or `config_invalid`. HTTP 401 is `auth_required`, 404 is `not_found`. See `elastic help exit-codes`. Relates to #634.
 
+## [0.7.0](https://github.com/elastic/cli/compare/v0.6.0...v0.7.0) (2026-10-09)
+
+
+### Features
+
+* Basic multi-version support for 9.x versions of Elasticsearch and Kibana ([#706](https://github.com/elastic/cli/issues/706)) ([67fe82b](https://github.com/elastic/cli/commit/67fe82b4d80125ddf7ff8c05b4c53ae108e8ae5f))
+
+
+### Bug Fixes
+
+* Drop notice regen on pull requests ([#720](https://github.com/elastic/cli/issues/720)) ([e88bfa6](https://github.com/elastic/cli/commit/e88bfa6ccba4a1ff8f7a7fa4a6650be699f34a4b))
+* Merge duplicate learn more headings ([#711](https://github.com/elastic/cli/issues/711)) ([6e76ee4](https://github.com/elastic/cli/commit/6e76ee43daf4daaeef542e6bcfaa3c9c0f22e5c1))
+* Point agent env export at dist ([#712](https://github.com/elastic/cli/issues/712)) ([e2f1e2c](https://github.com/elastic/cli/commit/e2f1e2cc03e6d1ebabf993beda1ef5d5262cf84f))
+* Verify nvm and jq download hashes ([#721](https://github.com/elastic/cli/issues/721)) ([2b732dc](https://github.com/elastic/cli/commit/2b732dc039b54160928027946ac7af8392ab3dc9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @elastic/agent-env bumped from 0.1.1 to 0.1.2
+
 ## [0.6.0](https://github.com/elastic/cli/compare/v0.5.0...v0.6.0) (2026-10-01)
 
 
