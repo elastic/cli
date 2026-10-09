@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { readFileSync, statSync } from 'node:fs'
+import { closeSync, constants, fstatSync, openSync, readSync } from 'node:fs'
 import { execSync, type ExecSyncOptionsWithStringEncoding } from 'node:child_process'
 
 /**
@@ -148,20 +148,33 @@ function psEncodedCommand (expression: string): string {
 const MAX_FILE_SIZE = 64 * 1024 // 64 KB
 
 function fileResolver (params: string): string {
-  let stat
+  let fd
   try {
-    stat = statSync(params)
+    // O_NONBLOCK keeps open() from hanging on a FIFO; it is undefined on
+    // Windows, where `| undefined` coerces to 0.
+    fd = openSync(params, constants.O_RDONLY | constants.O_NONBLOCK)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     throw new Error(`Failed to read file "${params}": ${message}`, { cause: err })
   }
-  if (!stat.isFile()) {
-    throw new Error(`Failed to read file "${params}": not a regular file`)
+  try {
+    // Checks run on the open fd, and the cap counts bytes actually read:
+    // a path-based stat can be swapped before the read, and procfs files
+    // report size 0 regardless of content.
+    if (!fstatSync(fd).isFile()) {
+      throw new Error(`Failed to read file "${params}": not a regular file`)
+    }
+    const buf = Buffer.alloc(MAX_FILE_SIZE + 1)
+    let total = 0
+    let n
+    while (total < buf.length && (n = readSync(fd, buf, total, buf.length - total, null)) > 0) total += n
+    if (total > MAX_FILE_SIZE) {
+      throw new Error(`Failed to read file "${params}": file is too large (max ${MAX_FILE_SIZE} bytes)`)
+    }
+    return buf.toString('utf-8', 0, total).trimEnd()
+  } finally {
+    closeSync(fd)
   }
-  if (stat.size > MAX_FILE_SIZE) {
-    throw new Error(`Failed to read file "${params}": file is ${stat.size} bytes (max ${MAX_FILE_SIZE})`)
-  }
-  return readFileSync(params, 'utf-8').trimEnd()
 }
 
 function envResolver (params: string): string {

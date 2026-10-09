@@ -6,6 +6,8 @@
 import { describe, it, before, after, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, writeFile, rm } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { execSync } from 'node:child_process'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { loadConfig, clearConfigCache } from '../../../src/config/loader.ts'
@@ -255,6 +257,40 @@ describe('file resolver', () => {
         assert.match(err.message, /max/)
         return true
       }
+    )
+  })
+
+  it('accepts a file of exactly the size limit', async () => {
+    const filePath = join(tmpDir, 'at-limit.txt')
+    await writeFile(filePath, 'x'.repeat(64 * 1024))
+    const result = await resolveExpressions(`$(file:${filePath})`)
+    assert.equal((result as string).length, 64 * 1024)
+  })
+
+  it('rejects a file one byte over the size limit', async () => {
+    const filePath = join(tmpDir, 'over-limit.txt')
+    await writeFile(filePath, 'x'.repeat(64 * 1024 + 1))
+    await assert.rejects(
+      () => resolveExpressions(`$(file:${filePath})`),
+      /max 65536/
+    )
+  })
+
+  // procfs reports st_size 0 for regular files with real content, so a
+  // stat-based size check is bypassed; the cap must come from bytes read.
+  it('enforces the size limit on bytes read, not on the stat size', { skip: !existsSync('/proc/kallsyms') }, async () => {
+    await assert.rejects(
+      () => resolveExpressions('$(file:/proc/kallsyms)'),
+      /max 65536/
+    )
+  })
+
+  it('rejects a FIFO without blocking on open', { skip: process.platform === 'win32' }, async () => {
+    const fifoPath = join(tmpDir, 'fifo')
+    execSync(`mkfifo ${fifoPath}`)
+    await assert.rejects(
+      () => resolveExpressions(`$(file:${fifoPath})`),
+      /not a regular file/
     )
   })
 })
