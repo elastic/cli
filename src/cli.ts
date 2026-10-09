@@ -70,7 +70,6 @@ if (!wantsHelp) {
 
     const { configFile: configPath, useContext: contextName, commandProfile: profileName } = thisCommand.opts()
     const typedProfileName = profileName as BuiltInProfile | undefined
-    const hasOverrides = configPath != null || contextName != null || profileName != null
 
     const { loadConfig } = await import('./config/loader.js')
     const { setResolvedConfig } = await import('./config/store.js')
@@ -78,7 +77,6 @@ if (!wantsHelp) {
       ...(configPath != null && { configPath }),
       ...(contextName != null && { contextName }),
       ...(typedProfileName != null && { profileName: typedProfileName }),
-      refresh: hasOverrides,
     })
     if (result.ok) {
       setResolvedConfig(result.value)
@@ -192,7 +190,6 @@ if (firstArg != null && !SKIP_EARLY_CONFIG.has(firstArg)) {
         ...(earlyConfigPath != null && { configPath: earlyConfigPath }),
         ...(earlyContext != null && { contextName: earlyContext }),
         ...(earlyProfile != null && { profileName: earlyProfile }),
-        refresh: hasOverrides,
         // Registration/help only needs version hints + command policy. Skip resolving
         // the active context so `--help` never spawns `$(cmd:...)` secret subprocesses;
         // the preAction hook does the full resolve before any handler runs. See #706.

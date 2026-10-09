@@ -285,7 +285,9 @@ export interface LoadConfigOptions {
 // Tests can call clearConfigCache() between cases to prevent state leakage.
 // ---------------------------------------------------------------------------
 
-let _cachedConfig: LoadConfigResult | undefined
+// Keyed on the effective options so a call with a different config file, context,
+// or profile never reuses another call's result.
+let _cachedConfig: { key: string, value: LoadConfigResult } | undefined
 
 /** Clears the in-process config cache. Intended for test cleanup only. */
 export function clearConfigCache (): void {
@@ -324,7 +326,8 @@ export type LoadConfigResult = LoadConfigOk | LoadConfigErr
 export async function loadConfig (options: LoadConfigOptions = {}): Promise<LoadConfigResult> {
   const { configPath, contextName, profileName, refresh = false, skipContextResolve = false } = options
 
-  if (!refresh && !skipContextResolve && _cachedConfig !== undefined) return _cachedConfig
+  const cacheKey = JSON.stringify([configPath, contextName, profileName, process.env[ENV_CONFIG_FILE]])
+  if (!refresh && !skipContextResolve && _cachedConfig?.key === cacheKey) return _cachedConfig.value
 
   // Validate profileName early (before any I/O) so the error is immediate and clear
   if (profileName != null && !(BUILT_IN_PROFILES as readonly string[]).includes(profileName)) {
@@ -467,6 +470,6 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     const message = err instanceof Error ? err.message : String(err)
     result = { ok: false, error: { message } }
   }
-  _cachedConfig = result
+  _cachedConfig = { key: cacheKey, value: result }
   return result
 }
