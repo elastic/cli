@@ -61,16 +61,16 @@ export function createEsHandler (
         parsed.options['output-template'] !== undefined ||
         parsed.options['output-fields'] !== undefined
 
-      if (responseType === 'text' && (jsonRequested || structuredOutputRequested)) {
-        params.querystring = { ...(params.querystring ?? {}), format: 'json' }
-        return await transport.request<HandlerResult>(params)
-      }
-
+      let opts: { headers: Record<string, string> } | undefined
       if (responseType === 'text') {
-        return await transport.request<HandlerResult>(params, { headers: { 'Accept': 'text/plain' } })
+        if (jsonRequested || structuredOutputRequested) {
+          params.querystring = { ...(params.querystring ?? {}), format: 'json' }
+        } else {
+          opts = { headers: { 'Accept': 'text/plain' } }
+        }
       }
 
-      return await transport.request<HandlerResult>(params)
+      return await transport.request<HandlerResult>(params, opts)
     } catch (err) {
       return transportError(err)
     }
