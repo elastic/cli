@@ -451,9 +451,11 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
   }
 
   // schema-derived CLI options (registered before --input-file so help text order is correct)
+  // Single filtered schema so flags, help, and runtime validation agree on availability.
+  const effectiveInput = isJsonSchemaInput(config.input) ? filterSchemaByAvailability(config.input, config.target) : undefined
   let schemaArgs: SchemaArgDefinition[] = []
   if (isJsonSchemaInput(config.input)) {
-    schemaArgs = extractSchemaArgs(config.input, config.target)
+    schemaArgs = extractSchemaArgs(effectiveInput, config.target)
     validateSchemaArgs(schemaArgs)
     for (const arg of schemaArgs) {
       const suffix = arg.required
@@ -495,8 +497,8 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
   // take no input at all, so --input-file and --dry-run would be no-ops; hide
   // them (#378). Write commands keep --input-file even with an empty schema
   // because loose schemas pass the whole file through as the request body.
-  const inputIsEmptyObject = isJsonSchemaInput(config.input) &&
-    Object.keys((config.input as { properties?: Record<string, unknown> }).properties ?? {}).length === 0
+  const inputIsEmptyObject = isJsonSchemaInput(effectiveInput) &&
+    Object.keys((effectiveInput as { properties?: Record<string, unknown> }).properties ?? {}).length === 0
   const hideNoInputFlags = config.readOnly === true && inputIsEmptyObject
   if (isJsonSchemaInput(config.input) && !hideNoInputFlags) {
     cmd.option('--input-file <path>', 'path to a JSON file to use as command input')
@@ -514,7 +516,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
     cmd.option('--yes', 'confirm destructive action without prompting')
   }
 
-  configureHelpWithSchema(cmd, isJsonSchemaInput(config.input) ? config.input : undefined, config.target)
+  configureHelpWithSchema(cmd, isJsonSchemaInput(effectiveInput) ? effectiveInput : undefined, config.target)
 
   Object.defineProperty(cmd, '_commandConfig', {
     value: { config, schemaArgs },
@@ -694,7 +696,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
     }
 
     if (inputValue !== undefined) {
-      assert(isJsonSchemaInput(config.input), `command ${JSON.stringify(config.name)}: input must be a JSON Schema object`)
+      assert(effectiveInput !== undefined, `command ${JSON.stringify(config.name)}: input must be a JSON Schema object`)
 
       // --no-validate skips schema validation and sends the input as-is (#530 escape
       // hatch): neutralizes false rejections when the shipped schema is stricter than the
@@ -707,21 +709,21 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
         // - sort-pairs: parsed to [{field: dir}] which won't match string schema
         // - body object/array fields: full DSL (e.g. query, _source) may not match strict schema
         // Fields with no x-found-in are validated strictly.
-        let validationSchema: Record<string, unknown> = config.input
+        let validationSchema: Record<string, unknown> = effectiveInput
         const relaxFields = schemaArgs.filter(
           (a) =>
             sortParsedKeys.has(a.schemaKey) ||
             (a.foundIn === 'body' && (a.type === 'object' || a.type === 'array'))
         )
-        if (relaxFields.length > 0 && typeof config.input['properties'] === 'object') {
-          const props = { ...(config.input['properties'] as Record<string, unknown>) }
+        if (relaxFields.length > 0 && typeof effectiveInput['properties'] === 'object') {
+          const props = { ...(effectiveInput['properties'] as Record<string, unknown>) }
           for (const f of relaxFields) {
             if (f.schemaKey in props) {
               // Accept any value for these relaxed fields
               props[f.schemaKey] = {}
             }
           }
-          validationSchema = { ...config.input, properties: props }
+          validationSchema = { ...effectiveInput, properties: props }
         }
 
         const result = validateWithJsonSchema(validationSchema, inputValue)

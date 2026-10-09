@@ -4317,6 +4317,32 @@ describe('JSON schema in help output -- availability filtering', () => {
     assert.ok(required.includes('size'), 'available prop must remain in required')
   })
 
+  it('with target → JSON input containing an unavailable property is rejected, handler not called', async () => {
+    const restore = _testSetStdinReader(() => JSON.stringify({ index: 'x', size: 5 }))
+    try {
+      const received: ParsedResult[] = []
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: {
+          type: 'object',
+          properties: {
+            index: { type: 'string', 'x-availability': { stack: {} } },
+            size: { type: 'number', 'x-availability': { serverless: {} } },
+          },
+          additionalProperties: false,
+        },
+        target: 'serverless' as import('../src/lib/availability.ts').AvailabilityTarget,
+        handler: (parsed) => { received.push(parsed); return {} },
+      })
+      const err = await captureErrAsync(cmd, ['--input-file', '-'])
+      assert.match(err, /input validation failed/i)
+      assert.equal(received.length, 0)
+    } finally {
+      restore()
+    }
+  })
+
   it('stack target → version-gated properties absent from schema output', async () => {
     const cmd = defineCommand({
       name: 'search',
