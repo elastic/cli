@@ -16,7 +16,7 @@
     "test": "npm run build && npm run test:unit && npm run test:license",
     "test:unit": "node scripts/unit-tests.mjs",
     "test:lint": "eslint src packages test",
-    "codegen:functional": "npx tsx codegen/functional/es.ts --tests-dir ../elasticsearch-clients-tests/tests",
+    "codegen:functional": "npx tsx codegen/functional/es.ts",
     "codegen:functional:kb": "node -e \"require('node:fs').rmSync('test/functional/kb/generated',{recursive:true,force:true})\" && npx tsx codegen/functional/kb.ts",
     "test:functional:es": "bash test/functional/es/run.sh",
     "codegen:functional:cloud:definitions": "npx tsx codegen/functional/cloud-definitions.ts",
