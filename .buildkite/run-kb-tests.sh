@@ -110,28 +110,10 @@ disk_report
 # ── Build CLI (concurrent with ES startup) ──
 
 echo "--- Setting up Node.js ${NODE_VERSION}"
-export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-if [ ! -s "$NVM_DIR/nvm.sh" ]; then
-  echo "nvm not found, installing..."
-  mkdir -p "$NVM_DIR"
-  NVM_VERSION=$(curl -s https://api.github.com/repos/nvm-sh/nvm/releases/latest | jq -r '.tag_name // "v0.39.7"')
-  echo "Installing nvm ${NVM_VERSION}"
-  curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash
-fi
-# shellcheck source=/dev/null
-. "$NVM_DIR/nvm.sh"
-nvm install "$NODE_VERSION"
-nvm use "$NODE_VERSION"
-
-echo "--- Installing jq 1.7.1"
-JQ_VERSION="1.7.1"
-if ! jq --version 2>/dev/null | grep -q "$JQ_VERSION"; then
-  mkdir -p "$HOME/.local/bin"
-  curl -sfL "https://github.com/jqlang/jq/releases/download/jq-${JQ_VERSION}/jq-linux-amd64" -o "$HOME/.local/bin/jq"
-  chmod +x "$HOME/.local/bin/jq"
-  export PATH="$HOME/.local/bin:$PATH"
-fi
-echo "Using jq $(jq --version)"
+# shellcheck source=./bootstrap.sh
+. "$(dirname "$0")/bootstrap.sh"
+install_nvm
+install_jq
 
 echo "--- Installing dependencies"
 npm ci
