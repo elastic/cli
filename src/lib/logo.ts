@@ -17,9 +17,10 @@ function color256(n: number): string {
 
 type ColorLevel = 0 | 1 | 2 | 3
 
+import { colorsEnabled } from '../output.ts'
+
 function isTTY(): boolean {
-  const force = process.env.FORCE_COLOR
-  return !!process.stdout.isTTY || (force !== undefined && force !== '0')
+  return !!process.stdout.isTTY
 }
 
 function detectColorLevel(): ColorLevel {
@@ -59,14 +60,12 @@ const PALETTE_ANSI = ['\x1b[95m', '\x1b[93m', '\x1b[96m', '\x1b[94m', '\x1b[36m'
  */
 export function renderLogo(version: string): string {
   if (process.env.ELASTIC_NO_BANNER === '1') return ''
-  if (!isTTY()) return ''
-
-  const level = detectColorLevel()
-
-  if (level === 0) {
+  if (!colorsEnabled(isTTY())) {
+    if (!isTTY()) return ''
     return `\n  elastic CLI  ${version}\n\n`
   }
 
+  const level = detectColorLevel()
   const lines = ELASTIC_ASCII.map((line, i) => {
     const c =
       level === 3 ? PALETTE_TC[i]! :

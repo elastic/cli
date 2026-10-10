@@ -105,4 +105,21 @@ describe('formatStatusText', () => {
     })
     assert.ok(out.includes('✓  available'), `got ${out}`)
   })
+
+  it('uses ok/fail words instead of glyphs when plain is set', () => {
+    const out = formatStatusText(
+      {
+        context: 'local',
+        services: {
+          elasticsearch: { ok: true, url: 'http://localhost:9200', flavor: 'stateful', status: 'green', nodes: 3 },
+          cloud: { ok: false, url: 'https://api.elastic-cloud.com', error: 'auth failed (401)' },
+        },
+      },
+      { plain: true },
+    )
+    assert.ok(out.includes('ok  green (3 nodes)'), `got ${out}`)
+    assert.ok(out.includes('fail  auth failed (401)'), `got ${out}`)
+    assert.ok(!out.includes('✓'), `unexpected glyph, got ${out}`)
+    assert.ok(!out.includes('✗'), `unexpected glyph, got ${out}`)
+  })
 })

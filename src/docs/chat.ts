@@ -61,6 +61,9 @@ export function createChatCommand (deps: ChatDeps = defaultDeps): OpaqueCommandH
 
       // Follow-up loop needs a TTY. --json is the non-interactive path.
       const interactive = process.stdin.isTTY === true && parsed.options['json'] !== true
+      // Spinner frames go to stderr every 80ms: gate on stderr (not stdin)
+      // so `elastic docs chat 2>log` stays clean even when stdin is a TTY.
+      const canSpin = process.stderr.isTTY === true && parsed.options['json'] !== true
       const conversationId = newUuid()
 
       if (parsed.options['json'] === true) {
@@ -80,7 +83,7 @@ export function createChatCommand (deps: ChatDeps = defaultDeps): OpaqueCommandH
         return { answer: chunks.join('') }
       }
 
-      await askQuestion(question, conversationId, deps, interactive ? startSpinner(deps.stderr, 'Thinking…') : undefined)
+      await askQuestion(question, conversationId, deps, canSpin ? startSpinner(deps.stderr, 'Thinking…') : undefined)
 
       if (interactive) {
         const rl = createInterface({ input: deps.getStdin(), terminal: false })
@@ -95,7 +98,7 @@ export function createChatCommand (deps: ChatDeps = defaultDeps): OpaqueCommandH
                 resolve()
                 return
               }
-              await askQuestion(followUp, conversationId, deps, startSpinner(deps.stderr, 'Thinking…'))
+              await askQuestion(followUp, conversationId, deps, canSpin ? startSpinner(deps.stderr, 'Thinking…') : undefined)
               prompt()
             })
           }

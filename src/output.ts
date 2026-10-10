@@ -13,6 +13,26 @@ export const AUTH_FAILURE_HINT =
 /** A flat object whose values are all JSON primitives — renderable as a table row. */
 type FlatRecord = Record<string, string | number | boolean | null>
 
+/** Strips ANSI SGR escape sequences. Exported for tests guarding the no-ANSI contract. */
+export function stripAnsi (value: string): string {
+  // eslint-disable-next-line no-control-regex
+  return value.replace(/\u001B\[[\d;]*m/g, '')
+}
+
+/**
+ * Returns true when ANSI colors may be emitted for the given TTY state.
+ *
+ * `NO_COLOR` (set to any value) always wins. `FORCE_COLOR` (set to anything
+ * except `'0'`) forces colors on, otherwise colors follow the TTY state.
+ * Mirrors the banner logic in `src/lib/logo.ts`.
+ */
+export function colorsEnabled (isTTY: boolean): boolean {
+  if (process.env.NO_COLOR !== undefined) return false
+  const force = process.env.FORCE_COLOR
+  if (force !== undefined && force !== '0') return true
+  return isTTY
+}
+
 /** Returns true when `val` is a non-null, non-array object with only primitive values. */
 function isFlatObject(val: JsonValue): val is FlatRecord {
   if (val === null || typeof val !== 'object' || Array.isArray(val)) return false
@@ -25,10 +45,32 @@ function isPrimitive(val: JsonValue): val is string | number | boolean | null {
 }
 
 /**
+ * Collects the union of keys across all rows in first-seen order.
+ *
+ * Later rows may introduce keys the first row lacks (e.g.
+ * `[{a:1},{a:2,b:3}]` must render both `a` and `b` columns), so headers
+ * cannot be derived from the first row alone.
+ */
+function collectHeaders (rows: FlatRecord[]): string[] {
+  const headers: string[] = []
+  const seen = new Set<string>()
+  for (const row of rows) {
+    for (const key of Object.keys(row)) {
+      if (!seen.has(key)) {
+        seen.add(key)
+        headers.push(key)
+      }
+    }
+  }
+  return headers
+}
+
+/**
  * Renders an array of flat objects as a Unicode-bordered table using cli-table3.
  *
- * Column headers are derived from the keys of the first row. Each subsequent row
- * is added in the same key order. Returns an empty string for an empty array.
+ * Column headers are the union of keys across all rows, in first-seen order.
+ * Each subsequent row is added in the same key order; cells missing from a
+ * row render as empty strings. Returns an empty string for an empty array.
  *
  * @example
  * ```ts
@@ -45,14 +87,36 @@ function isPrimitive(val: JsonValue): val is string | number | boolean | null {
 export function renderTable(rows: FlatRecord[]): string {
   if (rows.length === 0) return ''
 
-  const headers = Object.keys(rows[0]!)
+  const headers = collectHeaders(rows)
   const table = new Table({ head: headers })
 
   for (const row of rows) {
     table.push(headers.map((h) => String(row[h] ?? '')))
   }
 
-  return table.toString() + '\n'
+  const text = table.toString() + '\n'
+  return colorsEnabled(process.stdout.isTTY === true) ? text : stripAnsi(text)
+}
+
+/**
+ * Renders an array of flat objects as tab-separated values.
+ *
+ * Used when stdout is not a TTY and `--json` is absent: no Unicode borders,
+ * one header line followed by one line per row. Tabs, newlines, and carriage
+ * returns inside cells are replaced with spaces so every row stays parseable.
+ * Headers are the union of keys across all rows, in first-seen order; cells
+ * missing from a row render as empty strings.
+ */
+export function renderTsv (rows: FlatRecord[]): string {
+  if (rows.length === 0) return ''
+  const sanitize = (v: string | number | boolean | null): string =>
+    String(v ?? '').replace(/[\t\n\r]+/g, ' ')
+  const headers = collectHeaders(rows)
+  const lines = [headers.map(sanitize).join('\t')]
+  for (const row of rows) {
+    lines.push(headers.map((h) => sanitize(row[h] ?? null)).join('\t'))
+  }
+  return lines.join('\n') + '\n'
 }
 
 /** Print a text-default API body. Empty CAT and other non-string bodies print nothing. */
@@ -66,7 +130,7 @@ export function formatTextResponse (result: unknown): string {
  *
  * Rendering rules (simplest match wins):
  * - **Primitives** (`string | number | boolean | null`): printed as their string representation
- * - **Array of flat objects** (all values are primitives): rendered as a column-aligned table via {@link renderTable}
+ * - **Array of flat objects** (all values are primitives): rendered as a column-aligned table via {@link renderTable}, or as TSV via {@link renderTsv} when `opts.plain` is set (piped output)
  * - **Array of primitives**: one item per line
  * - **Empty array**: single newline
  * - **Everything else**: falls back to pretty-printed JSON
@@ -74,7 +138,7 @@ export function formatTextResponse (result: unknown): string {
  * Command handlers that need richer control should supply a `formatOutput` function
  * on their `CommandConfig` rather than relying on this auto-renderer.
  */
-export function renderText(value: JsonValue): string {
+export function renderText(value: JsonValue, opts?: { plain?: boolean }): string {
   if (isPrimitive(value)) {
     return String(value) + '\n'
   }
@@ -83,7 +147,7 @@ export function renderText(value: JsonValue): string {
     if (value.length === 0) return '\n'
 
     if (value.every(isFlatObject)) {
-      return renderTable(value)
+      return opts?.plain === true ? renderTsv(value) : renderTable(value)
     }
 
     if (value.every(isPrimitive)) {
