@@ -96,6 +96,13 @@ describe('renderTable', () => {
       assert.doesNotMatch(line, / $/, `line has trailing space: ${JSON.stringify(line)}`)
     }
   })
+
+  it('includes keys that first appear in a later row', () => {
+    const out = renderTable([{ a: 1 }, { a: 2, b: 3 }])
+    assert.match(out, /a/)
+    assert.match(out, /b/)
+    assert.match(out, /3/)
+  })
 })
 
 describe('renderText', () => {
@@ -177,6 +184,10 @@ describe('renderText', () => {
 
     it('renders null cells as empty strings', () => {
       assert.equal(renderTsv([{ a: null }]), 'a\n\n')
+    })
+
+    it('includes keys that first appear in a later row', () => {
+      assert.equal(renderTsv([{ a: 1 }, { a: 2, b: 3 }]), 'a\tb\n1\t\n2\t3\n')
     })
   })
 

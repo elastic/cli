@@ -248,4 +248,42 @@ describe('createChatCommand', () => {
     }
     assert.ok(stderrWrites.join('').includes('Error: plain string failure'))
   })
+
+  it('writes no spinner frames when stderr is not a TTY', async () => {
+    const prevStdinTTY = process.stdin.isTTY
+    const prevStderrTTY = process.stderr.isTTY
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true })
+    Object.defineProperty(process.stderr, 'isTTY', { value: false, configurable: true })
+    try {
+      const stderrWrites: string[] = []
+      const stdoutWrites: string[] = []
+      // Delay past the 80ms spinner interval so a started spinner would tick.
+      const slowStream = async function * (): AsyncGenerator<AskStreamEvent> {
+        await new Promise((r) => setTimeout(r, 150))
+        yield { kind: 'chunk' as const, text: 'delayed answer' }
+      }
+      const stdinStream = Readable.from(['follow up?\n', '\n'])
+      const cmd = createChatCommand({
+        docsAskStream: slowStream,
+        stdout: { write: (s) => { stdoutWrites.push(s); return true } },
+        stderr: { write: (s) => { stderrWrites.push(s); return true } },
+        getStdin: () => stdinStream,
+      })
+      cmd.exitOverride()
+      cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
+      const restoreStdin = _testSetStdinReader(() => '')
+      try {
+        await cmd.parseAsync(['--question', 'opening'], { from: 'user' })
+      } finally { restoreStdin() }
+
+      assert.ok(stdoutWrites.join('').includes('delayed answer'))
+      assert.ok(
+        stderrWrites.every((w) => !w.includes('\r')),
+        `spinner frames leaked to stderr: ${JSON.stringify(stderrWrites)}`,
+      )
+    } finally {
+      Object.defineProperty(process.stdin, 'isTTY', { value: prevStdinTTY, configurable: true })
+      Object.defineProperty(process.stderr, 'isTTY', { value: prevStderrTTY, configurable: true })
+    }
+  })
 })

@@ -35,8 +35,13 @@ Environment
 ELASTIC_CLI_CONFIG_FILE   Config path (same as --config-file)
 ELASTIC_CLI_TELEMETRY     false/0/no/off disables anonymous telemetry (overrides config)
 ELASTIC_NO_BANNER         1 hides the startup logo
-NO_COLOR                  set (any value) disables color on the logo
+NO_COLOR                  set (any value) disables ANSI colors on all output (same as --no-color)
+FORCE_COLOR               set (any value except "0") forces ANSI colors on, even when piped
 ELASTIC_CLOUD_ADMIN_API   Override the Cloud admin API base URL
+
+Color flags
+
+--no-color                disable ANSI colors (same as NO_COLOR=1). NO_COLOR wins over FORCE_COLOR.
 
 Secrets
 

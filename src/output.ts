@@ -45,10 +45,32 @@ function isPrimitive(val: JsonValue): val is string | number | boolean | null {
 }
 
 /**
+ * Collects the union of keys across all rows in first-seen order.
+ *
+ * Later rows may introduce keys the first row lacks (e.g.
+ * `[{a:1},{a:2,b:3}]` must render both `a` and `b` columns), so headers
+ * cannot be derived from the first row alone.
+ */
+function collectHeaders (rows: FlatRecord[]): string[] {
+  const headers: string[] = []
+  const seen = new Set<string>()
+  for (const row of rows) {
+    for (const key of Object.keys(row)) {
+      if (!seen.has(key)) {
+        seen.add(key)
+        headers.push(key)
+      }
+    }
+  }
+  return headers
+}
+
+/**
  * Renders an array of flat objects as a Unicode-bordered table using cli-table3.
  *
- * Column headers are derived from the keys of the first row. Each subsequent row
- * is added in the same key order. Returns an empty string for an empty array.
+ * Column headers are the union of keys across all rows, in first-seen order.
+ * Each subsequent row is added in the same key order; cells missing from a
+ * row render as empty strings. Returns an empty string for an empty array.
  *
  * @example
  * ```ts
@@ -65,7 +87,7 @@ function isPrimitive(val: JsonValue): val is string | number | boolean | null {
 export function renderTable(rows: FlatRecord[]): string {
   if (rows.length === 0) return ''
 
-  const headers = Object.keys(rows[0]!)
+  const headers = collectHeaders(rows)
   const table = new Table({ head: headers })
 
   for (const row of rows) {
@@ -82,12 +104,14 @@ export function renderTable(rows: FlatRecord[]): string {
  * Used when stdout is not a TTY and `--json` is absent: no Unicode borders,
  * one header line followed by one line per row. Tabs, newlines, and carriage
  * returns inside cells are replaced with spaces so every row stays parseable.
+ * Headers are the union of keys across all rows, in first-seen order; cells
+ * missing from a row render as empty strings.
  */
 export function renderTsv (rows: FlatRecord[]): string {
   if (rows.length === 0) return ''
   const sanitize = (v: string | number | boolean | null): string =>
     String(v ?? '').replace(/[\t\n\r]+/g, ' ')
-  const headers = Object.keys(rows[0]!)
+  const headers = collectHeaders(rows)
   const lines = [headers.map(sanitize).join('\t')]
   for (const row of rows) {
     lines.push(headers.map((h) => sanitize(row[h] ?? null)).join('\t'))
