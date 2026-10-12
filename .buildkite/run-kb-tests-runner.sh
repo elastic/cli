@@ -264,11 +264,13 @@ contexts:
   ci:
     elasticsearch:
       url: http://${ES_HOST}:9200
+      version: ${STACK_VERSION}
       auth:
         username: elastic
         password: "${ES_PASSWORD}"
     kibana:
       url: http://${KB_HOST}:5601
+      version: ${STACK_VERSION}
       auth:
         username: elastic
         password: "${ES_PASSWORD}"

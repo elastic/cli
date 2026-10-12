@@ -85,6 +85,7 @@ contexts:
   ci:
     elasticsearch:
       url: http://localhost:9200
+      version: ${STACK_VERSION}
 current_context: ci
 EOF
 export ELASTIC_CLI_CONFIG_FILE="$CI_CONFIG_FILE"
