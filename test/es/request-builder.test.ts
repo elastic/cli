@@ -326,6 +326,28 @@ describe('buildRequestParams', () => {
     assert.equal(result.path, '/test-index/_doc/doc1')
   })
 
+  describe('POST endpoints that also accept GET', () => {
+    const input = {
+      ...schema({ query: { type: 'object', description: 'Query', 'x-found-in': 'body' } }),
+      'x-urls': [{ path: '/_cat/count', methods: ['POST', 'GET'] }],
+    }
+    const def = makeDefinition({ method: 'POST', path: '/_cat/count', input })
+
+    it('uses GET without a body, since stacks before 9.3 reject POST /_cat/count', () => {
+      assert.equal(buildRequestParams(def, parsedResult(), args(input)).method, 'GET')
+    })
+
+    it('keeps POST with a body', () => {
+      assert.equal(buildRequestParams(def, parsedResult({ query: { match_all: {} } }), args(input)).method, 'POST')
+    })
+
+    it('keeps POST when GET is not listed', () => {
+      const postOnly = { ...input, 'x-urls': [{ path: '/_cat/count', methods: ['POST'] }] }
+      const result = buildRequestParams(makeDefinition({ method: 'POST', path: '/_cat/count', input: postOnly }), parsedResult(), args(postOnly))
+      assert.equal(result.method, 'POST')
+    })
+  })
+
   it('NDJSON format applies to msearch searches field', () => {
     const input = schema({
       searches: { type: 'array', description: 'Searches', 'x-found-in': 'body' },

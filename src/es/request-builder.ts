@@ -47,6 +47,10 @@ export function buildRequestParams (
     )
     if (idArg != null && input[idArg.schemaKey] === undefined) method = 'POST'
   }
+  // Schemas list POST first for endpoints that added POST later (e.g. _cat/count
+  // in 9.3). Older stacks reject it, so send GET when there is no body to carry.
+  const urls = def.input?.['x-urls'] as Array<{ methods: string[] }> | undefined
+  if (method === 'POST' && body === undefined && urls?.some((u) => u.methods.includes('GET')) === true) method = 'GET'
 
   const params: EsRequestParams = { method, path }
   if (Object.keys(querystring).length > 0) params.querystring = querystring
