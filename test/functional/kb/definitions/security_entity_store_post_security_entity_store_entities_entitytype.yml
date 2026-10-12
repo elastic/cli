@@ -7,6 +7,8 @@
 requires:
   serverless: true
   stack: true
+  # Entity Store V2; x-state carries no version, so gate here.
+  stack_since: 9.4.0
 ---
 teardown:
   - do:
