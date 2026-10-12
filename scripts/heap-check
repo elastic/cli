@@ -58,8 +58,12 @@ function report(label, deltaMB, baseline, extra) {
 // apiCountExpr is inlined into the probe JS with `mod` in scope.
 // baselineMB=0 → record-only, never fails.
 const BARREL_MODULES = [
-  ["dist/es/apis.js",    "Array.isArray(mod.apiManifest) ? mod.apiManifest.length : null", 0.5],
-  ["dist/kb/apis.js",    "Array.isArray(mod.kbApiManifest) ? mod.kbApiManifest.length : null", 0.5],
+  // es/kb barrel baselines re-recorded after the @elastic/schemas 0.9.1 upgrade
+  // (576 ES / 682 KB manifest entries). The growth is manifest metadata only --
+  // the barrels stay far below a single definition load (~8 MB), so the lazy-barrel
+  // invariant still holds.
+  ["dist/es/apis.js",    "Array.isArray(mod.apiManifest) ? mod.apiManifest.length : null", 0.66],
+  ["dist/kb/apis.js",    "Array.isArray(mod.kbApiManifest) ? mod.kbApiManifest.length : null", 0.66],
   ["dist/cloud/apis.js", "mod.allCloudApis?.length ?? null",      0.5],
 ]
 
@@ -101,10 +105,11 @@ const DEFINITION_PROBES = [
     // flattenComposition in src/kb/apis.ts) -- the heaviest single KB definition.
     // Unlike ES, every KB namespaceFile holds exactly one definition, so there's
     // no "large namespace" grouping multiple endpoints to pick instead.
+    // Baseline re-recorded after @elastic/schemas 0.9.1 widened this rule's union body.
     "dist/kb/apis.js loadKbApisInFile('post_alerting_rule_id')",
     "m.loadKbApisInFile('post_alerting_rule_id')",
     "./dist/kb/apis.js",
-    5.1,
+    7.7,
   ],
   [
     // Loads all 567 ES definitions. Record-only (baseline 0): the absolute

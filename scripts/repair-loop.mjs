@@ -314,24 +314,6 @@ export function hasBadCommand (text) {
   return typeof text === 'string' && /(?:^|[\s])\/bad(?:[\s]|$)/m.test(text)
 }
 
-export const REPAIR_BOT_LOGINS = new Set([
-  'github-actions',
-  'github-actions[bot]',
-  'elastic-vault-github-plugin-prod',
-  'elastic-vault-github-plugin-prod[bot]',
-])
-
-export function isRepairBotLogin (login) {
-  return typeof login === 'string' && REPAIR_BOT_LOGINS.has(login)
-}
-
-export function countBotCommits (commits) {
-  if (!Array.isArray(commits)) return 0
-  return commits.filter((commit) => (
-    isRepairBotLogin(commit?.author?.login) || isRepairBotLogin(commit?.commit?.author?.name)
-  )).length
-}
-
 export function hasBkRepairTag (text) {
   return typeof text === 'string' && text.includes('<!-- bk-repair-loop -->')
 }
@@ -679,14 +661,11 @@ export function shouldAttemptFix ({
   skipLoop = false,
   stopRepair = false,
   autoLoop = false,
-  botCommits = 0,
-  maxBotCommits = 2,
 } = {}) {
   if (!sameRepo) return { ok: false, reason: 'fork' }
   if (stopRepair) return { ok: false, reason: 'stop' }
   if (skipLoop) return { ok: false, reason: 'skip-auto-loop' }
   if (!autoLoop) return { ok: false, reason: 'auto-loop' }
-  if (botCommits >= maxBotCommits) return { ok: false, reason: 'bot commit cap' }
   return { ok: true, reason: 'ok' }
 }
 
@@ -953,14 +932,6 @@ async function main (argv) {
       process.stdout.write(mergeMemorySkill(existing, unprocessedMemoryComments(comments, cursor)))
       break
     }
-    case 'bot-commits': {
-      const raw = readFileSync(args[0], 'utf8').trim()
-      let commits = []
-      if (raw.startsWith('[')) commits = JSON.parse(raw)
-      else if (raw !== '') commits = raw.split('\n').map((line) => JSON.parse(line))
-      process.stdout.write(String(countBotCommits(commits)) + '\n')
-      break
-    }
     case 'has-bk-tag': {
       const found = hasBkRepairTag(readFileSync(args[0], 'utf8'))
       process.stdout.write(JSON.stringify({ bk: found }) + '\n')
@@ -990,7 +961,6 @@ async function main (argv) {
         skipLoop: process.env.SKIP_LOOP === '1',
         stopRepair: process.env.STOP_REPAIR === '1',
         autoLoop: process.env.AUTO_LOOP === '1',
-        botCommits: Number(process.env.BOT_COMMITS || '0'),
       })
       process.stdout.write(JSON.stringify(decision) + '\n')
       process.exit(decision.ok ? 0 : 1)

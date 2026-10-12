@@ -11,6 +11,8 @@
  */
 
 import { deprecationNote } from './deprecation.ts'
+import type { AvailabilityTarget } from './availability.ts'
+import { filterSchemaByAvailability } from './availability.ts'
 
 /**
  * Represents a single CLI argument derived from a top-level key in a command's input schema.
@@ -54,6 +56,9 @@ export interface SchemaArgDefinition {
    * CLI flag stays scalar for UX; bodies may need array form for comma-separated values.
    */
   acceptsArrayForm?: boolean
+
+  /** Schema enum values, when `type` is `enum`. */
+  enumValues?: string[]
 
   /**
    * Marks args whose CLI string value needs a non-trivial transformation.
@@ -183,9 +188,9 @@ function resolveType (
  *
  * Returns an empty array if `schema` is not a valid JSON Schema object.
  */
-export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
+export function extractSchemaArgs (schema: unknown, target?: AvailabilityTarget): SchemaArgDefinition[] {
   if (schema == null || typeof schema !== 'object') return []
-  const s = schema as Record<string, unknown>
+  const s = target != null ? filterSchemaByAvailability(schema as Record<string, unknown>, target) : schema as Record<string, unknown>
   const properties = s['properties'] as Record<string, JsonSchemaProp> | undefined
   if (properties == null) return []
   const defs = (s['$defs'] ?? {}) as Record<string, JsonSchemaProp>
@@ -207,6 +212,9 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
     // Sort fields: check if prop description or key suggests Sort semantics
     // (used by ES Sort body fields that need field:direction→object transformation)
     const isSortField = key === 'sort' && (foundIn === 'body' || foundIn === undefined)
+    const enumValues = Array.isArray(prop.enum)
+      ? prop.enum.filter((v): v is string => typeof v === 'string')
+      : undefined
 
     return {
       schemaKey: key,
@@ -220,6 +228,7 @@ export function extractSchemaArgs (schema: unknown): SchemaArgDefinition[] {
       ...(prop['x-body-root'] === true ? { bodyRoot: true } : {}),
       ...(acceptsArrayForm ? { acceptsArrayForm: true } : {}),
       ...(isSortField ? { parseStyle: 'sort-pairs' as const } : {}),
+      ...(enumValues != null && enumValues.length > 0 ? { enumValues } : {}),
     }
   })
 }

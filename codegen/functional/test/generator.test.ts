@@ -403,6 +403,7 @@ describe('generateScript', () => {
     assert.ok(result.script.includes('elastic-cli-do-err.$$'))
     assert.ok(result.script.includes('not available'))
     assert.ok(result.script.includes('Could not determine the version'))
+    assert.ok(result.script.includes('.error.status_code == 404'))
   })
 
   it('does not wrap do-steps for 404 by default', () => {

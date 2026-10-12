@@ -430,7 +430,7 @@ function renderDo (
     lines.push(`${indent}_ec=$?`)
     lines.push(`${indent}set -e`)
     lines.push(`${indent}if [ "$_ec" -ne 0 ]; then`)
-    lines.push(`${indent}  if jq -e '(.error.message | tostring | test("404|Could not determine the version"))' ${errFile} >/dev/null 2>&1; then`)
+    lines.push(`${indent}  if jq -e '(.error.status_code == 404) or (.error.message | tostring | test("404|Could not determine the version"))' ${errFile} >/dev/null 2>&1; then`)
     lines.push(`${indent}    echo "SKIP: ${step.action} not available"`)
     lines.push(`${indent}    exit 0`)
     lines.push(`${indent}  fi`)

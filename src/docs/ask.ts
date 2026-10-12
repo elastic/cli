@@ -51,7 +51,7 @@ export function createAskCommand (deps: AskDeps = defaultDeps): OpaqueCommandHan
     handler: async (parsed): Promise<JsonValue> => {
       const inp = parsed.input as { question?: string } | undefined
       const question = (parsed.arg ?? inp?.question ?? '').trim()
-      if (question === '') return { error: { code: 'missing_input', message: 'question is required' } }
+      if (question === '') return { error: { code: 'missing_input', message: 'Pass --question <text> (or a positional question).' } }
 
       if (parsed.options['accept-experimental'] !== true && parsed.options['json'] !== true) {
         deps.stderr.write(experimentalBanner(process.stderr.isTTY === true))

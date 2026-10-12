@@ -38,7 +38,11 @@ Use `npm ci` in CI and for a clean checkout. `npm install` is fine locally. Unse
 
 After dependency changes, run `node scripts/generate-notice.mjs` and commit `NOTICE.txt` if it changed. After command or flag changes, run `npm run build:schema` and commit `docs/cli/schema.json`.
 
-Do not edit generated files: `src/es/apis/*.ts`, `src/es/api-manifest.ts`, `src/kb/apis.ts`, `src/kb/api-manifest.ts`.
+### Typecheck discipline
+
+Full-repo `tsc` is heavy (peaks ~3.7 GB) and a top source of wasted recovery turns. While iterating, typecheck only the changed file/module, not the whole project; fix type errors immediately rather than letting them accumulate. Run full `npx tsc --noEmit` once before marking a task complete. When output is long, pipe through `head -30` and fix the first error first.
+
+Per-endpoint API schemas are not generated into this repo; they ship in the published `@elastic/schemas` package. Do not create files under `src/es/apis/` or `src/kb/apis/` (those directories do not exist).
 
 ## Architecture
 
@@ -63,6 +67,23 @@ All requirements below are non-negotiable and enforced at review time.
 - **`--json`**: Every command MUST emit structured JSON when `--json` is passed.
 - **`--help --json`**: MUST output the full JSON Schema so agents can introspect valid inputs.
 - **Errors**: All errors MUST go to stderr with a non-zero exit code. With `--json`, errors MUST serialize as `{"error": {"code": "...", "message": "..."}}`.
+- **Exit codes**: Process exit is `0` on success and `1` on every failure. Codes `2` (usage), `3` (validation), `4` (auth/config), and `5` (network) are reserved; do not emit them yet. See `elastic help exit-codes`.
+- **`error.code` catalog** (frozen; do not invent new strings without a changelog note):
+  - `missing_config` — no config file or no service connection
+  - `config_invalid` — config file failed to parse or validate
+  - `auth_required` — HTTP 401. Probe with `elastic status --json`
+  - `not_found` — HTTP 404. Probe with `elastic status --json`
+  - `transport_error` — other HTTP/client errors. Probe with `elastic status --json`
+  - `connection_error` — TCP/TLS failure. Probe with `elastic status --json`
+  - `input_error` — handler rejected the request before sending
+  - `input_validation_failed` — flags or JSON input failed the schema
+  - `confirmation_required` — destructive command needs `--yes`
+  - `command_blocked` — command policy blocked this invocation
+  - `kibana_api_error` / `cloud_api_error` — product HTTP errors
+  - `invalid_request` / `credential_policy_error` — Cloud request/policy
+  - `output_template_error` — `--output-template` failed to render
+  - `missing_source` / `missing_name` — extension add/remove args
+- After `auth_required` or `transport_error`, run `elastic status --json`.
 
 ### Mutations and Side Effects
 
@@ -193,11 +214,11 @@ On a GitHub Actions `CI` failure or a Buildkite functional failure, take the fir
 
 `/bad` (optional reason) marks a bad bot review. Owners and maintainers only. Conversation comment or inline reply on the finding. A model turns the finding and your note into one "Do not re-flag" line on `.github/skills/ai-review-memory.md` (new bot PR, or a commit if that PR already exists).
 
-`auto-loop` is the switch that lets the bot commit. Without it the loops still triage (sticky comment). With it they apply in-repo fixes for the first CI or Buildkite failure, and for bot reviews (AI review, CodeQL). Adding the label re-dispatches both loops. The label job is `issues: labeled` so it always runs from the default branch. Apply writes `repair-loop-patch` (not `.repair-loop`; upload-artifact drops hidden paths). Comment `/stop` to halt and pin `skip-auto-loop`. At most two bot commits per PR. `skip-ai-review` silences the review bot.
+`auto-loop` is the switch that lets the bot commit. Without it the loops still triage (sticky comment). With it they apply in-repo fixes for the first CI or Buildkite failure, and for bot reviews (AI review, CodeQL). Adding the label re-dispatches both loops. The label job is `issues: labeled` so it always runs from the default branch. Apply writes `repair-loop-patch` (not `.repair-loop`; upload-artifact drops hidden paths). Comment `/stop` to halt and pin `skip-auto-loop`. `skip-ai-review` silences the review bot.
 
 On a `buildkite/elastic-cli/pr` failure, GitHub Actions posts `<!-- bk-repair-loop -->`. Apply uses an ephemeral GitHub App token from Vault so the push retriggers CI. Buildkite does not get a GitHub token.
 
-Do not edit generated files: `src/es/apis/*.ts`, `src/es/api-manifest.ts`, `src/kb/apis.ts`, `src/kb/api-manifest.ts`. Do not edit `.github/workflows/`.
+Do not edit `.github/workflows/`.
 
 Review comments from a trusted reviewer (OWNER, MEMBER, CodeQL, or the AI review bot) are another pass of the same loop. Do not repeat an approach a reviewer already rejected.
 

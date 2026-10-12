@@ -51,6 +51,17 @@ describe('kibanaApiError', () => {
     assert.equal(res.error.code, 'kibana_api_error')
     assert.equal(res.error.status_code, 404)
     assert.match(res.error.message, /not found/)
+    assert.equal(res.error.message.includes('elastic config context edit'), false)
+  })
+
+  it('points 403 at status and context edit', () => {
+    const res = kibanaApiError(new Error('Kibana API error 403: {"message":"forbidden"}')) as {
+      error: { code: string; status_code: number; message: string; hint?: string }
+    }
+    assert.equal(res.error.status_code, 403)
+    assert.match(res.error.message, /forbidden/)
+    assert.match(res.error.hint ?? '', /elastic status/)
+    assert.match(res.error.hint ?? '', /config context edit/)
   })
 
   it('omits status_code when the message has no status', () => {
@@ -64,6 +75,21 @@ describe('kibanaApiError', () => {
     const res = kibanaApiError('raw string error') as { error: { code: string; message: string } }
     assert.equal(res.error.code, 'kibana_api_error')
     assert.equal(res.error.message, 'raw string error')
+  })
+
+  it('adds error.hint on 401 naming status', () => {
+    const res = kibanaApiError(new Error('Kibana API error 401: {"message":"unauthorized"}')) as {
+      error: { hint?: string }
+    }
+    assert.match(res.error.hint ?? '', /elastic status/)
+    assert.match(res.error.hint ?? '', /config context edit/)
+  })
+
+  it('does not add error.hint on 404', () => {
+    const res = kibanaApiError(new Error('Kibana API error 404: {"message":"not found"}')) as {
+      error: { hint?: string }
+    }
+    assert.equal(res.error.hint, undefined)
   })
 })
 

@@ -2,6 +2,7 @@
  * Copyright Elasticsearch B.V. and contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+import type { AvailabilityTarget } from './lib/availability.ts'
 
 /**
  * Lightweight core of the command factory — contains types and functions needed
@@ -95,6 +96,11 @@ export interface CommandConfig {
    * one-line stderr warning on every invocation. Never hides the command.
    */
   deprecated?: string
+  /**
+   * Availability target used to filter properties from the input schema in flags and --help --json.
+   * When absent, all properties are shown (today's full-superset behavior).
+   */
+  target?: AvailabilityTarget
 }
 
 /** Configuration for a command group (namespace). */

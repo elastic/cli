@@ -31,6 +31,7 @@ export const PROJECT_NAMESPACES: Record<string, string> = {
   'elasticsearch-projects': 'search',
   'observability-projects': 'observability',
   'security-projects': 'security',
+  'vectordb-projects': 'vectordb',
 }
 
 /**
@@ -42,15 +43,6 @@ export const PROJECT_NAMESPACES: Record<string, string> = {
  * pulling in the Cloud API definition modules.
  */
 import { PROMOTED_NAMESPACES } from './constants.ts'
-
-/**
- * Serverless namespaces whose commands are merged into a single `cross-project`
- * group rather than exposed as two separate namespaces.
- */
-export const CROSS_PROJECT_NAMESPACES = new Set<string>([
-  'linked-projects',
-  'linked-candidate-projects',
-])
 
 /**
  * Display name overrides for hosted namespaces.
@@ -70,8 +62,8 @@ export const SERVERLESS_NAMESPACES = new Set<string>([
   'security-projects',
   'regions',
   'traffic-filters',
-  'linked-projects',
-  'linked-candidate-projects',
+  'capabilities',
+  'vectordb-projects',
 ])
 
 /**
@@ -207,7 +199,6 @@ function buildHostedGroup (defs: CloudApiDefinition[]): OpaqueCommandHandle {
 
 function buildServerlessGroup (defs: CloudApiDefinition[]): OpaqueCommandHandle {
   const projectDefs = new Map<string, CloudApiDefinition[]>()
-  const crossProjectDefs: CloudApiDefinition[] = []
   const otherDefs = new Map<string, CloudApiDefinition[]>()
 
   for (const def of defs) {
@@ -215,8 +206,6 @@ function buildServerlessGroup (defs: CloudApiDefinition[]): OpaqueCommandHandle 
       let group = projectDefs.get(def.namespace)
       if (group == null) { group = []; projectDefs.set(def.namespace, group) }
       group.push(def)
-    } else if (CROSS_PROJECT_NAMESPACES.has(def.namespace)) {
-      crossProjectDefs.push(def)
     } else {
       let group = otherDefs.get(def.namespace)
       if (group == null) { group = []; otherDefs.set(def.namespace, group) }
@@ -233,15 +222,6 @@ function buildServerlessGroup (defs: CloudApiDefinition[]): OpaqueCommandHandle 
       typeGroups.push(buildServerlessTypeGroup(namespace, nsDefs))
     }
     children.push(defineGroup({ name: 'projects', description: 'Manage Serverless projects' }, ...typeGroups))
-  }
-
-  // Merge linked-projects + linked-candidate-projects into cross-project
-  if (crossProjectDefs.length > 0) {
-    checkDuplicates(crossProjectDefs, 'cross-project')
-    children.push(defineGroup(
-      { name: 'cross-project', description: 'Serverless cross-project commands' },
-      ...crossProjectDefs.map(buildFlatLeaf),
-    ))
   }
 
   children.push(...buildFlatNamespaceGroups(otherDefs, 'Serverless'))

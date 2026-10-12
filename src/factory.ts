@@ -14,6 +14,8 @@ import type { renderText as _RT, formatHandlerError as _FHE } from './output.ts'
 import { pickFields, parseFieldList, applyTemplate, TemplateAgainstPrimitiveError } from './lib/output-transform.ts'
 import { withDeprecatedMarker } from './lib/deprecation.ts'
 import { validateName, hasGlobalJsonFlag, configureErrorOutput, commandPath, isCommandAllowed, stripTransportMeta } from './factory-core.ts'
+import type { AvailabilityTarget } from './lib/availability.ts'
+import { filterSchemaByAvailability } from './lib/availability.ts'
 import type { OpaqueCommandHandle, JsonValue, CommandConfig, ParsedResult } from './factory-core.ts'
 import { RawJsonValue } from './factory-core.ts'
 import { YamlResponse } from './lib/yaml-response.ts'
@@ -101,6 +103,17 @@ export function _testSetConfirmReader (fn: () => Promise<boolean>): () => void {
   const prev = confirmReader
   confirmReader = fn
   return () => { confirmReader = prev }
+}
+
+/** Error envelope for a prompt that cannot run without a TTY. Message lists the flags that replace it. */
+export function ttyRequiredError (flags: readonly string[]): { error: { code: string; message: string } } {
+  const named = flags.map((f) => f.startsWith('--') ? f : `--${f}`).join(', ')
+  return {
+    error: {
+      code: 'confirmation_required',
+      message: `Pass ${named} (not a TTY).`,
+    },
+  }
 }
 
 /** Prompts the user on stderr and reads one line from stdin to confirm a destructive action. */
@@ -219,6 +232,10 @@ function validateOptions (options: import('./factory-core.ts').OptionDefinition[
     if (seenLong.has(opt.long)) throw new Error(`duplicate option long name: --${opt.long}`)
     seenLong.add(opt.long)
     if (opt.long === 'dry-run') throw new Error('option --dry-run is reserved')
+    if (opt.long === 'no-validate') throw new Error('option --no-validate is reserved')
+    // Commander stores the negated --no-validate flag under the synthetic 'validate' key;
+    // reserve it so an author-defined 'validate' option cannot collide with that slot.
+    if (opt.long === 'validate') throw new Error('option --validate is reserved')
     if (opt.short !== undefined) {
       if (seenShort.has(opt.short)) throw new Error(`duplicate option short alias: -${opt.short}`)
       seenShort.add(opt.short)
@@ -254,13 +271,15 @@ function isJsonSchemaInput (input: unknown): input is Record<string, unknown> {
 function configureHelpWithSchema (
   cmd: OpaqueCommandHandle,
   inputSchema: Record<string, unknown> | undefined,
+  target?: AvailabilityTarget,
 ): void {
   const origHelp = cmd.createHelp()
   cmd.configureHelp({
     formatHelp: (thisCmd, helper) => {
       if (hasGlobalJsonFlag(thisCmd)) {
-        const jsonSchema = inputSchema != null
-          ? stripTransportMeta(inputSchema as JsonValue)
+        const filteredSchema = inputSchema != null ? filterSchemaByAvailability(inputSchema, target) : undefined
+        const jsonSchema = filteredSchema != null
+          ? stripTransportMeta(filteredSchema as JsonValue)
           : undefined
         return jsonSchema != null ? JSON.stringify(jsonSchema) + '\n' : ''
       }
@@ -433,9 +452,11 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
   }
 
   // schema-derived CLI options (registered before --input-file so help text order is correct)
+  // Single filtered schema so flags, help, and runtime validation agree on availability.
+  const effectiveInput = isJsonSchemaInput(config.input) ? filterSchemaByAvailability(config.input, config.target) : undefined
   let schemaArgs: SchemaArgDefinition[] = []
   if (isJsonSchemaInput(config.input)) {
-    schemaArgs = extractSchemaArgs(config.input)
+    schemaArgs = extractSchemaArgs(effectiveInput, config.target)
     validateSchemaArgs(schemaArgs)
     for (const arg of schemaArgs) {
       const suffix = arg.required
@@ -477,8 +498,8 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
   // take no input at all, so --input-file and --dry-run would be no-ops; hide
   // them (#378). Write commands keep --input-file even with an empty schema
   // because loose schemas pass the whole file through as the request body.
-  const inputIsEmptyObject = isJsonSchemaInput(config.input) &&
-    Object.keys((config.input as { properties?: Record<string, unknown> }).properties ?? {}).length === 0
+  const inputIsEmptyObject = isJsonSchemaInput(effectiveInput) &&
+    Object.keys((effectiveInput as { properties?: Record<string, unknown> }).properties ?? {}).length === 0
   const hideNoInputFlags = config.readOnly === true && inputIsEmptyObject
   if (isJsonSchemaInput(config.input) && !hideNoInputFlags) {
     cmd.option('--input-file <path>', 'path to a JSON file to use as command input')
@@ -488,12 +509,15 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
   if (!schemaClaimsDryRun && !hideNoInputFlags) {
     cmd.option('--dry-run', 'validate all inputs and exit without performing any action')
   }
+  if (isJsonSchemaInput(config.input) && !hideNoInputFlags) {
+    cmd.option('--no-validate', 'skip input validation and send the request as-is')
+  }
 
   if (config.intent?.destructive === true || config.intent?.requiresConfirmation === true) {
     cmd.option('--yes', 'confirm destructive action without prompting')
   }
 
-  configureHelpWithSchema(cmd, isJsonSchemaInput(config.input) ? config.input : undefined)
+  configureHelpWithSchema(cmd, isJsonSchemaInput(effectiveInput) ? effectiveInput : undefined, config.target)
 
   Object.defineProperty(cmd, '_commandConfig', {
     value: { config, schemaArgs },
@@ -516,9 +540,12 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
       }
     }
 
+    // 'validate' is Commander's synthetic affirmative for --no-validate; prevent it from
+    // leaking into user-facing parsed.options (noValidate is the negation key, also excluded)
+    const noValidateKeys = new Set(['noValidate', 'validate'])
     const declaredKeys = new Set(optDefs.map((o) => camelCase(o.long)))
     for (const [camelKey, val] of Object.entries(allRaw)) {
-      if (!declaredKeys.has(camelKey) && (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean')) {
+      if (!declaredKeys.has(camelKey) && !noValidateKeys.has(camelKey) && (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean')) {
         const kebabKey = camelKey.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)
         options[kebabKey] = val
       }
@@ -670,61 +697,70 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
     }
 
     if (inputValue !== undefined) {
-      assert(isJsonSchemaInput(config.input), `command ${JSON.stringify(config.name)}: input must be a JSON Schema object`)
+      assert(effectiveInput !== undefined, `command ${JSON.stringify(config.name)}: input must be a JSON Schema object`)
 
-      const { validateWithJsonSchema, formatValidationErrors } = await import('./lib/ajv-validate.js')
+      // --no-validate skips schema validation and sends the input as-is (#530 escape
+      // hatch): neutralizes false rejections when the shipped schema is stricter than the
+      // target server (e.g. a new enum value or tightened type on a top-level scalar param).
+      if (allRaw['validate'] !== false) {
+        const { validateWithJsonSchema, formatValidationErrors } = await import('./lib/ajv-validate.js')
 
-      // Relax schema for sort-pairs and x-found-in: body object/array fields, regardless
-      // of input source (CLI flag, stdin, or --input-file):
-      // - sort-pairs: parsed to [{field: dir}] which won't match string schema
-      // - body object/array fields: full DSL (e.g. query, _source) may not match strict schema
-      // Fields with no x-found-in are validated strictly.
-      let validationSchema: Record<string, unknown> = config.input
-      const relaxFields = schemaArgs.filter(
-        (a) =>
-          sortParsedKeys.has(a.schemaKey) ||
-          (a.foundIn === 'body' && (a.type === 'object' || a.type === 'array'))
-      )
-      if (relaxFields.length > 0 && typeof config.input['properties'] === 'object') {
-        const props = { ...(config.input['properties'] as Record<string, unknown>) }
-        for (const f of relaxFields) {
-          if (f.schemaKey in props) {
-            // Accept any value for these relaxed fields
-            props[f.schemaKey] = {}
+        // Relax schema for sort-pairs and x-found-in: body object/array fields, regardless
+        // of input source (CLI flag, stdin, or --input-file):
+        // - sort-pairs: parsed to [{field: dir}] which won't match string schema
+        // - body object/array fields: full DSL (e.g. query, _source) may not match strict schema
+        // Fields with no x-found-in are validated strictly.
+        let validationSchema: Record<string, unknown> = effectiveInput
+        const relaxFields = schemaArgs.filter(
+          (a) =>
+            sortParsedKeys.has(a.schemaKey) ||
+            (a.foundIn === 'body' && (a.type === 'object' || a.type === 'array'))
+        )
+        if (relaxFields.length > 0 && typeof effectiveInput['properties'] === 'object') {
+          const props = { ...(effectiveInput['properties'] as Record<string, unknown>) }
+          for (const f of relaxFields) {
+            if (f.schemaKey in props) {
+              // Accept any value for these relaxed fields
+              props[f.schemaKey] = {}
+            }
           }
+          validationSchema = { ...effectiveInput, properties: props }
         }
-        validationSchema = { ...config.input, properties: props }
+
+        const result = validateWithJsonSchema(validationSchema, inputValue)
+
+        if (!result.success) {
+          if (jsonFormat === true) {
+            writeErr(cmd, JSON.stringify({
+              error: {
+                code: 'input_validation_failed',
+                message: `Input validation failed with ${result.errors.length} issue(s)`,
+                // Emit path as array (like Zod) for API compatibility
+                issues: result.errors.map(e => ({ code: e.code, path: e.path_array, message: e.message }))
+              }
+            }) + '\n')
+            // throw to prevent handler execution - mirrors cmd.error() behaviour
+            throw Object.assign(new Error('input_validation_failed'), { exitCode: 1 })
+          }
+          return cmd.error(`input validation failed:\n${formatValidationErrors(result.errors)}`)
+        }
+
+        inputValue = result.data
       }
 
-      const result = validateWithJsonSchema(validationSchema, inputValue)
-
-      if (result.success) {
-        parsed.input = result.data
-        if (Object.keys(rawBodyValues).length > 0) {
-          parsed.rawBodyValues = rawBodyValues
-        }
-      } else {
-        if (jsonFormat === true) {
-          writeErr(cmd, JSON.stringify({
-            error: {
-              code: 'input_validation_failed',
-              message: `Input validation failed with ${result.errors.length} issue(s)`,
-              // Emit path as array (like Zod) for API compatibility
-              issues: result.errors.map(e => ({ code: e.code, path: e.path_array, message: e.message }))
-            }
-          }) + '\n')
-          // throw to prevent handler execution - mirrors cmd.error() behaviour
-          throw Object.assign(new Error('input_validation_failed'), { exitCode: 1 })
-        }
-        return cmd.error(`input validation failed:\n${formatValidationErrors(result.errors)}`)
+      parsed.input = inputValue as Record<string, unknown>
+      if (Object.keys(rawBodyValues).length > 0) {
+        parsed.rawBodyValues = rawBodyValues
       }
     }
 
     if (allRaw['dryRun'] === true) {
       if (jsonFormat) {
-        process.stdout.write(JSON.stringify({ success: true }) + '\n')
+        const validationSkipped = allRaw['validate'] === false
+        process.stdout.write(JSON.stringify({ success: true, ...(validationSkipped ? { validationSkipped: true } : {}) }) + '\n')
       } else {
-        process.stdout.write('dry run: inputs valid, no action performed\n')
+        const validationNote = allRaw['validate'] === false ? ' (validation skipped)' : ''
+        process.stdout.write(`dry run: inputs valid${validationNote}, no action performed\n`)
       }
       return
     }

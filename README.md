@@ -33,6 +33,11 @@ npx -y @elastic/cli --help
 > source ~/.bashrc
 > ```
 
+## For agents
+
+Prefer `elastic <command> --help --json` for one command and `elastic cli-schema`
+for the full tree. Do not ingest `docs/cli/schema.json` directly.
+
 ## Shell completion
 
 `elastic completion <shell>` prints a wrapper script that hooks the CLI into
@@ -78,6 +83,14 @@ elastic completion fish > ~/.config/fish/completions/elastic.fish
 ```
 
 Fish picks up new completion files automatically.
+
+### PowerShell
+
+```powershell
+elastic completion powershell | Out-File -Encoding utf8 -Append $PROFILE
+```
+
+Then open a new PowerShell session.
 
 ### What gets completed
 
@@ -332,6 +345,7 @@ All `es` subcommands support:
 |---|---|
 | `--dry-run` | Validate inputs and exit without making any API call |
 | `--input-file <path>` | Load command input from a JSON file instead of CLI flags |
+| `--no-validate` | Skip input validation and send the request as-is (escape hatch for schema mismatches; only available on commands with a JSON Schema input) |
 
 **Subcommand groups** (each with their own subcommands):
 
@@ -384,6 +398,7 @@ All `kb` subcommands support:
 |---|---|
 | `--dry-run` | Validate inputs and exit without making any API call |
 | `--input-file <path>` | Load command input from a JSON file instead of CLI flags |
+| `--no-validate` | Skip input validation and send the request as-is (escape hatch for schema mismatches; only available on commands with a JSON Schema input) |
 
 ```bash
 elastic kb data-views list

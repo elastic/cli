@@ -2239,6 +2239,125 @@ describe('defineCommand', () => {
     })
 
   })
+
+  describe('--no-validate', () => {
+    it('appears in help text for commands with an input schema', () => {
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: { type: 'object', properties: { index: { type: 'string' } } },
+        handler: () => ({}),
+      })
+      assert.match(cmd.helpInformation(), /--no-validate/)
+    })
+
+    it('allows invalid input through when set', async () => {
+      let receivedInput: unknown
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: {
+          type: 'object',
+          properties: { refresh: { type: 'string', enum: ['true', 'false', 'wait_for'] } },
+        },
+        handler: ({ input }) => { receivedInput = input; return {} },
+      })
+      const { writeFileSync } = await import('fs')
+      const { tmpdir } = await import('os')
+      const { join } = await import('path')
+      const filePath = join(tmpdir(), `no-validate-test-${Date.now()}.json`)
+      writeFileSync(filePath, JSON.stringify({ refresh: 'unknown_value' }))
+      await invokeUnderRoot(cmd, [], ['--no-validate', '--input-file', filePath])
+      assert.deepEqual(receivedInput, { refresh: 'unknown_value' })
+    })
+
+    it('outputs validation error without --no-validate', async () => {
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: {
+          type: 'object',
+          properties: { refresh: { type: 'string', enum: ['true', 'false', 'wait_for'] } },
+        },
+        handler: () => ({}),
+      })
+      const { writeFileSync } = await import('fs')
+      const { tmpdir } = await import('os')
+      const { join } = await import('path')
+      const filePath = join(tmpdir(), `no-validate-test-${Date.now()}.json`)
+      writeFileSync(filePath, JSON.stringify({ refresh: 'unknown_value' }))
+      const err = await captureErrAsync(cmd, ['--input-file', filePath])
+      assert.match(err, /input validation failed/)
+    })
+
+    it('throws at definition time when user defines a --no-validate option', () => {
+      assert.throws(
+        () => defineCommand({
+          name: 'test',
+          description: 'Test',
+          options: [{ long: 'no-validate', description: 'Skip', type: 'boolean' }],
+          handler: () => ({}),
+        }),
+        (e: unknown) => {
+          assert.ok(e instanceof Error)
+          assert.match(e.message, /--no-validate is reserved/)
+          return true
+        },
+      )
+    })
+
+    it('throws at definition time when user defines a --validate option', () => {
+      assert.throws(
+        () => defineCommand({
+          name: 'test',
+          description: 'Test',
+          options: [{ long: 'validate', description: 'Skip', type: 'boolean' }],
+          handler: () => ({}),
+        }),
+        (e: unknown) => {
+          assert.ok(e instanceof Error)
+          assert.match(e.message, /--validate is reserved/)
+          return true
+        },
+      )
+    })
+
+    it('dry-run with --no-validate reports validation skipped in text mode', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-dryrun-noval-'))
+      const filePath = join(tmpDir, 'input.json')
+      writeFileSync(filePath, JSON.stringify({ index: 'logs' }))
+      try {
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Search',
+          input: jsonSchema({ index: { type: 'string' } }, ['index']),
+          handler: () => ({}),
+        })
+        const out = await invokeUnderRoot(cmd, [], ['--dry-run', '--no-validate', '--input-file', filePath])
+        assert.match(out, /validation skipped/)
+      } finally {
+        rmSync(tmpDir, { recursive: true })
+      }
+    })
+
+    it('dry-run with --no-validate includes validationSkipped in JSON output', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-dryrun-noval-json-'))
+      const filePath = join(tmpDir, 'input.json')
+      writeFileSync(filePath, JSON.stringify({ index: 'logs' }))
+      try {
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Search',
+          input: jsonSchema({ index: { type: 'string' } }, ['index']),
+          handler: () => ({}),
+        })
+        const out = await invokeUnderRoot(cmd, ['--json'], ['--dry-run', '--no-validate', '--input-file', filePath])
+        assert.deepEqual(JSON.parse(out), { success: true, validationSkipped: true })
+      } finally {
+        rmSync(tmpDir, { recursive: true })
+      }
+    })
+  })
 })
 
 describe('text output rendering', () => {
@@ -3101,7 +3220,7 @@ describe('no Commander API leaks', () => {
   it('factory module exports only public API and test seam at runtime', async () => {
     const factory = await import('../src/factory.ts')
     const exported = Object.keys(factory)
-    assert.deepEqual(exported.sort(), ['RawJsonValue', '_testSetConfirmReader', '_testSetIsTTY', '_testSetStdinReader', 'commandPath', 'configureErrorOutput', 'configureJsonHelp', 'defineCommand', 'defineGroup', 'hideBlockedCommands', 'isCommandAllowed', 'isHidden', 'setHidden', 'stripTransportMeta', 'validateName'])
+    assert.deepEqual(exported.sort(), ['RawJsonValue', '_testSetConfirmReader', '_testSetIsTTY', '_testSetStdinReader', 'commandPath', 'configureErrorOutput', 'configureJsonHelp', 'defineCommand', 'defineGroup', 'hideBlockedCommands', 'isCommandAllowed', 'isHidden', 'setHidden', 'stripTransportMeta', 'ttyRequiredError', 'validateName'])
   })
 
   it('defineCommand return value requires no Commander import to use', () => {
@@ -4174,6 +4293,131 @@ async function invokeCapturingStreams(
   cmd.exitOverride()
   return captureStreams(() => prog.parseAsync([...rootArgv, cmd.name(), ...cmdArgv], { from: 'user' }))
 }
+
+describe('JSON schema in help output -- availability filtering', () => {
+  async function captureJsonHelp (cmd: OpaqueCommandHandle): Promise<Record<string, unknown>> {
+    const prog = new Command('elastic')
+    prog.option('--json', 'output as JSON')
+    prog.addCommand(cmd as unknown as InstanceType<typeof Command>)
+    prog.exitOverride()
+    ;(cmd as unknown as InstanceType<typeof Command>).exitOverride()
+    let out = ''
+    ;(cmd as unknown as InstanceType<typeof Command>).configureOutput({ writeOut: (s: string) => { out += s } })
+    try {
+      await prog.parseAsync(['--json', cmd.name(), '--help'], { from: 'user' })
+    } catch { /* exitOverride on --help */ }
+    return JSON.parse(out) as Record<string, unknown>
+  }
+
+  it('no target → all properties present in schema output', async () => {
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: {
+        type: 'object',
+        properties: {
+          index: { type: 'string', 'x-availability': { stack: {} } },
+          size: { type: 'number', 'x-availability': { serverless: {} } },
+        },
+      },
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    const props = schema['properties'] as Record<string, unknown>
+    assert.ok('index' in props, 'stack prop must appear with no target')
+    assert.ok('size' in props, 'serverless prop must appear with no target')
+  })
+
+  it('serverless target → excluded stack-only properties absent from schema output', async () => {
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: {
+        type: 'object',
+        properties: {
+          index: { type: 'string', 'x-availability': { stack: {} } },
+          size: { type: 'number', 'x-availability': { serverless: {} } },
+        },
+        required: ['index', 'size'],
+      },
+      target: 'serverless' as import('../src/lib/availability.ts').AvailabilityTarget,
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    const props = schema['properties'] as Record<string, unknown>
+    assert.ok(!('index' in props), 'stack-only prop must be absent for serverless target')
+    assert.ok('size' in props, 'serverless prop must remain for serverless target')
+  })
+
+  it('with target → required array pruned for excluded properties', async () => {
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: {
+        type: 'object',
+        properties: {
+          index: { type: 'string', 'x-availability': { stack: {} } },
+          size: { type: 'number', 'x-availability': { serverless: {} } },
+        },
+        required: ['index', 'size'],
+      },
+      target: 'serverless' as import('../src/lib/availability.ts').AvailabilityTarget,
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    const required = schema['required'] as string[]
+    assert.ok(Array.isArray(required))
+    assert.ok(!required.includes('index'), 'excluded prop must be pruned from required')
+    assert.ok(required.includes('size'), 'available prop must remain in required')
+  })
+
+  it('with target → JSON input containing an unavailable property is rejected, handler not called', async () => {
+    const restore = _testSetStdinReader(() => JSON.stringify({ index: 'x', size: 5 }))
+    try {
+      const received: ParsedResult[] = []
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: {
+          type: 'object',
+          properties: {
+            index: { type: 'string', 'x-availability': { stack: {} } },
+            size: { type: 'number', 'x-availability': { serverless: {} } },
+          },
+          additionalProperties: false,
+        },
+        target: 'serverless' as import('../src/lib/availability.ts').AvailabilityTarget,
+        handler: (parsed) => { received.push(parsed); return {} },
+      })
+      const err = await captureErrAsync(cmd, ['--input-file', '-'])
+      assert.match(err, /input validation failed/i)
+      assert.equal(received.length, 0)
+    } finally {
+      restore()
+    }
+  })
+
+  it('stack target → version-gated properties absent from schema output', async () => {
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: {
+        type: 'object',
+        properties: {
+          knn: { type: 'object', 'x-availability': { stack: { since: '9.4.0' } } },
+          query: { type: 'object', 'x-availability': { stack: { since: '7.0.0' } } },
+        },
+      },
+      target: [9, 2] as import('../src/lib/availability.ts').AvailabilityTarget,
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    const props = schema['properties'] as Record<string, unknown>
+    assert.ok(!('knn' in props), 'future version prop must be absent for target 9.2')
+    assert.ok('query' in props, 'old version prop must remain for target 9.2')
+  })
+})
+
 
 describe('error result detection', () => {
   it('error result in JSON mode goes to stderr with non-zero exit', async () => {

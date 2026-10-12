@@ -4,12 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import './compile-cache.ts'
 import { Command } from 'commander'
 import { hideBlockedCommands, configureJsonHelp, hasGlobalJsonFlag } from './factory-core.js'
 import type { OpaqueCommandHandle } from './factory-core.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './config/profiles.ts'
 import { NAMESPACES } from './namespaces.ts'
 import type { LoadConfigResult } from './config/loader.ts'
+import type { EarlyHints } from './config/early-scan.ts'
+import type { ResolvedConfig } from './config/types.ts'
 
 // Argv pre-scan (single pass to detect flags, help, and operands)
 const argv = process.argv.slice(2)
@@ -24,7 +27,7 @@ for (const arg of argv) {
 }
 
 // x-release-please-start-version
-const VERSION = '0.5.0';
+const VERSION = '0.6.0';
 // x-release-please-end
 
 const program = new Command()
@@ -33,30 +36,33 @@ program
   .name('elastic')
   .description('Interface with the Elastic Stack and Elastic Cloud from the command line.')
 
-// Register global options only when argv actually contains them (common case: it doesn't)
+// Config flags stay lazy (most invocations do not pass them). Output flags are
+// always registered so `elastic --help` lists them (#630).
 if (hasGlobalFlags) {
   program
     .option('--config-file <path>', 'path to a config file (default: ~/.elasticrc.yml)')
     .option('--use-context <name>', 'override the active context from the config file')
     .option(`--command-profile <name>`, `restrict available commands to a deployment profile (${BUILT_IN_PROFILES.join(', ')})`)
-    .option('--output-fields <list>', 'comma-separated list of fields to include in output (dot-notation supported)')
-    .option('--output-template <string>', 'Mustache-like template for custom text output (e.g. "{{id}}: {{name}}")')
 }
-program.option('--json', 'output as JSON')
+program
+  .option('--output-fields <list>', 'comma-separated list of fields to include in output (dot-notation supported)')
+  .option('--output-template <string>', 'Mustache-like template for custom text output (e.g. "{{id}}: {{name}}")')
+  .option('--json', 'output as JSON')
 
 // preAction hook (skipped for --help paths since the hook never fires)
 if (!wantsHelp) {
   program.hook('preAction', async (thisCommand, actionCommand) => {
-    const skipActionNames: ReadonlySet<string> = new Set(['version', 'completion', '__complete', 'status'])
-    if (skipActionNames.has(actionCommand.name())) return
+    const skipActionNames: ReadonlySet<string> = new Set(['version', 'completion', '__complete', 'status', 'help'])
+    // Match only top-level commands: leaves like `cat help` or `async-search status` share names.
+    if (actionCommand.parent === thisCommand && skipActionNames.has(actionCommand.name())) return
     // Groups with no sub-command will just call group.help() — no real action fires.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((actionCommand as any)._isGroup === true && actionCommand.args.length === 0) return
 
-    const skipConfigNames: ReadonlySet<string> = new Set(['docs', 'config', 'sanitize', 'cli-schema'])
-    for (let c: Command | null = actionCommand; c != null; c = c.parent) {
-      if (skipConfigNames.has(c.name())) return
-    }
+    const skipConfigNames: ReadonlySet<string> = new Set(['docs', 'config', 'sanitize', 'cli-schema', 'help'])
+    let top: Command = actionCommand
+    while (top.parent != null && top.parent !== thisCommand) top = top.parent
+    if (skipConfigNames.has(top.name())) return
 
     for (let c = actionCommand.parent; c != null; c = c.parent) {
       if (c.name() === 'extension') return
@@ -77,7 +83,18 @@ if (!wantsHelp) {
     if (result.ok) {
       setResolvedConfig(result.value)
     } else {
-      process.stderr.write(`Error: ${result.error.message}\n`)
+      const { classifyConfigLoadError } = await import('./help/catalog.js')
+      const payload = {
+        error: {
+          code: classifyConfigLoadError(result.error.message),
+          message: result.error.message,
+        },
+      }
+      if (hasGlobalJsonFlag(program)) {
+        process.stderr.write(JSON.stringify(payload) + '\n')
+      } else {
+        process.stderr.write(`Error: ${payload.error.message}\n`)
+      }
       process.exit(1)
     }
   })
@@ -85,6 +102,7 @@ if (!wantsHelp) {
 
 // Determine first argument (namespace routing)
 let operands: string[]
+
 let firstArg: string | undefined
 if (!hasGlobalFlags) {
   operands = operandsFromScan
@@ -125,6 +143,69 @@ if (shortcutTarget != null) {
   }
 }
 
+// Early config load: must run before command registration so that registerEsCommandsLazy
+// (and registerKbCommandsLazy) can read the elasticsearch/kibana version from the resolved
+// config and apply availability filtering at build time. Also enables --command-profile
+// command hiding in help output (hideBlockedCommands is called after registration below).
+let earlyConfig: LoadConfigResult | undefined
+const SKIP_EARLY_CONFIG: ReadonlySet<string> = new Set([
+  'version', 'extension', 'status', 'completion', '__complete',
+  'docs', 'config', 'sanitize', 'cli-schema', 'help',
+])
+if (firstArg != null && !SKIP_EARLY_CONFIG.has(firstArg)) {
+  const sniffArg = (flag: string): string | undefined => {
+    const idx = process.argv.findIndex((a) => a === flag || a.startsWith(`${flag}=`))
+    const arg = process.argv[idx]
+    if (arg == null) return undefined
+    return arg.startsWith(`${flag}=`) ? arg.slice(flag.length + 1) : process.argv[idx + 1]
+  }
+  const earlyProfile = sniffArg('--command-profile') as BuiltInProfile | undefined
+  const earlyContext = sniffArg('--use-context')
+  const earlyConfigPath = sniffArg('--config-file')
+  const hasOverrides = earlyConfigPath != null || earlyContext != null || earlyProfile != null
+
+  // Cheap gate: with no overrides and no config file on disk there is no version
+  // hint and no command policy, so registration/help needs nothing from config.
+  // Skip the heavy `config/loader` import (ajv + yaml + resolver) in that case so
+  // `--help` and bare-namespace startup stay off the config stack. See #706.
+  const { discoverConfigFile, ENV_CONFIG_FILE } = await import('./config/discover.js')
+  const envConfigFile = process.env[ENV_CONFIG_FILE]
+  const earlyPath = earlyConfigPath ?? (envConfigFile != null && envConfigFile.length > 0 ? envConfigFile : await discoverConfigFile())
+  if (earlyPath != null || hasOverrides) {
+    // Fast path: a dependency-free scan of the version hints avoids loading `yaml`
+    // (~60 modules). Command policies and anything it cannot prove it understands
+    // fall through to the full loader below.
+    let hints: EarlyHints | 'unsupported' = 'unsupported'
+    if (earlyPath != null && earlyProfile == null) {
+      const { scanEarlyConfigFile } = await import('./config/early-scan.js')
+      hints = await scanEarlyConfigFile(earlyPath, earlyContext)
+    }
+    if (hints !== 'unsupported') {
+      const { setResolvedConfig } = await import('./config/store.js')
+      setResolvedConfig({ context: {
+        ...(hints.elasticsearch != null && { elasticsearch: { version: hints.elasticsearch } }),
+        ...(hints.kibana != null && { kibana: { version: hints.kibana } }),
+      } } as ResolvedConfig)
+    } else {
+      const { loadConfig } = await import('./config/loader.js')
+      earlyConfig = await loadConfig({
+        ...(earlyConfigPath != null && { configPath: earlyConfigPath }),
+        ...(earlyContext != null && { contextName: earlyContext }),
+        ...(earlyProfile != null && { profileName: earlyProfile }),
+        refresh: hasOverrides,
+        // Registration/help only needs version hints + command policy. Skip resolving
+        // the active context so `--help` never spawns `$(cmd:...)` secret subprocesses;
+        // the preAction hook does the full resolve before any handler runs. See #706.
+        skipContextResolve: true,
+      })
+      if (earlyConfig.ok) {
+        const { setResolvedConfig } = await import('./config/store.js')
+        setResolvedConfig(earlyConfig.value)
+      }
+    }
+  }
+}
+
 // Command registration (lazy: only load the targeted namespace)
 
 // Version and JSON help only needed for root invocations
@@ -151,6 +232,11 @@ if (firstArg != null) {
   }
 }
 
+// Apply command-profile hiding now that commands are registered.
+if (earlyConfig?.ok === true) {
+  hideBlockedCommands(program, earlyConfig.value.commands)
+}
+
 // Completion commands
 if (firstArg === 'completion' || firstArg === '__complete') {
   const { registerCompletionCommands } = await import('./completion/index.js')
@@ -159,7 +245,7 @@ if (firstArg === 'completion' || firstArg === '__complete') {
   }
 } else if (firstArg == null) {
   const completionStub = new Command('completion')
-  completionStub.description('Print a shell completion script (bash, zsh, fish)')
+  completionStub.description('Print a shell completion script (bash, zsh, fish, powershell)')
   completionStub.allowUnknownOption(true)
   completionStub.action(async () => {
     const { registerCompletionCommands: real } = await import('./completion/index.js')
@@ -224,37 +310,23 @@ if (firstArg === 'status') {
   program.addCommand(stub)
 }
 
-// Early config load (for --command-profile filtering in help output)
-let earlyConfig: LoadConfigResult | undefined
-const hasProfileFlag = argv.includes('--command-profile')
-const CONTEXT_NAMESPACES = new Set(['stack', 'cloud'])
-// skip early config when Commander will just print help -- no action will fire.
-// Also skip for any --help invocation (wantsHelp) unless --command-profile is set,
-// since help text never needs credentials or context resolution.
-const willJustPrintHelp = wantsHelp || (CONTEXT_NAMESPACES.has(firstArg ?? '') && operands.length < 3)
-if (firstArg != null && (!willJustPrintHelp || hasProfileFlag)) {
-  const SKIP_EARLY_CONFIG: ReadonlySet<string> = new Set([
-    'version', 'extension', 'status', 'completion', '__complete',
-    'docs', 'config', 'sanitize', 'cli-schema',
-  ])
-  if (!SKIP_EARLY_CONFIG.has(firstArg)) {
-    const profileArgIdx = process.argv.indexOf('--command-profile')
-    const earlyProfile = profileArgIdx !== -1 ? process.argv[profileArgIdx + 1] as BuiltInProfile | undefined : undefined
-
-    const { loadConfig } = await import('./config/loader.js')
-    earlyConfig = await loadConfig({
-      ...(earlyProfile != null && { profileName: earlyProfile }),
-    })
-    if (earlyConfig.ok) {
-      const { setResolvedConfig } = await import('./config/store.js')
-      setResolvedConfig(earlyConfig.value)
-      hideBlockedCommands(program, earlyConfig.value.commands)
-    }
+// Logo banner (root help only). Loaded lazily -- dynamic import keeps it out of the
+// startup graph for every other invocation, and esbuild/pkg can still bundle it.
+if (firstArg == null || firstArg === 'help') {
+  const { registerHelpCommand, helpTopicResult, LEARN_MORE } = await import('./help-topics.js')
+  registerHelpCommand(program).action((topic?: string) => {
+    const result = helpTopicResult(topic, hasGlobalJsonFlag(program))
+    if (result.stderr !== '') process.stderr.write(result.stderr)
+    if (result.stdout !== '') process.stdout.write(result.stdout)
+    if (result.code !== 0) process.exit(result.code)
+  })
+  if (firstArg == null) {
+    program.addHelpText('after', () => hasGlobalJsonFlag(program) ? '' : `${LEARN_MORE.trimEnd()}
+  See JSON schema for this command's accepted inputs: elastic <command> --help --json
+  See schemas for the entire command tree: elastic cli-schema`)
   }
 }
 
-// Logo banner (root help only). Loaded lazily -- dynamic import keeps it out of the
-// startup graph for every other invocation, and esbuild/pkg can still bundle it.
 if (firstArg == null && !process.argv.includes('--json') && !(earlyConfig?.ok === true && earlyConfig.value.banner === false)) {
   const { renderLogo } = await import('./lib/logo.js')
   program.addHelpText('before', () => renderLogo(VERSION).replace(/\n$/, ''))

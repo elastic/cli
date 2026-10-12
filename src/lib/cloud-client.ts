@@ -111,7 +111,7 @@ export function getCloudClient(): CloudClient {
   if (cloud == null) {
     throw new Error(
       'missing_config: No Cloud connection configured in the active context. ' +
-      'Run `elastic config set` to configure a Cloud endpoint.'
+      'Run `elastic config context add` with `--cloud-api-key`.'
     )
   }
 
@@ -122,7 +122,7 @@ export function getCloudClient(): CloudClient {
   if (apiKey == null) {
     throw new Error(
       'missing_config: Cloud auth requires an api_key. ' +
-      'Run `elastic config set` to configure Cloud credentials.'
+      'Run `elastic config context add` with `--cloud-api-key`.'
     )
   }
 

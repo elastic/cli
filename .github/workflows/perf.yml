@@ -9,12 +9,64 @@ on:
 permissions: {}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  perf:
-    name: Startup time regression check
+  # PR gate: A/B this build against the merge-base on the same runner. Relative
+  # comparison cancels cross-machine and cross-run drift, the root cause of
+  # noise-driven false positives on shared CI hardware. Results are posted as a
+  # single sticky PR comment, refreshed on every push.
+  compare:
+    name: Startup A/B vs merge-base
+    if: github.event_name == 'pull_request'
+    # No pull-requests: write. This job runs untrusted PR code (npm ci, build,
+    # perf-check), so it must not hold a token that can modify the repo or PRs.
+    # The perf-comment workflow posts the result from the trusted default branch.
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24.x
+
+      - name: Build PR
+        run: npm ci && npm run build
+
+      - name: Build merge-base
+        run: |
+          base=$(git merge-base origin/${{ github.base_ref }} HEAD)
+          git worktree add /tmp/base "$base"
+          cd /tmp/base && npm ci && npm run build
+
+      - name: Install hyperfine
+        run: sudo apt-get install -y hyperfine
+
+      - name: Compare
+        run: scripts/perf-check --compare /tmp/base --json perf.json
+
+      # Hand the numeric result to the perf-comment workflow. It renders and
+      # posts the comment from the trusted default branch: the PR number is
+      # resolved there from the commit SHA, not trusted from this artifact.
+      - name: Upload perf report
+        if: always() && hashFiles('perf.json') != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: perf-report
+          path: perf.json
+
+  # Trend signal on push-to-main: runs the absolute baseline check.
+  baseline:
+    name: Startup baseline (trend)
+    if: github.event_name == 'push'
     permissions:
       contents: read
     runs-on: ubuntu-latest

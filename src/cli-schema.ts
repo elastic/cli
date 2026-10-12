@@ -532,6 +532,7 @@ export async function registerCliSchemaCommand (
       schemaRoot.description(rootProgram?.description() ?? '')
 
       schemaRoot.addCommand(new Command('version').description('Print the elastic CLI version'))
+      schemaRoot.addCommand(new Command('help').description('Show help topics'))
 
       const loaded = await Promise.all(namespaces.map((ns) => ns.load({ eager: true })))
       for (const ns of loaded) schemaRoot.addCommand(ns)
@@ -541,7 +542,8 @@ export async function registerCliSchemaCommand (
       // Build the set of namespace names that don't require context/auth
       const noContextNames = new Set<string>([
         ...namespaces.filter(ns => ns.requiresContext === false).map(ns => ns.name),
-        'version', // root-level version command needs no auth
+        'version',
+        'help',
       ])
 
       return buildCliSchema(schemaRoot, globalOptions, version, noContextNames) as unknown as JsonValue

@@ -8,7 +8,7 @@ import { getResolvedConfig } from '../config/store.ts'
 import { detectAgent, AGENT_SHORT_CODES, type Detection, type KnownAgent } from '@elastic/agent-env'
 
 // x-release-please-start-version
-const cliVersion = '0.5.0'
+const cliVersion = '0.6.0'
 // x-release-please-end
 
 /**

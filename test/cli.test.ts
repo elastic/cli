@@ -118,10 +118,72 @@ describe('elastic CLI -- preAction config error handling', () => {
   it('exits with error when no config file is found', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-'))
     try {
-      const { code, stderr } = await runCli(['stack', 'es', 'info'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } })
+      const { code, stderr } = await runCli(['stack', 'es', 'ping'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir, ELASTIC_CLI_CONFIG_FILE: '' } })
       assert.equal(code, 1, `expected exit code 1, got ${code}`)
       assert.ok(stderr.includes('Error:'), `expected stderr to contain "Error:", got: ${stderr}`)
       assert.ok(stderr.includes('No configuration file found'), `expected config error message, got: ${stderr}`)
+      assert.ok(stderr.includes('elastic config context add'), `expected next command, got: ${stderr}`)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('loads config for leaf commands named like skipped top-level commands (cat help)', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-leafname-'))
+    try {
+      const { code, stderr } = await runCli(['stack', 'es', 'cat', 'help'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir, ELASTIC_CLI_CONFIG_FILE: '' } })
+      assert.equal(code, 1)
+      assert.ok(stderr.includes('No configuration file found'), `expected preAction config error, got: ${stderr}`)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('emits error.code and error.message under --json when no config file is found', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-json-'))
+    try {
+      const { code, stderr, stdout } = await runCli(
+        ['--json', 'stack', 'es', 'ping'],
+        { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir, ELASTIC_CLI_CONFIG_FILE: '' } },
+      )
+      assert.equal(code, 1, `expected exit code 1, got ${code}`)
+      assert.equal(stdout, '')
+      const parsed = JSON.parse(stderr) as { error: { code: string, message: string } }
+      assert.equal(parsed.error.code, 'missing_config')
+      assert.match(parsed.error.message, /elastic config context add/)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('emits missing_config JSON when --json and no config file is found', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-noconfig-json-'))
+    try {
+      const { code, stderr } = await runCli(
+        ['--json', 'stack', 'es', 'info'],
+        { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } },
+      )
+      assert.equal(code, 1, `expected exit code 1, got ${code}`)
+      const parsed = JSON.parse(stderr) as { error: { code: string, message: string } }
+      assert.equal(parsed.error.code, 'missing_config')
+      assert.ok(parsed.error.message.includes('No configuration file found'))
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('emits config_invalid JSON when --json and the config file is malformed', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-badyaml-'))
+    try {
+      const configPath = join(dir, '.elasticrc.yml')
+      await writeFile(configPath, 'contexts: [\nnot yaml\n')
+      const { code, stderr } = await runCli(
+        ['--json', '--config-file', configPath, 'stack', 'es', 'info'],
+        { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } },
+      )
+      assert.equal(code, 1, `expected exit code 1, got ${code}`)
+      const parsed = JSON.parse(stderr) as { error: { code: string, message: string } }
+      assert.equal(parsed.error.code, 'config_invalid')
     } finally {
       await rm(dir, { recursive: true })
     }
@@ -171,7 +233,7 @@ describe('elastic CLI -- config caching (preAction reuse)', () => {
     }
   })
 
-  it('loads config twice when --config-file override is specified', async () => {
+  it('resolves config once even when --config-file override is specified', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-cache-override-'))
     const counterFile = join(dir, 'load-count.txt')
     const scriptFile = join(dir, 'counter.js')
@@ -194,9 +256,76 @@ describe('elastic CLI -- config caching (preAction reuse)', () => {
       await runCli(['stack', 'es', 'info', '--json', '--config-file', configPath], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } })
       const content = await readFile(counterFile, 'utf-8')
       const invocations = content.trim().split('\n').length
-      assert.equal(invocations, 2, `expected resolver to run twice (early + override), but ran ${invocations} times`)
+      // The early registration load skips context expression resolution (#706),
+      // so it never spawns the resolver; only the preAction hook resolves secrets.
+      assert.equal(invocations, 1, `expected resolver to run once, but ran ${invocations} times`)
     } finally {
       await rm(dir, { recursive: true })
+    }
+  })
+})
+
+describe('elastic CLI -- availability filtering honors --use-context', () => {
+  // The `es get` flag --source-exclude-vectors is stack-gated since 9.2.0, so a 9.1
+  // context must filter it out. The early config load (which resolves the availability
+  // target before command registration) must therefore honor --use-context.
+  async function writeConfig (): Promise<string> {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-avail-'))
+    const { writeFile } = await import('node:fs/promises')
+    const configYaml = [
+      'current_context: unset',
+      'contexts:',
+      '  unset:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '  stack91:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '      version: "9.1"',
+    ].join('\n')
+    await writeFile(join(dir, '.elasticrc.yml'), configYaml)
+    return dir
+  }
+
+  it('shows the stack-9.2 flag when the active context has no version', async () => {
+    const dir = await writeConfig()
+    try {
+      const { stdout } = await runCli(['es', 'get', '--help'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } })
+      assert.ok(stdout.includes('--source-exclude-vectors'), 'expected flag visible with no version target')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('hides the stack-9.2 flag when --use-context selects a 9.1 context', async () => {
+    const dir = await writeConfig()
+    try {
+      const { stdout } = await runCli(['--use-context', 'stack91', 'es', 'get', '--help'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } })
+      assert.ok(!stdout.includes('--source-exclude-vectors'), 'expected flag filtered for 9.1 context target')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('hides the stack-9.2 flag when --use-context=name (equals form) selects a 9.1 context', async () => {
+    const dir = await writeConfig()
+    try {
+      const { stdout } = await runCli(['--use-context=stack91', 'es', 'get', '--help'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, XDG_CONFIG_HOME: dir } })
+      assert.ok(!stdout.includes('--source-exclude-vectors'), 'expected flag filtered for 9.1 context target')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('honors --config-file=path (equals form)', async () => {
+    const dir = await writeConfig()
+    const other = await mkdtemp(join(tmpdir(), 'elastic-cli-empty-'))
+    try {
+      const { stdout } = await runCli([`--config-file=${join(dir, '.elasticrc.yml')}`, '--use-context=stack91', 'es', 'get', '--help'], { cwd: other, env: { HOME: other, USERPROFILE: other, XDG_CONFIG_HOME: other } })
+      assert.ok(!stdout.includes('--source-exclude-vectors'), 'expected flag filtered for 9.1 context target')
+    } finally {
+      await rm(dir, { recursive: true })
+      await rm(other, { recursive: true })
     }
   })
 })
@@ -257,6 +386,19 @@ describe('elastic CLI -- stack command tree', () => {
       assert.match(stdout, /^\s*stack\s/m, 'expected `stack` in top-level help')
       assert.doesNotMatch(stdout, /^\s*es\s/m, '`es` must not appear as a top-level command')
       assert.doesNotMatch(stdout, /^\s*kb\s/m, '`kb` must not appear as a top-level command')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('top-level help points agents at schema discovery', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-help-agents-'))
+    try {
+      const { code, stdout } = await runCli(['--help'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      assert.match(stdout, /LEARN MORE/, 'expected LEARN MORE footer in top-level help')
+      assert.match(stdout, /cli-schema/, 'expected cli-schema pointer in top-level help')
+      assert.match(stdout, /--help --json/, 'expected --help --json pointer in top-level help')
     } finally {
       await rm(dir, { recursive: true })
     }

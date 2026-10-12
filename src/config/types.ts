@@ -37,6 +37,12 @@ export interface ServiceBlock {
   auth?: Auth
 }
 
+/** A {@link ServiceBlock} for a service whose commands are availability-filtered by version. */
+export interface VersionedServiceBlock extends ServiceBlock {
+  /** Target version hint: a semver string (e.g. "9.2" or "9.2.3") or "serverless". */
+  version?: string
+}
+
 /** Policy controlling which commands are permitted to run. */
 export interface CommandPolicy {
   profile?: BuiltInProfile
@@ -46,8 +52,8 @@ export interface CommandPolicy {
 
 /** A context value: optional service blocks with at least one present. */
 export interface Context {
-  elasticsearch?: ServiceBlock
-  kibana?: ServiceBlock
+  elasticsearch?: VersionedServiceBlock
+  kibana?: VersionedServiceBlock
   cloud?: ServiceBlock
   commands?: CommandPolicy
 }
@@ -64,8 +70,8 @@ export interface ConfigFile {
 
 /** The active context after resolution — only its configured service blocks, no extras. */
 export interface ResolvedContext {
-  elasticsearch?: ServiceBlock
-  kibana?: ServiceBlock
+  elasticsearch?: VersionedServiceBlock
+  kibana?: VersionedServiceBlock
   cloud?: ServiceBlock
 }
 

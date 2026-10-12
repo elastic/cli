@@ -66,7 +66,7 @@ describe('elastic CLI -- shell completion end-to-end', () => {
     const { code, stdout } = await runCli(['__complete', '--', ''])
     assert.equal(code, 0, `expected exit 0, got ${code}`)
     const out = parseProtocol(stdout)
-    for (const expected of ['version', 'stack', 'cloud', 'docs', 'config', 'sanitize', 'es', 'kb', 'completion']) {
+    for (const expected of ['version', 'stack', 'cloud', 'docs', 'config', 'sanitize', 'es', 'kb', 'completion', 'status']) {
       assert.ok(out.candidates.includes(expected), `missing top-level "${expected}" in ${out.candidates.join(',')}`)
     }
     assert.equal(out.directive & 2, 2, 'expected NO_FILE_COMP bit (2) in directive')
@@ -141,6 +141,13 @@ describe('elastic CLI -- shell completion end-to-end', () => {
     const { code, stdout } = await runCli(['completion', 'fish'])
     assert.equal(code, 0)
     assert.match(stdout, /complete -c elastic/)
+  })
+
+  it('`completion powershell` prints a PowerShell wrapper', async () => {
+    const { code, stdout } = await runCli(['completion', 'powershell'])
+    assert.equal(code, 0)
+    assert.match(stdout, /Register-ArgumentCompleter/)
+    assert.match(stdout, /__complete/)
   })
 
   it('`completion <unknown>` exits 1 with a structured error', async () => {

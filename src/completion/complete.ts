@@ -165,6 +165,7 @@ export async function buildCompletionTree (rewrittenWords: readonly string[]): P
   // The real version handler is wired in src/cli.ts; for enumeration we only
   // need the name to be discoverable.
   root.addCommand(defineGroup({ name: 'version', description: 'Print the elastic CLI version' }))
+  root.addCommand(defineGroup({ name: 'help', description: 'Show help topics' }))
 
   const firstWord = rewrittenWords[0]
   const secondWord = rewrittenWords[1]
@@ -210,6 +211,10 @@ export async function buildCompletionTree (rewrittenWords: readonly string[]): P
   // `sanitize` is synchronous + lightweight — always load it.
   const { registerSanitizeCommands } = await import('../sanitize/register.ts')
   root.addCommand(registerSanitizeCommands())
+
+  // `status` is lightweight and needed so `--output-fields` can offer its keys.
+  const { registerStatusCommand } = await import('../status/register.ts')
+  root.addCommand(registerStatusCommand())
 
   // `completion` placeholder so the command appears as a top-level candidate.
   // The real handler is wired in src/cli.ts; for enumeration we only need
