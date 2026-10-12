@@ -36,6 +36,13 @@ function walkYamlFiles (dir: string): string[] {
   return files
 }
 
+// Definitions that need a newer stack than any API they call, because they
+// use newer request syntax. Merged over the per-API stack-since.json gate.
+const STACK_SINCE_OVERRIDES: Record<string, string> = {
+  // Rolls over `<ds>::failures`; index component selectors arrived in 9.1.
+  'indices/data_streams_options.yml': '9.1.0',
+}
+
 // Tests skipped due to infra requirements or known codegen gaps.
 // CI uses trial license, so most enterprise features are available.
 const SKIP_ENTERPRISE: Set<string> = new Set([
@@ -91,6 +98,8 @@ for (const yamlFile of yamlFiles) {
     continue
   }
 
+  const override = STACK_SINCE_OVERRIDES[relPath]
+  if (override != null) testFile.requires.stackSince = override
   const since = stackSinceFor(testFile, stackSince.es)
   if (since != null) testFile.requires.stackSince = since
   if (shouldSkipStackVersion(testFile.requires, process.env.STACK_VERSION)) {
