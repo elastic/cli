@@ -115,10 +115,28 @@ export function shouldSkipServerlessProject (
  */
 export function shouldSkipStackVersion (requires: Requires, stackVersion: string | undefined): boolean {
   if (requires.stackSince == null || stackVersion == null) return false
-  const target = parseVersion(stackVersion)
-  const since = parseVersion(requires.stackSince)
-  const i = target.findIndex((n, j) => n !== since[j])
-  return i !== -1 && target[i]! < since[i]!
+  return compareVersions(stackVersion, requires.stackSince) < 0
+}
+
+/**
+ * Newest stack version a definition needs: the highest of its
+ * `requires.stack_since` and the `since` of every API its do-steps call.
+ *
+ * @param since Map of API action name to the stack version that introduced it.
+ */
+export function stackSinceFor (file: TestFile, since: Record<string, string>): string | undefined {
+  const versions = [file.requires.stackSince]
+  for (const step of [...file.setup, ...file.teardown, ...file.tests.flatMap((t) => t.steps)]) {
+    if (step.kind === 'do') versions.push(since[step.action])
+  }
+  return versions.reduce((max, v) => v != null && (max == null || compareVersions(v, max) > 0) ? v : max, undefined)
+}
+
+function compareVersions (a: string, b: string): number {
+  const x = parseVersion(a)
+  const y = parseVersion(b)
+  const i = x.findIndex((n, j) => n !== y[j])
+  return i === -1 ? 0 : x[i]! - y[i]!
 }
 
 function parseVersion (raw: unknown): number[] {

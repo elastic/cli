@@ -7,7 +7,8 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'n
 import { join, relative, dirname } from 'node:path'
 import { parseArgs } from 'node:util'
 import { loadAllEsApis } from '../../src/es/apis.ts'
-import { parseTestFile, isServerless, shouldSkipStackVersion } from './parser.ts'
+import { parseTestFile, isServerless, shouldSkipStackVersion, stackSinceFor } from './parser.ts'
+import stackSince from './stack-since.json' with { type: 'json' }
 import { generateScript, generateRunner, UnmappedBodyKeyError } from './generator.ts'
 
 const { values } = parseArgs({
@@ -90,6 +91,8 @@ for (const yamlFile of yamlFiles) {
     continue
   }
 
+  const since = stackSinceFor(testFile, stackSince.es)
+  if (since != null) testFile.requires.stackSince = since
   if (shouldSkipStackVersion(testFile.requires, process.env.STACK_VERSION)) {
     skippedStackVersion++
     continue

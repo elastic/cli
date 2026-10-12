@@ -7,7 +7,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { parseTestFile, isServerless, shouldSkipServerlessProject, shouldSkipStackVersion } from '../parser.ts'
+import { parseTestFile, isServerless, shouldSkipServerlessProject, shouldSkipStackVersion, stackSinceFor } from '../parser.ts'
 
 const fixturesDir = join(import.meta.dirname, 'fixtures')
 
@@ -246,5 +246,21 @@ describe('shouldSkipStackVersion', () => {
   it('never skips without stack_since or a stack version', () => {
     assert.equal(shouldSkipStackVersion({ serverless: true, stack: true }, '9.0.0'), false)
     assert.equal(shouldSkipStackVersion(requires, undefined), false)
+  })
+})
+
+describe('stackSinceFor', () => {
+  const since = { 'esql.get_query': '9.1.0', 'esql.put_view': '9.4.0' }
+  const yaml = (requires: string, action: string) =>
+    `---\nrequires:\n  stack: true\n${requires}---\nsetup:\n  - do:\n      info: {}\n---\n"t":\n  - do:\n      ${action}: {}\n`
+
+  it('returns the newest since across do-steps and requires.stack_since', () => {
+    assert.equal(stackSinceFor(parseTestFile(yaml('', 'esql.put_view'), 'a.yml'), since), '9.4.0')
+    assert.equal(stackSinceFor(parseTestFile(yaml('  stack_since: 9.5.0\n', 'esql.get_query'), 'b.yml'), since), '9.5.0')
+    assert.equal(stackSinceFor(parseTestFile(yaml('  stack_since: 9.0.0\n', 'esql.get_query'), 'c.yml'), since), '9.1.0')
+  })
+
+  it('returns undefined when no action is listed', () => {
+    assert.equal(stackSinceFor(parseTestFile(yaml('', 'search'), 'd.yml'), since), undefined)
   })
 })

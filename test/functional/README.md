@@ -23,6 +23,12 @@ requires:
   stack_since: 9.3.0
 ```
 
+ES definitions live upstream, so their gates come from
+[`codegen/functional/stack-since.json`](/codegen/functional/stack-since.json)
+instead: a map of API name to the version that introduced it, sourced from
+`@availability stack since=` in `elasticsearch-specification`. A definition is
+gated on the newest API it calls. Only APIs added in 9.0 or later are listed.
+
 ## Running Locally
 
 ### Elasticsearch tests
