@@ -1,0 +1,4 @@
+source-path=SCRIPTDIR
+external-sources=true
+# cleanup() runs via trap, which shellcheck does not count as a call.
+disable=SC2329
