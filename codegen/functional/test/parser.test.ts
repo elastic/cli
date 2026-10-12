@@ -7,7 +7,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { parseTestFile, isServerless, shouldSkipServerlessProject } from '../parser.ts'
+import { parseTestFile, isServerless, shouldSkipServerlessProject, shouldSkipStackVersion } from '../parser.ts'
 
 const fixturesDir = join(import.meta.dirname, 'fixtures')
 
@@ -155,6 +155,25 @@ describe('parseTestFile', () => {
     )
   })
 
+  it('parses stack_since', () => {
+    const file = parseTestFile(
+      '---\nrequires:\n  serverless: true\n  stack: true\n  stack_since: 9.3.0\n---\n"t":\n  - do:\n      info: {}\n',
+      'since.yml'
+    )
+    assert.equal(file.requires.stackSince, '9.3.0')
+  })
+
+  it('omits stack_since when absent', () => {
+    assert.equal(loadFixture('get.yml').requires.stackSince, undefined)
+  })
+
+  it('rejects a non-semver stack_since', () => {
+    assert.throws(
+      () => parseTestFile('---\nrequires:\n  stack_since: 9.3\n---\n"t":\n  - do:\n      info: {}\n', 'bad-since.yml'),
+      /stack_since must be a MAJOR.MINOR.PATCH version/
+    )
+  })
+
   it('parses write_temp with variable, content, and suffix', () => {
     const file = loadFixture('write-temp.yml')
     assert.equal(file.setup.length, 1)
@@ -207,5 +226,25 @@ describe('shouldSkipServerlessProject', () => {
       shouldSkipServerlessProject({ serverless: true, stack: true, serverlessProject: [] }, 'serverless', 'security'),
       true
     )
+  })
+})
+
+describe('shouldSkipStackVersion', () => {
+  const requires = { serverless: true, stack: true, stackSince: '9.3.0' }
+
+  it('skips when the stack is older than stack_since', () => {
+    assert.equal(shouldSkipStackVersion(requires, '9.2.8'), true)
+    assert.equal(shouldSkipStackVersion(requires, '8.19.10'), true)
+  })
+
+  it('runs when the stack is at or newer than stack_since', () => {
+    assert.equal(shouldSkipStackVersion(requires, '9.3.0'), false)
+    assert.equal(shouldSkipStackVersion(requires, '9.10.0'), false)
+    assert.equal(shouldSkipStackVersion(requires, '10.0.0'), false)
+  })
+
+  it('never skips without stack_since or a stack version', () => {
+    assert.equal(shouldSkipStackVersion({ serverless: true, stack: true }, '9.0.0'), false)
+    assert.equal(shouldSkipStackVersion(requires, undefined), false)
   })
 })

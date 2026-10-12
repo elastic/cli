@@ -7,7 +7,7 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'n
 import { join, relative, dirname } from 'node:path'
 import { parseArgs } from 'node:util'
 import { loadAllEsApis } from '../../src/es/apis.ts'
-import { parseTestFile, isServerless } from './parser.ts'
+import { parseTestFile, isServerless, shouldSkipStackVersion } from './parser.ts'
 import { generateScript, generateRunner, UnmappedBodyKeyError } from './generator.ts'
 
 const { values } = parseArgs({
@@ -66,6 +66,7 @@ let generated = 0
 let skippedNotServerless = 0
 let skippedNoActions = 0
 let skippedEnterprise = 0
+let skippedStackVersion = 0
 const scriptPaths: string[] = []
 const allSkippedActions = new Set<string>()
 const bodyKeyErrors: string[] = []
@@ -86,6 +87,11 @@ for (const yamlFile of yamlFiles) {
   // These are serverless-only tests that cannot pass against a standard ES.
   if (testFile.requires.stack === false) {
     skippedNotServerless++
+    continue
+  }
+
+  if (shouldSkipStackVersion(testFile.requires, process.env.STACK_VERSION)) {
+    skippedStackVersion++
     continue
   }
 
@@ -132,6 +138,7 @@ console.log('=== Summary ===')
 console.log(`  Generated:              ${generated} scripts`)
 console.log(`  Skipped (not serverless): ${skippedNotServerless}`)
 console.log(`  Skipped (enterprise):     ${skippedEnterprise}`)
+console.log(`  Skipped (stack_since):    ${skippedStackVersion}`)
 console.log(`  Skipped (no CLI actions): ${skippedNoActions}`)
 
 if (allSkippedActions.size > 0) {

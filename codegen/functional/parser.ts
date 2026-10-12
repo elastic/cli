@@ -59,6 +59,7 @@ export function parseTestFile (yamlContent: string, sourceFile: string): TestFil
       }
       const serverlessProject = parseServerlessProject(r.serverless_project)
       if (serverlessProject != null) requires.serverlessProject = serverlessProject
+      if (r.stack_since != null) requires.stackSince = parseVersion(r.stack_since).join('.')
       continue
     }
 
@@ -106,6 +107,24 @@ export function shouldSkipServerlessProject (
   const allowed = requires.serverlessProject
   if (allowed == null) return false
   return projectType == null || !allowed.includes(projectType as ServerlessProject)
+}
+
+/**
+ * Skip when the target stack is older than the definition's `stack_since`.
+ * Absent `stack_since` or unset stack version never skips.
+ */
+export function shouldSkipStackVersion (requires: Requires, stackVersion: string | undefined): boolean {
+  if (requires.stackSince == null || stackVersion == null) return false
+  const target = parseVersion(stackVersion)
+  const since = parseVersion(requires.stackSince)
+  const i = target.findIndex((n, j) => n !== since[j])
+  return i !== -1 && target[i]! < since[i]!
+}
+
+function parseVersion (raw: unknown): number[] {
+  const m = /^(\d+)\.(\d+)\.(\d+)$/.exec(String(raw))
+  if (m == null) throw new Error(`stack_since must be a MAJOR.MINOR.PATCH version (got ${JSON.stringify(raw)})`)
+  return m.slice(1).map(Number)
 }
 
 function parseServerlessProject (raw: unknown): ServerlessProject[] | undefined {
