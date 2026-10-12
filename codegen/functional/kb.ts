@@ -23,7 +23,8 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs'
 import { join, basename } from 'node:path'
 import { loadAllKbApis } from '../../src/kb/apis.ts'
-import { parseTestFile, shouldSkipServerlessProject, shouldSkipStackVersion } from './parser.ts'
+import { parseTestFile, shouldSkipServerlessProject, shouldSkipStackVersion, stackSinceFor } from './parser.ts'
+import stackSince from './stack-since.json' with { type: 'json' }
 import { generateScript, generateRunner, type RunnerScript } from './generator.ts'
 const env = process.env['ELASTIC_ENVIRONMENT']
 const serverlessProject = process.env['ELASTIC_SERVERLESS_PROJECT']
@@ -504,6 +505,8 @@ for (const file of yamlFiles) {
     continue
   }
 
+  const since = stackSinceFor(testFile, stackSince.kb)
+  if (since != null) testFile.requires.stackSince = since
   if (env === 'stack' && shouldSkipStackVersion(testFile.requires, process.env['STACK_VERSION'])) {
     console.log(`  skipped (stack_since ${testFile.requires.stackSince}): ${file}`)
     continue
