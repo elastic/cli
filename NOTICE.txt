@@ -918,7 +918,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 
 ------------------------------------------------------------------------
-ansi-regex@6.2.2
+ansi-regex@6.4.0
 License: MIT
 Repository: https://github.com/chalk/ansi-regex
 Publisher: Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)
@@ -1230,7 +1230,7 @@ THE SOFTWARE.
 
 
 ------------------------------------------------------------------------
-csv-parse@7.0.2
+csv-parse@7.0.3
 License: MIT
 Repository: https://github.com/adaltas/node-csv
 Publisher: David Worms <david@adaltas.com> (https://www.adaltas.com)
@@ -1597,7 +1597,7 @@ SOFTWARE.
 
 
 ------------------------------------------------------------------------
-marked@18.0.12
+marked@18.1.1
 License: MIT
 Repository: https://github.com/markedjs/marked
 Publisher: Christopher Jeffrey
@@ -2186,7 +2186,7 @@ THIS SOFTWARE.
 
 
 ------------------------------------------------------------------------
-yaml@2.9.0
+yaml@2.9.1
 License: ISC
 Repository: https://github.com/eemeli/yaml
 Publisher: Eemeli Aro <eemeli@gmail.com>
@@ -2231,7 +2231,7 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
 ------------------------------------------------------------------------
-yargs@16.2.0
+yargs@16.2.2
 License: MIT
 Repository: https://github.com/yargs/yargs
 ------------------------------------------------------------------------
@@ -2260,7 +2260,7 @@ THE SOFTWARE.
 
 
 ------------------------------------------------------------------------
-zod@4.4.3
+zod@4.6.7
 License: MIT
 Repository: https://github.com/colinhacks/zod
 Publisher: Colin McDonnell <zod@colinhacks.com>
