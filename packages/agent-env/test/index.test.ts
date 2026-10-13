@@ -51,6 +51,11 @@ describe('detectAgent', () => {
     assert.deepEqual(d, { agent: 'claude-code', confidence: 1 })
   })
 
+  it('normalizes a hyphen-suffixed AI_AGENT to the known agent id', () => {
+    const d = detectAgent(0.95, { AI_AGENT: 'claude-code-2-1-296-agent' })
+    assert.deepEqual(d, { agent: 'claude-code', confidence: 1 })
+  })
+
   it('reads the model var for a versioned AI_AGENT', () => {
     const d = detectAgent(0.95, { AI_AGENT: 'claude-code_2-1-296_agent', ANTHROPIC_MODEL: 'claude-opus-4' })
     assert.equal(d?.agent, 'claude-code')
