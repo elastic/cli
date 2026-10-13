@@ -7,7 +7,7 @@
 "elasticsearch-projects get-elasticsearch-project":
   - do:
       elasticsearch-projects.list-elasticsearch-projects: {}
-  - set: {projects.0.id: id}
+  - set: { projects.0.id: id }
   - do:
       elasticsearch-projects.get-elasticsearch-project:
         id: $id

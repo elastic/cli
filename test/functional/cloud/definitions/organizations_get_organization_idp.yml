@@ -7,7 +7,7 @@
 "organizations get-organization-idp":
   - do:
       organizations.list-organizations: {}
-  - set: {organizations.0.id: organization_id}
+  - set: { organizations.0.id: organization_id }
   - do:
       organizations.get-organization-idp:
         organization_id: $organization_id

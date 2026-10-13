@@ -7,7 +7,7 @@
 "extensions get-extension":
   - do:
       extensions.list-extensions: {}
-  - set: {extensions.0.id: extension_id}
+  - set: { extensions.0.id: extension_id }
   - do:
       extensions.get-extension:
         extension_id: $extension_id

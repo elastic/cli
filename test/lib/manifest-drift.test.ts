@@ -90,7 +90,7 @@ describe('manifest/definition parity (upstream drift guard)', () => {
     })
 
     it('pins the kb command count', () => {
-      const expected = 682
+      const expected = 753
       assert.equal(kbApiManifest.length, expected, countDriftMessage('kb', expected, kbApiManifest.length))
     })
 
