@@ -93,7 +93,7 @@ describe('detectAgent', () => {
   })
 
   it('accepts AI_AGENT values that are Object prototype property names (detection)', () => {
-    // AI_AGENT accepts any non-empty string verbatim; prototype-name values like
+    // Unmatched AI_AGENT values pass through unchanged; prototype-name values like
     // 'constructor' are valid agent ids from detectAgent's perspective.
     // The ag= segment guard (Object.hasOwn) lives in meta.ts agentMetaOf.
     const d = detectAgent(0.95, { AI_AGENT: 'constructor' })
