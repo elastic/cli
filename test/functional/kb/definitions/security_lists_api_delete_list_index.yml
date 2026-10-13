@@ -11,11 +11,12 @@ requires:
 setup:
   - do:
       security-lists-api.create_list_index:
+        ignore: [409]
 ---
 teardown:
   - do:
       security-lists-api.create_list_index:
-        ignore: [404]
+        ignore: [404, 409]
 ---
 "security-lists-api delete list index":
   - do:

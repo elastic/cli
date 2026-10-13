@@ -8,6 +8,11 @@ requires:
   stack: true
   serverless_project: security
 ---
+setup:
+  - do:
+      security-lists-api.delete_list_index:
+        ignore: [404]
+---
 teardown:
   - do:
       security-lists-api.delete_list_index:
