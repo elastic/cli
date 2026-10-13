@@ -56,6 +56,10 @@ Input validation runs the command's JSON Schema `input` through `ajv@8`. The `Aj
 
 **Why a static import**: `ajv` is imported statically rather than via `createRequire`, so `bun build --compile` (release binaries) can see and embed it. Upstream schemas declare `$schema` draft 2020-12; `validateWithJsonSchema` strips it before compiling because the default `Ajv` class is draft-07 and has no 2020-12 meta-schema registered.
 
+## Probes Do Not Throw (`src/status/checks.ts`)
+
+Probes are functions that ask a remote service a question (connectivity, auth, version) on behalf of a caller that can carry on without the answer, such as `elastic status` and version detection. They return a discriminated result (`{ ok: true, ... } | { ok: false, error }`) and never throw: transport, HTTP, and response-shape failures are all classified into the `error` string. Callers decide whether a failure is fatal, a warning, or ignorable, and need no try/catch to fail open. New probes follow this shape. Handlers that must abort on failure should throw instead.
+
 ## Dependencies
 
 | Dependency | Used by | Why it stays |
