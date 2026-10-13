@@ -288,8 +288,9 @@ export function serializeConfig (config: RawConfig): string {
   if (config.commands != null) ordered.commands = config.commands
   if (config.banner != null) ordered.banner = config.banner
   if (config.telemetry != null) ordered.telemetry = config.telemetry
+  if (config.detect_version != null) ordered.detect_version = config.detect_version
   for (const [k, v] of Object.entries(config)) {
-    if (k === 'current_context' || k === 'contexts' || k === 'commands' || k === 'banner' || k === 'telemetry') continue
+    if (k === 'current_context' || k === 'contexts' || k === 'commands' || k === 'banner' || k === 'telemetry' || k === 'detect_version') continue
     ordered[k] = v
   }
   return stringifyYaml(ordered, { lineWidth: 0 })
@@ -323,5 +324,6 @@ export async function readRawConfig (path: string): Promise<RawConfig> {
     ...(obj.commands != null ? { commands: obj.commands } : {}),
     ...(typeof obj.banner === 'boolean' ? { banner: obj.banner } : {}),
     ...(typeof obj.telemetry === 'boolean' ? { telemetry: obj.telemetry } : {}),
+    ...(typeof obj.detect_version === 'boolean' ? { detect_version: obj.detect_version } : {}),
   }
 }

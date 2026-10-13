@@ -168,6 +168,7 @@ export function resolveContext (config: ConfigFile, contextName: string, profile
 
   if (config.banner != null) result.banner = config.banner
   if (config.telemetry != null) result.telemetry = config.telemetry
+  if (config.detect_version != null) result.detect_version = config.detect_version
   return result
 }
 
@@ -216,6 +217,7 @@ function resolveHelpConfig (raw: unknown, contextName: string | undefined, profi
     ...(typeof defaultProfile === 'string' && (BUILT_IN_PROFILES as readonly string[]).includes(defaultProfile) && { default_profile: defaultProfile as BuiltInProfile }),
     ...(r['banner'] != null && { banner: r['banner'] as NonNullable<ConfigFile['banner']> }),
     ...(r['telemetry'] != null && { telemetry: r['telemetry'] as NonNullable<ConfigFile['telemetry']> }),
+    ...(r['detect_version'] != null && { detect_version: r['detect_version'] as NonNullable<ConfigFile['detect_version']> }),
   }
   // unvalidated policy reaches hideBlockedCommands, which assumes the schema's shapes
   const wellFormed = isWellFormedPolicy(r['commands']) && isWellFormedPolicy(ctx.commands)
@@ -463,6 +465,7 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     ...(defaultProfile != null && { default_profile: defaultProfile }),
     ...(structural.data.banner != null && { banner: structural.data.banner }),
     ...(structural.data.telemetry != null && { telemetry: structural.data.telemetry }),
+    ...(structural.data.detect_version != null && { detect_version: structural.data.detect_version }),
   }
   let result: LoadConfigResult
   try {

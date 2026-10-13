@@ -170,6 +170,13 @@ if (firstArg != null && !SKIP_EARLY_CONFIG.has(firstArg)) {
   const envConfigFile = process.env[ENV_CONFIG_FILE]
   const earlyPath = earlyConfigPath ?? (envConfigFile != null && envConfigFile.length > 0 ? envConfigFile : await discoverConfigFile())
   if (earlyPath != null || hasOverrides) {
+    // Version auto-detection (#766) runs first so registration below sees the detected
+    // version. Never during help or dry-run; a no-op unless a sniff is actually due.
+    const noSniff = process.argv.some((a) => a === '--help' || a === '-h' || a === '--dry-run')
+    if (earlyPath != null && !noSniff) {
+      const { sniffIfDue } = await import('./config/sniff.js')
+      await sniffIfDue({ path: earlyPath, ...(earlyContext != null && { contextName: earlyContext }), json: process.argv.includes('--json'), explicitPath: earlyConfigPath != null })
+    }
     // Fast path: a dependency-free scan of the version hints avoids loading `yaml`
     // (~60 modules). Command policies and anything it cannot prove it understands
     // fall through to the full loader below.

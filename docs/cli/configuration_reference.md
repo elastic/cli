@@ -20,6 +20,7 @@ The `.elasticrc` configuration file defines connection contexts, credentials, co
 | `default_profile` | string (`serverless` \| `stack` \| `default`) | no | - | Fallback built-in profile applied to any context that does not set its own `commands.profile`. Overridden by a per-context `commands.profile` and by the `--command-profile` CLI flag. |
 | `banner` | boolean | no | `true` | Whether to show the startup banner. |
 | `telemetry` | boolean | no | `true` | Whether to collect anonymous usage telemetry. Set to `false` to turn off collection of anonymous telemetry. Overridden by the `ELASTIC_CLI_TELEMETRY` environment variable. |
+| `detect_version` | boolean | no | `true` | Whether to auto-detect the {{es}} and {{kib}} `version` of each context. Set to `false` to never detect. See [Service block](#service-block). |
 
 ### `contexts.<name>` [contexts]
 
@@ -42,7 +43,7 @@ The endpoint URL and authentication credentials for a single service.
 | - | - | - | - | - |
 | `url` | string | yes | - | Service endpoint URL. Must be a valid URL using the `http://` or `https://` scheme. |
 | `auth` | object | no | - | Authentication credentials for the service. {{es}} and {{kib}} support [API key](#auth-api-key) or [basic authentication](#auth-basic); {{ecloud}} requires an [API key](#auth-api-key). |
-| `version` | string | no | - | Target version hint for availability filtering. Accepts a version string (examples: `9.2`, `9.2.3`) or the literal `serverless`. When absent, no filtering is applied. |
+| `version` | string or object | no | - | Target version hint for availability filtering ({{es}} and {{kib}} only). Accepts a version string (examples: `9.2`, `9.2.3`) or the literal `serverless`. A string is pinned: the CLI never changes it. When absent, the CLI detects the version on the next command and stores it as `{ value, checked_ts }`, where `checked_ts` is an ISO 8601 datetime. A detected version is detected again after 30 days. Detection is skipped for `--help`, `--dry-run`, JSON config files, and config files that are not writable. If detection fails, a warning is printed and no filtering is applied. |
 
 ##### Auth: API key [auth-api-key]
 

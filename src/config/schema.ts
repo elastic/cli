@@ -98,6 +98,11 @@ function urlError (url: unknown, path: string): FieldError | undefined {
 /** Verifies a version hint is a valid semver (major.minor[.patch]) or the literal "serverless". */
 function versionError (version: unknown, path: string): FieldError | undefined {
   if (version === undefined) return undefined
+  if (version != null && typeof version === 'object') {
+    const { value, checked_ts: ts } = version as Record<string, unknown>
+    if (typeof ts === 'string' && Number.isNaN(Date.parse(ts))) return { path: `${path}.checked_ts`, message: 'must be an ISO 8601 datetime' }
+    return versionError(value, `${path}.value`)
+  }
   if (typeof version !== 'string') return undefined // shape errors are AJV's job
   if (parseVersionHint(version) != null) return undefined
   return { path, message: 'must be a semver version (e.g. "9.2" or "9.2.3") or "serverless"' }
@@ -168,7 +173,16 @@ const versionedServiceBlockSchema: Record<string, unknown> = {
   ...serviceBlockSchema,
   properties: {
     ...(serviceBlockSchema['properties'] as Record<string, unknown>),
-    version: { type: 'string', minLength: 1 },
+    version: {
+      anyOf: [
+        { type: 'string', minLength: 1 },
+        {
+          type: 'object',
+          properties: { value: { type: 'string', minLength: 1 }, checked_ts: { type: 'string', minLength: 1 } },
+          required: ['value', 'checked_ts'],
+        },
+      ],
+    },
   },
 }
 
@@ -208,6 +222,7 @@ const configFileSchema: Record<string, unknown> = {
     default_profile: { type: 'string', enum: [...BUILT_IN_PROFILES] },
     banner: { type: 'boolean' },
     telemetry: { type: 'boolean' },
+    detect_version: { type: 'boolean' },
   },
   required: ['current_context', 'contexts'],
 }
@@ -225,6 +240,7 @@ const structuralConfigSchema: Record<string, unknown> = {
     default_profile: {},
     banner: { type: 'boolean' },
     telemetry: { type: 'boolean' },
+    detect_version: { type: 'boolean' },
   },
   required: ['current_context', 'contexts'],
 }
@@ -258,6 +274,10 @@ function stripVersionedServiceBlock (raw: unknown): VersionedServiceBlock | unde
   const out: VersionedServiceBlock | undefined = stripServiceBlock(raw)
   const version = (raw as Record<string, unknown> | undefined)?.['version']
   if (out != null && typeof version === 'string') out.version = version
+  else if (out != null && version != null && typeof version === 'object') {
+    const { value, checked_ts: ts } = version as Record<string, unknown>
+    if (typeof value === 'string' && typeof ts === 'string') out.version = { value, checked_ts: ts }
+  }
   return out
 }
 
@@ -408,6 +428,7 @@ export const ConfigFileSchema = {
     }
     if (typeof raw['banner'] === 'boolean') cfg.banner = raw['banner']
     if (typeof raw['telemetry'] === 'boolean') cfg.telemetry = raw['telemetry']
+    if (typeof raw['detect_version'] === 'boolean') cfg.detect_version = raw['detect_version']
     if (typeof raw['default_profile'] === 'string' && (BUILT_IN_PROFILES as readonly string[]).includes(raw['default_profile'])) {
       cfg.default_profile = raw['default_profile'] as BuiltInProfile
     }
@@ -449,6 +470,7 @@ export const StructuralConfigSchema = {
     default_profile?: unknown
     banner?: boolean
     telemetry?: boolean
+    detect_version?: boolean
   }> {
     const r = validate(structuralConfigSchema, input)
     if (!r.ok) return { success: false, errors: r.errors }
@@ -462,6 +484,7 @@ export const StructuralConfigSchema = {
         ...(raw['default_profile'] !== undefined && { default_profile: raw['default_profile'] }),
         ...(raw['banner'] !== undefined && { banner: raw['banner'] as boolean }),
         ...(raw['telemetry'] !== undefined && { telemetry: raw['telemetry'] as boolean }),
+        ...(raw['detect_version'] !== undefined && { detect_version: raw['detect_version'] as boolean }),
       },
     }
   },
