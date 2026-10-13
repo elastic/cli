@@ -166,9 +166,8 @@ if (firstArg != null && !SKIP_EARLY_CONFIG.has(firstArg)) {
   // hint and no command policy, so registration/help needs nothing from config.
   // Skip the heavy `config/loader` import (ajv + yaml + resolver) in that case so
   // `--help` and bare-namespace startup stay off the config stack. See #706.
-  const { discoverConfigFile, ENV_CONFIG_FILE } = await import('./config/discover.js')
-  const envConfigFile = process.env[ENV_CONFIG_FILE]
-  const earlyPath = earlyConfigPath ?? (envConfigFile != null && envConfigFile.length > 0 ? envConfigFile : await discoverConfigFile())
+  const { findConfigFile } = await import('./config/discover.js')
+  const earlyPath = await findConfigFile(earlyConfigPath)
   if (earlyPath != null || hasOverrides) {
     // Version auto-detection (#766) runs first so registration below sees the detected
     // version. Never during help or dry-run; a no-op unless a sniff is actually due.

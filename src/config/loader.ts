@@ -29,7 +29,7 @@ import { readFile, stat } from 'node:fs/promises'
 import { extname } from 'node:path'
 import { parse as parseYaml } from 'yaml'
 // ./schema (ajv) and @elastic/config-resolver are imported lazily in loadConfig so the help path skips them
-import { ENV_CONFIG_FILE, discoverConfigFile } from './discover.ts'
+import { ENV_CONFIG_FILE, findConfigFile } from './discover.ts'
 import { hasInlineSecrets, type RawConfig } from './writer.ts'
 import type { ConfigFile, ResolvedConfig, ResolvedContext } from './types.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './profiles.ts'
@@ -342,14 +342,7 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
   let raw: unknown
   let resolvedPath: string | null
   try {
-    const envConfigFile = process.env[ENV_CONFIG_FILE]
-    if (configPath != null) {
-      resolvedPath = configPath
-    } else if (envConfigFile != null && envConfigFile.length > 0) {
-      resolvedPath = envConfigFile
-    } else {
-      resolvedPath = await discoverConfigFile()
-    }
+    resolvedPath = await findConfigFile(configPath)
 
     if (resolvedPath == null) {
       return {

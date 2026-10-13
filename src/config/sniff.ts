@@ -16,7 +16,6 @@
 
 import { access, constants, readFile, writeFile } from 'node:fs/promises'
 import { extname } from 'node:path'
-import { ENV_CONFIG_FILE, discoverConfigFile } from './discover.ts'
 import { scanEarlySniffState, type EarlySniffState, type ServiceVersionState } from './early-scan.ts'
 import type { ResolvedContext } from './types.ts'
 
@@ -50,12 +49,6 @@ async function stateFromYaml (text: string, contextName?: string): Promise<Early
       : { version: String(v) }
   }
   return state
-}
-
-/** Resolves the config file path the same way the loader does; undefined when there is none. */
-export async function resolveConfigPath (configPath?: string): Promise<string | undefined> {
-  const env = process.env[ENV_CONFIG_FILE]
-  return configPath ?? (env != null && env.length > 0 ? env : undefined) ?? (await discoverConfigFile()) ?? undefined
 }
 
 /**

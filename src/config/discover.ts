@@ -43,6 +43,18 @@ export async function discoverConfigFile (dir?: string): Promise<string | null> 
 }
 
 /**
+ * Resolves the config file path. Precedence: explicit `configPath` (the
+ * `--config-file` flag) > `ELASTIC_CLI_CONFIG_FILE` env var > home-directory
+ * discovery. Returns `null` when none applies; does not check that an explicit
+ * or env path exists.
+ */
+export async function findConfigFile (configPath?: string): Promise<string | null> {
+  if (configPath != null) return configPath
+  const env = process.env[ENV_CONFIG_FILE]
+  return env != null && env.length > 0 ? env : await discoverConfigFile()
+}
+
+/**
  * Returns `true` when a config source exists: the `ELASTIC_CLI_CONFIG_FILE` env
  * var is set, or a config file is discoverable in the home directory. Used to
  * avoid importing the full config loader when there is nothing to load.
