@@ -138,6 +138,13 @@ function isKnownAgent (v: string): v is KnownAgent {
   return Object.hasOwn(AGENT_SHORT_CODES, v)
 }
 
+// Harnesses may append a version/suffix (`claude-code_2-1-296_agent`); strip it
+// when it follows a known id at a `[_-]` boundary. Longest id wins.
+function normalizeAiAgent (v: string): AgentId {
+  const ids = Object.keys(AGENT_SHORT_CODES).sort((a, b) => b.length - a.length)
+  return ids.find((id) => v === id || v.startsWith(`${id}_`) || v.startsWith(`${id}-`)) ?? v
+}
+
 type Env = Record<string, string | undefined>
 
 /**
@@ -209,7 +216,7 @@ export function detectAgent (
   // the caller has explicitly declared which harness is running and marker votes
   // must not dilute confidence or suppress the result.
   const aiAgent = env['AI_AGENT']
-  if (aiAgent != null && aiAgent !== '') return buildDetection(aiAgent, 1, env)
+  if (aiAgent != null && aiAgent !== '') return buildDetection(normalizeAiAgent(aiAgent), 1, env)
   const agentEnv = env['AGENT']
   if (agentEnv != null && agentEnv !== '' && isKnownAgent(agentEnv)) return buildDetection(agentEnv, 1, env)
 

@@ -46,6 +46,21 @@ describe('detectAgent', () => {
     assert.equal(detectAgent(0.95, { TERM_PROGRAM: 'iTerm.app' }), null)
   })
 
+  it('normalizes a versioned AI_AGENT to the known agent id', () => {
+    const d = detectAgent(0.95, { AI_AGENT: 'claude-code_2-1-296_agent' })
+    assert.deepEqual(d, { agent: 'claude-code', confidence: 1 })
+  })
+
+  it('reads the model var for a versioned AI_AGENT', () => {
+    const d = detectAgent(0.95, { AI_AGENT: 'claude-code_2-1-296_agent', ANTHROPIC_MODEL: 'claude-opus-4' })
+    assert.equal(d?.agent, 'claude-code')
+    assert.deepEqual(d?.llm, { model: 'claude-opus-4', vendor: 'anthropic' })
+  })
+
+  it('does not normalize AI_AGENT values that merely share a prefix', () => {
+    assert.equal(detectAgent(0.95, { AI_AGENT: 'pipeline' })?.agent, 'pipeline')
+  })
+
   it('supports the universal AI_AGENT opt-in for any agent id', () => {
     assert.equal(detectAgent(0.95, { AI_AGENT: 'devin' })?.agent, 'devin')
   })
