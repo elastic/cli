@@ -122,7 +122,7 @@ The detected version is stored in your configuration file. Refer to the `version
 
 Filtering never blocks you:
 
-* If the CLI cannot detect the version, because detection failed or is disabled, all APIs supported by both {{serverless-full}} and hosted clusters will be available.
+* If the CLI cannot detect the version, because detection failed or is turned off, all APIs supported by both {{serverless-full}} and hosted clusters will be available.
 * If detection fails, for example because the cluster is unreachable, the CLI prints a warning and records the attempt so it does not slow down every command. It tries again after 1 hour. If an earlier detected version exists, the CLI keeps using it and tries again after 30 days.
 * If you upgrade your cluster, all existing APIs will still work. Newly added APIs and fields won't be supported until the CLI is upgraded and the `version` value is set appropriately in the configuration file.
 
