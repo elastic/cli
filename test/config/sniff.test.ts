@@ -8,7 +8,7 @@ import assert from 'node:assert/strict'
 import { access, chmod, mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { isSniffDue, sniffIfDue, SNIFF_TTL_MS } from '../../src/config/sniff.ts'
+import { isSniffDue, sniffIfDue, SNIFF_RETRY_MS, SNIFF_TTL_MS } from '../../src/config/sniff.ts'
 import { scanEarlyHints, scanEarlySniffState } from '../../src/config/early-scan.ts'
 import { sniffVersion } from '../../src/status/checks.ts'
 import { parseVersionHint } from '../../src/lib/availability.ts'
@@ -55,6 +55,8 @@ describe('isSniffDue', () => {
   it('is not due for a fresh detected version', () => assert.equal(isSniffDue({ version: '9.1', checkedTs: fresh }, NOW), false))
   it('is due for a detected version older than 30 days', () => assert.equal(isSniffDue({ version: '9.1', checkedTs: stale }, NOW), true))
   it('is due for an unparseable timestamp', () => assert.equal(isSniffDue({ version: '9.1', checkedTs: 'nope' }, NOW), true))
+  it('is not due within the retry window after a failed sniff', () => assert.equal(isSniffDue({ checkedTs: fresh }, NOW), false))
+  it('is due after the retry window after a failed sniff', () => assert.equal(isSniffDue({ checkedTs: new Date(NOW - SNIFF_RETRY_MS - 1000).toISOString() }, NOW), true))
 })
 
 describe('version object form', () => {
@@ -67,12 +69,22 @@ describe('version object form', () => {
     const t = 'detect_version: false\ncurrent_context: a\ncontexts:\n  a:\n    kibana:\n      url: http://x\n'
     assert.deepEqual(scanEarlySniffState(t), { detectVersion: false, kibana: {} })
   })
+  it('early scan reads a failed-sniff marker (checked_ts without value)', () => {
+    const t = `current_context: a\ncontexts:\n  a:\n    elasticsearch:\n      url: http://x\n      version:\n        checked_ts: ${fresh}\n`
+    assert.deepEqual(scanEarlyHints(t), {})
+    assert.deepEqual(scanEarlySniffState(t), { detectVersion: true, elasticsearch: { checkedTs: fresh } })
+  })
+  it('parseVersionHint ignores a failed-sniff marker', () => assert.equal(parseVersionHint({ checked_ts: fresh }), undefined))
   it('parseVersionHint unwraps { value }', () => assert.deepEqual(parseVersionHint({ value: '9.2.3', checked_ts: fresh }), [9, 2]))
   it('schema accepts the object form and rejects a bad timestamp', () => {
     const ok = ContextSchema.safeParse({ elasticsearch: { url: 'http://x', version: { value: 'serverless', checked_ts: fresh } } })
     assert.equal(ok.success, true)
     const bad = ContextSchema.safeParse({ elasticsearch: { url: 'http://x', version: { value: '9.2', checked_ts: 'nope' } } })
     assert.equal(bad.success, false)
+  })
+  it('schema accepts a failed-sniff marker (checked_ts without value)', () => {
+    const r = ContextSchema.safeParse({ elasticsearch: { url: 'http://x', version: { checked_ts: fresh } } })
+    assert.equal(r.success, true)
   })
 })
 
@@ -168,14 +180,33 @@ describe('sniffIfDue', () => {
     assert.match(await readFile(path, 'utf8'), /value: 9\.2\.3/)
   })
 
-  it('fails open on 401: warns once, writes nothing', async () => {
+  it('fails open on 401: warns once, records the attempt without a value', async () => {
     stubFetch(() => json({}, 401))
-    const text = base('')
-    const path = await tmpConfig(text)
+    const path = await tmpConfig(base(''))
     const writes = await captureStderr(() => sniffIfDue({ path, json: false, explicitPath: true }))
     assert.equal(writes.length, 1)
     assert.match(writes[0]!, /warning: could not detect elasticsearch version/)
-    assert.equal(await readFile(path, 'utf8'), text)
+    const out = await readFile(path, 'utf8')
+    assert.match(out, /version:\n\s+checked_ts: \d{4}-/)
+    assert.doesNotMatch(out, /value:/)
+  })
+
+  it('does not retry a failed sniff within the retry window', async () => {
+    const calls = stubFetch(() => json({}, 401))
+    const path = await tmpConfig(base(''))
+    await captureStderr(() => sniffIfDue({ path, json: false, explicitPath: true }))
+    await captureStderr(() => sniffIfDue({ path, json: false, explicitPath: true }))
+    assert.equal(calls.length, 1)
+  })
+
+  it('keeps the last detected value when a refresh fails', async () => {
+    stubFetch(() => json({}, 401))
+    const stale = new Date(Date.now() - SNIFF_TTL_MS - 60_000).toISOString()
+    const path = await tmpConfig(base(`      version:\n        value: 9.1.0\n        checked_ts: ${stale}\n`))
+    await captureStderr(() => sniffIfDue({ path, json: false, explicitPath: true }))
+    const out = await readFile(path, 'utf8')
+    assert.match(out, /value: 9\.1\.0/)
+    assert.doesNotMatch(out, new RegExp(stale))
   })
 
   it('suppresses the warning with --json', async () => {

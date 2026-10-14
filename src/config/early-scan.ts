@@ -40,7 +40,7 @@ function scalar (text: string, wantString: boolean): string | undefined {
 export interface ServiceVersionState {
   /** The version string; absent when the block has no `version`. */
   version?: string
-  /** Set for the auto-detected `{ value, checked_ts }` form; absent for a plain (pinned) string. */
+  /** Set for the auto-detected `{ value, checked_ts }` form (`value` absent after a failed sniff); absent for a plain (pinned) string. */
   checkedTs?: string
 }
 

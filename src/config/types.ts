@@ -37,9 +37,12 @@ export interface ServiceBlock {
   auth?: Auth
 }
 
-/** An auto-detected version and when it was last checked (ISO 8601). Expires after 30 days. */
+/**
+ * An auto-detected version and when it was last checked (ISO 8601). Expires after
+ * 30 days. `value` is absent when detection failed; that is retried after 1 hour.
+ */
 export interface DetectedVersion {
-  value: string
+  value?: string
   checked_ts: string
 }
 

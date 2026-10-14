@@ -179,7 +179,7 @@ const versionedServiceBlockSchema: Record<string, unknown> = {
         {
           type: 'object',
           properties: { value: { type: 'string', minLength: 1 }, checked_ts: { type: 'string', minLength: 1 } },
-          required: ['value', 'checked_ts'],
+          required: ['checked_ts'],
         },
       ],
     },
@@ -276,7 +276,7 @@ function stripVersionedServiceBlock (raw: unknown): VersionedServiceBlock | unde
   if (out != null && typeof version === 'string') out.version = version
   else if (out != null && version != null && typeof version === 'object') {
     const { value, checked_ts: ts } = version as Record<string, unknown>
-    if (typeof value === 'string' && typeof ts === 'string') out.version = { value, checked_ts: ts }
+    if (typeof ts === 'string') out.version = { ...(typeof value === 'string' && { value }), checked_ts: ts }
   }
   return out
 }

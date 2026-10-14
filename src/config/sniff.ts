@@ -25,12 +25,17 @@ const SERVICES: readonly Service[] = ['elasticsearch', 'kibana']
 /** Detected versions older than this are re-sniffed. */
 export const SNIFF_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
-/** True when a service block needs a sniff: no version yet, or a detected one past the TTL. */
+/** A failed sniff (stored as `checked_ts` without `value`) is retried after this long. */
+export const SNIFF_RETRY_MS = 60 * 60 * 1000
+
+/**
+ * True when a service block needs a sniff: never tried, a detected version past
+ * the TTL, or a failed attempt past the retry window.
+ */
 export function isSniffDue (state: ServiceVersionState, now = Date.now()): boolean {
-  if (state.version == null) return true
-  if (state.checkedTs == null) return false // plain string: pinned
+  if (state.checkedTs == null) return state.version == null // plain string: pinned
   const checked = Date.parse(state.checkedTs)
-  return Number.isNaN(checked) || now - checked > SNIFF_TTL_MS
+  return Number.isNaN(checked) || now - checked > (state.version == null ? SNIFF_RETRY_MS : SNIFF_TTL_MS)
 }
 
 /** Derives the sniff state from parsed YAML, for configs the dependency-free scanner cannot read. */
@@ -45,16 +50,17 @@ async function stateFromYaml (text: string, contextName?: string): Promise<Early
     if (block == null || typeof block !== 'object') continue
     const v = block.version
     state[service] = v == null ? {} : typeof v === 'object'
-      ? { version: String(v.value), checkedTs: String(v.checked_ts) }
+      ? { ...(v.value != null && { version: String(v.value) }), checkedTs: String(v.checked_ts) }
       : { version: String(v) }
   }
   return state
 }
 
 /**
- * Sniffs `services`, then writes each detected version into the config file.
- * Skips everything when the file is JSON or not writable. Failures warn on
- * stderr (unless `warn` is false) and write nothing for that service.
+ * Sniffs `services`, then writes each result into the config file. Skips
+ * everything when the file is JSON or not writable. A failure warns on stderr
+ * (unless `warn` is false) and only refreshes `checked_ts`, keeping any earlier
+ * `value`, so an unreachable service is not re-sniffed on every invocation.
  */
 export async function detectAndStore (opts: {
   path: string
@@ -68,13 +74,13 @@ export async function detectAndStore (opts: {
   try { await access(path, constants.W_OK) } catch { return }
 
   const { sniffVersion } = await import('../status/checks.ts')
-  const found: Array<[Service, string]> = []
+  const found: Array<[Service, string | undefined]> = []
   await Promise.all(services.map(async (service) => {
     const block = context[service]
     if (block == null) return
     const r = await sniffVersion(service, block)
-    if (r.ok) found.push([service, r.value])
-    else if (warn) process.stderr.write(`warning: could not detect ${service} version (${r.error}); continuing without version filtering\n`)
+    found.push([service, r.ok ? r.value : undefined])
+    if (!r.ok && warn) process.stderr.write(`warning: could not detect ${service} version (${r.error}); continuing without version filtering\n`)
   }))
   if (found.length === 0) return
 
@@ -85,7 +91,9 @@ export async function detectAndStore (opts: {
     for (const [service, value] of found) {
       const node = ['contexts', contextName, service, 'version']
       if (typeof doc.getIn(node) === 'string') continue // pinned since we looked
-      doc.setIn(node, { value, checked_ts })
+      if (value != null) doc.setIn(node, { value, checked_ts })
+      else if (doc.hasIn([...node, 'value'])) doc.setIn([...node, 'checked_ts'], checked_ts)
+      else doc.setIn(node, { checked_ts })
     }
     await writeFile(path, doc.toString())
   } catch (err) {
