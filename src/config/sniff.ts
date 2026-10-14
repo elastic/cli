@@ -80,7 +80,9 @@ export async function detectAndStore (opts: {
     if (block == null) return
     const r = await sniffVersion(service, block)
     found.push([service, r.ok ? r.value : undefined])
-    if (!r.ok && warn) process.stderr.write(`warning: could not detect ${service} version (${r.error}); continuing without version filtering\n`)
+    if (r.ok || !warn) return
+    const last = typeof block.version === 'object' ? block.version.value : undefined
+    process.stderr.write(`warning: could not detect ${service} version (${r.error}); ${last != null ? `using last detected version ${last}` : 'continuing without version filtering'}\n`)
   }))
   if (found.length === 0) return
 
