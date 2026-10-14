@@ -109,6 +109,24 @@ elastic --use-context staging status
 
 The command reports a result for each configured service (`elasticsearch`, `kibana`, or `cloud`) in the selected context.
 
+## Supported versions and version filtering [versions]
+
+The CLI supports {{serverless-full}} and any 9.x version of the {{stack}}.
+
+The first time you run the CLI targeting an {{es}} or {{kib}} instance that has no version set in the configuration file, or a version has not been checked in at least 30 days, it auto-detects the version running and filters commands and fields to match:
+
+* For a 9.x version, it hides APIs and fields introduced in a later minor version, and those that exist only in {{serverless-short}}.
+* For `serverless`, it hides APIs and fields that are not supported by {{serverless-short}}.
+
+The detected version is stored in your configuration file. Refer to the `version` property in the [configuration file reference](./configuration_reference.md#service-block) for the stored format, when it is refreshed, and when detection is skipped.
+
+Filtering never blocks you:
+
+* If the CLI cannot detect the version, because detection failed or is disabled, all APIs supported by both {{serverless-full}} and hosted clusters will be available.
+* If you upgrade your cluster, all existing APIs will still work. Newly added APIs and fields won't be supported until the CLI is upgraded and the `version` value is set appropriately in the configuration file.
+
+If detection picks the wrong version, set `version` to a string such as `"9.1"` or `serverless` in the service block to pin it. To turn detection off, set `detect_version: false` at the top level. To see what was detected, run `elastic status` and read `version.value` under the service in your configuration file.
+
 ## Credential-safe project creation
 ```{applies_to}
 serverless: preview
