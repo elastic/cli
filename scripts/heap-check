@@ -58,12 +58,14 @@ function report(label, deltaMB, baseline, extra) {
 // apiCountExpr is inlined into the probe JS with `mod` in scope.
 // baselineMB=0 → record-only, never fails.
 const BARREL_MODULES = [
-  // es/kb barrel baselines re-recorded after the @elastic/schemas 0.9.1 upgrade
-  // (576 ES / 682 KB manifest entries). The growth is manifest metadata only --
+  // The Kibana baseline reflects @elastic/schemas 0.10.0 (753 entries), whose
+  // manifest adds destructive/readOnly flags and release metadata to existing APIs.
+  // Its serialized metadata grew from 242 to 348 bytes per entry; the 0.99 MB
+  // baseline was measured after the upgrade. This is manifest metadata only --
   // the barrels stay far below a single definition load (~8 MB), so the lazy-barrel
   // invariant still holds.
   ["dist/es/apis.js",    "Array.isArray(mod.apiManifest) ? mod.apiManifest.length : null", 0.66],
-  ["dist/kb/apis.js",    "Array.isArray(mod.kbApiManifest) ? mod.kbApiManifest.length : null", 0.66],
+  ["dist/kb/apis.js",    "Array.isArray(mod.kbApiManifest) ? mod.kbApiManifest.length : null", 0.99],
   ["dist/cloud/apis.js", "mod.allCloudApis?.length ?? null",      0.5],
 ]
 
