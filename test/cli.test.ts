@@ -764,3 +764,29 @@ describe('elastic CLI -- JSON mode error hygiene', () => {
     }
   })
 })
+describe('elastic CLI -- version detection only runs for stack subcommands', () => {
+  async function withCountingServer (fn: (url: string, hits: () => number) => Promise<void>): Promise<void> {
+    const { createServer } = await import('node:http')
+    let n = 0
+    const server = createServer((_req, res) => { n++; res.writeHead(401).end() })
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    const { port } = server.address() as { port: number }
+    try { await fn(`http://127.0.0.1:${port}`, () => n) } finally { server.close() }
+  }
+
+  for (const args of [['es'], ['cloud'], ['stack']]) {
+    it(`does not sniff for \`elastic ${args.join(' ')}\``, async () => {
+      await withCountingServer(async (url, hits) => {
+        const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-nosniff-'))
+        try {
+          const configPath = join(dir, 'config.yml')
+          await writeFile(configPath, `current_context: a\ncontexts:\n  a:\n    elasticsearch:\n      url: ${url}\n      auth:\n        api_key: k\n`)
+          await runCli(args, { cwd: dir, env: { HOME: dir, USERPROFILE: dir, ELASTIC_CLI_CONFIG_FILE: configPath } })
+          assert.equal(hits(), 0)
+        } finally {
+          await rm(dir, { recursive: true })
+        }
+      })
+    })
+  }
+})

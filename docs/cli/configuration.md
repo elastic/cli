@@ -113,7 +113,7 @@ The command reports a result for each configured service (`elasticsearch`, `kiba
 
 The CLI supports {{serverless-full}} and any 9.x version of the {{stack}}.
 
-The first time you run the CLI targeting an {{es}} or {{kib}} instance that has no version set in the configuration file, or a version has not been checked in at least 30 days, it auto-detects the version running and filters commands and fields to match:
+The first time you run an `elastic stack` (or `es`/`kb`) command targeting an {{es}} or {{kib}} instance that has no version set in the configuration file, or a version has not been checked in at least 30 days, it auto-detects the version running and filters commands and fields to match:
 
 * For a 9.x version, it hides APIs and fields introduced in a later minor version, and those that exist only in {{serverless-short}}.
 * For `serverless`, it hides APIs and fields that are not supported by {{serverless-short}}.

@@ -170,8 +170,10 @@ if (firstArg != null && !SKIP_EARLY_CONFIG.has(firstArg)) {
   const earlyPath = await findConfigFile(earlyConfigPath)
   if (earlyPath != null || hasOverrides) {
     // Version auto-detection (#766) runs first so registration below sees the detected
-    // version. Never during help or dry-run; a no-op unless a sniff is actually due.
-    const noSniff = process.argv.some((a) => a === '--help' || a === '-h' || a === '--dry-run')
+    // version. Only `stack <group> <command>` uses versions, so bare namespaces (which print
+    // help) and other namespaces skip it, as do help and dry-run. A no-op unless a sniff is due.
+    const noSniff = firstArg !== 'stack' || operands.length < 3 ||
+      process.argv.some((a) => a === '--help' || a === '-h' || a === '--dry-run')
     if (earlyPath != null && !noSniff) {
       const { sniffIfDue } = await import('./config/sniff.js')
       await sniffIfDue({ path: earlyPath, ...(earlyContext != null && { contextName: earlyContext }), json: process.argv.includes('--json'), explicitPath: earlyConfigPath != null })
