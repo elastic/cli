@@ -92,7 +92,6 @@ function itemYaml (item: GetShape, collection: CloudApiDefinition): string {
     '# SPDX-License-Identifier: Apache-2.0',
     `# Cloud control plane API: ${def.description} (${def.method} ${def.path})`,
     `# Id for {${pathParam}} is derived from ${collection.namespace}.${collection.name}.`,
-    '# TODO: verify the response path in the `set` step against a live API.',
     '---',
     `${q(`${def.namespace} ${def.name}`)}:`,
     '  - do:',
