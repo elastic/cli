@@ -6,7 +6,7 @@
 "deployments get-deployment-tags":
   - do:
       deployments.list-deployments: {}
-  - set: { deployments.0.id: deployment_id }
+  - set: {deployments.0.id: deployment_id}
   - do:
       deployments.get-deployment-tags:
         deployment_id: $deployment_id

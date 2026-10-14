@@ -6,7 +6,7 @@
 "observability-projects get-observability-project-status":
   - do:
       observability-projects.list-observability-projects: {}
-  - set: { projects.0.id: id }
+  - set: {projects.0.id: id}
   - do:
       observability-projects.get-observability-project-status:
         id: $id

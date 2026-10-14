@@ -6,7 +6,7 @@
 "security-projects get-security-project-roles":
   - do:
       security-projects.list-security-projects: {}
-  - set: { projects.0.id: id }
+  - set: {projects.0.id: id}
   - do:
       security-projects.get-security-project-roles:
         id: $id

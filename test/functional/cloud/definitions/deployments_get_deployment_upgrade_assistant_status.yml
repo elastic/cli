@@ -6,7 +6,7 @@
 "deployments get-deployment-upgrade-assistant-status":
   - do:
       deployments.list-deployments: {}
-  - set: { deployments.0.id: deployment_id }
+  - set: {deployments.0.id: deployment_id}
   - do:
       deployments.get-deployment-upgrade-assistant-status:
         deployment_id: $deployment_id

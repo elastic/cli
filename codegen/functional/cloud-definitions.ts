@@ -96,7 +96,7 @@ function itemYaml (item: GetShape, collection: CloudApiDefinition): string {
     `${q(`${def.namespace} ${def.name}`)}:`,
     '  - do:',
     `      ${collection.namespace}.${collection.name}: {}`,
-    `  - set: { ${arrayKey}.0.id: ${pathParam} }`,
+    `  - set: {${arrayKey}.0.id: ${pathParam}}`,
     '  - do:',
     `      ${def.namespace}.${def.name}:`,
     `        ${pathParam}: $${pathParam}`,

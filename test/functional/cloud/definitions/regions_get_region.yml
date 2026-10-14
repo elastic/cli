@@ -6,7 +6,7 @@
 "regions get-region":
   - do:
       regions.list-regions: {}
-  - set: { regions.0.id: id }
+  - set: {regions.0.id: id}
   - do:
       regions.get-region:
         id: $id

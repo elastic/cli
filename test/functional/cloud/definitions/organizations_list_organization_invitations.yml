@@ -6,7 +6,7 @@
 "organizations list-organization-invitations":
   - do:
       organizations.list-organizations: {}
-  - set: { organizations.0.id: organization_id }
+  - set: {organizations.0.id: organization_id}
   - do:
       organizations.list-organization-invitations:
         organization_id: $organization_id

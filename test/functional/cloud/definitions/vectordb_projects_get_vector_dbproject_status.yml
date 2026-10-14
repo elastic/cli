@@ -6,7 +6,7 @@
 "vectordb-projects get-vector-dbproject-status":
   - do:
       vectordb-projects.list-vector-dbprojects: {}
-  - set: { dbprojects.0.id: id }
+  - set: {dbprojects.0.id: id}
   - do:
       vectordb-projects.get-vector-dbproject-status:
         id: $id

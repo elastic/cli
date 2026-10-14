@@ -6,7 +6,7 @@
 "elasticsearch-projects get-elasticsearch-project-link-candidates":
   - do:
       elasticsearch-projects.list-elasticsearch-projects: {}
-  - set: { projects.0.id: id }
+  - set: {projects.0.id: id}
   - do:
       elasticsearch-projects.get-elasticsearch-project-link-candidates:
         id: $id

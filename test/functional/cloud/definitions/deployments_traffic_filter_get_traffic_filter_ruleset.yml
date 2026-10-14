@@ -6,7 +6,7 @@
 "deployments-traffic-filter get-traffic-filter-ruleset":
   - do:
       deployments-traffic-filter.get-traffic-filter-rulesets: {}
-  - set: { rulesets.0.id: ruleset_id }
+  - set: {rulesets.0.id: ruleset_id}
   - do:
       deployments-traffic-filter.get-traffic-filter-ruleset:
         ruleset_id: $ruleset_id
