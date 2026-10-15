@@ -35,3 +35,4 @@ Action items for the next AI review. Follow these. Do not repeat the rejected fi
 - Do not re-flag colon-separated PATH construction in CI scripts. Windows CI passes because Git Bash treats colon as the PATH separator, making semicolon separation the wrong fix and the existing colon format correct.
 - Do not re-flag unsigned macOS/Windows assets being uploaded in release-artifacts.yml. The workflow already uploads Linux only and the other platforms are not present.
 - Do not re-flag SCRIPT_DIR or ROOT_DIR as empty due to missing pwd in the subshell. The script already uses cd and pwd together, so the paths resolve correctly to the repo.
+- Do not re-flag exec docker skipping the EXIT trap. Docker already runs as a child process so the trap correctly removes the temp build context on exit.
