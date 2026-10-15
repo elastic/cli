@@ -35,11 +35,12 @@ fi
 for archive in "${archives[@]}"; do
   name="$(basename "$archive" .tar.gz)"
   tar -xzf "$archive" -C work/mac
-  if [[ ! -f "work/mac/${name}" || -L "work/mac/${name}" ]]; then
-    echo "signed binary ${name} not at archive root" >&2
+  if [[ -f "work/mac/${name}/${name}" && ! -L "work/mac/${name}/${name}" ]]; then
+    cp "work/mac/${name}/${name}" "final/${name}"
+  else
+    echo "signed binary ${name} not in archive" >&2
     exit 1
   fi
-  cp "work/mac/${name}" "final/${name}"
 done
 
 exes=(work/win/elastic-windows-*.exe)
