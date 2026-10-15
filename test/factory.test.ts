@@ -2176,6 +2176,22 @@ describe('defineCommand', () => {
       assert.equal(out, 'dry run: inputs valid, no action performed\n')
     })
 
+    it('calls the handler when passthroughDryRun is set', async () => {
+      let handlerCalled = false
+      const cmd = defineCommand({
+        name: 'preview',
+        description: 'Preview',
+        passthroughDryRun: true,
+        handler: (parsed) => {
+          handlerCalled = true
+          return { dry: parsed.options['dry-run'] === true }
+        },
+      })
+      const out = await invokeUnderRoot(cmd, ['--json'], ['--dry-run'])
+      assert.equal(handlerCalled, true)
+      assert.deepEqual(JSON.parse(out), { dry: true })
+    })
+
     it('outputs {"success":true} and skips handler with valid JSON input via --input-file', async () => {
       const tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-dryrun-'))
       const filePath = join(tmpDir, 'valid.json')

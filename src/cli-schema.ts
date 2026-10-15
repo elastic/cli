@@ -245,6 +245,19 @@ function buildCommandParams (cmd: OpaqueCommandHandle): CliParameter[] {
       })
     }
 
+    const seenPositional = new Set(params.filter((p) => p.role === 'positional').map((p) => p.name))
+    for (const arg of cmd.registeredArguments) {
+      const name = arg.name()
+      if (seenPositional.has(name)) continue
+      params.push({
+        role: 'positional',
+        name,
+        type: 'string',
+        required: arg.required,
+        ...(arg.description && { summary: arg.description }),
+      })
+    }
+
     // Hand-declared options (OptionDefinition[])
     for (const opt of (attached.config.options ?? [])) {
       params.push({
