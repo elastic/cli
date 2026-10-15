@@ -59,6 +59,7 @@ export function parseTestFile (yamlContent: string, sourceFile: string): TestFil
       }
       const serverlessProject = parseServerlessProject(r.serverless_project)
       if (serverlessProject != null) requires.serverlessProject = serverlessProject
+      if (r.stack_since != null) requires.stackSince = parseVersion(r.stack_since).join('.')
       continue
     }
 
@@ -106,6 +107,42 @@ export function shouldSkipServerlessProject (
   const allowed = requires.serverlessProject
   if (allowed == null) return false
   return projectType == null || !allowed.includes(projectType as ServerlessProject)
+}
+
+/**
+ * Skip when the target stack is older than the definition's `stack_since`.
+ * Absent `stack_since` or unset stack version never skips.
+ */
+export function shouldSkipStackVersion (requires: Requires, stackVersion: string | undefined): boolean {
+  if (requires.stackSince == null || stackVersion == null) return false
+  return compareVersions(stackVersion, requires.stackSince) < 0
+}
+
+/**
+ * Newest stack version a definition needs: the highest of its
+ * `requires.stack_since` and the `since` of every API its do-steps call.
+ *
+ * @param since Map of API action name to the stack version that introduced it.
+ */
+export function stackSinceFor (file: TestFile, since: Record<string, string>): string | undefined {
+  const versions = [file.requires.stackSince]
+  for (const step of [...file.setup, ...file.teardown, ...file.tests.flatMap((t) => t.steps)]) {
+    if (step.kind === 'do') versions.push(since[step.action])
+  }
+  return versions.reduce((max, v) => v != null && (max == null || compareVersions(v, max) > 0) ? v : max, undefined)
+}
+
+function compareVersions (a: string, b: string): number {
+  const x = parseVersion(a)
+  const y = parseVersion(b)
+  const i = x.findIndex((n, j) => n !== y[j])
+  return i === -1 ? 0 : x[i]! - y[i]!
+}
+
+function parseVersion (raw: unknown): number[] {
+  const m = /^(\d+)\.(\d+)\.(\d+)$/.exec(String(raw))
+  if (m == null) throw new Error(`stack_since must be a MAJOR.MINOR.PATCH version (got ${JSON.stringify(raw)})`)
+  return m.slice(1).map(Number)
 }
 
 function parseServerlessProject (raw: unknown): ServerlessProject[] | undefined {

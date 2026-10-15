@@ -6,6 +6,8 @@
 requires:
   serverless: true
   stack: true
+  # Wired-stream body (logs.otel root, failure_store) is 9.5+; older stacks 400.
+  stack_since: 9.5.0
 ---
 setup:
   - do:

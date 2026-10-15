@@ -7,7 +7,8 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'n
 import { join, relative, dirname } from 'node:path'
 import { parseArgs } from 'node:util'
 import { loadAllEsApis } from '../../src/es/apis.ts'
-import { parseTestFile, isServerless } from './parser.ts'
+import { parseTestFile, isServerless, shouldSkipStackVersion, stackSinceFor } from './parser.ts'
+import stackSince from './stack-since.json' with { type: 'json' }
 import { generateScript, generateRunner, UnmappedBodyKeyError } from './generator.ts'
 
 const { values } = parseArgs({
@@ -33,6 +34,13 @@ function walkYamlFiles (dir: string): string[] {
     }
   }
   return files
+}
+
+// Definitions that need a newer stack than any API they call, because they
+// use newer request syntax. Merged over the per-API stack-since.json gate.
+const STACK_SINCE_OVERRIDES: Record<string, string> = {
+  // Rolls over `<ds>::failures`; index component selectors arrived in 9.1.
+  'indices/data_streams_options.yml': '9.1.0',
 }
 
 // Tests skipped due to infra requirements or known codegen gaps.
@@ -66,6 +74,7 @@ let generated = 0
 let skippedNotServerless = 0
 let skippedNoActions = 0
 let skippedEnterprise = 0
+let skippedStackVersion = 0
 const scriptPaths: string[] = []
 const allSkippedActions = new Set<string>()
 const bodyKeyErrors: string[] = []
@@ -86,6 +95,15 @@ for (const yamlFile of yamlFiles) {
   // These are serverless-only tests that cannot pass against a standard ES.
   if (testFile.requires.stack === false) {
     skippedNotServerless++
+    continue
+  }
+
+  const override = STACK_SINCE_OVERRIDES[relPath]
+  if (override != null) testFile.requires.stackSince = override
+  const since = stackSinceFor(testFile, stackSince.es)
+  if (since != null) testFile.requires.stackSince = since
+  if (shouldSkipStackVersion(testFile.requires, process.env.STACK_VERSION)) {
+    skippedStackVersion++
     continue
   }
 
@@ -132,6 +150,7 @@ console.log('=== Summary ===')
 console.log(`  Generated:              ${generated} scripts`)
 console.log(`  Skipped (not serverless): ${skippedNotServerless}`)
 console.log(`  Skipped (enterprise):     ${skippedEnterprise}`)
+console.log(`  Skipped (stack_since):    ${skippedStackVersion}`)
 console.log(`  Skipped (no CLI actions): ${skippedNoActions}`)
 
 if (allSkippedActions.size > 0) {
