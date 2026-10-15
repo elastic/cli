@@ -1084,3 +1084,151 @@ describe('security: executable config formats are rejected', () => {
     })
   })
 })
+
+describe('loadConfig -- allow_context_override', () => {
+  const lockedYaml = `
+current_context: agent
+contexts:
+  agent:
+    elasticsearch:
+      url: http://127.0.0.1:9
+      auth:
+        api_key: read-only-key
+    commands:
+      allowed:
+        - status
+    allow_context_override: false
+  admin:
+    elasticsearch:
+      url: http://127.0.0.1:9
+      auth:
+        api_key: admin-key
+`.trimStart()
+
+  let tmpDir: string
+  let lockedPath: string
+  let originalEnv: string | undefined
+
+  before(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-lock-'))
+    lockedPath = join(tmpDir, 'repro.yml')
+    await writeFile(lockedPath, lockedYaml)
+    await chmod(lockedPath, 0o600)
+  })
+  after(async () => rm(tmpDir, { recursive: true }))
+  before(() => { originalEnv = process.env['ELASTIC_CLI_CONFIG_FILE'] })
+  after(() => {
+    if (originalEnv === undefined) delete process.env['ELASTIC_CLI_CONFIG_FILE']
+    else process.env['ELASTIC_CLI_CONFIG_FILE'] = originalEnv
+  })
+
+  async function withLockedEnv<T> (fn: () => Promise<T>): Promise<T> {
+    process.env['ELASTIC_CLI_CONFIG_FILE'] = lockedPath
+    return fn()
+  }
+
+  it('loads the locked context when no override flag is passed', async () => {
+    const result = await withLockedEnv(() => loadConfig({}))
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    assert.equal(result.contextName, 'agent')
+    assert.equal(result.value.context.elasticsearch?.auth && 'api_key' in result.value.context.elasticsearch.auth
+      ? result.value.context.elasticsearch.auth.api_key
+      : undefined, 'read-only-key')
+  })
+
+  it('rejects --use-context, including odd spellings of the name', async () => {
+    for (const name of ['admin', '../', '?#']) {
+      const result = await withLockedEnv(() => loadConfig({ contextName: name }))
+      assert.equal(result.ok, false, `expected lock to reject ${JSON.stringify(name)}`)
+      if (result.ok) return
+      assert.equal(result.error.code, 'command_blocked')
+      assert.match(result.error.message, /does not allow --use-context/)
+      assert.equal(result.error.message.includes('admin-key'), false)
+    }
+  })
+
+  it('allows --use-context when it names the current context', async () => {
+    const result = await withLockedEnv(() => loadConfig({ contextName: 'agent' }))
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    assert.equal(result.contextName, 'agent')
+  })
+
+  it('loads a different --config-file even when the baseline context is locked', async () => {
+    const other = join(tmpDir, 'admin.yml')
+    await writeFile(other, VALID_CONFIG_YAML)
+    await chmod(other, 0o600)
+    const result = await withLockedEnv(() => loadConfig({ configPath: other }))
+    assert.equal(result.ok, true, result.ok ? '' : result.error.message)
+    if (!result.ok) return
+    assert.equal(result.contextName, 'local')
+
+    for (const configPath of ['../escaped.yml', 'bad?#.yml', '']) {
+      const missing = await withLockedEnv(() => loadConfig({ configPath }))
+      assert.equal(missing.ok, false, `expected ${JSON.stringify(configPath)} to fail open`)
+      if (missing.ok) return
+      assert.notEqual(missing.error.code, 'command_blocked')
+    }
+  })
+
+  it('does not lock a context that is not current', async () => {
+    const path = join(tmpDir, 'admin-locked.yml')
+    await writeFile(path, `
+current_context: agent
+contexts:
+  agent:
+    elasticsearch:
+      url: http://127.0.0.1:9
+      auth:
+        api_key: read-only-key
+  admin:
+    elasticsearch:
+      url: http://127.0.0.1:9
+      auth:
+        api_key: admin-key
+    allow_context_override: false
+`.trimStart())
+    await chmod(path, 0o600)
+    process.env['ELASTIC_CLI_CONFIG_FILE'] = path
+    const result = await loadConfig({ contextName: 'admin' })
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    assert.equal(result.contextName, 'admin')
+  })
+
+  it('allows --use-context when allow_context_override is true', async () => {
+    const yaml = lockedYaml.replace('allow_context_override: false', 'allow_context_override: true')
+    const path = join(tmpDir, 'unlocked.yml')
+    await writeFile(path, yaml)
+    await chmod(path, 0o600)
+    process.env['ELASTIC_CLI_CONFIG_FILE'] = path
+    const result = await loadConfig({ contextName: 'admin' })
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    assert.equal(result.contextName, 'admin')
+  })
+
+  it('applies --use-context to the selected file, not the locked baseline', async () => {
+    const other = join(tmpDir, 'other-with-context.yml')
+    await writeFile(other, `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: http://127.0.0.1:9
+      auth:
+        api_key: a
+  admin:
+    elasticsearch:
+      url: http://127.0.0.1:9
+      auth:
+        api_key: b
+`.trimStart())
+    await chmod(other, 0o600)
+    const result = await withLockedEnv(() => loadConfig({ configPath: other, contextName: 'admin' }))
+    assert.equal(result.ok, true, result.ok ? '' : result.error.message)
+    if (!result.ok) return
+    assert.equal(result.contextName, 'admin')
+  })
+})

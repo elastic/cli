@@ -5,7 +5,7 @@
 
 import { describe, it, afterEach, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Command } from 'commander'
@@ -192,6 +192,42 @@ describe('elastic status -- command', () => {
       assert.equal(out.exitCode, 1)
     } finally {
       restore()
+    }
+  })
+
+  it('emits command_blocked when a locked context is overridden', async () => {
+    const prev = process.env['ELASTIC_CLI_CONFIG_FILE']
+    await writeConfig([
+      'current_context: agent',
+      'contexts:',
+      '  agent:',
+      '    elasticsearch:',
+      '      url: http://es-agent',
+      '      auth: { api_key: k }',
+      '    allow_context_override: false',
+      '  admin:',
+      '    elasticsearch:',
+      '      url: http://es-admin',
+      '      auth: { api_key: k }',
+    ].join('\n'))
+    await chmod(configPath, 0o600)
+    process.env['ELASTIC_CLI_CONFIG_FILE'] = configPath
+    try {
+      const out = await captured(async () => {
+        const prog = makeProgram()
+        await prog.parseAsync(
+          ['--use-context', 'admin', '--json', 'status'],
+          { from: 'user' },
+        )
+      })
+      const parsed = JSON.parse(out.stderr) as { error: { code: string, message: string } }
+      assert.equal(parsed.error.code, 'command_blocked')
+      assert.match(parsed.error.message, /does not allow --use-context/)
+      assert.equal(out.exitCode, 1)
+      assert.equal(out.stdout, '')
+    } finally {
+      if (prev === undefined) delete process.env['ELASTIC_CLI_CONFIG_FILE']
+      else process.env['ELASTIC_CLI_CONFIG_FILE'] = prev
     }
   })
 
