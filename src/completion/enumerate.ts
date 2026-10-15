@@ -32,17 +32,12 @@ export interface CompletionResult {
 export type DynamicCompleter = () => string[] | Promise<string[]>
 
 /**
- * Lookup table for dynamic completers keyed by flag long name (including `--`)
- * or by command path (e.g. `"config current-context set"`).
- *
- * Returning `undefined` for an unknown key is mandatory: the completion path
- * MUST NOT throw or block, so completers that are unavailable for the current
- * environment simply do not register themselves.
+ * Dynamic completers keyed by flag long name (including `--`) or by
+ * space-joined command path (e.g. `"config current-context set"`).
  */
-export interface DynamicCompleterRegistry {
-  get(flagLong: string): DynamicCompleter | undefined
-  /** Returns a positional-argument completer for the given space-joined command path, if any. */
-  getPositional?(commandPath: string): DynamicCompleter | undefined
+export interface DynamicCompleters {
+  flags: ReadonlyMap<string, DynamicCompleter>
+  positionals?: ReadonlyMap<string, DynamicCompleter>
 }
 
 // Commander stores hidden state on an internal `_hidden` field that is not
@@ -187,12 +182,12 @@ async function safeRun (fn: DynamicCompleter): Promise<string[]> {
  *
  * @param root - top-level program command (with all loaded subtrees attached)
  * @param words - command words after the program name; empty array is allowed
- * @param registry - optional dynamic completer lookup (e.g. context names)
+ * @param completers - optional dynamic completers (e.g. context names)
  */
 export async function enumerate (
   root: Command,
   words: readonly string[],
-  registry?: DynamicCompleterRegistry,
+  completers?: DynamicCompleters,
 ): Promise<CompletionResult> {
   const arr = words.length === 0 ? [''] : Array.from(words)
   const incomplete = arr[arr.length - 1] ?? ''
@@ -218,7 +213,7 @@ export async function enumerate (
     const eqIdx = incomplete.indexOf('=')
     const flag = incomplete.slice(0, eqIdx)
     const partial = incomplete.slice(eqIdx + 1)
-    const completer = registry?.get(flag)
+    const completer = completers?.flags.get(flag)
     if (completer != null) {
       const cands = await safeRun(completer)
       return {
@@ -247,7 +242,7 @@ export async function enumerate (
         }
       }
     }
-    const completer = registry?.get(previous)
+    const completer = completers?.flags.get(previous)
     if (completer != null) {
       const cands = await safeRun(completer)
       return {
@@ -269,8 +264,8 @@ export async function enumerate (
   // Leaf command (no subcommands): offer a registered positional completer.
   // Note: this fires regardless of how many positional args are already typed,
   // so a single-positional command re-offers candidates after the first.
-  if (children.length === 0 && registry != null) {
-    const positionalCompleter = registry.getPositional?.(getCommandPath(current))
+  if (children.length === 0) {
+    const positionalCompleter = completers?.positionals?.get(getCommandPath(current))
     if (positionalCompleter != null) {
       const cands = await safeRun(positionalCompleter)
       return {

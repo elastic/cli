@@ -58,24 +58,20 @@ interface AjvErrorView {
 }
 
 function getAjv (): Ajv {
-  if (_ajv == null) {
-    // validateSchema: false — generated schemas contain cosmetic meta-schema violations
-    // (e.g. nullable enums with a repeated `null`) that AJV would otherwise throw on
-    // before validating any input.
-    //
-    // useDefaults is load-bearing: the hand-authored input schemas in src/es/helpers/
-    // (bulk-ingest flush_bytes/concurrency/retries/retry_delay/source_format, msearch
-    // batch_size/concurrency, watch sort_field/poll_interval/size) and src/docs/search.ts
-    // (page/size) declare `default` values and their handlers destructure those fields as
-    // non-optional. Removing this option would hand them `undefined`.
-    //
-    // ponytail: ajv@8 options. validateFormats: false suppresses errors about
-    // unrecognized format keywords (replaces v6's unknownFormats: 'ignore').
-    // strictSchema: false — suppresses 'unknown keyword' for x-found-in and other x- annotations.
-    _ajv = new Ajv({ allErrors: true, logger: false, useDefaults: true, validateSchema: false, validateFormats: false, strictSchema: false })
-  }
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  return _ajv!
+  // validateSchema: false — generated schemas contain cosmetic meta-schema violations
+  // (e.g. nullable enums with a repeated `null`) that AJV would otherwise throw on
+  // before validating any input.
+  //
+  // useDefaults is load-bearing: the hand-authored input schemas in src/es/helpers/
+  // (bulk-ingest flush_bytes/concurrency/retries/retry_delay/source_format, msearch
+  // batch_size/concurrency, watch sort_field/poll_interval/size) and src/docs/search.ts
+  // (page/size) declare `default` values and their handlers destructure those fields as
+  // non-optional. Removing this option would hand them `undefined`.
+  //
+  // ponytail: ajv@8 options. validateFormats: false suppresses errors about
+  // unrecognized format keywords (replaces v6's unknownFormats: 'ignore').
+  // strictSchema: false — suppresses 'unknown keyword' for x-found-in and other x- annotations.
+  return (_ajv ??= new Ajv({ allErrors: true, logger: false, useDefaults: true, validateSchema: false, validateFormats: false, strictSchema: false }))
 }
 
 /**
@@ -159,7 +155,8 @@ function deduplicateUnionErrors (errors: ValidationError[]): ValidationError[] {
 /**
  * Validates `input` against a JSON Schema object.
  *
- * Strips the `$schema` key before compiling (AJV v6 doesn't support 2020-12).
+ * Strips the `$schema` key before compiling: upstream schemas declare draft
+ * 2020-12, but the default `Ajv` class is draft-07 and has no 2020-12 meta-schema.
  * With `useDefaults: true`, missing fields with JSON Schema `default` values
  * are populated in-place on the returned `data` object.
  *
@@ -171,7 +168,7 @@ export function validateWithJsonSchema (
   input: unknown
 ): ValidationResult {
   const { $schema, ...compilable } = schema as Record<string, unknown>
-  void $schema // strip draft identifier AJV v6 doesn't understand
+  void $schema // strip the 2020-12 draft identifier the draft-07 `Ajv` class doesn't register
 
   // deep-clone input so defaults don't mutate the original object
   const data = JSON.parse(JSON.stringify(input ?? {})) as Record<string, unknown>

@@ -15,8 +15,6 @@
  */
 import { StructuralConfigSchema } from '../../config/schema.ts'
 
-const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
-
 /**
  * Resolves the list of context names from the active config file.
  *
@@ -28,11 +26,9 @@ const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
  */
 export async function completeContextNames (): Promise<string[]> {
   try {
-    const { discoverConfigFile, loadConfigFile } = await import('../../config/loader.js')
-    const envPath = process.env[ENV_CONFIG_FILE]
-    const path = envPath != null && envPath.length > 0
-      ? envPath
-      : await discoverConfigFile()
+    const { loadConfigFile } = await import('../../config/loader.js')
+    const { findConfigFile } = await import('../../config/discover.js')
+    const path = await findConfigFile()
     if (path == null) return []
 
     const raw = await loadConfigFile(path)

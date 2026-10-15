@@ -4,10 +4,12 @@
  */
 
 import { validateWithJsonSchema } from '../lib/ajv-validate.ts'
+import { parseVersionHint } from '../lib/availability.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './profiles.ts'
 import type {
   Auth,
   ServiceBlock,
+  VersionedServiceBlock,
   Context,
   ConfigFile,
   CommandPolicy,
@@ -24,8 +26,9 @@ import type {
  *
  * Unknown fields are stripped by the `strip*` helpers rather than by the schemas
  * themselves. Cross-field business rules (at-least-one-service, non-empty contexts
- * map, valid current_context key, URL scheme) are enforced in `safeParse` because
- * they cannot be expressed as plain JSON Schema constraints with useful messages.
+ * map, valid current_context key, URL scheme, version format) are enforced in
+ * `safeParse` because they cannot be expressed as plain JSON Schema constraints
+ * with useful messages.
  */
 
 // ---------------------------------------------------------------------------
@@ -92,6 +95,19 @@ function urlError (url: unknown, path: string): FieldError | undefined {
   return undefined
 }
 
+/** Verifies a version hint is a valid semver (major.minor[.patch]) or the literal "serverless". */
+function versionError (version: unknown, path: string): FieldError | undefined {
+  if (version === undefined) return undefined
+  if (version != null && typeof version === 'object') {
+    const { value, checked_ts: ts } = version as Record<string, unknown>
+    if (typeof ts === 'string' && Number.isNaN(Date.parse(ts))) return { path: `${path}.checked_ts`, message: 'must be an ISO 8601 datetime' }
+    return versionError(value, `${path}.value`)
+  }
+  if (typeof version !== 'string') return undefined // shape errors are AJV's job
+  if (parseVersionHint(version) != null) return undefined
+  return { path, message: 'must be a semver version (e.g. "9.2" or "9.2.3") or "serverless"' }
+}
+
 /** Collects URL errors for every service block present on a context. */
 function contextUrlErrors (raw: unknown, prefix: string): FieldError[] {
   if (raw == null || typeof raw !== 'object') return []
@@ -106,6 +122,19 @@ function contextUrlErrors (raw: unknown, prefix: string): FieldError[] {
   return errors
 }
 
+/** Collects version errors for every service block present on a context. */
+function contextVersionErrors (raw: unknown, prefix: string): FieldError[] {
+  if (raw == null || typeof raw !== 'object') return []
+  const r = raw as Record<string, unknown>
+  const errors: FieldError[] = []
+  for (const service of ['elasticsearch', 'kibana'] as const) {
+    const block = r[service]
+    if (block == null || typeof block !== 'object') continue
+    const err = versionError((block as Record<string, unknown>)['version'], `${prefix}.${service}.version`)
+    if (err != null) errors.push(err)
+  }
+  return errors
+}
 
 // ---------------------------------------------------------------------------
 // JSON Schemas (no additionalProperties — we strip manually)
@@ -140,6 +169,23 @@ const serviceBlockSchema: Record<string, unknown> = {
   required: ['url'],
 }
 
+const versionedServiceBlockSchema: Record<string, unknown> = {
+  ...serviceBlockSchema,
+  properties: {
+    ...(serviceBlockSchema['properties'] as Record<string, unknown>),
+    version: {
+      anyOf: [
+        { type: 'string', minLength: 1 },
+        {
+          type: 'object',
+          properties: { value: { type: 'string', minLength: 1 }, checked_ts: { type: 'string', minLength: 1 } },
+          required: ['checked_ts'],
+        },
+      ],
+    },
+  },
+}
+
 const commandPolicySchema: Record<string, unknown> = {
   type: 'object',
   properties: {
@@ -156,8 +202,8 @@ const commandPolicySchema: Record<string, unknown> = {
 const contextSchema: Record<string, unknown> = {
   type: 'object',
   properties: {
-    elasticsearch: serviceBlockSchema,
-    kibana: serviceBlockSchema,
+    elasticsearch: versionedServiceBlockSchema,
+    kibana: versionedServiceBlockSchema,
     cloud: serviceBlockSchema,
     commands: commandPolicySchema,
     allow_context_override: { type: 'boolean' },
@@ -177,6 +223,7 @@ const configFileSchema: Record<string, unknown> = {
     default_profile: { type: 'string', enum: [...BUILT_IN_PROFILES] },
     banner: { type: 'boolean' },
     telemetry: { type: 'boolean' },
+    detect_version: { type: 'boolean' },
   },
   required: ['current_context', 'contexts'],
 }
@@ -194,6 +241,7 @@ const structuralConfigSchema: Record<string, unknown> = {
     default_profile: {},
     banner: { type: 'boolean' },
     telemetry: { type: 'boolean' },
+    detect_version: { type: 'boolean' },
   },
   required: ['current_context', 'contexts'],
 }
@@ -223,6 +271,17 @@ function stripServiceBlock (raw: unknown): ServiceBlock | undefined {
   return out
 }
 
+function stripVersionedServiceBlock (raw: unknown): VersionedServiceBlock | undefined {
+  const out: VersionedServiceBlock | undefined = stripServiceBlock(raw)
+  const version = (raw as Record<string, unknown> | undefined)?.['version']
+  if (out != null && typeof version === 'string') out.version = version
+  else if (out != null && version != null && typeof version === 'object') {
+    const { value, checked_ts: ts } = version as Record<string, unknown>
+    if (typeof ts === 'string') out.version = { ...(typeof value === 'string' && { value }), checked_ts: ts }
+  }
+  return out
+}
+
 function stripCommandPolicy (raw: unknown): CommandPolicy | undefined {
   if (raw == null || typeof raw !== 'object') return undefined
   const r = raw as Record<string, unknown>
@@ -240,11 +299,11 @@ function stripContext (raw: unknown): Context | undefined {
   const r = raw as Record<string, unknown>
   const out: Context = {}
   if (r['elasticsearch'] != null) {
-    const v = stripServiceBlock(r['elasticsearch'])
+    const v = stripVersionedServiceBlock(r['elasticsearch'])
     if (v != null) out.elasticsearch = v
   }
   if (r['kibana'] != null) {
-    const v = stripServiceBlock(r['kibana'])
+    const v = stripVersionedServiceBlock(r['kibana'])
     if (v != null) out.kibana = v
   }
   if (r['cloud'] != null) {
@@ -294,14 +353,16 @@ export const AuthSchema = {
   },
 }
 
-/** Endpoint URL and authentication credentials for a single service. */
+/** Endpoint URL, authentication credentials, and optional version hint for an Elasticsearch or Kibana service. */
 export const ServiceBlockSchema = {
-  safeParse (input: unknown): ParseResult<ServiceBlock> {
-    const r = validate(serviceBlockSchema, input)
+  safeParse (input: unknown): ParseResult<VersionedServiceBlock> {
+    const r = validate(versionedServiceBlockSchema, input)
     if (!r.ok) return { success: false, errors: r.errors }
-    const block = stripServiceBlock(r.data)!
+    const block = stripVersionedServiceBlock(r.data)!
     const err = urlError(block.url, '.url')
     if (err != null) return { success: false, errors: [err] }
+    const verErr = versionError((r.data as Record<string, unknown>)['version'], '.version')
+    if (verErr != null) return { success: false, errors: [verErr] }
     return { success: true, data: block }
   },
 }
@@ -345,6 +406,8 @@ export const ContextSchema = {
     }
     const urlErrors = contextUrlErrors(r.data, '')
     if (urlErrors.length > 0) return { success: false, errors: urlErrors }
+    const versionErrors = contextVersionErrors(r.data, '')
+    if (versionErrors.length > 0) return { success: false, errors: versionErrors }
     return { success: true, data: ctx }
   },
 }
@@ -369,6 +432,7 @@ export const ConfigFileSchema = {
     }
     if (typeof raw['banner'] === 'boolean') cfg.banner = raw['banner']
     if (typeof raw['telemetry'] === 'boolean') cfg.telemetry = raw['telemetry']
+    if (typeof raw['detect_version'] === 'boolean') cfg.detect_version = raw['detect_version']
     if (typeof raw['default_profile'] === 'string' && (BUILT_IN_PROFILES as readonly string[]).includes(raw['default_profile'])) {
       cfg.default_profile = raw['default_profile'] as BuiltInProfile
     }
@@ -387,6 +451,8 @@ export const ConfigFileSchema = {
       }
       const urlErrors = contextUrlErrors((raw['contexts'] as Record<string, unknown>)[key], `.contexts.${key}`)
       if (urlErrors.length > 0) return { success: false, errors: urlErrors }
+      const versionErrors = contextVersionErrors((raw['contexts'] as Record<string, unknown>)[key], `.contexts.${key}`)
+      if (versionErrors.length > 0) return { success: false, errors: versionErrors }
     }
     if (raw['commands'] != null) {
       cfg.commands = stripCommandPolicy(raw['commands'])!
@@ -408,6 +474,7 @@ export const StructuralConfigSchema = {
     default_profile?: unknown
     banner?: boolean
     telemetry?: boolean
+    detect_version?: boolean
   }> {
     const r = validate(structuralConfigSchema, input)
     if (!r.ok) return { success: false, errors: r.errors }
@@ -421,6 +488,7 @@ export const StructuralConfigSchema = {
         ...(raw['default_profile'] !== undefined && { default_profile: raw['default_profile'] }),
         ...(raw['banner'] !== undefined && { banner: raw['banner'] as boolean }),
         ...(raw['telemetry'] !== undefined && { telemetry: raw['telemetry'] as boolean }),
+        ...(raw['detect_version'] !== undefined && { detect_version: raw['detect_version'] as boolean }),
       },
     }
   },

@@ -10,31 +10,6 @@ interface Marker {
   value?: string
 }
 
-export type KnownAgent =
-  | 'cowork'
-  | 'claude-code'
-  | 'cursor-cli'
-  | 'cursor'
-  | 'codex'
-  | 'gemini-cli'
-  | 'github-copilot'
-  | 'antigravity'
-  | 'augment-cli'
-  | 'cline'
-  | 'crush'
-  | 'goose'
-  | 'hermes-agent'
-  | 'kilo-code'
-  | 'kiro'
-  | 'openclaw'
-  | 'opencode'
-  | 'pi'
-  | 'replit'
-  | 'trae'
-  | 'vtcode'
-  | 'zed'
-  | 'warp'
-
 export type AgentId = KnownAgent | (string & {})
 
 export interface LlmInfo {
@@ -50,7 +25,8 @@ export interface Detection {
   llm?: LlmInfo
 }
 
-export const AGENT_SHORT_CODES: Record<KnownAgent, string> = {
+// Single source of truth for agent ids: KnownAgent is derived from these keys.
+const SHORT_CODES = {
   cowork: 'cw',
   'claude-code': 'cc',
   'cursor-cli': 'cu',
@@ -75,6 +51,10 @@ export const AGENT_SHORT_CODES: Record<KnownAgent, string> = {
   zed: 'zd',
   warp: 'wp',
 }
+
+export type KnownAgent = keyof typeof SHORT_CODES
+
+export const AGENT_SHORT_CODES: Record<KnownAgent, string> = SHORT_CODES
 
 /**
  * Ordered marker table. Order encodes detection priority for tie-breaking:
@@ -158,6 +138,13 @@ function isKnownAgent (v: string): v is KnownAgent {
   return Object.hasOwn(AGENT_SHORT_CODES, v)
 }
 
+// Harnesses may append a version/suffix (`claude-code_2-1-296_agent`); strip it
+// when it follows a known id at a `[_-]` boundary. Longest id wins.
+function normalizeAiAgent (v: string): AgentId {
+  const ids = Object.keys(AGENT_SHORT_CODES).sort((a, b) => b.length - a.length)
+  return ids.find((id) => v === id || v.startsWith(`${id}_`) || v.startsWith(`${id}-`)) ?? v
+}
+
 type Env = Record<string, string | undefined>
 
 /**
@@ -229,7 +216,7 @@ export function detectAgent (
   // the caller has explicitly declared which harness is running and marker votes
   // must not dilute confidence or suppress the result.
   const aiAgent = env['AI_AGENT']
-  if (aiAgent != null && aiAgent !== '') return buildDetection(aiAgent, 1, env)
+  if (aiAgent != null && aiAgent !== '') return buildDetection(normalizeAiAgent(aiAgent), 1, env)
   const agentEnv = env['AGENT']
   if (agentEnv != null && agentEnv !== '' && isKnownAgent(agentEnv)) return buildDetection(agentEnv, 1, env)
 

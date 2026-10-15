@@ -14,14 +14,28 @@
   "automergeType": "pr",
   "packageRules": [
     {
-      "matchUpdateTypes": ["patch", "minor", "pin", "digest"],
-      "addLabels": ["renovate-auto-approve"],
+      "matchUpdateTypes": [
+        "patch",
+        "minor",
+        "pin",
+        "digest"
+      ],
+      "addLabels": [
+        "renovate-auto-approve"
+      ],
       "automerge": true
     }
   ],
   "postUpgradeTasks": {
-    "commands": ["node scripts/generate-notice.mjs"],
-    "fileFilters": ["NOTICE.txt"],
+    "commands": [
+      "node scripts/generate-notice.mjs"
+    ],
+    "fileFilters": [
+      "NOTICE.txt"
+    ],
     "executionMode": "branch"
-  }
+  },
+  "allowedCommands": [
+    "^node scripts/generate-notice\\.mjs$"
+  ]
 }

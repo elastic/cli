@@ -13,6 +13,8 @@ import type { SchemaArgDefinition } from './lib/json-schema-args.ts'
 import type { renderText as _RT, formatHandlerError as _FHE } from './output.ts'
 import { pickFields, parseFieldList, applyTemplate, TemplateAgainstPrimitiveError } from './lib/output-transform.ts'
 import { validateName, hasGlobalJsonFlag, configureErrorOutput, commandPath, isCommandAllowed, stripTransportMeta } from './factory-core.ts'
+import type { AvailabilityTarget } from './lib/availability.ts'
+import { filterSchemaByAvailability } from './lib/availability.ts'
 import type { OpaqueCommandHandle, JsonValue, CommandConfig, ParsedResult } from './factory-core.ts'
 import { RawJsonValue } from './factory-core.ts'
 import { YamlResponse } from './lib/yaml-response.ts'
@@ -268,13 +270,15 @@ function isJsonSchemaInput (input: unknown): input is Record<string, unknown> {
 function configureHelpWithSchema (
   cmd: OpaqueCommandHandle,
   inputSchema: Record<string, unknown> | undefined,
+  target?: AvailabilityTarget,
 ): void {
   const origHelp = cmd.createHelp()
   cmd.configureHelp({
     formatHelp: (thisCmd, helper) => {
       if (hasGlobalJsonFlag(thisCmd)) {
-        const jsonSchema = inputSchema != null
-          ? stripTransportMeta(inputSchema as JsonValue)
+        const filteredSchema = inputSchema != null ? filterSchemaByAvailability(inputSchema, target) : undefined
+        const jsonSchema = filteredSchema != null
+          ? stripTransportMeta(filteredSchema as JsonValue)
           : undefined
         return jsonSchema != null ? JSON.stringify(jsonSchema) + '\n' : ''
       }
@@ -328,6 +332,14 @@ function parseJsonContent (raw: string, source: string, cmd: OpaqueCommandHandle
 function writeErr (cmd: OpaqueCommandHandle, str: string): void {
   const write = cmd.configureOutput().writeErr ?? ((s: string) => process.stderr.write(s))
   write(str)
+}
+
+/**
+ * Writes a failure to stderr as `{"error": {...}}` under `--json`, or `Error: <message>`
+ * otherwise. Exit/throw semantics differ per call site, so they stay with the caller.
+ */
+function emitError (cmd: OpaqueCommandHandle, jsonFormat: unknown, error: { code: string, message: string, [extra: string]: unknown }): void {
+  writeErr(cmd, jsonFormat === true ? JSON.stringify({ error }) + '\n' : `Error: ${error.message}\n`)
 }
 
 function isErrorResult (value: JsonValue): boolean {
@@ -447,9 +459,11 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
   }
 
   // schema-derived CLI options (registered before --input-file so help text order is correct)
+  // Single filtered schema so flags, help, and runtime validation agree on availability.
+  const effectiveInput = isJsonSchemaInput(config.input) ? filterSchemaByAvailability(config.input, config.target) : undefined
   let schemaArgs: SchemaArgDefinition[] = []
   if (isJsonSchemaInput(config.input)) {
-    schemaArgs = extractSchemaArgs(config.input)
+    schemaArgs = extractSchemaArgs(effectiveInput, config.target)
     validateSchemaArgs(schemaArgs)
     for (const arg of schemaArgs) {
       const suffix = arg.required
@@ -491,8 +505,8 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
   // take no input at all, so --input-file and --dry-run would be no-ops; hide
   // them (#378). Write commands keep --input-file even with an empty schema
   // because loose schemas pass the whole file through as the request body.
-  const inputIsEmptyObject = isJsonSchemaInput(config.input) &&
-    Object.keys((config.input as { properties?: Record<string, unknown> }).properties ?? {}).length === 0
+  const inputIsEmptyObject = isJsonSchemaInput(effectiveInput) &&
+    Object.keys((effectiveInput as { properties?: Record<string, unknown> }).properties ?? {}).length === 0
   const hideNoInputFlags = config.readOnly === true && inputIsEmptyObject
   if (isJsonSchemaInput(config.input) && !hideNoInputFlags) {
     cmd.option('--input-file <path>', 'path to a JSON file to use as command input')
@@ -510,7 +524,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
     cmd.option('--yes', 'confirm destructive action without prompting')
   }
 
-  configureHelpWithSchema(cmd, isJsonSchemaInput(config.input) ? config.input : undefined)
+  configureHelpWithSchema(cmd, isJsonSchemaInput(effectiveInput) ? effectiveInput : undefined, config.target)
 
   Object.defineProperty(cmd, '_commandConfig', {
     value: { config, schemaArgs },
@@ -671,12 +685,10 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
       const dotPath = (parts.length > 1 ? parts.slice(1) : parts).join('.')
       if (!isCommandAllowed(dotPath, resolvedConfig.commands)) {
         if (jsonFormat === true) {
-          writeErr(cmd, JSON.stringify({
-            error: {
-              code: 'command_blocked',
-              message: `command "${dotPath}" is not allowed by the current policy`,
-            },
-          }) + '\n')
+          emitError(cmd, jsonFormat, {
+            code: 'command_blocked',
+            message: `command "${dotPath}" is not allowed by the current policy`,
+          })
           throw Object.assign(new Error('command_blocked'), { exitCode: 1 })
         }
         return cmd.error(`command "${dotPath}" is not allowed by the current policy`)
@@ -690,7 +702,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
     }
 
     if (inputValue !== undefined) {
-      assert(isJsonSchemaInput(config.input), `command ${JSON.stringify(config.name)}: input must be a JSON Schema object`)
+      assert(effectiveInput !== undefined, `command ${JSON.stringify(config.name)}: input must be a JSON Schema object`)
 
       // --no-validate skips schema validation and sends the input as-is (#530 escape
       // hatch): neutralizes false rejections when the shipped schema is stricter than the
@@ -703,35 +715,33 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
         // - sort-pairs: parsed to [{field: dir}] which won't match string schema
         // - body object/array fields: full DSL (e.g. query, _source) may not match strict schema
         // Fields with no x-found-in are validated strictly.
-        let validationSchema: Record<string, unknown> = config.input
+        let validationSchema: Record<string, unknown> = effectiveInput
         const relaxFields = schemaArgs.filter(
           (a) =>
             sortParsedKeys.has(a.schemaKey) ||
             (a.foundIn === 'body' && (a.type === 'object' || a.type === 'array'))
         )
-        if (relaxFields.length > 0 && typeof config.input['properties'] === 'object') {
-          const props = { ...(config.input['properties'] as Record<string, unknown>) }
+        if (relaxFields.length > 0 && typeof effectiveInput['properties'] === 'object') {
+          const props = { ...(effectiveInput['properties'] as Record<string, unknown>) }
           for (const f of relaxFields) {
             if (f.schemaKey in props) {
               // Accept any value for these relaxed fields
               props[f.schemaKey] = {}
             }
           }
-          validationSchema = { ...config.input, properties: props }
+          validationSchema = { ...effectiveInput, properties: props }
         }
 
         const result = validateWithJsonSchema(validationSchema, inputValue)
 
         if (!result.success) {
           if (jsonFormat === true) {
-            writeErr(cmd, JSON.stringify({
-              error: {
-                code: 'input_validation_failed',
-                message: `Input validation failed with ${result.errors.length} issue(s)`,
-                // Emit path as array (like Zod) for API compatibility
-                issues: result.errors.map(e => ({ code: e.code, path: e.path_array, message: e.message }))
-              }
-            }) + '\n')
+            emitError(cmd, jsonFormat, {
+              code: 'input_validation_failed',
+              message: `Input validation failed with ${result.errors.length} issue(s)`,
+              // Emit path as array (like Zod) for API compatibility
+              issues: result.errors.map(e => ({ code: e.code, path: e.path_array, message: e.message }))
+            })
             // throw to prevent handler execution - mirrors cmd.error() behaviour
             throw Object.assign(new Error('input_validation_failed'), { exitCode: 1 })
           }
@@ -760,24 +770,12 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
 
     if (config.intent?.destructive === true || config.intent?.requiresConfirmation === true) {
       if (allRaw['yes'] !== true) {
-        if (isTTYFn()) {
-          const confirmed = await promptConfirm()
-          if (!confirmed) {
-            const errObj = { error: { code: 'confirmation_required', message: 'Aborted.' } }
-            if (jsonFormat === true) {
-              writeErr(cmd, JSON.stringify(errObj) + '\n')
-            } else {
-              writeErr(cmd, 'Error: Aborted.\n')
-            }
-            throw Object.assign(new Error('confirmation_required'), { exitCode: 1 })
-          }
-        } else {
-          const errObj = { error: { code: 'confirmation_required', message: 'Pass --yes to confirm this destructive action.' } }
-          if (jsonFormat === true) {
-            writeErr(cmd, JSON.stringify(errObj) + '\n')
-          } else {
-            writeErr(cmd, 'Error: Pass --yes to confirm this destructive action.\n')
-          }
+        const tty = isTTYFn()
+        if (!tty || !(await promptConfirm())) {
+          emitError(cmd, jsonFormat, {
+            code: 'confirmation_required',
+            message: tty ? 'Aborted.' : 'Pass --yes to confirm this destructive action.',
+          })
           throw Object.assign(new Error('confirmation_required'), { exitCode: 1 })
         }
       }
@@ -827,13 +825,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
           process.stdout.write(applyTemplate(output, templateRaw))
         } catch (err) {
           if (err instanceof TemplateAgainstPrimitiveError) {
-            if (jsonFormat === true) {
-              writeErr(cmd, JSON.stringify({
-                error: { code: 'output_template_error', message: err.message },
-              }) + '\n')
-            } else {
-              writeErr(cmd, `Error: ${err.message}\n`)
-            }
+            emitError(cmd, jsonFormat, { code: 'output_template_error', message: err.message })
             process.exitCode = 1
           } else {
             throw err

@@ -9,7 +9,7 @@
  * raw `namespace.name` operations (the `@elastic/schemas` source of truth);
  * this is the only place that knows how those map onto the restructured
  * `cloud …` command tree (promoted namespaces, hosted/serverless partitioning,
- * project-type inversion, cross-project merging, and display renames).
+ * project-type inversion, and display renames).
  *
  * The partition constants and `simplifyProjectCommandName` are imported from
  * `register.ts` so this resolver can never drift from the registered tree.
@@ -17,7 +17,6 @@
 
 import {
   PROJECT_NAMESPACES,
-  CROSS_PROJECT_NAMESPACES,
   HOSTED_NAMESPACE_RENAMES,
   SERVERLESS_NAMESPACES,
   simplifyProjectCommandName,
@@ -39,9 +38,6 @@ export function cloudCliPath (def: CloudApiDefinition): string[] {
     const projectType = PROJECT_NAMESPACES[ns]
     if (projectType != null) {
       return ['serverless', 'projects', projectType, simplifyProjectCommandName(def.name, ns)]
-    }
-    if (CROSS_PROJECT_NAMESPACES.has(ns)) {
-      return ['serverless', 'cross-project', def.name]
     }
     return ['serverless', ns, def.name]
   }

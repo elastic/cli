@@ -39,11 +39,4 @@ describe('cloudCliPath', () => {
   it('keeps other serverless namespaces flat under serverless', () => {
     assert.deepEqual(cloudCliPath(def('regions', 'list-regions')), ['serverless', 'regions', 'list-regions'])
   })
-
-  it('merges linked-project namespaces into cross-project', () => {
-    assert.deepEqual(
-      cloudCliPath(def('linked-projects', 'get-elasticsearch-project-can-delete')),
-      ['serverless', 'cross-project', 'get-elasticsearch-project-can-delete']
-    )
-  })
 })

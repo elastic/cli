@@ -20,6 +20,7 @@ The `.elasticrc` configuration file defines connection contexts, credentials, co
 | `default_profile` | string (`serverless` \| `stack` \| `default`) | no | - | Fallback built-in profile applied to any context that does not set its own `commands.profile`. Overridden by a per-context `commands.profile` and by the `--command-profile` CLI flag. |
 | `banner` | boolean | no | `true` | Whether to show the startup banner. |
 | `telemetry` | boolean | no | `true` | Whether to collect anonymous usage telemetry. Set to `false` to turn off collection of anonymous telemetry. Overridden by the `ELASTIC_CLI_TELEMETRY` environment variable. |
+| `detect_version` | boolean | no | `true` | Whether to auto-detect the {{es}} and {{kib}} `version` of each context. Set to `false` to never detect. See [Service block](#service-block). |
 
 ### `contexts.<name>` [contexts]
 
@@ -43,6 +44,7 @@ The endpoint URL and authentication credentials for a single service.
 | - | - | - | - | - |
 | `url` | string | yes | - | Service endpoint URL. Must be a valid URL using the `http://` or `https://` scheme. |
 | `auth` | object | no | - | Authentication credentials for the service. {{es}} and {{kib}} support [API key](#auth-api-key) or [basic authentication](#auth-basic); {{ecloud}} requires an [API key](#auth-api-key). |
+| `version` | string or object | no | - | Target version hint for command availability filtering. Accepts a version string (examples: `9.2`, `9.2.3`) or the literal `serverless`. When absent, the CLI detects the version before running the next command and stores it in `{ value: string, checked_ts: string }` format. Auto-detection will not run again until the datetime string stored in `checked_ts` is more than 30 days in the past. If detection fails, the CLI stores only `{ checked_ts: string }` (or, when a `value` already exists, keeps it and updates `checked_ts`). A `version` with a `checked_ts` but no `value` is retried after 1 hour. Detection runs only for `elastic stack` subcommands, never for `--help` or `--dry-run`. Auto-detection will not run when `version: string` format is used, so you will need to manually update the value when your cluster is upgraded. Setting the top-level `detect_version` to `false` turns off auto-detection. See [Supported versions and version filtering](./configuration.md#versions). |
 
 ##### Auth: API key [auth-api-key]
 

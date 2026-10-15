@@ -1,0 +1,126 @@
+# Signs macOS and Windows release binaries via unified-release.
+# Runs for v* tags and ci/* branches. Linux stays on release-artifacts.yml.
+#
+# Not live until all of these exist:
+#   Buildkite pipeline elastic-cli-release (catalog-info.yaml in this repo)
+#   secret/ci/elastic-cli/buildkite-read field buildkite_token (read_builds)
+#   slug elastic-cli-release allowlisted on unified-release-macos-signing
+#   and unified-release-windows-signing
+# Publish runs only after the macOS binaries are Developer ID signed with the
+# bun JIT entitlements, and the Windows exes pass osslsigncode.
+# Bun 1.3.12 Mach-O is rejected by codesign (fixed in 1.3.13).
+
+env:
+  BUN_VERSION: "1.3.14"
+  BUILDKITE_READ_PATH: "secret/ci/elastic-cli/buildkite-read"
+
+steps:
+  - label: ":package: build macOS and Windows binaries"
+    key: build
+    if: build.branch =~ /^ci\// || build.tag =~ /^v/
+    agents:
+      provider: gcp
+      image: family/core-ubuntu-2204
+      machineType: n2-standard-4
+    artifact_paths:
+      - elastic-macos-x64
+      - elastic-macos-arm64
+      - elastic-windows-x64.exe
+      - elastic-windows-arm64.exe
+    command: .buildkite/scripts/release-build.sh
+
+  - label: ":package: pack artifacts-to-sign"
+    key: pack
+    depends_on: build
+    if: build.branch =~ /^ci\// || build.tag =~ /^v/
+    agents:
+      provider: gcp
+      image: family/core-ubuntu-2204
+    artifact_paths:
+      - artifacts-to-sign/*
+    command: |
+      mkdir -p downloads
+      buildkite-agent artifact download "elastic-macos-*" downloads/
+      buildkite-agent artifact download "elastic-windows-*.exe" downloads/
+      .buildkite/scripts/pack-sign.sh downloads
+
+  - label: ":apple: macOS sign"
+    trigger: unified-release-macos-signing
+    key: macos-sign-service
+    depends_on: pack
+    if: build.branch =~ /^ci\// || build.tag =~ /^v/
+    build:
+      env:
+        INPUT_PATH: "buildkite://"
+        MACOS_ENTITLEMENTS_PROFILE: bun-jit
+
+  - label: ":windows: Windows sign"
+    trigger: unified-release-windows-signing
+    key: windows-sign-service
+    depends_on: pack
+    if: build.branch =~ /^ci\// || build.tag =~ /^v/
+    build:
+      env:
+        INPUT_PATH: "buildkite://"
+        DOWNLOAD_ARTIFACTS_FILTER: "elastic-windows-*.exe"
+
+  - label: ":inbox_tray: collect signed artifacts"
+    key: collect
+    depends_on:
+      - macos-sign-service
+      - windows-sign-service
+    if: build.branch =~ /^ci\// || build.tag =~ /^v/
+    agents:
+      provider: gcp
+      image: family/core-ubuntu-2204
+    artifact_paths:
+      - final/*
+    command: .buildkite/scripts/collect-signed.sh
+
+  - label: ":apple: verify macOS entitlements"
+    key: verify-macos
+    depends_on: collect
+    if: build.branch =~ /^ci\// || build.tag =~ /^v/
+    agents:
+      provider: orka
+      imagePrefix: generic-13-ventura-arm
+    command: |
+      buildkite-agent artifact download "final/elastic-macos-*" .
+      .buildkite/scripts/verify-macos-signature.sh final
+
+  - label: ":lock: verify signed payloads"
+    key: verify-signed
+    depends_on: collect
+    if: build.branch =~ /^ci\// || build.tag =~ /^v/
+    agents:
+      provider: gcp
+      image: family/core-ubuntu-2204
+    command: |
+      mkdir -p unsigned
+      buildkite-agent artifact download "elastic-macos-*" unsigned/
+      buildkite-agent artifact download "elastic-windows-*.exe" unsigned/
+      buildkite-agent artifact download "final/*" .
+      if ! command -v osslsigncode >/dev/null 2>&1; then
+        sudo -n apt-get update -qq
+        sudo -n apt-get install -y osslsigncode
+      fi
+      .buildkite/scripts/verify-signed-payload.sh unsigned final
+
+  - label: ":rocket: publish signed release assets"
+    key: publish-release
+    depends_on:
+      - verify-macos
+      - verify-signed
+    if: build.tag =~ /^v/
+    env:
+      GH_REPO: elastic/cli
+    agents:
+      provider: gcp
+      image: family/core-ubuntu-2204
+    plugins:
+      - elastic/vault-github-token#v0.2.1:
+      - elastic/gh-cli#v0.1.1:
+          version: "2.92.0"
+    command: |
+      buildkite-agent artifact download "final/*" .
+      .buildkite/scripts/publish-release.sh

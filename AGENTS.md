@@ -38,7 +38,11 @@ Use `npm ci` in CI and for a clean checkout. `npm install` is fine locally. Unse
 
 After dependency changes, run `node scripts/generate-notice.mjs` and commit `NOTICE.txt` if it changed. After command or flag changes, run `npm run build:schema` and commit `docs/cli/schema.json`.
 
-Do not edit generated files: `src/es/apis/*.ts`, `src/es/api-manifest.ts`, `src/kb/apis.ts`, `src/kb/api-manifest.ts`.
+### Typecheck discipline
+
+Full-repo `tsc` is heavy (peaks ~3.7 GB) and a top source of wasted recovery turns. While iterating, typecheck only the changed file/module, not the whole project; fix type errors immediately rather than letting them accumulate. Run full `npx tsc --noEmit` once before marking a task complete. When output is long, pipe through `head -30` and fix the first error first.
+
+Per-endpoint API schemas are not generated into this repo; they ship in the published `@elastic/schemas` package. Do not create files under `src/es/apis/` or `src/kb/apis/` (those directories do not exist).
 
 ## Architecture
 
@@ -88,7 +92,7 @@ All requirements below are non-negotiable and enforced at review time.
 ### Credentials and Configuration
 
 - **No credentials as CLI flags**: API keys, passwords, and tokens belong only in the config file or environment variables. Never as CLI flags.
-- **Named contexts**: Connection info is managed via named contexts in the YAML config (kubectl-style). `--context <name>` MAY override for a single invocation; context fields MUST NOT be duplicated as first-class flags.
+- **Named contexts**: Connection info is managed via named contexts in the YAML config (kubectl-style). `--use-context <name>` MAY override for a single invocation; context fields MUST NOT be duplicated as first-class flags.
 
 ### Transport Abstraction
 
@@ -115,12 +119,13 @@ All code files MUST start with:
  */
 ```
 
-Note the single-asterisk `/*` opener — `scripts/check-spdx` rejects the JSDoc-style `/**` form.
+Note the single-asterisk `/*` opener — `scripts/check-spdx.mjs` rejects the JSDoc-style `/**` form.
 
 ### Standards
 
 - **Docstrings**: All exported symbols in reusable utilities MUST have complete doc comments.
 - **Comments**: Explain WHY, not WHAT. Do not restate code in prose.
+- **Probes do not throw**: functions that check a remote service for a caller that can proceed without the answer return `{ ok, ... }` results instead of throwing. See `ARCHITECTURE.md` → "Probes Do Not Throw".
 - **Naming**: camelCase for functions/variables, PascalCase for types/interfaces.
 - **YAML config keys**: Always `snake_case` (e.g. `api_key`, `current_context`). Never camelCase or kebab-case.
 - **Files**: Trailing newline required, no trailing whitespace.
@@ -214,7 +219,7 @@ On a GitHub Actions `CI` failure or a Buildkite functional failure, take the fir
 
 On a `buildkite/elastic-cli/pr` failure, GitHub Actions posts `<!-- bk-repair-loop -->`. Apply uses an ephemeral GitHub App token from Vault so the push retriggers CI. Buildkite does not get a GitHub token.
 
-Do not edit generated files: `src/es/apis/*.ts`, `src/es/api-manifest.ts`, `src/kb/apis.ts`, `src/kb/api-manifest.ts`. Do not edit `.github/workflows/`.
+Do not edit `.github/workflows/`.
 
 Review comments from a trusted reviewer (OWNER, MEMBER, CodeQL, or the AI review bot) are another pass of the same loop. Do not repeat an approach a reviewer already rejected.
 

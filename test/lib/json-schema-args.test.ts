@@ -320,3 +320,51 @@ describe('validateSchemaArgs', () => {
     assert.doesNotThrow(() => validateSchemaArgs(args))
   })
 })
+
+// ---------------------------------------------------------------------------
+// extractSchemaArgs - availability target filtering
+// ---------------------------------------------------------------------------
+
+import type { AvailabilityTarget } from '../../src/lib/availability.ts'
+
+describe('extractSchemaArgs — availability target', () => {
+  it('no target → returns all args including those with x-availability', () => {
+    const s = schema({
+      a: { type: 'string', 'x-availability': { stack: {} } },
+      b: { type: 'number', 'x-availability': { serverless: {} } },
+    })
+    const args = extractSchemaArgs(s)
+    const keys = args.map((a) => a.schemaKey).sort()
+    assert.deepEqual(keys, ['a', 'b'])
+  })
+
+  it('stack target → omits serverless-only property', () => {
+    const s = schema({
+      a: { type: 'string', 'x-availability': { stack: {} } },
+      b: { type: 'number', 'x-availability': { serverless: {} } },
+    })
+    const target: AvailabilityTarget = [9, 0]
+    const args = extractSchemaArgs(s, target)
+    const keys = args.map((a) => a.schemaKey)
+    assert.ok(keys.includes('a'), 'stack prop must survive for stack target')
+    assert.ok(!keys.includes('b'), 'serverless-only prop must be removed for stack target')
+  })
+
+  it('serverless target → omits stack-only property', () => {
+    const s = schema({
+      a: { type: 'string', 'x-availability': { stack: {} } },
+      b: { type: 'number', 'x-availability': { serverless: {} } },
+    })
+    const args = extractSchemaArgs(s, 'serverless')
+    const keys = args.map((a) => a.schemaKey)
+    assert.ok(!keys.includes('a'), 'stack-only prop must be removed for serverless target')
+    assert.ok(keys.includes('b'), 'serverless prop must survive for serverless target')
+  })
+
+  it('prop with no x-availability is kept for any target (fail open)', () => {
+    const s = schema({ a: { type: 'string' } })
+    const args = extractSchemaArgs(s, 'serverless')
+    assert.equal(args.length, 1)
+    assert.equal(args[0]!.schemaKey, 'a')
+  })
+})

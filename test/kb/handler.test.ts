@@ -6,6 +6,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { createKbHandler } from '../../src/kb/handler.ts'
+import { buildKibanaRequestParams } from '../../src/kb/request-builder.ts'
 import { missingConfigError, kibanaApiError } from '../../src/kb/errors.ts'
 import type { KbApiDefinition } from '../../src/kb/types.ts'
 import type { KibanaClient, KibanaRequestParams } from '../../src/lib/kibana-client.ts'
@@ -122,6 +123,29 @@ describe('createKbHandler', () => {
     const result = await handler(parsed()) as { error: { code: string; status_code: number } }
     assert.equal(result.error.code, 'kibana_api_error')
     assert.equal(result.error.status_code, 403)
+  })
+
+  it('returns input_error when request building rejects a path param', async () => {
+    const def: KbApiDefinition = {
+      ...listDef(),
+      path: '/api/spaces/space/{id}',
+      input: {
+        type: 'object',
+        properties: { id: { type: 'string', 'x-found-in': 'path' } },
+        required: ['id'],
+      },
+    }
+    let requested = false
+    const handler = createKbHandler(def, {
+      getKibanaClient: () => ({
+        request: async () => { requested = true; return {} },
+      } as unknown as KibanaClient),
+      buildKibanaRequestParams,
+    })
+    const result = await handler(parsed({ id: '..' })) as { error: { code: string; message: string } }
+    assert.equal(result.error.code, 'input_error')
+    assert.match(result.error.message, /Invalid path parameter "\.\."/)
+    assert.equal(requested, false)
   })
 
   it('passes the built request params to client.request', async () => {
