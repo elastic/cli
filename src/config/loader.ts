@@ -25,8 +25,8 @@
  * - Structured error payloads (code + message)
  */
 
-import { readFile, realpath, stat } from 'node:fs/promises'
-import { extname, resolve } from 'node:path'
+import { readFile, stat } from 'node:fs/promises'
+import { extname } from 'node:path'
 import { parse as parseYaml } from 'yaml'
 // ./schema (ajv) and @elastic/config-resolver are imported lazily in loadConfig so the help path skips them
 import { ENV_CONFIG_FILE, findConfigFile } from './discover.ts'
@@ -325,42 +325,6 @@ export type LoadConfigResult = LoadConfigOk | LoadConfigErr
  * @param options - Optional overrides for search root, config path, and context name.
  * @returns A `LoadConfigResult` discriminated union.
  */
-function contextDeniesOverride (contexts: Record<string, Record<string, unknown>>, name: string): boolean {
-  const ctx = contexts[name]
-  return ctx != null && ctx['allow_context_override'] === false
-}
-
-function overrideBlocked (contextName: string, flag: '--use-context' | '--config-file'): LoadConfigErr {
-  return {
-    ok: false,
-    error: {
-      code: 'command_blocked',
-      message: `context "${contextName}" does not allow ${flag}`,
-    },
-  }
-}
-
-async function sameConfigPath (a: string, b: string): Promise<boolean> {
-  const left = resolve(a)
-  const right = resolve(b)
-  if (left === right) return true
-  try {
-    return await realpath(left) === await realpath(right)
-  } catch {
-    return false
-  }
-}
-
-/**
- * The file that would load if `--config-file` were absent.
- * A locked current context there rejects a different `--config-file`.
- */
-async function baselineConfigPath (): Promise<string | null> {
-  const envConfigFile = process.env[ENV_CONFIG_FILE]
-  if (envConfigFile != null && envConfigFile.length > 0) return envConfigFile
-  return discoverConfigFile()
-}
-
 export async function loadConfig (options: LoadConfigOptions = {}): Promise<LoadConfigResult> {
   const { configPath, contextName, profileName, refresh = false, skipContextResolve = false } = options
 
@@ -371,23 +335,6 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
   if (profileName != null && !(BUILT_IN_PROFILES as readonly string[]).includes(profileName)) {
     const valid = BUILT_IN_PROFILES.join(', ')
     return { ok: false, error: { message: `Unknown profile "${profileName}". Valid profiles: ${valid}` } }
-  }
-
-  // A locked baseline context rejects --config-file before the other file is read.
-  if (configPath != null) {
-    const baselinePath = await baselineConfigPath()
-    if (baselinePath != null && !await sameConfigPath(baselinePath, configPath)) {
-      try {
-        const baselineRaw = await loadConfigFile(baselinePath)
-        const { StructuralConfigSchema } = await import('./schema.js')
-        const baseline = StructuralConfigSchema.safeParse(baselineRaw)
-        if (baseline.success && contextDeniesOverride(baseline.data.contexts, baseline.data.current_context)) {
-          return overrideBlocked(baseline.data.current_context, '--config-file')
-        }
-      } catch {
-        // Unreadable baseline is not a lock. The selected file is loaded below.
-      }
-    }
   }
 
   // Step 1: load raw config
@@ -448,8 +395,17 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
 
   const { current_context, contexts, commands: rawCommands, default_profile: rawDefaultProfile } = structural.data
 
-  if (contextName != null && contextName !== current_context && contextDeniesOverride(contexts, current_context)) {
-    return overrideBlocked(current_context, '--use-context')
+  if (contextName != null && contextName !== current_context) {
+    const current = contexts[current_context]
+    if (current != null && current['allow_context_override'] === false) {
+      return {
+        ok: false,
+        error: {
+          code: 'command_blocked',
+          message: `context "${current_context}" does not allow --use-context`,
+        },
+      }
+    }
   }
 
   // Step 3: resolve context name (--use-context override or current_context from file)

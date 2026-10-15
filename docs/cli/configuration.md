@@ -20,7 +20,7 @@ The CLI organizes connection settings into named contexts. Each context can cont
 
 One context can be set as the current context. The CLI uses it when a command doesn't specify another context with `--use-context <name>`.
 
-To keep an agent in the current context, set `allow_context_override: false` on that context. The CLI then rejects `--use-context` and `--config-file` (any spelling) with `command_blocked`. A caller that can change `ELASTIC_CLI_CONFIG_FILE` can still point at another file.
+To keep an agent in the current context, set `allow_context_override: false` on that context. The CLI then rejects `--use-context` with `command_blocked`. This does not reject `--config-file` or `ELASTIC_CLI_CONFIG_FILE`.
 
 Contexts are stored in the CLI configuration file. You can edit this file directly or use `elastic config` to update it.
 

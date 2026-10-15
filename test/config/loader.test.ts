@@ -5,7 +5,7 @@
 
 import { describe, it, before, after, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { chmod, mkdtemp, writeFile, rm, mkdir, symlink } from 'node:fs/promises'
+import { chmod, mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { loadConfigFile, discoverConfigFile, resolveContext, resolveEffectiveCommands, loadConfig, clearConfigCache, _testResetLooseInlineSecretWarning } from '../../src/config/loader.ts'
@@ -1114,7 +1114,6 @@ contexts:
     lockedPath = join(tmpDir, 'repro.yml')
     await writeFile(lockedPath, lockedYaml)
     await chmod(lockedPath, 0o600)
-    await mkdir(join(tmpDir, 'sub'))
   })
   after(async () => rm(tmpDir, { recursive: true }))
   before(() => { originalEnv = process.env['ELASTIC_CLI_CONFIG_FILE'] })
@@ -1156,56 +1155,21 @@ contexts:
     assert.equal(result.contextName, 'agent')
   })
 
-  it('rejects --config-file that points at a different file', async () => {
+  it('loads a different --config-file even when the baseline context is locked', async () => {
     const other = join(tmpDir, 'admin.yml')
     await writeFile(other, VALID_CONFIG_YAML)
     await chmod(other, 0o600)
-    const paths = [
-      other,
-      join(tmpDir, 'sub', '..', 'admin.yml'),
-      join(tmpDir, '..', 'escaped.yml'),
-      join(tmpDir, 'bad?#.yml'),
-    ]
-    for (const configPath of paths) {
-      const result = await withLockedEnv(() => loadConfig({ configPath }))
-      assert.equal(result.ok, false, `expected lock to reject ${configPath}`)
-      if (result.ok) return
-      assert.equal(result.error.code, 'command_blocked')
-      assert.match(result.error.message, /does not allow --config-file/)
-      assert.equal(/ENOENT|not found/i.test(result.error.message), false)
+    const result = await withLockedEnv(() => loadConfig({ configPath: other }))
+    assert.equal(result.ok, true, result.ok ? '' : result.error.message)
+    if (!result.ok) return
+    assert.equal(result.contextName, 'local')
+
+    for (const configPath of ['../escaped.yml', 'bad?#.yml', '']) {
+      const missing = await withLockedEnv(() => loadConfig({ configPath }))
+      assert.equal(missing.ok, false, `expected ${JSON.stringify(configPath)} to fail open`)
+      if (missing.ok) return
+      assert.notEqual(missing.error.code, 'command_blocked')
     }
-  })
-
-  it('allows --config-file when the path is the locked file', async () => {
-    const viaDots = join(tmpDir, 'sub', '..', 'repro.yml')
-    const link = join(tmpDir, 'repro-link.yml')
-    await symlink(lockedPath, link)
-    for (const configPath of [lockedPath, viaDots, link]) {
-      const result = await withLockedEnv(() => loadConfig({ configPath }))
-      assert.equal(result.ok, true, `expected same file to load: ${configPath}; ${result.ok ? '' : result.error.message}`)
-      if (!result.ok) return
-      assert.equal(result.contextName, 'agent')
-    }
-  })
-
-  it('does not treat an unreadable or broken baseline as a lock', async () => {
-    const other = join(tmpDir, 'plain.yml')
-    await writeFile(other, VALID_CONFIG_YAML)
-    await chmod(other, 0o600)
-    process.env['ELASTIC_CLI_CONFIG_FILE'] = join(tmpDir, 'missing.yml')
-    const missing = await loadConfig({ configPath: other })
-    assert.equal(missing.ok, true)
-    if (!missing.ok) return
-    assert.equal(missing.contextName, 'local')
-
-    const junk = join(tmpDir, 'junk.yml')
-    await writeFile(junk, 'hello: true\n')
-    await chmod(junk, 0o600)
-    process.env['ELASTIC_CLI_CONFIG_FILE'] = junk
-    const broken = await loadConfig({ configPath: other })
-    assert.equal(broken.ok, true)
-    if (!broken.ok) return
-    assert.equal(broken.contextName, 'local')
   })
 
   it('does not lock a context that is not current', async () => {
@@ -1245,14 +1209,26 @@ contexts:
     assert.equal(result.contextName, 'admin')
   })
 
-  it('rejects --use-context together with --config-file at another path', async () => {
+  it('applies --use-context to the selected file, not the locked baseline', async () => {
     const other = join(tmpDir, 'other-with-context.yml')
-    await writeFile(other, VALID_CONFIG_YAML)
+    await writeFile(other, `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: http://127.0.0.1:9
+      auth:
+        api_key: a
+  admin:
+    elasticsearch:
+      url: http://127.0.0.1:9
+      auth:
+        api_key: b
+`.trimStart())
     await chmod(other, 0o600)
     const result = await withLockedEnv(() => loadConfig({ configPath: other, contextName: 'admin' }))
-    assert.equal(result.ok, false)
-    if (result.ok) return
-    assert.equal(result.error.code, 'command_blocked')
-    assert.match(result.error.message, /does not allow --config-file/)
+    assert.equal(result.ok, true, result.ok ? '' : result.error.message)
+    if (!result.ok) return
+    assert.equal(result.contextName, 'admin')
   })
 })

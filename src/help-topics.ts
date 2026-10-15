@@ -30,7 +30,7 @@ Flag order does not matter: elastic --json --help and elastic --help --json are 
 Precedence: --config-file, then ELASTIC_CLI_CONFIG_FILE, then the home directory.
 Discovery names (first readable wins): .elasticrc, .elasticrc.json, .elasticrc.yaml, .elasticrc.yml
 
-A context may set allow_context_override: false. While that context is current, --use-context and --config-file are rejected. This does not stop a caller from changing ELASTIC_CLI_CONFIG_FILE.
+A context may set allow_context_override: false. While that context is current, --use-context is rejected. This does not reject --config-file or ELASTIC_CLI_CONFIG_FILE.
 
 Environment
 

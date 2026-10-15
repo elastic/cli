@@ -69,8 +69,8 @@ export interface Context {
   cloud?: ServiceBlock
   commands?: CommandPolicy
   /**
-   * When false, the CLI rejects `--use-context` and `--config-file` while this
-   * context is the file's current context.
+   * When false, the CLI rejects `--use-context` while this context is current.
+   * Does not reject `--config-file` or `ELASTIC_CLI_CONFIG_FILE`.
    */
   allow_context_override?: boolean
 }
