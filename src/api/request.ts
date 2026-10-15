@@ -107,9 +107,12 @@ function serviceBlock (service: ApiService, config: ResolvedConfig | undefined) 
 
 export function redactRequest (req: ResolvedApiRequest): ResolvedApiRequest {
   const headers = { ...req.headers }
-  if (headers['Authorization'] != null) {
-    const scheme = headers['Authorization'].split(' ')[0] ?? 'ApiKey'
-    headers['Authorization'] = `${scheme} ***`
+  for (const name of Object.keys(headers)) {
+    if (name.toLowerCase() !== 'authorization') continue
+    const value = headers[name]
+    if (value == null) continue
+    const scheme = value.split(' ')[0] ?? 'ApiKey'
+    headers[name] = `${scheme} ***`
   }
   return { ...req, headers }
 }
@@ -118,19 +121,14 @@ export function buildApiRequest (args: BuildApiRequestArgs): ResolvedApiRequest 
   const method = parseMethod(args.method)
   const service = parseService(args.service)
   const block = serviceBlock(service, args.config)
-  const { pathname, query } = encodeApiPath(args.path)
+  const { pathname, search } = encodeApiPath(args.path)
 
   const baseUrl = block.url.replace(/\/+$/, '')
   if (baseUrl.startsWith('http://') && !isLoopbackUrl(baseUrl)) {
     process.stderr.write('Warning: using plaintext HTTP. Credentials will be sent unencrypted.\n')
   }
 
-  let url = `${baseUrl}${pathname}`
-  const queryKeys = Object.keys(query)
-  if (queryKeys.length > 0) {
-    const pieces = queryKeys.map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(query[k]!)}`)
-    url += `?${pieces.join('&')}`
-  }
+  const url = `${baseUrl}${pathname}${search}`
 
   const headers: Record<string, string> = {
     ...clientHeaders(),

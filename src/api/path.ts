@@ -7,7 +7,8 @@ import { encodePathParam } from '../lib/path-encoding.ts'
 
 export interface EncodedApiPath {
   pathname: string
-  query: Record<string, string>
+  /** Includes the leading `?`, or `''`. Repeated keys are preserved. */
+  search: string
 }
 
 function inputError (message: string): never {
@@ -23,21 +24,28 @@ function decodeSegment (segment: string, original: string): string {
 }
 
 /**
- * Splits a user-supplied request path into an encoded pathname and query map.
+ * Splits a user-supplied request path into an encoded pathname and query string.
  *
- * Query string and fragment are stripped before encoding. Each path segment is
- * decoded, rejected if it is empty / `.` / `..`, then percent-encoded so a
- * caller cannot traverse to the parent resource via `../` or `%2e%2e`.
+ * `URL` splits the query and fragment. Path segments are taken from the raw
+ * string first: `URL` collapses `.` and `..` (including `%2e%2e`) before we
+ * can reject them.
  */
 export function encodeApiPath (raw: string): EncodedApiPath {
-  const hash = raw.indexOf('#')
-  const withoutHash = hash === -1 ? raw : raw.slice(0, hash)
-  const q = withoutHash.indexOf('?')
-  const pathPart = (q === -1 ? withoutHash : withoutHash.slice(0, q)).trim()
-  const queryPart = q === -1 ? '' : withoutHash.slice(q + 1)
+  const trimmed = raw.trim()
+  const prefixed = trimmed === '' || trimmed.startsWith('/') || trimmed.startsWith('?') || trimmed.startsWith('#')
+    ? (trimmed === '' ? '/' : trimmed)
+    : `/${trimmed}`
 
-  const withSlash = pathPart === '' ? '/' : pathPart.startsWith('/') ? pathPart : `/${pathPart}`
-  const segments = withSlash.split('/')
+  let url: URL
+  try {
+    url = new URL(prefixed, 'https://example.invalid')
+  } catch (err) {
+    inputError(`Invalid path "${raw}": ${err instanceof Error ? err.message : String(err)}`)
+  }
+
+  const cut = prefixed.search(/[?#]/)
+  const pathPart = cut === -1 ? prefixed : prefixed.slice(0, cut)
+  const segments = pathPart.split('/')
   const encoded: string[] = ['']
   for (let i = 1; i < segments.length; i++) {
     const seg = segments[i]
@@ -48,12 +56,5 @@ export function encodeApiPath (raw: string): EncodedApiPath {
     encoded.push(encodePathParam(decodeSegment(seg, raw)))
   }
   const pathname = encoded.length === 1 ? '/' : encoded.join('/')
-
-  const query: Record<string, string> = {}
-  if (queryPart !== '') {
-    for (const [key, value] of new URLSearchParams(queryPart)) {
-      query[key] = value
-    }
-  }
-  return { pathname, query }
+  return { pathname, search: url.search }
 }

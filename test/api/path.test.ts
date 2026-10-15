@@ -9,8 +9,8 @@ import { encodeApiPath } from '../../src/api/path.ts'
 
 describe('encodeApiPath', () => {
   it('encodes the root path', () => {
-    assert.deepEqual(encodeApiPath('/'), { pathname: '/', query: {} })
-    assert.deepEqual(encodeApiPath(''), { pathname: '/', query: {} })
+    assert.deepEqual(encodeApiPath('/'), { pathname: '/', search: '' })
+    assert.deepEqual(encodeApiPath(''), { pathname: '/', search: '' })
   })
 
   it('adds a leading slash', () => {
@@ -25,7 +25,7 @@ describe('encodeApiPath', () => {
     assert.equal(encodeApiPath('/foo bar').pathname, '/foo%20bar')
     assert.equal(encodeApiPath('/a#b').pathname, '/a')
     assert.equal(encodeApiPath('/idx?pretty=true').pathname, '/idx')
-    assert.deepEqual(encodeApiPath('/idx?pretty=true').query, { pretty: 'true' })
+    assert.equal(encodeApiPath('/idx?pretty=true').search, '?pretty=true')
   })
 
   it('rejects empty, dot, and parent segments', () => {
@@ -48,11 +48,17 @@ describe('encodeApiPath', () => {
   it('parses query values without treating # as part of the path', () => {
     const encoded = encodeApiPath('/_search?q=foo#ignored')
     assert.equal(encoded.pathname, '/_search')
-    assert.equal(encoded.query['q'], 'foo')
+    assert.equal(encoded.search, '?q=foo')
+  })
+
+  it('keeps repeated query keys', () => {
+    assert.equal(encodeApiPath('/_search?q=a&q=b').search, '?q=a&q=b')
+    assert.equal(encodeApiPath('/_search?q=a&q=../&q=?#').search, '?q=a&q=../&q=?')
+    assert.equal(encodeApiPath('/_search?q=foo bar').search, '?q=foo%20bar')
   })
 
   it('treats ?# as the root path with no query', () => {
-    assert.deepEqual(encodeApiPath('?#'), { pathname: '/', query: {} })
+    assert.deepEqual(encodeApiPath('?#'), { pathname: '/', search: '' })
   })
 
   it('encodes a slash inside a single segment after decode', () => {

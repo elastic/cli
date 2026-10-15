@@ -43,6 +43,16 @@ describe('buildApiRequest', () => {
     assert.equal(req.url, 'http://localhost:9200/foo%20bar/_doc/id?pretty=true')
   })
 
+  it('keeps repeated query keys on the wire', () => {
+    const req = buildApiRequest({
+      method: 'GET',
+      path: '/_search?q=a&q=b&q=../',
+      service: 'es',
+      config: esConfig,
+    })
+    assert.equal(req.url, 'http://localhost:9200/_search?q=a&q=b&q=../')
+  })
+
   it('rejects .. in the path', () => {
     assert.throws(
       () => buildApiRequest({ method: 'GET', path: '/foo/../bar', service: 'es', config: esConfig }),
@@ -173,6 +183,21 @@ describe('buildApiRequest', () => {
     const redacted = redactRequest(req)
     assert.equal(redacted.headers['Authorization'], 'ApiKey ***')
     assert.equal(req.headers['Authorization'], 'ApiKey secret-key')
+  })
+
+  it('redacts an extra authorization header regardless of case', () => {
+    const req = buildApiRequest({
+      method: 'GET',
+      path: '/',
+      service: 'es',
+      extraHeaders: ['authorization: Bearer secret-token'],
+      config: esConfig,
+    })
+    const redacted = redactRequest(req)
+    assert.equal(redacted.headers['Authorization'], 'ApiKey ***')
+    assert.equal(redacted.headers['authorization'], 'Bearer ***')
+    assert.equal(req.headers['authorization'], 'Bearer secret-token')
+    assert.equal(JSON.stringify(redacted).includes('secret'), false)
   })
 })
 
