@@ -5,9 +5,10 @@
 
 import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
 import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, chmod } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { delimiter, join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
@@ -415,17 +416,20 @@ fi
 exit 0
 `)
     await chmod(join(bin, 'bun'), 0o755)
+    const kept = (process.env.PATH ?? '').split(delimiter).filter(dir => {
+      return !['bun', 'bunx', 'bun.exe', 'bunx.exe', 'bun.cmd', 'bunx.cmd'].some(name => existsSync(join(dir, name)))
+    })
     const result = spawnSync('bash', [join(scripts, 'release-build.sh')], {
       cwd: dir,
       encoding: 'utf8',
       env: {
         ...process.env,
-        PATH: `${bin}:/usr/bin:/bin`,
+        PATH: `${bin}${delimiter}${kept.join(delimiter)}`,
         BUN_VERSION: '1.3.14',
         BUN_LOG: bashPath(log),
       },
     })
-    assert.equal(result.status, 0, result.stderr)
+    assert.equal(result.status, 0, result.stderr || result.error?.message)
     const calls = await readFile(log, 'utf8')
     assert.match(calls, /^x\ntsc\n-b\npackages\/config-resolver\n/m)
     assert.match(calls, /^x\ntsc\n-b\npackages\/agent-env\n/m)
