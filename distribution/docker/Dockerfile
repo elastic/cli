@@ -38,4 +38,7 @@ COPY LICENSE.txt NOTICE.txt /licenses/
 
 USER 65532
 
+# A CLI invocation is not a long-running service.
+HEALTHCHECK NONE
+
 ENTRYPOINT ["/usr/local/bin/elastic"]

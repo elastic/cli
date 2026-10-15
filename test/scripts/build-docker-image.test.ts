@@ -57,9 +57,11 @@ function run (args: string[], env: NodeJS.ProcessEnv) {
 describe('distribution/docker/Dockerfile', () => {
   it('pins chainguard-base and the release labels', async () => {
     const text = await readFile(dockerfile, 'utf8')
-    assert.match(text, /FROM docker\.elastic\.co\/wolfi\/chainguard-base:latest@sha256:[a-f0-9]{64}/)
+    assert.match(text, /FROM docker\.elastic\.co\/wolfi\/chainguard-base:latest@sha256:568df5fb0e237c3a2139399d4bd8e80994f24321fa8469aec565b8566704e83a/)
     assert.match(text, /ENV ELASTIC_CONTAINER=true/)
     assert.match(text, /USER 65532/)
+    assert.match(text, /HEALTHCHECK NONE/)
+    assert.match(text, /COPY LICENSE\.txt NOTICE\.txt \/licenses\//)
     for (const label of [
       'org.opencontainers.image.created',
       'org.opencontainers.image.title',
