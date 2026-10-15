@@ -1,0 +1,12 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get Observability project link candidates (GET /api/v1/serverless/projects/observability/{id}/link-candidates)
+# Id for {id} is derived from observability-projects.list-observability-projects.
+---
+"observability-projects get-observability-project-link-candidates":
+  - do:
+      observability-projects.list-observability-projects: {}
+  - set: {projects.0.id: id}
+  - do:
+      observability-projects.get-observability-project-link-candidates:
+        id: $id

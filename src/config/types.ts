@@ -37,6 +37,24 @@ export interface ServiceBlock {
   auth?: Auth
 }
 
+/**
+ * An auto-detected version and when it was last checked (ISO 8601). Expires after
+ * 30 days. `value` is absent when detection failed; that is retried after 1 hour.
+ */
+export interface DetectedVersion {
+  value?: string
+  checked_ts: string
+}
+
+/** A {@link ServiceBlock} for a service whose commands are availability-filtered by version. */
+export interface VersionedServiceBlock extends ServiceBlock {
+  /**
+   * Target version hint: a semver string (e.g. "9.2" or "9.2.3") or "serverless".
+   * A plain string is user-pinned and never sniffed; the object form is auto-detected.
+   */
+  version?: string | DetectedVersion
+}
+
 /** Policy controlling which commands are permitted to run. */
 export interface CommandPolicy {
   profile?: BuiltInProfile
@@ -46,8 +64,8 @@ export interface CommandPolicy {
 
 /** A context value: optional service blocks with at least one present. */
 export interface Context {
-  elasticsearch?: ServiceBlock
-  kibana?: ServiceBlock
+  elasticsearch?: VersionedServiceBlock
+  kibana?: VersionedServiceBlock
   cloud?: ServiceBlock
   commands?: CommandPolicy
 }
@@ -60,12 +78,14 @@ export interface ConfigFile {
   default_profile?: BuiltInProfile
   banner?: boolean
   telemetry?: boolean
+  /** Auto-detect Elasticsearch/Kibana versions. Defaults to true when absent. */
+  detect_version?: boolean
 }
 
 /** The active context after resolution — only its configured service blocks, no extras. */
 export interface ResolvedContext {
-  elasticsearch?: ServiceBlock
-  kibana?: ServiceBlock
+  elasticsearch?: VersionedServiceBlock
+  kibana?: VersionedServiceBlock
   cloud?: ServiceBlock
 }
 
@@ -78,4 +98,6 @@ export interface ResolvedConfig {
   banner?: boolean
   /** Whether to send the x-elastic-client-meta telemetry header. Defaults to true when absent. */
   telemetry?: boolean
+  /** Whether to auto-detect service versions. Defaults to true when absent. */
+  detect_version?: boolean
 }

@@ -29,6 +29,12 @@ This handles codegen, Docker, and cleanup automatically. The `npm run test:funct
 script expects the generated test runner at `test/functional/es/run.sh`, which only
 exists after the codegen step above has run.
 
+To run without Buildkite's environment, use
+[`scripts/run-es-tests-local.sh`](/scripts/run-es-tests-local.sh) (same flow, isolated
+container and config). To regenerate against an existing clone, run
+`npm run codegen:functional`; it reads specs from `$ES_CLIENTS_TESTS_DIR`, defaulting to
+`../elasticsearch-clients-tests/tests`.
+
 ### Cloud tests
 
 Requires a `.elasticrc.yml` with a `cloud` context configured. The tests are

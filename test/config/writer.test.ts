@@ -7,7 +7,7 @@ import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { tmpdir } from 'node:os'
+import { tmpdir, userInfo } from 'node:os'
 import { parse as parseYaml } from 'yaml'
 import {
   writeConfig,
@@ -20,6 +20,8 @@ import {
   serializeConfig,
   hasInlineSecrets,
   resolveConfigPath,
+  _testSetExecFileSync,
+  _testSetPlatform,
   type RawConfig,
 } from '../../src/config/writer.ts'
 
@@ -145,6 +147,29 @@ describe('writeConfig', () => {
     const st = await stat(path)
     assert.equal(st.mode & 0o777, 0o600)
     assert.deepEqual(result.warnings, [])
+  })
+
+  it('passes the path to icacls as a single argv element with no shell on Windows', async () => {
+    // `"` is not a legal NTFS filename character, so this file cannot be created on real Windows.
+    if (process.platform === 'win32') return
+    const path = join(dir, 'a" & calc & ".yml')
+    const calls: Array<{ file: string, args: readonly string[], opts: Record<string, unknown> }> = []
+    const restorePlatform = _testSetPlatform('win32')
+    const restoreExec = _testSetExecFileSync(((file: string, args: readonly string[], opts: Record<string, unknown>) => {
+      calls.push({ file, args, opts })
+      return ''
+    }) as unknown as typeof import('node:child_process').execFileSync)
+    try {
+      const result = await writeConfig(path, SAMPLE)
+      assert.equal(result.permsEnforced, true)
+    } finally {
+      restoreExec()
+      restorePlatform()
+    }
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0]?.file, 'icacls')
+    assert.deepEqual(calls[0]?.args, [path, '/inheritance:r', '/grant:r', `${userInfo().username}:F`])
+    assert.equal(calls[0]?.opts.shell, undefined)
   })
 
   it('creates parent directories by default', async () => {

@@ -34,7 +34,7 @@ import { defineGroup, hideBlockedCommands } from '../factory.ts'
 import type { OpaqueCommandHandle } from '../factory.ts'
 import { rewriteTopLevelAliases } from './argv-aliases.ts'
 import { enumerate, DIRECTIVE_NO_FILE_COMP } from './enumerate.ts'
-import { defaultRegistry } from './registry.ts'
+import { defaultCompleters } from './registry.ts'
 import { StructuralConfigSchema, CommandPolicySchema } from '../config/schema.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from '../config/profiles.ts'
 import type { CommandPolicy } from '../config/types.ts'
@@ -42,7 +42,6 @@ import type { CommandPolicy } from '../config/types.ts'
 const ES_ALIASES = new Set(['es', 'elasticsearch'])
 /** Words recognised as the user-facing form of the `stack kb` subtree. */
 const KB_ALIASES = new Set(['kb', 'kibana'])
-const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
 
 /**
  * Loads the effective command policy for completion without resolving config
@@ -54,11 +53,9 @@ const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
  * or invalid policy returns `undefined` so shell completion remains best-effort.
  */
 async function loadCompletionCommandPolicy (): Promise<CommandPolicy | undefined> {
-  const { discoverConfigFile, loadConfigFile, resolveEffectiveCommands } = await import('../config/loader.js')
-  const envPath = process.env[ENV_CONFIG_FILE]
-  const path = envPath != null && envPath.length > 0
-    ? envPath
-    : await discoverConfigFile()
+  const { loadConfigFile, resolveEffectiveCommands } = await import('../config/loader.js')
+  const { findConfigFile } = await import('../config/discover.js')
+  const path = await findConfigFile()
   if (path == null) return undefined
 
   const raw = await loadConfigFile(path)
@@ -258,7 +255,7 @@ export async function handleComplete (
       hideBlockedCommands(root, await loadCompletionCommandPolicy())
     } catch { /* swallowed by design */ }
 
-    const result = await enumerate(root, rewritten, defaultRegistry)
+    const result = await enumerate(root, rewritten, defaultCompleters)
 
     let out = ''
     for (const c of result.candidates) out += c + '\n'

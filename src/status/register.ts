@@ -107,6 +107,17 @@ async function statusHandler (parsed: ParsedResult): Promise<JsonValue> {
   }
 
   const result = await runStatusChecks(loaded.contextName, loaded.value.context)
+  if (loaded.value.detect_version !== false) {
+    // Pinned (plain string) versions are never overwritten; refresh the rest for reachable services.
+    const { detectAndStore } = await import('../config/sniff.ts')
+    const { findConfigFile } = await import('../config/discover.ts')
+    const path = await findConfigFile(configFile)
+    const services = (['elasticsearch', 'kibana'] as const).filter((s) =>
+      result.services[s]?.ok === true && typeof loaded.value.context[s]?.version !== 'string')
+    if (path != null && services.length > 0) {
+      await detectAndStore({ path, contextName: loaded.contextName, context: loaded.value.context, services, warn: false })
+    }
+  }
   const anyFail = Object.values(result.services).some((svc) => svc != null && !svc.ok)
   if (anyFail) {
     process.exitCode = 1

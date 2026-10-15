@@ -11,7 +11,7 @@ import {
   enumerate,
   DIRECTIVE_NO_FILE_COMP,
   DIRECTIVE_NO_SPACE,
-  type DynamicCompleterRegistry,
+  type DynamicCompleters,
 } from '../../src/completion/enumerate.ts'
 
 function buildSampleProgram (): Command {
@@ -151,16 +151,11 @@ describe('enumerate -- hidden commands', () => {
 describe('enumerate -- dynamic completer registry', () => {
   it('invokes the registered completer when the previous word is its flag', async () => {
     const calls: string[] = []
-    const registry: DynamicCompleterRegistry = {
-      get (flag) {
-        if (flag === '--use-context') {
-          return () => {
-            calls.push(flag)
-            return ['local', 'staging', 'prod']
-          }
-        }
-        return undefined
-      },
+    const registry: DynamicCompleters = {
+      flags: new Map([['--use-context', () => {
+        calls.push('--use-context')
+        return ['local', 'staging', 'prod']
+      }]]),
     }
     const result = await enumerate(buildSampleProgram(), ['--use-context', ''], registry)
     assert.deepEqual(result.candidates, ['local', 'staging', 'prod'])
@@ -168,24 +163,24 @@ describe('enumerate -- dynamic completer registry', () => {
   })
 
   it('prefix-filters dynamic candidates against the incomplete word', async () => {
-    const registry: DynamicCompleterRegistry = {
-      get: (flag) => flag === '--use-context' ? () => ['local', 'staging', 'prod'] : undefined,
+    const registry: DynamicCompleters = {
+      flags: new Map([['--use-context', () => ['local', 'staging', 'prod']]]),
     }
     const result = await enumerate(buildSampleProgram(), ['--use-context', 'st'], registry)
     assert.deepEqual(result.candidates, ['staging'])
   })
 
   it('returns empty when previous word is an unknown dynamic flag', async () => {
-    const registry: DynamicCompleterRegistry = {
-      get: () => undefined,
+    const registry: DynamicCompleters = {
+      flags: new Map(),
     }
     const result = await enumerate(buildSampleProgram(), ['--use-context', ''], registry)
     assert.deepEqual(result.candidates, [])
   })
 
   it('supports the --flag=value form via DIRECTIVE_NO_SPACE', async () => {
-    const registry: DynamicCompleterRegistry = {
-      get: (flag) => flag === '--use-context' ? () => ['local', 'staging'] : undefined,
+    const registry: DynamicCompleters = {
+      flags: new Map([['--use-context', () => ['local', 'staging']]]),
     }
     const result = await enumerate(buildSampleProgram(), ['--use-context=st'], registry)
     assert.deepEqual(result.candidates, ['staging'])
@@ -193,24 +188,24 @@ describe('enumerate -- dynamic completer registry', () => {
   })
 
   it('returns empty (not throw) when completer rejects', async () => {
-    const registry: DynamicCompleterRegistry = {
-      get: () => () => { throw new Error('boom') },
+    const registry: DynamicCompleters = {
+      flags: new Map([['--use-context', () => { throw new Error('boom') }]]),
     }
     const result = await enumerate(buildSampleProgram(), ['--use-context', ''], registry)
     assert.deepEqual(result.candidates, [])
   })
 
   it('returns empty when completer returns a non-array (defensive)', async () => {
-    const registry: DynamicCompleterRegistry = {
+    const registry: DynamicCompleters = {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      get: () => (() => null) as any,
+      flags: new Map([['--use-context', (() => null) as any]]),
     }
     const result = await enumerate(buildSampleProgram(), ['--use-context', ''], registry)
     assert.deepEqual(result.candidates, [])
   })
 
   it('returns empty when previous word is an unregistered long flag', async () => {
-    const registry: DynamicCompleterRegistry = { get: () => undefined }
+    const registry: DynamicCompleters = { flags: new Map() }
     const result = await enumerate(buildSampleProgram(), ['--unknown-flag', ''], registry)
     assert.deepEqual(result.candidates, [])
   })
@@ -261,37 +256,37 @@ describe('enumerate -- positional completer registry', () => {
   }
 
   it('invokes a positional completer for a leaf command', async () => {
-    const registry: DynamicCompleterRegistry = {
-      get: () => undefined,
-      getPositional: (path) => path === 'config current-context set' ? () => ['local', 'staging', 'prod'] : undefined,
+    const registry: DynamicCompleters = {
+      flags: new Map(),
+      positionals: new Map([['config current-context set', () => ['local', 'staging', 'prod']]]),
     }
     const result = await enumerate(buildProgramWithLeaf(), ['config', 'current-context', 'set', ''], registry)
     assert.deepEqual(result.candidates, ['local', 'staging', 'prod'])
   })
 
   it('prefix-filters positional candidates against the incomplete word', async () => {
-    const registry: DynamicCompleterRegistry = {
-      get: () => undefined,
-      getPositional: () => () => ['local', 'staging', 'prod'],
+    const registry: DynamicCompleters = {
+      flags: new Map(),
+      positionals: new Map([['config current-context set', () => ['local', 'staging', 'prod']]]),
     }
     const result = await enumerate(buildProgramWithLeaf(), ['config', 'current-context', 'set', 'st'], registry)
     assert.deepEqual(result.candidates, ['staging'])
   })
 
   it('returns empty (not throw) when positional completer rejects', async () => {
-    const registry: DynamicCompleterRegistry = {
-      get: () => undefined,
-      getPositional: () => () => { throw new Error('boom') },
+    const registry: DynamicCompleters = {
+      flags: new Map(),
+      positionals: new Map([['config current-context set', () => { throw new Error('boom') }]]),
     }
     const result = await enumerate(buildProgramWithLeaf(), ['config', 'current-context', 'set', ''], registry)
     assert.deepEqual(result.candidates, [])
   })
 
-  it('does not call getPositional when the command has children', async () => {
+  it('does not call a positional completer when the command has children', async () => {
     const calls: string[] = []
-    const registry: DynamicCompleterRegistry = {
-      get: () => undefined,
-      getPositional: (path) => { calls.push(path); return undefined },
+    const registry: DynamicCompleters = {
+      flags: new Map(),
+      positionals: new Map([['config', () => { calls.push('config'); return ['nope'] }]]),
     }
     // 'config' has children — should return children, not invoke positional
     const result = await enumerate(buildProgramWithLeaf(), ['config', ''], registry)

@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { DIRECTIVE_NO_SPACE } from '../enumerate.ts'
+
 /**
  * Zsh completion wrapper for the `elastic` CLI.
  *
@@ -52,7 +54,7 @@ _elastic_complete() {
   done
 
   # Bit 1: suppress trailing space (used for --flag= form).
-  if (( (directive & 1) != 0 )); then
+  if (( (directive & ${DIRECTIVE_NO_SPACE}) != 0 )); then
     compadd -S '' -- "\${candidates[@]}"
   else
     compadd -- "\${candidates[@]}"

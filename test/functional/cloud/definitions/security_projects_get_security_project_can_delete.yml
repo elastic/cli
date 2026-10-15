@@ -1,0 +1,12 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get Security project delete status (GET /api/v1/serverless/projects/security/{id}/_can-delete)
+# Id for {id} is derived from security-projects.list-security-projects.
+---
+"security-projects get-security-project-can-delete":
+  - do:
+      security-projects.list-security-projects: {}
+  - set: {projects.0.id: id}
+  - do:
+      security-projects.get-security-project-can-delete:
+        id: $id

@@ -1,0 +1,7 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get VectorDB projects (GET /api/v1/serverless/projects/vectordb)
+---
+"vectordb-projects list-vector-dbprojects":
+  - do:
+      vectordb-projects.list-vector-dbprojects: {}

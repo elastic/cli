@@ -12,7 +12,8 @@ import { generateScript, generateRunner, UnmappedBodyKeyError } from './generato
 
 const { values } = parseArgs({
   options: {
-    'tests-dir': { type: 'string' },
+    // Env fallback lets `npm run codegen:functional` point at a clone that isn't a sibling checkout
+    'tests-dir': { type: 'string', default: process.env.ES_CLIENTS_TESTS_DIR ?? '../elasticsearch-clients-tests/tests' },
     output: { type: 'string', default: 'test/functional/es' }
   },
   strict: true
@@ -20,11 +21,6 @@ const { values } = parseArgs({
 
 const testsDir = values['tests-dir']
 const outputDir = values.output ?? 'test/functional/es'
-
-if (testsDir == null) {
-  console.error('Usage: npx tsx codegen/functional/index.ts --tests-dir <path-to-elasticsearch-clients-tests/tests>')
-  process.exit(1)
-}
 
 function walkYamlFiles (dir: string): string[] {
   const files: string[] = []

@@ -42,3 +42,41 @@ spec:
         build_branches: false
         separate_pull_request_statuses: true
       cancel_intermediate_builds: true
+
+---
+# yaml-language-server: $schema=https://json.schemastore.org/catalog-info.json
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: buildkite-pipeline-elastic-cli-release
+  description: Buildkite pipeline that signs elastic cli macOS and Windows release binaries.
+  links:
+    - title: Pipeline
+      url: https://buildkite.com/elastic/elastic-cli-release
+spec:
+  type: buildkite-pipeline
+  owner: group:devtools-team
+  system: buildkite
+  implementation:
+    apiVersion: buildkite.elastic.dev/v1
+    kind: Pipeline
+    metadata:
+      name: elastic-cli-release
+      description: Signs elastic cli macOS and Windows release binaries.
+    spec:
+      repository: elastic/cli
+      pipeline_file: ".buildkite/release.yml"
+      provider_settings:
+        build_branches: true
+        build_pull_requests: false
+        build_tags: true
+        filter_enabled: true
+        filter_condition: |
+          build.branch =~ /^ci\// || build.tag =~ /^v/
+      cancel_intermediate_builds: false
+      skip_intermediate_builds: false
+      teams:
+        devtools-team:
+          access_level: MANAGE_BUILD_AND_READ
+        everyone:
+          access_level: READ_ONLY

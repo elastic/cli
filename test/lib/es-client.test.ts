@@ -390,4 +390,28 @@ describe('EsClient.request', () => {
       process.stderr.write = origWrite
     }
   })
+
+  it('warns on plaintext HTTP when localhost is only a hostname prefix', () => {
+    const chunks: string[] = []
+    const origWrite = process.stderr.write
+    process.stderr.write = ((chunk: string) => { chunks.push(chunk); return true }) as typeof process.stderr.write
+    try {
+      new EsClient('http://localhost.evil.com:9200', { api_key: 'k' })
+      assert.ok(chunks.some((c) => c.includes('plaintext HTTP')))
+    } finally {
+      process.stderr.write = origWrite
+    }
+  })
+
+  it('does not warn on HTTP for IPv6 loopback', () => {
+    const chunks: string[] = []
+    const origWrite = process.stderr.write
+    process.stderr.write = ((chunk: string) => { chunks.push(chunk); return true }) as typeof process.stderr.write
+    try {
+      new EsClient('http://[::1]:9200', { api_key: 'k' })
+      assert.ok(!chunks.some((c) => c.includes('plaintext HTTP')))
+    } finally {
+      process.stderr.write = origWrite
+    }
+  })
 })
