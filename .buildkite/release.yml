@@ -115,7 +115,7 @@ steps:
     depends_on:
       - verify-macos
       - verify-signed
-    if: build.tag =~ /^v/
+    if: build.tag != null && build.tag =~ /^v/
     env:
       GH_REPO: elastic/cli
     agents:
