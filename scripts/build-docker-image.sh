@@ -2,7 +2,8 @@
 # Copyright Elasticsearch B.V. and contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Build docker.elastic.co/clients/elastic-cli. Does not push.
+# Build docker.elastic.co/clients/elastic-cli.
+# Pushes only when DOCKER_PUSH=1 (buildx). Otherwise it loads the image locally.
 # usage: build-docker-image.sh <version> <binary> [platform]
 
 set -euo pipefail
@@ -34,24 +35,34 @@ if [[ ! -f "$license" || ! -f "$notice" ]]; then
   exit 1
 fi
 
+suffix=${IMAGE_TAG_SUFFIX:-}
+if [[ -n "$suffix" && ! "$suffix" =~ ^-[a-z0-9]+$ ]]; then
+  echo "invalid image tag suffix: $suffix" >&2
+  exit 1
+fi
+
 created=${CREATED:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}
 revision=${GIT_REVISION:-$(git -C "$root" rev-parse HEAD)}
 
 workdir=$(mktemp -d)
 trap 'rm -rf "$workdir"' EXIT
 
-cp "$binary" "$workdir/elastic"
+cp -- "$binary" "$workdir/elastic"
 chmod 755 "$workdir/elastic"
-cp "$license" "$workdir/LICENSE.txt"
-cp "$notice" "$workdir/NOTICE.txt"
+cp -- "$license" "$workdir/LICENSE.txt"
+cp -- "$notice" "$workdir/NOTICE.txt"
 
-args=(
-  build
+if [[ "${DOCKER_PUSH:-}" == 1 ]]; then
+  args=(buildx build --push)
+else
+  args=(build)
+fi
+args+=(
   --file "$root/distribution/docker/Dockerfile"
   --build-arg "VERSION=$version"
   --build-arg "REVISION=$revision"
   --build-arg "CREATED=$created"
-  --tag "docker.elastic.co/clients/elastic-cli:$version"
+  --tag "docker.elastic.co/clients/elastic-cli:${version}${suffix}"
 )
 if [[ -n "$platform" ]]; then
   args+=(--platform "$platform")
