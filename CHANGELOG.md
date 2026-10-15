@@ -4,6 +4,13 @@
 
 Process exit stays 1. Codes 2-5 are reserved and not emitted. `--json` config-load failures use `missing_config` or `config_invalid`. HTTP 401 is `auth_required`, 404 is `not_found`. See `elastic help exit-codes`. Relates to #634.
 
+## [0.7.1](https://github.com/elastic/cli/compare/v0.7.0...v0.7.1) (2026-10-15)
+
+
+### Bug Fixes
+
+* Unblock macos release signing ([#774](https://github.com/elastic/cli/issues/774)) ([14e3de7](https://github.com/elastic/cli/commit/14e3de7e5b067137c35fcf83eeed23d260dc859f))
+
 ## [0.7.0](https://github.com/elastic/cli/compare/v0.6.0...v0.7.0) (2026-10-15)
 
 
