@@ -310,6 +310,14 @@ elasticsearch:
 | `--output-fields <list>` | Comma-separated list of fields to include in output (dot-notation supported) |
 | `--output-template <string>` | Mustache-like template for custom text output (e.g. `"{{id}}: {{name}}"`) |
 | `--dry-run` | Validate all inputs and exit without performing any action |
+| `--no-color` | Disable ANSI colors (same as `NO_COLOR=1`) |
+
+### Colors and piped output
+
+ANSI colors are on for TTYs and off otherwise. `NO_COLOR` (any value) disables
+colors everywhere; `FORCE_COLOR=1` forces them on. When stdout is not a TTY and
+`--json` is absent, tables render as TSV and status markers become `ok`/`fail`
+words so piped output stays parseable.
 
 ## Commands
 

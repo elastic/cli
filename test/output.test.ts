@@ -5,7 +5,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { renderText, renderTable, formatHandlerError, formatTextResponse } from '../src/output.ts'
+import { renderText, renderTable, renderTsv, colorsEnabled, formatHandlerError, formatTextResponse } from '../src/output.ts'
 
 describe('formatTextResponse', () => {
   it('prints nothing for an empty CAT body', () => {
@@ -96,6 +96,13 @@ describe('renderTable', () => {
       assert.doesNotMatch(line, / $/, `line has trailing space: ${JSON.stringify(line)}`)
     }
   })
+
+  it('includes keys that first appear in a later row', () => {
+    const out = renderTable([{ a: 1 }, { a: 2, b: 3 }])
+    assert.match(out, /a/)
+    assert.match(out, /b/)
+    assert.match(out, /3/)
+  })
 })
 
 describe('renderText', () => {
@@ -149,6 +156,90 @@ describe('renderText', () => {
       const lines = out.trimEnd().split('\n')
       assert.match(lines[2]!, /[─├┤┼]/)
     })
+
+    it('renders TSV without borders when plain is set', () => {
+      const out = renderText(
+        [
+          { name: 'foo', count: 3 },
+          { name: 'bar', count: 12 },
+        ],
+        { plain: true },
+      )
+      assert.equal(out, 'name\tcount\nfoo\t3\nbar\t12\n')
+    })
+  })
+
+  describe('renderTsv', () => {
+    it('renders an empty array as an empty string', () => {
+      assert.equal(renderTsv([]), '')
+    })
+
+    it('renders a header line plus one line per row', () => {
+      assert.equal(renderTsv([{ a: 'x', bb: 'y' }]), 'a\tbb\nx\ty\n')
+    })
+
+    it('replaces tabs and newlines inside cells with spaces', () => {
+      assert.equal(renderTsv([{ a: 'x\ty\nz' }]), 'a\nx y z\n')
+    })
+
+    it('renders null cells as empty strings', () => {
+      assert.equal(renderTsv([{ a: null }]), 'a\n\n')
+    })
+
+    it('includes keys that first appear in a later row', () => {
+      assert.equal(renderTsv([{ a: 1 }, { a: 2, b: 3 }]), 'a\tb\n1\t\n2\t3\n')
+    })
+  })
+
+  describe('colorsEnabled', () => {
+    it('is disabled when NO_COLOR is set, even on a TTY', () => {
+      const prev = process.env.NO_COLOR
+      const prevForce = process.env.FORCE_COLOR
+      process.env.NO_COLOR = '1'
+      delete process.env.FORCE_COLOR
+      try {
+        assert.equal(colorsEnabled(true), false)
+        assert.equal(colorsEnabled(false), false)
+      } finally {
+        if (prev === undefined) delete process.env.NO_COLOR
+        else process.env.NO_COLOR = prev
+        if (prevForce === undefined) delete process.env.FORCE_COLOR
+        else process.env.FORCE_COLOR = prevForce
+      }
+    })
+
+    it('is forced on by FORCE_COLOR unless it is 0', () => {
+      const prev = process.env.NO_COLOR
+      const prevForce = process.env.FORCE_COLOR
+      delete process.env.NO_COLOR
+      try {
+        process.env.FORCE_COLOR = '1'
+        assert.equal(colorsEnabled(false), true)
+        process.env.FORCE_COLOR = '0'
+        assert.equal(colorsEnabled(false), false)
+      } finally {
+        if (prev === undefined) delete process.env.NO_COLOR
+        else process.env.NO_COLOR = prev
+        if (prevForce === undefined) delete process.env.FORCE_COLOR
+        else process.env.FORCE_COLOR = prevForce
+      }
+    })
+
+    it('follows the TTY state otherwise', () => {
+      const prev = process.env.NO_COLOR
+      const prevForce = process.env.FORCE_COLOR
+      delete process.env.NO_COLOR
+      delete process.env.FORCE_COLOR
+      try {
+        assert.equal(colorsEnabled(true), true)
+        assert.equal(colorsEnabled(false), false)
+      } finally {
+        if (prev === undefined) delete process.env.NO_COLOR
+        else process.env.NO_COLOR = prev
+        if (prevForce === undefined) delete process.env.FORCE_COLOR
+        else process.env.FORCE_COLOR = prevForce
+      }
+    })
   })
 
   describe('flat objects — key: value pairs', () => {
@@ -179,6 +270,33 @@ describe('renderText', () => {
     it('renders a mixed array (primitives and objects) as pretty-printed JSON', () => {
       const val = ['hello', { key: 1 }]
       assert.equal(renderText(val as never), JSON.stringify(val, null, 2) + '\n')
+    })
+  })
+
+  describe('no-ANSI contract', () => {
+    // eslint-disable-next-line no-control-regex
+    const ansi = /\u001B\[[\d;]*m/
+    it('renderTable emits no ANSI sequences', () => {
+      assert.doesNotMatch(renderTable([{ name: 'foo', count: 3 }]), ansi)
+    })
+
+    it('renderText emits no ANSI sequences', () => {
+      assert.doesNotMatch(renderText('hello'), ansi)
+      assert.doesNotMatch(renderText([{ name: 'foo' }]), ansi)
+      assert.doesNotMatch(renderText([{ name: 'foo' }], { plain: true }), ansi)
+      assert.doesNotMatch(renderText({ key: { nested: 1 } }), ansi)
+    })
+
+    it('formatTextResponse emits no ANSI sequences', () => {
+      assert.doesNotMatch(formatTextResponse('line one\nline two\n'), ansi)
+    })
+
+    it('formatHandlerError emits no ANSI sequences', () => {
+      assert.doesNotMatch(formatHandlerError({ error: { code: 'missing_config', message: 'nope' } }), ansi)
+      assert.doesNotMatch(
+        formatHandlerError({ error: { code: 'transport_error', status_code: 500, body: {} } }),
+        ansi,
+      )
     })
   })
 })

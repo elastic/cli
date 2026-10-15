@@ -5,6 +5,7 @@
 
 import { defineCommand } from '../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../factory.ts'
+import { colorsEnabled } from '../output.ts'
 import { docsAskStream, newUuid, type AskStreamEvent } from './client.ts'
 import { startSpinner, streamAnswer } from './stream.ts'
 import { renderMarkdown } from './renderer.ts'
@@ -32,7 +33,7 @@ function experimentalBanner (isTTY: boolean): string {
   const text =
     'Warning: "docs ask" is experimental and in active development.\n' +
     '         Not yet suited for scripts or automation. Pass --accept-experimental to suppress this warning.\n\n'
-  return isTTY ? `\x1b[33m${text}\x1b[0m` : text
+  return colorsEnabled(isTTY) ? `\x1b[33m${text}\x1b[0m` : text
 }
 
 export function createAskCommand (deps: AskDeps = defaultDeps): OpaqueCommandHandle {

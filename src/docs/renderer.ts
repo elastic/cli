@@ -5,6 +5,7 @@
 
 import { marked } from 'marked'
 import { markedTerminal } from 'marked-terminal'
+import { colorsEnabled, stripAnsi } from '../output.ts'
 
 // Register the terminal renderer once at module load.
 // Use markedTerminal() (the extension factory) rather than new TerminalRenderer(),
@@ -21,7 +22,10 @@ marked.use(markedTerminal({}, { theme: {} }) as any)
 /**
  * Parse `md` as markdown and render it for terminal output.
  * Returns the rendered string with trailing whitespace trimmed.
+ * Styling is stripped when colors are off (piped output or `NO_COLOR`).
  */
 export function renderMarkdown (md: string): string {
-  return (marked.parse(md) as string).trimEnd()
+  const out = (marked.parse(md) as string).trimEnd()
+  if (colorsEnabled(process.stdout.isTTY === true)) return out
+  return stripAnsi(out)
 }

@@ -39,15 +39,17 @@ const REFERENCES_MARKER = '<!--REFERENCES'
 export function startSpinner (err: { write: (s: string) => boolean }, initialPhase = 'Thinking…'): SpinnerHandle {
   let phase = initialPhase
   let frame = 0
+  // \x1b[K clears the line but is an ANSI escape: omit it under NO_COLOR.
+  const clear = process.env.NO_COLOR === undefined ? '\r\x1b[K' : '\r'
   const interval = setInterval(() => {
-    err.write(`\r\x1b[K${SPINNER_FRAMES[frame++ % SPINNER_FRAMES.length]} ${phase}`)
+    err.write(`${clear}${SPINNER_FRAMES[frame++ % SPINNER_FRAMES.length]} ${phase}`)
   }, 80)
 
   return {
     setPhase: (p: string) => { phase = p },
     stop: () => {
       clearInterval(interval)
-      err.write('\r\x1b[K')
+      err.write(clear)
     },
   }
 }

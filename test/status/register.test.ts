@@ -34,6 +34,7 @@ function makeProgram (): InstanceType<typeof Command> {
   prog.option('--use-context <name>', 'override the active context')
   prog.option('--command-profile <name>', 'restrict available commands to a deployment profile')
   prog.option('--json', 'output as JSON')
+  prog.option('--no-color', 'disable ANSI colors')
   prog.option('--output-fields <list>', '')
   prog.option('--output-template <string>', '')
   prog.addCommand(registerStatusCommand())
@@ -138,6 +139,8 @@ describe('elastic status -- command', () => {
       if (url.includes('/api/status')) return new Response(SAMPLE_KIBANA, { status: 200 })
       return new Response('not configured', { status: 500 })
     }))
+    const origIsTTY = process.stdout.isTTY
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true, writable: true })
     try {
       const out = await captured(async () => {
         const prog = makeProgram()
@@ -152,6 +155,96 @@ describe('elastic status -- command', () => {
       // failure value rather than the runtime-specific "no value set" sentinel.
       assert.notEqual(out.exitCode, 1, `unexpected failure exit code, got: ${out.exitCode}`)
     } finally {
+      Object.defineProperty(process.stdout, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+      restore()
+    }
+  })
+
+  it('renders plain ok/fail words when stdout is not a TTY', async () => {
+    await writeConfig([
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '      auth: { api_key: k }',
+    ].join('\n'))
+    const restore = _testSetFetch(mockFetch((url) => {
+      if (url.includes('_cluster/health')) return new Response(SAMPLE_HEALTH, { status: 200 })
+      return new Response('not configured', { status: 500 })
+    }))
+    const origIsTTY = process.stdout.isTTY
+    Object.defineProperty(process.stdout, 'isTTY', { value: false, configurable: true, writable: true })
+    try {
+      const out = await captured(async () => {
+        const prog = makeProgram()
+        await prog.parseAsync(['--config-file', configPath, 'status'], { from: 'user' })
+      })
+      assert.ok(out.stdout.includes('ok  green (3 nodes)'), `expected plain marker, got: ${out.stdout}`)
+      assert.ok(!out.stdout.includes('✓'), `unexpected glyph, got: ${out.stdout}`)
+      assert.ok(!out.stdout.includes('✗'), `unexpected glyph, got: ${out.stdout}`)
+    } finally {
+      Object.defineProperty(process.stdout, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+      restore()
+    }
+  })
+
+  it('renders plain words with --no-color on a TTY', async () => {
+    await writeConfig([
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '      auth: { api_key: k }',
+    ].join('\n'))
+    const restore = _testSetFetch(mockFetch((url) => {
+      if (url.includes('_cluster/health')) return new Response(SAMPLE_HEALTH, { status: 200 })
+      return new Response('not configured', { status: 500 })
+    }))
+    const origIsTTY = process.stdout.isTTY
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true, writable: true })
+    try {
+      const out = await captured(async () => {
+        const prog = makeProgram()
+        await prog.parseAsync(['--no-color', '--config-file', configPath, 'status'], { from: 'user' })
+      })
+      assert.ok(out.stdout.includes('ok  green (3 nodes)'), `expected plain marker, got: ${out.stdout}`)
+      assert.ok(!out.stdout.includes('✓'), `unexpected glyph, got: ${out.stdout}`)
+    } finally {
+      Object.defineProperty(process.stdout, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+      restore()
+    }
+  })
+
+  it('renders plain words under NO_COLOR even on a TTY', async () => {
+    await writeConfig([
+      'current_context: local',
+      'contexts:',
+      '  local:',
+      '    elasticsearch:',
+      '      url: http://localhost:9200',
+      '      auth: { api_key: k }',
+    ].join('\n'))
+    const restore = _testSetFetch(mockFetch((url) => {
+      if (url.includes('_cluster/health')) return new Response(SAMPLE_HEALTH, { status: 200 })
+      return new Response('not configured', { status: 500 })
+    }))
+    const origIsTTY = process.stdout.isTTY
+    const origNoColor = process.env.NO_COLOR
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true, writable: true })
+    process.env.NO_COLOR = '1'
+    try {
+      const out = await captured(async () => {
+        const prog = makeProgram()
+        await prog.parseAsync(['--config-file', configPath, 'status'], { from: 'user' })
+      })
+      assert.ok(out.stdout.includes('ok  green (3 nodes)'), `expected plain marker, got: ${out.stdout}`)
+      assert.ok(!out.stdout.includes('✓'), `unexpected glyph, got: ${out.stdout}`)
+    } finally {
+      Object.defineProperty(process.stdout, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+      if (origNoColor === undefined) delete process.env.NO_COLOR
+      else process.env.NO_COLOR = origNoColor
       restore()
     }
   })
