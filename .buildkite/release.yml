@@ -50,6 +50,8 @@ steps:
     depends_on: pack
     if: build.branch =~ /^ci\// || build.tag =~ /^v/
     build:
+      # This ci branch only. main does not allow elastic-cli-release yet.
+      branch: navyau/macos-signing-entitlement-profiles
       env:
         INPUT_PATH: "buildkite://"
         MACOS_ENTITLEMENTS_PROFILE: bun-jit
@@ -60,6 +62,8 @@ steps:
     depends_on: pack
     if: build.branch =~ /^ci\// || build.tag =~ /^v/
     build:
+      # Same branch. The windows slug allowlist is only there, not on main.
+      branch: navyau/macos-signing-entitlement-profiles
       env:
         INPUT_PATH: "buildkite://"
         DOWNLOAD_ARTIFACTS_FILTER: "elastic-windows-*.exe"
