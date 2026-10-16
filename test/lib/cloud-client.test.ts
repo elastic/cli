@@ -6,6 +6,7 @@
 import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { getCloudClient, _testResetCloudClient } from '../../src/lib/cloud-client.ts'
+import { HttpResponseError } from '../../src/lib/http-errors.ts'
 import { setResolvedConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
 import { clientHeaders } from '../../src/lib/meta.ts'
@@ -117,6 +118,21 @@ describe('getCloudClient', () => {
 
     await assert.rejects(() => client.request({ method: 'GET', path: '/api/v1/bad' }), (err: Error) => {
       assert.match(err.message, /404/)
+      return true
+    })
+  })
+
+  it('client.request throws HttpResponseError carrying the status and raw body', async () => {
+    setResolvedConfig({ context: { cloud: { url: 'https://api.elastic-cloud.com', auth: { api_key: 'k' } } } })
+    const client = getCloudClient()
+    const body = JSON.stringify({ errors: [{ message: 'not found' }] })
+    client._testSetFetch((() => Promise.resolve(new Response(body, { status: 404 }))) as typeof fetch)
+
+    await assert.rejects(client.request({ method: 'GET', path: '/api/v1/bad' }), (err: unknown) => {
+      assert.ok(err instanceof HttpResponseError)
+      assert.equal(err.statusCode, 404)
+      assert.equal(err.body, body)
+      assert.equal(err.message, `Cloud API error 404: ${body}`)
       return true
     })
   })

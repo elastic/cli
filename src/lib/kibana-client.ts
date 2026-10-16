@@ -11,6 +11,7 @@ import { isLoopbackUrl } from './is-loopback-host.ts'
 import { clientHeaders } from './meta.ts'
 import { parseSseText } from './sse.ts'
 import { YamlResponse, isYamlContentType } from './yaml-response.ts'
+import { HttpResponseError, toConnectionError } from './http-errors.ts'
 
 /** HTTP methods supported by the Kibana API client. */
 export type KibanaHttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD' | 'PATCH'
@@ -112,6 +113,10 @@ function decodeSse (text: string): DecodedSseEvent[] {
   })
 }
 
+function kibanaError (status: number, text: string): HttpResponseError {
+  return new HttpResponseError(status, text, `Kibana API error ${status}: ${text}`)
+}
+
 /**
  * Lightweight HTTP client for Kibana APIs.
  *
@@ -147,7 +152,8 @@ export class KibanaClient {
    * Bodies advertised as JSON are parsed when they are JSON and otherwise returned as raw text
    * instead of throwing (`Unexpected non-whitespace character after JSON`).
    *
-   * @throws {Error} on non-2xx responses, including the status code and response body
+   * @throws {HttpResponseError} on non-2xx responses and refused redirects
+   * @throws {ConnectionError} when the request never reached the server
    */
   async request (params: KibanaRequestParams, responseType?: KibanaResponseType): Promise<unknown> {
     let url = `${this.baseUrl}${params.path}`
@@ -201,15 +207,13 @@ export class KibanaClient {
       init.body = JSON.stringify(params.body)
     }
 
-    let response = await this._fetch(url, init)
+    let response = await this.send(url, init)
     for (let hops = 0; REDIRECT_STATUSES.has(response.status); hops++) {
       const location = response.headers.get('location')
-      if (location == null) throw new Error(`Kibana API error ${response.status}: redirect without a Location header`)
+      if (location == null) throw kibanaError(response.status, 'redirect without a Location header')
       const next = new URL(location, url)
-      if (next.origin !== origin) {
-        throw new Error(`Kibana API error ${response.status}: refused redirect to a different origin (${next.origin})`)
-      }
-      if (hops === MAX_REDIRECTS) throw new Error(`Kibana API error ${response.status}: too many redirects (limit ${MAX_REDIRECTS})`)
+      if (next.origin !== origin) throw kibanaError(response.status, `refused redirect to a different origin (${next.origin})`)
+      if (hops === MAX_REDIRECTS) throw kibanaError(response.status, `too many redirects (limit ${MAX_REDIRECTS})`)
       // fetch spec semantics (what redirect:'follow' does): 303, and 301/302 for POST, re-issue as
       // GET without the body. 307/308 keep the method and re-send the body; FormData is
       // re-serialized on every fetch call, so multipart uploads survive the hop.
@@ -220,18 +224,23 @@ export class KibanaClient {
         delete headers['Content-Type']
       }
       url = next.href
-      response = await this._fetch(url, init)
+      response = await this.send(url, init)
     }
 
-    if (!response.ok) {
-      const text = await response.text()
-      throw new Error(`Kibana API error ${response.status}: ${text}`)
-    }
+    if (!response.ok) throw kibanaError(response.status, await response.text())
 
     const text = await response.text()
     if (text.length === 0) return {}
 
     return decodeBody(text, response.headers.get('content-type') ?? '', responseType)
+  }
+
+  private async send (url: string, init: RequestInit): Promise<Response> {
+    try {
+      return await this._fetch(url, init)
+    } catch (err) {
+      throw toConnectionError(err)
+    }
   }
 
   /**
