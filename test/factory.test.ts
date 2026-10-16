@@ -21,6 +21,7 @@ import { setResolvedConfig, _testResetConfig } from '../src/config/store.ts'
 import { YamlResponse } from '../src/lib/yaml-response.ts'
 import { formatTextResponse } from '../src/output.ts'
 import { Command } from 'commander'
+import { captureDuring } from './helpers/capture.ts'
 
 /** Build a JSON Schema for test use. */
 function jsonSchema(
@@ -2159,13 +2160,6 @@ describe('defineCommand', () => {
   })
 
   describe('handler return value and output', () => {
-    async function captureOutput(fn: () => Promise<void>): Promise<string> {
-      let out = ''
-      const restore = patchWrite(process.stdout, (s) => { out += s })
-      try { await fn() } finally { restore() }
-      return out
-    }
-
     async function invokeUnderRoot(cmd: OpaqueCommandHandle, rootArgv: string[], cmdArgv: string[]): Promise<string> {
       const { Command } = await import('commander')
       const prog = new Command('elastic')
@@ -2173,7 +2167,7 @@ describe('defineCommand', () => {
       prog.addCommand(cmd)
       prog.exitOverride()
       cmd.exitOverride()
-      return captureOutput(() => prog.parseAsync([...rootArgv, cmd.name(), ...cmdArgv], { from: 'user' }))
+      return stdoutDuring(() => prog.parseAsync([...rootArgv, cmd.name(), ...cmdArgv], { from: 'user' }))
     }
 
     it('factory writes handler return value as compact JSON when --json', async () => {
@@ -2464,13 +2458,6 @@ describe('defineCommand', () => {
 })
 
 describe('text output rendering', () => {
-  async function captureOutput(fn: () => Promise<unknown>): Promise<string> {
-    let out = ''
-    const restore = patchWrite(process.stdout, (s) => { out += s })
-    try { await fn() } finally { restore() }
-    return out
-  }
-
   async function invokeText(cmd: OpaqueCommandHandle, cmdArgv: string[] = []): Promise<string> {
     const { Command } = await import('commander')
     const prog = new Command('elastic')
@@ -2478,7 +2465,7 @@ describe('text output rendering', () => {
     prog.addCommand(cmd)
     prog.exitOverride()
     cmd.exitOverride()
-    return captureOutput(() => prog.parseAsync([cmd.name(), ...cmdArgv], { from: 'user' }))
+    return stdoutDuring(() => prog.parseAsync([cmd.name(), ...cmdArgv], { from: 'user' }))
   }
 
   describe('formatOutput callback', () => {
@@ -2547,7 +2534,7 @@ describe('text output rendering', () => {
       prog.addCommand(cmd)
       prog.exitOverride()
       cmd.exitOverride()
-      await captureOutput(() => prog.parseAsync(['--json', cmd.name()], { from: 'user' }))
+      await stdoutDuring(() => prog.parseAsync(['--json', cmd.name()], { from: 'user' }))
       assert.equal(called, false, 'formatOutput must not be called in JSON mode')
     })
 
@@ -2564,7 +2551,7 @@ describe('text output rendering', () => {
       prog.addCommand(cmd)
       prog.exitOverride()
       cmd.exitOverride()
-      const out = await captureOutput(() => prog.parseAsync(['--json', cmd.name()], { from: 'user' }))
+      const out = await stdoutDuring(() => prog.parseAsync(['--json', cmd.name()], { from: 'user' }))
       assert.deepEqual(JSON.parse(out), { ok: true })
     })
   })
@@ -4272,27 +4259,14 @@ async function captureErrAsync(handle: OpaqueCommandHandle, argv: string[]): Pro
   return err
 }
 
-/**
- * Temporarily captures string writes to a process stream, returning a restore fn.
- * Non-string chunks (e.g. the node:test v8 reporter's serialized Buffers) are
- * forwarded to the real stream so the test-runner IPC channel is never corrupted
- * when this runs inside a spawned test subprocess.
- */
-function patchWrite (stream: NodeJS.WriteStream, sink: (s: string) => void): () => void {
-  const orig = stream.write.bind(stream)
-  stream.write = (chunk: unknown, ...args: unknown[]) => {
-    if (typeof chunk === 'string') { sink(chunk); return true }
-    return Reflect.apply(orig, stream, [chunk, ...args]) as boolean
-  }
-  return () => { stream.write = orig }
+/** captures everything written to process.stdout during fn(); rejects if fn does */
+async function stdoutDuring(fn: () => unknown): Promise<string> {
+  return (await captureDuring(fn)).stdout.join('')
 }
 
 /** captures everything written to process.stdout during fn(), even if fn throws */
 async function captureStdout(fn: () => Promise<unknown>): Promise<string> {
-  let out = ''
-  const restore = patchWrite(process.stdout, (s) => { out += s })
-  try { await fn() } catch { /* swallow — caller inspects captured output */ } finally { restore() }
-  return out
+  return stdoutDuring(async () => { try { await fn() } catch { /* swallow — caller inspects captured output */ } })
 }
 
 /** mounts a command under a root program with --json and captures stdout */
@@ -4308,24 +4282,20 @@ async function invokeUnderRoot(cmd: OpaqueCommandHandle, rootArgv: string[], cmd
 
 /** captures stdout, stderr, and exitCode separately */
 async function captureStreams(fn: () => Promise<void>): Promise<{ stdout: string, stderr: string, exitCode: number }> {
-  let stdout = ''
-  let stderr = ''
-  let exitCode: number
+  let exitCode = 0
   const origExitCode = process.exitCode
   process.exitCode = 0
-  const restoreOut = patchWrite(process.stdout, (s) => { stdout += s })
-  const restoreErr = patchWrite(process.stderr, (s) => { stderr += s })
-  try {
-    await fn()
-  } catch {
-    /* swallow -- caller inspects captured output */
-  } finally {
-    exitCode = process.exitCode ?? 0
-    restoreOut()
-    restoreErr()
-    process.exitCode = origExitCode as typeof process.exitCode
-  }
-  return { stdout, stderr, exitCode }
+  const { stdout, stderr } = await captureDuring(async () => {
+    try {
+      await fn()
+    } catch {
+      /* swallow -- caller inspects captured output */
+    } finally {
+      exitCode = process.exitCode ?? 0
+      process.exitCode = origExitCode as typeof process.exitCode
+    }
+  })
+  return { stdout: stdout.join(''), stderr: stderr.join(''), exitCode }
 }
 
 /** mounts a command under a root program and captures stdout, stderr, exitCode */
@@ -4712,14 +4682,7 @@ describe('YAML response rendering', () => {
     prog.addCommand(cmd)
     prog.exitOverride()
     cmd.exitOverride()
-    let out = ''
-    const restore = patchWrite(process.stdout, (s) => { out += s })
-    try {
-      await prog.parseAsync([...rootArgv, cmd.name()], { from: 'user' })
-    } finally {
-      restore()
-    }
-    return out
+    return stdoutDuring(() => prog.parseAsync([...rootArgv, cmd.name()], { from: 'user' }))
   }
 
   const yamlBody = 'apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: agent\n'
