@@ -10,6 +10,7 @@ import { HttpResponseError } from '../../src/lib/http-errors.ts'
 import { setResolvedConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
 import { clientHeaders } from '../../src/lib/meta.ts'
+import { YamlResponse } from '../../src/lib/yaml-response.ts'
 
 afterEach(() => {
   _testResetCloudClient()
@@ -188,6 +189,28 @@ describe('getCloudClient', () => {
 
     const result = await client.request({ method: 'DELETE', path: '/api/v1/something' })
     assert.deepEqual(result, {})
+  })
+
+  it('wraps a YAML response in a YamlResponse', async () => {
+    setResolvedConfig({ context: { cloud: { url: 'https://api.elastic-cloud.com', auth: { api_key: 'k' } } } })
+    const client = getCloudClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('a: 1\n', { status: 200, headers: { 'content-type': 'application/yaml' } }))
+    ) as typeof fetch)
+
+    const result = await client.request({ method: 'GET', path: '/api/v1/something' })
+    assert.ok(result instanceof YamlResponse)
+    assert.equal(result.text, 'a: 1\n')
+  })
+
+  it('throws on a non-JSON, non-YAML body', async () => {
+    setResolvedConfig({ context: { cloud: { url: 'https://api.elastic-cloud.com', auth: { api_key: 'k' } } } })
+    const client = getCloudClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('not json', { status: 200, headers: { 'content-type': 'text/plain' } }))
+    ) as typeof fetch)
+
+    await assert.rejects(client.request({ method: 'GET', path: '/api/v1/something' }), SyntaxError)
   })
 
   it('warns on plaintext HTTP for non-localhost URLs (#107)', () => {

@@ -9,6 +9,7 @@ import { EsClient, EsResponseError, EsConnectionError, getEsClient, _testResetEs
 import { setResolvedConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
 import { clientHeaders } from '../../src/lib/meta.ts'
+import { YamlResponse } from '../../src/lib/yaml-response.ts'
 
 function makeApiKeyConfig (url: string, apiKey: string): ResolvedConfig {
   return { context: { elasticsearch: { url, auth: { api_key: apiKey } } } }
@@ -65,6 +66,25 @@ describe('getEsClient', () => {
     setResolvedConfig(makeApiKeyConfig('http://localhost:9200/', 'key'))
     const client = getEsClient()
     assert.equal(client.baseUrl, 'http://localhost:9200')
+  })
+
+  it('sends the configured credentials', async () => {
+    async function authHeader (config: ResolvedConfig): Promise<string | undefined> {
+      _testResetEsClient()
+      setResolvedConfig(config)
+      const client = getEsClient()
+      let header: string | undefined
+      client._testSetFetch(((url: string, init: RequestInit) => {
+        header = (init.headers as Record<string, string>)['Authorization']
+        return Promise.resolve(new Response('', { status: 200 }))
+      }) as typeof fetch)
+      await client.request({ method: 'GET', path: '/' })
+      return header
+    }
+
+    assert.equal(await authHeader(makeApiKeyConfig('http://localhost:9200', 'k')), 'ApiKey k')
+    assert.equal(await authHeader(makeBasicConfig('http://localhost:9200', 'u', 'p')), `Basic ${Buffer.from('u:p').toString('base64')}`)
+    assert.equal(await authHeader({ context: { elasticsearch: { url: 'http://localhost:9200' } } }), undefined)
   })
 })
 
@@ -190,6 +210,45 @@ describe('EsClient.request', () => {
     assert.equal(calls[0]!.headers['Content-Type'], 'application/x-ndjson')
   })
 
+  it('sends bulkBody instead of body when both are set', async () => {
+    const client = makeClient()
+    const calls: RequestInit[] = []
+    client._testSetFetch(((url: string, init: RequestInit) => {
+      calls.push(init)
+      return Promise.resolve(new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }))
+    }) as typeof fetch)
+
+    await client.request({ method: 'POST', path: '/_bulk', body: { ignored: true }, bulkBody: '{"index":{}}\n' })
+    assert.equal(calls[0]!.body, '{"index":{}}\n')
+    assert.equal((calls[0]!.headers as Record<string, string>)['Content-Type'], 'application/x-ndjson')
+  })
+
+  it('sends a GET with a body as POST', async () => {
+    const client = makeClient()
+    const calls: RequestInit[] = []
+    client._testSetFetch(((url: string, init: RequestInit) => {
+      calls.push(init)
+      return Promise.resolve(new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }))
+    }) as typeof fetch)
+
+    await client.request({ method: 'GET', path: '/_search', body: { size: 0 } })
+    await client.request({ method: 'GET', path: '/_search' })
+    assert.equal(calls[0]!.method, 'POST')
+    assert.equal(calls[1]!.method, 'GET')
+  })
+
+  it('lets opts.headers override the default Accept', async () => {
+    const client = makeClient()
+    const calls: RequestInit[] = []
+    client._testSetFetch(((url: string, init: RequestInit) => {
+      calls.push(init)
+      return Promise.resolve(new Response('', { status: 200 }))
+    }) as typeof fetch)
+
+    await client.request({ method: 'GET', path: '/_cat/indices' }, { headers: { Accept: 'text/plain' } })
+    assert.equal((calls[0]!.headers as Record<string, string>)['Accept'], 'text/plain')
+  })
+
   it('allows opts.headers to override Content-Type', async () => {
     const client = makeClient()
     const calls: { headers: Record<string, string> }[] = []
@@ -225,6 +284,35 @@ describe('EsClient.request', () => {
     assert.equal(result, 'index  health  status\n')
   })
 
+  it('parses an application/x-ndjson response as JSON', async () => {
+    const client = makeClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('{"responses":[]}', { status: 200, headers: { 'content-type': 'application/x-ndjson' } }))
+    ) as typeof fetch)
+
+    assert.deepEqual(await client.request({ method: 'POST', path: '/_msearch' }), { responses: [] })
+  })
+
+  it('returns raw text for a JSON-looking body without a JSON content-type', async () => {
+    const client = makeClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('{"a":1}', { status: 200, headers: { 'content-type': 'text/plain' } }))
+    ) as typeof fetch)
+
+    assert.equal(await client.request({ method: 'GET', path: '/_cat/health' }), '{"a":1}')
+  })
+
+  it('wraps a YAML response in a YamlResponse', async () => {
+    const client = makeClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('a: 1\n', { status: 200, headers: { 'content-type': 'application/yaml' } }))
+    ) as typeof fetch)
+
+    const result = await client.request({ method: 'GET', path: '/_cluster/health' })
+    assert.ok(result instanceof YamlResponse)
+    assert.equal(result.text, 'a: 1\n')
+  })
+
   it('returns empty object for empty response body', async () => {
     const client = makeClient()
     client._testSetFetch((() =>
@@ -249,6 +337,20 @@ describe('EsClient.request', () => {
         return true
       }
     )
+  })
+
+  it('parses a JSON error body and uses its error field as the message', async () => {
+    const client = makeClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('{"error":{"type":"index_not_found_exception"},"status":404}', { status: 404 }))
+    ) as typeof fetch)
+
+    await assert.rejects(client.request({ method: 'GET', path: '/missing-index' }), (err: unknown) => {
+      assert.ok(err instanceof EsResponseError)
+      assert.deepEqual(err.body, { error: { type: 'index_not_found_exception' }, status: 404 })
+      assert.equal(err.message, '{"type":"index_not_found_exception"}')
+      return true
+    })
   })
 
   it('throws EsResponseError with HTML body on non-2xx (e.g. 504 from proxy)', async () => {
