@@ -503,7 +503,7 @@ export async function editInEditor (name: string, original: RawContext): Promise
 const CONFIG_FILE_OPT = {
   long: 'config-file',
   type: 'string' as const,
-  description: 'path to the config file to edit (defaults to ~/.elasticrc.yml)',
+  description: 'path to the config file to edit (defaults to the discovered ~/.elasticrc* file)',
 }
 
 function fieldOptions (): Array<{ long: string; type: 'string'; description: string }> {
