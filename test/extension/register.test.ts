@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os'
 import { registerExtensionCommands } from '../../src/extension/register.ts'
 import { _testSetRegistryPath } from '../../src/extension/store.ts'
 import { _testSetExtensionsDir } from '../../src/extension/installer.ts'
+import { captureDuring } from '../helpers/capture.ts'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -28,25 +29,16 @@ async function invoke (args: string[]): Promise<{ stdout: string; stderr: string
   const ext = registerExtensionCommands()
   program.addCommand(ext as unknown as InstanceType<typeof Command>)
 
-  const stdout: string[] = []
-  const stderr: string[] = []
-  const origOut = process.stdout.write.bind(process.stdout)
-  const origErr = process.stderr.write.bind(process.stderr)
-  process.stdout.write = (chunk: unknown) => { if (typeof chunk === 'string') stdout.push(chunk); return true }
-  process.stderr.write = (chunk: unknown) => { if (typeof chunk === 'string') stderr.push(chunk); return true }
-
-  let exitCode: number
   const origExit = process.exitCode
-  try {
-    await program.parseAsync(['node', 'elastic', 'extension', ...args])
-  } catch {
-    // commander exitOverride throws on error
-  } finally {
-    process.stdout.write = origOut
-    process.stderr.write = origErr
-    exitCode = (process.exitCode as number | undefined) ?? 0
-    process.exitCode = origExit
-  }
+  const { stdout, stderr } = await captureDuring(async () => {
+    try {
+      await program.parseAsync(['node', 'elastic', 'extension', ...args])
+    } catch {
+      // commander exitOverride throws on error
+    }
+  })
+  const exitCode = (process.exitCode as number | undefined) ?? 0
+  process.exitCode = origExit
 
   return { stdout: stdout.join(''), stderr: stderr.join(''), exitCode }
 }

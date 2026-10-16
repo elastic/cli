@@ -14,6 +14,7 @@ import { sniffVersion } from '../../src/status/checks.ts'
 import { parseVersionHint } from '../../src/lib/availability.ts'
 import { ContextSchema } from '../../src/config/schema.ts'
 import { clearConfigCache } from '../../src/config/loader.ts'
+import { captureDuring } from '../helpers/capture.ts'
 
 const realFetch = globalThis.fetch
 afterEach(() => { globalThis.fetch = realFetch; clearConfigCache() })
@@ -32,11 +33,7 @@ function stubFetch (handler: (url: string, init: RequestInit) => Response): Arra
 
 /** Runs `fn` with stderr captured; returns every chunk written. */
 async function captureStderr (fn: () => Promise<unknown>): Promise<string[]> {
-  const writes: string[] = []
-  const orig = process.stderr.write
-  process.stderr.write = ((s: string) => { writes.push(s); return true }) as typeof process.stderr.write
-  try { await fn() } finally { process.stderr.write = orig }
-  return writes
+  return (await captureDuring(fn)).stderr
 }
 
 async function tmpConfig (text: string): Promise<string> {
