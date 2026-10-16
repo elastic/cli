@@ -6,7 +6,8 @@
 import type { CloudApiDefinition } from './types.ts'
 import type { CloudClient } from '../lib/cloud-client.ts'
 import { getCloudClient } from '../lib/cloud-client.ts'
-import { HttpResponseError } from '../lib/http-errors.ts'
+import { ConnectionError, HttpResponseError } from '../lib/http-errors.ts'
+import { transportError } from '../es/errors.ts'
 import { buildCloudRequestParams } from './request-builder.ts'
 import type { HandlerResult, JsonValue, ParsedResult } from '../factory.ts'
 
@@ -182,6 +183,7 @@ function cloudHint (def: CloudApiDefinition, status: number | undefined, message
 }
 
 function cloudApiError (err: unknown, def: CloudApiDefinition): JsonValue {
+  if (err instanceof ConnectionError) return transportError(err)
   const { status, message } = parseCloudError(err)
   const error: Record<string, JsonValue> = { code: 'cloud_api_error', message }
   if (status != null) error.status_code = status
