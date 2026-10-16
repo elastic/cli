@@ -4,7 +4,7 @@
  */
 
 /**
- * AJV-based JSON Schema validation, replacing the Zod-based zod-error.ts.
+ * AJV-based JSON Schema validation.
  *
  * Uses ajv@8 with allErrors + useDefaults.
  * Imported statically so `bun build --compile` embeds it; createRequire is
