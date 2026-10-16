@@ -6,7 +6,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
@@ -793,7 +793,7 @@ describe('elastic CLI -- JSON mode error hygiene', () => {
         ['--json', '--config-file', configPath, 'es', 'search', '--index', 'test', '--size', 'not-a-number'],
       )
       assert.equal(code, 1, `expected exit code 1, got ${code}`)
-      // stderr must be valid JSON — no stack trace mixed in
+      // stderr must be valid JSON -- no stack trace mixed in
       let parsed: unknown
       try {
         parsed = JSON.parse(stderr.trim())
@@ -833,4 +833,56 @@ describe('elastic CLI -- version detection only runs for stack subcommands', () 
       })
     })
   }
+})
+
+describe('elastic CLI -- extension dispatch honors global config flags', { skip: process.platform === 'win32' }, () => {
+  // The extension is a shell script that echoes the context URL it was given and its args.
+  async function withExtension (fn: (dir: string, cfg: string) => Promise<void>): Promise<void> {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-ext-ctx-'))
+    try {
+      const run = join(dir, 'run')
+      await writeFile(run, '#!/bin/sh\necho "URL=$ELASTIC_ES_URL ARGS=$*"\n', { mode: 0o755 })
+      await mkdir(join(dir, '.elastic'))
+      await writeFile(join(dir, '.elastic', 'extensions.json'), JSON.stringify([{ name: 'dumpenv', source: `local:${dir}`, path: dir, entrypoint: run }]))
+      const cfg = join(dir, 'cfg.yml')
+      await writeFile(cfg, [
+        'current_context: a',
+        'contexts:',
+        '  a: { elasticsearch: { url: "http://a.example:9200" } }',
+        '  b: { elasticsearch: { url: "http://b.example:9200" } }',
+      ].join('\n'))
+      await fn(dir, cfg)
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  }
+
+  const cases: Array<[string, string[], string]> = [
+    ['--use-context before the extension name', ['--use-context', 'b', 'dumpenv', 'x'], 'URL=http://b.example:9200 ARGS=x'],
+    ['--use-context=name before the extension name', ['--use-context=b', 'dumpenv', 'x'], 'URL=http://b.example:9200 ARGS=x'],
+    ['--use-context leading the extension args', ['dumpenv', '--use-context', 'b', 'x'], 'URL=http://b.example:9200 ARGS=x'],
+    ['--use-context after an extension arg (forwarded)', ['dumpenv', 'x', '--use-context', 'b'], 'URL=http://a.example:9200 ARGS=x --use-context b'],
+    ['--use-context after -- (forwarded)', ['dumpenv', '--', '--use-context', 'b'], 'URL=http://a.example:9200 ARGS=-- --use-context b'],
+    ['--json before the extension name', ['--json', 'dumpenv', 'x'], 'URL=http://a.example:9200 ARGS=x'],
+    ['--json after the extension name (forwarded)', ['dumpenv', '--json', 'x'], 'URL=http://a.example:9200 ARGS=--json x'],
+    // An unknown profile fails the config load, so no credentials reach the extension.
+    ['--command-profile before the extension name', ['--command-profile', 'bogus', 'dumpenv', 'x'], 'URL= ARGS=x'],
+  ]
+  for (const [name, args, expected] of cases) {
+    it(name, async () => {
+      await withExtension(async (dir, cfg) => {
+        const { code, stdout } = await runCli(args, { cwd: dir, env: { HOME: dir, USERPROFILE: dir, ELASTIC_CLI_CONFIG_FILE: cfg } })
+        assert.equal(code, 0)
+        assert.equal(stdout.trim(), expected)
+      })
+    })
+  }
+
+  it('--config-file before the extension name', async () => {
+    await withExtension(async (dir, cfg) => {
+      const { code, stdout } = await runCli(['--config-file', cfg, 'dumpenv', 'x'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, ELASTIC_CLI_CONFIG_FILE: '' } })
+      assert.equal(code, 0)
+      assert.equal(stdout.trim(), 'URL=http://a.example:9200 ARGS=x')
+    })
+  })
 })
