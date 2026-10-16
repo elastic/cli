@@ -6,11 +6,12 @@
 import { describe, it, before, after, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { chmod, mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { loadConfigFile, discoverConfigFile, resolveContext, resolveEffectiveCommands, loadConfig, clearConfigCache, _testResetLooseInlineSecretWarning } from '../../src/config/loader.ts'
 import type { ConfigFile, ResolvedConfig } from '../../src/config/types.ts'
 import { capture } from '../helpers/capture.ts'
+import { tmpConfig } from '../helpers/tmp-config.ts'
 
 afterEach(() => clearConfigCache())
 
@@ -364,37 +365,20 @@ describe('loadConfig -- --config-file override', () => {
 // ---------------------------------------------------------------------------
 
 describe('loadConfig -- ELASTIC_CLI_CONFIG_FILE env var', () => {
-  let tmpDir: string
-  let envConfigPath: string
-  before(async () => {
-    tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-envvar-'))
-    envConfigPath = join(tmpDir, 'env-config.yml')
-    await writeFile(envConfigPath, VALID_CONFIG_YAML)
-  })
-  after(async () => rm(tmpDir, { recursive: true }))
-
-  it('loads config from ELASTIC_CLI_CONFIG_FILE when set', async () => {
-    const original = process.env['ELASTIC_CLI_CONFIG_FILE']
-    try {
-      process.env['ELASTIC_CLI_CONFIG_FILE'] = envConfigPath
-      const result = await loadConfig({})
-      assert.ok(result.ok, `loadConfig should succeed via env var`)
-      if (!result.ok) return
-      assert.deepEqual(result.value, {
-        context: {
-          elasticsearch: { url: 'http://localhost:9200', auth: { username: 'elastic', password: 'changeme' } },
-          kibana: { url: 'http://localhost:5601', auth: { api_key: 'kb-key-123' } },
-        },
-      } satisfies ResolvedConfig)
-    } finally {
-      if (original === undefined) delete process.env['ELASTIC_CLI_CONFIG_FILE']
-      else process.env['ELASTIC_CLI_CONFIG_FILE'] = original
-    }
+  it('loads config from ELASTIC_CLI_CONFIG_FILE when set', async (t) => {
+    await tmpConfig(t, VALID_CONFIG_YAML)
+    const result = await loadConfig({})
+    assert.ok(result.ok, `loadConfig should succeed via env var`)
+    if (!result.ok) return
+    assert.deepEqual(result.value, {
+      context: {
+        elasticsearch: { url: 'http://localhost:9200', auth: { username: 'elastic', password: 'changeme' } },
+        kibana: { url: 'http://localhost:5601', auth: { api_key: 'kb-key-123' } },
+      },
+    } satisfies ResolvedConfig)
   })
 
-  it('--config-file flag takes precedence over ELASTIC_CLI_CONFIG_FILE', async () => {
-    const otherDir = await mkdtemp(join(tmpdir(), 'elastic-cli-other-'))
-    const flagConfigPath = join(otherDir, 'flag-config.yml')
+  it('--config-file flag takes precedence over ELASTIC_CLI_CONFIG_FILE', async (t) => {
     const envYaml = `
 current_context: local
 contexts:
@@ -413,33 +397,20 @@ contexts:
       auth:
         api_key: flag-key
 `.trimStart()
-    await writeFile(envConfigPath, envYaml)
+    const envConfigPath = await tmpConfig(t, envYaml)
+    const flagConfigPath = join(dirname(envConfigPath), 'flag-config.yml')
     await writeFile(flagConfigPath, flagYaml)
 
-    const original = process.env['ELASTIC_CLI_CONFIG_FILE']
-    try {
-      process.env['ELASTIC_CLI_CONFIG_FILE'] = envConfigPath
-      const result = await loadConfig({ configPath: flagConfigPath })
-      assert.ok(result.ok)
-      if (!result.ok) return
-      assert.equal(result.value.context.elasticsearch!.url, 'http://flag-host:9200')
-    } finally {
-      if (original === undefined) delete process.env['ELASTIC_CLI_CONFIG_FILE']
-      else process.env['ELASTIC_CLI_CONFIG_FILE'] = original
-      await rm(otherDir, { recursive: true })
-    }
+    const result = await loadConfig({ configPath: flagConfigPath })
+    assert.ok(result.ok)
+    if (!result.ok) return
+    assert.equal(result.value.context.elasticsearch!.url, 'http://flag-host:9200')
   })
 
-  it('returns error when ELASTIC_CLI_CONFIG_FILE points to nonexistent file', async () => {
-    const original = process.env['ELASTIC_CLI_CONFIG_FILE']
-    try {
-      process.env['ELASTIC_CLI_CONFIG_FILE'] = '/nonexistent/config.yml'
-      const result = await loadConfig({})
-      assert.ok(!result.ok)
-    } finally {
-      if (original === undefined) delete process.env['ELASTIC_CLI_CONFIG_FILE']
-      else process.env['ELASTIC_CLI_CONFIG_FILE'] = original
-    }
+  it('returns error when ELASTIC_CLI_CONFIG_FILE points to nonexistent file', async (t) => {
+    await tmpConfig(t)
+    const result = await loadConfig({})
+    assert.ok(!result.ok)
   })
 })
 
