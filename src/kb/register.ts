@@ -26,15 +26,14 @@ import { buildStubLeaf } from '../lib/lazy-leaf.ts'
 /** Builds a leaf command handle from a definition. */
 function buildLeafHandle (def: KbApiDefinition, target?: AvailabilityTarget): OpaqueCommandHandle {
   validateKbApiDefinition(def)
+  const intent = def.intent ?? inferIntentFromHttp(def.method)
   return defineCommand({
     name: def.name,
     description: def.description,
     ...(def.input !== undefined ? { input: def.input } : {}),
     readOnly: def.method === 'GET' || def.method === 'HEAD',
     handler: createKbHandler(def),
-    ...(def.intent != null || inferIntentFromHttp(def.method) != null
-      ? { intent: def.intent ?? inferIntentFromHttp(def.method)! }
-      : {}),
+    ...(intent != null ? { intent } : {}),
     ...(def.responseType === 'text' ? { formatOutput: formatTextResponse } : {}),
     ...(target !== undefined ? { target } : {}),
   })
