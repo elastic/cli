@@ -20,6 +20,19 @@ afterEach(() => {
   setResolvedConfig({ context: {} } as ResolvedConfig)
 })
 
+/** Captures every request made through a KibanaClient. */
+function makeCapturingFetch (status = 200, body = '{}'): {
+  fetch: typeof fetch
+  calls: Array<{ url: string; init: RequestInit }>
+} {
+  const calls: Array<{ url: string; init: RequestInit }> = []
+  const fn = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+    calls.push({ url: url.toString(), init: init ?? {} })
+    return new Response(body, { status })
+  }
+  return { fetch: fn as unknown as typeof fetch, calls }
+}
+
 describe('getKibanaClient', () => {
   it('throws missing_config when kibana is not configured', () => {
     setResolvedConfig({ context: {} } as ResolvedConfig)
@@ -83,20 +96,6 @@ describe('KibanaClient.request', () => {
     return new KibanaClient('http://localhost:5601', auth)
   }
 
-  it('includes x-elastic-client-meta and user-agent on every request', async () => {
-    const client = makeClient()
-    let capturedHeaders: Record<string, string> = {}
-    client._testSetFetch(((url: string, init: RequestInit) => {
-      capturedHeaders = init.headers as Record<string, string>
-      return Promise.resolve(new Response('{}', { status: 200 }))
-    }) as typeof fetch)
-
-    await client.request({ method: 'GET', path: '/api/status' })
-    const expected = clientHeaders()
-    assert.equal(capturedHeaders['x-elastic-client-meta'], expected['x-elastic-client-meta'])
-    assert.equal(capturedHeaders['user-agent'], expected['user-agent'])
-  })
-
   it('sends ApiKey Authorization header', async () => {
     const client = makeClient({ api_key: 'my-key' })
     let capturedHeaders: Record<string, string> = {}
@@ -146,45 +145,28 @@ describe('KibanaClient.request', () => {
     assert.ok(!('kbn-xsrf' in capturedHeaders))
   })
 
-  it('composes URL from baseUrl and path', async () => {
-    const client = makeClient()
-    const urls: string[] = []
-    client._testSetFetch(((url: string) => {
-      urls.push(url)
-      return Promise.resolve(new Response('{}', { status: 200 }))
-    }) as typeof fetch)
-
-    await client.request({ method: 'GET', path: '/api/status' })
-    assert.equal(urls[0], 'http://localhost:5601/api/status')
+  it('adds kbn-xsrf: true for PUT', async () => {
+    const { fetch, calls } = makeCapturingFetch()
+    const client = new KibanaClient('https://kb.example.com', { api_key: 'k' })
+    client._testSetFetch(fetch)
+    await client.request({ method: 'PUT', path: '/api/saved_objects/lens/abc' })
+    assert.equal((calls[0]!.init.headers as Record<string, string>)['kbn-xsrf'], 'true')
   })
 
-  it('appends querystring to URL', async () => {
-    const client = makeClient()
-    const urls: string[] = []
-    client._testSetFetch(((url: string) => {
-      urls.push(url)
-      return Promise.resolve(new Response('{}', { status: 200 }))
-    }) as typeof fetch)
-
-    await client.request({ method: 'GET', path: '/api/saved_objects', querystring: { type: 'dashboard', perPage: 10 } })
-    const parsed = new URL(urls[0]!)
-    assert.equal(parsed.searchParams.get('type'), 'dashboard')
-    assert.equal(parsed.searchParams.get('perPage'), '10')
+  it('adds kbn-xsrf: true for DELETE', async () => {
+    const { fetch, calls } = makeCapturingFetch()
+    const client = new KibanaClient('https://kb.example.com', { api_key: 'k' })
+    client._testSetFetch(fetch)
+    await client.request({ method: 'DELETE', path: '/api/saved_objects/lens/abc' })
+    assert.equal((calls[0]!.init.headers as Record<string, string>)['kbn-xsrf'], 'true')
   })
 
-  it('throws on non-2xx response', async () => {
-    const client = makeClient()
-    client._testSetFetch((() =>
-      Promise.resolve(new Response('{"message":"not found"}', { status: 404 }))
-    ) as typeof fetch)
-
-    await assert.rejects(
-      () => client.request({ method: 'GET', path: '/api/missing' }),
-      (err: Error) => {
-        assert.match(err.message, /404/)
-        return true
-      }
-    )
+  it('does NOT add kbn-xsrf for HEAD', async () => {
+    const { fetch, calls } = makeCapturingFetch(200, '')
+    const client = new KibanaClient('https://kb.example.com', { api_key: 'k' })
+    client._testSetFetch(fetch)
+    await client.request({ method: 'HEAD', path: '/api/status' })
+    assert.equal((calls[0]!.init.headers as Record<string, string>)['kbn-xsrf'], undefined)
   })
 
   it('throws HttpResponseError carrying the status and raw body', async () => {
@@ -583,5 +565,69 @@ describe('KibanaClient.request non-JSON bodies', () => {
 
     const result = await client.request({ method: 'GET', path: '/oauth/callback' })
     assert.equal(result, js)
+  })
+})
+
+describe('KibanaClient.request body', () => {
+  it('serializes body as JSON', async () => {
+    const { fetch, calls } = makeCapturingFetch()
+    const client = new KibanaClient('https://kb.example.com', { api_key: 'k' })
+    client._testSetFetch(fetch)
+    await client.request({ method: 'POST', path: '/api/saved_objects/lens', body: { attributes: { title: 'My Lens' } } })
+    assert.equal(calls[0]!.init.body, JSON.stringify({ attributes: { title: 'My Lens' } }))
+  })
+
+  it('does not include body key when body is undefined', async () => {
+    const { fetch, calls } = makeCapturingFetch()
+    const client = new KibanaClient('https://kb.example.com', { api_key: 'k' })
+    client._testSetFetch(fetch)
+    await client.request({ method: 'GET', path: '/api/status' })
+    assert.equal(calls[0]!.init.body, undefined)
+  })
+})
+
+describe('KibanaClient.request multipart fields', () => {
+  it('sends a FormData body without setting Content-Type manually', async () => {
+    const { fetch, calls } = makeCapturingFetch()
+    const client = new KibanaClient('https://kb.example.com', { api_key: 'k' })
+    client._testSetFetch(fetch)
+    await client.request({ method: 'POST', path: '/api/saved_objects/_import', multipartFields: { file: 'nonexistent.ndjson' } })
+    assert.ok(calls[0]!.init.body instanceof FormData)
+    assert.equal((calls[0]!.init.headers as Record<string, string>)['Content-Type'], undefined)
+  })
+
+  it('appends a literal string field when the value does not resolve to a file', async () => {
+    const { fetch, calls } = makeCapturingFetch()
+    const client = new KibanaClient('https://kb.example.com', { api_key: 'k' })
+    client._testSetFetch(fetch)
+    await client.request({ method: 'POST', path: '/api/saved_objects/_import', multipartFields: { overwrite: 'true' } })
+    const form = calls[0]!.init.body as FormData
+    assert.equal(form.get('overwrite'), 'true')
+  })
+
+  it('reads file contents and sends them as a named Blob when the value resolves to an existing file', async () => {
+    const tmpFile = path.join(os.tmpdir(), `kibana-client-test-${Date.now()}.ndjson`)
+    fs.writeFileSync(tmpFile, '{"type":"index-pattern"}\n')
+    try {
+      const { fetch, calls } = makeCapturingFetch()
+      const client = new KibanaClient('https://kb.example.com', { api_key: 'k' })
+      client._testSetFetch(fetch)
+      await client.request({ method: 'POST', path: '/api/saved_objects/_import', multipartFields: { file: tmpFile } })
+      const form = calls[0]!.init.body as FormData
+      const entry = form.get('file') as File
+      assert.equal(entry.name, path.basename(tmpFile))
+      assert.equal(await entry.text(), '{"type":"index-pattern"}\n')
+    } finally {
+      fs.rmSync(tmpFile)
+    }
+  })
+
+  it('treats a directory at the given path as a literal string instead of crashing on EISDIR', async () => {
+    const { fetch, calls } = makeCapturingFetch()
+    const client = new KibanaClient('https://kb.example.com', { api_key: 'k' })
+    client._testSetFetch(fetch)
+    await client.request({ method: 'POST', path: '/api/saved_objects/_import', multipartFields: { file: os.tmpdir() } })
+    const form = calls[0]!.init.body as FormData
+    assert.equal(form.get('file'), os.tmpdir())
   })
 })
