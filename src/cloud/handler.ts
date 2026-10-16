@@ -6,6 +6,7 @@
 import type { CloudApiDefinition } from './types.ts'
 import type { CloudClient } from '../lib/cloud-client.ts'
 import { getCloudClient } from '../lib/cloud-client.ts'
+import { HttpResponseError } from '../lib/http-errors.ts'
 import { buildCloudRequestParams } from './request-builder.ts'
 import type { HandlerResult, JsonValue, ParsedResult } from '../factory.ts'
 
@@ -137,12 +138,10 @@ function parseErrorsMessage (bodyText: string): string | undefined {
   }
 }
 
-function parseCloudError (raw: string): { status?: number; message: string } {
-  const match = /Cloud API error (\d+): ([\s\S]*)$/.exec(raw)
-  if (match == null) return { message: raw }
-  const status = parseInt(match[1]!, 10)
-  const bodyText = match[2] ?? ''
-  return { status, message: parseErrorsMessage(bodyText) ?? bodyText }
+function parseCloudError (err: unknown): { status?: number; message: string } {
+  if (!(err instanceof HttpResponseError)) return { message: err instanceof Error ? err.message : String(err) }
+  const bodyText = String(err.body)
+  return { status: err.statusCode, message: parseErrorsMessage(bodyText) ?? bodyText }
 }
 
 function listHint (def: CloudApiDefinition): string | undefined {
@@ -183,8 +182,7 @@ function cloudHint (def: CloudApiDefinition, status: number | undefined, message
 }
 
 function cloudApiError (err: unknown, def: CloudApiDefinition): JsonValue {
-  const raw = err instanceof Error ? err.message : String(err)
-  const { status, message } = parseCloudError(raw)
+  const { status, message } = parseCloudError(err)
   const error: Record<string, JsonValue> = { code: 'cloud_api_error', message }
   if (status != null) error.status_code = status
   const hint = cloudHint(def, status, message)

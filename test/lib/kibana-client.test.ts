@@ -10,6 +10,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { YamlResponse } from '../../src/lib/yaml-response.ts'
 import { KibanaClient, getKibanaClient, _testResetKibanaClient } from '../../src/lib/kibana-client.ts'
+import { HttpResponseError } from '../../src/lib/http-errors.ts'
 import { setResolvedConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
 import { clientHeaders } from '../../src/lib/meta.ts'
@@ -172,6 +173,21 @@ describe('KibanaClient.request', () => {
     )
   })
 
+  it('throws HttpResponseError carrying the status and raw body', async () => {
+    const client = makeClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('{"message":"not found"}', { status: 404 }))
+    ) as typeof fetch)
+
+    await assert.rejects(client.request({ method: 'GET', path: '/api/missing' }), (err: unknown) => {
+      assert.ok(err instanceof HttpResponseError)
+      assert.equal(err.statusCode, 404)
+      assert.equal(err.body, '{"message":"not found"}')
+      assert.equal(String(err), 'Error: Kibana API error 404: {"message":"not found"}')
+      return true
+    })
+  })
+
   it('returns empty object for empty response body', async () => {
     const client = makeClient()
     client._testSetFetch((() =>
@@ -268,6 +284,15 @@ describe('KibanaClient.request redirects', () => {
       /^Error: Kibana API error 307: refused redirect to a different origin \(https:\/\/evil\.example\.com\)$/
     )
     assert.equal(hops.length, 1)
+  })
+
+  it('throws HttpResponseError with the redirect status on a refused redirect', async () => {
+    const { client } = stubClient([{ status: 307, location: 'https://evil.example.com/steal' }])
+    await assert.rejects(client.request({ method: 'GET', path: '/api/status' }), (err: unknown) => {
+      assert.ok(err instanceof HttpResponseError)
+      assert.equal(err.statusCode, 307)
+      return true
+    })
   })
 
   for (const location of [

@@ -8,6 +8,7 @@ import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
 import { clientHeaders } from './meta.ts'
 import { isLoopbackUrl } from './is-loopback-host.ts'
 import { YamlResponse, isYamlContentType } from './yaml-response.ts'
+import { ConnectionError, HttpResponseError } from './http-errors.ts'
 
 /** Parameters for a single Elasticsearch API request. */
 export interface EsRequestParams {
@@ -20,29 +21,8 @@ export interface EsRequestParams {
   bulkBody?: string
 }
 
-/** Thrown when Elasticsearch responds with a non-2xx status; carries the status code and body. */
-export class EsResponseError extends Error {
-  statusCode: number
-  body: unknown
-
-  constructor (statusCode: number, body: unknown) {
-    const message = body != null && typeof body === 'object' && 'error' in body
-      ? JSON.stringify((body as Record<string, unknown>).error)
-      : String(body)
-    super(message)
-    this.name = 'EsResponseError'
-    this.statusCode = statusCode
-    this.body = body
-  }
-}
-
-/** Thrown when the request never reached Elasticsearch (DNS, TLS, refused connection). */
-export class EsConnectionError extends Error {
-  constructor (message: string) {
-    super(message)
-    this.name = 'EsConnectionError'
-  }
-}
+/** Elasticsearch names for the shared HTTP error classes. */
+export { HttpResponseError as EsResponseError, ConnectionError as EsConnectionError } from './http-errors.ts'
 
 /**
  * Lightweight HTTP client for Elasticsearch APIs.
@@ -115,7 +95,7 @@ export class EsClient {
         redirect: 'error',
       })
     } catch (err) {
-      throw new EsConnectionError(err instanceof Error ? err.message : String(err))
+      throw new ConnectionError(err instanceof Error ? err.message : String(err))
     }
 
     if (isHead) {
@@ -131,7 +111,7 @@ export class EsClient {
       } catch {
         body = text
       }
-      throw new EsResponseError(response.status, body)
+      throw new HttpResponseError(response.status, body)
     }
 
     const contentType = response.headers.get('content-type') ?? ''
