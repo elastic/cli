@@ -7,6 +7,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { createCloudHandler, isCreateProjectCommand } from '../../src/cloud/handler.ts'
 import type { CloudApiDefinition } from '../../src/cloud/types.ts'
+import { HttpResponseError } from '../../src/lib/http-errors.ts'
 import type { CloudClient, CloudRequestParams } from '../../src/lib/cloud-client.ts'
 import type { ParsedResult } from '../../src/factory.ts'
 
@@ -112,7 +113,7 @@ describe('createCloudHandler', () => {
 
   it('returns a cloud_api_error when client.request throws', async () => {
     const handler = createCloudHandler(listDef(), {
-      getCloudClient: () => failingClient(new Error('Cloud API error 404: {"errors":[{"message":"not found"}]}')),
+      getCloudClient: () => failingClient(new HttpResponseError(404, '{"errors":[{"message":"not found"}]}')),
       buildCloudRequestParams: () => ({ method: 'GET', path: '/test' }),
     })
     const result = await handler(parsed())
@@ -128,7 +129,7 @@ describe('createCloudHandler', () => {
 
   it('parses errors[].message and adds list-regions hint on a bad region', async () => {
     const handler = createCloudHandler(createEsProjectDef(), {
-      getCloudClient: () => failingClient(new Error('Cloud API error 400: {"errors":[{"message":"project not found for region not-a-region"}]}')),
+      getCloudClient: () => failingClient(new HttpResponseError(400, '{"errors":[{"message":"project not found for region not-a-region"}]}')),
       buildCloudRequestParams: () => ({ method: 'POST', path: '/api/v1/serverless/projects/elasticsearch' }),
     })
     const result = await handler(parsed()) as { error: { message: string; hint?: string } }
@@ -140,7 +141,7 @@ describe('createCloudHandler', () => {
     for (const message of ['name is required', '', '../', '?#']) {
       const body = JSON.stringify({ errors: [{ message }] })
       const handler = createCloudHandler(createEsProjectDef(), {
-        getCloudClient: () => failingClient(new Error(`Cloud API error 400: ${body}`)),
+        getCloudClient: () => failingClient(new HttpResponseError(400, body)),
         buildCloudRequestParams: () => ({ method: 'POST', path: '/api/v1/serverless/projects/elasticsearch' }),
       })
       const result = await handler(parsed()) as { error: { message: string; hint?: string } }
@@ -151,7 +152,7 @@ describe('createCloudHandler', () => {
 
   it('adds Cloud API key hint on 401', async () => {
     const handler = createCloudHandler(listDef(), {
-      getCloudClient: () => failingClient(new Error('Cloud API error 401: {"errors":[{"message":"unauthorized"}]}')),
+      getCloudClient: () => failingClient(new HttpResponseError(401, '{"errors":[{"message":"unauthorized"}]}')),
       buildCloudRequestParams: () => ({ method: 'GET', path: '/test' }),
     })
     const result = await handler(parsed()) as { error: { message: string; hint?: string } }

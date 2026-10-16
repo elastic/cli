@@ -8,6 +8,7 @@ import { getResolvedConfig } from '../config/store.ts'
 import { isLoopbackUrl } from './is-loopback-host.ts'
 import { clientHeaders } from './meta.ts'
 import { YamlResponse, isYamlContentType } from './yaml-response.ts'
+import { HttpResponseError } from './http-errors.ts'
 
 /**
  * Parameters for a single Cloud API request.
@@ -42,7 +43,7 @@ export class CloudClient {
   /**
    * Sends an HTTP request to the Cloud API and returns the parsed JSON response.
    *
-   * @throws {Error} on non-2xx responses, including the status code and response body
+   * @throws {HttpResponseError} on non-2xx responses
    */
   async request(params: CloudRequestParams): Promise<unknown> {
     const path = process.env['ELASTIC_CLOUD_ADMIN_API'] === 'true'
@@ -74,7 +75,7 @@ export class CloudClient {
 
     if (!response.ok) {
       const text = await response.text()
-      throw new Error(`Cloud API error ${response.status}: ${text}`)
+      throw new HttpResponseError(response.status, text, `Cloud API error ${response.status}: ${text}`)
     }
 
     const contentType = response.headers.get('content-type') ?? ''
