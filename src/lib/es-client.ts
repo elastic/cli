@@ -137,14 +137,7 @@ export function getEsClient (): EsClient {
     )
   }
 
-  const { url, auth } = es
-
-  let typedAuth: { api_key: string } | { username: string; password: string } | undefined
-  if (auth != null) {
-    typedAuth = 'api_key' in auth ? { api_key: auth.api_key } : { username: auth.username, password: auth.password }
-  }
-
-  _client = new EsClient(url, typedAuth)
+  _client = new EsClient(es.url, es.auth)
   return _client
 }
 

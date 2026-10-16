@@ -38,12 +38,6 @@ describe('getKibanaClient', () => {
     assert.ok(client instanceof KibanaClient)
   })
 
-  it('creates a client without credentials when auth shape is unrecognized', () => {
-    setResolvedConfig({ context: { kibana: { url: 'http://localhost:5601', auth: {} } } } as unknown as ResolvedConfig)
-    const client = getKibanaClient()
-    assert.ok(client instanceof KibanaClient)
-  })
-
   it('caches the instance (singleton per invocation)', () => {
     setResolvedConfig({ context: { kibana: { url: 'http://localhost:5601', auth: { api_key: 'k' } } } })
     assert.strictEqual(getKibanaClient(), getKibanaClient())

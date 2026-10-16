@@ -256,18 +256,8 @@ export function getKibanaClient (): KibanaClient {
     )
   }
 
-  const { url, auth } = kb
-  const authRecord = auth as Record<string, unknown> | undefined
-
-  let typedAuth: { api_key: string } | { username: string; password: string } | undefined
-  if (typeof authRecord?.['api_key'] === 'string') {
-    typedAuth = { api_key: authRecord['api_key'] as string }
-  } else if (typeof authRecord?.['username'] === 'string' && typeof authRecord?.['password'] === 'string') {
-    typedAuth = { username: authRecord['username'] as string, password: authRecord['password'] as string }
-  }
   // auth is optional -- when absent (e.g. security disabled), requests are sent without credentials
-
-  _client = new KibanaClient(url, typedAuth)
+  _client = new KibanaClient(kb.url, kb.auth)
   return _client
 }
 
