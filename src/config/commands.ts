@@ -76,9 +76,9 @@ const PLAIN_FIELDS: PlainField[] = [
  * Pulls the `--config-file` flag out of the command's parsed options and
  * feeds it to the shared {@link resolveConfigPath}.
  */
-function configPathFromOptions (options: Record<string, string | number | boolean>): string {
+async function configPathFromOptions (options: Record<string, string | number | boolean>): Promise<string> {
   const flag = options['config-file']
-  return resolveConfigPath(typeof flag === 'string' ? flag : undefined)
+  return await resolveConfigPath(typeof flag === 'string' ? flag : undefined)
 }
 
 /** Sets a dotted path on an object immutably, creating intermediate objects as needed. */
@@ -230,7 +230,7 @@ interface CommandSummary {
 }
 
 async function handleContextList (options: Record<string, string | number | boolean>): Promise<JsonValue> {
-  const path = configPathFromOptions(options)
+  const path = await configPathFromOptions(options)
   const config = await readRawConfig(path)
   const names = Object.keys(config.contexts)
   return {
@@ -246,7 +246,7 @@ async function handleContextAdd (parsed: {
 }): Promise<JsonValue> {
   const { options, arg } = parsed
   const name = requireName(arg, 'context name')
-  const path = configPathFromOptions(options)
+  const path = await configPathFromOptions(options)
   const force = options.force === true
   const inlineSecrets = options['inline-secrets'] === true
 
@@ -292,7 +292,7 @@ async function handleContextRemove (parsed: {
 }): Promise<JsonValue> {
   const { options, arg } = parsed
   const name = requireName(arg, 'context name')
-  const path = configPathFromOptions(options)
+  const path = await configPathFromOptions(options)
   const force = options.force === true
 
   const config = await readRawConfig(path)
@@ -336,7 +336,7 @@ async function handleContextEdit (parsed: {
 }): Promise<JsonValue> {
   const { options, arg } = parsed
   const name = requireName(arg, 'context name')
-  const path = configPathFromOptions(options)
+  const path = await configPathFromOptions(options)
   const inlineSecrets = options['inline-secrets'] === true
 
   const config = await readRawConfig(path)
@@ -399,7 +399,7 @@ async function handleContextEdit (parsed: {
 }
 
 async function handleCurrentContextGet (options: Record<string, string | number | boolean>): Promise<JsonValue> {
-  const path = configPathFromOptions(options)
+  const path = await configPathFromOptions(options)
   const config = await readRawConfig(path)
   if (!config.current_context) {
     return errorResult('no_current_context', 'no current_context is set')
@@ -413,7 +413,7 @@ async function handleCurrentContextSet (parsed: {
 }): Promise<JsonValue> {
   const { options, arg } = parsed
   const name = requireName(arg, 'context name')
-  const path = configPathFromOptions(options)
+  const path = await configPathFromOptions(options)
   const config = await readRawConfig(path)
   if (!(name in config.contexts)) {
     const available = Object.keys(config.contexts).join(', ') || '(none)'
