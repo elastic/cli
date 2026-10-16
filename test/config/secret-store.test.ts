@@ -3,15 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, afterEach } from 'node:test'
+import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync, type execSync as ExecSyncFn, type spawnSync as SpawnSyncFn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import {
   getSecretStore,
-  _testSetExecSync,
-  _testSetSpawnSync,
-  _testSetPlatform,
   _testStores,
 } from '../../src/config/secret-store.ts'
 
@@ -69,65 +66,46 @@ function makeSpawn (
 }
 
 describe('getSecretStore', () => {
-  const restores: Array<() => void> = []
-  afterEach(() => {
-    while (restores.length > 0) restores.pop()!()
-  })
-
   it('returns a keychain store on darwin when `security` is available', async () => {
-    restores.push(_testSetPlatform('darwin'))
     const { fn } = makeExec([{ match: 'security -h', result: 'usage: security\n' }])
-    restores.push(_testSetExecSync(fn))
 
-    const store = await getSecretStore()
+    const store = await getSecretStore({ platform: 'darwin', execSync: fn })
     assert.equal(store.kind, 'keychain')
   })
 
   it('falls back to a noop store when no candidate is available', async () => {
-    restores.push(_testSetPlatform('linux'))
     const { fn } = makeExec([
       { match: 'secret-tool --version', result: new Error('not found') },
       { match: 'pass version', result: new Error('not found') },
     ])
-    restores.push(_testSetExecSync(fn))
 
-    const store = await getSecretStore()
+    const store = await getSecretStore({ platform: 'linux', execSync: fn })
     assert.equal(store.kind, 'none')
     assert.equal(await store.isAvailable(), false)
   })
 
   it('prefers secret_service over pass on linux', async () => {
-    restores.push(_testSetPlatform('linux'))
     const { fn, calls } = makeExec([
       { match: 'secret-tool --version', result: 'Secret Tool 0.21\n' },
     ])
-    restores.push(_testSetExecSync(fn))
 
-    const store = await getSecretStore()
+    const store = await getSecretStore({ platform: 'linux', execSync: fn })
     assert.equal(store.kind, 'secret_service')
     assert.equal(calls.some(c => c.cmd.startsWith('pass')), false)
   })
 
   it('uses credential_manager on win32 when CredentialManager module is present', async () => {
-    restores.push(_testSetPlatform('win32'))
     const { fn } = makeExec([{ match: 'powershell ', result: '' }])
-    restores.push(_testSetExecSync(fn))
 
-    const store = await getSecretStore()
+    const store = await getSecretStore({ platform: 'win32', execSync: fn })
     assert.equal(store.kind, 'credential_manager')
   })
 })
 
 describe('MacOSKeychainStore', () => {
-  const restores: Array<() => void> = []
-  afterEach(() => {
-    while (restores.length > 0) restores.pop()!()
-  })
-
   it('put feeds the password on stdin after dropping the controlling TTY', async () => {
     const { fn, calls } = makeSpawn([{ match: 'add-generic-password' }])
-    restores.push(_testSetSpawnSync(fn))
-    const store = new _testStores.MacOSKeychainStore()
+    const store = new _testStores.MacOSKeychainStore({ spawnSync: fn })
     await store.put('elastic-cli', 'prod:es.api_key', "it's secret")
     const put = calls.find(c => c.args.includes('add-generic-password'))!
     assert.ok(put)
@@ -146,8 +124,7 @@ describe('MacOSKeychainStore', () => {
     const { fn } = makeExec([
       { match: 'security delete-generic-password', result: new Error('not found') },
     ])
-    restores.push(_testSetExecSync(fn))
-    const store = new _testStores.MacOSKeychainStore()
+    const store = new _testStores.MacOSKeychainStore({ execSync: fn })
     await store.delete('elastic-cli', 'prod:missing')
   })
 
@@ -161,8 +138,7 @@ describe('MacOSKeychainStore', () => {
 
   it('rejects service/account with slashes', async () => {
     const { fn } = makeExec([])
-    restores.push(_testSetExecSync(fn))
-    const store = new _testStores.MacOSKeychainStore()
+    const store = new _testStores.MacOSKeychainStore({ execSync: fn })
     await assert.rejects(
       () => store.put('elastic/cli', 'prod', 'x'),
       /must not contain/
@@ -184,8 +160,7 @@ describe('MacOSKeychainStore', () => {
     const { fn } = makeSpawn([
       { match: 'add-generic-password', result: { status: 1, stderr: 'permission denied for hunter2' } },
     ])
-    restores.push(_testSetSpawnSync(fn))
-    const store = new _testStores.MacOSKeychainStore()
+    const store = new _testStores.MacOSKeychainStore({ spawnSync: fn })
     await assert.rejects(
       () => store.put('svc', 'acct', 'hunter2'),
       /Keychain write failed for service="svc", account="acct".*permission denied for \[redacted\]/
@@ -253,15 +228,9 @@ sys.exit(os.waitstatus_to_exitcode(status))
 })
 
 describe('LinuxSecretServiceStore', () => {
-  const restores: Array<() => void> = []
-  afterEach(() => {
-    while (restores.length > 0) restores.pop()!()
-  })
-
   it('put passes secret via stdin (input option) and uses store attributes', async () => {
     const { fn, calls } = makeExec([{ match: 'secret-tool store', result: '' }])
-    restores.push(_testSetExecSync(fn))
-    const store = new _testStores.LinuxSecretServiceStore()
+    const store = new _testStores.LinuxSecretServiceStore({ execSync: fn })
     await store.put('elastic-cli', 'prod:es.api_key', 'hunter2')
     const put = calls.find(c => c.cmd.includes('secret-tool store'))!
     assert.ok(put)
@@ -280,15 +249,9 @@ describe('LinuxSecretServiceStore', () => {
 })
 
 describe('PassStore', () => {
-  const restores: Array<() => void> = []
-  afterEach(() => {
-    while (restores.length > 0) restores.pop()!()
-  })
-
   it('put uses `pass insert -m -f` with stdin', async () => {
     const { fn, calls } = makeExec([{ match: 'pass insert', result: '' }])
-    restores.push(_testSetExecSync(fn))
-    const store = new _testStores.PassStore()
+    const store = new _testStores.PassStore({ execSync: fn })
     await store.put('elastic-cli', 'prod:k', 'secret-value')
     const put = calls.find(c => c.cmd.includes('pass insert'))!
     assert.ok(put)
@@ -306,15 +269,9 @@ describe('PassStore', () => {
 })
 
 describe('WindowsCredentialManagerStore', () => {
-  const restores: Array<() => void> = []
-  afterEach(() => {
-    while (restores.length > 0) restores.pop()!()
-  })
-
   it('put invokes powershell with an EncodedCommand and passes secret via stdin', async () => {
     const { fn, calls } = makeExec([{ match: 'powershell ', result: '' }])
-    restores.push(_testSetExecSync(fn))
-    const store = new _testStores.WindowsCredentialManagerStore()
+    const store = new _testStores.WindowsCredentialManagerStore({ execSync: fn })
     await store.put('elastic-cli', 'prod:k', 's3cr3t!')
     const put = calls.find(c => c.cmd.startsWith('powershell '))!
     assert.ok(put)

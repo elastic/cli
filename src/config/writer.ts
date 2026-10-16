@@ -36,27 +36,6 @@ export interface RawConfig {
 /** Raw, pre-resolution shape of a single context. */
 export type RawContext = Record<string, unknown>
 
-// ---------------------------------------------------------------------------
-// Test seams
-// ---------------------------------------------------------------------------
-
-let _execFileSync: typeof execFileSync = execFileSync
-let _platform: string = process.platform
-
-/** @internal */
-export function _testSetExecFileSync (fn: typeof execFileSync): () => void {
-  const prev = _execFileSync
-  _execFileSync = fn
-  return () => { _execFileSync = prev }
-}
-
-/** @internal */
-export function _testSetPlatform (p: string): () => void {
-  const prev = _platform
-  _platform = p
-  return () => { _platform = prev }
-}
-
 function execOpts (timeoutMs: number): ExecFileSyncOptionsWithStringEncoding {
   return { encoding: 'utf-8', timeout: timeoutMs, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true }
 }
@@ -191,6 +170,14 @@ export interface WriteConfigOptions {
   createParentDirs?: boolean
 }
 
+/** Injectable process hooks for {@link writeConfig}. Each field defaults to the real process. */
+export interface WriteConfigDeps {
+  /** Runs `icacls` on Windows. */
+  execFileSync?: typeof execFileSync
+  /** Selects chmod (Unix) or icacls (Windows). Defaults to `process.platform`. */
+  platform?: string
+}
+
 export interface WriteConfigResult {
   path: string
   permsEnforced: boolean
@@ -211,9 +198,11 @@ export interface WriteConfigResult {
 export async function writeConfig (
   path: string,
   config: RawConfig,
-  options: WriteConfigOptions = {}
+  options: WriteConfigOptions = {},
+  deps: WriteConfigDeps = {}
 ): Promise<WriteConfigResult> {
   const { restrictPermissions = true, createParentDirs = true } = options
+  const platform = deps.platform ?? process.platform
 
   // Callers (command handlers) own config validity; deep validation happens at
   // load time via ContextSchema after expression resolution.
@@ -230,17 +219,17 @@ export async function writeConfig (
 
   try {
     await writeFile(tmp, content, { encoding: 'utf-8', mode: 0o600 })
-    if (restrictPermissions && _platform !== 'win32') {
+    if (restrictPermissions && platform !== 'win32') {
       await chmod(tmp, 0o600)
     }
     await rename(tmp, path)
 
     if (restrictPermissions) {
-      if (_platform === 'win32') {
+      if (platform === 'win32') {
         try {
           // No shell: the path is user-controlled and a `"` or `&` in it would
           // otherwise break out of cmd.exe quoting.
-          _execFileSync(
+          (deps.execFileSync ?? execFileSync)(
             'icacls',
             [path, '/inheritance:r', '/grant:r', `${userInfo().username}:F`],
             execOpts(5_000)
