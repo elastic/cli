@@ -12,6 +12,7 @@ import { KibanaClient } from '../../src/lib/kibana-client.ts'
 import { CloudClient } from '../../src/lib/cloud-client.ts'
 import { ConnectionError, HttpResponseError } from '../../src/lib/http-errors.ts'
 import { clientHeaders } from '../../src/lib/meta.ts'
+import { capture } from '../helpers/capture.ts'
 
 interface ContractRequest {
   method: 'GET' | 'POST'
@@ -51,19 +52,6 @@ function stub (c: ClientCase, url = 'https://example.com', response = () => new 
     return response()
   }) as typeof fetch)
   return { client, calls }
-}
-
-/** Runs `fn` and returns everything it wrote to stderr. */
-function captureStderr (fn: () => void): string {
-  const chunks: string[] = []
-  const orig = process.stderr.write
-  process.stderr.write = ((chunk: string) => { chunks.push(chunk); return true }) as typeof process.stderr.write
-  try {
-    fn()
-  } finally {
-    process.stderr.write = orig
-  }
-  return chunks.join('')
 }
 
 for (const c of cases) {
@@ -109,14 +97,18 @@ for (const c of cases) {
 
     describe('plaintext warning', () => {
       for (const url of ['http://remote.example.com', 'http://localhost.evil.com:9200']) {
-        it(`warns for ${url}`, () => {
-          assert.match(captureStderr(() => c.make(url)), /plaintext HTTP/)
+        it(`warns for ${url}`, (t) => {
+          const { stderr } = capture(t)
+          c.make(url)
+          assert.match(stderr.join(''), /plaintext HTTP/)
         })
       }
 
       for (const url of ['https://remote.example.com', 'http://localhost:9200', 'http://127.0.0.1:9200', 'http://[::1]:9200']) {
-        it(`does not warn for ${url}`, () => {
-          assert.equal(captureStderr(() => c.make(url)), '')
+        it(`does not warn for ${url}`, (t) => {
+          const { stderr } = capture(t)
+          c.make(url)
+          assert.equal(stderr.join(''), '')
         })
       }
     })

@@ -6,6 +6,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { registerSanitizeCommands } from '../../src/sanitize/register.ts'
+import { capture } from '../helpers/capture.ts'
 
 describe('registerSanitizeCommands', () => {
   it('creates a group named "sanitize"', () => {
@@ -37,43 +38,27 @@ describe('registerSanitizeCommands', () => {
     }
   })
 
-  it('index-name handler returns sanitized result', async () => {
+  it('index-name handler returns sanitized result', async (t) => {
     const group = registerSanitizeCommands()
     const indexCmd = (group.commands as Array<{ name: () => string }>).find(c => c.name() === 'index-name')!
     assert.ok(indexCmd);
 
     // Use parseAsync to invoke the handler through Commander
     (indexCmd as import('commander').Command).exitOverride()
-    const written: string[] = []
-    const origWrite = process.stdout.write.bind(process.stdout)
-    process.stdout.write = ((chunk: unknown) => { if (typeof chunk === 'string') written.push(chunk); return true }) as typeof process.stdout.write
-    try {
-      await (indexCmd as import('commander').Command).parseAsync(['My\\Bad*Index'], { from: 'user' })
-    } finally {
-      process.stdout.write = origWrite
-    }
+    const { stdout: written } = capture(t)
+    await (indexCmd as import('commander').Command).parseAsync(['My\\Bad*Index'], { from: 'user' })
 
     const output = written.join('')
     assert.ok(output.includes('mybadindex'), `expected sanitized value in output, got: ${output}`)
   })
 
-  it('plain-text mode writes changes to stderr when input was modified', async () => {
+  it('plain-text mode writes changes to stderr when input was modified', async (t) => {
     const group = registerSanitizeCommands()
     const indexCmd = (group.commands as Array<{ name: () => string }>).find(c => c.name() === 'index-name')!;
 
     (indexCmd as import('commander').Command).exitOverride()
-    const stdoutChunks: string[] = []
-    const stderrChunks: string[] = []
-    const origStdout = process.stdout.write.bind(process.stdout)
-    const origStderr = process.stderr.write.bind(process.stderr)
-    process.stdout.write = ((chunk: unknown) => { if (typeof chunk === 'string') stdoutChunks.push(chunk); return true }) as typeof process.stdout.write
-    process.stderr.write = ((chunk: unknown) => { if (typeof chunk === 'string') stderrChunks.push(chunk); return true }) as typeof process.stderr.write
-    try {
-      await (indexCmd as import('commander').Command).parseAsync(['My*Index'], { from: 'user' })
-    } finally {
-      process.stdout.write = origStdout
-      process.stderr.write = origStderr
-    }
+    const { stdout: stdoutChunks, stderr: stderrChunks } = capture(t)
+    await (indexCmd as import('commander').Command).parseAsync(['My*Index'], { from: 'user' })
 
     const stdout = stdoutChunks.join('')
     const stderr = stderrChunks.join('')
@@ -82,23 +67,16 @@ describe('registerSanitizeCommands', () => {
     assert.ok(stderr.includes('stripped forbidden characters'), `stderr should list changes, got: ${stderr}`)
   })
 
-  it('returns error result when value is empty after sanitization', async () => {
+  it('returns error result when value is empty after sanitization', async (t) => {
     const group = registerSanitizeCommands()
     const indexCmd = (group.commands as Array<{ name: () => string }>).find(c => c.name() === 'index-name')!;
 
     (indexCmd as import('commander').Command).exitOverride()
-    const stdoutChunks: string[] = []
-    const stderrChunks: string[] = []
-    const origStdout = process.stdout.write.bind(process.stdout)
-    const origStderr = process.stderr.write.bind(process.stderr)
+    const { stdout: stdoutChunks, stderr: stderrChunks } = capture(t)
     const origExitCode = process.exitCode
-    process.stdout.write = ((chunk: unknown) => { if (typeof chunk === 'string') stdoutChunks.push(chunk); return true }) as typeof process.stdout.write
-    process.stderr.write = ((chunk: unknown) => { if (typeof chunk === 'string') stderrChunks.push(chunk); return true }) as typeof process.stderr.write
     try {
       await (indexCmd as import('commander').Command).parseAsync(['***'], { from: 'user' })
     } finally {
-      process.stdout.write = origStdout
-      process.stderr.write = origStderr
       process.exitCode = origExitCode
     }
 
@@ -107,22 +85,13 @@ describe('registerSanitizeCommands', () => {
     assert.ok(stderr.includes('sanitize_empty') || stderr.includes('empty after sanitization'), `stderr should report empty result, got: ${stderr}`)
   })
 
-  it('plain-text mode does not write to stderr when input is unchanged', async () => {
+  it('plain-text mode does not write to stderr when input is unchanged', async (t) => {
     const group = registerSanitizeCommands()
     const indexCmd = (group.commands as Array<{ name: () => string }>).find(c => c.name() === 'index-name')!;
 
     (indexCmd as import('commander').Command).exitOverride()
-    const stderrChunks: string[] = []
-    const origStdout = process.stdout.write.bind(process.stdout)
-    const origStderr = process.stderr.write.bind(process.stderr)
-    process.stdout.write = (() => true) as typeof process.stdout.write
-    process.stderr.write = ((chunk: unknown) => { if (typeof chunk === 'string') stderrChunks.push(chunk); return true }) as typeof process.stderr.write
-    try {
-      await (indexCmd as import('commander').Command).parseAsync(['validname'], { from: 'user' })
-    } finally {
-      process.stdout.write = origStdout
-      process.stderr.write = origStderr
-    }
+    const { stderr: stderrChunks } = capture(t)
+    await (indexCmd as import('commander').Command).parseAsync(['validname'], { from: 'user' })
 
     const stderr = stderrChunks.join('')
     assert.equal(stderr, '', `stderr should be empty when no changes, got: ${stderr}`)

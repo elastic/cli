@@ -5,10 +5,12 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import type { EsClient, EsRequestParams } from '../../../src/lib/es-client.ts'
+import type { EsClient } from '../../../src/lib/es-client.ts'
 import { createWatchCommand, applyTemplate } from '../../../src/es/helpers/watch.ts'
 import type { WatchDeps } from '../../../src/es/helpers/watch.ts'
 import { Command } from 'commander'
+import { capture, captureOutput } from '../../helpers/capture.ts'
+import { mockTransport } from '../../helpers/transport.ts'
 import { _testSetStdinReader } from '../../../src/factory.ts'
 
 // ---------------------------------------------------------------------------
@@ -24,42 +26,8 @@ interface MockResponse {
   hits?: { hits?: MockHit[] }
 }
 
-/**
- * Builds a mock EsClient from a queue of responses.  Each `request()` call
- * dequeues the next item; after the queue is exhausted every call returns an
- * empty hit list so polls stop producing results.
- */
-function mockTransport (responses: MockResponse[]): {
-  transport: EsClient
-  requests: Array<{ params: EsRequestParams }>
-} {
-  const requests: Array<{ params: EsRequestParams }> = []
-  let callIndex = 0
-  const transport = {
-    request: async (params: EsRequestParams) => {
-      requests.push({ params })
-      const resp = responses[callIndex] ?? { hits: { hits: [] } }
-      callIndex++
-      return resp
-    },
-  } as unknown as EsClient
-  return { transport, requests }
-}
-
-function captureOutput () {
-  const stdoutChunks: string[] = []
-  const stderrChunks: string[] = []
-  return {
-    stdout: {
-      chunks: stdoutChunks,
-      write: (s: string) => { stdoutChunks.push(s); return true },
-    },
-    stderr: {
-      chunks: stderrChunks,
-      write: (s: string) => { stderrChunks.push(s); return true },
-    },
-  }
-}
+// Exhausted queues answer with an empty hit list so polls stop producing results.
+const searchTransport = (responses: MockResponse[]) => mockTransport(responses, { hits: { hits: [] } })
 
 /** Builds a WatchDeps where `sleep` resolves immediately and signals are controllable. */
 function makeDeps (
@@ -156,14 +124,14 @@ describe('applyTemplate', () => {
 
 describe('watch command', () => {
   it('creates a command named watch', () => {
-    const { transport } = mockTransport([])
+    const { transport } = searchTransport([])
     const cmd = createWatchCommand(makeDeps(transport))
     assert.equal(cmd.name(), 'watch')
   })
 
   it('performs an anchor search before the first poll', async () => {
     const io = captureOutput()
-    const { transport, requests } = mockTransport([
+    const { transport, requests } = searchTransport([
       // Anchor: most recent doc
       { hits: { hits: [{ _source: { id: 0 }, sort: ['2024-01-01T00:00:00Z', 'id0'] }] } },
       // First poll: one new doc
@@ -188,7 +156,7 @@ describe('watch command', () => {
 
   it('streams new documents as NDJSON to stdout', async () => {
     const io = captureOutput()
-    const { transport } = mockTransport([
+    const { transport } = searchTransport([
       // Anchor: empty index
       { hits: { hits: [] } },
       // First poll: two new docs
@@ -212,7 +180,7 @@ describe('watch command', () => {
 
   it('applies --format template to each document', async () => {
     const io = captureOutput()
-    const { transport } = mockTransport([
+    const { transport } = searchTransport([
       { hits: { hits: [] } }, // anchor
       {
         hits: {
@@ -230,7 +198,7 @@ describe('watch command', () => {
 
   it('advances search_after cursor after each poll', async () => {
     const io = captureOutput()
-    const { transport, requests } = mockTransport([
+    const { transport, requests } = searchTransport([
       { hits: { hits: [] } }, // anchor (empty)
       // First poll returns two docs
       {
@@ -255,7 +223,7 @@ describe('watch command', () => {
 
   it('uses --from timestamp as range filter on first request', async () => {
     const io = captureOutput()
-    const { transport, requests } = mockTransport([
+    const { transport, requests } = searchTransport([
       // First (and only) poll
       { hits: { hits: [{ _source: { msg: 'new' }, sort: ['t1', 'id1'] }] } },
     ])
@@ -273,7 +241,7 @@ describe('watch command', () => {
 
   it('does NOT add range filter on second poll once cursor is set', async () => {
     const io = captureOutput()
-    const { transport, requests } = mockTransport([
+    const { transport, requests } = searchTransport([
       // First poll with range filter
       { hits: { hits: [{ _source: { n: 1 }, sort: ['t1', 'id1'] }] } },
       // Second poll — cursor only, no range filter
@@ -293,7 +261,7 @@ describe('watch command', () => {
   it('immediately re-polls (no sleep) when a full page is returned', async () => {
     const io = captureOutput()
     let sleepCallCount = 0
-    const { transport } = mockTransport([
+    const { transport } = searchTransport([
       { hits: { hits: [] } }, // anchor
       // Full page (size=2)
       {
@@ -338,7 +306,7 @@ describe('watch command', () => {
 
   it('uses the configured --sort-field for sorting', async () => {
     const io = captureOutput()
-    const { transport, requests } = mockTransport([
+    const { transport, requests } = searchTransport([
       { hits: { hits: [] } }, // anchor
       { hits: { hits: [] } }, // poll
     ])
@@ -355,7 +323,7 @@ describe('watch command', () => {
 
   it('filters using --query', async () => {
     const io = captureOutput()
-    const { transport, requests } = mockTransport([
+    const { transport, requests } = searchTransport([
       { hits: { hits: [] } }, // anchor
       { hits: { hits: [] } }, // poll
     ])
@@ -381,7 +349,7 @@ describe('watch command', () => {
 
   it('writes a summary to stderr on stop', async () => {
     const io = captureOutput()
-    const { transport } = mockTransport([
+    const { transport } = searchTransport([
       { hits: { hits: [] } }, // anchor
       { hits: { hits: [{ _source: { n: 1 }, sort: ['t1', 'id1'] }] } },
     ])
@@ -393,7 +361,7 @@ describe('watch command', () => {
     assert.ok(stderr.includes('1 documents') || stderr.includes('Streamed 1'), `stderr: ${stderr}`)
   })
 
-  it('returns missing_config error when transport is not configured', async () => {
+  it('returns missing_config error when transport is not configured', async (t) => {
     const io = captureOutput()
     const deps: WatchDeps & { io: ReturnType<typeof captureOutput> } = {
       io,
@@ -409,22 +377,17 @@ describe('watch command', () => {
     program.exitOverride()
     program.addCommand(createWatchCommand(deps))
 
-    let caughtOutput = ''
-    const origWrite = process.stderr.write.bind(process.stderr)
-    process.stderr.write = ((chunk: string) => {
-      caughtOutput += chunk
-      return true
-    }) as typeof process.stderr.write
+    const { stderr } = capture(t)
 
     const restoreStdin = _testSetStdinReader(() => '')
     try {
       await program.parseAsync(['node', 'test', 'watch', '--index', 'logs'])
     } finally {
       restoreStdin()
-      process.stderr.write = origWrite
       process.exitCode = 0
     }
 
+    const caughtOutput = stderr.join('')
     assert.ok(caughtOutput.includes('missing_config') || caughtOutput.includes('no ES'), `output: ${caughtOutput}`)
   })
 })
