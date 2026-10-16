@@ -6,9 +6,9 @@
 import { getResolvedConfig } from '../config/store.ts'
 import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
 import { clientHeaders } from './meta.ts'
-import { isLoopbackUrl } from './is-loopback-host.ts'
 import { YamlResponse, isYamlContentType } from './yaml-response.ts'
-import { HttpResponseError, toConnectionError } from './http-errors.ts'
+import { HttpResponseError } from './http-errors.ts'
+import { buildUrl, send, warnIfPlaintext } from './http-core.ts'
 
 /** Parameters for a single Elasticsearch API request. */
 export interface EsRequestParams {
@@ -42,24 +42,14 @@ export class EsClient {
   constructor (url: string, auth?: ApiKeyOrBasicAuth) {
     this.baseUrl = url.replace(/\/+$/, '')
     this.authHeader = buildAuthHeader(auth)
-    if (this.baseUrl.startsWith('http://') && !isLoopbackUrl(this.baseUrl)) {
-      process.stderr.write('Warning: using plaintext HTTP. Credentials will be sent unencrypted.\n')
-    }
+    warnIfPlaintext(this.baseUrl)
   }
 
   async request<T = unknown>(
     params: EsRequestParams,
     opts?: { headers?: Record<string, string> }
   ): Promise<T> {
-    let url = `${this.baseUrl}${params.path}`
-
-    if (params.querystring != null && Object.keys(params.querystring).length > 0) {
-      const pieces = Object.entries(params.querystring)
-        .filter(([, v]) => v !== undefined)
-        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-        .join('&')
-      if (pieces.length > 0) url += `?${pieces}`
-    }
+    const url = buildUrl(this.baseUrl, params.path, params.querystring)
 
     const headers: Record<string, string> = {
       ...clientHeaders(),
@@ -85,18 +75,13 @@ export class EsClient {
 
     const isHead = params.method.toUpperCase() === 'HEAD'
 
-    let response: Response
-    try {
-      const method = fetchBody !== undefined && params.method.toUpperCase() === 'GET' ? 'POST' : params.method
-      response = await this._fetch(url, {
-        method,
-        headers,
-        ...(fetchBody !== undefined && { body: fetchBody }),
-        redirect: 'error',
-      })
-    } catch (err) {
-      throw toConnectionError(err)
-    }
+    const method = fetchBody !== undefined && params.method.toUpperCase() === 'GET' ? 'POST' : params.method
+    const response = await send(this._fetch, url, {
+      method,
+      headers,
+      ...(fetchBody !== undefined && { body: fetchBody }),
+      redirect: 'error',
+    })
 
     if (isHead) {
       if (response.ok) return true as T
