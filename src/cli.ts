@@ -40,7 +40,7 @@ program
 // always registered so `elastic --help` lists them (#630).
 if (hasGlobalFlags) {
   program
-    .option('--config-file <path>', 'path to a config file (default: ~/.elasticrc.yml)')
+    .option('--config-file <path>', 'path to a config file (defaults to the discovered ~/.elasticrc* file)')
     .option('--use-context <name>', 'override the active context from the config file')
     .option(`--command-profile <name>`, `restrict available commands to a deployment profile (${BUILT_IN_PROFILES.join(', ')})`)
 }

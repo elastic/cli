@@ -16,10 +16,11 @@
 
 import { chmod, mkdir, rename, stat, writeFile, unlink } from 'node:fs/promises'
 import { execFileSync, type ExecFileSyncOptionsWithStringEncoding } from 'node:child_process'
-import { homedir, userInfo } from 'node:os'
-import { dirname, join } from 'node:path'
+import { userInfo } from 'node:os'
+import { dirname, extname, join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { stringify as stringifyYaml, parse as parseYaml } from 'yaml'
+import { discoverConfigFile, homeDir } from './discover.ts'
 
 /**
  * Raw, pre-resolution shape of a config file. `unknown` leaf values are
@@ -165,16 +166,18 @@ export function hasInlineSecrets (config: RawConfig): boolean {
  * Precedence:
  *   1. explicit `--config-file` argument (if a non-empty string)
  *   2. `ELASTIC_CLI_CONFIG_FILE` env var (if set and non-empty)
- *   3. `~/.elasticrc.yml`
+ *   3. the config file home-directory discovery would load (so writes land in
+ *      the file the loader reads, e.g. an existing `~/.elasticrc`)
+ *   4. `~/.elasticrc.yml` when no config file exists yet
  *
  * Kept here (not in loader.ts) because write-side callers in `commands.ts`
  * and `cloud/credentials.ts` need it without importing the full loader.
  */
-export function resolveConfigPath (explicit?: string): string {
+export async function resolveConfigPath (explicit?: string): Promise<string> {
   if (typeof explicit === 'string' && explicit.length > 0) return explicit
   const env = process.env.ELASTIC_CLI_CONFIG_FILE
   if (typeof env === 'string' && env.length > 0) return env
-  return join(homedir(), '.elasticrc.yml')
+  return (await discoverConfigFile()) ?? join(homeDir(), '.elasticrc.yml')
 }
 
 // ---------------------------------------------------------------------------
@@ -219,14 +222,14 @@ export async function writeConfig (
     await mkdir(dirname(path), { recursive: true })
   }
 
-  const yaml = serializeConfig(config)
+  const content = serializeConfig(config, extname(path) === '.json' ? 'json' : 'yaml')
   const warnings: string[] = []
 
   const tmp = join(dirname(path), `.${basename(path)}.${randomBytes(4).toString('hex')}.tmp`)
   let permsEnforced = false
 
   try {
-    await writeFile(tmp, yaml, { encoding: 'utf-8', mode: 0o600 })
+    await writeFile(tmp, content, { encoding: 'utf-8', mode: 0o600 })
     if (restrictPermissions && _platform !== 'win32') {
       await chmod(tmp, 0o600)
     }
@@ -277,11 +280,12 @@ function basename (p: string): string {
 }
 
 /**
- * YAML serializer. Keeps a stable top-level key order
+ * Config serializer (YAML by default; `json` for `.json` files, which the
+ * loader parses with `JSON.parse`). Keeps a stable top-level key order
  * (`current_context`, `contexts`, `commands`) so round-trips produce diffs
  * limited to the fields that actually changed.
  */
-export function serializeConfig (config: RawConfig): string {
+export function serializeConfig (config: RawConfig, format: 'yaml' | 'json' = 'yaml'): string {
   const ordered: Record<string, unknown> = {}
   ordered.current_context = config.current_context
   ordered.contexts = config.contexts
@@ -293,7 +297,7 @@ export function serializeConfig (config: RawConfig): string {
     if (k === 'current_context' || k === 'contexts' || k === 'commands' || k === 'banner' || k === 'telemetry' || k === 'detect_version') continue
     ordered[k] = v
   }
-  return stringifyYaml(ordered, { lineWidth: 0 })
+  return format === 'json' ? JSON.stringify(ordered, null, 2) + '\n' : stringifyYaml(ordered, { lineWidth: 0 })
 }
 
 /**
