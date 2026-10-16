@@ -11,7 +11,7 @@ import { isLoopbackUrl } from './is-loopback-host.ts'
 import { clientHeaders } from './meta.ts'
 import { parseSseText } from './sse.ts'
 import { YamlResponse, isYamlContentType } from './yaml-response.ts'
-import { HttpResponseError } from './http-errors.ts'
+import { HttpResponseError, toConnectionError } from './http-errors.ts'
 
 /** HTTP methods supported by the Kibana API client. */
 export type KibanaHttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD' | 'PATCH'
@@ -153,6 +153,7 @@ export class KibanaClient {
    * instead of throwing (`Unexpected non-whitespace character after JSON`).
    *
    * @throws {HttpResponseError} on non-2xx responses and refused redirects
+   * @throws {ConnectionError} when the request never reached the server
    */
   async request (params: KibanaRequestParams, responseType?: KibanaResponseType): Promise<unknown> {
     let url = `${this.baseUrl}${params.path}`
@@ -206,7 +207,7 @@ export class KibanaClient {
       init.body = JSON.stringify(params.body)
     }
 
-    let response = await this._fetch(url, init)
+    let response = await this.send(url, init)
     for (let hops = 0; REDIRECT_STATUSES.has(response.status); hops++) {
       const location = response.headers.get('location')
       if (location == null) throw kibanaError(response.status, 'redirect without a Location header')
@@ -223,7 +224,7 @@ export class KibanaClient {
         delete headers['Content-Type']
       }
       url = next.href
-      response = await this._fetch(url, init)
+      response = await this.send(url, init)
     }
 
     if (!response.ok) throw kibanaError(response.status, await response.text())
@@ -232,6 +233,14 @@ export class KibanaClient {
     if (text.length === 0) return {}
 
     return decodeBody(text, response.headers.get('content-type') ?? '', responseType)
+  }
+
+  private async send (url: string, init: RequestInit): Promise<Response> {
+    try {
+      return await this._fetch(url, init)
+    } catch (err) {
+      throw toConnectionError(err)
+    }
   }
 
   /**
