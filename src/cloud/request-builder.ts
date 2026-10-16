@@ -8,6 +8,7 @@ import type { CloudRequestParams } from '../lib/cloud-client.ts'
 import type { ParsedResult } from '../factory.ts'
 import { resolveRootRef } from '../lib/json-schema-refs.ts'
 import { encodePathParam } from '../lib/path-encoding.ts'
+import { interpolatePath } from '../lib/request-routing.ts'
 
 /**
  * Builds a `CloudRequestParams` object from an API definition and parsed CLI input.
@@ -46,7 +47,10 @@ export function buildCloudRequestParams (
   }
 
   const required = new Set(Array.isArray(resolvedInput?.required) ? resolvedInput!.required as string[] : [])
-  const path = interpolatePath(def.path, pathKeys, required, rawInput)
+  for (const key of pathKeys) {
+    if (required.has(key) && rawInput[key] === undefined) throw new Error(`missing required path parameter "${key}"`)
+  }
+  const path = interpolatePath(def.path, rawInput, encodePathParam)
   const querystring = buildQuerystring(queryKeys, rawInput)
   const body = collectBody(def.method, pathKeys, queryKeys, bodyKeys, bodyRootKeys, rawInput)
 
@@ -54,32 +58,6 @@ export function buildCloudRequestParams (
   if (Object.keys(querystring).length > 0) params.querystring = querystring
   if (body !== undefined) params.body = body
   return params
-}
-
-/**
- * Interpolates `{param}` tokens in the URL template. Values are percent-encoded so
- * special characters like `/`, `?`, and `#` cannot escape the path segment (#106).
- * Optional params with no value have their segment stripped.
- */
-function interpolatePath (
-  template: string,
-  pathKeys: Set<string>,
-  required: Set<string>,
-  input: Record<string, unknown>,
-): string {
-  let path = template
-  for (const key of pathKeys) {
-    const value = input[key]
-    if (value !== undefined) {
-      path = path.replace(`{${key}}`, encodePathParam(String(value)))
-    } else if (required.has(key)) {
-      throw new Error(`missing required path parameter "${key}"`)
-    } else {
-      path = path.replace(new RegExp(`/?\\{${key}\\}/?`), '')
-      path = path.replace(/\/$/, '') || '/'
-    }
-  }
-  return path
 }
 
 function buildQuerystring (
