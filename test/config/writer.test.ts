@@ -20,8 +20,6 @@ import {
   serializeConfig,
   hasInlineSecrets,
   resolveConfigPath,
-  _testSetExecFileSync,
-  _testSetPlatform,
   type RawConfig,
 } from '../../src/config/writer.ts'
 
@@ -162,18 +160,12 @@ describe('writeConfig', () => {
     if (process.platform === 'win32') return
     const path = join(dir, 'a" & calc & ".yml')
     const calls: Array<{ file: string, args: readonly string[], opts: Record<string, unknown> }> = []
-    const restorePlatform = _testSetPlatform('win32')
-    const restoreExec = _testSetExecFileSync(((file: string, args: readonly string[], opts: Record<string, unknown>) => {
+    const execFileSync = ((file: string, args: readonly string[], opts: Record<string, unknown>) => {
       calls.push({ file, args, opts })
       return ''
-    }) as unknown as typeof import('node:child_process').execFileSync)
-    try {
-      const result = await writeConfig(path, SAMPLE)
-      assert.equal(result.permsEnforced, true)
-    } finally {
-      restoreExec()
-      restorePlatform()
-    }
+    }) as unknown as typeof import('node:child_process').execFileSync
+    const result = await writeConfig(path, SAMPLE, {}, { platform: 'win32', execFileSync })
+    assert.equal(result.permsEnforced, true)
     assert.equal(calls.length, 1)
     assert.equal(calls[0]?.file, 'icacls')
     assert.deepEqual(calls[0]?.args, [path, '/inheritance:r', '/grant:r', `${userInfo().username}:F`])
