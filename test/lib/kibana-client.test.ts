@@ -62,6 +62,26 @@ describe('getKibanaClient', () => {
     const client = getKibanaClient()
     assert.equal(client.baseUrl, 'http://localhost:5601')
   })
+
+  it('sends the configured credentials', async () => {
+    async function authHeader (config: ResolvedConfig): Promise<string | undefined> {
+      _testResetKibanaClient()
+      setResolvedConfig(config)
+      const client = getKibanaClient()
+      let header: string | undefined
+      client._testSetFetch(((url: string, init: RequestInit) => {
+        header = (init.headers as Record<string, string>)['Authorization']
+        return Promise.resolve(new Response('', { status: 200 }))
+      }) as typeof fetch)
+      await client.request({ method: 'GET', path: '/' })
+      return header
+    }
+
+    const url = 'http://localhost:5601'
+    assert.equal(await authHeader({ context: { kibana: { url, auth: { api_key: 'k' } } } }), 'ApiKey k')
+    assert.equal(await authHeader({ context: { kibana: { url, auth: { username: 'u', password: 'p' } } } }), `Basic ${Buffer.from('u:p').toString('base64')}`)
+    assert.equal(await authHeader({ context: { kibana: { url } } }), undefined)
+  })
 })
 
 describe('KibanaClient.request', () => {
@@ -538,6 +558,27 @@ describe('KibanaClient.request non-JSON bodies', () => {
 
     await client.request({ method: 'POST', path: '/api/lists/items/_export' }, 'ndjson')
     assert.equal(captured['Accept'], 'application/x-ndjson')
+  })
+
+  it('wraps a single NDJSON value in an array', async () => {
+    const client = makeClient()
+    client._testSetFetch(rawFetch('{"id":"1"}', 'application/x-ndjson'))
+
+    const result = await client.request({ method: 'POST', path: '/api/lists/items/_export' })
+    assert.deepEqual(result, [{ id: '1' }])
+  })
+
+  it('sends Accept: text/plain and returns raw text when responseType is text', async () => {
+    const client = makeClient()
+    let captured: Record<string, string> = {}
+    client._testSetFetch(((url: string, init: RequestInit) => {
+      captured = init.headers as Record<string, string>
+      return Promise.resolve(new Response('{"a":1}', { status: 200, headers: { 'content-type': 'application/json' } }))
+    }) as typeof fetch)
+
+    const result = await client.request({ method: 'GET', path: '/api/status' }, 'text')
+    assert.equal(captured['Accept'], 'text/plain')
+    assert.equal(result, '{"a":1}')
   })
 
   it('returns a raw JavaScript body verbatim (oauth callback script)', async () => {
