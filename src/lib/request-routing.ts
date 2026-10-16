@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { SchemaArgDefinition } from './json-schema-args.ts'
+
 /**
  * Substitutes `{key}` tokens in a URL path template with encoded values.
  *
@@ -31,4 +33,30 @@ export function interpolatePath (
     }))
   }
   return segments.join('/') || '/'
+}
+
+/**
+ * Collects the query-routed args that have a value, keyed by schema key.
+ *
+ * Values are returned unserialized because the array wire format differs by
+ * product, on purpose (#726). ES and Cloud send `q=a,b` (`String(value)`),
+ * matching ES's comma-separated list params. Kibana sends the JSON form
+ * `q=["a","b"]`, adopted in #598 for Fleet params such as `agentsIds`.
+ */
+export function routeQuery (args: SchemaArgDefinition[], input: Record<string, unknown>): Record<string, unknown> {
+  return pick(args.filter((a) => a.foundIn === 'query'), input)
+}
+
+/** Collects the body-routed args (`x-found-in: body` or unset) that have a value, keyed by schema key. */
+export function routeBody (args: SchemaArgDefinition[], input: Record<string, unknown>): Record<string, unknown> {
+  return pick(args.filter((a) => a.foundIn === 'body' || a.foundIn === undefined), input)
+}
+
+function pick (args: SchemaArgDefinition[], input: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const arg of args) {
+    const value = input[arg.schemaKey]
+    if (value !== undefined) out[arg.schemaKey] = value
+  }
+  return out
 }
