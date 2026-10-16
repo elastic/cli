@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Command } from 'commander'
 import { defineCommand, defineGroup } from '../factory.ts'
 import type { OpaqueCommandHandle } from '../factory.ts'
 import { inferIntentFromHttp } from '@cli-schema/spec'
@@ -16,6 +15,7 @@ import { formatTextResponse } from '../output.ts'
 import type { AvailabilityTarget } from '../lib/availability.ts'
 import { isAvailable, parseVersionHint } from '../lib/availability.ts'
 import { getResolvedConfig } from '../config/store.ts'
+import { buildStubLeaf } from '../lib/lazy-leaf.ts'
 
 // Every Kibana definition passes `validateKbApiDefinition` as of @elastic/schemas 0.5.1;
 // the five upstream path-param defects that used to need an allowlist here are fixed.
@@ -38,29 +38,6 @@ function buildLeafHandle (def: KbApiDefinition, target?: AvailabilityTarget): Op
     ...(def.responseType === 'text' ? { formatOutput: formatTextResponse } : {}),
     ...(target !== undefined ? { target } : {}),
   })
-}
-
-/**
- * Builds a stub leaf command that loads its full definition on demand.
- * Commander still shows the stub in group-level help.
- */
-function buildStubLeaf (meta: KbApiMeta, target?: AvailabilityTarget): OpaqueCommandHandle {
-  const cmd = new Command(meta.name)
-  cmd.description(meta.description)
-  cmd.allowUnknownOption(true)
-  cmd.action(async () => {
-    const def = await loadKbApi(meta)
-    const real = buildLeafHandle(def, target)
-    const parent = cmd.parent
-    if (parent != null) {
-      const list = parent.commands as Command[]
-      const idx = list.indexOf(cmd)
-      if (idx >= 0) list.splice(idx, 1)
-      parent.addCommand(real)
-      await parent.parseAsync(process.argv)
-    }
-  })
-  return cmd
 }
 
 /**
@@ -125,7 +102,7 @@ export async function registerKbCommandsLazy (
 
   function leafHandleFor (m: KbApiMeta): OpaqueCommandHandle {
     if (invoked != null && invokedDef != null && m === invoked) return buildLeafHandle(invokedDef, target)
-    return buildStubLeaf(m, target)
+    return buildStubLeaf(m, async () => buildLeafHandle(await loadKbApi(m), target))
   }
 
   const namespaceHandles: OpaqueCommandHandle[] = []
