@@ -22,11 +22,15 @@ interface Case {
   required?: string[]
   input: Record<string, unknown>
   /** expected path + querystring on the wire, per product */
-  expected: { es: string, kb: string, cloud: string }
+  expected: Record<'es' | 'kb' | 'cloud', string>
 }
 
 function same (url: string): Case['expected'] {
   return { es: url, kb: url, cloud: url }
+}
+
+function schemaOf (c: Case): Record<string, unknown> {
+  return { type: 'object', properties: c.properties, ...(c.required != null ? { required: c.required } : {}) }
 }
 
 const pathParam = { type: 'string', 'x-found-in': 'path' }
@@ -92,51 +96,41 @@ const CASES: Case[] = [
   },
 ]
 
-type FakeFetchClient = { _testSetFetch: (fn: typeof fetch) => void }
+interface WireClient<P> {
+  _testSetFetch: (fn: typeof fetch) => void
+  request: (params: P) => Promise<unknown>
+}
 
-function captureUrl (client: FakeFetchClient): () => string {
+/** Sends `params` through the real client and returns the path + querystring it fetched. */
+async function wireUrl<P> (client: WireClient<P>, params: P): Promise<string> {
   let url = ''
   client._testSetFetch((async (u: string) => {
     url = u
     return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } })
   }) as typeof fetch)
-  return () => url.slice(BASE.length)
+  await client.request(params)
+  return url.slice(BASE.length)
 }
 
-async function sendEs (c: Case): Promise<string> {
-  const input = { type: 'object', properties: c.properties, ...(c.required != null ? { required: c.required } : {}) }
-  const def = { name: 'fixture', description: '', method: 'GET' as const, path: c.path, input }
-  const params = buildRequestParams(def, { options: {}, input: c.input }, extractSchemaArgs(input))
-  const client = new EsClient(BASE)
-  const url = captureUrl(client)
-  await client.request(params)
-  return url()
-}
-
-async function sendKb (c: Case): Promise<string> {
-  const input = { type: 'object', properties: c.properties, ...(c.required != null ? { required: c.required } : {}) }
-  const def = { name: 'fixture', namespace: 'fixture', description: '', method: 'GET' as const, path: c.path, input }
-  const params = buildKibanaRequestParams(def, { options: {}, input: c.input })
-  const client = new KibanaClient(BASE)
-  const url = captureUrl(client)
-  await client.request(params)
-  return url()
-}
-
-async function sendCloud (c: Case): Promise<string> {
-  const input = { type: 'object', properties: c.properties, ...(c.required != null ? { required: c.required } : {}) }
-  const def = { name: 'fixture', namespace: 'fixture', description: '', method: 'GET' as const, path: c.path, input, destructive: false }
-  const params = buildCloudRequestParams(def, { options: {}, input: c.input })
-  const client = new CloudClient(BASE, 'key')
-  const url = captureUrl(client)
-  await client.request(params)
-  return url()
+const SENDERS: Record<keyof Case['expected'], (c: Case) => Promise<string>> = {
+  es: async (c) => {
+    const def = { name: 'fixture', description: '', method: 'GET' as const, path: c.path, input: schemaOf(c) }
+    return await wireUrl(new EsClient(BASE), buildRequestParams(def, { options: {}, input: c.input }, extractSchemaArgs(def.input)))
+  },
+  kb: async (c) => {
+    const def = { name: 'fixture', namespace: 'fixture', description: '', method: 'GET' as const, path: c.path, input: schemaOf(c) }
+    return await wireUrl(new KibanaClient(BASE), buildKibanaRequestParams(def, { options: {}, input: c.input }, extractSchemaArgs(def.input)))
+  },
+  cloud: async (c) => {
+    const def = { name: 'fixture', namespace: 'fixture', description: '', method: 'GET' as const, path: c.path, input: schemaOf(c), destructive: false, readOnly: true }
+    return await wireUrl(new CloudClient(BASE, 'key'), buildCloudRequestParams(def, { options: {}, input: c.input }, extractSchemaArgs(def.input)))
+  },
 }
 
 describe('request routing across the ES, Kibana, and Cloud builders', () => {
   for (const c of CASES) {
-    it(`${c.name}: es`, async () => assert.equal(await sendEs(c), c.expected.es))
-    it(`${c.name}: kb`, async () => assert.equal(await sendKb(c), c.expected.kb))
-    it(`${c.name}: cloud`, async () => assert.equal(await sendCloud(c), c.expected.cloud))
+    for (const product of ['es', 'kb', 'cloud'] as const) {
+      it(`${c.name}: ${product}`, async () => assert.equal(await SENDERS[product](c), c.expected[product]))
+    }
   }
 })
