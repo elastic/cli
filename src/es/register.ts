@@ -59,6 +59,7 @@ function buildLeafHandle (
   target?: AvailabilityTarget
 ): OpaqueCommandHandle {
   const schemaArgs = defSchemaArgs.get(def) ?? []
+  const intent = def.intent ?? inferIntentFromHttp(def.method)
   const config: Parameters<typeof _DefCmd>[0] = {
     name: def.name,
     description: def.description,
@@ -68,9 +69,7 @@ function buildLeafHandle (
       const { createEsHandler } = await import('./handler.js')
       return createEsHandler(def, schemaArgs)(parsed)
     },
-    ...(def.intent != null || inferIntentFromHttp(def.method) != null
-      ? { intent: def.intent ?? inferIntentFromHttp(def.method)! }
-      : {}),
+    ...(intent != null ? { intent } : {}),
     ...(target !== undefined ? { target } : {}),
   }
   if (def.responseType === 'text') {
