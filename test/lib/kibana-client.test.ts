@@ -234,12 +234,13 @@ describe('KibanaClient.request redirects', () => {
   /**
    * Returns a client whose fetch answers with `responses` in order and records each hop.
    * The body is read through a real `Request` on every hop, so a body that cannot be
-   * re-sent fails here.
+   * re-sent fails here. Every hop must carry a signal; it is left out of the recorded init.
    */
   function stubClient (responses: StubResponse[]) {
     const client = new KibanaClient('http://localhost:5601', { api_key: 'test-key' })
     const hops: Hop[] = []
-    client._testSetFetch((async (url: string, init: RequestInit) => {
+    client._testSetFetch((async (url: string, { signal, ...init }: RequestInit) => {
+      assert.ok(signal instanceof AbortSignal)
       const body = init.body == null ? undefined : await new Request(url, { method: init.method!, body: init.body }).text()
       hops.push({ url, init: { ...init, headers: { ...init.headers as Record<string, string> } }, body })
       const next = responses[hops.length - 1] ?? { status: 200 }
