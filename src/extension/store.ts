@@ -28,13 +28,6 @@ import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, isAbsolute, join } from 'node:path'
 
-let _platform: string = process.platform
-
-/** @internal Override the platform for tests. */
-export function _testSetPlatform (p: string): void {
-  _platform = p
-}
-
 /** A single installed extension entry in the registry. */
 export interface InstalledExtension {
   /** Short name, e.g. `"local"` for an extension invoked as `elastic local`. */
@@ -165,17 +158,26 @@ export async function readExtensions (): Promise<InstalledExtension[]> {
   return parsed.map((entry, i) => validateEntry(entry, i))
 }
 
+/** Injectable process hooks for {@link writeExtensions}. */
+export interface WriteExtensionsDeps {
+  /** Skips chmod on `win32`. Defaults to `process.platform`. */
+  platform?: string
+}
+
 /**
  * Persists the given extension list to the registry file with 0o600 permissions.
  * Creates `~/.elastic/` if it does not exist.
  */
-export async function writeExtensions (extensions: InstalledExtension[]): Promise<void> {
+export async function writeExtensions (
+  extensions: InstalledExtension[],
+  deps: WriteExtensionsDeps = {}
+): Promise<void> {
   const path = registryPath()
   await mkdir(dirname(path), { recursive: true })
   await writeFile(path, JSON.stringify(extensions, null, 2) + '\n', { encoding: 'utf-8', mode: 0o600 })
   // Explicitly chmod in case the file already existed with broader permissions.
   // chmod is a no-op on Windows so we skip the call entirely.
-  if (_platform !== 'win32') {
+  if ((deps.platform ?? process.platform) !== 'win32') {
     await chmod(path, 0o600)
   }
 }
