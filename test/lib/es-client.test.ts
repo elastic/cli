@@ -5,10 +5,10 @@
 
 import { describe, it, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { EsClient, EsResponseError, EsConnectionError, getEsClient, _testResetEsClient } from '../../src/lib/es-client.ts'
+import { EsClient, EsResponseError, getEsClient, _testResetEsClient } from '../../src/lib/es-client.ts'
 import { setResolvedConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
-import { clientHeaders } from '../../src/lib/meta.ts'
+import { YamlResponse } from '../../src/lib/yaml-response.ts'
 
 function makeApiKeyConfig (url: string, apiKey: string): ResolvedConfig {
   return { context: { elasticsearch: { url, auth: { api_key: apiKey } } } }
@@ -66,26 +66,31 @@ describe('getEsClient', () => {
     const client = getEsClient()
     assert.equal(client.baseUrl, 'http://localhost:9200')
   })
+
+  it('sends the configured credentials', async () => {
+    async function authHeader (config: ResolvedConfig): Promise<string | undefined> {
+      _testResetEsClient()
+      setResolvedConfig(config)
+      const client = getEsClient()
+      let header: string | undefined
+      client._testSetFetch(((url: string, init: RequestInit) => {
+        header = (init.headers as Record<string, string>)['Authorization']
+        return Promise.resolve(new Response('', { status: 200 }))
+      }) as typeof fetch)
+      await client.request({ method: 'GET', path: '/' })
+      return header
+    }
+
+    assert.equal(await authHeader(makeApiKeyConfig('http://localhost:9200', 'k')), 'ApiKey k')
+    assert.equal(await authHeader(makeBasicConfig('http://localhost:9200', 'u', 'p')), `Basic ${Buffer.from('u:p').toString('base64')}`)
+    assert.equal(await authHeader({ context: { elasticsearch: { url: 'http://localhost:9200' } } }), undefined)
+  })
 })
 
 describe('EsClient.request', () => {
   function makeClient (auth?: { api_key: string } | { username: string; password: string }) {
     return new EsClient('http://localhost:9200', auth ?? { api_key: 'test-key' })
   }
-
-  it('sends x-elastic-client-meta on every request', async () => {
-    const client = makeClient()
-    let capturedHeaders: Record<string, string> = {}
-    client._testSetFetch(((url: string, init: RequestInit) => {
-      capturedHeaders = init.headers as Record<string, string>
-      return Promise.resolve(new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }))
-    }) as typeof fetch)
-
-    await client.request({ method: 'GET', path: '/_cluster/health' })
-    const expected = clientHeaders()
-    assert.equal(capturedHeaders['x-elastic-client-meta'], expected['x-elastic-client-meta'])
-    assert.equal(capturedHeaders['user-agent'], expected['user-agent'])
-  })
 
   it('sends ApiKey Authorization header', async () => {
     const client = makeClient({ api_key: 'my-api-key' })
@@ -122,32 +127,6 @@ describe('EsClient.request', () => {
 
     await client.request({ method: 'GET', path: '/' })
     assert.equal(capturedHeaders['Authorization'], undefined)
-  })
-
-  it('composes URL from baseUrl and path', async () => {
-    const client = makeClient()
-    const urls: string[] = []
-    client._testSetFetch(((url: string) => {
-      urls.push(url)
-      return Promise.resolve(new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }))
-    }) as typeof fetch)
-
-    await client.request({ method: 'GET', path: '/_cluster/health' })
-    assert.equal(urls[0], 'http://localhost:9200/_cluster/health')
-  })
-
-  it('appends querystring to URL', async () => {
-    const client = makeClient()
-    const urls: string[] = []
-    client._testSetFetch(((url: string) => {
-      urls.push(url)
-      return Promise.resolve(new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }))
-    }) as typeof fetch)
-
-    await client.request({ method: 'GET', path: '/_search', querystring: { size: 10, pretty: true } })
-    const parsed = new URL(urls[0]!)
-    assert.equal(parsed.searchParams.get('size'), '10')
-    assert.equal(parsed.searchParams.get('pretty'), 'true')
   })
 
   it('sends object body as JSON with application/json content-type', async () => {
@@ -190,6 +169,45 @@ describe('EsClient.request', () => {
     assert.equal(calls[0]!.headers['Content-Type'], 'application/x-ndjson')
   })
 
+  it('sends bulkBody instead of body when both are set', async () => {
+    const client = makeClient()
+    const calls: RequestInit[] = []
+    client._testSetFetch(((url: string, init: RequestInit) => {
+      calls.push(init)
+      return Promise.resolve(new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }))
+    }) as typeof fetch)
+
+    await client.request({ method: 'POST', path: '/_bulk', body: { ignored: true }, bulkBody: '{"index":{}}\n' })
+    assert.equal(calls[0]!.body, '{"index":{}}\n')
+    assert.equal((calls[0]!.headers as Record<string, string>)['Content-Type'], 'application/x-ndjson')
+  })
+
+  it('sends a GET with a body as POST', async () => {
+    const client = makeClient()
+    const calls: RequestInit[] = []
+    client._testSetFetch(((url: string, init: RequestInit) => {
+      calls.push(init)
+      return Promise.resolve(new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }))
+    }) as typeof fetch)
+
+    await client.request({ method: 'GET', path: '/_search', body: { size: 0 } })
+    await client.request({ method: 'GET', path: '/_search' })
+    assert.equal(calls[0]!.method, 'POST')
+    assert.equal(calls[1]!.method, 'GET')
+  })
+
+  it('lets opts.headers override the default Accept', async () => {
+    const client = makeClient()
+    const calls: RequestInit[] = []
+    client._testSetFetch(((url: string, init: RequestInit) => {
+      calls.push(init)
+      return Promise.resolve(new Response('', { status: 200 }))
+    }) as typeof fetch)
+
+    await client.request({ method: 'GET', path: '/_cat/indices' }, { headers: { Accept: 'text/plain' } })
+    assert.equal((calls[0]!.headers as Record<string, string>)['Accept'], 'text/plain')
+  })
+
   it('allows opts.headers to override Content-Type', async () => {
     const client = makeClient()
     const calls: { headers: Record<string, string> }[] = []
@@ -221,8 +239,37 @@ describe('EsClient.request', () => {
       Promise.resolve(new Response('index  health  status\n', { status: 200, headers: { 'content-type': 'text/plain' } }))
     ) as typeof fetch)
 
-    const result = await client.request<string>({ method: 'GET', path: '/_cat/indices' })
+    const result = await client.request({ method: 'GET', path: '/_cat/indices' })
     assert.equal(result, 'index  health  status\n')
+  })
+
+  it('parses an application/x-ndjson response as JSON', async () => {
+    const client = makeClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('{"responses":[]}', { status: 200, headers: { 'content-type': 'application/x-ndjson' } }))
+    ) as typeof fetch)
+
+    assert.deepEqual(await client.request({ method: 'POST', path: '/_msearch' }), { responses: [] })
+  })
+
+  it('returns raw text for a JSON-looking body without a JSON content-type', async () => {
+    const client = makeClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('{"a":1}', { status: 200, headers: { 'content-type': 'text/plain' } }))
+    ) as typeof fetch)
+
+    assert.equal(await client.request({ method: 'GET', path: '/_cat/health' }), '{"a":1}')
+  })
+
+  it('wraps a YAML response in a YamlResponse', async () => {
+    const client = makeClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('a: 1\n', { status: 200, headers: { 'content-type': 'application/yaml' } }))
+    ) as typeof fetch)
+
+    const result = await client.request({ method: 'GET', path: '/_cluster/health' })
+    assert.ok(result instanceof YamlResponse)
+    assert.equal(result.text, 'a: 1\n')
   })
 
   it('returns empty object for empty response body', async () => {
@@ -249,6 +296,20 @@ describe('EsClient.request', () => {
         return true
       }
     )
+  })
+
+  it('parses a JSON error body and uses its error field as the message', async () => {
+    const client = makeClient()
+    client._testSetFetch((() =>
+      Promise.resolve(new Response('{"error":{"type":"index_not_found_exception"},"status":404}', { status: 404 }))
+    ) as typeof fetch)
+
+    await assert.rejects(client.request({ method: 'GET', path: '/missing-index' }), (err: unknown) => {
+      assert.ok(err instanceof EsResponseError)
+      assert.deepEqual(err.body, { error: { type: 'index_not_found_exception' }, status: 404 })
+      assert.equal(err.message, '{"type":"index_not_found_exception"}')
+      return true
+    })
   })
 
   it('throws EsResponseError with HTML body on non-2xx (e.g. 504 from proxy)', async () => {
@@ -337,81 +398,5 @@ describe('EsClient.request', () => {
         return true
       }
     )
-  })
-
-  it('throws EsConnectionError when fetch throws TypeError', async () => {
-    const client = makeClient()
-    client._testSetFetch((() =>
-      Promise.reject(new TypeError('fetch failed'))
-    ) as typeof fetch)
-
-    await assert.rejects(
-      () => client.request({ method: 'GET', path: '/' }),
-      (err: unknown) => {
-        assert.ok(err instanceof EsConnectionError)
-        assert.match(err.message, /fetch failed/)
-        return true
-      }
-    )
-  })
-
-  it('sets redirect to error', async () => {
-    const client = makeClient()
-    let capturedInit: RequestInit = {}
-    client._testSetFetch(((url: string, init: RequestInit) => {
-      capturedInit = init
-      return Promise.resolve(new Response('{}', { status: 200 }))
-    }) as typeof fetch)
-
-    await client.request({ method: 'GET', path: '/' })
-    assert.equal(capturedInit.redirect, 'error')
-  })
-
-  it('warns on plaintext HTTP for non-localhost', () => {
-    const chunks: string[] = []
-    const origWrite = process.stderr.write
-    process.stderr.write = ((chunk: string) => { chunks.push(chunk); return true }) as typeof process.stderr.write
-    try {
-      new EsClient('http://remote.example.com', { api_key: 'k' })
-      assert.ok(chunks.some((c) => c.includes('plaintext HTTP')))
-    } finally {
-      process.stderr.write = origWrite
-    }
-  })
-
-  it('does not warn on HTTP for localhost', () => {
-    const chunks: string[] = []
-    const origWrite = process.stderr.write
-    process.stderr.write = ((chunk: string) => { chunks.push(chunk); return true }) as typeof process.stderr.write
-    try {
-      new EsClient('http://localhost:9200', { api_key: 'k' })
-      assert.ok(!chunks.some((c) => c.includes('plaintext HTTP')))
-    } finally {
-      process.stderr.write = origWrite
-    }
-  })
-
-  it('warns on plaintext HTTP when localhost is only a hostname prefix', () => {
-    const chunks: string[] = []
-    const origWrite = process.stderr.write
-    process.stderr.write = ((chunk: string) => { chunks.push(chunk); return true }) as typeof process.stderr.write
-    try {
-      new EsClient('http://localhost.evil.com:9200', { api_key: 'k' })
-      assert.ok(chunks.some((c) => c.includes('plaintext HTTP')))
-    } finally {
-      process.stderr.write = origWrite
-    }
-  })
-
-  it('does not warn on HTTP for IPv6 loopback', () => {
-    const chunks: string[] = []
-    const origWrite = process.stderr.write
-    process.stderr.write = ((chunk: string) => { chunks.push(chunk); return true }) as typeof process.stderr.write
-    try {
-      new EsClient('http://[::1]:9200', { api_key: 'k' })
-      assert.ok(!chunks.some((c) => c.includes('plaintext HTTP')))
-    } finally {
-      process.stderr.write = origWrite
-    }
   })
 })

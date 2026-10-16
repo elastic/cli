@@ -70,7 +70,7 @@ export function createEsHandler (
         }
       }
 
-      return await transport.request<HandlerResult>(params, opts)
+      return await transport.request(params, opts) as HandlerResult
     } catch (err) {
       return transportError(err)
     }

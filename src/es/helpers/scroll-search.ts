@@ -104,12 +104,12 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
     try {
       // Initial search with scroll
       const encodedIndex = encodeMultiTargetPathParam(index)
-      const initialResult = await transport.request<SearchResponse>({
+      const initialResult = await transport.request({
         method: 'POST',
         path: `/${encodedIndex}/_search`,
         querystring: { scroll, size },
         body: queryBody
-      })
+      }) as SearchResponse
 
       let scrollId2 = initialResult._scroll_id
       // Save initial scroll ID immediately for cleanup even if loop fails
@@ -132,11 +132,11 @@ function createScrollSearchHandler (deps: ScrollSearchDeps = defaultDeps) {
         if (totalDocs >= maxDocs || scrollId2 == null) break
 
         // Fetch next page
-        const scrollResult = await transport.request<SearchResponse>({
+        const scrollResult = await transport.request({
           method: 'POST',
           path: '/_search/scroll',
           body: { scroll, scroll_id: scrollId2 }
-        })
+        }) as SearchResponse
 
         scrollId2 = scrollResult._scroll_id
         scrollId = scrollId2
