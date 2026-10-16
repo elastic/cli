@@ -33,6 +33,8 @@ The CLI looks for a config file in your home directory. The following file names
 
 Place your config at `~/.elasticrc.yml` (recommended). To use a file in a different location, pass `--config-file <path>` or set the `ELASTIC_CLI_CONFIG_FILE` environment variable. The flag takes precedence over the environment variable.
 
+`elastic config` and `--save-as` write to the file the CLI loads: the one found by this search, or the one you select with `--config-file` or `ELASTIC_CLI_CONFIG_FILE`. If no config file exists, the CLI creates `~/.elasticrc.yml`. When the target is a `.json` file, the CLI writes JSON instead of YAML.
+
 ```yaml
 current_context: local <1>
 

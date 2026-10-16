@@ -33,3 +33,5 @@ The following resources help you start using the Elastic CLI:
 
 - Refer to the [Elastic CLI command reference](./cli/index.md) for commands, options, and input schemas.
 - Follow [Connect to {{ecloud}} with the Elastic CLI](./cli/manage-elastic-cloud.md) to configure a connection and run example operations against the {{ecloud}} API.
+- Refer to [Set up shell completion](./cli/shell-completion.md) to enable tab completion in your shell.
+- Refer to [Extend the Elastic CLI](./cli/extensions.md) to add your own top-level commands.
