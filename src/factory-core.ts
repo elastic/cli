@@ -82,7 +82,7 @@ export interface CommandConfig {
   handler: (parsed: ParsedResult) => HandlerResult | Promise<HandlerResult>
   /** JSON Schema object for structured input (properties carry `x-found-in` routing). */
   input?: Record<string, unknown>
-  formatOutput?: (result: JsonValue, parsed: ParsedResult) => string
+  formatOutput?: (result: JsonValue, parsed: ParsedResult) => string | Promise<string>
   intent?: CommandIntent
   /**
    * Marks a command as read-only (GET/HEAD). When the input schema is also

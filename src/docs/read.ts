@@ -6,7 +6,6 @@
 import { defineCommand } from '../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../factory.ts'
 import { docsRead, resolveDocsPath } from './client.ts'
-import { renderMarkdown } from './renderer.ts'
 
 export interface ReadDeps {
   docsRead: typeof docsRead
@@ -49,7 +48,12 @@ export function createReadCommand (deps: ReadDeps = defaultDeps): OpaqueCommandH
           return { markdown }
         }
 
-        deps.stdout.write(raw ? markdown : renderMarkdown(markdown) + '\n')
+        if (raw) {
+          deps.stdout.write(markdown)
+        } else {
+          const { renderMarkdown } = await import('./renderer.ts')
+          deps.stdout.write(renderMarkdown(markdown) + '\n')
+        }
       } catch (err) {
         return {
           error: {
