@@ -8,6 +8,8 @@ import type { CloudClient } from '../lib/cloud-client.ts'
 import { getCloudClient } from '../lib/cloud-client.ts'
 import { inputError, missingConfigError, toErrorPayload, type DescribeError } from '../lib/error-payload.ts'
 import { buildCloudRequestParams } from './request-builder.ts'
+import { extractSchemaArgs } from '../lib/json-schema-args.ts'
+import { resolveRootRef } from '../lib/json-schema-refs.ts'
 import type { HandlerResult, JsonValue, ParsedResult } from '../factory.ts'
 
 const DEFAULT_POLL_INTERVAL_MS = 10_000
@@ -28,12 +30,13 @@ const defaultDeps: CloudHandlerDeps = { getCloudClient, buildCloudRequestParams 
 /**
  * Creates a handler function for a Cloud control plane API command.
  *
- * The returned handler is bound to `def` at registration time and called by
- * the factory with the validated `ParsedResult` on each invocation. It:
+ * The returned handler is bound to `def` at registration time, when its routing
+ * args are extracted once, and called by the factory with the validated
+ * `ParsedResult` on each invocation. It:
  *
  * 1. Calls `getCloudClient()` to obtain the cached client (throws `missing_config`
  *    if no Cloud service is configured).
- * 2. Calls `buildCloudRequestParams(def, parsed)` to assemble the request.
+ * 2. Calls `buildCloudRequestParams(def, parsed, schemaArgs)` to assemble the request.
  * 3. Calls `client.request(params)` and returns the JSON response.
  * 4. Catches errors and returns structured `missing_config` or `cloud_api_error` payloads.
  */
@@ -41,6 +44,7 @@ export function createCloudHandler(
   def: CloudApiDefinition,
   deps: CloudHandlerDeps = defaultDeps,
 ): (parsed: ParsedResult) => Promise<HandlerResult> {
+  const schemaArgs = extractSchemaArgs(def.input != null ? resolveRootRef(def.input) : undefined)
   return async (parsed: ParsedResult): Promise<HandlerResult> => {
     let client: CloudClient
     try {
@@ -51,7 +55,7 @@ export function createCloudHandler(
 
     let params: ReturnType<typeof deps.buildCloudRequestParams>
     try {
-      params = deps.buildCloudRequestParams(def, parsed)
+      params = deps.buildCloudRequestParams(def, parsed, schemaArgs)
     } catch (err) {
       if ((err as { code?: string }).code === 'input_error') return inputError(err)
       return invalidRequestError(err)
