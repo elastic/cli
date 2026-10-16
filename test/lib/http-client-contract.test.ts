@@ -87,6 +87,14 @@ for (const c of cases) {
         await client.request({ method: 'GET', path: '/x', querystring: {} })
         assert.equal(calls[0]!.url, 'https://example.com/x')
       })
+
+      it('skips undefined values and leaves out ? when none remain', async () => {
+        const { client, calls } = stub(c)
+        const querystring = { a: undefined, b: '1' } as unknown as Record<string, string>
+        await client.request({ method: 'GET', path: '/x', querystring })
+        await client.request({ method: 'GET', path: '/x', querystring: { a: undefined } as unknown as Record<string, string> })
+        assert.deepEqual(calls.map((call) => call.url), ['https://example.com/x?b=1', 'https://example.com/x'])
+      })
     })
 
     describe('plaintext warning', () => {
