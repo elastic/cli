@@ -17,7 +17,7 @@
 import { chmod, mkdir, rename, stat, writeFile, unlink } from 'node:fs/promises'
 import { execFileSync, type ExecFileSyncOptionsWithStringEncoding } from 'node:child_process'
 import { userInfo } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, extname, join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { stringify as stringifyYaml, parse as parseYaml } from 'yaml'
 import { discoverConfigFile, homeDir } from './discover.ts'
@@ -222,14 +222,14 @@ export async function writeConfig (
     await mkdir(dirname(path), { recursive: true })
   }
 
-  const yaml = serializeConfig(config)
+  const content = serializeConfig(config, extname(path) === '.json' ? 'json' : 'yaml')
   const warnings: string[] = []
 
   const tmp = join(dirname(path), `.${basename(path)}.${randomBytes(4).toString('hex')}.tmp`)
   let permsEnforced = false
 
   try {
-    await writeFile(tmp, yaml, { encoding: 'utf-8', mode: 0o600 })
+    await writeFile(tmp, content, { encoding: 'utf-8', mode: 0o600 })
     if (restrictPermissions && _platform !== 'win32') {
       await chmod(tmp, 0o600)
     }
@@ -280,11 +280,12 @@ function basename (p: string): string {
 }
 
 /**
- * YAML serializer. Keeps a stable top-level key order
+ * Config serializer (YAML by default; `json` for `.json` files, which the
+ * loader parses with `JSON.parse`). Keeps a stable top-level key order
  * (`current_context`, `contexts`, `commands`) so round-trips produce diffs
  * limited to the fields that actually changed.
  */
-export function serializeConfig (config: RawConfig): string {
+export function serializeConfig (config: RawConfig, format: 'yaml' | 'json' = 'yaml'): string {
   const ordered: Record<string, unknown> = {}
   ordered.current_context = config.current_context
   ordered.contexts = config.contexts
@@ -296,7 +297,7 @@ export function serializeConfig (config: RawConfig): string {
     if (k === 'current_context' || k === 'contexts' || k === 'commands' || k === 'banner' || k === 'telemetry' || k === 'detect_version') continue
     ordered[k] = v
   }
-  return stringifyYaml(ordered, { lineWidth: 0 })
+  return format === 'json' ? JSON.stringify(ordered, null, 2) + '\n' : stringifyYaml(ordered, { lineWidth: 0 })
 }
 
 /**
