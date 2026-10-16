@@ -16,10 +16,11 @@
 
 import { chmod, mkdir, rename, stat, writeFile, unlink } from 'node:fs/promises'
 import { execFileSync, type ExecFileSyncOptionsWithStringEncoding } from 'node:child_process'
-import { homedir, userInfo } from 'node:os'
+import { userInfo } from 'node:os'
 import { dirname, join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { stringify as stringifyYaml, parse as parseYaml } from 'yaml'
+import { discoverConfigFile, homeDir } from './discover.ts'
 
 /**
  * Raw, pre-resolution shape of a config file. `unknown` leaf values are
@@ -165,16 +166,18 @@ export function hasInlineSecrets (config: RawConfig): boolean {
  * Precedence:
  *   1. explicit `--config-file` argument (if a non-empty string)
  *   2. `ELASTIC_CLI_CONFIG_FILE` env var (if set and non-empty)
- *   3. `~/.elasticrc.yml`
+ *   3. the config file home-directory discovery would load (so writes land in
+ *      the file the loader reads, e.g. an existing `~/.elasticrc`)
+ *   4. `~/.elasticrc.yml` when no config file exists yet
  *
  * Kept here (not in loader.ts) because write-side callers in `commands.ts`
  * and `cloud/credentials.ts` need it without importing the full loader.
  */
-export function resolveConfigPath (explicit?: string): string {
+export async function resolveConfigPath (explicit?: string): Promise<string> {
   if (typeof explicit === 'string' && explicit.length > 0) return explicit
   const env = process.env.ELASTIC_CLI_CONFIG_FILE
   if (typeof env === 'string' && env.length > 0) return env
-  return join(homedir(), '.elasticrc.yml')
+  return (await discoverConfigFile()) ?? join(homeDir(), '.elasticrc.yml')
 }
 
 // ---------------------------------------------------------------------------

@@ -5,7 +5,7 @@
 
 import { describe, it, before, after, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { parse as parseYaml } from 'yaml'
@@ -206,6 +206,31 @@ describe('applyCredentialPolicy', () => {
     // keychain put was called for both elasticsearch + kibana passwords
     assert.ok(calls.some(c => (c.cmd as string).includes('elasticsearch.auth.password')))
     assert.ok(calls.some(c => (c.cmd as string).includes('kibana.auth.password')))
+  })
+
+  it('--save-as updates the existing ~/.elasticrc instead of creating ~/.elasticrc.yml (#727)', async () => {
+    const home = await mkdtemp(join(tmpdir(), 'elastic-cli-save-as-home-'))
+    for (const key of ['HOME', 'USERPROFILE', 'ELASTIC_CLI_CONFIG_FILE']) {
+      const prev = process.env[key]
+      restores.push(() => {
+        if (prev === undefined) delete process.env[key]
+        else process.env[key] = prev
+      })
+    }
+    process.env.HOME = home
+    process.env.USERPROFILE = home
+    delete process.env.ELASTIC_CLI_CONFIG_FILE
+    try {
+      stubSecretStore('keychain')
+      await writeFile(join(home, '.elasticrc'), 'current_context: a\ncontexts:\n  a:\n    elasticsearch:\n      url: http://a:9200\n')
+      const res = await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, { saveAs: 'scratch' })
+      assert.equal((res.body as { configFile: string }).configFile, join(home, '.elasticrc'))
+      const parsed = parseYaml(await readFile(join(home, '.elasticrc'), 'utf-8')) as { contexts: Record<string, unknown> }
+      assert.deepEqual(Object.keys(parsed.contexts), ['a', 'scratch'])
+      await assert.rejects(stat(join(home, '.elasticrc.yml')), { code: 'ENOENT' })
+    } finally {
+      await rm(home, { recursive: true, force: true })
+    }
   })
 
   it('--save-as without --force on an existing context throws', async () => {
