@@ -79,6 +79,30 @@ describe('createCloudHandler', () => {
     assert.strictEqual(captured[0]!.parsed, p)
   })
 
+  it('derives routing args from the resolved def.input once, at creation', async () => {
+    const def: CloudApiDefinition = {
+      ...listDef(),
+      path: '/api/v1/deployments/{id}',
+      input: {
+        $ref: '#/$defs/Req',
+        $defs: { Req: { type: 'object', properties: { id: { type: 'string', 'x-found-in': 'path' } } } },
+      },
+    }
+    const seen: unknown[] = []
+    const handler = createCloudHandler(def, {
+      getCloudClient: () => stubClient({}),
+      buildCloudRequestParams: (_d, _p, args) => {
+        seen.push(args)
+        return { method: 'GET', path: '/test' }
+      },
+    })
+    await handler(parsed())
+    await handler(parsed())
+    assert.equal(seen.length, 2)
+    assert.strictEqual(seen[0], seen[1])
+    assert.deepEqual((seen[0] as Array<{ schemaKey: string, foundIn: string }>).map((a) => [a.schemaKey, a.foundIn]), [['id', 'path']])
+  })
+
   it('passes the built request params to client.request', async () => {
     const capturedParams: CloudRequestParams[] = []
     const fakeClient = {
