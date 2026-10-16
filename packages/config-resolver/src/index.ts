@@ -13,6 +13,22 @@ import { execSync, type ExecSyncOptionsWithStringEncoding } from 'node:child_pro
  */
 export type ResolverFn = (params: string) => string | Promise<string>
 
+/**
+ * Injectable dependencies for {@link resolveString} and
+ * {@link resolveExpressions}. Each field defaults to the real process.
+ */
+export interface ResolverDeps {
+  /** Runs `cmd` and the OS secret-store CLIs. Defaults to `child_process.execSync`. */
+  execSync?: (command: string, options: ExecSyncOptionsWithStringEncoding) => string
+  /** Selects which OS-specific resolvers may run. Defaults to `process.platform`. */
+  platform?: string
+  /** Extra resolvers, looked up before the built-ins. */
+  resolvers?: ReadonlyMap<string, ResolverFn>
+}
+
+type Env = Required<Pick<ResolverDeps, 'execSync' | 'platform'>>
+type BuiltinResolver = (params: string, env: Env) => string | Promise<string>
+
 // ---------------------------------------------------------------------------
 // Expression parser
 // ---------------------------------------------------------------------------
@@ -37,26 +53,28 @@ export function containsExpression (value: string): boolean {
  */
 export async function resolveString (
   value: string,
-  fieldPath: string
+  fieldPath: string,
+  deps: ResolverDeps = {}
 ): Promise<string> {
   if (!containsExpression(value)) return value
 
   const matches = [...value.matchAll(new RegExp(EXPRESSION_RE.source, 'g'))]
   if (matches.length === 0) return value
 
+  const env: Env = { execSync: deps.execSync ?? execSync, platform: deps.platform ?? process.platform }
   let result = value
   for (const match of matches) {
     const full = match[0]
     const name = match[1]!
     const params = match[2]!
-    const resolver = RESOLVERS.get(name)
+    const resolver: BuiltinResolver | undefined = deps.resolvers?.get(name) ?? RESOLVERS.get(name)
     if (resolver == null) {
       throw new Error(
         `Unknown resolver "${name}" in expression "${full}" at ${fieldPath}. ` +
         `Available resolvers: ${[...RESOLVERS.keys()].join(', ')}`
       )
     }
-    const resolved = await resolver(params)
+    const resolved = await resolver(params, env)
     result = result.replaceAll(full, resolved)
   }
 
@@ -75,13 +93,14 @@ export async function resolveString (
  */
 export async function resolveExpressions (
   obj: unknown,
-  path: string = ''
+  path: string = '',
+  deps: ResolverDeps = {}
 ): Promise<unknown> {
   if (typeof obj === 'string') {
-    return resolveString(obj, path || '<root>')
+    return resolveString(obj, path || '<root>', deps)
   }
   if (Array.isArray(obj)) {
-    return Promise.all(obj.map((item, i) => resolveExpressions(item, `${path}[${i}]`)))
+    return Promise.all(obj.map((item, i) => resolveExpressions(item, `${path}[${i}]`, deps)))
   }
   if (obj !== null && typeof obj === 'object') {
     // Object.fromEntries defines own data properties, so a `__proto__` key
@@ -89,7 +108,7 @@ export async function resolveExpressions (
     return Object.fromEntries(await Promise.all(
       Object.entries(obj).map(async ([key, value]) => {
         const fieldPath = path ? `${path}.${key}` : key
-        return [key, await resolveExpressions(value, fieldPath)] as const
+        return [key, await resolveExpressions(value, fieldPath, deps)] as const
       })
     ))
   }
@@ -99,9 +118,6 @@ export async function resolveExpressions (
 // ---------------------------------------------------------------------------
 // Built-in resolvers
 // ---------------------------------------------------------------------------
-
-let _execSync: typeof execSync = execSync
-let _platform: string = process.platform
 
 function execOpts (timeoutMs: number): ExecSyncOptionsWithStringEncoding {
   return { encoding: 'utf-8', timeout: timeoutMs, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true }
@@ -156,9 +172,9 @@ function envResolver (params: string): string {
   return value
 }
 
-function cmdResolver (params: string): string {
+function cmdResolver (params: string, { execSync }: Env): string {
   try {
-    return _execSync(params, execOpts(10_000)).trimEnd()
+    return execSync(params, execOpts(10_000)).trimEnd()
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     throw new Error(`Command failed: ${params}\n${message}`, { cause: err })
@@ -185,17 +201,17 @@ function parseServiceAccount (params: string, resolverName: string): { service: 
   return { service: params.slice(0, slashIndex), account: params.slice(slashIndex + 1) }
 }
 
-function keychainResolver (params: string): string {
-  if (_platform !== 'darwin') {
+function keychainResolver (params: string, { execSync, platform }: Env): string {
+  if (platform !== 'darwin') {
     throw new Error(
-      `The keychain resolver is only supported on macOS (current platform: ${_platform})`
+      `The keychain resolver is only supported on macOS (current platform: ${platform})`
     )
   }
 
   const { service, account } = parseServiceAccount(params, 'keychain')
 
   try {
-    return _execSync(
+    return execSync(
       `security find-generic-password -s ${shellEscape(service)} -a ${shellEscape(account)} -w`,
       execOpts(5_000)
     ).trimEnd()
@@ -208,17 +224,17 @@ function keychainResolver (params: string): string {
   }
 }
 
-function secretServiceResolver (params: string): string {
-  if (_platform !== 'linux') {
+function secretServiceResolver (params: string, { execSync, platform }: Env): string {
+  if (platform !== 'linux') {
     throw new Error(
-      `The secret_service resolver is only supported on Linux (current platform: ${_platform})`
+      `The secret_service resolver is only supported on Linux (current platform: ${platform})`
     )
   }
 
   const { service, account } = parseServiceAccount(params, 'secret_service')
 
   try {
-    return _execSync(
+    return execSync(
       `secret-tool lookup service ${shellEscape(service)} account ${shellEscape(account)}`,
       execOpts(5_000)
     ).trimEnd()
@@ -231,7 +247,7 @@ function secretServiceResolver (params: string): string {
   }
 }
 
-function passResolver (params: string): string {
+function passResolver (params: string, { execSync }: Env): string {
   const path = params.trim()
   if (path === '') {
     throw new Error('Invalid pass parameter: path must not be empty')
@@ -244,7 +260,7 @@ function passResolver (params: string): string {
 
   let output: string
   try {
-    output = _execSync(
+    output = execSync(
       `pass show ${shellEscape(path)}`,
       execOpts(5_000)
     ).trimEnd()
@@ -264,10 +280,10 @@ function passResolver (params: string): string {
   return firstLine
 }
 
-function credentialManagerResolver (params: string): string {
-  if (_platform !== 'win32') {
+function credentialManagerResolver (params: string, { execSync, platform }: Env): string {
+  if (platform !== 'win32') {
     throw new Error(
-      `The credential_manager resolver is only supported on Windows (current platform: ${_platform})`
+      `The credential_manager resolver is only supported on Windows (current platform: ${platform})`
     )
   }
 
@@ -277,7 +293,7 @@ function credentialManagerResolver (params: string): string {
 
   let result: string
   try {
-    result = _execSync(
+    result = execSync(
       psEncodedCommand(expression),
       execOpts(10_000)
     ).trimEnd()
@@ -303,7 +319,7 @@ function credentialManagerResolver (params: string): string {
 
 // A Map, not an object literal, so names like `constructor` or `__proto__`
 // can't reach Object.prototype members.
-const RESOLVERS = new Map<string, ResolverFn>([
+const RESOLVERS = new Map<string, BuiltinResolver>([
   ['file', fileResolver],
   ['env', envResolver],
   ['cmd', cmdResolver],
@@ -312,28 +328,3 @@ const RESOLVERS = new Map<string, ResolverFn>([
   ['pass', passResolver],
   ['credential_manager', credentialManagerResolver],
 ])
-
-// ---------------------------------------------------------------------------
-// Test seams
-// ---------------------------------------------------------------------------
-
-export function _testSetResolver (name: string, fn: ResolverFn): () => void {
-  const prev = RESOLVERS.get(name)
-  RESOLVERS.set(name, fn)
-  return () => {
-    if (prev == null) RESOLVERS.delete(name)
-    else RESOLVERS.set(name, prev)
-  }
-}
-
-export function _testSetExecSync (fn: typeof execSync): () => void {
-  const prev = _execSync
-  _execSync = fn
-  return () => { _execSync = prev }
-}
-
-export function _testSetPlatform (p: string): () => void {
-  const prev = _platform
-  _platform = p
-  return () => { _platform = prev }
-}

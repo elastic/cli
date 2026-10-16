@@ -15,27 +15,21 @@ import {
   containsExpression,
   resolveString,
   resolveExpressions,
-  _testSetResolver,
-  _testSetExecSync,
-  _testSetPlatform,
+  type ResolverFn,
 } from '../src/index.ts'
 
 // Synthetic resolvers exercise the expression engine independently of the
 // built-ins (none of which are async).
-let restoreResolvers: Array<() => void> = []
-before(() => {
-  restoreResolvers = [
-    _testSetResolver('echo', (params) => params),
-    _testSetResolver('async_echo', async (params) => params),
-    _testSetResolver('slow', async () => {
+const deps = {
+  resolvers: new Map<string, ResolverFn>([
+    ['echo', (params) => params],
+    ['async_echo', async (params) => params],
+    ['slow', async () => {
       await new Promise(resolve => setTimeout(resolve, 50))
       return 'done'
-    }),
-  ]
-})
-after(() => {
-  for (const restore of restoreResolvers) restore()
-})
+    }],
+  ]),
+}
 
 afterEach(() => {
   clearConfigCache()
@@ -75,17 +69,17 @@ describe('resolveString', () => {
   })
 
   it('resolves a single expression that is the entire value', async () => {
-    const result = await resolveString('$(echo:hello)', 'test')
+    const result = await resolveString('$(echo:hello)', 'test', deps)
     assert.equal(result, 'hello')
   })
 
   it('resolves an expression embedded in a string', async () => {
-    const result = await resolveString('https://$(echo:myhost):9200', 'test')
+    const result = await resolveString('https://$(echo:myhost):9200', 'test', deps)
     assert.equal(result, 'https://myhost:9200')
   })
 
   it('resolves multiple expressions in one string', async () => {
-    const result = await resolveString('$(echo:https)://$(echo:myhost)', 'test')
+    const result = await resolveString('$(echo:https)://$(echo:myhost)', 'test', deps)
     assert.equal(result, 'https://myhost')
   })
 
@@ -110,12 +104,12 @@ describe('resolveString', () => {
   })
 
   it('replaces all occurrences of the same expression', async () => {
-    const result = await resolveString('$(echo:val)-$(echo:val)', 'test')
+    const result = await resolveString('$(echo:val)-$(echo:val)', 'test', deps)
     assert.equal(result, 'val-val')
   })
 
   it('supports async resolvers', async () => {
-    const result = await resolveString('$(async_echo:world)', 'test')
+    const result = await resolveString('$(async_echo:world)', 'test', deps)
     assert.equal(result, 'world')
   })
 })
@@ -142,7 +136,7 @@ describe('resolveExpressions', () => {
         plain: 'no-expression',
       },
     }
-    const result = await resolveExpressions(input)
+    const result = await resolveExpressions(input, '', deps)
     assert.deepEqual(result, {
       level1: {
         level2: 'deep',
@@ -153,7 +147,7 @@ describe('resolveExpressions', () => {
 
   it('resolves expressions in arrays', async () => {
     const input = ['$(echo:a)', 'plain', '$(echo:b)']
-    const result = await resolveExpressions(input)
+    const result = await resolveExpressions(input, '', deps)
     assert.deepEqual(result, ['a', 'plain', 'b'])
   })
 
@@ -164,7 +158,7 @@ describe('resolveExpressions', () => {
       bool: false,
       nil: null,
     }
-    const result = await resolveExpressions(input)
+    const result = await resolveExpressions(input, '', deps)
     assert.deepEqual(result, {
       str: 'resolved',
       num: 123,
@@ -175,7 +169,7 @@ describe('resolveExpressions', () => {
 
   it('keeps a __proto__ key as plain data without polluting prototypes', async () => {
     const input = JSON.parse('{"__proto__": {"polluted": "$(echo:yes)"}, "ok": 1}')
-    const result = await resolveExpressions(input) as Record<string, unknown>
+    const result = await resolveExpressions(input, '', deps) as Record<string, unknown>
     assert.equal(Object.getPrototypeOf(result), Object.prototype)
     assert.equal(({} as Record<string, unknown>)['polluted'], undefined)
     assert.equal(result['polluted'], undefined)
@@ -206,14 +200,14 @@ describe('resolveExpressions', () => {
     let totalSingle = 0
     for (let i = 0; i < 10; i++) {
       const s = performance.now()
-      await resolveExpressions({ x: '$(slow:1)' })
+      await resolveExpressions({ x: '$(slow:1)' }, '', deps)
       totalSingle += performance.now() - s
     }
     const avgSingle = totalSingle / 10
 
     // Now resolve 3 concurrently -- should take ~1x avgSingle, not 3x
     const start = performance.now()
-    const result = await resolveExpressions({ a: '$(slow:1)', b: '$(slow:2)', c: '$(slow:3)' })
+    const result = await resolveExpressions({ a: '$(slow:1)', b: '$(slow:2)', c: '$(slow:3)' }, '', deps)
     const elapsed = performance.now() - start
     assert.deepEqual(result, { a: 'done', b: 'done', c: 'done' })
     const limit = avgSingle * 1.5
@@ -363,47 +357,35 @@ describe('env resolver', () => {
 
 describe('cmd resolver', () => {
   it('resolves command output with trailing newline trimmed', async () => {
-    const restore = _testSetExecSync((() => 'secret-value\n') as unknown as typeof import('node:child_process').execSync)
-    try {
-      const result = await resolveExpressions('$(cmd:echo secret-value)')
-      assert.equal(result, 'secret-value')
-    } finally {
-      restore()
-    }
+    const exec = () => 'secret-value\n'
+    const result = await resolveExpressions('$(cmd:echo secret-value)', '', { execSync: exec })
+    assert.equal(result, 'secret-value')
   })
 
   it('throws when the command fails', async () => {
-    const restore = _testSetExecSync((() => {
+    const exec = () => {
       throw new Error('Command not found: badcmd')
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(cmd:badcmd)'),
-        (err: Error) => {
-          assert.match(err.message, /Command failed: badcmd/)
-          return true
-        }
-      )
-    } finally {
-      restore()
     }
+    await assert.rejects(
+      () => resolveExpressions('$(cmd:badcmd)', '', { execSync: exec }),
+      (err: Error) => {
+        assert.match(err.message, /Command failed: badcmd/)
+        return true
+      }
+    )
   })
 
   it('includes the command text in the error message', async () => {
-    const restore = _testSetExecSync((() => {
+    const exec = () => {
       throw new Error('exit code 1')
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(cmd:pass show elastic/key)'),
-        (err: Error) => {
-          assert.match(err.message, /pass show elastic\/key/)
-          return true
-        }
-      )
-    } finally {
-      restore()
     }
+    await assert.rejects(
+      () => resolveExpressions('$(cmd:pass show elastic/key)', '', { execSync: exec }),
+      (err: Error) => {
+        assert.match(err.message, /pass show elastic\/key/)
+        return true
+      }
+    )
   })
 })
 
@@ -413,133 +395,97 @@ describe('cmd resolver', () => {
 
 describe('keychain resolver', () => {
   it('resolves a keychain value on macOS', async () => {
-    const restorePlatform = _testSetPlatform('darwin')
-    const restoreExec = _testSetExecSync(((cmd: string) => {
+    const platform = 'darwin'
+    const exec = (cmd: string) => {
       assert.match(cmd, /security find-generic-password/)
       assert.match(cmd, /-s 'elastic-cli'/)
       assert.match(cmd, /-a 'my-api-key'/)
       return 'keychain-secret\n'
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      const result = await resolveExpressions('$(keychain:elastic-cli/my-api-key)')
-      assert.equal(result, 'keychain-secret')
-    } finally {
-      restoreExec()
-      restorePlatform()
     }
+    const result = await resolveExpressions('$(keychain:elastic-cli/my-api-key)', '', { platform, execSync: exec })
+    assert.equal(result, 'keychain-secret')
   })
 
   it('throws on non-macOS platforms', async () => {
-    const restorePlatform = _testSetPlatform('linux')
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(keychain:svc/acct)'),
-        (err: Error) => {
-          assert.match(err.message, /only supported on macOS/)
-          assert.match(err.message, /linux/)
-          return true
-        }
-      )
-    } finally {
-      restorePlatform()
-    }
+    const platform = 'linux'
+    await assert.rejects(
+      () => resolveExpressions('$(keychain:svc/acct)', '', { platform }),
+      (err: Error) => {
+        assert.match(err.message, /only supported on macOS/)
+        assert.match(err.message, /linux/)
+        return true
+      }
+    )
   })
 
   it('throws for missing slash in parameter', async () => {
-    const restorePlatform = _testSetPlatform('darwin')
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(keychain:no-slash)'),
-        (err: Error) => {
-          assert.match(err.message, /expected format "service\/account"/)
-          return true
-        }
-      )
-    } finally {
-      restorePlatform()
-    }
+    const platform = 'darwin'
+    await assert.rejects(
+      () => resolveExpressions('$(keychain:no-slash)', '', { platform }),
+      (err: Error) => {
+        assert.match(err.message, /expected format "service\/account"/)
+        return true
+      }
+    )
   })
 
   it('throws for leading slash in parameter', async () => {
-    const restorePlatform = _testSetPlatform('darwin')
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(keychain:/account)'),
-        (err: Error) => {
-          assert.match(err.message, /expected format "service\/account"/)
-          return true
-        }
-      )
-    } finally {
-      restorePlatform()
-    }
+    const platform = 'darwin'
+    await assert.rejects(
+      () => resolveExpressions('$(keychain:/account)', '', { platform }),
+      (err: Error) => {
+        assert.match(err.message, /expected format "service\/account"/)
+        return true
+      }
+    )
   })
 
   it('throws for trailing slash in parameter', async () => {
-    const restorePlatform = _testSetPlatform('darwin')
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(keychain:service/)'),
-        (err: Error) => {
-          assert.match(err.message, /expected format "service\/account"/)
-          return true
-        }
-      )
-    } finally {
-      restorePlatform()
-    }
+    const platform = 'darwin'
+    await assert.rejects(
+      () => resolveExpressions('$(keychain:service/)', '', { platform }),
+      (err: Error) => {
+        assert.match(err.message, /expected format "service\/account"/)
+        return true
+      }
+    )
   })
 
   it('splits on first slash only (account can contain slashes)', async () => {
-    const restorePlatform = _testSetPlatform('darwin')
-    const restoreExec = _testSetExecSync(((cmd: string) => {
+    const platform = 'darwin'
+    const exec = (cmd: string) => {
       assert.match(cmd, /-s 'my-service'/)
       assert.match(cmd, /-a 'path\/to\/key'/)
       return 'value\n'
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      const result = await resolveExpressions('$(keychain:my-service/path/to/key)')
-      assert.equal(result, 'value')
-    } finally {
-      restoreExec()
-      restorePlatform()
     }
+    const result = await resolveExpressions('$(keychain:my-service/path/to/key)', '', { platform, execSync: exec })
+    assert.equal(result, 'value')
   })
 
   it('shell-escapes special characters in service and account', async () => {
-    const restorePlatform = _testSetPlatform('darwin')
+    const platform = 'darwin'
     let capturedCmd = ''
-    const restoreExec = _testSetExecSync(((cmd: string) => {
+    const exec = (cmd: string) => {
       capturedCmd = cmd
       return 'val\n'
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      await resolveExpressions("$(keychain:it's-a-service/acct)")
-      assert.ok(capturedCmd.includes("'it'\\''s-a-service'"), `expected shell-escaped service in: ${capturedCmd}`)
-    } finally {
-      restoreExec()
-      restorePlatform()
     }
+    await resolveExpressions("$(keychain:it's-a-service/acct)", '', { platform, execSync: exec })
+    assert.ok(capturedCmd.includes("'it'\\''s-a-service'"), `expected shell-escaped service in: ${capturedCmd}`)
   })
 
   it('includes service and account in error message on failure', async () => {
-    const restorePlatform = _testSetPlatform('darwin')
-    const restoreExec = _testSetExecSync((() => {
+    const platform = 'darwin'
+    const exec = () => {
       throw new Error('The specified item could not be found')
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(keychain:my-svc/my-acct)'),
-        (err: Error) => {
-          assert.match(err.message, /service="my-svc"/)
-          assert.match(err.message, /account="my-acct"/)
-          return true
-        }
-      )
-    } finally {
-      restoreExec()
-      restorePlatform()
     }
+    await assert.rejects(
+      () => resolveExpressions('$(keychain:my-svc/my-acct)', '', { platform, execSync: exec }),
+      (err: Error) => {
+        assert.match(err.message, /service="my-svc"/)
+        assert.match(err.message, /account="my-acct"/)
+        return true
+      }
+    )
   })
 })
 
@@ -549,164 +495,120 @@ describe('keychain resolver', () => {
 
 describe('secret_service resolver', () => {
   it('resolves a secret on Linux', async () => {
-    const restorePlatform = _testSetPlatform('linux')
-    const restoreExec = _testSetExecSync(((cmd: string) => {
+    const platform = 'linux'
+    const exec = (cmd: string) => {
       assert.match(cmd, /secret-tool lookup/)
       assert.match(cmd, /service 'elastic-cli'/)
       assert.match(cmd, /account 'my-api-key'/)
       return 'secret-value\n'
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      const result = await resolveExpressions('$(secret_service:elastic-cli/my-api-key)')
-      assert.equal(result, 'secret-value')
-    } finally {
-      restoreExec()
-      restorePlatform()
     }
+    const result = await resolveExpressions('$(secret_service:elastic-cli/my-api-key)', '', { platform, execSync: exec })
+    assert.equal(result, 'secret-value')
   })
 
   it('throws on macOS', async () => {
-    const restorePlatform = _testSetPlatform('darwin')
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(secret_service:svc/acct)'),
-        (err: Error) => {
-          assert.match(err.message, /only supported on Linux/)
-          assert.match(err.message, /darwin/)
-          return true
-        }
-      )
-    } finally {
-      restorePlatform()
-    }
+    const platform = 'darwin'
+    await assert.rejects(
+      () => resolveExpressions('$(secret_service:svc/acct)', '', { platform }),
+      (err: Error) => {
+        assert.match(err.message, /only supported on Linux/)
+        assert.match(err.message, /darwin/)
+        return true
+      }
+    )
   })
 
   it('throws on Windows', async () => {
-    const restorePlatform = _testSetPlatform('win32')
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(secret_service:svc/acct)'),
-        (err: Error) => {
-          assert.match(err.message, /only supported on Linux/)
-          assert.match(err.message, /win32/)
-          return true
-        }
-      )
-    } finally {
-      restorePlatform()
-    }
+    const platform = 'win32'
+    await assert.rejects(
+      () => resolveExpressions('$(secret_service:svc/acct)', '', { platform }),
+      (err: Error) => {
+        assert.match(err.message, /only supported on Linux/)
+        assert.match(err.message, /win32/)
+        return true
+      }
+    )
   })
 
   it('throws for missing slash in parameter', async () => {
-    const restorePlatform = _testSetPlatform('linux')
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(secret_service:no-slash)'),
-        (err: Error) => {
-          assert.match(err.message, /expected format "service\/account"/)
-          return true
-        }
-      )
-    } finally {
-      restorePlatform()
-    }
+    const platform = 'linux'
+    await assert.rejects(
+      () => resolveExpressions('$(secret_service:no-slash)', '', { platform }),
+      (err: Error) => {
+        assert.match(err.message, /expected format "service\/account"/)
+        return true
+      }
+    )
   })
 
   it('throws for leading slash', async () => {
-    const restorePlatform = _testSetPlatform('linux')
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(secret_service:/account)'),
-        (err: Error) => {
-          assert.match(err.message, /expected format "service\/account"/)
-          return true
-        }
-      )
-    } finally {
-      restorePlatform()
-    }
+    const platform = 'linux'
+    await assert.rejects(
+      () => resolveExpressions('$(secret_service:/account)', '', { platform }),
+      (err: Error) => {
+        assert.match(err.message, /expected format "service\/account"/)
+        return true
+      }
+    )
   })
 
   it('throws for trailing slash', async () => {
-    const restorePlatform = _testSetPlatform('linux')
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(secret_service:service/)'),
-        (err: Error) => {
-          assert.match(err.message, /expected format "service\/account"/)
-          return true
-        }
-      )
-    } finally {
-      restorePlatform()
-    }
+    const platform = 'linux'
+    await assert.rejects(
+      () => resolveExpressions('$(secret_service:service/)', '', { platform }),
+      (err: Error) => {
+        assert.match(err.message, /expected format "service\/account"/)
+        return true
+      }
+    )
   })
 
   it('throws for non-printable characters', async () => {
-    const restorePlatform = _testSetPlatform('linux')
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(secret_service:svc/acct\x00)'),
-        (err: Error) => {
-          assert.match(err.message, /non-printable characters/)
-          return true
-        }
-      )
-    } finally {
-      restorePlatform()
-    }
+    const platform = 'linux'
+    await assert.rejects(
+      () => resolveExpressions('$(secret_service:svc/acct\x00)', '', { platform }),
+      (err: Error) => {
+        assert.match(err.message, /non-printable characters/)
+        return true
+      }
+    )
   })
 
   it('splits on first slash only (account can contain slashes)', async () => {
-    const restorePlatform = _testSetPlatform('linux')
-    const restoreExec = _testSetExecSync(((cmd: string) => {
+    const platform = 'linux'
+    const exec = (cmd: string) => {
       assert.match(cmd, /service 'my-service'/)
       assert.match(cmd, /account 'path\/to\/key'/)
       return 'value\n'
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      const result = await resolveExpressions('$(secret_service:my-service/path/to/key)')
-      assert.equal(result, 'value')
-    } finally {
-      restoreExec()
-      restorePlatform()
     }
+    const result = await resolveExpressions('$(secret_service:my-service/path/to/key)', '', { platform, execSync: exec })
+    assert.equal(result, 'value')
   })
 
   it('shell-escapes special characters', async () => {
-    const restorePlatform = _testSetPlatform('linux')
+    const platform = 'linux'
     let capturedCmd = ''
-    const restoreExec = _testSetExecSync(((cmd: string) => {
+    const exec = (cmd: string) => {
       capturedCmd = cmd
       return 'val\n'
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      await resolveExpressions("$(secret_service:it's-a-service/acct)")
-      assert.ok(capturedCmd.includes("'it'\\''s-a-service'"), `expected shell-escaped service in: ${capturedCmd}`)
-    } finally {
-      restoreExec()
-      restorePlatform()
     }
+    await resolveExpressions("$(secret_service:it's-a-service/acct)", '', { platform, execSync: exec })
+    assert.ok(capturedCmd.includes("'it'\\''s-a-service'"), `expected shell-escaped service in: ${capturedCmd}`)
   })
 
   it('includes service and account in error on failure', async () => {
-    const restorePlatform = _testSetPlatform('linux')
-    const restoreExec = _testSetExecSync((() => {
+    const platform = 'linux'
+    const exec = () => {
       throw new Error('secret-tool: not found')
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(secret_service:my-svc/my-acct)'),
-        (err: Error) => {
-          assert.match(err.message, /service="my-svc"/)
-          assert.match(err.message, /account="my-acct"/)
-          return true
-        }
-      )
-    } finally {
-      restoreExec()
-      restorePlatform()
     }
+    await assert.rejects(
+      () => resolveExpressions('$(secret_service:my-svc/my-acct)', '', { platform, execSync: exec }),
+      (err: Error) => {
+        assert.match(err.message, /service="my-svc"/)
+        assert.match(err.message, /account="my-acct"/)
+        return true
+      }
+    )
   })
 })
 
@@ -716,27 +618,19 @@ describe('secret_service resolver', () => {
 
 describe('pass resolver', () => {
   it('resolves the first line of pass output', async () => {
-    const restoreExec = _testSetExecSync((() => {
+    const exec = () => {
       return 'my-password\nUsername: user\nURL: https://example.com\n'
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      const result = await resolveExpressions('$(pass:elastic/api-key)')
-      assert.equal(result, 'my-password')
-    } finally {
-      restoreExec()
     }
+    const result = await resolveExpressions('$(pass:elastic/api-key)', '', { execSync: exec })
+    assert.equal(result, 'my-password')
   })
 
   it('resolves single-line output', async () => {
-    const restoreExec = _testSetExecSync((() => {
+    const exec = () => {
       return 'simple-password\n'
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      const result = await resolveExpressions('$(pass:elastic/api-key)')
-      assert.equal(result, 'simple-password')
-    } finally {
-      restoreExec()
     }
+    const result = await resolveExpressions('$(pass:elastic/api-key)', '', { execSync: exec })
+    assert.equal(result, 'simple-password')
   })
 
   it('throws for empty parameter', async () => {
@@ -761,73 +655,51 @@ describe('pass resolver', () => {
 
   it('shell-escapes the path', async () => {
     let capturedCmd = ''
-    const restoreExec = _testSetExecSync(((cmd: string) => {
+    const exec = (cmd: string) => {
       capturedCmd = cmd
       return 'val\n'
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      await resolveExpressions("$(pass:it's/a-key)")
-      assert.ok(capturedCmd.includes("'it'\\''s/a-key'"), `expected shell-escaped path in: ${capturedCmd}`)
-    } finally {
-      restoreExec()
     }
+    await resolveExpressions("$(pass:it's/a-key)", '', { execSync: exec })
+    assert.ok(capturedCmd.includes("'it'\\''s/a-key'"), `expected shell-escaped path in: ${capturedCmd}`)
   })
 
   it('works on macOS', async () => {
-    const restorePlatform = _testSetPlatform('darwin')
-    const restoreExec = _testSetExecSync((() => 'val\n') as unknown as typeof import('node:child_process').execSync)
-    try {
-      const result = await resolveExpressions('$(pass:key)')
-      assert.equal(result, 'val')
-    } finally {
-      restoreExec()
-      restorePlatform()
-    }
+    const platform = 'darwin'
+    const exec = () => 'val\n'
+    const result = await resolveExpressions('$(pass:key)', '', { platform, execSync: exec })
+    assert.equal(result, 'val')
   })
 
   it('works on Linux', async () => {
-    const restorePlatform = _testSetPlatform('linux')
-    const restoreExec = _testSetExecSync((() => 'val\n') as unknown as typeof import('node:child_process').execSync)
-    try {
-      const result = await resolveExpressions('$(pass:key)')
-      assert.equal(result, 'val')
-    } finally {
-      restoreExec()
-      restorePlatform()
-    }
+    const platform = 'linux'
+    const exec = () => 'val\n'
+    const result = await resolveExpressions('$(pass:key)', '', { platform, execSync: exec })
+    assert.equal(result, 'val')
   })
 
   it('throws when pass command fails', async () => {
-    const restoreExec = _testSetExecSync((() => {
+    const exec = () => {
       throw new Error('pass: key not found')
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(pass:elastic/missing)'),
-        (err: Error) => {
-          assert.match(err.message, /pass lookup failed/)
-          assert.match(err.message, /elastic\/missing/)
-          return true
-        }
-      )
-    } finally {
-      restoreExec()
     }
+    await assert.rejects(
+      () => resolveExpressions('$(pass:elastic/missing)', '', { execSync: exec }),
+      (err: Error) => {
+        assert.match(err.message, /pass lookup failed/)
+        assert.match(err.message, /elastic\/missing/)
+        return true
+      }
+    )
   })
 
   it('throws when pass returns empty output', async () => {
-    const restoreExec = _testSetExecSync((() => '\n') as unknown as typeof import('node:child_process').execSync)
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(pass:elastic/empty)'),
-        (err: Error) => {
-          assert.match(err.message, /empty output/)
-          return true
-        }
-      )
-    } finally {
-      restoreExec()
-    }
+    const exec = () => '\n'
+    await assert.rejects(
+      () => resolveExpressions('$(pass:elastic/empty)', '', { execSync: exec }),
+      (err: Error) => {
+        assert.match(err.message, /empty output/)
+        return true
+      }
+    )
   })
 })
 
@@ -837,8 +709,8 @@ describe('pass resolver', () => {
 
 describe('credential_manager resolver', () => {
   it('resolves a credential on Windows via EncodedCommand', async () => {
-    const restorePlatform = _testSetPlatform('win32')
-    const restoreExec = _testSetExecSync(((cmd: string) => {
+    const platform = 'win32'
+    const exec = (cmd: string) => {
       assert.match(cmd, /powershell/)
       assert.match(cmd, /-EncodedCommand/)
       const b64 = cmd.split('-EncodedCommand ')[1]!
@@ -846,179 +718,130 @@ describe('credential_manager resolver', () => {
       assert.match(decoded, /Get-StoredCredential/)
       assert.match(decoded, /elastic-cli\/my-api-key/)
       return 'credential-secret\n'
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      const result = await resolveExpressions('$(credential_manager:elastic-cli/my-api-key)')
-      assert.equal(result, 'credential-secret')
-    } finally {
-      restoreExec()
-      restorePlatform()
     }
+    const result = await resolveExpressions('$(credential_manager:elastic-cli/my-api-key)', '', { platform, execSync: exec })
+    assert.equal(result, 'credential-secret')
   })
 
   it('throws on macOS', async () => {
-    const restorePlatform = _testSetPlatform('darwin')
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(credential_manager:svc/acct)'),
-        (err: Error) => {
-          assert.match(err.message, /only supported on Windows/)
-          assert.match(err.message, /darwin/)
-          return true
-        }
-      )
-    } finally {
-      restorePlatform()
-    }
+    const platform = 'darwin'
+    await assert.rejects(
+      () => resolveExpressions('$(credential_manager:svc/acct)', '', { platform }),
+      (err: Error) => {
+        assert.match(err.message, /only supported on Windows/)
+        assert.match(err.message, /darwin/)
+        return true
+      }
+    )
   })
 
   it('throws on Linux', async () => {
-    const restorePlatform = _testSetPlatform('linux')
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(credential_manager:svc/acct)'),
-        (err: Error) => {
-          assert.match(err.message, /only supported on Windows/)
-          assert.match(err.message, /linux/)
-          return true
-        }
-      )
-    } finally {
-      restorePlatform()
-    }
+    const platform = 'linux'
+    await assert.rejects(
+      () => resolveExpressions('$(credential_manager:svc/acct)', '', { platform }),
+      (err: Error) => {
+        assert.match(err.message, /only supported on Windows/)
+        assert.match(err.message, /linux/)
+        return true
+      }
+    )
   })
 
   it('throws for missing slash in parameter', async () => {
-    const restorePlatform = _testSetPlatform('win32')
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(credential_manager:no-slash)'),
-        (err: Error) => {
-          assert.match(err.message, /expected format "service\/account"/)
-          return true
-        }
-      )
-    } finally {
-      restorePlatform()
-    }
+    const platform = 'win32'
+    await assert.rejects(
+      () => resolveExpressions('$(credential_manager:no-slash)', '', { platform }),
+      (err: Error) => {
+        assert.match(err.message, /expected format "service\/account"/)
+        return true
+      }
+    )
   })
 
   it('throws for leading slash', async () => {
-    const restorePlatform = _testSetPlatform('win32')
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(credential_manager:/account)'),
-        (err: Error) => {
-          assert.match(err.message, /expected format "service\/account"/)
-          return true
-        }
-      )
-    } finally {
-      restorePlatform()
-    }
+    const platform = 'win32'
+    await assert.rejects(
+      () => resolveExpressions('$(credential_manager:/account)', '', { platform }),
+      (err: Error) => {
+        assert.match(err.message, /expected format "service\/account"/)
+        return true
+      }
+    )
   })
 
   it('throws for trailing slash', async () => {
-    const restorePlatform = _testSetPlatform('win32')
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(credential_manager:service/)'),
-        (err: Error) => {
-          assert.match(err.message, /expected format "service\/account"/)
-          return true
-        }
-      )
-    } finally {
-      restorePlatform()
-    }
+    const platform = 'win32'
+    await assert.rejects(
+      () => resolveExpressions('$(credential_manager:service/)', '', { platform }),
+      (err: Error) => {
+        assert.match(err.message, /expected format "service\/account"/)
+        return true
+      }
+    )
   })
 
   it('throws for non-printable characters', async () => {
-    const restorePlatform = _testSetPlatform('win32')
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(credential_manager:svc/acct\x00)'),
-        (err: Error) => {
-          assert.match(err.message, /non-printable characters/)
-          return true
-        }
-      )
-    } finally {
-      restorePlatform()
-    }
+    const platform = 'win32'
+    await assert.rejects(
+      () => resolveExpressions('$(credential_manager:svc/acct\x00)', '', { platform }),
+      (err: Error) => {
+        assert.match(err.message, /non-printable characters/)
+        return true
+      }
+    )
   })
 
   it('splits on first slash only (account can contain slashes)', async () => {
-    const restorePlatform = _testSetPlatform('win32')
-    const restoreExec = _testSetExecSync(((cmd: string) => {
+    const platform = 'win32'
+    const exec = (cmd: string) => {
       const b64 = cmd.split('-EncodedCommand ')[1]!
       const decoded = Buffer.from(b64, 'base64').toString('utf16le')
       assert.match(decoded, /my-service\/path\/to\/key/)
       return 'value\n'
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      const result = await resolveExpressions('$(credential_manager:my-service/path/to/key)')
-      assert.equal(result, 'value')
-    } finally {
-      restoreExec()
-      restorePlatform()
     }
+    const result = await resolveExpressions('$(credential_manager:my-service/path/to/key)', '', { platform, execSync: exec })
+    assert.equal(result, 'value')
   })
 
   it('uses PowerShell escaping (doubled single quotes) in encoded command', async () => {
-    const restorePlatform = _testSetPlatform('win32')
+    const platform = 'win32'
     let capturedCmd = ''
-    const restoreExec = _testSetExecSync(((cmd: string) => {
+    const exec = (cmd: string) => {
       capturedCmd = cmd
       return 'val\n'
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      await resolveExpressions("$(credential_manager:it's-a-service/acct)")
-      const b64 = capturedCmd.split('-EncodedCommand ')[1]!
-      const decoded = Buffer.from(b64, 'base64').toString('utf16le')
-      assert.ok(decoded.includes("'it''s-a-service/acct'"), `expected PS-escaped target in decoded command: ${decoded}`)
-    } finally {
-      restoreExec()
-      restorePlatform()
     }
+    await resolveExpressions("$(credential_manager:it's-a-service/acct)", '', { platform, execSync: exec })
+    const b64 = capturedCmd.split('-EncodedCommand ')[1]!
+    const decoded = Buffer.from(b64, 'base64').toString('utf16le')
+    assert.ok(decoded.includes("'it''s-a-service/acct'"), `expected PS-escaped target in decoded command: ${decoded}`)
   })
 
   it('throws when credential manager returns empty password', async () => {
-    const restorePlatform = _testSetPlatform('win32')
-    const restoreExec = _testSetExecSync((() => '\n') as unknown as typeof import('node:child_process').execSync)
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(credential_manager:my-svc/my-acct)'),
-        (err: Error) => {
-          assert.match(err.message, /empty password/)
-          assert.match(err.message, /service="my-svc"/)
-          return true
-        }
-      )
-    } finally {
-      restoreExec()
-      restorePlatform()
-    }
+    const platform = 'win32'
+    const exec = () => '\n'
+    await assert.rejects(
+      () => resolveExpressions('$(credential_manager:my-svc/my-acct)', '', { platform, execSync: exec }),
+      (err: Error) => {
+        assert.match(err.message, /empty password/)
+        assert.match(err.message, /service="my-svc"/)
+        return true
+      }
+    )
   })
 
   it('includes service and account in error on failure', async () => {
-    const restorePlatform = _testSetPlatform('win32')
-    const restoreExec = _testSetExecSync((() => {
+    const platform = 'win32'
+    const exec = () => {
       throw new Error('Get-StoredCredential is not recognized')
-    }) as unknown as typeof import('node:child_process').execSync)
-    try {
-      await assert.rejects(
-        () => resolveExpressions('$(credential_manager:my-svc/my-acct)'),
-        (err: Error) => {
-          assert.match(err.message, /service="my-svc"/)
-          assert.match(err.message, /account="my-acct"/)
-          return true
-        }
-      )
-    } finally {
-      restoreExec()
-      restorePlatform()
     }
+    await assert.rejects(
+      () => resolveExpressions('$(credential_manager:my-svc/my-acct)', '', { platform, execSync: exec }),
+      (err: Error) => {
+        assert.match(err.message, /service="my-svc"/)
+        assert.match(err.message, /account="my-acct"/)
+        return true
+      }
+    )
   })
 })
 
