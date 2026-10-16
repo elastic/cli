@@ -8,7 +8,7 @@ import type { EsApiDefinition } from './types.ts'
 import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
 import type { RawJsonValue, ParsedResult } from '../factory.ts'
 import { encodeMultiTargetPathParam } from '../lib/path-encoding.ts'
-import { interpolatePath } from '../lib/request-routing.ts'
+import { interpolatePath, routeBody, routeQuery } from '../lib/request-routing.ts'
 
 /**
  * Builds a `TransportRequestParams` object from an API definition, parsed CLI input,
@@ -36,7 +36,7 @@ export function buildRequestParams (
   const rawBody = parsed.rawBodyValues ?? {}
 
   const path = interpolatePath(def.path, input, encodeMultiTargetPathParam)
-  const querystring = buildQuerystring(schemaArgs, input)
+  const querystring = routeQuery(schemaArgs, input)
   const body = collectBody(schemaArgs, input, rawBody, def.path, def.bodyFormat)
 
   // The index API uses PUT with {id} but POST without (auto-ID generation).
@@ -66,22 +66,6 @@ export function buildRequestParams (
     }
   }
   return params
-}
-
-/**
- * Builds the querystring record from `SchemaArgDefinition` entries with `foundIn === "query"`.
- * The schema key is used as the ES-native querystring param name.
- */
-function buildQuerystring (
-  schemaArgs: SchemaArgDefinition[],
-  input: Record<string, unknown>
-): Record<string, unknown> {
-  const qs: Record<string, unknown> = {}
-  for (const arg of schemaArgs.filter((a) => a.foundIn === 'query')) {
-    const value = input[arg.schemaKey]
-    if (value !== undefined) qs[arg.schemaKey] = value
-  }
-  return qs
 }
 
 /**
@@ -134,12 +118,7 @@ function collectBody (
   bodyFormat?: string
 ): Record<string, unknown> | string | undefined {
   const bodyArgs = schemaArgs.filter((a) => a.foundIn === 'body' || a.foundIn === undefined)
-  const body: Record<string, unknown> = {}
-
-  for (const arg of bodyArgs) {
-    const value = input[arg.schemaKey]
-    if (value !== undefined) body[arg.schemaKey] = value
-  }
+  const body = routeBody(schemaArgs, input)
 
   if (Object.keys(body).length === 0) return undefined
 
