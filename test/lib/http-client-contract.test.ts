@@ -97,6 +97,16 @@ for (const c of cases) {
       })
     })
 
+    describe('scheme rejection', () => {
+      for (const url of ['ftp://example.com', 'file:///etc/passwd', 'javascript:alert(1)']) {
+        it(`rejects ${url} before sending`, async () => {
+          const { client, calls } = stub(c, url)
+          await assert.rejects(client.request({ method: 'GET', path: '/x' }), /Unsupported URL scheme/)
+          assert.equal(calls.length, 0)
+        })
+      }
+    })
+
     describe('plaintext warning', () => {
       for (const url of ['http://remote.example.com', 'http://localhost.evil.com:9200']) {
         it(`warns for ${url}`, () => {
@@ -112,12 +122,14 @@ for (const c of cases) {
     })
 
     describe('RequestInit', () => {
-      it('pins method, redirect, and the client meta headers', async () => {
+      it('pins method, redirect, signal, and the client meta headers', async () => {
         const { client, calls } = stub(c)
         await client.request({ method: 'GET', path: '/x' })
         const { init } = calls[0]!
         assert.equal(init.method, 'GET')
         assert.equal(init.redirect, c.redirect)
+        assert.ok(init.signal instanceof AbortSignal)
+        assert.equal(init.signal.aborted, false)
         const headers = init.headers as Record<string, string>
         for (const [key, value] of Object.entries(clientHeaders())) assert.equal(headers[key], value)
         assert.equal(headers['Authorization'], 'ApiKey k')
