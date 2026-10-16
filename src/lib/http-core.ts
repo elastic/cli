@@ -10,6 +10,13 @@ import { isLoopbackUrl } from './is-loopback-host.ts'
 import { toConnectionError } from './http-errors.ts'
 
 /**
+ * Upper bound on one request, response body included. It only guards against a server that
+ * never answers, so it is long: synchronous ES calls (`_reindex`, `_forcemerge`, snapshots with
+ * `wait_for_completion`) and Kibana agent_builder conversations can legitimately take minutes.
+ */
+const REQUEST_TIMEOUT_MS = 10 * 60 * 1000
+
+/**
  * Joins `base` and `path` and appends the querystring.
  *
  * Values go through `String()`, so callers serialize arrays in their product's wire format first.
@@ -18,8 +25,13 @@ import { toConnectionError } from './http-errors.ts'
  * @param base - base URL without a trailing slash
  * @param path - absolute path, already encoded
  * @param qs - querystring values keyed by parameter name
+ * @throws {Error} when `base` does not use the `http:` or `https:` scheme
  */
 export function buildUrl (base: string, path: string, qs?: Record<string, unknown>): string {
+  const { protocol } = new URL(base)
+  if (protocol !== 'http:' && protocol !== 'https:') {
+    throw new Error(`Unsupported URL scheme "${protocol}". Use http:// or https://.`)
+  }
   const url = `${base}${path}`
   // encodeURIComponent, not URLSearchParams: spaces go out as %20, not +
   const pieces = Object.entries(qs ?? {})
@@ -36,7 +48,7 @@ export function warnIfPlaintext (url: string): void {
 }
 
 /**
- * Sends one HTTP request.
+ * Sends one HTTP request with a timeout signal.
  *
  * @param fetchFn - fetch implementation (each client's test seam)
  * @param url - full request URL
@@ -45,7 +57,7 @@ export function warnIfPlaintext (url: string): void {
  */
 export async function send (fetchFn: typeof fetch, url: string, init: RequestInit): Promise<Response> {
   try {
-    return await fetchFn(url, init)
+    return await fetchFn(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
   } catch (err) {
     throw toConnectionError(err)
   }
