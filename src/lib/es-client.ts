@@ -45,10 +45,7 @@ export class EsClient {
     warnIfPlaintext(this.baseUrl)
   }
 
-  async request<T = unknown>(
-    params: EsRequestParams,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<T> {
+  async request (params: EsRequestParams, opts?: { headers?: Record<string, string> }): Promise<unknown> {
     const url = buildUrl(this.baseUrl, params.path, params.querystring)
 
     const headers: Record<string, string> = {
@@ -84,8 +81,8 @@ export class EsClient {
     })
 
     if (isHead) {
-      if (response.ok) return true as T
-      if (response.status === 404) return false as T
+      if (response.ok) return true
+      if (response.status === 404) return false
     }
 
     if (!response.ok) {
@@ -101,16 +98,16 @@ export class EsClient {
 
     const contentType = response.headers.get('content-type') ?? ''
     const text = await response.text()
-    if (text.length === 0) return {} as T
+    if (text.length === 0) return {}
     if (contentType.includes('application/json') || contentType.includes('application/x-ndjson')) {
-      return JSON.parse(text) as T
+      return JSON.parse(text)
     }
     // YAML bodies are wrapped so the output layer prints them verbatim by default and parses
     // them to JSON only under `--json`.
     if (isYamlContentType(contentType)) {
-      return new YamlResponse(text) as unknown as T
+      return new YamlResponse(text)
     }
-    return text as unknown as T
+    return text
   }
 
   /** @internal test seam — replaces the fetch implementation for unit tests */
