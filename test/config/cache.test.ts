@@ -9,6 +9,7 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { loadConfig, clearConfigCache } from '../../src/config/loader.ts'
+import { tmpConfig } from '../helpers/tmp-config.ts'
 
 const VALID_CONFIG_YAML = `
 current_context: local
@@ -95,18 +96,12 @@ describe('loadConfig caching', () => {
     assert.equal(second.contextName, 'other')
   })
 
-  it('does not return a cached result after ELASTIC_CLI_CONFIG_FILE changes', async () => {
-    const saved = process.env.ELASTIC_CLI_CONFIG_FILE
-    try {
-      process.env.ELASTIC_CLI_CONFIG_FILE = configPath
-      await loadConfig()
-      process.env.ELASTIC_CLI_CONFIG_FILE = otherConfigPath
-      const second = await loadConfig()
-      assert.ok(second.ok)
-      assert.equal(second.contextName, 'other')
-    } finally {
-      if (saved === undefined) delete process.env.ELASTIC_CLI_CONFIG_FILE
-      else process.env.ELASTIC_CLI_CONFIG_FILE = saved
-    }
+  it('does not return a cached result after ELASTIC_CLI_CONFIG_FILE changes', async (t) => {
+    await tmpConfig(t, VALID_CONFIG_YAML)
+    await loadConfig()
+    process.env.ELASTIC_CLI_CONFIG_FILE = otherConfigPath
+    const second = await loadConfig()
+    assert.ok(second.ok)
+    assert.equal(second.contextName, 'other')
   })
 })
