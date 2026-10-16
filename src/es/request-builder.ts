@@ -8,6 +8,7 @@ import type { EsApiDefinition } from './types.ts'
 import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
 import type { RawJsonValue, ParsedResult } from '../factory.ts'
 import { encodeMultiTargetPathParam } from '../lib/path-encoding.ts'
+import { interpolatePath } from '../lib/request-routing.ts'
 
 /**
  * Builds a `TransportRequestParams` object from an API definition, parsed CLI input,
@@ -34,7 +35,7 @@ export function buildRequestParams (
   const input = (parsed.input ?? {}) as Record<string, unknown>
   const rawBody = parsed.rawBodyValues ?? {}
 
-  const path = interpolatePath(def.path, schemaArgs, input)
+  const path = interpolatePath(def.path, input, encodeMultiTargetPathParam)
   const querystring = buildQuerystring(schemaArgs, input)
   const body = collectBody(schemaArgs, input, rawBody, def.path, def.bodyFormat)
 
@@ -65,34 +66,6 @@ export function buildRequestParams (
     }
   }
   return params
-}
-
-/**
- * Interpolates `{param}` tokens in the path template using values from the unified input object.
- *
- * Only `SchemaArgDefinition` entries with `foundIn === "path"` are processed.
- * The schema key is both the `{token}` name in the template and the lookup key in `input`.
- * For optional params that are absent, trailing `/{param}` segments are stripped.
- */
-function interpolatePath (
-  path: string,
-  schemaArgs: SchemaArgDefinition[],
-  input: Record<string, unknown>
-): string {
-  for (const arg of schemaArgs.filter((a) => a.foundIn === 'path')) {
-    const value = input[arg.schemaKey]
-    if (value !== undefined) {
-      path = path.replace(`{${arg.schemaKey}}`, encodeMultiTargetPathParam(String(value)))
-    } else if (!arg.required) {
-      // Strip the optional segment with its leading slash so the rest of the
-      // path remains valid. E.g.:
-      //   "/_inference/{task_type}/{inference_id}" (task_type absent)
-      //   → "/_inference/{inference_id}"   (not "/_inference{inference_id}")
-      path = path.replace(new RegExp(`/\\{${arg.schemaKey}\\}`), '')
-      path = path.replace(/\/$/, '') || '/'
-    }
-  }
-  return path
 }
 
 /**
