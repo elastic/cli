@@ -126,6 +126,7 @@ Note the single-asterisk `/*` opener — `scripts/check-spdx.mjs` rejects the JS
 - **Docstrings**: All exported symbols in reusable utilities MUST have complete doc comments.
 - **Comments**: Explain WHY, not WHAT. Do not restate code in prose.
 - **Probes do not throw**: functions that check a remote service for a caller that can proceed without the answer return `{ ok, ... }` results instead of throwing. See `ARCHITECTURE.md` → "Probes Do Not Throw".
+- **No new `_test*` exports**: do not add module-level test setters. Inject test doubles through a `deps` parameter or constructor option, as `src/es/handler.ts` (`EsHandlerDeps`) and `src/docs/*` (`deps.stderr`) do. Read `process.platform` at call time instead of copying it into a module-scope variable.
 - **Naming**: camelCase for functions/variables, PascalCase for types/interfaces.
 - **YAML config keys**: Always `snake_case` (e.g. `api_key`, `current_context`). Never camelCase or kebab-case.
 - **Files**: Trailing newline required, no trailing whitespace.
