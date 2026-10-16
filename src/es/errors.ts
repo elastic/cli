@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { EsResponseError, EsConnectionError } from '../lib/es-client.ts'
+import { HttpResponseError, ConnectionError } from '../lib/http-errors.ts'
 import type { JsonValue } from '../factory.ts'
 import { AUTH_FAILURE_HINT } from '../output.ts'
 
@@ -42,7 +42,7 @@ function appendTlsHint (message: string): string {
 
 /** Builds a structured error payload from a thrown transport error. */
 export function transportError (err: unknown): JsonValue {
-  if (err instanceof EsResponseError) {
+  if (err instanceof HttpResponseError) {
     const code = err.statusCode === 401
       ? 'auth_required'
       : err.statusCode === 404
@@ -57,7 +57,7 @@ export function transportError (err: unknown): JsonValue {
     return { error }
   }
 
-  if (err instanceof EsConnectionError) {
+  if (err instanceof ConnectionError) {
     const message = err.message || 'connection failed'
     return { error: { code: 'connection_error', message: appendTlsHint(message) } }
   }
