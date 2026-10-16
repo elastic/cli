@@ -744,7 +744,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
             emitError(cmd, jsonFormat, {
               code: 'input_validation_failed',
               message: `Input validation failed with ${result.errors.length} issue(s)`,
-              // Emit path as array (like Zod) for API compatibility
+              // Emit path as an array of keys, not a dotted string
               issues: result.errors.map(e => ({ code: e.code, path: e.path_array, message: e.message }))
             })
             // throw to prevent handler execution - mirrors cmd.error() behaviour

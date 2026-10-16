@@ -104,7 +104,7 @@ export const NAMESPACES: NamespaceEntry[] = [
     load: async (opts) => {
       // For eager mode (cli-schema generation) load the full tree.
       // For normal startup, use the lightweight lazy path that avoids loading
-      // all API definition files and Zod schemas.
+      // all API definition files and JSON Schemas.
       if (opts?.eager === true) {
         const { registerCloudCommands } = await import('./cloud/register.ts')
         return await registerCloudCommands()

@@ -11,7 +11,7 @@
  * 2. Structural validation of the outer config shape (without resolving expressions)
  * 3. Resolve context name (default or --use-context override)
  * 4. Resolve expressions only in the active context and commands section
- * 5. Validate active context with full Zod schemas
+ * 5. Validate active context with ContextSchema
  * 6. Return typed ResolvedConfig to command handlers
  *
  * Only the active context's expressions are resolved, so inactive contexts
