@@ -139,6 +139,14 @@ describe('writeConfig', () => {
     assert.ok('staging' in parsed.contexts)
   })
 
+  it('writes JSON for a .json path so the loader can still parse it', async () => {
+    const path = join(dir, 'basic.json')
+    await writeConfig(path, SAMPLE)
+    const parsed = JSON.parse(await readFile(path, 'utf-8')) as RawConfig
+    assert.equal(parsed.current_context, 'local')
+    assert.ok('staging' in parsed.contexts)
+  })
+
   it('enforces 0600 permissions on Unix', async () => {
     if (process.platform === 'win32') return
     const path = join(dir, 'perms.yml')

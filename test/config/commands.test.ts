@@ -218,7 +218,9 @@ describe('elastic config context add (home config discovery)', () => {
       try {
         const res = run(['config', 'context', 'add', 'b', '--es-url', 'http://b:9200'], homeEnv())
         assert.equal(res.exitCode, 0, res.stderr)
-        assert.match(await readFile(existing, 'utf-8'), /http:\/\/b:9200/)
+        const written = await readFile(existing, 'utf-8')
+        assert.match(written, /http:\/\/b:9200/)
+        if (name.endsWith('.json')) JSON.parse(written)
         await assert.rejects(stat(join(home, '.elasticrc.yml')), { code: 'ENOENT' })
         const list = run(['config', 'context', 'list'], homeEnv())
         assert.deepEqual((list.json as { contexts: Array<{ name: string }> }).contexts.map(c => c.name), ['a', 'b'])
