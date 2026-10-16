@@ -10,6 +10,7 @@ import {
   handleComplete,
   buildCompleteCommand,
 } from '../../src/completion/complete.ts'
+import { capture } from '../helpers/capture.ts'
 
 function bufferedWriter (): { write: (chunk: string) => void; chunks: string[] } {
   const chunks: string[] = []
@@ -247,45 +248,30 @@ describe('buildCompleteCommand', () => {
     assert.equal((cmd as unknown as any)._hidden, true)
   })
 
-  it('routes parseAsync via the action handler and writes to the default sink', async () => {
+  it('routes parseAsync via the action handler and writes to the default sink', async (t) => {
     // Exercises both the action callback in buildCompleteCommand AND the
-    // defaultWriter branch in handleComplete (no writer override). We
-    // forward-write so the test runner's own progress lines still appear.
+    // defaultWriter branch in handleComplete (no writer override).
     const cmd = buildCompleteCommand()
     const origArgv = process.argv
-    const origWrite = process.stdout.write.bind(process.stdout)
-    const captured: string[] = []
-    process.stdout.write = ((c: string | Uint8Array, ...rest: unknown[]) => {
-      if (typeof c === 'string') captured.push(c)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (origWrite as any)(c, ...rest)
-    }) as typeof process.stdout.write
+    const { stdout: captured } = capture(t)
     process.argv = ['node', 'cli.js', '__complete', '--', '']
     try {
       await cmd.parseAsync([''], { from: 'user' })
     } finally {
       process.argv = origArgv
-      process.stdout.write = origWrite
     }
     assert.match(captured.join(''), /:\d+/, 'expected the trailing directive line')
   })
 
-  it('falls back to the variadic positional words when "--" is absent', async () => {
+  it('falls back to the variadic positional words when "--" is absent', async (t) => {
     const cmd = buildCompleteCommand()
     const origArgv = process.argv
-    const origWrite = process.stdout.write.bind(process.stdout)
-    const captured: string[] = []
-    process.stdout.write = ((c: string | Uint8Array, ...rest: unknown[]) => {
-      if (typeof c === 'string') captured.push(c)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (origWrite as any)(c, ...rest)
-    }) as typeof process.stdout.write
+    const { stdout: captured } = capture(t)
     process.argv = ['node', 'cli.js', '__complete']
     try {
       await cmd.parseAsync([], { from: 'user' })
     } finally {
       process.argv = origArgv
-      process.stdout.write = origWrite
     }
     assert.match(captured.join(''), /:\d+/)
   })
