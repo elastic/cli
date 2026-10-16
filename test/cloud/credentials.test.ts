@@ -18,11 +18,7 @@ import {
   redactCredentials,
 } from '../../src/cloud/credentials.ts'
 import type { JsonValue } from '../../src/factory.ts'
-import {
-  _testSetExecSync as setSecretStoreExec,
-  _testSetSpawnSync as setSecretStoreSpawn,
-  _testSetPlatform as setSecretStorePlatform,
-} from '../../src/config/secret-store.ts'
+import type { SecretStoreDeps } from '../../src/config/secret-store.ts'
 
 const CREATE_RESPONSE: JsonValue = {
   id: 'p-123',
@@ -141,26 +137,39 @@ describe('applyCredentialPolicy', () => {
     while (restores.length > 0) restores.pop()!()
   })
 
-  function stubSecretStore (kind: 'keychain' | 'none'): Array<{ cmd: string; options: unknown }> {
+  interface SecretStoreStub {
+    calls: Array<{ cmd: string; options: unknown }>
+    deps: SecretStoreDeps
+  }
+
+  function stubSecretStore (kind: 'keychain' | 'none'): SecretStoreStub {
     const calls: Array<{ cmd: string; options: unknown }> = []
     if (kind === 'keychain') {
-      restores.push(setSecretStorePlatform('darwin'))
-      restores.push(setSecretStoreExec(((cmd: string, options?: unknown) => {
-        calls.push({ cmd, options })
-        return ''
-      }) as unknown as typeof import('node:child_process').execSync))
-      restores.push(setSecretStoreSpawn(((file: string, args?: readonly string[], options?: unknown) => {
-        calls.push({ cmd: [file, ...(args ?? [])].join(' '), options })
-        return { status: 0, stdout: '', stderr: '', error: undefined, pid: 0, output: [null, '', ''], signal: null }
-      }) as unknown as typeof import('node:child_process').spawnSync))
-    } else {
-      restores.push(setSecretStorePlatform('linux'))
-      restores.push(setSecretStoreExec(((cmd: string, options?: unknown) => {
-        calls.push({ cmd, options })
-        throw new Error('not installed')
-      }) as unknown as typeof import('node:child_process').execSync))
+      return {
+        calls,
+        deps: {
+          platform: 'darwin',
+          execSync: ((cmd: string, options?: unknown) => {
+            calls.push({ cmd, options })
+            return ''
+          }) as unknown as typeof import('node:child_process').execSync,
+          spawnSync: ((file: string, args?: readonly string[], options?: unknown) => {
+            calls.push({ cmd: [file, ...(args ?? [])].join(' '), options })
+            return { status: 0, stdout: '', stderr: '', error: undefined, pid: 0, output: [null, '', ''], signal: null }
+          }) as unknown as typeof import('node:child_process').spawnSync,
+        },
+      }
     }
-    return calls
+    return {
+      calls,
+      deps: {
+        platform: 'linux',
+        execSync: ((cmd: string, options?: unknown) => {
+          calls.push({ cmd, options })
+          throw new Error('not installed')
+        }) as unknown as typeof import('node:child_process').execSync,
+      },
+    }
   }
 
   it('passthrough without --show-credentials redacts the password', async () => {
@@ -182,11 +191,11 @@ describe('applyCredentialPolicy', () => {
 
   it('--save-as writes a context, redacts the response, and stores the password in the keychain', async () => {
     const cfg = join(dir, 'save-as-keychain.yml')
-    const calls = stubSecretStore('keychain')
+    const { calls, deps } = stubSecretStore('keychain')
     const res = await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, {
       saveAs: 'scratch',
       configFile: cfg,
-    })
+    }, deps)
 
     // stdout redaction
     const body = res.body as { credentials: { password: string; username: string }; savedAs: string; configFile: string }
@@ -221,9 +230,9 @@ describe('applyCredentialPolicy', () => {
     process.env.USERPROFILE = home
     delete process.env.ELASTIC_CLI_CONFIG_FILE
     try {
-      stubSecretStore('keychain')
+      const { deps } = stubSecretStore('keychain')
       await writeFile(join(home, '.elasticrc'), 'current_context: a\ncontexts:\n  a:\n    elasticsearch:\n      url: http://a:9200\n')
-      const res = await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, { saveAs: 'scratch' })
+      const res = await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, { saveAs: 'scratch' }, deps)
       assert.equal((res.body as { configFile: string }).configFile, join(home, '.elasticrc'))
       const parsed = parseYaml(await readFile(join(home, '.elasticrc'), 'utf-8')) as { contexts: Record<string, unknown> }
       assert.deepEqual(Object.keys(parsed.contexts), ['a', 'scratch'])
@@ -235,33 +244,33 @@ describe('applyCredentialPolicy', () => {
 
   it('--save-as without --force on an existing context throws', async () => {
     const cfg = join(dir, 'collision.yml')
-    stubSecretStore('keychain')
-    await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, { saveAs: 'only', configFile: cfg })
+    const { deps } = stubSecretStore('keychain')
+    await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, { saveAs: 'only', configFile: cfg }, deps)
     await assert.rejects(
-      () => applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, { saveAs: 'only', configFile: cfg }),
+      () => applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, { saveAs: 'only', configFile: cfg }, deps),
       /already exists/
     )
   })
 
   it('--save-as --force overwrites', async () => {
     const cfg = join(dir, 'overwrite.yml')
-    stubSecretStore('keychain')
-    await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, { saveAs: 'x', configFile: cfg })
+    const { deps } = stubSecretStore('keychain')
+    await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, { saveAs: 'x', configFile: cfg }, deps)
     const res = await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, {
       saveAs: 'x', configFile: cfg, force: true,
-    })
+    }, deps)
     assert.equal(res.log.mode, 'save-as')
   })
 
   it('reset-credentials --save-as updates an existing context', async () => {
     const cfg = join(dir, 'reset.yml')
-    stubSecretStore('keychain')
+    const { deps } = stubSecretStore('keychain')
     // seed the context via create
-    await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, { saveAs: 'live', configFile: cfg })
+    await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, { saveAs: 'live', configFile: cfg }, deps)
     // rotate
     const res = await applyCredentialPolicy('reset-elasticsearch-project-credentials', RESET_RESPONSE, {
       saveAs: 'live', configFile: cfg,
-    })
+    }, deps)
     assert.equal(res.log.mode, 'save-as')
     const yaml = await readFile(cfg, 'utf-8')
     const parsed = parseYaml(yaml) as { contexts: { live: { elasticsearch: { url: string; auth: { password: string } } } } }
@@ -272,9 +281,9 @@ describe('applyCredentialPolicy', () => {
 
   it('reset-credentials --save-as on an unknown context errors clearly', async () => {
     const cfg = join(dir, 'reset-missing.yml')
-    stubSecretStore('keychain')
+    const { deps } = stubSecretStore('keychain')
     await assert.rejects(
-      () => applyCredentialPolicy('reset-elasticsearch-project-credentials', RESET_RESPONSE, { saveAs: 'ghost', configFile: cfg }),
+      () => applyCredentialPolicy('reset-elasticsearch-project-credentials', RESET_RESPONSE, { saveAs: 'ghost', configFile: cfg }, deps),
       /requires an existing context/
     )
   })
@@ -282,10 +291,10 @@ describe('applyCredentialPolicy', () => {
   it('--credentials-file writes a standalone fragment', async () => {
     const cfg = join(dir, 'main.yml')
     const frag = join(dir, 'fragment.yml')
-    stubSecretStore('keychain')
+    const { deps } = stubSecretStore('keychain')
     const res = await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, {
       credentialsFile: frag, configFile: cfg,
-    })
+    }, deps)
     assert.equal(res.log.mode, 'credentials-file')
     const body = res.body as { credentialsFile: string }
     assert.equal(body.credentialsFile, frag)
@@ -296,10 +305,10 @@ describe('applyCredentialPolicy', () => {
 
   it('falls back to inline secrets when no keychain is available and warns', async () => {
     const cfg = join(dir, 'no-keychain.yml')
-    stubSecretStore('none')
+    const { deps } = stubSecretStore('none')
     const res = await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, {
       saveAs: 'inline-fallback', configFile: cfg,
-    })
+    }, deps)
     assert.equal(res.log.mode, 'save-as')
     assert.ok(res.log.warnings.some(w => /No OS secret store/i.test(w)))
     const yaml = await readFile(cfg, 'utf-8')
@@ -317,10 +326,10 @@ describe('applyCredentialPolicy', () => {
 
   it('--credentials-file refuses existing file without --force', async () => {
     const frag = join(dir, 'already-there.yml')
-    stubSecretStore('keychain')
-    await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, { credentialsFile: frag })
+    const { deps } = stubSecretStore('keychain')
+    await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, { credentialsFile: frag }, deps)
     await assert.rejects(
-      () => applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, { credentialsFile: frag }),
+      () => applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, { credentialsFile: frag }, deps),
       /already exists/
     )
   })
