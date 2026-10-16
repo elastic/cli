@@ -27,6 +27,8 @@ toc:
     children:
       - file: configuration_reference.md
   - file: cli/manage-elastic-cloud.md
+  - file: cli/shell-completion.md
+  - file: cli/extensions.md
   - cli: cli/schema.json
     folder: cli
     title: Elastic CLI command reference
