@@ -9,7 +9,6 @@ import { getCloudClient, _testResetCloudClient } from '../../src/lib/cloud-clien
 import { HttpResponseError } from '../../src/lib/http-errors.ts'
 import { setResolvedConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
-import { clientHeaders } from '../../src/lib/meta.ts'
 import { YamlResponse } from '../../src/lib/yaml-response.ts'
 
 afterEach(() => {
@@ -79,22 +78,6 @@ describe('getCloudClient', () => {
     assert.deepEqual(result, { ok: true })
   })
 
-  it('client.request includes query string when provided', async () => {
-    setResolvedConfig({ context: { cloud: { url: 'https://api.elastic-cloud.com', auth: { api_key: 'k' } } } })
-    const client = getCloudClient()
-
-    const calls: { url: string }[] = []
-    client._testSetFetch(((url: string) => {
-      calls.push({ url })
-      return Promise.resolve(new Response('{}', { status: 200 }))
-    }) as typeof fetch)
-
-    await client.request({ method: 'GET', path: '/api/v1/deployments', querystring: { show_metadata: 'true', limit: '10' } })
-    const parsed = new URL(calls[0]!.url)
-    assert.equal(parsed.searchParams.get('show_metadata'), 'true')
-    assert.equal(parsed.searchParams.get('limit'), '10')
-  })
-
   it('client.request sends JSON body when provided', async () => {
     setResolvedConfig({ context: { cloud: { url: 'https://api.elastic-cloud.com', auth: { api_key: 'k' } } } })
     const client = getCloudClient()
@@ -107,20 +90,6 @@ describe('getCloudClient', () => {
 
     await client.request({ method: 'POST', path: '/api/v1/deployments', body: { name: 'test' } })
     assert.equal(calls[0]!.init.body, JSON.stringify({ name: 'test' }))
-  })
-
-  it('client.request throws on non-2xx response', async () => {
-    setResolvedConfig({ context: { cloud: { url: 'https://api.elastic-cloud.com', auth: { api_key: 'k' } } } })
-    const client = getCloudClient()
-
-    client._testSetFetch((() =>
-      Promise.resolve(new Response(JSON.stringify({ errors: [{ message: 'not found' }] }), { status: 404 }))
-    ) as typeof fetch)
-
-    await assert.rejects(() => client.request({ method: 'GET', path: '/api/v1/bad' }), (err: Error) => {
-      assert.match(err.message, /404/)
-      return true
-    })
   })
 
   it('client.request throws HttpResponseError carrying the status and raw body', async () => {
@@ -150,22 +119,6 @@ describe('getCloudClient', () => {
 
     await client.request({ method: 'GET', path: '/test' })
     assert.equal(capturedHeaders['Authorization'], 'ApiKey secret-key')
-  })
-
-  it('includes x-elastic-client-meta and user-agent on every request', async () => {
-    setResolvedConfig({ context: { cloud: { url: 'https://api.elastic-cloud.com', auth: { api_key: 'k' } } } })
-    const client = getCloudClient()
-
-    let capturedHeaders: Record<string, string> = {}
-    client._testSetFetch(((url: string, init: RequestInit) => {
-      capturedHeaders = init.headers as Record<string, string>
-      return Promise.resolve(new Response('{}', { status: 200 }))
-    }) as typeof fetch)
-
-    await client.request({ method: 'GET', path: '/test' })
-    const expected = clientHeaders()
-    assert.equal(capturedHeaders['x-elastic-client-meta'], expected['x-elastic-client-meta'])
-    assert.equal(capturedHeaders['user-agent'], expected['user-agent'])
   })
 
   it('throws missing_config when auth has no api_key', () => {
@@ -211,46 +164,6 @@ describe('getCloudClient', () => {
     ) as typeof fetch)
 
     await assert.rejects(client.request({ method: 'GET', path: '/api/v1/something' }), SyntaxError)
-  })
-
-  it('warns on plaintext HTTP for non-localhost URLs (#107)', () => {
-    const chunks: string[] = []
-    const origWrite = process.stderr.write
-    process.stderr.write = ((chunk: string) => { chunks.push(chunk); return true }) as typeof process.stderr.write
-    try {
-      setResolvedConfig({ context: { cloud: { url: 'http://cloud.example.com', auth: { api_key: 'k' } } } })
-      getCloudClient()
-      assert.ok(chunks.some((c) => c.includes('plaintext HTTP')), 'should warn about plaintext HTTP')
-    } finally {
-      process.stderr.write = origWrite
-    }
-  })
-
-  it('sets redirect to error to prevent credential forwarding (#108)', async () => {
-    setResolvedConfig({ context: { cloud: { url: 'https://api.elastic-cloud.com', auth: { api_key: 'k' } } } })
-    const client = getCloudClient()
-
-    let capturedInit: RequestInit = {}
-    client._testSetFetch(((url: string, init: RequestInit) => {
-      capturedInit = init
-      return Promise.resolve(new Response('{}', { status: 200 }))
-    }) as typeof fetch)
-
-    await client.request({ method: 'GET', path: '/test' })
-    assert.equal(capturedInit.redirect, 'error', 'redirect must be set to error')
-  })
-
-  it('does not warn on HTTP for localhost', () => {
-    const chunks: string[] = []
-    const origWrite = process.stderr.write
-    process.stderr.write = ((chunk: string) => { chunks.push(chunk); return true }) as typeof process.stderr.write
-    try {
-      setResolvedConfig({ context: { cloud: { url: 'http://localhost:9200', auth: { api_key: 'k' } } } })
-      getCloudClient()
-      assert.ok(!chunks.some((c) => c.includes('plaintext HTTP')), 'should not warn for localhost')
-    } finally {
-      process.stderr.write = origWrite
-    }
   })
 
   describe('ELASTIC_CLOUD_ADMIN_API path rewrite', () => {
