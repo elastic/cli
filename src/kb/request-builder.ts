@@ -8,6 +8,7 @@ import { isPlainObject } from '../lib/type-guards.ts'
 import type { ParsedResult } from '../factory.ts'
 import type { KibanaRequestParams } from '../lib/kibana-client.ts'
 import { encodePathParam } from '../lib/path-encoding.ts'
+import { interpolatePath } from '../lib/request-routing.ts'
 
 /**
  * Kibana endpoints whose request body must be sent as `multipart/form-data`.
@@ -62,13 +63,7 @@ export function buildKibanaRequestParams (
   const input = (parsed.input ?? {}) as Record<string, unknown>
   const props = ((def.input?.['properties'] ?? {}) as Record<string, Record<string, unknown>>)
 
-  const required = new Set(Array.isArray(def.input?.['required']) ? def.input!['required'] as string[] : [])
-  const path = interpolatePath(
-    PATH_OVERRIDES.get(`${def.namespace} ${def.name}`) ?? def.path,
-    props,
-    required,
-    input
-  )
+  const path = interpolatePath(PATH_OVERRIDES.get(`${def.namespace} ${def.name}`) ?? def.path, input, encodePathParam)
   const querystring = buildQuerystring(props, input)
 
   const params: KibanaRequestParams = { method: def.method, path }
@@ -100,29 +95,6 @@ export function buildKibanaRequestParams (
   }
 
   return params
-}
-
-/**
- * Interpolates `{param}` tokens in the path template, stripping optional
- * segments whose value was not supplied.
- */
-function interpolatePath (
-  path: string,
-  props: Record<string, Record<string, unknown>>,
-  required: Set<string>,
-  input: Record<string, unknown>
-): string {
-  for (const [key, prop] of Object.entries(props)) {
-    if (prop['x-found-in'] !== 'path') continue
-    const value = input[key]
-    if (value !== undefined) {
-      path = path.replace(`{${key}}`, encodePathParam(String(value)))
-    } else if (!required.has(key)) {
-      path = path.replace(new RegExp(`/?\\{${key}\\}/?`), '')
-      path = path.replace(/\/$/, '') || '/'
-    }
-  }
-  return path
 }
 
 /**
