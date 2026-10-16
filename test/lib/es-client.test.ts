@@ -280,7 +280,7 @@ describe('EsClient.request', () => {
       Promise.resolve(new Response('index  health  status\n', { status: 200, headers: { 'content-type': 'text/plain' } }))
     ) as typeof fetch)
 
-    const result = await client.request<string>({ method: 'GET', path: '/_cat/indices' })
+    const result = await client.request({ method: 'GET', path: '/_cat/indices' })
     assert.equal(result, 'index  health  status\n')
   })
 
