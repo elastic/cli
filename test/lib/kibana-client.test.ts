@@ -5,6 +5,9 @@
 
 import { describe, it, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { YamlResponse } from '../../src/lib/yaml-response.ts'
 import { KibanaClient, getKibanaClient, _testResetKibanaClient } from '../../src/lib/kibana-client.ts'
 import { setResolvedConfig } from '../../src/config/store.ts'
@@ -178,42 +181,166 @@ describe('KibanaClient.request', () => {
     const result = await client.request({ method: 'DELETE', path: '/api/saved_objects/dashboard/id' })
     assert.deepEqual(result, {})
   })
+})
 
-  it('follows redirects (so same-host redirect routes resolve instead of rejecting)', async () => {
-    const client = makeClient()
-    let capturedInit: RequestInit = {}
-    client._testSetFetch(((url: string, init: RequestInit) => {
-      capturedInit = init
-      return Promise.resolve(new Response('{}', { status: 200 }))
+describe('KibanaClient.request redirects', () => {
+  interface Hop {
+    url: string
+    init: RequestInit
+    body: string | undefined
+  }
+
+  interface StubResponse {
+    status: number
+    location?: string
+  }
+
+  /**
+   * Returns a client whose fetch answers with `responses` in order and records each hop.
+   * The body is read through a real `Request` on every hop, so a body that cannot be
+   * re-sent fails here.
+   */
+  function stubClient (responses: StubResponse[]) {
+    const client = new KibanaClient('http://localhost:5601', { api_key: 'test-key' })
+    const hops: Hop[] = []
+    client._testSetFetch((async (url: string, init: RequestInit) => {
+      const body = init.body == null ? undefined : await new Request(url, { method: init.method!, body: init.body }).text()
+      hops.push({ url, init: { ...init, headers: { ...init.headers as Record<string, string> } }, body })
+      const next = responses[hops.length - 1] ?? { status: 200 }
+      const headers: Record<string, string> = next.location == null ? {} : { location: next.location }
+      return new Response(next.status === 200 ? '{"ok":true}' : null, { status: next.status, headers })
     }) as typeof fetch)
+    return { client, hops }
+  }
 
+  const baseHeaders = {
+    ...clientHeaders(),
+    Accept: 'application/json',
+    Authorization: 'ApiKey test-key',
+  }
+  const postHeaders = { ...baseHeaders, 'kbn-xsrf': 'true', 'Content-Type': 'application/json' }
+
+  it('sends redirect: manual', async () => {
+    const { client, hops } = stubClient([])
     await client.request({ method: 'GET', path: '/api/status' })
-    assert.equal(capturedInit.redirect, 'follow')
+    assert.deepEqual(hops[0]!.init, { method: 'GET', headers: baseHeaders, redirect: 'manual' })
   })
 
-  it('rejects a response that landed on a different origin after a redirect', async () => {
-    const client = makeClient()
-    client._testSetFetch(((() => {
-      const resp = new Response('{}', { status: 200 })
-      Object.defineProperty(resp, 'url', { value: 'https://evil.example.com/api/status' })
-      return Promise.resolve(resp)
-    }) as typeof fetch))
+  for (const status of [307, 308]) {
+    it(`follows a same-origin ${status} with the same method, headers, and body`, async () => {
+      const { client, hops } = stubClient([{ status, location: '/api/agent_builder/a2a/next' }])
+      const result = await client.request({ method: 'POST', path: '/api/agent_builder/a2a/agent', body: { a: 1 } })
 
+      assert.deepEqual(result, { ok: true })
+      assert.equal(hops.length, 2)
+      assert.equal(hops[0]!.url, 'http://localhost:5601/api/agent_builder/a2a/agent')
+      assert.equal(hops[1]!.url, 'http://localhost:5601/api/agent_builder/a2a/next')
+      for (const hop of hops) {
+        assert.deepEqual(hop.init, { method: 'POST', headers: postHeaders, redirect: 'manual', body: '{"a":1}' })
+      }
+    })
+  }
+
+  it('re-sends a multipart body on a same-origin 308', async () => {
+    const tmpFile = path.join(os.tmpdir(), `kibana-redirect-test-${process.pid}.ndjson`)
+    fs.writeFileSync(tmpFile, '{"type":"index-pattern"}\n')
+    try {
+      const { client, hops } = stubClient([{ status: 308, location: 'http://localhost:5601/api/saved_objects/_import2' }])
+      await client.request({ method: 'POST', path: '/api/saved_objects/_import', multipartFields: { file: tmpFile } })
+
+      assert.equal(hops.length, 2)
+      for (const hop of hops) {
+        assert.equal(hop.init.method, 'POST')
+        assert.equal(hop.init.redirect, 'manual')
+        assert.deepEqual(hop.init.headers, { ...baseHeaders, 'kbn-xsrf': 'true' })
+        assert.ok(hop.init.body instanceof FormData)
+        assert.match(hop.body!, /\{"type":"index-pattern"\}/)
+      }
+    } finally {
+      fs.rmSync(tmpFile)
+    }
+  })
+
+  it('rejects a cross-origin 307 without issuing the second request', async () => {
+    const { client, hops } = stubClient([{ status: 307, location: 'https://evil.example.com/steal' }])
     await assert.rejects(
-      client.request({ method: 'GET', path: '/api/status' }),
-      /different origin/
+      client.request({ method: 'POST', path: '/api/saved_objects', body: { secret: 1 } }),
+      /^Error: Kibana API error 307: refused redirect to a different origin \(https:\/\/evil\.example\.com\)$/
     )
+    assert.equal(hops.length, 1)
   })
 
-  it('accepts a response that stayed on the configured origin after a redirect', async () => {
-    const client = makeClient()
-    client._testSetFetch(((() => {
-      const resp = new Response('{"ok":true}', { status: 200 })
-      Object.defineProperty(resp, 'url', { value: 'http://localhost:5601/api/status/' })
-      return Promise.resolve(resp)
-    }) as typeof fetch))
+  for (const location of [
+    '//evil.example.com/api/status',
+    'https://kibana@evil.example.com/api/status',
+    'http://localhost:5601@evil.example.com/api/status',
+    'https://localhost:5601/api/status',
+    'http://localhost:5602/api/status',
+  ]) {
+    it(`rejects adversarial Location ${location}`, async () => {
+      const { client, hops } = stubClient([{ status: 307, location }])
+      await assert.rejects(client.request({ method: 'GET', path: '/api/status' }), /Kibana API error 307: refused redirect to a different origin/)
+      assert.equal(hops.length, 1)
+    })
+  }
 
+  it('enforces the hop cap', async () => {
+    const loop = { status: 307, location: '/api/loop' }
+    const { client, hops } = stubClient([loop, loop, loop, loop])
+    await assert.rejects(client.request({ method: 'GET', path: '/api/loop' }), /Kibana API error 307: too many redirects/)
+    assert.equal(hops.length, 4)
+  })
+
+  it('follows up to the hop cap', async () => {
+    const loop = { status: 307, location: '/api/loop' }
+    const { client, hops } = stubClient([loop, loop, loop])
+    assert.deepEqual(await client.request({ method: 'GET', path: '/api/loop' }), { ok: true })
+    assert.equal(hops.length, 4)
+  })
+
+  it('rejects a redirect without a Location header', async () => {
+    const { client, hops } = stubClient([{ status: 302 }])
+    await assert.rejects(client.request({ method: 'GET', path: '/api/status' }), /Kibana API error 302: redirect without a Location header/)
+    assert.equal(hops.length, 1)
+  })
+
+  it('switches a POST to GET and drops the body on a same-origin 303', async () => {
+    const { client, hops } = stubClient([{ status: 303, location: '/api/result' }])
+    await client.request({ method: 'POST', path: '/api/task', body: { secret: 1 } })
+
+    assert.equal(hops.length, 2)
+    assert.deepEqual(hops[0]!.init, { method: 'POST', headers: postHeaders, redirect: 'manual', body: '{"secret":1}' })
+    assert.deepEqual(hops[1]!.init, { method: 'GET', headers: { ...baseHeaders, 'kbn-xsrf': 'true' }, redirect: 'manual' })
+    assert.equal(hops[1]!.body, undefined)
+  })
+
+  for (const status of [301, 302]) {
+    it(`switches a POST to GET and drops the body on a same-origin ${status}`, async () => {
+      const { client, hops } = stubClient([{ status, location: '/api/result' }])
+      await client.request({ method: 'POST', path: '/api/task', body: { secret: 1 } })
+
+      assert.deepEqual(hops[1]!.init, { method: 'GET', headers: { ...baseHeaders, 'kbn-xsrf': 'true' }, redirect: 'manual' })
+    })
+
+    it(`keeps a PUT and its body on a same-origin ${status}`, async () => {
+      const { client, hops } = stubClient([{ status, location: '/api/next' }])
+      await client.request({ method: 'PUT', path: '/api/thing', body: { a: 1 } })
+
+      assert.deepEqual(hops[1]!.init, { method: 'PUT', headers: postHeaders, redirect: 'manual', body: '{"a":1}' })
+    })
+  }
+
+  it('follows a same-origin 301 on GET', async () => {
+    const { client, hops } = stubClient([{ status: 301, location: '/api/status/' }])
     assert.deepEqual(await client.request({ method: 'GET', path: '/api/status' }), { ok: true })
+    assert.equal(hops[1]!.url, 'http://localhost:5601/api/status/')
+    assert.deepEqual(hops[1]!.init, { method: 'GET', headers: baseHeaders, redirect: 'manual' })
+  })
+
+  it('surfaces a non-redirect 3xx as a Kibana API error', async () => {
+    const { client, hops } = stubClient([{ status: 304 }])
+    await assert.rejects(client.request({ method: 'GET', path: '/api/status' }), /Kibana API error 304/)
+    assert.equal(hops.length, 1)
   })
 })
 
