@@ -6,8 +6,7 @@
 import type { CloudApiDefinition } from './types.ts'
 import type { CloudClient } from '../lib/cloud-client.ts'
 import { getCloudClient } from '../lib/cloud-client.ts'
-import { ConnectionError, HttpResponseError } from '../lib/http-errors.ts'
-import { transportError } from '../es/errors.ts'
+import { inputError, missingConfigError, toErrorPayload, type DescribeError } from '../lib/error-payload.ts'
 import { buildCloudRequestParams } from './request-builder.ts'
 import type { HandlerResult, JsonValue, ParsedResult } from '../factory.ts'
 
@@ -76,7 +75,7 @@ export function createCloudHandler(
       }
       return body as HandlerResult
     } catch (err) {
-      return cloudApiError(err, def)
+      return toErrorPayload(err, 'cloud_api_error', describeCloudError(def))
     }
   }
 }
@@ -113,16 +112,6 @@ function sleep (ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-function inputError(err: unknown): JsonValue {
-  const message = err instanceof Error ? err.message : String(err)
-  return { error: { code: 'input_error', message } }
-}
-
-function missingConfigError(err: unknown): JsonValue {
-  const message = err instanceof Error ? err.message : String(err)
-  return { error: { code: 'missing_config', message } }
-}
-
 const REGION_HINT = 'Run `elastic cloud serverless regions list-regions`.'
 const CLOUD_AUTH_HINT = 'Use a Cloud API key, not a project Elasticsearch key. Create one at https://cloud.elastic.co/account/keys, then run `elastic config context edit`.'
 
@@ -137,12 +126,6 @@ function parseErrorsMessage (bodyText: string): string | undefined {
   } catch {
     return undefined
   }
-}
-
-function parseCloudError (err: unknown): { status?: number; message: string } {
-  if (!(err instanceof HttpResponseError)) return { message: err instanceof Error ? err.message : String(err) }
-  const bodyText = String(err.body)
-  return { status: err.statusCode, message: parseErrorsMessage(bodyText) ?? bodyText }
 }
 
 function listHint (def: CloudApiDefinition): string | undefined {
@@ -182,14 +165,11 @@ function cloudHint (def: CloudApiDefinition, status: number | undefined, message
   return undefined
 }
 
-function cloudApiError (err: unknown, def: CloudApiDefinition): JsonValue {
-  if (err instanceof ConnectionError) return transportError(err)
-  const { status, message } = parseCloudError(err)
-  const error: Record<string, JsonValue> = { code: 'cloud_api_error', message }
-  if (status != null) error.status_code = status
-  const hint = cloudHint(def, status, message)
-  if (hint != null) error.hint = hint
-  return { error }
+function describeCloudError (def: CloudApiDefinition): DescribeError {
+  return (status, message, body) => {
+    const reported = status == null ? message : parseErrorsMessage(String(body)) ?? String(body)
+    return { message: reported, hint: cloudHint(def, status, reported) }
+  }
 }
 
 function invalidRequestError(err: unknown): JsonValue {
