@@ -28,6 +28,7 @@ export function buildStubLeaf (meta: StubLeafMeta, loadReal: () => Promise<Comma
   const cmd = new Command(meta.name)
   cmd.description(meta.description)
   cmd.allowUnknownOption(true)
+  cmd.allowExcessArguments(true)
   cmd.action(async () => {
     const real = await loadReal()
     const parent = cmd.parent
@@ -38,7 +39,9 @@ export function buildStubLeaf (meta: StubLeafMeta, loadReal: () => Promise<Comma
       const idx = list.indexOf(cmd)
       if (idx >= 0) list.splice(idx, 1)
       parent.addCommand(real)
-      await parent.parseAsync(process.argv)
+      // ancestors already consumed their own options, so hand the parent only what
+      // reached the stub; full `process.argv` would carry tokens the parent rejects
+      await parent.parseAsync([meta.name, ...cmd.args], { from: 'user' })
     }
   })
   return cmd
