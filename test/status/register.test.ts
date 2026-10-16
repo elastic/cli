@@ -12,6 +12,7 @@ import { Command } from 'commander'
 import { registerStatusCommand, runStatusChecks, _testSetFetch } from '../../src/status/register.ts'
 import { clearConfigCache } from '../../src/config/loader.ts'
 import type { ResolvedContext } from '../../src/config/types.ts'
+import { captureDuring } from '../helpers/capture.ts'
 
 const SAMPLE_HEALTH = JSON.stringify({ status: 'green', number_of_nodes: 3 })
 const SAMPLE_KIBANA = JSON.stringify({
@@ -43,23 +44,12 @@ function makeProgram (): InstanceType<typeof Command> {
 interface CapturedOutput { stdout: string, stderr: string, exitCode: number | undefined }
 
 async function captured (run: () => Promise<void>): Promise<CapturedOutput> {
-  const stdoutChunks: string[] = []
-  const stderrChunks: string[] = []
-  const origStdout = process.stdout.write.bind(process.stdout)
-  const origStderr = process.stderr.write.bind(process.stderr)
   const origExit = process.exitCode
-  process.stdout.write = ((chunk: unknown) => { if (typeof chunk === 'string') stdoutChunks.push(chunk); return true }) as typeof process.stdout.write
-  process.stderr.write = ((chunk: unknown) => { if (typeof chunk === 'string') stderrChunks.push(chunk); return true }) as typeof process.stderr.write
   process.exitCode = undefined
-  try {
-    await run()
-  } finally {
-    process.stdout.write = origStdout
-    process.stderr.write = origStderr
-  }
+  const { stdout, stderr } = await captureDuring(run)
   const exitCode = process.exitCode
   process.exitCode = origExit
-  return { stdout: stdoutChunks.join(''), stderr: stderrChunks.join(''), exitCode }
+  return { stdout: stdout.join(''), stderr: stderr.join(''), exitCode }
 }
 
 describe('runStatusChecks', () => {

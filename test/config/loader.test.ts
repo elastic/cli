@@ -10,6 +10,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { loadConfigFile, discoverConfigFile, resolveContext, resolveEffectiveCommands, loadConfig, clearConfigCache, _testResetLooseInlineSecretWarning } from '../../src/config/loader.ts'
 import type { ConfigFile, ResolvedConfig } from '../../src/config/types.ts'
+import { capture } from '../helpers/capture.ts'
 
 afterEach(() => clearConfigCache())
 
@@ -216,18 +217,13 @@ describe('loadConfig -- default current_context', () => {
 // ---------------------------------------------------------------------------
 
 describe('loadConfig -- inline secret permission warning', () => {
-  it('emits the loose-permission inline-secret warning once per process', { skip: process.platform === 'win32' }, async () => {
+  it('emits the loose-permission inline-secret warning once per process', { skip: process.platform === 'win32' }, async (t) => {
     const tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-warning-'))
     const configPath = join(tmpDir, '.elasticrc.yml')
     await writeFile(configPath, VALID_CONFIG_YAML)
     await chmod(configPath, 0o644)
 
-    const originalWrite = process.stderr.write.bind(process.stderr)
-    const chunks: string[] = []
-    process.stderr.write = ((chunk: string | Uint8Array) => {
-      chunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
-      return true
-    }) as typeof process.stderr.write
+    const { stderr: chunks } = capture(t)
 
     _testResetLooseInlineSecretWarning()
     try {
@@ -236,7 +232,6 @@ describe('loadConfig -- inline secret permission warning', () => {
       assert.equal(first.ok, true)
       assert.equal(second.ok, true)
     } finally {
-      process.stderr.write = originalWrite
       _testResetLooseInlineSecretWarning()
       await rm(tmpDir, { recursive: true })
     }
@@ -245,18 +240,13 @@ describe('loadConfig -- inline secret permission warning', () => {
     assert.equal(warnings.length, 1)
   })
 
-  it('does not emit the warning on the skipContextResolve (help) path', { skip: process.platform === 'win32' }, async () => {
+  it('does not emit the warning on the skipContextResolve (help) path', { skip: process.platform === 'win32' }, async (t) => {
     const tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-warning-'))
     const configPath = join(tmpDir, '.elasticrc.yml')
     await writeFile(configPath, VALID_CONFIG_YAML)
     await chmod(configPath, 0o644)
 
-    const originalWrite = process.stderr.write.bind(process.stderr)
-    const chunks: string[] = []
-    process.stderr.write = ((chunk: string | Uint8Array) => {
-      chunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
-      return true
-    }) as typeof process.stderr.write
+    const { stderr: chunks } = capture(t)
 
     _testResetLooseInlineSecretWarning()
     try {
@@ -266,7 +256,6 @@ describe('loadConfig -- inline secret permission warning', () => {
       const full = await loadConfig({ configPath, refresh: true })
       assert.equal(full.ok, true)
     } finally {
-      process.stderr.write = originalWrite
       _testResetLooseInlineSecretWarning()
       await rm(tmpDir, { recursive: true })
     }
