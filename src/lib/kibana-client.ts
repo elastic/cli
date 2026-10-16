@@ -36,6 +36,9 @@ interface DecodedSseEvent {
   data: unknown
 }
 
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
+const MAX_REDIRECTS = 3
+
 const SSE_FIELD_PREFIX = /^(?:event|data|id|retry):|^:/
 
 /**
@@ -148,6 +151,7 @@ export class KibanaClient {
    */
   async request (params: KibanaRequestParams, responseType?: KibanaResponseType): Promise<unknown> {
     let url = `${this.baseUrl}${params.path}`
+    const origin = new URL(this.baseUrl).origin
 
     if (params.querystring != null && Object.keys(params.querystring).length > 0) {
       const pieces = Object.entries(params.querystring)
@@ -171,13 +175,10 @@ export class KibanaClient {
       headers['kbn-xsrf'] = 'true'
     }
 
-    // redirect:'follow' lets same-host redirect routes resolve instead of rejecting at the
-    // transport layer. Some Kibana endpoints (e.g. the agent_builder A2A send-task POST
-    // /api/agent_builder/a2a/{agentId}) answer with a 3xx; redirect:'error' turned that into an
-    // opaque `fetch failed` with no status. Credentials stay protected: the fetch spec strips the
-    // Authorization header on cross-origin redirects, and the same-origin check below rejects any
-    // response that ended up on a different origin rather than trusting it.
-    const init: RequestInit = { method, headers, redirect: 'follow' }
+    // redirects are followed by hand so each hop can be checked before any body is re-sent.
+    // Some Kibana endpoints (e.g. the agent_builder A2A send-task POST
+    // /api/agent_builder/a2a/{agentId}) answer with a same-origin 3xx.
+    const init: RequestInit = { method, headers, redirect: 'manual' }
 
     if (params.multipartFields != null) {
       // Send as multipart/form-data; do NOT set Content-Type manually (fetch sets it with the boundary)
@@ -200,13 +201,26 @@ export class KibanaClient {
       init.body = JSON.stringify(params.body)
     }
 
-    const response = await this._fetch(url, init)
-
-    // Reject any redirect that crossed origins. response.url is the final URL after following
-    // redirects; it is empty only for synthetic Responses (never from real fetch), so skip the
-    // check in that case.
-    if (response.url !== '' && new URL(response.url).origin !== new URL(this.baseUrl).origin) {
-      throw new Error(`Kibana API error: response landed on a different origin (${new URL(response.url).origin})`)
+    let response = await this._fetch(url, init)
+    for (let hops = 0; REDIRECT_STATUSES.has(response.status); hops++) {
+      const location = response.headers.get('location')
+      if (location == null) throw new Error(`Kibana API error ${response.status}: redirect without a Location header`)
+      const next = new URL(location, url)
+      if (next.origin !== origin) {
+        throw new Error(`Kibana API error ${response.status}: refused redirect to a different origin (${next.origin})`)
+      }
+      if (hops === MAX_REDIRECTS) throw new Error(`Kibana API error ${response.status}: too many redirects (limit ${MAX_REDIRECTS})`)
+      // fetch spec semantics (what redirect:'follow' does): 303, and 301/302 for POST, re-issue as
+      // GET without the body. 307/308 keep the method and re-send the body; FormData is
+      // re-serialized on every fetch call, so multipart uploads survive the hop.
+      const switchToGet = response.status === 303 ? init.method !== 'GET' && init.method !== 'HEAD' : response.status <= 302 && init.method === 'POST'
+      if (switchToGet) {
+        init.method = 'GET'
+        delete init.body
+        delete headers['Content-Type']
+      }
+      url = next.href
+      response = await this._fetch(url, init)
     }
 
     if (!response.ok) {
@@ -221,7 +235,7 @@ export class KibanaClient {
   }
 
   /**
-   * @internal test seam — replaces the fetch implementation for unit tests
+   * @internal test seam -- replaces the fetch implementation for unit tests
    */
   _testSetFetch (fn: typeof fetch): void {
     this._fetch = fn
@@ -260,7 +274,7 @@ export function getKibanaClient (): KibanaClient {
   } else if (typeof authRecord?.['username'] === 'string' && typeof authRecord?.['password'] === 'string') {
     typedAuth = { username: authRecord['username'] as string, password: authRecord['password'] as string }
   }
-  // auth is optional — when absent (e.g. security disabled), requests are sent without credentials
+  // auth is optional -- when absent (e.g. security disabled), requests are sent without credentials
 
   _client = new KibanaClient(url, typedAuth)
   return _client
@@ -269,7 +283,7 @@ export function getKibanaClient (): KibanaClient {
 /**
  * Resets the cached KibanaClient instance.
  *
- * @internal test seam — call in `afterEach` to prevent instance reuse across tests
+ * @internal test seam -- call in `afterEach` to prevent instance reuse across tests
  */
 export function _testResetKibanaClient (): void {
   _client = undefined
