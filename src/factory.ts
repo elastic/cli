@@ -682,7 +682,7 @@ async function renderResult (
     } else if (jsonFormat === true) {
       process.stdout.write(JSON.stringify(output) + '\n')
     } else if (config.formatOutput !== undefined) {
-      process.stdout.write(config.formatOutput(output, parsed))
+      process.stdout.write(await config.formatOutput(output, parsed))
     } else {
       process.stdout.write(renderText(output))
     }

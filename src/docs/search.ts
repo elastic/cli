@@ -6,7 +6,6 @@
 import { defineCommand } from '../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../factory.ts'
 import { docsSearch, stripHtmlTags } from './client.ts'
-import { renderMarkdown } from './renderer.ts'
 
 function resultSummary (aiShortSummary: string | undefined, description: string): string {
   return (aiShortSummary != null && aiShortSummary !== '') ? aiShortSummary : stripHtmlTags(description)
@@ -81,7 +80,7 @@ export function createSearchCommand (deps: SearchDeps = defaultDeps): OpaqueComm
         }
       }
     },
-    formatOutput: (result: JsonValue): string => {
+    formatOutput: async (result: JsonValue): Promise<string> => {
       if (
         typeof result === 'object' && result !== null && !Array.isArray(result) &&
         'error' in result
@@ -104,6 +103,7 @@ export function createSearchCommand (deps: SearchDeps = defaultDeps): OpaqueComm
       }
 
       md += `\nPage ${data.page} of ${data.pageCount} (${data.total} results)\n`
+      const { renderMarkdown } = await import('./renderer.ts')
       return renderMarkdown(md)
     }
   })
