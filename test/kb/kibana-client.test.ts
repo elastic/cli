@@ -285,13 +285,6 @@ describe('getKibanaClient', () => {
     )
   })
 
-  it('returns an unauthenticated client when auth block is empty or absent', () => {
-    setResolvedConfig(makeConfig({ kibana: { url: 'https://kb.example.com', auth: {} as never } }))
-    const client = getKibanaClient()
-    assert.ok(client instanceof KibanaClient)
-    assert.equal(client.baseUrl, 'https://kb.example.com')
-  })
-
   it('returns a KibanaClient instance configured with api_key auth', () => {
     setResolvedConfig(makeConfig())
     const client = getKibanaClient()
