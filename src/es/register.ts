@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Command } from 'commander'
 import type { defineCommand as _DefCmd } from '../factory.ts'
 import { defineGroup } from '../factory-core.ts'
 import type { OpaqueCommandHandle } from '../factory-core.ts'
@@ -17,6 +16,7 @@ import type { EsApiMeta } from './apis.ts'
 import type { AvailabilityTarget } from '../lib/availability.ts'
 import { isAvailable, parseVersionHint } from '../lib/availability.ts'
 import { getResolvedConfig } from '../config/store.ts'
+import { buildStubLeaf } from '../lib/lazy-leaf.ts'
 
 let _dc: typeof _DefCmd | null = null
 async function getDefineCommand (): Promise<typeof _DefCmd> {
@@ -91,39 +91,19 @@ function buildLeafHandle (
 }
 
 /**
- * Builds a lightweight stub leaf command: just name + description, no options,
- * and an action that lazy-loads the real definition on demand. The stub is used
- * for commands the user has NOT asked to invoke - Commander still shows them in
- * group-level help, but we never pay the cost of resolving their input schemas.
+ * Builds a stub leaf for a command the user has NOT asked to invoke. The fallback
+ * load only runs if the sniffer missed this leaf.
  */
-function buildStubLeaf (meta: EsApiMeta, target?: AvailabilityTarget): OpaqueCommandHandle {
-  const cmd = new Command(meta.name)
-  cmd.description(meta.description)
-  cmd.allowUnknownOption(true)
-  cmd.action(async () => {
-    // Sniffing must have missed this leaf (shouldn't normally happen - the
-    // sniffer covers every direct-leaf and namespaced-leaf form). Fall back to
-    // loading the definition on demand, swapping the stub for the real leaf,
-    // and re-entering Commander parse so options dispatch correctly.
+function buildEsStubLeaf (meta: EsApiMeta, target?: AvailabilityTarget): OpaqueCommandHandle {
+  return buildStubLeaf(meta, async () => {
     const { loadEsApi } = await import('./apis.js')
     const def = await loadEsApi(meta)
     const schemaArgs = validateApiDefinition(def)
     const defSchemaArgs = new Map<EsApiDefinition, SchemaArgDefinition[]>()
     defSchemaArgs.set(def, schemaArgs)
     const dc = await getDefineCommand()
-    const real = buildLeafHandle(def, defSchemaArgs, dc, target)
-    const parent = cmd.parent
-    if (parent != null) {
-      // Commander's `commands` array is typed readonly but mutated internally;
-      // splice directly to swap the stub for the real leaf.
-      const list = parent.commands as Command[]
-      const idx = list.indexOf(cmd)
-      if (idx >= 0) list.splice(idx, 1)
-      parent.addCommand(real)
-      await parent.parseAsync(process.argv)
-    }
+    return buildLeafHandle(def, defSchemaArgs, dc, target)
   })
-  return cmd
 }
 
 /**
@@ -343,7 +323,7 @@ async function buildLazyTree (rawManifest: readonly EsApiMeta[], argv: readonly 
       const dc = await getDefineCommand()
       return buildLeafHandle(invokedDef, invokedSchemaArgs, dc, target)
     }
-    return buildStubLeaf(m, target)
+    return buildEsStubLeaf(m, target)
   }
 
   const topLevelNames = new Set<string>()
