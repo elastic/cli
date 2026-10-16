@@ -134,6 +134,11 @@ function camelCase (s: string): string {
   return s.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())
 }
 
+/** converts a Commander opts() key back to its kebab-case option name; inverse of {@link camelCase} */
+function kebabCase (s: string): string {
+  return s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)
+}
+
 /**
  * Parses an ES `Sort` CLI value into the shape ES expects in a request body.
  *
@@ -367,6 +372,13 @@ function coerceNumber (val: string): number | undefined {
   return isNaN(n) ? undefined : n
 }
 
+/** Coerces a `--<flag>` value to a number, failing through Commander when it is not numeric. */
+function parseNum (cmd: Command, flag: string, val: string): number {
+  const n = coerceNumber(val)
+  if (n === undefined) cmd.error(`option --${flag}: expected a number, got: ${val}`)
+  return n!
+}
+
 /** Maps Commander's camelCase opts back to the kebab-case keys handlers read from `parsed.options`. */
 function collectOptions (optDefs: OptionDefinition[], allRaw: OptionValues): Record<string, string | number | boolean> {
   const options: Record<string, string | number | boolean> = {}
@@ -388,8 +400,7 @@ function collectOptions (optDefs: OptionDefinition[], allRaw: OptionValues): Rec
   const declaredKeys = new Set(optDefs.map((o) => camelCase(o.long)))
   for (const [camelKey, val] of Object.entries(allRaw)) {
     if (!declaredKeys.has(camelKey) && !noValidateKeys.has(camelKey) && (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean')) {
-      const kebabKey = camelKey.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)
-      options[kebabKey] = val
+      options[kebabCase(camelKey)] = val
     }
   }
 
@@ -759,12 +770,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
       // <number> placeholder communicates type in help text; parseArg coerces and validates inline
       const flagWithArg = `${flag} <number>`
       const attrName = camelCase(opt.long)
-      const parseNum = (val: string): number => {
-        const n = coerceNumber(val)
-        if (n === undefined) cmd.error(`option --${opt.long}: expected a number, got: ${val}`)
-        return n!
-      }
-      register(flagWithArg, opt.description, singleValueGuard(cmd, attrName, `--${opt.long}`, parseNum), opt.defaultValue as number | undefined)
+      register(flagWithArg, opt.description, singleValueGuard(cmd, attrName, `--${opt.long}`, (val) => parseNum(cmd, opt.long, val)), opt.defaultValue as number | undefined)
     } else {
       // string options: accumulate repeated values with comma separation
       const attrName = camelCase(opt.long)
@@ -792,12 +798,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
         cmd.option(`--${arg.cliFlag} [value]`, arg.description)
       } else if (arg.type === 'number') {
         const attrName = camelCase(arg.cliFlag)
-        const parseNum = (val: string): number => {
-          const n = coerceNumber(val)
-          if (n === undefined) cmd.error(`option --${arg.cliFlag}: expected a number, got: ${val}`)
-          return n!
-        }
-        cmd.option(`--${arg.cliFlag} <number>`, desc, singleValueGuard(cmd, attrName, `--${arg.cliFlag}`, parseNum))
+        cmd.option(`--${arg.cliFlag} <number>`, desc, singleValueGuard(cmd, attrName, `--${arg.cliFlag}`, (val) => parseNum(cmd, arg.cliFlag, val)))
       } else if (arg.type === 'object') {
         const attrName = camelCase(arg.cliFlag)
         cmd.option(`--${arg.cliFlag} <json>`, desc, singleValueGuard<string>(cmd, attrName, `--${arg.cliFlag}`))
