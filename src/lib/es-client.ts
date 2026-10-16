@@ -8,7 +8,7 @@ import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
 import { clientHeaders } from './meta.ts'
 import { isLoopbackUrl } from './is-loopback-host.ts'
 import { YamlResponse, isYamlContentType } from './yaml-response.ts'
-import { ConnectionError, HttpResponseError } from './http-errors.ts'
+import { HttpResponseError, toConnectionError } from './http-errors.ts'
 
 /** Parameters for a single Elasticsearch API request. */
 export interface EsRequestParams {
@@ -95,7 +95,7 @@ export class EsClient {
         redirect: 'error',
       })
     } catch (err) {
-      throw new ConnectionError(err instanceof Error ? err.message : String(err))
+      throw toConnectionError(err)
     }
 
     if (isHead) {

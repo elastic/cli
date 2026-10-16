@@ -5,7 +5,8 @@
 
 import type { JsonValue } from '../factory.ts'
 import { AUTH_FAILURE_HINT } from '../output.ts'
-import { HttpResponseError } from '../lib/http-errors.ts'
+import { ConnectionError, HttpResponseError } from '../lib/http-errors.ts'
+import { transportError } from '../es/errors.ts'
 
 /** Builds a `missing_config` error payload from a thrown error. */
 export function missingConfigError (err: unknown): JsonValue {
@@ -21,6 +22,7 @@ export function inputError (err: unknown): JsonValue {
 
 /** Builds a structured error payload from a thrown Kibana API error. */
 export function kibanaApiError (err: unknown): JsonValue {
+  if (err instanceof ConnectionError) return transportError(err)
   const message = err instanceof Error ? err.message : String(err)
   const status = err instanceof HttpResponseError ? err.statusCode : undefined
   const error: Record<string, JsonValue> = { code: 'kibana_api_error', message }
