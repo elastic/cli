@@ -11,7 +11,6 @@ import assert from 'node:assert/strict'
 import { getResolvedConfig } from './config/store.ts'
 import { extractSchemaArgs, validateSchemaArgs } from './lib/json-schema-args.ts'
 import type { SchemaArgDefinition } from './lib/json-schema-args.ts'
-import type { renderText as _RT, formatHandlerError as _FHE } from './output.ts'
 import { pickFields, parseFieldList, applyTemplate, TemplateAgainstPrimitiveError } from './lib/output-transform.ts'
 import { validateName, hasGlobalJsonFlag, configureErrorOutput, commandPath, isCommandAllowed, stripTransportMeta } from './factory-core.ts'
 import type { AvailabilityTarget } from './lib/availability.ts'
@@ -44,10 +43,10 @@ export {
   configureErrorOutput,
 } from './factory-core.ts'
 
-let _outputMod: Promise<{ renderText: typeof _RT; formatHandlerError: typeof _FHE }> | null = null
+let _outputMod: Promise<typeof import('./output.ts')> | null = null
 function getOutput () {
-  if (_outputMod == null) _outputMod = import('./output.js') as unknown as typeof _outputMod
-  return _outputMod!
+  _outputMod ??= import('./output.js')
+  return _outputMod
 }
 
 /**
