@@ -18,5 +18,6 @@ describe('nightshift namespace', () => {
     const flags = ask.options.map(o => o.long)
     assert.ok(flags.includes('--message'))
     assert.equal(flags.includes('--agent-id'), false)
+    assert.deepEqual(ask.registeredArguments.map(a => a.name()), ['message'])
   })
 })

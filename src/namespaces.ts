@@ -134,6 +134,7 @@ export const NAMESPACES: NamespaceEntry[] = [
           name: 'ask',
           description: 'Ask the Nightshift investigation agent a question and get its answer',
           fixed: { agent_id: 'nightshift.investigation' },
+          positional: 'message',
         }),
       )
     },

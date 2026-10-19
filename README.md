@@ -416,8 +416,8 @@ This is `elastic kb agent-builder post-chat-message` with the agent fixed to `ni
 Requires Kibana 9.6+ with the `agentBuilder:experimentalFeatures` advanced setting enabled.
 
 ```bash
-elastic nightshift ask --message "Why did checkout latency spike at 14:00?"
-elastic nightshift ask --conversation-id <id> --message "Which service should I look at first?"
+elastic nightshift ask "Why did checkout latency spike at 14:00?"
+elastic nightshift ask --conversation-id <id> "Which service should I look at first?"
 ```
 
 ### `cloud` - Elastic Cloud

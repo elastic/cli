@@ -5,7 +5,7 @@
 
 import { Command } from 'commander'
 import { defineCommand, defineGroup } from '../factory.ts'
-import type { HandlerResult, JsonValue, OpaqueCommandHandle, ParsedResult } from '../factory.ts'
+import type { CommandConfig, JsonValue, OpaqueCommandHandle } from '../factory.ts'
 import { inferIntentFromHttp } from '@cli-schema/spec'
 import type { KbApiDefinition } from './types.ts'
 import { validateKbApiDefinition } from './types.ts'
@@ -28,7 +28,7 @@ import { getResolvedConfig } from '../config/store.ts'
 function buildLeafHandle (
   def: KbApiDefinition,
   target?: AvailabilityTarget,
-  handler: (parsed: ParsedResult) => Promise<HandlerResult> = createKbHandler(def)
+  overrides: Pick<CommandConfig, 'positionalArg'> & { handler?: CommandConfig['handler'] } = {}
 ): OpaqueCommandHandle {
   validateKbApiDefinition(def)
   return defineCommand({
@@ -36,7 +36,8 @@ function buildLeafHandle (
     description: def.description,
     ...(def.input !== undefined ? { input: def.input } : {}),
     readOnly: def.method === 'GET' || def.method === 'HEAD',
-    handler,
+    handler: overrides.handler ?? createKbHandler(def),
+    ...(overrides.positionalArg !== undefined ? { positionalArg: overrides.positionalArg } : {}),
     ...(def.intent != null || inferIntentFromHttp(def.method) != null
       ? { intent: def.intent ?? inferIntentFromHttp(def.method)! }
       : {}),
@@ -76,6 +77,8 @@ export interface KbPresetOptions {
   description: string
   /** Input fields sent with a fixed value; they are removed from the command's flags and schema. */
   fixed: Record<string, JsonValue>
+  /** Input field that may also be passed as the command's positional argument. */
+  positional?: string
 }
 
 /**
@@ -84,7 +87,7 @@ export interface KbPresetOptions {
  * schema, request builder, or handler.
  *
  * @param deps - test seam forwarded to `createKbHandler`; production callers omit it
- * @throws {Error} if `apiId` is not in the manifest or a fixed field is not in its input schema
+ * @throws {Error} if `apiId` is not in the manifest, or a fixed or positional field is not in its input schema
  */
 export async function buildKbPresetCommand (opts: KbPresetOptions, deps?: KbHandlerDeps): Promise<OpaqueCommandHandle> {
   const meta = kbApiManifest.find(m => m.id === opts.apiId)
@@ -94,6 +97,10 @@ export async function buildKbPresetCommand (opts: KbPresetOptions, deps?: KbHand
   for (const key of Object.keys(opts.fixed)) {
     if (!(key in properties)) throw new Error(`fixed field ${JSON.stringify(key)} is not an input of ${opts.apiId}`)
     delete properties[key]
+  }
+  const positional = opts.positional
+  if (positional != null && !(positional in properties)) {
+    throw new Error(`positional field ${JSON.stringify(positional)} is not an input of ${opts.apiId}`)
   }
   const required = Array.isArray(def.input?.['required'])
     ? (def.input['required'] as string[]).filter(key => !(key in opts.fixed))
@@ -108,7 +115,19 @@ export async function buildKbPresetCommand (opts: KbPresetOptions, deps?: KbHand
       input: { ...def.input, properties, required, additionalProperties: false },
     },
     undefined,
-    async (parsed) => await handler({ ...parsed, input: { ...(parsed.input as Record<string, unknown> | undefined), ...opts.fixed } })
+    {
+      handler: async (parsed) => await handler({ ...parsed, input: { ...(parsed.input as Record<string, unknown> | undefined), ...opts.fixed } }),
+      ...(positional != null
+        ? {
+            positionalArg: {
+              name: positional,
+              description: String((properties[positional] as Record<string, unknown>)['description'] ?? positional),
+              required: false,
+              inputKey: positional,
+            },
+          }
+        : {}),
+    }
   )
 }
 

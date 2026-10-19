@@ -97,6 +97,27 @@ describe('buildKbPresetCommand', () => {
     assert.match(stdout, /hi/)
   })
 
+  it('accepts the positional field as a positional argument', async () => {
+    const sent: KibanaRequestParams[] = []
+    const cmd = await buildKbPresetCommand({
+      apiId: CHAT_MESSAGE,
+      name: 'ask',
+      description: 'Ask the agent',
+      fixed: { agent_id: 'nightshift.investigation' },
+      positional: 'message',
+    }, recordingDeps(sent))
+    await run(cmd, ['why is checkout slow?'])
+    assert.equal(sent.length, 1)
+    assert.deepEqual(sent[0]!.body, { message: 'why is checkout slow?', agent_id: 'nightshift.investigation' })
+  })
+
+  it('throws when the positional field is not part of the generated input schema', async () => {
+    await assert.rejects(
+      buildKbPresetCommand({ apiId: CHAT_MESSAGE, name: 'ask', description: 'x', fixed: {}, positional: 'msg' }),
+      /msg/
+    )
+  })
+
   it('rejects a fixed field supplied via JSON input instead of overriding it silently', async () => {
     const filePath = join(tmpDir, 'override.json')
     writeFileSync(filePath, JSON.stringify({ message: 'hi', agent_id: 'elastic-ai-agent' }))

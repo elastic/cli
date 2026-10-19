@@ -120802,7 +120802,15 @@
             "nightshift"
           ],
           "name": "ask",
-          "parameters": [],
+          "parameters": [
+            {
+              "role": "positional",
+              "name": "message",
+              "type": "string",
+              "required": false,
+              "summary": "The user message to send to the agent."
+            }
+          ],
           "summary": "Ask the Nightshift investigation agent a question and get its answer",
           "intent": {
             "requiresAuth": true

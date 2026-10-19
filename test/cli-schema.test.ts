@@ -53,6 +53,26 @@ function findCommand (namespaces: CliNamespace[], path: string[], name: string):
   return undefined
 }
 
+describe('buildCliSchema option hoisting', () => {
+  it('keeps a positional that shares its name with a hoisted flag', async () => {
+    const { Command } = await import('commander')
+    const { defineCommand, defineGroup } = await import('../src/factory.ts')
+    const { buildCliSchema } = await import('../src/cli-schema.ts')
+    const ask = defineCommand({
+      name: 'ask',
+      description: 'Ask',
+      input: { type: 'object', properties: { message: { type: 'string' } } },
+      positionalArg: { name: 'message', description: 'Message', required: false, inputKey: 'message' },
+      handler: () => ({}),
+    })
+    const root = new Command('elastic')
+    root.addCommand(defineGroup({ name: 'nightshift', description: 'Nightshift' }, ask))
+    const schema = buildCliSchema(root, [], '0.0.0')
+    const params = schema.namespaces[0]?.commands[0]?.parameters ?? []
+    assert.deepEqual(params.filter(p => p.role === 'positional').map(p => p.name), ['message'])
+  })
+})
+
 describe('cli schema', () => {
   it('does not emit runtime shortcuts into the docs-builder schema', async () => {
     const { code, stdout, stderr } = await runCliSchema()
