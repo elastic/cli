@@ -247,45 +247,57 @@ describe('defineCommand', () => {
       assert.equal(received[0].arg, 'ingest pipelines')
     })
 
-    it('fills the named input field from the positional value before validation', async () => {
-      const received: ParsedResult[] = []
-      const cmd = defineCommand({
-        name: 'ask',
-        description: 'Ask',
-        input: jsonSchema({ message: { type: 'string' }, topic: { type: 'string' } }, ['message']),
-        positionalArg: { name: 'message', description: 'Message', required: false, inputKey: 'message' },
-        handler: (parsed) => { received.push(parsed); return {} },
+    describe('with inputKey', () => {
+      // Commands with an input schema read stdin when it is not a TTY; on Windows CI that read never ends.
+      let origIsTTY: boolean | undefined
+      beforeEach(() => {
+        origIsTTY = process.stdin.isTTY
+        Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true, writable: true })
       })
-      await invokeAsync(cmd, ['why is it slow?', '--topic', 'checkout'])
-      assert.equal(received.length, 1)
-      assert.deepEqual(received[0].input, { message: 'why is it slow?', topic: 'checkout' })
-    })
+      afterEach(() => {
+        Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+      })
 
-    it('still accepts the input field as a flag when the positional is omitted', async () => {
-      const received: ParsedResult[] = []
-      const cmd = defineCommand({
-        name: 'ask',
-        description: 'Ask',
-        input: jsonSchema({ message: { type: 'string' } }, ['message']),
-        positionalArg: { name: 'message', description: 'Message', required: false, inputKey: 'message' },
-        handler: (parsed) => { received.push(parsed); return {} },
+      it('fills the named input field from the positional value before validation', async () => {
+        const received: ParsedResult[] = []
+        const cmd = defineCommand({
+          name: 'ask',
+          description: 'Ask',
+          input: jsonSchema({ message: { type: 'string' }, topic: { type: 'string' } }, ['message']),
+          positionalArg: { name: 'message', description: 'Message', required: false, inputKey: 'message' },
+          handler: (parsed) => { received.push(parsed); return {} },
+        })
+        await invokeAsync(cmd, ['why is it slow?', '--topic', 'checkout'])
+        assert.equal(received.length, 1)
+        assert.deepEqual(received[0].input, { message: 'why is it slow?', topic: 'checkout' })
       })
-      await invokeAsync(cmd, ['--message', 'hi'])
-      assert.deepEqual(received[0].input, { message: 'hi' })
-    })
 
-    it('errors when the positional and its flag are both given', async () => {
-      const received: ParsedResult[] = []
-      const cmd = defineCommand({
-        name: 'ask',
-        description: 'Ask',
-        input: jsonSchema({ message: { type: 'string' } }, ['message']),
-        positionalArg: { name: 'message', description: 'Message', required: false, inputKey: 'message' },
-        handler: (parsed) => { received.push(parsed); return {} },
+      it('still accepts the input field as a flag when the positional is omitted', async () => {
+        const received: ParsedResult[] = []
+        const cmd = defineCommand({
+          name: 'ask',
+          description: 'Ask',
+          input: jsonSchema({ message: { type: 'string' } }, ['message']),
+          positionalArg: { name: 'message', description: 'Message', required: false, inputKey: 'message' },
+          handler: (parsed) => { received.push(parsed); return {} },
+        })
+        await invokeAsync(cmd, ['--message', 'hi'])
+        assert.deepEqual(received[0].input, { message: 'hi' })
       })
-      const err = await captureErrAsync(cmd, ['one', '--message', 'two'])
-      assert.equal(received.length, 0)
-      assert.match(err, /--message/)
+
+      it('errors when the positional and its flag are both given', async () => {
+        const received: ParsedResult[] = []
+        const cmd = defineCommand({
+          name: 'ask',
+          description: 'Ask',
+          input: jsonSchema({ message: { type: 'string' } }, ['message']),
+          positionalArg: { name: 'message', description: 'Message', required: false, inputKey: 'message' },
+          handler: (parsed) => { received.push(parsed); return {} },
+        })
+        const err = await captureErrAsync(cmd, ['one', '--message', 'two'])
+        assert.equal(received.length, 0)
+        assert.match(err, /--message/)
+      })
     })
 
     it('sets parsed.arg to undefined when no positionalArg is declared', async () => {
