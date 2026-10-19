@@ -3112,10 +3112,25 @@ describe('isCommandAllowed', () => {
     assert.equal(isCommandAllowed('stack.es.search', { profile: 'default' }), true)
   })
 
-  it('profile stack: allows all commands (no restriction)', () => {
+  it('profile stack: allows all commands except serverless-only ones', () => {
     assert.equal(isCommandAllowed('cloud.hosted.deployments.list', { profile: 'stack' }), true)
     assert.equal(isCommandAllowed('cloud.serverless.projects.search.list', { profile: 'stack' }), true)
     assert.equal(isCommandAllowed('anything.at.all', { profile: 'stack' }), true)
+  })
+
+  it('profile serverless and default: allow nightshift commands', () => {
+    assert.equal(isCommandAllowed('nightshift.ask', { profile: 'serverless' }), true)
+    assert.equal(isCommandAllowed('nightshift.ask', { profile: 'default' }), true)
+  })
+
+  it('profile stack: blocks nightshift commands, which only apply to observability serverless', () => {
+    assert.equal(isCommandAllowed('nightshift.ask', { profile: 'stack' }), false)
+  })
+
+  it('profile stack: an extra blocked entry still applies', () => {
+    const policy = { profile: 'stack' as const, blocked: ['stack.es.ml.*'] }
+    assert.equal(isCommandAllowed('stack.es.ml.get-records', policy), false)
+    assert.equal(isCommandAllowed('stack.es.search', policy), true)
   })
 
   it('profile + blocked: profile allows but blocked further restricts', () => {

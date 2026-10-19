@@ -148,6 +148,25 @@ describe('handleComplete -- policy enforcement', () => {
     })
   })
 
+  for (const [profile, offered] of [['serverless', true], ['default', true], ['stack', false]] as const) {
+    it(`${offered ? 'offers' : 'hides'} nightshift ask under the ${profile} profile`, async () => {
+      await withConfig([
+        `default_profile: ${profile}`,
+        'current_context: local',
+        'contexts:',
+        '  local:',
+        '    kibana:',
+        '      url: http://localhost:5601',
+        '',
+      ], async () => {
+        const buf = bufferedWriter()
+        await handleComplete(['nightshift', ''], buf.write)
+        const out = parseOutput(buf.chunks.join(''))
+        assert.equal(out.candidates.includes('ask'), offered, `got: ${out.candidates.join(',')}`)
+      })
+    })
+  }
+
   it('applies blocked commands without resolving active-context expressions', async () => {
     await withConfig([
       'current_context: local',

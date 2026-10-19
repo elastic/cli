@@ -413,7 +413,7 @@ Run `elastic kb <namespace> --help` for all available commands in a namespace.
 
 Ask the Nightshift investigation agent a question and get its answer back in a single response.
 This is `elastic kb agent-builder post-chat-message` with the agent fixed to `nightshift.investigation`.
-Requires Kibana 9.6+ with the `agentBuilder:experimentalFeatures` advanced setting enabled.
+Intended for Serverless Observability projects: requires Kibana 9.6+ with the `agentBuilder:experimentalFeatures` advanced setting enabled, and the `stack` command profile hides and blocks it.
 
 ```bash
 elastic nightshift ask "Why did checkout latency spike at 14:00?"

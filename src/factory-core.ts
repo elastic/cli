@@ -198,10 +198,8 @@ export function isCommandAllowed (commandDotPath: string, policy: CommandPolicy 
 
   if (policy.profile != null) {
     const profilePolicy = resolveBuiltinProfile(policy.profile)
-    if (profilePolicy != null) {
-      if (!profilePolicy.allowed.some(matches)) return false
-      if (profilePolicy.blocked?.some(matches)) return false
-    }
+    if (profilePolicy.allowed != null && !profilePolicy.allowed.some(matches)) return false
+    if (profilePolicy.blocked?.some(matches)) return false
     if (policy.blocked != null) return !policy.blocked.some(matches)
     return true
   }
