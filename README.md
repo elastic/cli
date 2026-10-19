@@ -409,6 +409,17 @@ elastic kb alerting list-rule-types
 
 Run `elastic kb <namespace> --help` for all available commands in a namespace.
 
+### `nightshift` - Nightshift investigation agent
+
+Ask the Nightshift investigation agent a question and get its answer back in a single response.
+This is `elastic kb agent-builder post-chat-message` with the agent fixed to `nightshift.investigation`.
+Requires Kibana 9.6+ with the `agentBuilder:experimentalFeatures` advanced setting enabled.
+
+```bash
+elastic nightshift ask --message "Why did checkout latency spike at 14:00?"
+elastic nightshift ask --conversation-id <id> --message "Which service should I look at first?"
+```
+
 ### `cloud` - Elastic Cloud
 
 Manage Elastic Cloud: Hosted deployments and Serverless projects.

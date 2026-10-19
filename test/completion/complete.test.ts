@@ -396,6 +396,14 @@ describe('buildCompletionTree -- docs and config subtrees', () => {
     assert.ok(docs.commands.length > 0, 'docs should have children when deep-loaded')
   })
 
+  it('registers nightshift as a stub by default and deep-loads it on exact match', async () => {
+    const stub = (await buildCompletionTree(['stack'])).commands.find((c) => c.name() === 'nightshift')
+    assert.ok(stub != null, 'nightshift group should be present')
+    assert.equal(stub.commands.length, 0)
+    const loaded = (await buildCompletionTree(['nightshift'])).commands.find((c) => c.name() === 'nightshift')
+    assert.ok(loaded?.commands.some((c) => c.name() === 'ask'), 'nightshift should expose ask when deep-loaded')
+  })
+
   it('deep-loads config when first word is "config"', async () => {
     const root = await buildCompletionTree(['config'])
     const config = root.commands.find((c) => c.name() === 'config')

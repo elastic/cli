@@ -120795,6 +120795,61 @@
       ]
     },
     {
+      "segment": "nightshift",
+      "commands": [
+        {
+          "path": [
+            "nightshift"
+          ],
+          "name": "ask",
+          "parameters": [],
+          "summary": "Ask the Nightshift investigation agent a question and get its answer",
+          "intent": {
+            "requiresAuth": true
+          }
+        }
+      ],
+      "namespaces": [],
+      "summary": "Ask the Nightshift investigation agent",
+      "options": [
+        {
+          "role": "flag",
+          "name": "conversation-id",
+          "type": "string",
+          "required": false,
+          "summary": "The ID of an existing conversation to continue. Omit it to start a new conversation; the response carries the ID to reuse on the next call."
+        },
+        {
+          "role": "flag",
+          "name": "message",
+          "type": "string",
+          "required": true,
+          "summary": "The user message to send to the agent."
+        },
+        {
+          "role": "flag",
+          "name": "input-file",
+          "type": "string",
+          "required": false,
+          "summary": "path to a JSON file to use as command input"
+        },
+        {
+          "role": "dryRun",
+          "name": "dry-run",
+          "type": "boolean",
+          "required": false,
+          "summary": "validate all inputs and exit without performing any action"
+        },
+        {
+          "role": "flag",
+          "name": "no-validate",
+          "type": "boolean",
+          "required": false,
+          "summary": "skip input validation and send the request as-is"
+        }
+      ]
+    },
+    {
       "segment": "config",
       "commands": [],
       "namespaces": [
