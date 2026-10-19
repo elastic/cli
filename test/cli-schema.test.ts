@@ -25,6 +25,7 @@ function runCliSchema (): Promise<{ code: number | null, stdout: string, stderr:
 
 interface CliParameter {
   name: string
+  role?: string
   repeatable?: boolean
   separator?: string
 }
@@ -53,27 +54,19 @@ function findCommand (namespaces: CliNamespace[], path: string[], name: string):
   return undefined
 }
 
-describe('buildCliSchema option hoisting', () => {
-  it('keeps a positional that shares its name with a hoisted flag', async () => {
-    const { Command } = await import('commander')
-    const { defineCommand, defineGroup } = await import('../src/factory.ts')
-    const { buildCliSchema } = await import('../src/cli-schema.ts')
-    const ask = defineCommand({
-      name: 'ask',
-      description: 'Ask',
-      input: { type: 'object', properties: { message: { type: 'string' } } },
-      positionalArg: { name: 'message', description: 'Message', required: false, inputKey: 'message' },
-      handler: () => ({}),
-    })
-    const root = new Command('elastic')
-    root.addCommand(defineGroup({ name: 'nightshift', description: 'Nightshift' }, ask))
-    const schema = buildCliSchema(root, [], '0.0.0')
-    const params = schema.namespaces[0]?.commands[0]?.parameters ?? []
-    assert.deepEqual(params.filter(p => p.role === 'positional').map(p => p.name), ['message'])
-  })
-})
-
 describe('cli schema', () => {
+  it('keeps a positional that shares its name with a hoisted flag', async () => {
+    const { code, stdout, stderr } = await runCliSchema()
+    assert.equal(code, 0, stderr)
+
+    // `nightshift` has a single command, so all of its flags (including `--message`) are
+    // hoisted to the namespace; the same-named positional must stay on the command.
+    const schema = JSON.parse(stdout) as { namespaces: CliNamespace[] }
+    const ask = findCommand(schema.namespaces, ['nightshift'], 'ask')
+    const positionals = ask?.parameters.filter((p) => p.role === 'positional').map((p) => p.name)
+    assert.deepEqual(positionals, ['message'])
+  })
+
   it('does not emit runtime shortcuts into the docs-builder schema', async () => {
     const { code, stdout, stderr } = await runCliSchema()
     assert.equal(code, 0, stderr)
