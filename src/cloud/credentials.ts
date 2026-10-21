@@ -308,7 +308,7 @@ async function saveAsContext (
   warnings: string[],
 ): Promise<ApplyCredentialPolicyResult> {
   const contextName = opts.saveAs!
-  const configPath = resolveConfigPath(opts.configFile)
+  const configPath = await resolveConfigPath(opts.configFile)
   const config = await readRawConfig(configPath)
 
   let nextContext: RawContext | undefined
