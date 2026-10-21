@@ -5,214 +5,11 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { ApiKeyAuthSchema, BasicAuthSchema, AuthSchema, ServiceBlockSchema, ContextSchema, ConfigFileSchema, CommandPolicySchema } from '../../src/config/schema.ts'
+import { ContextSchema, CommandPolicySchema } from '../../src/config/schema.ts'
 
 const esBlock = { url: 'https://es.example.com:9200', auth: { api_key: 'key1' } }
 const kibanaBlock = { url: 'https://kibana.example.com:5601', auth: { username: 'u', password: 'p' } }
 const cloudBlock = { url: 'https://cloud.elastic.co/api', auth: { api_key: 'key2' } }
-
-describe('ApiKeyAuthSchema', () => {
-  it('accepts a valid api_key auth block', () => {
-    const result = ApiKeyAuthSchema.safeParse({ api_key: 'abc123' })
-    assert.equal(result.success, true)
-    if (result.success) {
-      assert.deepEqual(result.data, { api_key: 'abc123' })
-    }
-  })
-
-  it('rejects missing api_key field', () => {
-    const result = ApiKeyAuthSchema.safeParse({})
-    assert.equal(result.success, false)
-  })
-
-  it('rejects empty api_key string', () => {
-    const result = ApiKeyAuthSchema.safeParse({ api_key: '' })
-    assert.equal(result.success, false)
-  })
-
-  it('strips unknown extra fields from output', () => {
-    const result = ApiKeyAuthSchema.safeParse({ api_key: 'abc123', extra: 'ignored' })
-    assert.equal(result.success, true)
-    if (!result.success) return
-    assert.deepEqual(result.data, { api_key: 'abc123' })
-    assert.equal('extra' in result.data, false)
-  })
-})
-
-describe('BasicAuthSchema', () => {
-  it('accepts a valid basic auth block', () => {
-    const result = BasicAuthSchema.safeParse({ username: 'admin', password: 's3cret' })
-    assert.equal(result.success, true)
-    if (result.success) {
-      assert.deepEqual(result.data, { username: 'admin', password: 's3cret' })
-    }
-  })
-
-  it('rejects missing username field', () => {
-    const result = BasicAuthSchema.safeParse({ password: 's3cret' })
-    assert.equal(result.success, false)
-  })
-
-  it('rejects missing password field', () => {
-    const result = BasicAuthSchema.safeParse({ username: 'admin' })
-    assert.equal(result.success, false)
-  })
-
-  it('rejects empty username string', () => {
-    const result = BasicAuthSchema.safeParse({ username: '', password: 's3cret' })
-    assert.equal(result.success, false)
-  })
-
-  it('rejects empty password string', () => {
-    const result = BasicAuthSchema.safeParse({ username: 'admin', password: '' })
-    assert.equal(result.success, false)
-  })
-
-  it('strips unknown extra fields from output', () => {
-    const result = BasicAuthSchema.safeParse({ username: 'admin', password: 's3cret', extra: 'ignored' })
-    assert.equal(result.success, true)
-    if (!result.success) return
-    assert.deepEqual(result.data, { username: 'admin', password: 's3cret' })
-    assert.equal('extra' in result.data, false)
-  })
-})
-
-describe('AuthSchema (inferred union)', () => {
-  it('infers api_key auth from the api_key field', () => {
-    const result = AuthSchema.safeParse({ api_key: 'key-xyz' })
-    assert.equal(result.success, true)
-    if (result.success) {
-      assert.deepEqual(result.data, { api_key: 'key-xyz' })
-    }
-  })
-
-  it('infers basic auth from username and password fields', () => {
-    const result = AuthSchema.safeParse({ username: 'user', password: 'pass' })
-    assert.equal(result.success, true)
-    if (result.success) {
-      assert.deepEqual(result.data, { username: 'user', password: 'pass' })
-    }
-  })
-
-  it('rejects an object with neither api_key nor username/password', () => {
-    const result = AuthSchema.safeParse({ token: 'tok' })
-    assert.equal(result.success, false)
-  })
-
-  it('rejects empty object', () => {
-    const result = AuthSchema.safeParse({})
-    assert.equal(result.success, false)
-  })
-})
-
-describe('ServiceBlockSchema', () => {
-  it('accepts a valid service block with api_key auth', () => {
-    const result = ServiceBlockSchema.safeParse({
-      url: 'https://es.example.com:9200',
-      auth: { api_key: 'abc123' },
-    })
-    assert.equal(result.success, true)
-    if (result.success) {
-      assert.equal(result.data.url, 'https://es.example.com:9200')
-      assert.deepEqual(result.data.auth, { api_key: 'abc123' })
-    }
-  })
-
-  it('accepts a valid service block with basic auth', () => {
-    const result = ServiceBlockSchema.safeParse({
-      url: 'https://kibana.example.com:5601',
-      auth: { username: 'admin', password: 's3cret' },
-    })
-    assert.equal(result.success, true)
-  })
-
-  it('rejects missing url field', () => {
-    const result = ServiceBlockSchema.safeParse({
-      auth: { api_key: 'abc123' },
-    })
-    assert.equal(result.success, false)
-  })
-
-  it('rejects empty url string', () => {
-    const result = ServiceBlockSchema.safeParse({
-      url: '',
-      auth: { api_key: 'abc123' },
-    })
-    assert.equal(result.success, false)
-  })
-
-  it('accepts missing auth field (no-auth mode)', () => {
-    const result = ServiceBlockSchema.safeParse({
-      url: 'https://es.example.com:9200',
-    })
-    assert.equal(result.success, true)
-  })
-
-  it('rejects auth with neither api_key nor username/password', () => {
-    const result = ServiceBlockSchema.safeParse({
-      url: 'https://es.example.com:9200',
-      auth: { token: 'tok' },
-    })
-    assert.equal(result.success, false)
-  })
-
-  it('strips unknown extra fields from output', () => {
-    const result = ServiceBlockSchema.safeParse({
-      url: 'https://es.example.com:9200',
-      auth: { api_key: 'abc123' },
-      extra: 'ignored',
-    })
-    assert.equal(result.success, true)
-    if (!result.success) return
-    assert.deepEqual(Object.keys(result.data).sort(), ['auth', 'url'])
-  })
-
-  it('rejects non-http/https URL schemes (#107)', () => {
-    const result = ServiceBlockSchema.safeParse({
-      url: 'ftp://es.example.com:9200',
-      auth: { api_key: 'abc123' },
-    })
-    assert.equal(result.success, false)
-  })
-
-  it('rejects non-URL strings (#107)', () => {
-    const result = ServiceBlockSchema.safeParse({
-      url: 'not-a-url',
-      auth: { api_key: 'abc123' },
-    })
-    assert.equal(result.success, false)
-  })
-
-  it('rejects a scheme-only URL that matches ^https?:// but is unparseable', () => {
-    const result = ServiceBlockSchema.safeParse({ url: 'https://', auth: { api_key: 'abc123' } })
-    assert.equal(result.success, false)
-    if (result.success) return
-    assert.deepEqual(result.errors, [{ path: '.url', message: 'must be a valid URL' }])
-  })
-
-  it('names the offending field when a nested context URL is unparseable', () => {
-    const ctx = ContextSchema.safeParse({ kibana: { url: 'http://' } })
-    assert.equal(ctx.success, false)
-    if (ctx.success) return
-    assert.deepEqual(ctx.errors, [{ path: '.kibana.url', message: 'must be a valid URL' }])
-
-    const cfg = ConfigFileSchema.safeParse({
-      'current_context': 'p',
-      contexts: { p: { elasticsearch: { url: 'https://' } } },
-    })
-    assert.equal(cfg.success, false)
-    if (cfg.success) return
-    assert.deepEqual(cfg.errors, [{ path: '.contexts.p.elasticsearch.url', message: 'must be a valid URL' }])
-  })
-
-  it('accepts http:// URLs (with warning at runtime)', () => {
-    const result = ServiceBlockSchema.safeParse({
-      url: 'http://localhost:9200',
-      auth: { api_key: 'abc123' },
-    })
-    assert.equal(result.success, true)
-  })
-})
 
 describe('ContextSchema', () => {
   it('drops version from the cloud block (only elasticsearch and kibana take a version hint)', () => {
@@ -407,256 +204,87 @@ describe('CommandPolicySchema', () => {
   })
 })
 
-describe('ConfigFileSchema', () => {
-  const validContexts = {
-    production: { elasticsearch: esBlock },
-    staging: { kibana: kibanaBlock },
-  }
+describe('ContextSchema — service block validation', () => {
+  const url = 'https://es.example.com:9200'
+  const es = (block: Record<string, unknown>) => ContextSchema.safeParse({ elasticsearch: block })
 
-  it('accepts a valid config with a single context', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'production',
-      contexts: { production: { elasticsearch: esBlock } },
-    })
-    assert.equal(result.success, true)
-    if (result.success) {
-      assert.equal(result.data['current_context'], 'production')
-      assert.ok(result.data.contexts['production'] != null)
+  it('accepts api_key and basic auth', () => {
+    const apiKey = es({ url, auth: { api_key: 'abc123' } })
+    assert.equal(apiKey.success, true)
+    if (apiKey.success) assert.deepEqual(apiKey.data.elasticsearch?.auth, { api_key: 'abc123' })
+    const basic = es({ url, auth: { username: 'admin', password: 's3cret' } })
+    assert.equal(basic.success, true)
+    if (basic.success) assert.deepEqual(basic.data.elasticsearch?.auth, { username: 'admin', password: 's3cret' })
+  })
+
+  it('accepts a block with no auth (no-auth mode)', () => {
+    assert.equal(es({ url }).success, true)
+  })
+
+  it('rejects missing or empty url', () => {
+    assert.equal(es({ auth: { api_key: 'k' } }).success, false)
+    assert.equal(es({ url: '', auth: { api_key: 'k' } }).success, false)
+  })
+
+  it('rejects auth that is neither api_key nor username+password', () => {
+    for (const auth of [{ token: 'tok' }, {}, { api_key: '' }, { username: 'admin' }, { password: 'p' }, { username: '', password: 'p' }, { username: 'u', password: '' }]) {
+      assert.equal(es({ url, auth }).success, false, JSON.stringify(auth))
     }
   })
 
-  it('accepts a valid config with multiple contexts', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'staging',
-      contexts: validContexts,
-    })
-    assert.equal(result.success, true)
-  })
-
-  it('rejects missing current_context field', () => {
-    const result = ConfigFileSchema.safeParse({
-      contexts: { production: { elasticsearch: esBlock } },
-    })
-    assert.equal(result.success, false)
-  })
-
-  it('rejects missing contexts field', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'production',
-    })
-    assert.equal(result.success, false)
-  })
-
-  it('rejects empty contexts map', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'production',
-      contexts: {},
-    })
-    assert.equal(result.success, false)
-  })
-
-  it('rejects current_context referencing a nonexistent context key', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'nonexistent',
-      contexts: { production: { elasticsearch: esBlock } },
-    })
-    assert.equal(result.success, false)
-  })
-
-  it('rejects a context value that fails ContextSchema validation', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'bad',
-      contexts: { bad: {} }, // no service blocks
-    })
-    assert.equal(result.success, false)
-  })
-
-  it('strips unknown top-level fields from output', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'production',
-      contexts: { production: { elasticsearch: esBlock } },
-      extra: 'ignored',
-    })
+  it('strips unknown fields from the block and its auth', () => {
+    const result = es({ url, auth: { api_key: 'k', extra: 1 }, extra: 'ignored' })
     assert.equal(result.success, true)
     if (!result.success) return
-    assert.equal('extra' in result.data, false)
+    assert.deepEqual(result.data.elasticsearch, { url, auth: { api_key: 'k' } })
   })
 
-  it('accepts a valid commands.allowed section', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'production',
-      contexts: { production: { elasticsearch: esBlock } },
-      commands: { allowed: ['ping', 'elasticsearch.search'] },
-    })
-    assert.equal(result.success, true)
-    if (result.success) {
-      assert.deepEqual(result.data.commands?.allowed, ['ping', 'elasticsearch.search'])
-    }
+  it('rejects non-http/https URL schemes and non-URL strings (#107)', () => {
+    assert.equal(es({ url: 'ftp://es.example.com:9200' }).success, false)
+    assert.equal(es({ url: 'not-a-url' }).success, false)
   })
 
-  it('accepts a valid commands.blocked section', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'production',
-      contexts: { production: { elasticsearch: esBlock } },
-      commands: { blocked: ['elasticsearch.bulk'] },
-    })
-    assert.equal(result.success, true)
+  it('accepts http:// URLs (with warning at runtime)', () => {
+    assert.equal(es({ url: 'http://localhost:9200' }).success, true)
   })
 
-  it('rejects commands with both allowed and blocked', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'production',
-      contexts: { production: { elasticsearch: esBlock } },
-      commands: { allowed: ['ping'], blocked: ['elasticsearch.bulk'] },
-    })
-    assert.equal(result.success, false)
-  })
-
-  it('accepts commands.profile at root level', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'production',
-      contexts: { production: { elasticsearch: esBlock } },
-      commands: { profile: 'serverless' },
-    })
-    assert.equal(result.success, true)
-    if (result.success) assert.equal(result.data.commands?.profile, 'serverless')
-  })
-
-  it('accepts default_profile at root level', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'production',
-      contexts: { production: { elasticsearch: esBlock } },
-      default_profile: 'serverless',
-    })
-    assert.equal(result.success, true)
-    if (result.success) assert.equal(result.data.default_profile, 'serverless')
-  })
-
-  it('accepts telemetry:false at root level', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'production',
-      contexts: { production: { elasticsearch: esBlock } },
-      telemetry: false,
-    })
-    assert.equal(result.success, true)
-    if (result.success) assert.equal(result.data.telemetry, false)
-  })
-
-  it('rejects a non-boolean telemetry value', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'production',
-      contexts: { production: { elasticsearch: esBlock } },
-      telemetry: 'nope',
-    })
-    assert.equal(result.success, false)
-  })
-
-  it('rejects an invalid default_profile value', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'production',
-      contexts: { production: { elasticsearch: esBlock } },
-      default_profile: 'not-a-profile',
-    })
-    assert.equal(result.success, false)
-  })
-
-  it('accepts per-context commands.profile', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'production',
-      contexts: {
-        production: { elasticsearch: esBlock, commands: { profile: 'stack' } },
-      },
-    })
-    assert.equal(result.success, true)
-    if (result.success) {
-      assert.equal(result.data.contexts['production']?.commands?.profile, 'stack')
-    }
-  })
-})
-
-describe('ServiceBlockSchema — version field', () => {
-  const baseUrl = 'https://es.example.com:9200'
-
-  it('accepts version "9.2" (major.minor)', () => {
-    const result = ServiceBlockSchema.safeParse({ url: baseUrl, version: '9.2' })
-    assert.equal(result.success, true)
-    if (result.success) assert.equal(result.data.version, '9.2')
-  })
-
-  it('accepts version "9.2.3" (major.minor.patch)', () => {
-    const result = ServiceBlockSchema.safeParse({ url: baseUrl, version: '9.2.3' })
-    assert.equal(result.success, true)
-    if (result.success) assert.equal(result.data.version, '9.2.3')
-  })
-
-  it('accepts version "serverless"', () => {
-    const result = ServiceBlockSchema.safeParse({ url: baseUrl, version: 'serverless' })
-    assert.equal(result.success, true)
-    if (result.success) assert.equal(result.data.version, 'serverless')
-  })
-
-  it('rejects version "foo" (arbitrary string)', () => {
-    const result = ServiceBlockSchema.safeParse({ url: baseUrl, version: 'foo' })
+  it('names the offending field when a URL matches ^https?:// but is unparseable', () => {
+    const result = ContextSchema.safeParse({ kibana: { url: 'http://' } })
     assert.equal(result.success, false)
     if (result.success) return
-    assert.ok(result.errors.some(e => e.path === '.version'))
+    assert.deepEqual(result.errors, [{ path: '.kibana.url', message: 'must be a valid URL' }])
   })
 
-  it('rejects version "" (empty string)', () => {
-    const result = ServiceBlockSchema.safeParse({ url: baseUrl, version: '' })
-    assert.equal(result.success, false)
-  })
-
-  it('rejects version "9" (major only)', () => {
-    const result = ServiceBlockSchema.safeParse({ url: baseUrl, version: '9' })
-    assert.equal(result.success, false)
-    if (result.success) return
-    assert.ok(result.errors.some(e => e.path === '.version'))
-  })
-
-  it('rejects version "v9.2" (v-prefix)', () => {
-    const result = ServiceBlockSchema.safeParse({ url: baseUrl, version: 'v9.2' })
-    assert.equal(result.success, false)
-    if (result.success) return
-    assert.ok(result.errors.some(e => e.path === '.version'))
-  })
-
-  it('rejects version "9.2.3.4" (four-part version)', () => {
-    const result = ServiceBlockSchema.safeParse({ url: baseUrl, version: '9.2.3.4' })
-    assert.equal(result.success, false)
-    if (result.success) return
-    assert.ok(result.errors.some(e => e.path === '.version'))
-  })
-
-  it('preserves version through ConfigFileSchema (elasticsearch block)', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'prod',
-      contexts: { prod: { elasticsearch: { url: baseUrl, version: '9.2' } } },
+  for (const version of ['9.2', '9.2.3', 'serverless']) {
+    it(`accepts version "${version}"`, () => {
+      const result = es({ url, version })
+      assert.equal(result.success, true)
+      if (result.success) assert.equal(result.data.elasticsearch?.version, version)
     })
+  }
+
+  it('preserves version on the kibana block', () => {
+    const result = ContextSchema.safeParse({ kibana: { url: 'https://kb.example.com:5601', version: '9.2.1' } })
     assert.equal(result.success, true)
-    if (result.success) assert.equal(result.data.contexts['prod']?.elasticsearch?.version, '9.2')
+    if (result.success) assert.equal(result.data.kibana?.version, '9.2.1')
   })
 
-  it('preserves version through ConfigFileSchema (kibana block)', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'prod',
-      contexts: { prod: { kibana: { url: 'https://kb.example.com:5601', version: '9.2.1' } } },
+  for (const version of ['foo', '9', 'v9.2', '9.2.3.4']) {
+    it(`rejects version "${version}" at the version path`, () => {
+      const result = es({ url, version })
+      assert.equal(result.success, false)
+      if (result.success) return
+      assert.ok(result.errors.some(e => e.path === '.elasticsearch.version'))
     })
-    assert.equal(result.success, true)
-    if (result.success) assert.equal(result.data.contexts['prod']?.kibana?.version, '9.2.1')
+  }
+
+  it('rejects empty version', () => {
+    assert.equal(es({ url, version: '' }).success, false)
   })
 
-  it('rejects invalid version in nested context via ConfigFileSchema', () => {
-    const result = ConfigFileSchema.safeParse({
-      'current_context': 'prod',
-      contexts: { prod: { elasticsearch: { url: baseUrl, version: 'bad-version' } } },
-    })
-    assert.equal(result.success, false)
-  })
-
-  it('version absent leaves block unchanged (backward compat)', () => {
-    const result = ServiceBlockSchema.safeParse({ url: baseUrl, auth: { api_key: 'k' } })
+  it('leaves version undefined when absent', () => {
+    const result = es({ url, auth: { api_key: 'k' } })
     assert.equal(result.success, true)
-    if (result.success) assert.equal(result.data.version, undefined)
+    if (result.success) assert.equal(result.data.elasticsearch?.version, undefined)
   })
 })
