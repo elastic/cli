@@ -8,6 +8,11 @@ import assert from 'node:assert/strict'
 import { buildKibanaRequestParams } from '../../src/kb/request-builder.ts'
 import type { KbApiDefinition } from '../../src/kb/types.ts'
 import type { ParsedResult } from '../../src/factory.ts'
+import { extractSchemaArgs } from '../../src/lib/json-schema-args.ts'
+
+function build (def: KbApiDefinition, p: ParsedResult) {
+  return buildKibanaRequestParams(def, p, extractSchemaArgs(def.input))
+}
 
 function parsed (input?: Record<string, unknown>): ParsedResult {
   return { options: {}, ...(input !== undefined ? { input } : {}) }
@@ -22,7 +27,7 @@ describe('buildKibanaRequestParams', () => {
       method: 'GET',
       path: '/api/spaces/space',
     }
-    const result = buildKibanaRequestParams(def, parsed())
+    const result = build(def, parsed())
     assert.equal(result.method, 'GET')
     assert.equal(result.path, '/api/spaces/space')
     assert.equal(result.body, undefined)
@@ -45,7 +50,7 @@ describe('buildKibanaRequestParams', () => {
         },
       },
     }
-    const result = buildKibanaRequestParams(def, parsed({ file: 'not-an-upload' }))
+    const result = build(def, parsed({ file: 'not-an-upload' }))
     assert.deepEqual(result.body, { file: 'not-an-upload' })
     assert.equal(result.multipartFields, undefined)
   })
@@ -55,7 +60,7 @@ describe('buildKibanaRequestParams', () => {
     const defs = await loadKbApisInFile('post_saved_objects_resolve_import_errors')
     const def = defs.find((d) => d.name === 'post-saved-objects-resolve-import-errors')
     assert.ok(def != null, 'expected post-saved-objects-resolve-import-errors to exist')
-    const result = buildKibanaRequestParams(def, parsed({
+    const result = build(def, parsed({
       file: 'ndjson-contents',
       retries: '[{"type":"index-pattern"}]',
       createNewCopies: true,
@@ -70,7 +75,7 @@ describe('buildKibanaRequestParams', () => {
     const defs = await loadKbApisInFile('post_streams_name_content_import')
     const def = defs.find((d) => d.name === 'post-streams-name-content-import')
     assert.ok(def != null, 'expected post-streams-name-content-import to exist')
-    const result = buildKibanaRequestParams(def, parsed({
+    const result = build(def, parsed({
       name: 'logs.otel.cli-ft',
       content: '/tmp/pack.zip',
       include: '{"objects":{"all":{}}}',
@@ -104,7 +109,7 @@ describe('buildKibanaRequestParams', () => {
     const def = (await loadAllKbApis()).find((d) => d.namespace === 'slo' && d.name === 'get-definitions-op')
     assert.ok(def != null, 'expected slo get-definitions-op')
     assert.match(def.path, /\/internal\//)
-    const result = buildKibanaRequestParams(def, parsed({ spaceId: 'default' }))
+    const result = build(def, parsed({ spaceId: 'default' }))
     assert.equal(result.path, '/s/default/api/observability/slos/_definitions')
   })
 
@@ -112,7 +117,7 @@ describe('buildKibanaRequestParams', () => {
     const { loadAllKbApis } = await import('../../src/kb/apis.ts')
     const def = (await loadAllKbApis()).find((d) => d.namespace === 'slo' && d.name === 'get-definitions-op')
     assert.ok(def != null, 'expected slo get-definitions-op')
-    const result = buildKibanaRequestParams(def, parsed({ spaceId: '../?#/' }))
+    const result = build(def, parsed({ spaceId: '../?#/' }))
     assert.equal(result.path, '/s/' + encodeURIComponent('../?#/') + '/api/observability/slos/_definitions')
   })
 
@@ -136,7 +141,7 @@ describe('buildKibanaRequestParams', () => {
     const defs = await loadAllKbApis()
     const def = defs.find((d) => d.namespace === 'agent-builder' && d.name === 'post-agent-builder-a2a-agentid')
     assert.ok(def != null, 'expected post-agent-builder-a2a-agentid to exist in the manifest')
-    const result = buildKibanaRequestParams(def, parsed({ agentId: 'a1', body: { hello: 1 } }))
+    const result = build(def, parsed({ agentId: 'a1', body: { hello: 1 } }))
     assert.deepEqual(result.body, { hello: 1 }, 'body value should be the body itself, not nested under "body"')
   })
 
@@ -155,7 +160,7 @@ describe('buildKibanaRequestParams', () => {
         },
       },
     }
-    const result = buildKibanaRequestParams(def, parsed({ body: { a: 1 }, note: 'n' }))
+    const result = build(def, parsed({ body: { a: 1 }, note: 'n' }))
     assert.deepEqual(result.body, { body: { a: 1 }, note: 'n' })
   })
 })
@@ -175,7 +180,7 @@ describe('buildKibanaRequestParams empty-body normalisation (CLI-1)', () => {
         },
       },
     }
-    const result = buildKibanaRequestParams(def, parsed())
+    const result = build(def, parsed())
     assert.deepEqual(result.body, {}, 'POST with no body args must send {} not null/undefined')
   })
 
@@ -193,7 +198,7 @@ describe('buildKibanaRequestParams empty-body normalisation (CLI-1)', () => {
         },
       },
     }
-    const result = buildKibanaRequestParams(def, parsed())
+    const result = build(def, parsed())
     assert.deepEqual(result.body, {}, 'DELETE with optional body must send {} not omit')
   })
 
@@ -211,7 +216,7 @@ describe('buildKibanaRequestParams empty-body normalisation (CLI-1)', () => {
         },
       },
     }
-    const result = buildKibanaRequestParams(def, parsed())
+    const result = build(def, parsed())
     assert.deepEqual(result.body, {}, 'PATCH with no body args must send {}')
   })
 
@@ -230,7 +235,7 @@ describe('buildKibanaRequestParams empty-body normalisation (CLI-1)', () => {
         },
       },
     }
-    const result = buildKibanaRequestParams(def, parsed())
+    const result = build(def, parsed())
     assert.equal(result.body, undefined, 'GET must not send a body')
   })
 
@@ -249,7 +254,7 @@ describe('buildKibanaRequestParams empty-body normalisation (CLI-1)', () => {
       },
     }
     // With no file provided, multipart endpoints should have neither body nor multipartFields
-    const result = buildKibanaRequestParams(def, parsed())
+    const result = build(def, parsed())
     assert.equal(result.body, undefined, 'empty multipart endpoint must not send JSON body')
     assert.equal(result.multipartFields, undefined, 'empty multipart endpoint must not send empty form')
   })
@@ -259,7 +264,7 @@ describe('buildKibanaRequestParams empty-body normalisation (CLI-1)', () => {
     const apis = await loadAllKbApis()
     const def = apis.find((d) => d.namespace === 'misc' && d.name === 'post-security-role-query')
     assert.ok(def != null, 'expected misc post-security-role-query in manifest')
-    const result = buildKibanaRequestParams(def, parsed())
+    const result = build(def, parsed())
     assert.deepEqual(result.body, {}, 'bodyless misc POST must send {} not null/undefined')
   })
 
@@ -268,7 +273,7 @@ describe('buildKibanaRequestParams empty-body normalisation (CLI-1)', () => {
     const apis = await loadAllKbApis()
     const def = apis.find((d) => d.namespace === 'security-detections-api' && d.name === 'search-alerts')
     assert.ok(def != null, 'expected security-detections-api search-alerts in manifest')
-    const result = buildKibanaRequestParams(def, parsed())
+    const result = build(def, parsed())
     assert.deepEqual(result.body, {}, 'search-alerts with no args must send {} not null/undefined')
   })
 
@@ -277,7 +282,7 @@ describe('buildKibanaRequestParams empty-body normalisation (CLI-1)', () => {
     const apis = await loadAllKbApis()
     const def = apis.find((d) => d.namespace === 'security-ai-assistant-api' && d.name === 'delete-all-conversations')
     assert.ok(def != null, 'expected security-ai-assistant-api delete-all-conversations in manifest')
-    const result = buildKibanaRequestParams(def, parsed())
+    const result = build(def, parsed())
     assert.deepEqual(result.body, {}, 'DELETE with optional body must send {} not null/undefined')
   })
 })
@@ -301,22 +306,22 @@ describe('buildKibanaRequestParams query arrays', () => {
   }
 
   it('serializes a query array as JSON', () => {
-    const result = buildKibanaRequestParams(defWithQueryArray(), parsed({ agentsIds: ['abc'] }))
+    const result = build(defWithQueryArray(), parsed({ agentsIds: ['abc'] }))
     assert.deepEqual(result.querystring, { agentsIds: '["abc"]' })
   })
 
   it('serializes an empty query array as []', () => {
-    const result = buildKibanaRequestParams(defWithQueryArray(), parsed({ agentsIds: [] }))
+    const result = build(defWithQueryArray(), parsed({ agentsIds: [] }))
     assert.deepEqual(result.querystring, { agentsIds: '[]' })
   })
 
   it('serializes a multi-value query array as JSON', () => {
-    const result = buildKibanaRequestParams(defWithQueryArray(), parsed({ agentsIds: ['abc', 'def'] }))
+    const result = build(defWithQueryArray(), parsed({ agentsIds: ['abc', 'def'] }))
     assert.deepEqual(result.querystring, { agentsIds: '["abc","def"]' })
   })
 
   it('JSON-encodes adversarial query array elements', () => {
-    const result = buildKibanaRequestParams(defWithQueryArray(), parsed({ agentsIds: ['../', '?#', ''] }))
+    const result = build(defWithQueryArray(), parsed({ agentsIds: ['../', '?#', ''] }))
     assert.deepEqual(result.querystring, { agentsIds: JSON.stringify(['../', '?#', '']) })
   })
 
@@ -335,7 +340,7 @@ describe('buildKibanaRequestParams query arrays', () => {
         },
       },
     }
-    const result = buildKibanaRequestParams(def, parsed({ type: 'lens', perPage: 20 }))
+    const result = build(def, parsed({ type: 'lens', perPage: 20 }))
     assert.deepEqual(result.querystring, { type: 'lens', perPage: '20' })
   })
 })
@@ -359,7 +364,7 @@ describe('buildKibanaRequestParams path param requiredness (BUG A regression)', 
         // no `required` array -> scope is optional
       },
     }
-    const result = buildKibanaRequestParams(def, parsed())
+    const result = build(def, parsed())
     assert.equal(result.path, '/api/widgets')
   })
 
@@ -378,7 +383,7 @@ describe('buildKibanaRequestParams path param requiredness (BUG A regression)', 
         required: ['id'],
       },
     }
-    const result = buildKibanaRequestParams(def, parsed({ id: 'abc' }))
+    const result = build(def, parsed({ id: 'abc' }))
     assert.equal(result.path, '/api/widgets/abc')
   })
 })
@@ -400,7 +405,7 @@ describe('buildKibanaRequestParams path traversal rejection', () => {
   }
 
   it('encodes path params to prevent path traversal', () => {
-    const result = buildKibanaRequestParams(defWithPathParam(), parsed({ spaceId: '../../../secret?#' }))
+    const result = build(defWithPathParam(), parsed({ spaceId: '../../../secret?#' }))
     assert.ok(!result.path.includes('../'), 'dot-dot-slash must be encoded')
     assert.equal(result.path, '/api/spaces/space/..%2F..%2F..%2Fsecret%3F%23')
   })
@@ -408,7 +413,7 @@ describe('buildKibanaRequestParams path traversal rejection', () => {
   for (const widening of ['', '.', '..']) {
     it(`rejects "${widening}" as a path param`, () => {
       assert.throws(
-        () => buildKibanaRequestParams(defWithPathParam(), parsed({ spaceId: widening })),
+        () => build(defWithPathParam(), parsed({ spaceId: widening })),
         (err: unknown) => {
           assert.ok(err instanceof Error)
           assert.equal((err as { code?: string }).code, 'input_error')

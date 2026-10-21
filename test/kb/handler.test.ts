@@ -126,6 +126,27 @@ describe('createKbHandler', () => {
     assert.equal(result.error.status_code, 403)
   })
 
+  it('derives routing args from def.input once, at creation', async () => {
+    const def: KbApiDefinition = {
+      ...listDef(),
+      path: '/api/spaces/space/{id}',
+      input: { type: 'object', properties: { id: { type: 'string', 'x-found-in': 'path' } } },
+    }
+    const seen: unknown[] = []
+    const handler = createKbHandler(def, {
+      getKibanaClient: () => stubClient({}),
+      buildKibanaRequestParams: (_d, _p, args) => {
+        seen.push(args)
+        return { method: 'GET', path: '/test' }
+      },
+    })
+    await handler(parsed())
+    await handler(parsed())
+    assert.equal(seen.length, 2)
+    assert.strictEqual(seen[0], seen[1])
+    assert.deepEqual((seen[0] as Array<{ schemaKey: string, foundIn: string }>).map((a) => [a.schemaKey, a.foundIn]), [['id', 'path']])
+  })
+
   it('returns input_error when request building rejects a path param', async () => {
     const def: KbApiDefinition = {
       ...listDef(),

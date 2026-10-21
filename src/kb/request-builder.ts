@@ -8,6 +8,8 @@ import { isPlainObject } from '../lib/type-guards.ts'
 import type { ParsedResult } from '../factory.ts'
 import type { KibanaRequestParams } from '../lib/kibana-client.ts'
 import { encodePathParam } from '../lib/path-encoding.ts'
+import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
+import { interpolatePath, routeBody, routeQuery } from '../lib/request-routing.ts'
 
 /**
  * Kibana endpoints whose request body must be sent as `multipart/form-data`.
@@ -46,35 +48,32 @@ export const PATH_OVERRIDES = new Map([
 /**
  * Builds a `KibanaRequestParams` from an API definition and parsed CLI input.
  *
- * Routing is derived from `x-found-in` in the JSON Schema properties:
+ * Routing is derived from each arg's `foundIn` (`x-found-in`):
  * - `"path"` -> interpolated into URL path
- * - `"query"` -> sent as querystring
+ * - `"query"` -> sent as querystring; arrays as JSON (see `routeQuery`)
  * - `"body"` (or absent) -> collected into request body
  *
  * @param def - the API definition describing the Kibana endpoint
  * @param parsed - the CLI-parsed result; all API params live in `parsed.input`
+ * @param schemaArgs - arg definitions extracted from `def.input` at registration time
  * @returns `KibanaRequestParams` ready to pass to `KibanaClient.request()`
  */
 export function buildKibanaRequestParams (
   def: KbApiDefinition,
-  parsed: ParsedResult
+  parsed: ParsedResult,
+  schemaArgs: SchemaArgDefinition[]
 ): KibanaRequestParams {
   const input = (parsed.input ?? {}) as Record<string, unknown>
-  const props = ((def.input?.['properties'] ?? {}) as Record<string, Record<string, unknown>>)
 
-  const required = new Set(Array.isArray(def.input?.['required']) ? def.input!['required'] as string[] : [])
-  const path = interpolatePath(
-    PATH_OVERRIDES.get(`${def.namespace} ${def.name}`) ?? def.path,
-    props,
-    required,
-    input
+  const path = interpolatePath(PATH_OVERRIDES.get(`${def.namespace} ${def.name}`) ?? def.path, input, encodePathParam)
+  const querystring = Object.fromEntries(
+    Object.entries(routeQuery(schemaArgs, input)).map(([key, value]) => [key, Array.isArray(value) ? JSON.stringify(value) : String(value)])
   )
-  const querystring = buildQuerystring(props, input)
 
   const params: KibanaRequestParams = { method: def.method, path }
   if (Object.keys(querystring).length > 0) params.querystring = querystring
 
-  const body = collectBody(props, input)
+  const body = collectBody(schemaArgs, input)
   // Multipart encoding is decided from the definition's identity via MULTIPART_ENDPOINTS,
   // never from the runtime value of a field: @elastic/schemas emits no content-type or
   // binary-format annotation for these uploads. All body fields are sent as form fields
@@ -94,51 +93,12 @@ export function buildKibanaRequestParams (
     // "expected a plain object value, but found [null]". GET/HEAD never carry a body.
     def.method !== 'GET' && def.method !== 'HEAD' &&
     !isMultipart &&
-    Object.values(props).some((p) => p['x-found-in'] === 'body' || p['x-found-in'] === undefined)
+    schemaArgs.some((a) => a.foundIn === 'body' || a.foundIn === undefined)
   ) {
     params.body = {}
   }
 
   return params
-}
-
-/**
- * Interpolates `{param}` tokens in the path template, stripping optional
- * segments whose value was not supplied.
- */
-function interpolatePath (
-  path: string,
-  props: Record<string, Record<string, unknown>>,
-  required: Set<string>,
-  input: Record<string, unknown>
-): string {
-  for (const [key, prop] of Object.entries(props)) {
-    if (prop['x-found-in'] !== 'path') continue
-    const value = input[key]
-    if (value !== undefined) {
-      path = path.replace(`{${key}}`, encodePathParam(String(value)))
-    } else if (!required.has(key)) {
-      path = path.replace(new RegExp(`/?\\{${key}\\}/?`), '')
-      path = path.replace(/\/$/, '') || '/'
-    }
-  }
-  return path
-}
-
-/**
- * Builds the querystring record from properties marked `x-found-in: "query"`.
- */
-function buildQuerystring (
-  props: Record<string, Record<string, unknown>>,
-  input: Record<string, unknown>
-): Record<string, string> {
-  const qs: Record<string, string> = {}
-  for (const [key, prop] of Object.entries(props)) {
-    if (prop['x-found-in'] !== 'query') continue
-    const value = input[key]
-    if (value !== undefined) qs[key] = Array.isArray(value) ? JSON.stringify(value) : String(value)
-  }
-  return qs
 }
 
 /**
@@ -149,22 +109,18 @@ function buildQuerystring (
  * Returns `undefined` when no body fields are present.
  */
 function collectBody (
-  props: Record<string, Record<string, unknown>>,
+  schemaArgs: SchemaArgDefinition[],
   input: Record<string, unknown>
 ): unknown {
-  const body: Record<string, unknown> = {}
-  for (const [key, prop] of Object.entries(props)) {
-    const foundIn = prop['x-found-in'] as string | undefined
-    if (foundIn === 'path' || foundIn === 'query') continue
-    const value = input[key]
-    if (value !== undefined) body[key] = value
-  }
+  const body = routeBody(schemaArgs, input)
   // Also include any input keys that have no corresponding property definition
+  const known = new Set(schemaArgs.map((a) => a.schemaKey))
   for (const [key, value] of Object.entries(input)) {
-    if (!(key in props) && value !== undefined) body[key] = value
+    if (!known.has(key) && value !== undefined) body[key] = value
   }
   const keys = Object.keys(body)
   if (keys.length === 0) return undefined
-  if (keys.length === 1 && props[keys[0]!]?.['x-body-root'] === true) return body[keys[0]!]
+  const root = schemaArgs.find((a) => a.bodyRoot === true && a.schemaKey in body)
+  if (keys.length === 1 && root != null) return body[root.schemaKey]
   return body
 }
