@@ -5,10 +5,10 @@
 
 import type { HttpMethod } from '../cloud/types.ts'
 import { getResolvedConfig } from '../config/store.ts'
-import { isLoopbackUrl } from './is-loopback-host.ts'
 import { clientHeaders } from './meta.ts'
 import { YamlResponse, isYamlContentType } from './yaml-response.ts'
-import { HttpResponseError, toConnectionError } from './http-errors.ts'
+import { HttpResponseError } from './http-errors.ts'
+import { buildUrl, send, warnIfPlaintext } from './http-core.ts'
 
 /**
  * Parameters for a single Cloud API request.
@@ -35,9 +35,7 @@ export class CloudClient {
   constructor(baseUrl: string, apiKey: string) {
     this.baseUrl = baseUrl.replace(/\/+$/, '')
     this.apiKey = apiKey
-    if (this.baseUrl.startsWith('http://') && !isLoopbackUrl(this.baseUrl)) {
-      process.stderr.write('Warning: using plaintext HTTP. Credentials will be sent unencrypted.\n')
-    }
+    warnIfPlaintext(this.baseUrl)
   }
 
   /**
@@ -50,14 +48,7 @@ export class CloudClient {
     const path = process.env['ELASTIC_CLOUD_ADMIN_API'] === 'true'
       ? params.path.replace('/api/v1/serverless/', '/api/v1/admin/serverless/')
       : params.path
-    let url = `${this.baseUrl}${path}`
-
-    if (params.querystring != null && Object.keys(params.querystring).length > 0) {
-      const pieces = Object.entries(params.querystring)
-        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-        .join('&')
-      url += `?${pieces}`
-    }
+    const url = buildUrl(this.baseUrl, path, params.querystring)
 
     const headers: Record<string, string> = {
       ...clientHeaders(),
@@ -72,12 +63,7 @@ export class CloudClient {
       init.body = JSON.stringify(params.body)
     }
 
-    let response: Response
-    try {
-      response = await this._fetch(url, init)
-    } catch (err) {
-      throw toConnectionError(err)
-    }
+    const response = await send(this._fetch, url, init)
 
     if (!response.ok) {
       const text = await response.text()
