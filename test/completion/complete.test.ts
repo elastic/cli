@@ -59,6 +59,7 @@ describe('buildCompletionTree -- top-level commands', () => {
     assert.ok(names.includes('kb'), 'expected top-level kb alias')
     assert.ok(names.includes('completion'))
     assert.ok(names.includes('status'))
+    assert.ok(names.includes('api'))
   })
 
   it('exposes elasticsearch as an alias of the top-level es', async () => {
