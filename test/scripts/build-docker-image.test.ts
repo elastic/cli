@@ -50,7 +50,7 @@ fi
 function run (args: string[], env: NodeJS.ProcessEnv) {
   return spawnSync('bash', [bashPath(script), ...args], {
     encoding: 'utf8',
-    env: { ...process.env, ...env },
+    env: { ...process.env, DOCKER_PUSH: '', IMAGE_TAG_SUFFIX: '', ...env },
   })
 }
 
@@ -148,6 +148,35 @@ describe('build-docker-image.sh', () => {
       const badPlatform = run(['0.6.0', bashPath(binary), 'linux/amd64;id'], env)
       assert.notEqual(badPlatform.status, 0)
       await assert.rejects(readFile(log, 'utf8'))
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('pushes only when DOCKER_PUSH=1 and the tag suffix is a single arch', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-image-'))
+    try {
+      const { bin, log } = await fakeDocker(dir)
+      const binary = join(dir, 'elastic')
+      await writeFile(binary, 'bin')
+      const env = {
+        PATH: `${bin}${delimiter}${process.env.PATH}`,
+        DOCKER_LOG: bashPath(log),
+        CREATED: '2020-01-02T03:04:05Z',
+        GIT_REVISION: 'abc123',
+      }
+      const bad = run(['0.6.0', bashPath(binary)], { ...env, IMAGE_TAG_SUFFIX: '-amd64;id' })
+      assert.notEqual(bad.status, 0)
+      await assert.rejects(readFile(log, 'utf8'))
+      const pushed = run(['0.6.0', bashPath(binary), 'linux/amd64'], {
+        ...env,
+        DOCKER_PUSH: '1',
+        IMAGE_TAG_SUFFIX: '-amd64',
+      })
+      assert.equal(pushed.status, 0, pushed.stderr)
+      const lines = (await readFile(log, 'utf8')).split('\n')
+      assert.deepEqual(lines.slice(0, 3), ['buildx', 'build', '--push'])
+      assert.equal(lines.includes('docker.elastic.co/clients/elastic-cli:0.6.0-amd64'), true)
     } finally {
       await rm(dir, { recursive: true, force: true })
     }
