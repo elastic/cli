@@ -424,7 +424,7 @@ function hoistNamespaceOptions (ns: CliNamespace): void {
 
   function stripFrom (n: CliNamespace): void {
     for (const cmd of n.commands) {
-      cmd.parameters = cmd.parameters.filter(p => !commonNames.has(p.name))
+      cmd.parameters = cmd.parameters.filter(p => p.role === 'positional' || !commonNames.has(p.name))
     }
     for (const sub of n.namespaces) stripFrom(sub)
   }
@@ -464,7 +464,7 @@ function promoteToGlobalOptions (
   }
 
   for (const cmd of rootCommands) {
-    cmd.parameters = cmd.parameters.filter(p => !commonNames.has(p.name))
+    cmd.parameters = cmd.parameters.filter(p => p.role === 'positional' || !commonNames.has(p.name))
   }
 
   return promoted

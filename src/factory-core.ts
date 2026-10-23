@@ -78,7 +78,11 @@ export interface CommandConfig {
   name: string
   description: string
   options?: OptionDefinition[]
-  positionalArg?: { name: string; description: string; required?: boolean }
+  /**
+   * Optional positional argument. With `inputKey`, its value fills that input schema
+   * field before validation, as an alternative to the field's flag.
+   */
+  positionalArg?: { name: string; description: string; required?: boolean; inputKey?: string }
   handler: (parsed: ParsedResult) => HandlerResult | Promise<HandlerResult>
   /** JSON Schema object for structured input (properties carry `x-found-in` routing). */
   input?: Record<string, unknown>
@@ -194,10 +198,8 @@ export function isCommandAllowed (commandDotPath: string, policy: CommandPolicy 
 
   if (policy.profile != null) {
     const profilePolicy = resolveBuiltinProfile(policy.profile)
-    if (profilePolicy != null) {
-      if (!profilePolicy.allowed.some(matches)) return false
-      if (profilePolicy.blocked?.some(matches)) return false
-    }
+    if (profilePolicy.allowed != null && !profilePolicy.allowed.some(matches)) return false
+    if (profilePolicy.blocked?.some(matches)) return false
     if (policy.blocked != null) return !policy.blocked.some(matches)
     return true
   }

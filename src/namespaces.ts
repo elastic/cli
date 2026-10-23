@@ -123,6 +123,23 @@ export const NAMESPACES: NamespaceEntry[] = [
     },
   },
   {
+    name: 'nightshift',
+    description: 'Ask the Nightshift investigation agent',
+    load: async () => {
+      const { buildKbPresetCommand } = await import('./kb/register.ts')
+      return defineGroup(
+        { name: 'nightshift', description: 'Ask the Nightshift investigation agent' },
+        await buildKbPresetCommand({
+          apiId: 'agent-builder.post-chat-message',
+          name: 'ask',
+          description: 'Ask the Nightshift investigation agent a question and get its answer',
+          fixed: { agent_id: 'nightshift.investigation' },
+          positional: 'message',
+        }),
+      )
+    },
+  },
+  {
     name: 'config',
     description: 'Author and maintain the elastic config file',
     requiresContext: false,

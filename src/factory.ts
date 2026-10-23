@@ -667,6 +667,16 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
         }
       }
 
+      const positionalKey = config.positionalArg?.inputKey
+      const positionalInput = cmd.processedArgs[0] as string | undefined
+      if (positionalKey != null && positionalInput !== undefined) {
+        if (positionalKey in cliInput) {
+          const flag = schemaArgs.find((a) => a.schemaKey === positionalKey)?.cliFlag ?? positionalKey
+          return cmd.error(`pass ${config.positionalArg!.name} either as an argument or as --${flag}, not both`)
+        }
+        cliInput[positionalKey] = positionalInput
+      }
+
       if (Object.keys(cliInput).length > 0) {
         inputValue = { ...(inputValue as Record<string, unknown> ?? {}), ...cliInput }
       }

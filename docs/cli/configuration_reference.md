@@ -79,6 +79,6 @@ Built-in profiles (`profile` / `default_profile`):
 
 | Profile | Description |
 | - | - |
-| `serverless` | Only commands that work on {{serverless-full}}. Hides `cloud hosted` and exposes `cloud serverless` plus the majority of stack commands. |
-| `stack` | Full command surface, including self-managed / hosted-only APIs. Equivalent to having no policy (allow everything). |
+| `serverless` | Only commands that work on {{serverless-full}}. Hides `cloud hosted` and exposes `cloud serverless`, `nightshift`, plus the majority of stack commands. |
+| `stack` | Full command surface, including self-managed / hosted-only APIs, except `nightshift`, which only applies to {{serverless-short}} Observability projects. |
 | `default` | Alias for `serverless`; the most conservative baseline, recommended for agents and LLM-based tooling. |
