@@ -5,13 +5,14 @@
 
 import { Command } from 'commander'
 import { defineCommand, defineGroup } from '../factory.ts'
-import type { OpaqueCommandHandle } from '../factory.ts'
+import type { CommandConfig, JsonValue, OpaqueCommandHandle } from '../factory.ts'
 import { inferIntentFromHttp } from '@cli-schema/spec'
 import type { KbApiDefinition } from './types.ts'
 import { validateKbApiDefinition } from './types.ts'
 import { kbApiManifest, loadKbApi } from './apis.ts'
 import type { KbApiMeta } from './apis.ts'
 import { createKbHandler } from './handler.ts'
+import type { KbHandlerDeps } from './handler.ts'
 import { formatTextResponse } from '../output.ts'
 import type { AvailabilityTarget } from '../lib/availability.ts'
 import { isAvailable, parseVersionHint } from '../lib/availability.ts'
@@ -24,14 +25,19 @@ import { getResolvedConfig } from '../config/store.ts'
 // calls it), so an upstream regression fails here rather than at request time.
 
 /** Builds a leaf command handle from a definition. */
-function buildLeafHandle (def: KbApiDefinition, target?: AvailabilityTarget): OpaqueCommandHandle {
+function buildLeafHandle (
+  def: KbApiDefinition,
+  target?: AvailabilityTarget,
+  overrides: Pick<CommandConfig, 'positionalArg'> & { handler?: CommandConfig['handler'] } = {}
+): OpaqueCommandHandle {
   validateKbApiDefinition(def)
   return defineCommand({
     name: def.name,
     description: def.description,
     ...(def.input !== undefined ? { input: def.input } : {}),
     readOnly: def.method === 'GET' || def.method === 'HEAD',
-    handler: createKbHandler(def),
+    handler: overrides.handler ?? createKbHandler(def),
+    ...(overrides.positionalArg !== undefined ? { positionalArg: overrides.positionalArg } : {}),
     ...(def.intent != null || inferIntentFromHttp(def.method) != null
       ? { intent: def.intent ?? inferIntentFromHttp(def.method)! }
       : {}),
@@ -61,6 +67,68 @@ function buildStubLeaf (meta: KbApiMeta, target?: AvailabilityTarget): OpaqueCom
     }
   })
   return cmd
+}
+
+/** A generated Kibana command re-exposed under another name with some input fields pinned. */
+export interface KbPresetOptions {
+  /** Manifest id of the generated command, e.g. `agent-builder.post-chat-message`. */
+  apiId: string
+  name: string
+  description: string
+  /** Input fields sent with a fixed value; they are removed from the command's flags and schema. */
+  fixed: Record<string, JsonValue>
+  /** Input field that may also be passed as the command's positional argument. */
+  positional?: string
+}
+
+/**
+ * Builds a command from a generated Kibana API definition with some input fields
+ * pinned, so a purpose-built command (e.g. `nightshift ask`) needs no hand-written
+ * schema, request builder, or handler.
+ *
+ * @param deps - test seam forwarded to `createKbHandler`; production callers omit it
+ * @throws {Error} if `apiId` is not in the manifest, or a fixed or positional field is not in its input schema
+ */
+export async function buildKbPresetCommand (opts: KbPresetOptions, deps?: KbHandlerDeps): Promise<OpaqueCommandHandle> {
+  const meta = kbApiManifest.find(m => m.id === opts.apiId)
+  if (meta == null) throw new Error(`unknown Kibana API ${JSON.stringify(opts.apiId)}`)
+  const def = await loadKbApi(meta)
+  const properties = { ...(def.input?.['properties'] as Record<string, unknown> | undefined) }
+  for (const key of Object.keys(opts.fixed)) {
+    if (!(key in properties)) throw new Error(`fixed field ${JSON.stringify(key)} is not an input of ${opts.apiId}`)
+    delete properties[key]
+  }
+  const positional = opts.positional
+  if (positional != null && !(positional in properties)) {
+    throw new Error(`positional field ${JSON.stringify(positional)} is not an input of ${opts.apiId}`)
+  }
+  const required = Array.isArray(def.input?.['required'])
+    ? (def.input['required'] as string[]).filter(key => !(key in opts.fixed))
+    : []
+  const handler = createKbHandler(def, deps)
+  return buildLeafHandle(
+    {
+      ...def,
+      name: opts.name,
+      description: opts.description,
+      // Generated schemas allow unknown keys; a pinned field supplied via JSON must error, not be overridden.
+      input: { ...def.input, properties, required, additionalProperties: false },
+    },
+    undefined,
+    {
+      handler: async (parsed) => await handler({ ...parsed, input: { ...(parsed.input as Record<string, unknown> | undefined), ...opts.fixed } }),
+      ...(positional != null
+        ? {
+            positionalArg: {
+              name: positional,
+              description: String((properties[positional] as Record<string, unknown>)['description'] ?? positional),
+              required: false,
+              inputKey: positional,
+            },
+          }
+        : {}),
+    }
+  )
 }
 
 /**

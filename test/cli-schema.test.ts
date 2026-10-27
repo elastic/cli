@@ -25,6 +25,7 @@ function runCliSchema (): Promise<{ code: number | null, stdout: string, stderr:
 
 interface CliParameter {
   name: string
+  role?: string
   repeatable?: boolean
   separator?: string
 }
@@ -54,6 +55,18 @@ function findCommand (namespaces: CliNamespace[], path: string[], name: string):
 }
 
 describe('cli schema', () => {
+  it('keeps a positional that shares its name with a hoisted flag', async () => {
+    const { code, stdout, stderr } = await runCliSchema()
+    assert.equal(code, 0, stderr)
+
+    // `nightshift` has a single command, so all of its flags (including `--message`) are
+    // hoisted to the namespace; the same-named positional must stay on the command.
+    const schema = JSON.parse(stdout) as { namespaces: CliNamespace[] }
+    const ask = findCommand(schema.namespaces, ['nightshift'], 'ask')
+    const positionals = ask?.parameters.filter((p) => p.role === 'positional').map((p) => p.name)
+    assert.deepEqual(positionals, ['message'])
+  })
+
   it('does not emit runtime shortcuts into the docs-builder schema', async () => {
     const { code, stdout, stderr } = await runCliSchema()
     assert.equal(code, 0, stderr)

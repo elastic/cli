@@ -148,6 +148,25 @@ describe('handleComplete -- policy enforcement', () => {
     })
   })
 
+  for (const [profile, offered] of [['serverless', true], ['default', true], ['stack', false]] as const) {
+    it(`${offered ? 'offers' : 'hides'} nightshift ask under the ${profile} profile`, async () => {
+      await withConfig([
+        `default_profile: ${profile}`,
+        'current_context: local',
+        'contexts:',
+        '  local:',
+        '    kibana:',
+        '      url: http://localhost:5601',
+        '',
+      ], async () => {
+        const buf = bufferedWriter()
+        await handleComplete(['nightshift', ''], buf.write)
+        const out = parseOutput(buf.chunks.join(''))
+        assert.equal(out.candidates.includes('ask'), offered, `got: ${out.candidates.join(',')}`)
+      })
+    })
+  }
+
   it('applies blocked commands without resolving active-context expressions', async () => {
     await withConfig([
       'current_context: local',
@@ -394,6 +413,14 @@ describe('buildCompletionTree -- docs and config subtrees', () => {
     assert.ok(docs != null, 'docs should be present')
     // deep-loaded docs should have child commands
     assert.ok(docs.commands.length > 0, 'docs should have children when deep-loaded')
+  })
+
+  it('registers nightshift as a stub by default and deep-loads it on exact match', async () => {
+    const stub = (await buildCompletionTree(['stack'])).commands.find((c) => c.name() === 'nightshift')
+    assert.ok(stub != null, 'nightshift group should be present')
+    assert.equal(stub.commands.length, 0)
+    const loaded = (await buildCompletionTree(['nightshift'])).commands.find((c) => c.name() === 'nightshift')
+    assert.ok(loaded?.commands.some((c) => c.name() === 'ask'), 'nightshift should expose ask when deep-loaded')
   })
 
   it('deep-loads config when first word is "config"', async () => {
