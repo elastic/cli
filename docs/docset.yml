@@ -1,5 +1,7 @@
 project: elastic-cli
 dev_docs: true
+suppress:
+  - DeepLinkingVirtualFile
 
 cross_links:
   - cloud
