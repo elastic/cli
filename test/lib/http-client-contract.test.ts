@@ -5,7 +5,7 @@
 
 // Behaviour every HTTP client shares. Per-product quirks live in each client's own test file.
 
-import { describe, it } from 'node:test'
+import { describe, it, type TestContext } from 'node:test'
 import assert from 'node:assert/strict'
 import { EsClient } from '../../src/lib/es-client.ts'
 import { KibanaClient } from '../../src/lib/kibana-client.ts'
@@ -51,6 +51,28 @@ function stub (c: ClientCase, url = 'https://example.com', response = () => new 
     return response()
   }) as typeof fetch)
   return { client, calls }
+}
+
+/**
+ * Replaces the request deadline with a controller the test fires, and records the requested ms.
+ * The fake fetch answers with a body that errors on abort, as undici's does.
+ */
+function stubTimeout (t: TestContext, c: ClientCase, abortBefore: 'headers' | 'body') {
+  const controller = new AbortController()
+  const timeouts: number[] = []
+  t.mock.method(AbortSignal, 'timeout', (ms: number) => { timeouts.push(ms); return controller.signal })
+  const client = c.make('https://example.com')
+  client._testSetFetch(((_url: string, init: RequestInit) => new Promise((resolve, reject) => {
+    const signal = init.signal!
+    if (abortBefore === 'headers') {
+      signal.addEventListener('abort', () => reject(signal.reason))
+      return
+    }
+    const body = new ReadableStream({ start: (ctrl) => signal.addEventListener('abort', () => ctrl.error(signal.reason)) })
+    resolve(new Response(body, { status: 200 }))
+  })) as typeof fetch)
+  const fire = () => controller.abort(new DOMException('The operation was aborted due to timeout', 'TimeoutError'))
+  return { client, timeouts, fire }
 }
 
 /** Runs `fn` and returns everything it wrote to stderr. */
@@ -147,6 +169,21 @@ for (const c of cases) {
           return true
         })
       })
+
+      for (const phase of ['headers', 'body'] as const) {
+        it(`reports a timeout while awaiting the ${phase} as ConnectionError, with a 600000 ms deadline`, async (t) => {
+          const { client, timeouts, fire } = stubTimeout(t, c, phase)
+          const pending = client.request({ method: 'GET', path: '/x' })
+          await new Promise((resolve) => setImmediate(resolve))
+          fire()
+          await assert.rejects(pending, (err: unknown) => {
+            assert.ok(err instanceof ConnectionError, String(err))
+            assert.equal(err.message, 'The operation was aborted due to timeout')
+            return true
+          })
+          assert.deepEqual(timeouts, [600_000])
+        })
+      }
 
       it('throws HttpResponseError with the status on a non-2xx response', async () => {
         const { client } = stub(c, undefined, () => new Response('boom', { status: 500 }))

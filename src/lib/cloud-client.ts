@@ -8,7 +8,7 @@ import { getResolvedConfig } from '../config/store.ts'
 import { clientHeaders } from './meta.ts'
 import { YamlResponse, isYamlContentType } from './yaml-response.ts'
 import { HttpResponseError } from './http-errors.ts'
-import { buildUrl, send, warnIfPlaintext } from './http-core.ts'
+import { buildUrl, readText, send, warnIfPlaintext } from './http-core.ts'
 
 /**
  * Parameters for a single Cloud API request.
@@ -66,12 +66,12 @@ export class CloudClient {
     const response = await send(this._fetch, url, init)
 
     if (!response.ok) {
-      const text = await response.text()
+      const text = await readText(response)
       throw new HttpResponseError(response.status, text, `Cloud API error ${response.status}: ${text}`)
     }
 
     const contentType = response.headers.get('content-type') ?? ''
-    const text = await response.text()
+    const text = await readText(response)
     if (text.length === 0) return {}
     // YAML bodies are wrapped so the output layer prints them verbatim by default and parses
     // them to JSON only under `--json`.
