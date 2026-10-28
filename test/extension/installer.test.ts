@@ -202,9 +202,17 @@ describe('installer', () => {
         // Bootstrap a local git remote so git pull --ff-only succeeds (already up to date).
         const gitEnv = { ...process.env, GIT_AUTHOR_NAME: 'test', GIT_AUTHOR_EMAIL: 't@t.com', GIT_COMMITTER_NAME: 'test', GIT_COMMITTER_EMAIL: 't@t.com' }
         const gitOpts = { encoding: 'utf-8' as const, env: gitEnv }
-        spawnSync('git', ['init', remoteDir], { encoding: 'utf-8' })
-        spawnSync('git', ['-C', remoteDir, '-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-m', 'init'], gitOpts)
-        spawnSync('git', ['clone', remoteDir, extPath], { encoding: 'utf-8' })
+        // --no-verify: a developer's global hooks (e.g. one blocking commits to main)
+        // must not leave the remote without a ref. Check each step so a fixture
+        // failure is not reported as the assertion under test.
+        for (const args of [
+          ['init', remoteDir],
+          ['-C', remoteDir, '-c', 'commit.gpgsign=false', 'commit', '--no-verify', '--allow-empty', '-m', 'init'],
+          ['clone', remoteDir, extPath],
+        ]) {
+          const res = spawnSync('git', args, gitOpts)
+          assert.equal(res.status, 0, `git ${args.join(' ')} failed: ${res.stderr}`)
+        }
 
         // Place a symlink whose target is outside the install dir — simulates a
         // malicious commit pulled in by git pull.
