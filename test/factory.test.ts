@@ -4223,6 +4223,20 @@ describe('JSON schema in help output', () => {
       assert.ok(parsed !== null, 'output was not valid JSON')
     })
 
+    it('emits additionalProperties: false only when rejectUnknownKeys is set (#801)', async () => {
+      const make = (reject: boolean): OpaqueCommandHandle => defineCommand({
+        name: 'search',
+        description: 'Search an index',
+        input: jsonSchema({ index: { type: 'string' } }, ['index']),
+        ...(reject ? { rejectUnknownKeys: true } : {}),
+        handler: () => ({}),
+      })
+      const closed = (await captureJsonHelp(make(true))).parsed as Record<string, unknown>
+      assert.equal(closed['additionalProperties'], false)
+      const open = (await captureJsonHelp(make(false))).parsed as Record<string, unknown>
+      assert.equal(open['additionalProperties'], undefined)
+    })
+
     it('JSON output is the raw schema with type and properties at the top level', async () => {
       const cmd = defineCommand({
         name: 'search',

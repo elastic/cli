@@ -629,12 +629,18 @@ describe('REST-style body request (#801)', () => {
     })
   }
 
-  it('put-settings {"index":{...}} is not wrapped: index is a declared parameter (known limitation)', () => {
-    // Pins current behaviour; the REST form collides with the path param name. Use
-    // --input-file with {"settings": {...}} or flat keys instead.
-    const declared = new Set(['index', 'settings', 'number_of_replicas'])
+  it('put-settings {"index":{...}} is not wrapped: index is a declared parameter (known limitation)', async () => {
+    // Pins current behaviour: the REST form's only key collides with the path param
+    // name. Use flat keys or {"settings": {...}} instead.
+    const def = (await loadEsApisInFile('indices.put_settings')).find((d) => d.name === 'put-settings')
+    assert.ok(def != null)
+    const schemaArgs = validateApiDefinition(def)
+    const root = schemaArgs.find((a) => a.bodyRoot === true)
+    assert.ok(root != null)
+    const declared = new Set(schemaArgs.map((a) => a.schemaKey))
     const input = { index: { number_of_replicas: 2 } }
-    assert.equal(wrapBodyRootInput(input, 'settings', declared), input)
+    assert.equal(wrapBodyRootInput(input, root.schemaKey, declared), input)
+    assert.deepEqual(wrapBodyRootInput({ number_of_replicas: 2 }, root.schemaKey, declared), { [root.schemaKey]: { number_of_replicas: 2 } })
   })
 })
 
