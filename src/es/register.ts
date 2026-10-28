@@ -64,6 +64,9 @@ function buildLeafHandle (
     description: def.description,
     ...(def.input !== undefined ? { input: def.input } : {}),
     readOnly: def.method === 'GET' || def.method === 'HEAD',
+    // The ES request builder sends only schema-declared keys, so an undeclared key
+    // must fail validation instead of being dropped (elastic/cli#801).
+    rejectUnknownKeys: true,
     handler: async (parsed) => {
       const { createEsHandler } = await import('./handler.js')
       return createEsHandler(def, schemaArgs)(parsed)
@@ -76,18 +79,43 @@ function buildLeafHandle (
   if (def.responseType === 'text') {
     config.formatOutput = formatTextResponse
   }
-  const bodyRootArg = schemaArgs.find(
-    (a) => (a.foundIn === 'body' || a.foundIn === undefined) && a.required && a.bodyRoot === true
-  )
+  // @elastic/schemas marks body roots (e.g. `document`) as optional, so `required`
+  // can't gate this: without the wrap, a REST-style body is all undeclared keys.
+  // NDJSON / array roots (bulk, msearch, ml post-data) are not wrapped: an object
+  // there is not a valid body, so it falls through to the unknown-key rejection.
+  const bodyRootArg = def.bodyFormat === 'ndjson'
+    ? undefined
+    : schemaArgs.find(
+      (a) => (a.foundIn === 'body' || a.foundIn === undefined) && a.bodyRoot === true && a.type !== 'array'
+    )
   if (bodyRootArg != null) {
     const rootKey = bodyRootArg.schemaKey
-    config.inputTransform = (input: unknown) => {
-      if (input == null || typeof input !== 'object' || Array.isArray(input)) return input
-      if (rootKey in (input as Record<string, unknown>)) return input
-      return { [rootKey]: input }
-    }
+    const declared = new Set(schemaArgs.map((a) => a.schemaKey))
+    config.inputTransform = (input: unknown) => wrapBodyRootInput(input, rootKey, declared)
   }
   return defineCommand(config)
+}
+
+/**
+ * Wraps a REST-style JSON body (the raw request body, as in Elasticsearch's own API)
+ * into the command's `x-body-root` field so it validates and is sent as the body.
+ *
+ * The whole input is wrapped, unchanged, only when it is a non-empty plain object that
+ * lacks `rootKey` and has at least one key outside `declaredKeys`. Input already using
+ * the wrapper, or made only of declared parameters, is returned as-is. Path parameters
+ * for a wrapped body come from CLI flags.
+ *
+ * @param input - parsed stdin / `--input-file` JSON
+ * @param rootKey - schema key of the body-root field (e.g. `document`)
+ * @param declaredKeys - every top-level key the command's input schema declares
+ * @returns the wrapped object, or `input` itself when no wrap applies
+ */
+export function wrapBodyRootInput (input: unknown, rootKey: string, declaredKeys: ReadonlySet<string>): unknown {
+  if (input == null || typeof input !== 'object' || Array.isArray(input)) return input
+  const obj = input as Record<string, unknown>
+  if (rootKey in obj) return input
+  if (!Object.keys(obj).some((k) => !declaredKeys.has(k))) return input
+  return { [rootKey]: input }
 }
 
 /**

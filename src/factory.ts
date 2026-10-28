@@ -524,7 +524,11 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
     cmd.option('--yes', 'confirm destructive action without prompting')
   }
 
-  configureHelpWithSchema(cmd, isJsonSchemaInput(effectiveInput) ? effectiveInput : undefined, config.target)
+  // Agents read `--help --json` to learn valid input, so it must show the closed root too.
+  const helpSchema = isJsonSchemaInput(effectiveInput) && config.rejectUnknownKeys === true && effectiveInput['additionalProperties'] === undefined
+    ? { ...effectiveInput, additionalProperties: false }
+    : isJsonSchemaInput(effectiveInput) ? effectiveInput : undefined
+  configureHelpWithSchema(cmd, helpSchema, config.target)
 
   Object.defineProperty(cmd, '_commandConfig', {
     value: { config, schemaArgs },
@@ -735,6 +739,19 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
             }
           }
           validationSchema = { ...effectiveInput, properties: props }
+        }
+
+        // Only the root is closed; nested values keep their existing validation
+        // (object/array body fields stay relaxed to `{}` above).
+        // Keys hidden by availability filtering are still sent by the builder, so they
+        // stay accepted (unvalidated, as before) rather than becoming unknown.
+        if (config.rejectUnknownKeys === true && validationSchema['additionalProperties'] === undefined) {
+          const props = { ...(validationSchema['properties'] as Record<string, unknown> | undefined) }
+          const fullProps = config.input?.['properties'] as Record<string, unknown> | undefined
+          for (const key of Object.keys(fullProps ?? {})) {
+            if (!(key in props)) props[key] = {}
+          }
+          validationSchema = { ...validationSchema, properties: props, additionalProperties: false }
         }
 
         const result = validateWithJsonSchema(validationSchema, inputValue)

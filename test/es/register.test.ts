@@ -6,7 +6,10 @@
 import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import type { EsApiDefinition } from '../../src/es/types.ts'
-import { registerEsCommands, registerEsCommandsLazy } from '../../src/es/register.ts'
+import { registerEsCommands, registerEsCommandsLazy, wrapBodyRootInput } from '../../src/es/register.ts'
+import { loadEsApisInFile } from '../../src/es/apis.ts'
+import { validateApiDefinition } from '../../src/es/types.ts'
+import { buildRequestParams } from '../../src/es/request-builder.ts'
 import { _testSetStdinReader } from '../../src/factory.ts'
 
 /** Build a JSON Schema for test use. */
@@ -533,13 +536,16 @@ describe('registerEsCommands - REST-style body (#360)', () => {
     input: jsonSchema({
       index: { type: 'string', 'x-found-in': 'path' },
       id: { type: 'string', 'x-found-in': 'path' },
-      document: { 'x-found-in': 'body' },
+      // Mirrors @elastic/schemas: the body root is marked x-body-root and is not required.
+      document: { 'x-found-in': 'body', 'x-body-root': true },
     }, ['index', 'id']),
   }
 
   async function getErr(defs: EsApiDefinition[], stdinJson: string, argv: string[]): Promise<string> {
     const handle = await registerEsCommands(defs)
-    const cmd = handle.commands.find((c) => c.name() === defs[0]!.name)
+    const ns = defs[0]!.namespace
+    const parent = ns == null ? handle : handle.commands.find((c) => c.name() === ns)
+    const cmd = parent?.commands.find((c) => c.name() === defs[0]!.name)
     assert.ok(cmd != null)
     cmd.exitOverride()
     let err = ''
@@ -561,6 +567,112 @@ describe('registerEsCommands - REST-style body (#360)', () => {
   it('wrapped body passes validation unchanged', async () => {
     const err = await getErr([indexDef], JSON.stringify({ document: { name: 'test' } }), ['--index', 'my-index', '--id', '1', '--dry-run'])
     assert.ok(!err.includes('input validation failed'), `unexpected validation error: ${err}`)
+  })
+
+  it('REST-style body passes validation on the real index schema (#801)', async () => {
+    const defs = await loadEsApisInFile('index')
+    const realIndex = defs.find((d) => d.name === 'index' && d.namespace == null)
+    assert.ok(realIndex != null)
+    const err = await getErr([realIndex], JSON.stringify({ name: 'test', count: 1 }), ['--index', 'my-index', '--id', '1', '--dry-run'])
+    assert.ok(!err.includes('input validation failed'), `unexpected validation error: ${err}`)
+  })
+
+  it('an unknown key on a command without a body root is rejected (#801)', async () => {
+    const searchDef: EsApiDefinition = {
+      name: 'search',
+      description: 'Search',
+      method: 'POST',
+      path: '/{index}/_search',
+      input: jsonSchema({
+        index: { type: 'string', 'x-found-in': 'path' },
+        query: { type: 'object', 'x-found-in': 'body' },
+      }, ['index']),
+    }
+    const err = await getErr([searchDef], JSON.stringify({ aggs: {} }), ['--index', 'my-index', '--dry-run'])
+    assert.match(err, /input validation failed/)
+    assert.match(err, /'aggs'/)
+  })
+  async function realDef (file: string, name: string, namespace?: string): Promise<EsApiDefinition> {
+    const def = (await loadEsApisInFile(file)).find((d) => d.name === name && d.namespace === namespace)
+    assert.ok(def != null, `${file}:${name} not found`)
+    return def
+  }
+
+  for (const [file, name, namespace, argv] of [
+    ['bulk', 'bulk', undefined, ['--index', 'i']],
+    ['ml.post_data', 'post-data', 'ml', ['--job-id', 'j']],
+    ['text_structure.find_structure', 'find-structure', 'text-structure', []],
+  ] as const) {
+    it(`an object body on NDJSON ${name} is rejected, not wrapped (#801)`, async () => {
+      const def = await realDef(file, name, namespace)
+      const err = await getErr([def], JSON.stringify({ ts: 1, v: 2 }), [...argv, '--dry-run'])
+      assert.match(err, /input validation failed/)
+      assert.match(err, /'ts'/)
+    })
+  }
+})
+
+describe('REST-style body request (#801)', () => {
+  for (const name of ['index', 'create'] as const) {
+    it(`${name}: a REST-style body is sent as the document`, async () => {
+      const def = (await loadEsApisInFile(name)).find((d) => d.name === name && d.namespace == null)
+      assert.ok(def != null)
+      const schemaArgs = validateApiDefinition(def)
+      const root = schemaArgs.find((a) => a.bodyRoot === true)
+      assert.ok(root != null)
+      const declared = new Set(schemaArgs.map((a) => a.schemaKey))
+      const wrapped = wrapBodyRootInput({ title: 'hello', n: 1 }, root.schemaKey, declared) as Record<string, unknown>
+      const params = buildRequestParams(def, { options: {}, input: { ...wrapped, index: 'my-index', id: '1' } }, schemaArgs)
+      assert.equal(params.method, 'PUT')
+      assert.equal(params.path, name === 'index' ? '/my-index/_doc/1' : '/my-index/_create/1')
+      assert.deepEqual(params.body, { title: 'hello', n: 1 })
+    })
+  }
+
+  it('put-settings {"index":{...}} is not wrapped: index is a declared parameter (known limitation)', async () => {
+    // Pins current behaviour: the REST form's only key collides with the path param
+    // name. Use flat keys or {"settings": {...}} instead.
+    const def = (await loadEsApisInFile('indices.put_settings')).find((d) => d.name === 'put-settings')
+    assert.ok(def != null)
+    const schemaArgs = validateApiDefinition(def)
+    const root = schemaArgs.find((a) => a.bodyRoot === true)
+    assert.ok(root != null)
+    const declared = new Set(schemaArgs.map((a) => a.schemaKey))
+    const input = { index: { number_of_replicas: 2 } }
+    assert.equal(wrapBodyRootInput(input, root.schemaKey, declared), input)
+    assert.deepEqual(wrapBodyRootInput({ number_of_replicas: 2 }, root.schemaKey, declared), { [root.schemaKey]: { number_of_replicas: 2 } })
+  })
+})
+
+describe('wrapBodyRootInput (#801)', () => {
+  const declared = new Set(['index', 'id', 'refresh', 'document'])
+
+  it('wraps a REST-style body into the body root', () => {
+    assert.deepEqual(wrapBodyRootInput({ name: 'x', n: 1 }, 'document', declared), { document: { name: 'x', n: 1 } })
+  })
+
+  it('wraps the whole input, including declared names, when any key is undeclared', () => {
+    // A document field named like a parameter (id) stays in the document; path params come from flags.
+    assert.deepEqual(wrapBodyRootInput({ id: 5, title: 't' }, 'document', declared), { document: { id: 5, title: 't' } })
+  })
+
+  it('leaves input that already carries the body root unchanged', () => {
+    const input = { document: { name: 'x' }, refresh: 'true' }
+    assert.equal(wrapBodyRootInput(input, 'document', declared), input)
+  })
+
+  it('leaves input made only of declared keys unchanged', () => {
+    const input = { index: 'i', refresh: 'true' }
+    assert.equal(wrapBodyRootInput(input, 'document', declared), input)
+  })
+
+  it('leaves empty objects, arrays, primitives and null unchanged', () => {
+    const empty = {}
+    assert.equal(wrapBodyRootInput(empty, 'document', declared), empty)
+    const arr = [{ a: 1 }]
+    assert.equal(wrapBodyRootInput(arr, 'document', declared), arr)
+    assert.equal(wrapBodyRootInput('text', 'document', declared), 'text')
+    assert.equal(wrapBodyRootInput(null, 'document', declared), null)
   })
 })
 

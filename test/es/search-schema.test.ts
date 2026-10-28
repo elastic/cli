@@ -102,3 +102,68 @@ describe('stack es search -- input validation parity across sources (#relaxField
     }
   })
 })
+
+/** mounts a command under a root program with --json and captures stderr from a failing run */
+async function captureJsonError (handle: OpaqueCommandHandle, argv: string[]): Promise<{ code: string, issues: Array<{ code: string, message: string }> }> {
+  const { Command } = await import('commander')
+  const prog = new Command('elastic')
+  prog.option('--json', 'output as JSON')
+  prog.addCommand(handle)
+  prog.exitOverride()
+  handle.exitOverride()
+  let err = ''
+  const orig = process.stderr.write.bind(process.stderr)
+  process.stderr.write = (chunk: unknown) => { if (typeof chunk === 'string') err += chunk; return true }
+  try {
+    await prog.parseAsync(['--json', handle.name(), ...argv], { from: 'user' })
+  } catch {
+    // emitError throws after writing the JSON error to stderr
+  } finally {
+    process.stderr.write = orig
+  }
+  return (JSON.parse(err) as { error: { code: string, issues: Array<{ code: string, message: string }> } }).error
+}
+
+describe('stack es search -- unknown top-level body keys are rejected (#801)', () => {
+  let origIsTTY: boolean | undefined
+  beforeEach(() => {
+    origIsTTY = process.stdin.isTTY
+    Object.defineProperty(process.stdin, 'isTTY', { value: undefined, configurable: true, writable: true })
+  })
+  afterEach(() => {
+    Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+  })
+
+  for (const key of ['aggs', 'qeury']) {
+    it(`rejects top-level "${key}" with input_validation_failed naming the key`, async () => {
+      const restore = _testSetStdinReader(() => JSON.stringify({ index: 'i', size: 0, [key]: { x: {} } }))
+      try {
+        const cmd = await searchCommand()
+        const error = await captureJsonError(cmd, ['--dry-run'])
+        assert.equal(error.code, 'input_validation_failed')
+        assert.ok(
+          error.issues.some((i) => i.code === 'additionalProperties' && i.message.includes(`'${key}'`)),
+          `expected an additionalProperties issue naming ${key}, got ${JSON.stringify(error.issues)}`
+        )
+      } finally {
+        restore()
+      }
+    })
+  }
+
+  it('accepts top-level "aggregations" with nested "aggs" sub-aggregations', async () => {
+    const body = {
+      index: 'i',
+      size: 0,
+      aggregations: { by_day: { date_histogram: { field: '@timestamp', calendar_interval: 'day' }, aggs: { n: { value_count: { field: '_id' } } } } },
+    }
+    const restore = _testSetStdinReader(() => JSON.stringify(body))
+    try {
+      const cmd = await searchCommand()
+      const out = await captureStdout(cmd, ['--dry-run'])
+      assert.deepEqual(JSON.parse(out), { success: true })
+    } finally {
+      restore()
+    }
+  })
+})
