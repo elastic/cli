@@ -63,6 +63,16 @@ describe('editInEditor', () => {
     assert.ok(String(result?.path).startsWith(spaced))
   })
 
+  it('does not expand %VAR% sequences in the temp dir path on Windows', { skip: process.platform !== 'win32' }, async () => {
+    const percent = join(dir, '%USERNAME%')
+    await mkdir(percent)
+    process.env.TMPDIR = process.env.TEMP = process.env.TMP = percent
+    delete process.env.VISUAL
+    process.env.EDITOR = editorCmd('a')
+    const result = await editInEditor('local', {})
+    assert.ok(String(result?.path).startsWith(percent))
+  })
+
   it('prefers VISUAL over EDITOR', async () => {
     process.env.VISUAL = editorCmd('visual')
     process.env.EDITOR = editorCmd('editor')
