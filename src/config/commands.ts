@@ -479,8 +479,11 @@ export async function editInEditor (name: string, original: RawContext): Promise
     await writeFile(path, header + body, { encoding: 'utf-8', mode: 0o600 })
     const exitCode = await new Promise<number>((resolve, reject) => {
       // shell: true so EDITOR="code --wait" works; Node does not quote args, so quote the path ourselves.
-      const quoted = process.platform === 'win32' ? `"${path}"` : `'${path.replaceAll("'", `'\\''`)}'`
-      const child = spawn(`${editor} ${quoted}`, { stdio: 'inherit', shell: true })
+      // cmd.exe expands %VAR% even inside quotes, so on Windows pass the path via env (expanded once, not re-scanned).
+      const win = process.platform === 'win32'
+      const quoted = win ? '"%ELASTIC_CLI_EDIT_FILE%"' : `'${path.replaceAll("'", `'\\''`)}'`
+      const env = win ? { ...process.env, ELASTIC_CLI_EDIT_FILE: path } : process.env
+      const child = spawn(`${editor} ${quoted}`, { stdio: 'inherit', shell: true, env })
       child.on('exit', code => resolve(code ?? 0))
       child.on('error', reject)
     })
