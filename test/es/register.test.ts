@@ -8,6 +8,8 @@ import assert from 'node:assert/strict'
 import type { EsApiDefinition } from '../../src/es/types.ts'
 import { registerEsCommands, registerEsCommandsLazy, wrapBodyRootInput } from '../../src/es/register.ts'
 import { loadEsApisInFile } from '../../src/es/apis.ts'
+import { validateApiDefinition } from '../../src/es/types.ts'
+import { buildRequestParams } from '../../src/es/request-builder.ts'
 import { _testSetStdinReader } from '../../src/factory.ts'
 
 /** Build a JSON Schema for test use. */
@@ -541,7 +543,9 @@ describe('registerEsCommands - REST-style body (#360)', () => {
 
   async function getErr(defs: EsApiDefinition[], stdinJson: string, argv: string[]): Promise<string> {
     const handle = await registerEsCommands(defs)
-    const cmd = handle.commands.find((c) => c.name() === defs[0]!.name)
+    const ns = defs[0]!.namespace
+    const parent = ns == null ? handle : handle.commands.find((c) => c.name() === ns)
+    const cmd = parent?.commands.find((c) => c.name() === defs[0]!.name)
     assert.ok(cmd != null)
     cmd.exitOverride()
     let err = ''
@@ -587,6 +591,50 @@ describe('registerEsCommands - REST-style body (#360)', () => {
     const err = await getErr([searchDef], JSON.stringify({ aggs: {} }), ['--index', 'my-index', '--dry-run'])
     assert.match(err, /input validation failed/)
     assert.match(err, /'aggs'/)
+  })
+  async function realDef (file: string, name: string, namespace?: string): Promise<EsApiDefinition> {
+    const def = (await loadEsApisInFile(file)).find((d) => d.name === name && d.namespace === namespace)
+    assert.ok(def != null, `${file}:${name} not found`)
+    return def
+  }
+
+  for (const [file, name, namespace, argv] of [
+    ['bulk', 'bulk', undefined, ['--index', 'i']],
+    ['ml.post_data', 'post-data', 'ml', ['--job-id', 'j']],
+    ['text_structure.find_structure', 'find-structure', 'text-structure', []],
+  ] as const) {
+    it(`an object body on NDJSON ${name} is rejected, not wrapped (#801)`, async () => {
+      const def = await realDef(file, name, namespace)
+      const err = await getErr([def], JSON.stringify({ ts: 1, v: 2 }), [...argv, '--dry-run'])
+      assert.match(err, /input validation failed/)
+      assert.match(err, /'ts'/)
+    })
+  }
+})
+
+describe('REST-style body request (#801)', () => {
+  for (const name of ['index', 'create'] as const) {
+    it(`${name}: a REST-style body is sent as the document`, async () => {
+      const def = (await loadEsApisInFile(name)).find((d) => d.name === name && d.namespace == null)
+      assert.ok(def != null)
+      const schemaArgs = validateApiDefinition(def)
+      const root = schemaArgs.find((a) => a.bodyRoot === true)
+      assert.ok(root != null)
+      const declared = new Set(schemaArgs.map((a) => a.schemaKey))
+      const wrapped = wrapBodyRootInput({ title: 'hello', n: 1 }, root.schemaKey, declared) as Record<string, unknown>
+      const params = buildRequestParams(def, { options: {}, input: { ...wrapped, index: 'my-index', id: '1' } }, schemaArgs)
+      assert.equal(params.method, 'PUT')
+      assert.equal(params.path, name === 'index' ? '/my-index/_doc/1' : '/my-index/_create/1')
+      assert.deepEqual(params.body, { title: 'hello', n: 1 })
+    })
+  }
+
+  it('put-settings {"index":{...}} is not wrapped: index is a declared parameter (known limitation)', () => {
+    // Pins current behaviour; the REST form collides with the path param name. Use
+    // --input-file with {"settings": {...}} or flat keys instead.
+    const declared = new Set(['index', 'settings', 'number_of_replicas'])
+    const input = { index: { number_of_replicas: 2 } }
+    assert.equal(wrapBodyRootInput(input, 'settings', declared), input)
   })
 })
 

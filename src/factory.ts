@@ -738,8 +738,15 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
         }
 
         // Only the root is closed: relaxed fields above stay `{}`, so nested DSL is untouched.
+        // Keys hidden by availability filtering are still sent by the builder, so they
+        // stay accepted (unvalidated, as before) rather than becoming unknown.
         if (config.rejectUnknownKeys === true && validationSchema['additionalProperties'] === undefined) {
-          validationSchema = { ...validationSchema, additionalProperties: false }
+          const props = { ...(validationSchema['properties'] as Record<string, unknown> | undefined) }
+          const fullProps = config.input?.['properties'] as Record<string, unknown> | undefined
+          for (const key of Object.keys(fullProps ?? {})) {
+            if (!(key in props)) props[key] = {}
+          }
+          validationSchema = { ...validationSchema, properties: props, additionalProperties: false }
         }
 
         const result = validateWithJsonSchema(validationSchema, inputValue)

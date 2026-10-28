@@ -81,9 +81,13 @@ function buildLeafHandle (
   }
   // @elastic/schemas marks body roots (e.g. `document`) as optional, so `required`
   // can't gate this: without the wrap, a REST-style body is all undeclared keys.
-  const bodyRootArg = schemaArgs.find(
-    (a) => (a.foundIn === 'body' || a.foundIn === undefined) && a.bodyRoot === true
-  )
+  // NDJSON / array roots (bulk, msearch, ml post-data) are not wrapped: an object
+  // there is not a valid body, so it falls through to the unknown-key rejection.
+  const bodyRootArg = def.bodyFormat === 'ndjson'
+    ? undefined
+    : schemaArgs.find(
+      (a) => (a.foundIn === 'body' || a.foundIn === undefined) && a.bodyRoot === true && a.type !== 'array'
+    )
   if (bodyRootArg != null) {
     const rootKey = bodyRootArg.schemaKey
     const declared = new Set(schemaArgs.map((a) => a.schemaKey))

@@ -3923,6 +3923,60 @@ describe('defineCommand schema input - passthrough validation', () => {
       assert.deepEqual(captured, { query: { anything: { goes: 1 } } })
     })
 
+    it('accepts a key hidden by the availability target, still rejects unknown keys', async () => {
+      // The ES builder sends every schema property, so a version-gated key must not become "unknown".
+      const input = {
+        type: 'object',
+        properties: {
+          query: { type: 'string', 'x-availability': { stack: { since: '7.0.0' } } },
+          time_zone: { type: 'string', 'x-availability': { stack: { since: '9.4.0' } } },
+        },
+      }
+      const target = [9, 2] as import('../src/lib/availability.ts').AvailabilityTarget
+      let captured: unknown
+      const cmd = defineCommand({
+        name: 'query',
+        description: 'Query',
+        input,
+        target,
+        rejectUnknownKeys: true,
+        handler: (parsed) => { captured = parsed.input; return {} },
+      })
+      const okPath = join(tmpDir, 'reject-unknown-gated.json')
+      writeFileSync(okPath, JSON.stringify({ query: 'FROM i', time_zone: 'UTC' }))
+      await invokeAsync(cmd, ['--input-file', okPath])
+      assert.deepEqual(captured, { query: 'FROM i', time_zone: 'UTC' })
+
+      const badCmd = defineCommand({
+        name: 'query',
+        description: 'Query',
+        input,
+        target,
+        rejectUnknownKeys: true,
+        handler: () => ({}),
+      })
+      const badPath = join(tmpDir, 'reject-unknown-gated-bad.json')
+      writeFileSync(badPath, JSON.stringify({ query: 'FROM i', tz: 'UTC' }))
+      const err = await captureErrAsync(badCmd, ['--input-file', badPath])
+      assert.match(err, /'tz'/)
+    })
+
+    it('leaves a schema with its own additionalProperties untouched', async () => {
+      const schema = { ...jsonSchema({ index: { type: 'string', description: 'Index' } }), additionalProperties: true }
+      const filePath = join(tmpDir, 'reject-unknown-open.json')
+      writeFileSync(filePath, JSON.stringify({ index: 'foo', extra: 1 }))
+      let captured: unknown
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        rejectUnknownKeys: true,
+        handler: (parsed) => { captured = parsed.input; return {} },
+      })
+      await invokeAsync(cmd, ['--input-file', filePath])
+      assert.deepEqual(captured, { index: 'foo', extra: 1 })
+    })
+
     it('--no-validate skips the check', async () => {
       const schema = jsonSchema({ index: { type: 'string', description: 'Index' } })
       const filePath = join(tmpDir, 'reject-unknown-novalidate.json')
