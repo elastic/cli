@@ -11,7 +11,7 @@ import { clientHeaders } from './meta.ts'
 import { parseSseText } from './sse.ts'
 import { YamlResponse, isYamlContentType } from './yaml-response.ts'
 import { HttpResponseError } from './http-errors.ts'
-import { buildUrl, send, warnIfPlaintext } from './http-core.ts'
+import { buildUrl, readText, send, warnIfPlaintext } from './http-core.ts'
 
 /** HTTP methods supported by the Kibana API client. */
 export type KibanaHttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD' | 'PATCH'
@@ -219,9 +219,9 @@ export class KibanaClient {
       response = await send(this._fetch, url, init)
     }
 
-    if (!response.ok) throw kibanaError(response.status, await response.text())
+    if (!response.ok) throw kibanaError(response.status, await readText(response))
 
-    const text = await response.text()
+    const text = await readText(response)
     if (text.length === 0) return {}
 
     return decodeBody(text, response.headers.get('content-type') ?? '', responseType)

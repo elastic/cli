@@ -8,7 +8,7 @@ import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
 import { clientHeaders } from './meta.ts'
 import { YamlResponse, isYamlContentType } from './yaml-response.ts'
 import { HttpResponseError } from './http-errors.ts'
-import { buildUrl, send, warnIfPlaintext } from './http-core.ts'
+import { buildUrl, readText, send, warnIfPlaintext } from './http-core.ts'
 
 /** Parameters for a single Elasticsearch API request. */
 export interface EsRequestParams {
@@ -86,7 +86,7 @@ export class EsClient {
     }
 
     if (!response.ok) {
-      const text = await response.text()
+      const text = await readText(response)
       let body: unknown
       try {
         body = JSON.parse(text)
@@ -97,7 +97,7 @@ export class EsClient {
     }
 
     const contentType = response.headers.get('content-type') ?? ''
-    const text = await response.text()
+    const text = await readText(response)
     if (text.length === 0) return {}
     if (contentType.includes('application/json') || contentType.includes('application/x-ndjson')) {
       return JSON.parse(text)

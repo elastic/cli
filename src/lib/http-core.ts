@@ -62,3 +62,17 @@ export async function send (fetchFn: typeof fetch, url: string, init: RequestIni
     throw toConnectionError(err)
   }
 }
+
+/**
+ * Reads the response body as text. The `send` deadline still runs while the body streams, so a
+ * timeout here is the same connection failure as one before the headers.
+ *
+ * @throws {ConnectionError} when the body could not be read
+ */
+export async function readText (response: Response): Promise<string> {
+  try {
+    return await response.text()
+  } catch (err) {
+    throw toConnectionError(err)
+  }
+}
