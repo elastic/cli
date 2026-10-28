@@ -237,6 +237,13 @@ describe('readRawConfig', () => {
     const raw = await readRawConfig(path)
     assert.deepEqual(raw.commands, { allowed: ['cloud.*'] })
   })
+
+  it('preserves default_profile when present', async () => {
+    const path = join(dir, 'with-default-profile.yml')
+    await writeConfig(path, { ...SAMPLE, default_profile: 'serverless' })
+    const raw = await readRawConfig(path)
+    assert.equal(raw.default_profile, 'serverless')
+  })
 })
 
 describe('hasInlineSecrets', () => {
