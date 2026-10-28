@@ -92,6 +92,13 @@ export interface CommandConfig {
   /** Applied to JSON input (stdin or --input-file) before schema validation. */
   inputTransform?: (input: unknown) => unknown
   /**
+   * Reject top-level input keys the `input` schema does not declare, with an
+   * `input_validation_failed` error naming each one. Set by builders whose request
+   * body is rebuilt from schema properties (ES), where an undeclared key would
+   * otherwise be dropped before the request is sent. `--no-validate` skips it.
+   */
+  rejectUnknownKeys?: boolean
+  /**
    * Availability target used to filter properties from the input schema in flags and --help --json.
    * When absent, all properties are shown (today's full-superset behavior).
    */

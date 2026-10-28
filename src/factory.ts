@@ -737,6 +737,11 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
           validationSchema = { ...effectiveInput, properties: props }
         }
 
+        // Only the root is closed: relaxed fields above stay `{}`, so nested DSL is untouched.
+        if (config.rejectUnknownKeys === true && validationSchema['additionalProperties'] === undefined) {
+          validationSchema = { ...validationSchema, additionalProperties: false }
+        }
+
         const result = validateWithJsonSchema(validationSchema, inputValue)
 
         if (!result.success) {

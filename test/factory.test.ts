@@ -3828,6 +3828,117 @@ describe('defineCommand schema input - passthrough validation', () => {
       restore()
     }
   })
+
+  describe('rejectUnknownKeys (#801)', () => {
+    it('rejects an unknown top-level key from --input-file and names it', async () => {
+      const schema = jsonSchema({ index: { type: 'string', description: 'Index' } })
+      const filePath = join(tmpDir, 'reject-unknown.json')
+      writeFileSync(filePath, JSON.stringify({ index: 'foo', aggs: { a: {} } }))
+      let called = false
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        rejectUnknownKeys: true,
+        handler: () => { called = true; return {} },
+      })
+      const { Command } = await import('commander')
+      const prog = new Command('elastic')
+      prog.option('--json', 'output as JSON')
+      prog.addCommand(cmd)
+      prog.exitOverride()
+      cmd.exitOverride()
+      let thrown: unknown
+      const { stderr } = await captureStreams(async () => {
+        try {
+          await prog.parseAsync(['--json', cmd.name(), '--input-file', filePath], { from: 'user' })
+        } catch (e) {
+          thrown = e
+        }
+      })
+      const parsed = JSON.parse(stderr) as {
+        error: { code: string, issues: Array<{ code: string, path: Array<string | number>, message: string }> }
+      }
+      assert.equal(parsed.error.code, 'input_validation_failed')
+      assert.equal((thrown as { exitCode?: number } | undefined)?.exitCode, 1, 'must fail with exit code 1')
+      assert.equal(called, false, 'handler must not run on invalid input')
+      assert.equal(parsed.error.issues.length, 1)
+      const [issue] = parsed.error.issues
+      assert.equal(issue!.code, 'additionalProperties')
+      assert.match(issue!.message, /'aggs'/)
+    })
+
+    it('rejects an unknown top-level key from stdin', async () => {
+      const schema = jsonSchema({ index: { type: 'string', description: 'Index' } })
+      const restore = _testSetStdinReader(() => JSON.stringify({ index: 'foo', qeury: {} }))
+      Object.defineProperty(process.stdin, 'isTTY', { value: undefined, configurable: true, writable: true })
+      try {
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Search',
+          input: schema,
+          rejectUnknownKeys: true,
+          handler: () => ({}),
+        })
+        const err = await captureErrAsync(cmd, [])
+        assert.match(err, /input validation failed/)
+        assert.match(err, /'qeury'/)
+      } finally {
+        restore()
+      }
+    })
+
+    it('accepts input whose top-level keys are all declared', async () => {
+      const schema = jsonSchema({
+        index: { type: 'string', description: 'Index' },
+        query: { type: 'object', description: 'Query DSL' },
+      })
+      const filePath = join(tmpDir, 'reject-unknown-ok.json')
+      writeFileSync(filePath, JSON.stringify({ index: 'foo', query: { term: { a: 'b' } } }))
+      let captured: unknown
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        rejectUnknownKeys: true,
+        handler: (parsed) => { captured = parsed.input; return {} },
+      })
+      await invokeAsync(cmd, ['--input-file', filePath])
+      assert.deepEqual(captured, { index: 'foo', query: { term: { a: 'b' } } })
+    })
+
+    it('does not check keys nested inside a declared field', async () => {
+      const schema = jsonSchema({ query: { type: 'object', description: 'Query DSL' } })
+      const filePath = join(tmpDir, 'reject-unknown-nested.json')
+      writeFileSync(filePath, JSON.stringify({ query: { anything: { goes: 1 } } }))
+      let captured: unknown
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        rejectUnknownKeys: true,
+        handler: (parsed) => { captured = parsed.input; return {} },
+      })
+      await invokeAsync(cmd, ['--input-file', filePath])
+      assert.deepEqual(captured, { query: { anything: { goes: 1 } } })
+    })
+
+    it('--no-validate skips the check', async () => {
+      const schema = jsonSchema({ index: { type: 'string', description: 'Index' } })
+      const filePath = join(tmpDir, 'reject-unknown-novalidate.json')
+      writeFileSync(filePath, JSON.stringify({ index: 'foo', bogus: 1 }))
+      let captured: unknown
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: schema,
+        rejectUnknownKeys: true,
+        handler: (parsed) => { captured = parsed.input; return {} },
+      })
+      await invokeAsync(cmd, ['--input-file', filePath, '--no-validate'])
+      assert.equal((captured as Record<string, unknown>).bogus, 1)
+    })
+  })
 })
 describe('defineCommand schema input - JSON + CLI merge', () => {
   let tmpDir: string
