@@ -203,6 +203,8 @@ export class KibanaClient {
 
     let response = await this._fetch(url, init)
     for (let hops = 0; REDIRECT_STATUSES.has(response.status); hops++) {
+      // an unread body pins its connection until GC; the redirect body is never needed.
+      await response.body?.cancel()
       const location = response.headers.get('location')
       if (location == null) throw new Error(`Kibana API error ${response.status}: redirect without a Location header`)
       const next = new URL(location, url)

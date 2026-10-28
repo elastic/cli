@@ -284,6 +284,21 @@ describe('KibanaClient.request redirects', () => {
     })
   }
 
+  for (const [name, location] of [['followed', '/api/next'], ['refused', 'https://evil.example.com/']] as const) {
+    it(`cancels the body of a ${name} redirect`, async () => {
+      const client = new KibanaClient('http://localhost:5601', { api_key: 'test-key' })
+      let cancelled = false
+      let calls = 0
+      client._testSetFetch((() => {
+        if (calls++ > 0) return Promise.resolve(new Response('{}', { status: 200 }))
+        const body = new ReadableStream({ cancel: () => { cancelled = true } })
+        return Promise.resolve(new Response(body, { status: 307, headers: { location } }))
+      }) as unknown as typeof fetch)
+      await client.request({ method: 'GET', path: '/api/status' }).catch(() => {})
+      assert.equal(cancelled, true)
+    })
+  }
+
   it('enforces the hop cap', async () => {
     const loop = { status: 307, location: '/api/loop' }
     const { client, hops } = stubClient([loop, loop, loop, loop])
