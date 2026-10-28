@@ -56,6 +56,20 @@ describe('buildRequestParams', () => {
     assert.equal(result.path, '/my-index')
   })
 
+  it('rejects a missing required path parameter instead of dropping its segment', () => {
+    // --no-validate skips the schema, so the builder is the last guard: without it
+    // DELETE /_snapshot/backups/{snapshot} would become DELETE /_snapshot/backups.
+    const input = schema(
+      { repository: { type: 'string', 'x-found-in': 'path' }, snapshot: { type: 'string', 'x-found-in': 'path' } },
+      ['repository', 'snapshot']
+    )
+    const def = makeDefinition({ method: 'DELETE', path: '/_snapshot/{repository}/{snapshot}', input })
+    assert.throws(
+      () => buildRequestParams(def, parsedResult({ repository: 'backups' }), args(input)),
+      { code: 'input_error', message: 'missing required path parameter "snapshot"' }
+    )
+  })
+
   it('interpolates multiple path parameters from parsed.input', () => {
     const input = schema(
       {
