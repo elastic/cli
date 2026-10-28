@@ -310,7 +310,7 @@ describe('buildCloudRequestParams required path param handling (BUG C regression
 
     assert.throws(
       () => build(def, parsed({})),
-      /deployment_id/,
+      { code: 'input_error', message: 'missing required path parameter "deployment_id"' },
     )
   })
 
