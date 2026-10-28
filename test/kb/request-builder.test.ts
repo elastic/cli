@@ -388,6 +388,20 @@ describe('buildKibanaRequestParams path param requiredness (BUG A regression)', 
   })
 })
 
+describe('buildKibanaRequestParams missing required path param', () => {
+  it('rejects instead of collapsing get-space into list-spaces', () => {
+    const def: KbApiDefinition = {
+      name: 'get-space',
+      namespace: 'spaces',
+      description: 'Get a space',
+      method: 'GET',
+      path: '/api/spaces/space/{id}',
+      input: { type: 'object', properties: { id: { type: 'string', 'x-found-in': 'path' } }, required: ['id'] },
+    }
+    assert.throws(() => build(def, parsed()), { code: 'input_error', message: 'missing required path parameter "id"' })
+  })
+})
+
 describe('buildKibanaRequestParams path traversal rejection', () => {
   function defWithPathParam (): KbApiDefinition {
     return {

@@ -36,6 +36,20 @@ export function interpolatePath (
 }
 
 /**
+ * Throws an `input_error` when a required path arg has no value. Run before
+ * `interpolatePath`, which would otherwise drop the segment and silently
+ * target a broader endpoint (e.g. a snapshot delete becoming a repository
+ * delete) when `--no-validate` skips schema validation.
+ */
+export function requirePathParams (args: SchemaArgDefinition[], input: Record<string, unknown>): void {
+  for (const arg of args) {
+    if (arg.foundIn === 'path' && arg.required && input[arg.schemaKey] === undefined) {
+      throw Object.assign(new Error(`missing required path parameter "${arg.schemaKey}"`), { code: 'input_error' })
+    }
+  }
+}
+
+/**
  * Collects the query-routed args that have a value, keyed by schema key.
  *
  * Values are returned unserialized because the array wire format differs by
