@@ -326,6 +326,7 @@ export async function readRawConfig (path: string): Promise<RawConfig> {
       ? obj.contexts as Record<string, RawContext>
       : {},
     ...(obj.commands != null ? { commands: obj.commands } : {}),
+    ...(typeof obj.default_profile === 'string' ? { default_profile: obj.default_profile } : {}),
     ...(typeof obj.banner === 'boolean' ? { banner: obj.banner } : {}),
     ...(typeof obj.telemetry === 'boolean' ? { telemetry: obj.telemetry } : {}),
     ...(typeof obj.detect_version === 'boolean' ? { detect_version: obj.detect_version } : {}),
