@@ -9,7 +9,7 @@ import type { ParsedResult } from '../factory.ts'
 import type { KibanaRequestParams } from '../lib/kibana-client.ts'
 import { encodePathParam } from '../lib/path-encoding.ts'
 import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
-import { interpolatePath, routeBody, routeQuery } from '../lib/request-routing.ts'
+import { interpolatePath, requirePathParams, routeBody, routeQuery } from '../lib/request-routing.ts'
 
 /**
  * Kibana endpoints whose request body must be sent as `multipart/form-data`.
@@ -65,6 +65,7 @@ export function buildKibanaRequestParams (
 ): KibanaRequestParams {
   const input = (parsed.input ?? {}) as Record<string, unknown>
 
+  requirePathParams(schemaArgs, input)
   const path = interpolatePath(PATH_OVERRIDES.get(`${def.namespace} ${def.name}`) ?? def.path, input, encodePathParam)
   const querystring = Object.fromEntries(
     Object.entries(routeQuery(schemaArgs, input)).map(([key, value]) => [key, Array.isArray(value) ? JSON.stringify(value) : String(value)])

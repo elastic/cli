@@ -8,7 +8,7 @@ import type { EsApiDefinition } from './types.ts'
 import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
 import type { RawJsonValue, ParsedResult } from '../factory.ts'
 import { encodeMultiTargetPathParam } from '../lib/path-encoding.ts'
-import { interpolatePath, routeBody, routeQuery } from '../lib/request-routing.ts'
+import { interpolatePath, requirePathParams, routeBody, routeQuery } from '../lib/request-routing.ts'
 
 /**
  * Builds a `TransportRequestParams` object from an API definition, parsed CLI input,
@@ -35,6 +35,7 @@ export function buildRequestParams (
   const input = (parsed.input ?? {}) as Record<string, unknown>
   const rawBody = parsed.rawBodyValues ?? {}
 
+  requirePathParams(schemaArgs, input)
   const path = interpolatePath(def.path, input, encodeMultiTargetPathParam)
   const querystring = routeQuery(schemaArgs, input)
   const body = collectBody(schemaArgs, input, rawBody, def.path, def.bodyFormat)
