@@ -361,8 +361,12 @@ if (!wantsHelp && firstArg != null && !program.commands.some(c => c.name() === f
       before.addOption(o)
       if (o.long === '--config-file' || o.long === '--use-context' || o.long === '--command-profile') after.addOption(o)
     }
-    const rest = before.parseOptions(argv).operands.slice(1)
-    const sep = rest.includes('--') ? rest.indexOf('--') : rest.length
+    // parseOptions drops a `--` it consumes, so split there first: a `--` before the name
+    // ends option parsing for everything after it.
+    const dd = argv.indexOf('--')
+    const named = before.parseOptions(dd < 0 ? argv : argv.slice(0, dd)).operands
+    const rest = named.length > 0 ? [...named.slice(1), ...(dd < 0 ? [] : argv.slice(dd))] : argv.slice(dd + 2)
+    const sep = named.length === 0 ? 0 : rest.includes('--') ? rest.indexOf('--') : rest.length
     const { operands, unknown } = after.parseOptions(rest.slice(0, sep))
     const { configFile, useContext, commandProfile } = { ...before.opts(), ...after.opts() }
     const cachedConfig = await loadCfg({

@@ -819,6 +819,7 @@ describe('elastic CLI -- extension dispatch honors global config flags', { skip:
     ['--use-context leading the extension args', ['dumpenv', '--use-context', 'b', 'x'], 'URL=http://b.example:9200 ARGS=x'],
     ['--use-context after an extension arg (forwarded)', ['dumpenv', 'x', '--use-context', 'b'], 'URL=http://a.example:9200 ARGS=x --use-context b'],
     ['--use-context after -- (forwarded)', ['dumpenv', '--', '--use-context', 'b'], 'URL=http://a.example:9200 ARGS=-- --use-context b'],
+    ['-- before the extension name (args forwarded)', ['--use-context', 'b', '--', 'dumpenv', '--use-context', 'a'], 'URL=http://b.example:9200 ARGS=--use-context a'],
     ['--json before the extension name', ['--json', 'dumpenv', 'x'], 'URL=http://a.example:9200 ARGS=x'],
     ['--json after the extension name (forwarded)', ['dumpenv', '--json', 'x'], 'URL=http://a.example:9200 ARGS=--json x'],
     // An unknown profile fails the config load, so no credentials reach the extension.
