@@ -188,7 +188,6 @@ describe('registerKbCommandsLazy', () => {
       urls.push(String(url))
       return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } })
     })
-    t.mock.property(process, 'argv', argv)
     t.mock.method(process, 'exit', (code?: number) => { throw new Error(`process.exit(${code})`) })
     t.mock.method(process.stdout, 'write', () => true)
 
