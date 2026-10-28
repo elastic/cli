@@ -5,13 +5,15 @@
 
 // Behaviour every HTTP client shares. Per-product quirks live in each client's own test file.
 
-import { describe, it, type TestContext } from 'node:test'
+import { afterEach, describe, it, type TestContext } from 'node:test'
 import assert from 'node:assert/strict'
 import { EsClient } from '../../src/lib/es-client.ts'
 import { KibanaClient } from '../../src/lib/kibana-client.ts'
 import { CloudClient } from '../../src/lib/cloud-client.ts'
 import { ConnectionError, HttpResponseError } from '../../src/lib/http-errors.ts'
 import { clientHeaders } from '../../src/lib/meta.ts'
+import { setResolvedConfig, _testResetConfig } from '../../src/config/store.ts'
+import type { ResolvedConfig } from '../../src/config/types.ts'
 
 interface ContractRequest {
   method: 'GET' | 'POST'
@@ -156,6 +158,36 @@ for (const c of cases) {
         for (const [key, value] of Object.entries(clientHeaders())) assert.equal(headers[key], value)
         assert.equal(headers['Authorization'], 'ApiKey k')
         assert.equal(headers['Accept'], 'application/json')
+      })
+    })
+
+    describe('x-elastic-client-meta', () => {
+      // The RequestInit test compares against clientHeaders(), which passes vacuously when
+      // telemetry is off; pin both states by name.
+      const env = process.env.ELASTIC_CLI_TELEMETRY
+      afterEach(() => {
+        _testResetConfig()
+        if (env === undefined) delete process.env.ELASTIC_CLI_TELEMETRY
+        else process.env.ELASTIC_CLI_TELEMETRY = env
+      })
+
+      for (const method of ['GET', 'POST'] as const) {
+        it(`is sent on a ${method} by default`, async () => {
+          delete process.env.ELASTIC_CLI_TELEMETRY
+          const { client, calls } = stub(c)
+          await client.request({ method, path: '/x' })
+          assert.match((calls[0]!.init.headers as Record<string, string>)['x-elastic-client-meta'] ?? '', /^et=[^,]+,js=[^,]+,t=/)
+        })
+      }
+
+      it('is omitted when config telemetry is false', async () => {
+        delete process.env.ELASTIC_CLI_TELEMETRY
+        setResolvedConfig({ context: {}, telemetry: false } as ResolvedConfig)
+        const { client, calls } = stub(c)
+        await client.request({ method: 'GET', path: '/x' })
+        const headers = calls[0]!.init.headers as Record<string, string>
+        assert.equal('x-elastic-client-meta' in headers, false)
+        assert.match(headers['user-agent'] ?? '', /^elastic-cli\//)
       })
     })
 
