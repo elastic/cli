@@ -189,7 +189,6 @@ describe('registerKbCommandsLazy', () => {
       return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } })
     })
     t.mock.method(process, 'exit', (code?: number) => { throw new Error(`process.exit(${code})`) })
-    t.mock.method(process.stdout, 'write', () => true)
 
     const root = new Command('elastic').option('--use-context <name>').addCommand(kb)
     await root.parseAsync(argv)
