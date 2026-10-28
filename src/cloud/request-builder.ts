@@ -8,7 +8,7 @@ import type { CloudRequestParams } from '../lib/cloud-client.ts'
 import type { ParsedResult } from '../factory.ts'
 import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
 import { encodePathParam } from '../lib/path-encoding.ts'
-import { interpolatePath, routeBody, routeQuery } from '../lib/request-routing.ts'
+import { interpolatePath, requirePathParams, routeBody, routeQuery } from '../lib/request-routing.ts'
 
 /**
  * Builds a `CloudRequestParams` object from an API definition and parsed CLI input.
@@ -31,11 +31,7 @@ export function buildCloudRequestParams (
 ): CloudRequestParams {
   const input = (parsed.input ?? {}) as Record<string, unknown>
 
-  for (const arg of schemaArgs) {
-    if (arg.foundIn === 'path' && arg.required && input[arg.schemaKey] === undefined) {
-      throw new Error(`missing required path parameter "${arg.schemaKey}"`)
-    }
-  }
+  requirePathParams(schemaArgs, input)
   const path = interpolatePath(def.path, input, encodePathParam)
   const querystring = Object.fromEntries(
     Object.entries(routeQuery(schemaArgs, input)).map(([key, value]) => [key, String(value)])
