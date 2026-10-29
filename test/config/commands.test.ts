@@ -6,7 +6,7 @@
 import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 
@@ -200,5 +200,40 @@ describe('elastic config (integration)', () => {
     ])
     const secretWarning = res.stderr.split('\n').filter(l => l.startsWith('Warning:') && l.includes('process listings'))
     assert.equal(secretWarning.length, 0, 'expected no secret-flag warning on stderr')
+  })
+})
+
+describe('elastic config context add (home config discovery)', () => {
+  let home: string
+
+  before(async () => { home = await mkdtemp(join(tmpdir(), 'elastic-cli-home-write-')) })
+  after(async () => rm(home, { recursive: true, force: true }))
+
+  const homeEnv = () => ({ HOME: home, USERPROFILE: home, ELASTIC_CLI_CONFIG_FILE: '' })
+
+  for (const name of ['.elasticrc', '.elasticrc.json', '.elasticrc.yaml']) {
+    it(`writes to the existing ~/${name} and creates no ~/.elasticrc.yml (#727)`, async () => {
+      const existing = join(home, name)
+      await writeFile(existing, JSON.stringify({ current_context: 'a', contexts: { a: { elasticsearch: { url: 'http://a:9200' } } } }))
+      try {
+        const res = run(['config', 'context', 'add', 'b', '--es-url', 'http://b:9200'], homeEnv())
+        assert.equal(res.exitCode, 0, res.stderr)
+        const written = await readFile(existing, 'utf-8')
+        assert.match(written, /http:\/\/b:9200/)
+        if (name.endsWith('.json')) JSON.parse(written)
+        await assert.rejects(stat(join(home, '.elasticrc.yml')), { code: 'ENOENT' })
+        const list = run(['config', 'context', 'list'], homeEnv())
+        assert.deepEqual((list.json as { contexts: Array<{ name: string }> }).contexts.map(c => c.name), ['a', 'b'])
+      } finally {
+        await rm(existing, { force: true })
+      }
+    })
+  }
+
+  it('creates ~/.elasticrc.yml when no config file exists', async () => {
+    const res = run(['config', 'context', 'add', 'fresh', '--es-url', 'http://f:9200'], homeEnv())
+    assert.equal(res.exitCode, 0, res.stderr)
+    assert.match(await readFile(join(home, '.elasticrc.yml'), 'utf-8'), /fresh/)
+    await rm(join(home, '.elasticrc.yml'))
   })
 })

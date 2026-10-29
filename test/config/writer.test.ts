@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, before, after } from 'node:test'
+import { describe, it, before, after, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -139,6 +139,14 @@ describe('writeConfig', () => {
     assert.ok('staging' in parsed.contexts)
   })
 
+  it('writes JSON for a .json path so the loader can still parse it', async () => {
+    const path = join(dir, 'basic.json')
+    await writeConfig(path, SAMPLE)
+    const parsed = JSON.parse(await readFile(path, 'utf-8')) as RawConfig
+    assert.equal(parsed.current_context, 'local')
+    assert.ok('staging' in parsed.contexts)
+  })
+
   it('enforces 0600 permissions on Unix', async () => {
     if (process.platform === 'win32') return
     const path = join(dir, 'perms.yml')
@@ -229,6 +237,13 @@ describe('readRawConfig', () => {
     const raw = await readRawConfig(path)
     assert.deepEqual(raw.commands, { allowed: ['cloud.*'] })
   })
+
+  it('preserves default_profile when present', async () => {
+    const path = join(dir, 'with-default-profile.yml')
+    await writeConfig(path, { ...SAMPLE, default_profile: 'serverless' })
+    const raw = await readRawConfig(path)
+    assert.equal(raw.default_profile, 'serverless')
+  })
 })
 
 describe('hasInlineSecrets', () => {
@@ -275,32 +290,68 @@ describe('hasInlineSecrets', () => {
 })
 
 describe('resolveConfigPath', () => {
-  it('prefers an explicit non-empty path', () => {
-    assert.equal(resolveConfigPath('/tmp/explicit.yml'), '/tmp/explicit.yml')
-  })
+  const originalEnv = process.env.ELASTIC_CLI_CONFIG_FILE
+  const originalHome = process.env.HOME
+  const originalUserProfile = process.env.USERPROFILE
+  let home: string
 
-  it('falls back to ELASTIC_CLI_CONFIG_FILE when no explicit path is given', () => {
-    const prev = process.env.ELASTIC_CLI_CONFIG_FILE
-    process.env.ELASTIC_CLI_CONFIG_FILE = '/tmp/from-env.yml'
-    try {
-      assert.equal(resolveConfigPath(), '/tmp/from-env.yml')
-      assert.equal(resolveConfigPath(''), '/tmp/from-env.yml')
-    } finally {
-      if (prev === undefined) delete process.env.ELASTIC_CLI_CONFIG_FILE
-      else process.env.ELASTIC_CLI_CONFIG_FILE = prev
-    }
-  })
-
-  it('defaults to ~/.elasticrc.yml when nothing else is set', () => {
-    const prev = process.env.ELASTIC_CLI_CONFIG_FILE
+  beforeEach(async () => {
     delete process.env.ELASTIC_CLI_CONFIG_FILE
-    try {
-      assert.match(resolveConfigPath(), /\.elasticrc\.yml$/)
-    } finally {
-      if (prev !== undefined) process.env.ELASTIC_CLI_CONFIG_FILE = prev
-    }
+    home = await mkdtemp(join(tmpdir(), 'elastic-cli-resolve-'))
+    process.env.HOME = home
+    process.env.USERPROFILE = home
+  })
+
+  afterEach(async () => {
+    restoreEnv('ELASTIC_CLI_CONFIG_FILE', originalEnv)
+    restoreEnv('HOME', originalHome)
+    restoreEnv('USERPROFILE', originalUserProfile)
+    await rm(home, { recursive: true, force: true })
+  })
+
+  it('prefers an explicit non-empty path', async () => {
+    assert.equal(await resolveConfigPath('/tmp/explicit.yml'), '/tmp/explicit.yml')
+  })
+
+  it('prefers an explicit path over an existing home config file', async () => {
+    await writeFile(join(home, '.elasticrc'), 'contexts: {}\n')
+    assert.equal(await resolveConfigPath('/tmp/explicit.yml'), '/tmp/explicit.yml')
+  })
+
+  it('falls back to ELASTIC_CLI_CONFIG_FILE when no explicit path is given', async () => {
+    process.env.ELASTIC_CLI_CONFIG_FILE = '/tmp/from-env.yml'
+    assert.equal(await resolveConfigPath(), '/tmp/from-env.yml')
+    assert.equal(await resolveConfigPath(''), '/tmp/from-env.yml')
+  })
+
+  it('prefers ELASTIC_CLI_CONFIG_FILE over an existing home config file', async () => {
+    await writeFile(join(home, '.elasticrc'), 'contexts: {}\n')
+    process.env.ELASTIC_CLI_CONFIG_FILE = '/tmp/from-env.yml'
+    assert.equal(await resolveConfigPath(), '/tmp/from-env.yml')
+  })
+
+  it('defaults to ~/.elasticrc.yml when no config file exists', async () => {
+    assert.equal(await resolveConfigPath(), join(home, '.elasticrc.yml'))
+  })
+
+  for (const name of ['.elasticrc', '.elasticrc.json', '.elasticrc.yaml']) {
+    it(`returns the existing ~/${name} instead of ~/.elasticrc.yml`, async () => {
+      await writeFile(join(home, name), 'contexts: {}\n')
+      assert.equal(await resolveConfigPath(), join(home, name))
+    })
+  }
+
+  it('follows discovery priority when several home config files exist', async () => {
+    await writeFile(join(home, '.elasticrc.yml'), 'contexts: {}\n')
+    await writeFile(join(home, '.elasticrc.json'), '{}\n')
+    assert.equal(await resolveConfigPath(), join(home, '.elasticrc.json'))
   })
 })
+
+function restoreEnv (key: string, value: string | undefined): void {
+  if (value === undefined) delete process.env[key]
+  else process.env[key] = value
+}
 
 describe('serializeConfig — optional top-level keys', () => {
   it('includes banner and telemetry when set and passes through extra keys', () => {
