@@ -55,7 +55,7 @@ if (!wantsHelp) {
     const skipActionNames: ReadonlySet<string> = new Set(['version', 'completion', '__complete', 'status', 'help'])
     // Match only top-level commands: leaves like `cat help` or `async-search status` share names.
     if (actionCommand.parent === thisCommand && skipActionNames.has(actionCommand.name())) return
-    // Groups with no sub-command will just call group.help() — no real action fires.
+    // Groups with no sub-command will just call group.help() -- no real action fires.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((actionCommand as any)._isGroup === true && actionCommand.args.length === 0) return
 
@@ -351,9 +351,31 @@ if (!wantsHelp && firstArg != null && !program.commands.some(c => c.name() === f
     const { buildContextEnv } = await import('./extension/context.ts')
     const { runExtension } = await import('./extension/runner.ts')
     const { loadConfig: loadCfg } = await import('./config/loader.js')
-    const cachedConfig = await loadCfg()
+    // Global flags before the extension name, and context flags leading its args, pick the
+    // context the extension gets credentials for (#738). passThroughOptions stops parsing at
+    // the extension's first own arg; output flags after the name and anything from `--` on
+    // are the extension's and are forwarded untouched.
+    const before = new Command().passThroughOptions()
+    const after = new Command().passThroughOptions()
+    for (const o of program.options) {
+      before.addOption(o)
+      if (o.long === '--config-file' || o.long === '--use-context' || o.long === '--command-profile') after.addOption(o)
+    }
+    // parseOptions drops a `--` it consumes, so split there first: a `--` before the name
+    // ends option parsing for everything after it.
+    const dd = argv.indexOf('--')
+    const named = before.parseOptions(dd < 0 ? argv : argv.slice(0, dd)).operands
+    const rest = named.length > 0 ? [...named.slice(1), ...(dd < 0 ? [] : argv.slice(dd))] : argv.slice(dd + 2)
+    const sep = named.length === 0 ? 0 : rest.includes('--') ? rest.indexOf('--') : rest.length
+    const { operands, unknown } = after.parseOptions(rest.slice(0, sep))
+    const { configFile, useContext, commandProfile } = { ...before.opts(), ...after.opts() }
+    const cachedConfig = await loadCfg({
+      ...(configFile != null && { configPath: configFile }),
+      ...(useContext != null && { contextName: useContext }),
+      ...(commandProfile != null && { profileName: commandProfile }),
+    })
     const contextEnv = cachedConfig?.ok === true ? buildContextEnv(cachedConfig.value) : {}
-    const exitCode = await runExtension(ext, process.argv.slice(3), contextEnv)
+    const exitCode = await runExtension(ext, [...operands, ...unknown, ...rest.slice(sep)], contextEnv)
     process.exit(exitCode)
   }
 }
