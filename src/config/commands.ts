@@ -461,11 +461,11 @@ function resolveForValidation (v: unknown): unknown {
 }
 
 /**
- * Opens $EDITOR on a single-context YAML fragment. On clean exit, returns
+ * Opens $VISUAL / $EDITOR on a single-context YAML fragment. On clean exit, returns
  * the parsed context; on cancel / empty / error, returns null.
  */
-async function editInEditor (name: string, original: RawContext): Promise<RawContext | null> {
-  const editor = process.env.EDITOR ?? process.env.VISUAL ?? (process.platform === 'win32' ? 'notepad' : 'vi')
+export async function editInEditor (name: string, original: RawContext): Promise<RawContext | null> {
+  const editor = process.env.VISUAL || process.env.EDITOR || (process.platform === 'win32' ? 'notepad' : 'vi')
   const header =
     `# Editing context "${name}" -- save and exit to apply, or exit with an error to cancel.\n` +
     `# Any $(...) expressions are preserved as-is.\n` +
@@ -473,11 +473,17 @@ async function editInEditor (name: string, original: RawContext): Promise<RawCon
   const body = stringifyYaml(original, { lineWidth: 0 })
 
   const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-edit-'))
-  const path = join(dir, `${name}.yml`)
+  // Fixed name: the context name must never reach the filesystem path or shell string.
+  const path = join(dir, 'context.yml')
   try {
     await writeFile(path, header + body, { encoding: 'utf-8', mode: 0o600 })
     const exitCode = await new Promise<number>((resolve, reject) => {
-      const child = spawn(editor, [path], { stdio: 'inherit', shell: true })
+      // shell: true so EDITOR="code --wait" works; Node does not quote args, so quote the path ourselves.
+      // cmd.exe expands %VAR% even inside quotes, so on Windows pass the path via env (expanded once, not re-scanned).
+      const win = process.platform === 'win32'
+      const quoted = win ? '"%ELASTIC_CLI_EDIT_FILE%"' : `'${path.replaceAll("'", `'\\''`)}'`
+      const env = win ? { ...process.env, ELASTIC_CLI_EDIT_FILE: path } : process.env
+      const child = spawn(`${editor} ${quoted}`, { stdio: 'inherit', shell: true, env })
       child.on('exit', code => resolve(code ?? 0))
       child.on('error', reject)
     })
