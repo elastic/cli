@@ -5,10 +5,15 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
+import { Command } from 'commander'
 import { validateKbApiDefinition } from '../../src/kb/types.ts'
 import { loadAllKbApis } from '../../src/kb/apis.ts'
 import { registerKbCommands, registerKbCommandsLazy } from '../../src/kb/register.ts'
 import type { KbApiDefinition } from '../../src/kb/types.ts'
+import { setResolvedConfig } from '../../src/config/store.ts'
+import type { ResolvedConfig } from '../../src/config/types.ts'
+import { getKibanaClient, _testResetKibanaClient } from '../../src/lib/kibana-client.ts'
+import { _testSetStdinReader } from '../../src/factory.ts'
 
 function hasDryRun (cmd: { options: ReadonlyArray<{ flags: string }> }): boolean {
   return cmd.options.some((o) => o.flags.includes('dry-run'))
@@ -164,5 +169,33 @@ describe('registerKbCommandsLazy', () => {
     const handle = await registerKbCommandsLazy({ argv: ['node', 'elastic', 'es'] })
     assert.equal(handle.name(), 'kb')
     assert.ok(handle.commands.length > 0)
+  })
+
+  it('swaps a stub for the real leaf and runs its handler when the sniff misses', async (t) => {
+    // the sniffer takes the `--use-context` value as the kb token and misses the leaf
+    const argv = ['node', 'elastic', '--use-context', 'kb', 'kb', 'spaces', 'get-spaces-space', '--purpose', 'any']
+    const kb = await registerKbCommandsLazy({ argv })
+    const stub = kb.commands.find((c) => c.name() === 'spaces')?.commands.find((c) => c.name() === 'get-spaces-space')
+    assert.ok(stub != null)
+    assert.equal(hasDryRun(stub), false)
+
+    setResolvedConfig({ context: { kibana: { url: 'http://localhost:5601', auth: { api_key: 'k' } } } })
+    t.after(() => {
+      _testResetKibanaClient()
+      setResolvedConfig({ context: {} } as ResolvedConfig)
+    })
+    const urls: string[] = []
+    getKibanaClient()._testSetFetch(async (url) => {
+      urls.push(String(url))
+      return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } })
+    })
+    t.mock.method(process, 'exit', (code?: number) => { throw new Error(`process.exit(${code})`) })
+    // stdin is not a TTY under the test runner; on Windows an open stdin pipe blocks readFileSync(0)
+    t.after(_testSetStdinReader(() => ''))
+
+    const root = new Command('elastic').option('--use-context <name>').addCommand(kb)
+    await root.parseAsync(argv)
+
+    assert.deepEqual(urls, ['http://localhost:5601/api/spaces/space?purpose=any'])
   })
 })
