@@ -8,6 +8,12 @@ import assert from 'node:assert/strict'
 import { buildCloudRequestParams } from '../../src/cloud/request-builder.ts'
 import type { CloudApiDefinition } from '../../src/cloud/types.ts'
 import type { ParsedResult } from '../../src/factory.ts'
+import { extractSchemaArgs } from '../../src/lib/json-schema-args.ts'
+import { resolveRootRef } from '../../src/lib/json-schema-refs.ts'
+
+function build(def: CloudApiDefinition, p: ParsedResult) {
+  return buildCloudRequestParams(def, p, extractSchemaArgs(def.input != null ? resolveRootRef(def.input) : undefined))
+}
 
 function parsed(input?: Record<string, unknown>): ParsedResult {
   return { options: {}, ...(input !== undefined ? { input } : {}) }
@@ -23,7 +29,7 @@ describe('buildCloudRequestParams', () => {
       path: '/api/v1/deployments',
       destructive: false,
     }
-    const result = buildCloudRequestParams(def, parsed())
+    const result = build(def, parsed())
     assert.equal(result.method, 'GET')
     assert.equal(result.path, '/api/v1/deployments')
     assert.equal(result.querystring, undefined)
@@ -44,7 +50,7 @@ describe('buildCloudRequestParams', () => {
         required: ['deployment_id'],
       },
     }
-    const result = buildCloudRequestParams(def, parsed({ deployment_id: 'abc-123' }))
+    const result = build(def, parsed({ deployment_id: 'abc-123' }))
     assert.equal(result.path, '/api/v1/deployments/abc-123')
   })
 
@@ -61,7 +67,7 @@ describe('buildCloudRequestParams', () => {
         properties: { deployment_id: { type: 'string', description: 'ID', 'x-found-in': 'path' } },
       },
     }
-    const result = buildCloudRequestParams(def, parsed())
+    const result = build(def, parsed())
     assert.equal(result.path, '/api/v1/deployments')
   })
 
@@ -81,7 +87,7 @@ describe('buildCloudRequestParams', () => {
         },
       },
     }
-    const result = buildCloudRequestParams(def, parsed({ show_metadata: true, limit: 10 }))
+    const result = build(def, parsed({ show_metadata: true, limit: 10 }))
     assert.deepEqual(result.querystring, { show_metadata: 'true', limit: '10' })
   })
 
@@ -100,7 +106,7 @@ describe('buildCloudRequestParams', () => {
         },
       },
     }
-    const result = buildCloudRequestParams(def, parsed())
+    const result = build(def, parsed())
     assert.equal(result.querystring, undefined)
   })
 
@@ -121,7 +127,7 @@ describe('buildCloudRequestParams', () => {
         required: ['name', 'region'],
       },
     }
-    const result = buildCloudRequestParams(def, parsed({ name: 'my-deploy', region: 'us-east-1' }))
+    const result = build(def, parsed({ name: 'my-deploy', region: 'us-east-1' }))
     assert.deepEqual(result.body, { name: 'my-deploy', region: 'us-east-1' })
   })
 
@@ -140,7 +146,7 @@ describe('buildCloudRequestParams', () => {
         },
       },
     }
-    const result = buildCloudRequestParams(def, parsed())
+    const result = build(def, parsed())
     assert.equal(result.body, undefined)
   })
 
@@ -162,7 +168,7 @@ describe('buildCloudRequestParams', () => {
         required: ['deployment_id'],
       },
     }
-    const result = buildCloudRequestParams(def, parsed({
+    const result = build(def, parsed({
       deployment_id: 'abc',
       validate_only: true,
       name: 'new-name',
@@ -186,7 +192,7 @@ describe('buildCloudRequestParams', () => {
         required: ['deployment_id'],
       },
     }
-    const result = buildCloudRequestParams(def, parsed({ deployment_id: '../../../secret?#' }))
+    const result = build(def, parsed({ deployment_id: '../../../secret?#' }))
     assert.ok(!result.path.includes('../'), 'dot-dot-slash must be encoded')
     assert.ok(!result.path.includes('?'), 'question mark must be encoded')
     assert.ok(!result.path.includes('#'), 'hash must be encoded')
@@ -209,7 +215,7 @@ describe('buildCloudRequestParams', () => {
         },
       }
       try {
-        buildCloudRequestParams(def, parsed({ deployment_id: widening }))
+        build(def, parsed({ deployment_id: widening }))
         assert.fail('expected buildCloudRequestParams to throw')
       } catch (err) {
         assert.equal((err as { code?: string }).code, 'input_error')
@@ -226,7 +232,7 @@ describe('buildCloudRequestParams', () => {
       path: '/api/v1/serverless/projects/elasticsearch',
       destructive: false,
     }
-    const result = buildCloudRequestParams(def, parsed({ name: 'demo', region_id: 'aws-us-east-1' }))
+    const result = build(def, parsed({ name: 'demo', region_id: 'aws-us-east-1' }))
     assert.deepEqual(result.body, { name: 'demo', region_id: 'aws-us-east-1' })
   })
 
@@ -248,7 +254,7 @@ describe('buildCloudRequestParams', () => {
         required: ['id'],
       },
     }
-    const result = buildCloudRequestParams(def, parsed({ id: 'abc', dry_run: true, name: 'new-name' }))
+    const result = build(def, parsed({ id: 'abc', dry_run: true, name: 'new-name' }))
     assert.deepEqual(result.body, { name: 'new-name' }, 'path and query params should not be in body')
     assert.equal(result.path, '/api/v1/serverless/projects/elasticsearch/abc')
     assert.deepEqual(result.querystring, { dry_run: 'true' })
@@ -263,7 +269,7 @@ describe('buildCloudRequestParams', () => {
       path: '/api/v1/deployments',
       destructive: false,
     }
-    const result = buildCloudRequestParams(def, parsed({ extra: 'value' }))
+    const result = build(def, parsed({ extra: 'value' }))
     assert.equal(result.body, undefined)
   })
 
@@ -281,7 +287,7 @@ describe('buildCloudRequestParams', () => {
         required: ['id'],
       },
     }
-    const result = buildCloudRequestParams(def, parsed({ id: 'abc', extra: 'value' }))
+    const result = build(def, parsed({ id: 'abc', extra: 'value' }))
     assert.equal(result.body, undefined)
   })
 
@@ -289,7 +295,7 @@ describe('buildCloudRequestParams', () => {
     const { loadCloudApis } = await import('../../src/cloud/apis.ts')
     const def = (await loadCloudApis()).find((d) => d.name === 'patch-current-account')
     assert.ok(def != null, 'expected cloud "patch-current-account" definition')
-    const result = buildCloudRequestParams(def, parsed({ body: '[{"op":"replace"}]' }))
+    const result = build(def, parsed({ body: '[{"op":"replace"}]' }))
     assert.equal(result.body, '[{"op":"replace"}]', 'body value should be the body itself, not nested under "body"')
   })
 })
@@ -303,8 +309,8 @@ describe('buildCloudRequestParams required path param handling (BUG C regression
     assert.deepEqual((def.input as { required?: string[] }).required, ['deployment_id'])
 
     assert.throws(
-      () => buildCloudRequestParams(def, parsed({})),
-      /deployment_id/,
+      () => build(def, parsed({})),
+      { code: 'input_error', message: 'missing required path parameter "deployment_id"' },
     )
   })
 
@@ -321,7 +327,7 @@ describe('buildCloudRequestParams required path param handling (BUG C regression
         properties: { deployment_id: { type: 'string', description: 'ID', 'x-found-in': 'path' } },
       },
     }
-    const result = buildCloudRequestParams(def, parsed())
+    const result = build(def, parsed())
     assert.equal(result.path, '/api/v1/deployments')
   })
 })
