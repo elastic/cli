@@ -13,6 +13,7 @@ import type { KbApiDefinition } from '../../src/kb/types.ts'
 import { setResolvedConfig } from '../../src/config/store.ts'
 import type { ResolvedConfig } from '../../src/config/types.ts'
 import { getKibanaClient, _testResetKibanaClient } from '../../src/lib/kibana-client.ts'
+import { _testSetStdinReader } from '../../src/factory.ts'
 
 function hasDryRun (cmd: { options: ReadonlyArray<{ flags: string }> }): boolean {
   return cmd.options.some((o) => o.flags.includes('dry-run'))
@@ -189,6 +190,8 @@ describe('registerKbCommandsLazy', () => {
       return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } })
     })
     t.mock.method(process, 'exit', (code?: number) => { throw new Error(`process.exit(${code})`) })
+    // stdin is not a TTY under the test runner; on Windows an open stdin pipe blocks readFileSync(0)
+    t.after(_testSetStdinReader(() => ''))
 
     const root = new Command('elastic').option('--use-context <name>').addCommand(kb)
     await root.parseAsync(argv)
