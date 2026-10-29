@@ -395,6 +395,19 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
 
   const { current_context, contexts, commands: rawCommands, default_profile: rawDefaultProfile } = structural.data
 
+  if (contextName != null && contextName !== current_context) {
+    const current = contexts[current_context]
+    if (current != null && current['allow_context_override'] === false) {
+      return {
+        ok: false,
+        error: {
+          code: 'command_blocked',
+          message: `context "${current_context}" does not allow --use-context`,
+        },
+      }
+    }
+  }
+
   // Step 3: resolve context name (--use-context override or current_context from file)
   const resolvedContextName = contextName ?? current_context
 

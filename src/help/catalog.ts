@@ -63,6 +63,11 @@ export function classifyConfigLoadError (message: string): 'missing_config' | 'c
   return 'config_invalid'
 }
 
+export function configLoadErrorCode (error: { code?: string, message: string }): 'missing_config' | 'config_invalid' | 'command_blocked' {
+  if (error.code === 'command_blocked') return 'command_blocked'
+  return classifyConfigLoadError(error.message)
+}
+
 export function formatExitCodesHelp (): string {
   const lines = [
     'Exit codes',
