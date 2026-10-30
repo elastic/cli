@@ -29,7 +29,7 @@ import {
   type RawConfig,
   type RawContext,
 } from '../config/writer.ts'
-import { getSecretStore, type SecretStore } from '../config/secret-store.ts'
+import { getSecretStore, type SecretStore, type SecretStoreDeps } from '../config/secret-store.ts'
 import type { JsonValue } from '../factory.ts'
 
 const KEYCHAIN_SERVICE = 'elastic-cli'
@@ -260,6 +260,7 @@ export async function applyCredentialPolicy (
   cmdName: string,
   body: JsonValue,
   opts: CredentialPolicyOptions,
+  secretStoreDeps: SecretStoreDeps = {},
 ): Promise<ApplyCredentialPolicyResult> {
   if (opts.saveAs == null && opts.credentialsFile == null) {
     const extracted = extractProjectFields(body)
@@ -282,7 +283,7 @@ export async function applyCredentialPolicy (
     }
   }
 
-  const store = await getSecretStore()
+  const store = await getSecretStore(secretStoreDeps)
   const warnings: string[] = []
   const storeAvailable = await store.isAvailable()
   if (!storeAvailable) {
