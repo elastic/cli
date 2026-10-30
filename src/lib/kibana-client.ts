@@ -7,11 +7,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { getResolvedConfig } from '../config/store.ts'
 import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
-import { isLoopbackUrl } from './is-loopback-host.ts'
 import { clientHeaders } from './meta.ts'
 import { parseSseText } from './sse.ts'
 import { YamlResponse, isYamlContentType } from './yaml-response.ts'
-import { HttpResponseError, toConnectionError } from './http-errors.ts'
+import { HttpResponseError } from './http-errors.ts'
+import { buildUrl, readText, send, warnIfPlaintext } from './http-core.ts'
 
 /** HTTP methods supported by the Kibana API client. */
 export type KibanaHttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD' | 'PATCH'
@@ -136,9 +136,7 @@ export class KibanaClient {
   constructor (baseUrl: string, auth?: ApiKeyOrBasicAuth) {
     this.baseUrl = baseUrl.replace(/\/+$/, '')
     this.authHeader = buildAuthHeader(auth)
-    if (this.baseUrl.startsWith('http://') && !isLoopbackUrl(this.baseUrl)) {
-      process.stderr.write('Warning: using plaintext HTTP. Credentials will be sent unencrypted.\n')
-    }
+    warnIfPlaintext(this.baseUrl)
   }
 
   /**
@@ -156,16 +154,8 @@ export class KibanaClient {
    * @throws {ConnectionError} when the request never reached the server
    */
   async request (params: KibanaRequestParams, responseType?: KibanaResponseType): Promise<unknown> {
-    let url = `${this.baseUrl}${params.path}`
+    let url = buildUrl(this.baseUrl, params.path, params.querystring)
     const origin = new URL(this.baseUrl).origin
-
-    if (params.querystring != null && Object.keys(params.querystring).length > 0) {
-      const pieces = Object.entries(params.querystring)
-        .filter(([, v]) => v !== undefined)
-        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-        .join('&')
-      url += `?${pieces}`
-    }
 
     const method = params.method.toUpperCase()
     const headers: Record<string, string> = {
@@ -207,7 +197,7 @@ export class KibanaClient {
       init.body = JSON.stringify(params.body)
     }
 
-    let response = await this.send(url, init)
+    let response = await send(this._fetch, url, init)
     for (let hops = 0; REDIRECT_STATUSES.has(response.status); hops++) {
       // an unread body pins its connection until GC; the redirect body is never needed.
       await response.body?.cancel()
@@ -226,23 +216,15 @@ export class KibanaClient {
         delete headers['Content-Type']
       }
       url = next.href
-      response = await this.send(url, init)
+      response = await send(this._fetch, url, init)
     }
 
-    if (!response.ok) throw kibanaError(response.status, await response.text())
+    if (!response.ok) throw kibanaError(response.status, await readText(response))
 
-    const text = await response.text()
+    const text = await readText(response)
     if (text.length === 0) return {}
 
     return decodeBody(text, response.headers.get('content-type') ?? '', responseType)
-  }
-
-  private async send (url: string, init: RequestInit): Promise<Response> {
-    try {
-      return await this._fetch(url, init)
-    } catch (err) {
-      throw toConnectionError(err)
-    }
   }
 
   /**
@@ -276,18 +258,8 @@ export function getKibanaClient (): KibanaClient {
     )
   }
 
-  const { url, auth } = kb
-  const authRecord = auth as Record<string, unknown> | undefined
-
-  let typedAuth: { api_key: string } | { username: string; password: string } | undefined
-  if (typeof authRecord?.['api_key'] === 'string') {
-    typedAuth = { api_key: authRecord['api_key'] as string }
-  } else if (typeof authRecord?.['username'] === 'string' && typeof authRecord?.['password'] === 'string') {
-    typedAuth = { username: authRecord['username'] as string, password: authRecord['password'] as string }
-  }
   // auth is optional -- when absent (e.g. security disabled), requests are sent without credentials
-
-  _client = new KibanaClient(url, typedAuth)
+  _client = new KibanaClient(kb.url, kb.auth)
   return _client
 }
 
