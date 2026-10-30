@@ -4,6 +4,30 @@
 
 Process exit stays 1. Codes 2-5 are reserved and not emitted. `--json` config-load failures use `missing_config` or `config_invalid`. HTTP 401 is `auth_required`, 404 is `not_found`. See `elastic help exit-codes`. Relates to #634.
 
+## [0.8.0](https://github.com/elastic/cli/compare/v0.7.0...v0.8.0) (2026-10-30)
+
+
+### Features
+
+* **docs:** Replace marked-terminal with a custom marked renderer ([#791](https://github.com/elastic/cli/issues/791)) ([bfedaad](https://github.com/elastic/cli/commit/bfedaadba26bad13bc7deb6b286d3f741482e0b7))
+* Lock context against override flags ([#718](https://github.com/elastic/cli/issues/718)) ([6430865](https://github.com/elastic/cli/commit/6430865573c86ddc0aaa1076a8f8e729cbcedb79))
+
+
+### Bug Fixes
+
+* **cli:** Pass global config flags to extension dispatch ([#782](https://github.com/elastic/cli/issues/782)) ([327b86c](https://github.com/elastic/cli/commit/327b86c45e64aedd5413cd8bbfe041d7e02f33e7))
+* **cli:** Use typed HTTP errors and report Kibana/Cloud connection failures ([#781](https://github.com/elastic/cli/issues/781)) ([a634ac5](https://github.com/elastic/cli/commit/a634ac57dc40e223848d5f320b9eb1a79cadf484)), closes [#729](https://github.com/elastic/cli/issues/729)
+* **config:** Quote temp file path when launching editor for context edit ([#778](https://github.com/elastic/cli/issues/778)) ([b3fd92d](https://github.com/elastic/cli/commit/b3fd92dba3f52650e12cbe68798fccae75a89cfa))
+* **config:** Write to the config file discovery would load ([#779](https://github.com/elastic/cli/issues/779)) ([21eba64](https://github.com/elastic/cli/commit/21eba649d2dee850e014ad6db0a8aefef4c82d0e))
+* **kibana:** Follow only same-origin redirects in the Kibana client ([#780](https://github.com/elastic/cli/issues/780)) ([15f97b3](https://github.com/elastic/cli/commit/15f97b3d648947030609a010cdf0059469670f90))
+* Unblock macos release signing ([#774](https://github.com/elastic/cli/issues/774)) ([14e3de7](https://github.com/elastic/cli/commit/14e3de7e5b067137c35fcf83eeed23d260dc859f))
+* Unify request routing across the ES, Kibana, and Cloud builders ([#786](https://github.com/elastic/cli/issues/786)) ([98e483f](https://github.com/elastic/cli/commit/98e483fda8faf8b9e88d29a154a692679a4f4039))
+
+
+### Performance Improvements
+
+* **docs:** Lazy-load markdown renderer ([#790](https://github.com/elastic/cli/issues/790)) ([e545174](https://github.com/elastic/cli/commit/e5451746e585830b0d8c7a8b725498c700fcc334)), closes [#732](https://github.com/elastic/cli/issues/732)
+
 ## [0.7.0](https://github.com/elastic/cli/compare/v0.6.0...v0.7.0) (2026-10-15)
 
 
