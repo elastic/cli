@@ -360,7 +360,9 @@ async function registerHelp (firstArg: string | undefined, earlyConfig: LoadConf
 
 /** Runs an installed extension named by an unrecognized first argument, then exits. Returns when there is none. */
 async function dispatchExtension (firstArg: string | undefined): Promise<void> {
-  if (wantsHelp || firstArg == null || program.commands.some(c => c.name() === firstArg)) return
+  // --help/-h after an extension name belongs to the extension. A built-in
+  // name still prints that command's help, and a bare `elastic --help` has no firstArg.
+  if (firstArg == null || program.commands.some(c => c.name() === firstArg)) return
   const { findExtension } = await import('./extension/store.ts')
   const ext = await findExtension(firstArg)
   if (ext == null) return
@@ -370,9 +372,10 @@ async function dispatchExtension (firstArg: string | undefined): Promise<void> {
   // Global flags before the extension name, and context flags leading its args, pick the
   // context the extension gets credentials for (#738). passThroughOptions stops parsing at
   // the extension's first own arg; output flags after the name and anything from `--` on
-  // are the extension's and are forwarded untouched.
-  const before = new Command().passThroughOptions()
-  const after = new Command().passThroughOptions()
+  // are the extension's and are forwarded untouched. Help is disabled so --help/-h are
+  // forwarded instead of being swallowed as this parser's own help option.
+  const before = new Command().helpOption(false).passThroughOptions()
+  const after = new Command().helpOption(false).passThroughOptions()
   for (const o of program.options) {
     before.addOption(o)
     if (o.long === '--config-file' || o.long === '--use-context' || o.long === '--command-profile') after.addOption(o)
