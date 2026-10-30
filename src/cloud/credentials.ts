@@ -29,7 +29,7 @@ import {
   type RawConfig,
   type RawContext,
 } from '../config/writer.ts'
-import { getSecretStore, type SecretStore, type SecretStoreDeps } from '../config/secret-store.ts'
+import { getSecretStore, putSecret, type SecretStore, type SecretStoreDeps } from '../config/secret-store.ts'
 import type { JsonValue } from '../factory.ts'
 
 const KEYCHAIN_SERVICE = 'elastic-cli'
@@ -159,14 +159,20 @@ async function buildProjectContext (
   const ctx: Record<string, unknown> = {}
   const { username, password } = extracted.credentials
   const storeAvailable = await store.isAvailable()
+  let wrote = false
 
   const authForService = async (serviceFieldPath: string): Promise<Record<string, unknown> | undefined> => {
     if (username == null || password == null) return undefined
     const auth: Record<string, unknown> = { username }
     if (storeAvailable) {
       const account = `${contextName}:${serviceFieldPath}.auth.password`
-      await store.put(KEYCHAIN_SERVICE, account, password)
-      auth.password = store.resolverExpr(KEYCHAIN_SERVICE, account)
+      const expr = await putSecret(store, KEYCHAIN_SERVICE, account, password)
+      if (expr != null) {
+        auth.password = expr
+        wrote = true
+      } else {
+        auth.password = password
+      }
     } else {
       auth.password = password
     }
@@ -188,8 +194,8 @@ async function buildProjectContext (
 
   return {
     context: ctx as RawContext,
-    inline: !storeAvailable,
-    storageKind: storeAvailable ? store.kind : 'none',
+    inline: !wrote,
+    storageKind: wrote ? store.kind : 'none',
   }
 }
 
@@ -216,8 +222,8 @@ async function replaceContextPasswords (
     const auth: Record<string, unknown> = { username }
     if (storeAvailable) {
       const account = `${contextName}:${serviceKey}.auth.password`
-      await store.put(KEYCHAIN_SERVICE, account, password)
-      auth.password = store.resolverExpr(KEYCHAIN_SERVICE, account)
+      const expr = await putSecret(store, KEYCHAIN_SERVICE, account, password)
+      auth.password = expr ?? password
     } else {
       auth.password = password
     }
@@ -342,6 +348,11 @@ async function saveAsContext (
 
   const writeResult = await writeConfig(configPath, next, { restrictPermissions: hasInlineSecrets(next) })
   const storeAvailable = await store.isAvailable()
+  if (!storeAvailable && !warnings.some(w => w.startsWith('No OS secret store'))) {
+    warnings.push(
+      'No OS secret store is available; credentials will be written inline to the config file (chmod 0600).'
+    )
+  }
 
   const marker = storeAvailable ? `(saved to ${store.kind})` : '(saved inline to config)'
   const redacted = redactCredentials(body, marker)
@@ -396,6 +407,11 @@ async function saveAsCredentialsFile (
 
   const writeResult = await writeConfig(credentialsFile, fragment, { restrictPermissions: true })
   const storeAvailable = await store.isAvailable()
+  if (!storeAvailable && !warnings.some(w => w.startsWith('No OS secret store'))) {
+    warnings.push(
+      'No OS secret store is available; credentials will be written inline to the config file (chmod 0600).'
+    )
+  }
 
   const redacted = redactCredentials(body, '(saved to file)')
   const annotated = annotateBody(redacted, { credentialsFile: writeResult.path })

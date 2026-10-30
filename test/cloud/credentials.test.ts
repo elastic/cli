@@ -168,6 +168,11 @@ describe('applyCredentialPolicy', () => {
           calls.push({ cmd, options })
           throw new Error('not installed')
         }) as unknown as typeof import('node:child_process').execSync,
+        spawnSync: ((file: string, args?: readonly string[], options?: unknown) => {
+          calls.push({ cmd: [file, ...(args ?? [])].join(' '), options })
+          const missing = Object.assign(new Error('not found'), { code: 'ENOENT' })
+          return { status: null, stdout: '', stderr: '', error: missing, pid: 0, output: [null, '', ''], signal: null }
+        }) as unknown as typeof import('node:child_process').spawnSync,
       },
     }
   }
@@ -315,6 +320,38 @@ describe('applyCredentialPolicy', () => {
     const parsed = parseYaml(yaml) as { contexts: { 'inline-fallback': { elasticsearch: { auth: { password: string } } } } }
     assert.equal(parsed.contexts['inline-fallback'].elasticsearch.auth.password, 'super-secret-admin-pass')
     // stdout redaction marker reflects the actual storage path — inline, not keychain
+    const body = res.body as { credentials: { password: string } }
+    assert.equal(body.credentials.password, '(saved inline to config)')
+  })
+
+  it('writes inline when secret-tool exists but the keyring rejects the write', async () => {
+    const cfg = join(dir, 'secret-tool-reject.yml')
+    const calls: Array<{ cmd: string }> = []
+    const deps: SecretStoreDeps = {
+      platform: 'linux',
+      execSync: ((cmd: string) => {
+        calls.push({ cmd })
+        throw new Error('pass missing')
+      }) as unknown as typeof import('node:child_process').execSync,
+      spawnSync: ((file: string, args?: readonly string[]) => {
+        calls.push({ cmd: [file, ...(args ?? [])].join(' ') })
+        const argv = args ?? []
+        if (argv[0] === 'store') {
+          return { status: 1, stdout: '', stderr: 'no D-Bus session', error: undefined, pid: 0, output: [null, '', 'no D-Bus session'], signal: null }
+        }
+        return { status: 2, stdout: '', stderr: 'usage: secret-tool', error: undefined, pid: 0, output: [null, '', 'usage: secret-tool'], signal: null }
+      }) as unknown as typeof import('node:child_process').spawnSync,
+    }
+    const res = await applyCredentialPolicy('create-elasticsearch-project', CREATE_RESPONSE, {
+      saveAs: 'rejected',
+      configFile: cfg,
+    }, deps)
+    assert.equal(res.log.storage, 'none')
+    assert.ok(res.log.warnings.some(w => /No OS secret store/i.test(w)))
+    assert.ok(calls.some(c => c.cmd.includes('secret-tool store')))
+    const yaml = await readFile(cfg, 'utf-8')
+    const parsed = parseYaml(yaml) as { contexts: { rejected: { elasticsearch: { auth: { password: string } } } } }
+    assert.equal(parsed.contexts.rejected.elasticsearch.auth.password, 'super-secret-admin-pass')
     const body = res.body as { credentials: { password: string } }
     assert.equal(body.credentials.password, '(saved inline to config)')
   })
