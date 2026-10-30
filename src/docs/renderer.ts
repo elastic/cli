@@ -6,6 +6,8 @@
 import { marked } from 'marked'
 import { markedTerminal } from 'marked-terminal'
 
+// Callers load this module with a dynamic import: marked-terminal is a large
+// dependency tree that `docs --help` and shell completion must not pay for.
 // Register the terminal renderer once at module load.
 // Use markedTerminal() (the extension factory) rather than new TerminalRenderer(),
 // so that each renderer method has access to the parser instance (r.parser = this.parser).
