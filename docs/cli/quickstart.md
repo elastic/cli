@@ -51,7 +51,7 @@ If you use Bash or zsh, keep the API key out of your shell history by capturing 
 read -rs ELASTIC_API_KEY
 ```
 
-Paste your API key at the hidden prompt, press **Enter**, and create the context, replacing `<elasticsearch-url>` with your endpoint:
+Paste your API key at the hidden prompt, press **Enter**, and create the context, replacing `<elasticsearch-url>` with [your endpoint](docs-content://solutions/elasticsearch-solution-project/search-connection-details.md):
 
 ```bash
 elastic config context add quickstart \
