@@ -8,37 +8,31 @@ import assert from 'node:assert/strict'
 import { Command } from 'commander'
 import { buildCompletionCommand, SUPPORTED_SHELLS } from '../../src/completion/command.ts'
 import { powershellWrapper } from '../../src/completion/shells/powershell.ts'
+import { captureDuring } from '../helpers/capture.ts'
 
 async function captureWith (
   cmd: Command,
   argv: string[],
 ): Promise<{ stdout: string; stderr: string; exitCode: number | undefined }> {
   cmd.exitOverride()
-  const stdoutChunks: string[] = []
-  const stderrChunks: string[] = []
-  const origStdout = process.stdout.write.bind(process.stdout)
-  const origStderr = process.stderr.write.bind(process.stderr)
-  process.stdout.write = ((c: unknown) => { if (typeof c === 'string') stdoutChunks.push(c); return true }) as typeof process.stdout.write
-  process.stderr.write = ((c: unknown) => { if (typeof c === 'string') stderrChunks.push(c); return true }) as typeof process.stderr.write
   // Reset the global exit code so we can read what this command sets.
   const priorExitCode = process.exitCode
   process.exitCode = undefined
-  let throwExit: number | undefined
-  try {
-    await cmd.parseAsync(argv, { from: 'user' })
-  } catch (e) {
-    // Commander's exitOverride throws a CommanderError with .exitCode
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    throwExit = (e as any).exitCode ?? 1
-  } finally {
-    process.stdout.write = origStdout
-    process.stderr.write = origStderr
-  }
+  let throwExit = undefined as number | undefined
+  const { stdout, stderr } = await captureDuring(async () => {
+    try {
+      await cmd.parseAsync(argv, { from: 'user' })
+    } catch (e) {
+      // Commander's exitOverride throws a CommanderError with .exitCode
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      throwExit = (e as any).exitCode ?? 1
+    }
+  })
   // Handlers in this codebase set process.exitCode (no throw) for structured
   // errors; capture either signal.
   const exitCode = throwExit ?? (process.exitCode != null ? Number(process.exitCode) : undefined)
   process.exitCode = priorExitCode
-  return { stdout: stdoutChunks.join(''), stderr: stderrChunks.join(''), exitCode }
+  return { stdout: stdout.join(''), stderr: stderr.join(''), exitCode }
 }
 
 describe('buildCompletionCommand', () => {
