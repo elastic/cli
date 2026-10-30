@@ -65,20 +65,20 @@ describe('docs markdown renderer is lazy-loaded', { skip: IS_BUN }, () => {
     return (await readFile(log, 'utf8')).split('\n')
   }
 
-  it('recorder sees marked-terminal when the renderer is imported (control)', async () => {
+  it('recorder sees marked when the renderer is imported (control)', async () => {
     const specifiers = await resolvedSpecifiers(['--input-type=module', '-e', `await import(${JSON.stringify(RENDERER_ENTRY)})`])
-    assert.ok(specifiers.includes('marked-terminal'))
+    assert.ok(specifiers.includes('marked'))
   })
 
-  it('`docs --help` does not load marked-terminal', async () => {
+  it('`docs --help` does not load marked', async () => {
     const specifiers = await resolvedSpecifiers([CLI_ENTRY, 'docs', '--help'])
     assert.ok(specifiers.some((s) => s.endsWith('/docs/register.ts')), 'docs commands were not loaded')
-    assert.ok(!specifiers.includes('marked-terminal'))
+    assert.ok(!specifiers.includes('marked'))
   })
 
-  it('shell completion of `docs` subcommands does not load marked-terminal', async () => {
+  it('shell completion of `docs` subcommands does not load marked', async () => {
     const specifiers = await resolvedSpecifiers([CLI_ENTRY, '__complete', '--', 'docs', ''])
     assert.ok(specifiers.some((s) => s.endsWith('/docs/register.ts')), 'docs commands were not loaded')
-    assert.ok(!specifiers.includes('marked-terminal'))
+    assert.ok(!specifiers.includes('marked'))
   })
 })
