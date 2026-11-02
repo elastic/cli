@@ -40,3 +40,4 @@ Action items for the next AI review. Follow these. Do not repeat the rejected fi
 - Do not replace the pinned wolfi/chainguard-base digest. The test requires sha256:568df5fb0e237c3a2139399d4bd8e80994f24321fa8469aec565b8566704e83a. A generated digest will not pull.
 - Do not retarget org.opencontainers.image.source to elastic/elastic-cli. The repository is https://github.com/elastic/cli.
 - Do not replace HEALTHCHECK NONE with a command check. This image runs a CLI and exits. NONE is what satisfies the Trivy healthcheck check.
+- Do not re-flag missing command-level regression coverage for secret-tool write rejection in config context add/edit. Linux tests now cover pass fallback and inline fallback including the warning and 0600 mode.
