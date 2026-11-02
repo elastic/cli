@@ -11,7 +11,7 @@
  * 2. Structural validation of the outer config shape (without resolving expressions)
  * 3. Resolve context name (default or --use-context override)
  * 4. Resolve expressions only in the active context and commands section
- * 5. Validate active context with full Zod schemas
+ * 5. Validate active context with ContextSchema
  * 6. Return typed ResolvedConfig to command handlers
  *
  * Only the active context's expressions are resolved, so inactive contexts
@@ -394,6 +394,19 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
   }
 
   const { current_context, contexts, commands: rawCommands, default_profile: rawDefaultProfile } = structural.data
+
+  if (contextName != null && contextName !== current_context) {
+    const current = contexts[current_context]
+    if (current != null && current['allow_context_override'] === false) {
+      return {
+        ok: false,
+        error: {
+          code: 'command_blocked',
+          message: `context "${current_context}" does not allow --use-context`,
+        },
+      }
+    }
+  }
 
   // Step 3: resolve context name (--use-context override or current_context from file)
   const resolvedContextName = contextName ?? current_context

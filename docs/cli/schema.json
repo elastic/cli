@@ -117419,7 +117419,7 @@
                           "name": "config-file",
                           "type": "string",
                           "required": false,
-                          "summary": "override the config file written by --save-as (defaults to ~/.elasticrc.yml)"
+                          "summary": "override the config file written by --save-as (defaults to the discovered ~/.elasticrc* file)"
                         },
                         {
                           "role": "flag",
@@ -117732,7 +117732,7 @@
                           "name": "config-file",
                           "type": "string",
                           "required": false,
-                          "summary": "override the config file written by --save-as (defaults to ~/.elasticrc.yml)"
+                          "summary": "override the config file written by --save-as (defaults to the discovered ~/.elasticrc* file)"
                         },
                         {
                           "role": "flag",
@@ -118163,7 +118163,7 @@
                           "name": "config-file",
                           "type": "string",
                           "required": false,
-                          "summary": "override the config file written by --save-as (defaults to ~/.elasticrc.yml)"
+                          "summary": "override the config file written by --save-as (defaults to the discovered ~/.elasticrc* file)"
                         },
                         {
                           "role": "flag",
@@ -118480,7 +118480,7 @@
                           "name": "config-file",
                           "type": "string",
                           "required": false,
-                          "summary": "override the config file written by --save-as (defaults to ~/.elasticrc.yml)"
+                          "summary": "override the config file written by --save-as (defaults to the discovered ~/.elasticrc* file)"
                         },
                         {
                           "role": "flag",
@@ -118924,7 +118924,7 @@
                           "name": "config-file",
                           "type": "string",
                           "required": false,
-                          "summary": "override the config file written by --save-as (defaults to ~/.elasticrc.yml)"
+                          "summary": "override the config file written by --save-as (defaults to the discovered ~/.elasticrc* file)"
                         },
                         {
                           "role": "flag",
@@ -119250,7 +119250,7 @@
                           "name": "config-file",
                           "type": "string",
                           "required": false,
-                          "summary": "override the config file written by --save-as (defaults to ~/.elasticrc.yml)"
+                          "summary": "override the config file written by --save-as (defaults to the discovered ~/.elasticrc* file)"
                         },
                         {
                           "role": "flag",
@@ -121092,7 +121092,7 @@
           "name": "config-file",
           "type": "string",
           "required": false,
-          "summary": "path to the config file to edit (defaults to ~/.elasticrc.yml)"
+          "summary": "path to the config file to edit (defaults to the discovered ~/.elasticrc* file)"
         },
         {
           "role": "dryRun",

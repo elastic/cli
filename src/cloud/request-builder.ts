@@ -6,49 +6,37 @@
 import type { CloudApiDefinition } from './types.ts'
 import type { CloudRequestParams } from '../lib/cloud-client.ts'
 import type { ParsedResult } from '../factory.ts'
-import { resolveRootRef } from '../lib/json-schema-refs.ts'
+import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
 import { encodePathParam } from '../lib/path-encoding.ts'
+import { interpolatePath, requirePathParams, routeBody, routeQuery } from '../lib/request-routing.ts'
 
 /**
  * Builds a `CloudRequestParams` object from an API definition and parsed CLI input.
  *
  * All path params, query params, and body fields arrive in `parsed.input` as a
- * single flat object. The `input.properties[key]['x-found-in']` annotation routes
- * each key:
+ * single flat object. Each arg's `foundIn` (`x-found-in`) routes its key:
  * - `"path"` → interpolated into the URL path
  * - `"query"` → added to the querystring
  * - `"body"` or absent → included in the request body
  *
- * When `input` is absent or empty, POST/PUT/PATCH commands treat all non-path/
+ * When the schema has no body args, POST/PUT/PATCH commands treat all non-path/
  * non-query fields as body fields (passthrough semantics).
+ *
+ * @param schemaArgs - arg definitions extracted from the resolved `def.input` at registration time
  */
 export function buildCloudRequestParams (
   def: CloudApiDefinition,
   parsed: ParsedResult,
+  schemaArgs: SchemaArgDefinition[],
 ): CloudRequestParams {
-  const rawInput = (parsed.input ?? {}) as Record<string, unknown>
-  const resolvedInput = def.input != null ? resolveRootRef(def.input) : undefined
-  const props = ((resolvedInput?.properties ?? {}) as Record<string, Record<string, unknown>>)
+  const input = (parsed.input ?? {}) as Record<string, unknown>
 
-  const pathKeys = new Set<string>()
-  const queryKeys = new Set<string>()
-  const bodyKeys = new Set<string>()
-  const bodyRootKeys = new Set<string>()
-
-  for (const [key, prop] of Object.entries(props)) {
-    const loc = prop['x-found-in'] as string | undefined
-    if (loc === 'path') pathKeys.add(key)
-    else if (loc === 'query') queryKeys.add(key)
-    else {
-      bodyKeys.add(key)
-      if (prop['x-body-root'] === true) bodyRootKeys.add(key)
-    }
-  }
-
-  const required = new Set(Array.isArray(resolvedInput?.required) ? resolvedInput!.required as string[] : [])
-  const path = interpolatePath(def.path, pathKeys, required, rawInput)
-  const querystring = buildQuerystring(queryKeys, rawInput)
-  const body = collectBody(def.method, pathKeys, queryKeys, bodyKeys, bodyRootKeys, rawInput)
+  requirePathParams(schemaArgs, input)
+  const path = interpolatePath(def.path, input, encodePathParam)
+  const querystring = Object.fromEntries(
+    Object.entries(routeQuery(schemaArgs, input)).map(([key, value]) => [key, String(value)])
+  )
+  const body = collectBody(def.method, schemaArgs, input)
 
   const params: CloudRequestParams = { method: def.method, path }
   if (Object.keys(querystring).length > 0) params.querystring = querystring
@@ -56,73 +44,30 @@ export function buildCloudRequestParams (
   return params
 }
 
-/**
- * Interpolates `{param}` tokens in the URL template. Values are percent-encoded so
- * special characters like `/`, `?`, and `#` cannot escape the path segment (#106).
- * Optional params with no value have their segment stripped.
- */
-function interpolatePath (
-  template: string,
-  pathKeys: Set<string>,
-  required: Set<string>,
-  input: Record<string, unknown>,
-): string {
-  let path = template
-  for (const key of pathKeys) {
-    const value = input[key]
-    if (value !== undefined) {
-      path = path.replace(`{${key}}`, encodePathParam(String(value)))
-    } else if (required.has(key)) {
-      throw new Error(`missing required path parameter "${key}"`)
-    } else {
-      path = path.replace(new RegExp(`/?\\{${key}\\}/?`), '')
-      path = path.replace(/\/$/, '') || '/'
-    }
-  }
-  return path
-}
-
-function buildQuerystring (
-  queryKeys: Set<string>,
-  input: Record<string, unknown>,
-): Record<string, string> {
-  const qs: Record<string, string> = {}
-  for (const key of queryKeys) {
-    const value = input[key]
-    if (value !== undefined) qs[key] = String(value)
-  }
-  return qs
-}
-
 const BODY_METHODS: ReadonlySet<string> = new Set(['POST', 'PUT', 'PATCH'])
 
 function collectBody (
   method: string,
-  pathKeys: Set<string>,
-  queryKeys: Set<string>,
-  bodyKeys: Set<string>,
-  bodyRootKeys: Set<string>,
+  schemaArgs: SchemaArgDefinition[],
   input: Record<string, unknown>,
 ): unknown {
   // Explicit body fields from schema take precedence over the method gate below:
   // some commands (e.g. delete-api-keys) send a required body on DELETE.
-  if (bodyKeys.size > 0) {
-    const body: Record<string, unknown> = {}
-    for (const key of bodyKeys) {
-      if (input[key] !== undefined) body[key] = input[key]
-    }
+  if (schemaArgs.some((a) => a.foundIn === 'body' || a.foundIn === undefined)) {
+    const body = routeBody(schemaArgs, input)
     const keys = Object.keys(body)
     if (keys.length === 0) return undefined
     // `x-body-root` marks a field whose value replaces the whole body (e.g.
     // patch-current-account's JSON Patch document).
-    if (keys.length === 1 && bodyRootKeys.has(keys[0]!)) return body[keys[0]!]
+    const root = schemaArgs.find((a) => a.bodyRoot === true && a.schemaKey in body)
+    if (keys.length === 1 && root != null) return body[root.schemaKey]
     return body
   }
 
   if (!BODY_METHODS.has(method)) return undefined
 
   // Passthrough: no explicit body schema — use all non-path/non-query fields
-  const reserved = new Set([...pathKeys, ...queryKeys])
+  const reserved = new Set(schemaArgs.map((a) => a.schemaKey))
   const body: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(input)) {
     if (!reserved.has(key) && value !== undefined) body[key] = value

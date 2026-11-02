@@ -5,7 +5,7 @@
 
 import { describe, it, before, after, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, readFile, stat, writeFile } from 'node:fs/promises'
+import { chmod, mkdtemp, rm, readFile, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import {
@@ -15,7 +15,6 @@ import {
   upsertExtension,
   removeExtension,
   _testSetRegistryPath,
-  _testSetPlatform,
 } from '../../src/extension/store.ts'
 import type { InstalledExtension } from '../../src/extension/store.ts'
 
@@ -104,12 +103,15 @@ describe('extension store', () => {
     })
 
     it('skips chmod on win32 without throwing', async () => {
-      _testSetPlatform('win32')
-      try {
-        await assert.doesNotReject(writeExtensions([ext1]))
-      } finally {
-        _testSetPlatform(process.platform)
-      }
+      await assert.doesNotReject(writeExtensions([ext1], { platform: 'win32' }))
+    })
+
+    it('leaves existing permissions alone when platform is win32', async () => {
+      if (process.platform === 'win32') return
+      await writeFile(registryFile, '[]\n', { mode: 0o644 })
+      await chmod(registryFile, 0o644)
+      await writeExtensions([ext1], { platform: 'win32' })
+      assert.equal((await stat(registryFile)).mode & 0o777, 0o644)
     })
   })
 

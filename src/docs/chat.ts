@@ -8,7 +8,6 @@ import { defineCommand, ttyRequiredError } from '../factory.ts'
 import type { OpaqueCommandHandle, JsonValue, ParsedResult } from '../factory.ts'
 import { docsAskStream, newUuid, type AskStreamEvent } from './client.ts'
 import { startSpinner, streamAnswer, type SpinnerHandle } from './stream.ts'
-import { renderMarkdown } from './renderer.ts'
 
 export interface ChatDeps {
   docsAskStream: (message: string, conversationId: string) => AsyncGenerator<AskStreamEvent>
@@ -33,6 +32,7 @@ async function askQuestion (
 ): Promise<void> {
   try {
     const gen = deps.docsAskStream(question, conversationId)
+    const { renderMarkdown } = await import('./renderer.ts')
     await streamAnswer(gen, renderMarkdown, deps.stdout, spinner)
   } catch (err) {
     spinner?.stop()
