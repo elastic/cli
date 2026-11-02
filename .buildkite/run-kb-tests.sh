@@ -181,6 +181,7 @@ docker run \
   --env "ES_PASSWORD=${ES_PASSWORD}" \
   --env "ES_IP=${ES_IP}" \
   --env "KB_IP=${KB_IP}" \
+  --env "STACK_VERSION=${STACK_VERSION}" \
   "$NODE_RUNNER_IMAGE" \
   bash /workspace/.buildkite/run-kb-tests-runner.sh | tee /tmp/kb-ft.log
 code=${PIPESTATUS[0]}

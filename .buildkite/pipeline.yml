@@ -10,7 +10,7 @@
 
 env:
   CLOUD_CREDENTIALS_PATH: "secret/ci/elastic-cli/cloud-access"
-  NODE_VERSION: "22"
+  NODE_VERSION: "24"
 
 steps:
   - label: "Skill memory PR"
@@ -20,56 +20,55 @@ steps:
   - group: "ES Functional Tests"
     if: build.branch != "ai/review-memory"
     steps:
-      - label: ":elasticsearch: ES functional tests — Node {{matrix.node}}"
+      - label: ":elasticsearch: ES functional tests — Stack {{matrix.stack}}"
         key: "es-functional"
         matrix:
           setup:
-            node:
-              - "22"
-              - "24"
+            stack:
+              - "9.5.3"
+              - "9.4.8"
+              - "9.3.8"
+              - "9.2.8"
+              - "9.1.10"
+              - "9.0.8"
         agents:
           provider: gcp
           image: family/core-ubuntu-2204
         env:
-          NODE_VERSION: "{{matrix.node}}"
-          STACK_VERSION: "9.5.3"
+          STACK_VERSION: "{{matrix.stack}}"
         command: ".buildkite/run-es-tests.sh"
 
   - group: "KB Functional Tests"
     if: build.branch != "ai/review-memory"
     steps:
-      - label: ":kibana: KB functional tests — Node {{matrix.node}}"
+      - label: ":kibana: KB functional tests — Stack {{matrix.stack}}"
         key: "kb-functional"
         matrix:
           setup:
-            node:
-              - "22"
-              - "24"
+            stack:
+              - "9.5.3"
+              - "9.4.8"
+              - "9.3.8"
+              - "9.2.8"
+              - "9.1.10"
+              - "9.0.8"
         agents:
           provider: gcp
           image: family/kibana-ubuntu-2404
           machineType: n2-standard-4
           diskSizeGb: 130
         env:
-          NODE_VERSION: "{{matrix.node}}"
-          STACK_VERSION: "9.5.3"
+          STACK_VERSION: "{{matrix.stack}}"
         command: ".buildkite/run-kb-tests.sh"
 
   - group: "Cloud Functional Tests"
     if: build.branch != "ai/review-memory"
     steps:
-      - label: ":cloud: Cloud functional tests — Node {{matrix.node}}"
+      - label: ":cloud: Cloud functional tests"
         key: "cloud-functional"
-        matrix:
-          setup:
-            node:
-              - "22"
-              - "24"
         agents:
           provider: gcp
           image: family/core-ubuntu-2204
-        env:
-          NODE_VERSION: "{{matrix.node}}"
         command: ".buildkite/run-cloud-tests.sh"
         artifact_paths:
           - "test/functional/cloud/*.log"

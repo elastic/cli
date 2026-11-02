@@ -6,6 +6,8 @@
 requires:
   serverless: true
   stack: true
+  # Missing on 9.0 (404); x-state carries no version, so gate here.
+  stack_since: 9.1.0
   serverless_project: observability
 ---
 teardown:

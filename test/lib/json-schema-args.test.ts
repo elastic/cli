@@ -166,6 +166,20 @@ describe('extractSchemaArgs', () => {
     assert.equal(args[0]?.acceptsArrayForm, true)
   })
 
+  it('marks a typeless property as an object that accepts a plain string', () => {
+    const s = schema({ document: { 'x-found-in': 'body' } })
+    const args = extractSchemaArgs(s)
+    assert.equal(args[0]?.type, 'object')
+    assert.equal(args[0]?.plainStringOk, true)
+  })
+
+  it('does not mark an explicit object as accepting a plain string', () => {
+    const s = schema({ query: { type: 'object', 'x-found-in': 'body' } })
+    const args = extractSchemaArgs(s)
+    assert.equal(args[0]?.type, 'object')
+    assert.equal(args[0]?.plainStringOk, undefined)
+  })
+
   it('does not flag a plain string property', () => {
     const s = schema({ name: { type: 'string' } })
     const args = extractSchemaArgs(s)

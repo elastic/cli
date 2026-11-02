@@ -25,7 +25,7 @@ import { checkElasticsearch, checkKibana, checkCloud } from './checks.ts'
 import type { EsCheck, KbCheck, CloudCheck } from './checks.ts'
 import { formatStatusText } from './format.ts'
 import type { StatusResult } from './types.ts'
-import { classifyConfigLoadError } from '../help/catalog.ts'
+import { configLoadErrorCode } from '../help/catalog.ts'
 
 /**
  * Test seam: the fetch implementation used by the three service probes.
@@ -103,10 +103,21 @@ async function statusHandler (parsed: ParsedResult): Promise<JsonValue> {
     ...(profileName != null && { profileName }),
   })
   if (!loaded.ok) {
-    return { error: { code: classifyConfigLoadError(loaded.error.message), message: loaded.error.message } }
+    return { error: { code: configLoadErrorCode(loaded.error), message: loaded.error.message } }
   }
 
   const result = await runStatusChecks(loaded.contextName, loaded.value.context)
+  if (loaded.value.detect_version !== false) {
+    // Pinned (plain string) versions are never overwritten; refresh the rest for reachable services.
+    const { detectAndStore } = await import('../config/sniff.ts')
+    const { findConfigFile } = await import('../config/discover.ts')
+    const path = await findConfigFile(configFile)
+    const services = (['elasticsearch', 'kibana'] as const).filter((s) =>
+      result.services[s]?.ok === true && typeof loaded.value.context[s]?.version !== 'string')
+    if (path != null && services.length > 0) {
+      await detectAndStore({ path, contextName: loaded.contextName, context: loaded.value.context, services, warn: false })
+    }
+  }
   const anyFail = Object.values(result.services).some((svc) => svc != null && !svc.ok)
   if (anyFail) {
     process.exitCode = 1

@@ -7,7 +7,6 @@ import { defineCommand } from '../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../factory.ts'
 import { docsAskStream, newUuid, type AskStreamEvent } from './client.ts'
 import { startSpinner, streamAnswer } from './stream.ts'
-import { renderMarkdown } from './renderer.ts'
 
 export interface AskDeps {
   docsAskStream: (message: string, conversationId: string) => AsyncGenerator<AskStreamEvent>
@@ -71,6 +70,7 @@ export function createAskCommand (deps: AskDeps = defaultDeps): OpaqueCommandHan
         }
 
         const gen = deps.docsAskStream(question, conversationId)
+        const { renderMarkdown } = await import('./renderer.ts')
         await streamAnswer(gen, renderMarkdown, deps.stdout, spinner)
       } catch (err) {
         spinner?.stop()

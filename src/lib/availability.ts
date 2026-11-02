@@ -19,6 +19,8 @@ export function parseVersionHint (raw: unknown): [number, number] | 'serverless'
   // YAML parses an unquoted `9.1` as a number, and the registration/help config
   // load skips schema coercion, so the hint may arrive as a non-string. Coerce
   // defensively; the regex rejects anything that isn't MAJOR.MINOR[.PATCH].
+  // The auto-detected form is `{ value, checked_ts }`.
+  if (raw != null && typeof raw === 'object' && 'value' in raw) raw = raw.value
   const str = typeof raw === 'string' ? raw : String(raw)
   if (str === 'serverless') return 'serverless'
   if (!VERSION_RE.test(str)) return undefined

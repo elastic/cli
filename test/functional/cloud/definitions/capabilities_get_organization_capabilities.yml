@@ -1,0 +1,7 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get organization capabilities (GET /api/v1/serverless/capabilities)
+---
+"capabilities get-organization-capabilities":
+  - do:
+      capabilities.get-organization-capabilities: {}

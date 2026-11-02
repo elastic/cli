@@ -15,11 +15,12 @@
  */
 
 import { chmod, mkdir, rename, stat, writeFile, unlink } from 'node:fs/promises'
-import { execSync, type ExecSyncOptionsWithStringEncoding } from 'node:child_process'
-import { homedir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { execFileSync, type ExecFileSyncOptionsWithStringEncoding } from 'node:child_process'
+import { userInfo } from 'node:os'
+import { dirname, extname, join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { stringify as stringifyYaml, parse as parseYaml } from 'yaml'
+import { discoverConfigFile, homeDir } from './discover.ts'
 
 /**
  * Raw, pre-resolution shape of a config file. `unknown` leaf values are
@@ -35,28 +36,7 @@ export interface RawConfig {
 /** Raw, pre-resolution shape of a single context. */
 export type RawContext = Record<string, unknown>
 
-// ---------------------------------------------------------------------------
-// Test seams
-// ---------------------------------------------------------------------------
-
-let _execSync: typeof execSync = execSync
-let _platform: string = process.platform
-
-/** @internal */
-export function _testSetExecSync (fn: typeof execSync): () => void {
-  const prev = _execSync
-  _execSync = fn
-  return () => { _execSync = prev }
-}
-
-/** @internal */
-export function _testSetPlatform (p: string): () => void {
-  const prev = _platform
-  _platform = p
-  return () => { _platform = prev }
-}
-
-function execOpts (timeoutMs: number): ExecSyncOptionsWithStringEncoding {
+function execOpts (timeoutMs: number): ExecFileSyncOptionsWithStringEncoding {
   return { encoding: 'utf-8', timeout: timeoutMs, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true }
 }
 
@@ -165,16 +145,18 @@ export function hasInlineSecrets (config: RawConfig): boolean {
  * Precedence:
  *   1. explicit `--config-file` argument (if a non-empty string)
  *   2. `ELASTIC_CLI_CONFIG_FILE` env var (if set and non-empty)
- *   3. `~/.elasticrc.yml`
+ *   3. the config file home-directory discovery would load (so writes land in
+ *      the file the loader reads, e.g. an existing `~/.elasticrc`)
+ *   4. `~/.elasticrc.yml` when no config file exists yet
  *
  * Kept here (not in loader.ts) because write-side callers in `commands.ts`
  * and `cloud/credentials.ts` need it without importing the full loader.
  */
-export function resolveConfigPath (explicit?: string): string {
+export async function resolveConfigPath (explicit?: string): Promise<string> {
   if (typeof explicit === 'string' && explicit.length > 0) return explicit
   const env = process.env.ELASTIC_CLI_CONFIG_FILE
   if (typeof env === 'string' && env.length > 0) return env
-  return join(homedir(), '.elasticrc.yml')
+  return (await discoverConfigFile()) ?? join(homeDir(), '.elasticrc.yml')
 }
 
 // ---------------------------------------------------------------------------
@@ -186,6 +168,14 @@ export interface WriteConfigOptions {
   restrictPermissions?: boolean
   /** Create parent directories if missing. Default: true. */
   createParentDirs?: boolean
+}
+
+/** Injectable process hooks for {@link writeConfig}. Each field defaults to the real process. */
+export interface WriteConfigDeps {
+  /** Runs `icacls` on Windows. */
+  execFileSync?: typeof execFileSync
+  /** Selects chmod (Unix) or icacls (Windows). Defaults to `process.platform`. */
+  platform?: string
 }
 
 export interface WriteConfigResult {
@@ -208,9 +198,11 @@ export interface WriteConfigResult {
 export async function writeConfig (
   path: string,
   config: RawConfig,
-  options: WriteConfigOptions = {}
+  options: WriteConfigOptions = {},
+  deps: WriteConfigDeps = {}
 ): Promise<WriteConfigResult> {
   const { restrictPermissions = true, createParentDirs = true } = options
+  const platform = deps.platform ?? process.platform
 
   // Callers (command handlers) own config validity; deep validation happens at
   // load time via ContextSchema after expression resolution.
@@ -219,24 +211,27 @@ export async function writeConfig (
     await mkdir(dirname(path), { recursive: true })
   }
 
-  const yaml = serializeConfig(config)
+  const content = serializeConfig(config, extname(path) === '.json' ? 'json' : 'yaml')
   const warnings: string[] = []
 
   const tmp = join(dirname(path), `.${basename(path)}.${randomBytes(4).toString('hex')}.tmp`)
   let permsEnforced = false
 
   try {
-    await writeFile(tmp, yaml, { encoding: 'utf-8', mode: 0o600 })
-    if (restrictPermissions && _platform !== 'win32') {
+    await writeFile(tmp, content, { encoding: 'utf-8', mode: 0o600 })
+    if (restrictPermissions && platform !== 'win32') {
       await chmod(tmp, 0o600)
     }
     await rename(tmp, path)
 
     if (restrictPermissions) {
-      if (_platform === 'win32') {
+      if (platform === 'win32') {
         try {
-          _execSync(
-            `icacls "${path}" /inheritance:r /grant:r "%USERNAME%":F`,
+          // No shell: the path is user-controlled and a `"` or `&` in it would
+          // otherwise break out of cmd.exe quoting.
+          (deps.execFileSync ?? execFileSync)(
+            'icacls',
+            [path, '/inheritance:r', '/grant:r', `${userInfo().username}:F`],
             execOpts(5_000)
           )
           permsEnforced = true
@@ -274,22 +269,24 @@ function basename (p: string): string {
 }
 
 /**
- * YAML serializer. Keeps a stable top-level key order
+ * Config serializer (YAML by default; `json` for `.json` files, which the
+ * loader parses with `JSON.parse`). Keeps a stable top-level key order
  * (`current_context`, `contexts`, `commands`) so round-trips produce diffs
  * limited to the fields that actually changed.
  */
-export function serializeConfig (config: RawConfig): string {
+export function serializeConfig (config: RawConfig, format: 'yaml' | 'json' = 'yaml'): string {
   const ordered: Record<string, unknown> = {}
   ordered.current_context = config.current_context
   ordered.contexts = config.contexts
   if (config.commands != null) ordered.commands = config.commands
   if (config.banner != null) ordered.banner = config.banner
   if (config.telemetry != null) ordered.telemetry = config.telemetry
+  if (config.detect_version != null) ordered.detect_version = config.detect_version
   for (const [k, v] of Object.entries(config)) {
-    if (k === 'current_context' || k === 'contexts' || k === 'commands' || k === 'banner' || k === 'telemetry') continue
+    if (k === 'current_context' || k === 'contexts' || k === 'commands' || k === 'banner' || k === 'telemetry' || k === 'detect_version') continue
     ordered[k] = v
   }
-  return stringifyYaml(ordered, { lineWidth: 0 })
+  return format === 'json' ? JSON.stringify(ordered, null, 2) + '\n' : stringifyYaml(ordered, { lineWidth: 0 })
 }
 
 /**
@@ -318,7 +315,9 @@ export async function readRawConfig (path: string): Promise<RawConfig> {
       ? obj.contexts as Record<string, RawContext>
       : {},
     ...(obj.commands != null ? { commands: obj.commands } : {}),
+    ...(typeof obj.default_profile === 'string' ? { default_profile: obj.default_profile } : {}),
     ...(typeof obj.banner === 'boolean' ? { banner: obj.banner } : {}),
     ...(typeof obj.telemetry === 'boolean' ? { telemetry: obj.telemetry } : {}),
+    ...(typeof obj.detect_version === 'boolean' ? { detect_version: obj.detect_version } : {}),
   }
 }

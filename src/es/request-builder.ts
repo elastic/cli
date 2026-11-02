@@ -8,6 +8,7 @@ import type { EsApiDefinition } from './types.ts'
 import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
 import type { RawJsonValue, ParsedResult } from '../factory.ts'
 import { encodeMultiTargetPathParam } from '../lib/path-encoding.ts'
+import { interpolatePath, requirePathParams, routeBody, routeQuery } from '../lib/request-routing.ts'
 
 /**
  * Builds a `TransportRequestParams` object from an API definition, parsed CLI input,
@@ -34,8 +35,9 @@ export function buildRequestParams (
   const input = (parsed.input ?? {}) as Record<string, unknown>
   const rawBody = parsed.rawBodyValues ?? {}
 
-  const path = interpolatePath(def.path, schemaArgs, input)
-  const querystring = buildQuerystring(schemaArgs, input)
+  requirePathParams(schemaArgs, input)
+  const path = interpolatePath(def.path, input, encodeMultiTargetPathParam)
+  const querystring = routeQuery(schemaArgs, input)
   const body = collectBody(schemaArgs, input, rawBody, def.path, def.bodyFormat)
 
   // The index API uses PUT with {id} but POST without (auto-ID generation).
@@ -47,6 +49,10 @@ export function buildRequestParams (
     )
     if (idArg != null && input[idArg.schemaKey] === undefined) method = 'POST'
   }
+  // Schemas list POST first for endpoints that added POST later (e.g. _cat/count
+  // in 9.3). Older stacks reject it, so send GET when there is no body to carry.
+  const urls = def.input?.['x-urls'] as Array<{ methods: string[] }> | undefined
+  if (method === 'POST' && body === undefined && urls?.some((u) => u.methods.includes('GET')) === true) method = 'GET'
 
   const params: EsRequestParams = { method, path }
   if (Object.keys(querystring).length > 0) params.querystring = querystring
@@ -61,50 +67,6 @@ export function buildRequestParams (
     }
   }
   return params
-}
-
-/**
- * Interpolates `{param}` tokens in the path template using values from the unified input object.
- *
- * Only `SchemaArgDefinition` entries with `foundIn === "path"` are processed.
- * The schema key is both the `{token}` name in the template and the lookup key in `input`.
- * For optional params that are absent, trailing `/{param}` segments are stripped.
- */
-function interpolatePath (
-  path: string,
-  schemaArgs: SchemaArgDefinition[],
-  input: Record<string, unknown>
-): string {
-  for (const arg of schemaArgs.filter((a) => a.foundIn === 'path')) {
-    const value = input[arg.schemaKey]
-    if (value !== undefined) {
-      path = path.replace(`{${arg.schemaKey}}`, encodeMultiTargetPathParam(String(value)))
-    } else if (!arg.required) {
-      // Strip the optional segment with its leading slash so the rest of the
-      // path remains valid. E.g.:
-      //   "/_inference/{task_type}/{inference_id}" (task_type absent)
-      //   → "/_inference/{inference_id}"   (not "/_inference{inference_id}")
-      path = path.replace(new RegExp(`/\\{${arg.schemaKey}\\}`), '')
-      path = path.replace(/\/$/, '') || '/'
-    }
-  }
-  return path
-}
-
-/**
- * Builds the querystring record from `SchemaArgDefinition` entries with `foundIn === "query"`.
- * The schema key is used as the ES-native querystring param name.
- */
-function buildQuerystring (
-  schemaArgs: SchemaArgDefinition[],
-  input: Record<string, unknown>
-): Record<string, unknown> {
-  const qs: Record<string, unknown> = {}
-  for (const arg of schemaArgs.filter((a) => a.foundIn === 'query')) {
-    const value = input[arg.schemaKey]
-    if (value !== undefined) qs[arg.schemaKey] = value
-  }
-  return qs
 }
 
 /**
@@ -157,12 +119,7 @@ function collectBody (
   bodyFormat?: string
 ): Record<string, unknown> | string | undefined {
   const bodyArgs = schemaArgs.filter((a) => a.foundIn === 'body' || a.foundIn === undefined)
-  const body: Record<string, unknown> = {}
-
-  for (const arg of bodyArgs) {
-    const value = input[arg.schemaKey]
-    if (value !== undefined) body[arg.schemaKey] = value
-  }
+  const body = routeBody(schemaArgs, input)
 
   if (Object.keys(body).length === 0) return undefined
 

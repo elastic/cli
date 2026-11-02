@@ -13,43 +13,16 @@ import { createScrollSearchCommand } from '../../../src/es/helpers/scroll-search
 import type { ScrollSearchDeps } from '../../../src/es/helpers/scroll-search.ts'
 import { _testSetStdinReader } from '../../../src/factory.ts'
 import { Command } from 'commander'
+import { captureDuring, captureOutput } from '../../helpers/capture.ts'
+import { mockTransport } from '../../helpers/transport.ts'
 
 interface MockResponse {
   _scroll_id?: string
   hits?: { hits?: Array<{ _source: unknown }> }
 }
 
-function mockTransport (responses: MockResponse[]): {
-  transport: EsClient
-  requests: Array<{ params: EsRequestParams }>
-} {
-  const requests: Array<{ params: EsRequestParams }> = []
-  let callIndex = 0
-  const transport = {
-    request: async (params: EsRequestParams) => {
-      requests.push({ params })
-      const response = responses[callIndex] ?? { hits: { hits: [] } }
-      callIndex++
-      return response
-    }
-  } as unknown as EsClient
-  return { transport, requests }
-}
-
-function captureOutput (): { stdout: { write: (s: string) => boolean, chunks: string[] }, stderr: { write: (s: string) => boolean, chunks: string[] } } {
-  const stdoutChunks: string[] = []
-  const stderrChunks: string[] = []
-  return {
-    stdout: {
-      chunks: stdoutChunks,
-      write: (s: string) => { stdoutChunks.push(s); return true }
-    },
-    stderr: {
-      chunks: stderrChunks,
-      write: (s: string) => { stderrChunks.push(s); return true }
-    }
-  }
-}
+// Exhausted queues answer with an empty page so scroll loops terminate.
+const searchTransport = (responses: MockResponse[]) => mockTransport(responses, { hits: { hits: [] } })
 
 function makeDeps (transport: EsClient, output?: ReturnType<typeof captureOutput>): ScrollSearchDeps {
   const io = output ?? captureOutput()
@@ -63,28 +36,15 @@ async function runCommand (args: string[], deps: ScrollSearchDeps): Promise<{ re
   program.option('--json', 'output as JSON')
   program.addCommand(cmd)
 
-  const progChunks: string[] = []
-  const errChunks: string[] = []
-  const origStdoutWrite = process.stdout.write.bind(process.stdout)
-  const origStderrWrite = process.stderr.write.bind(process.stderr)
-  process.stdout.write = ((chunk: string) => {
-    if (typeof chunk === 'string') progChunks.push(chunk)
-    return true
-  }) as typeof process.stdout.write
-  process.stderr.write = ((chunk: string) => {
-    if (typeof chunk === 'string') errChunks.push(chunk)
-    return true
-  }) as typeof process.stderr.write
-
-  const restoreStdin = _testSetStdinReader(() => '')
-  try {
-    await program.parseAsync(['node', 'test', 'scroll-search', ...args])
-  } finally {
-    restoreStdin()
-    process.stdout.write = origStdoutWrite
-    process.stderr.write = origStderrWrite
-    process.exitCode = 0
-  }
+  const { stdout: progChunks, stderr: errChunks } = await captureDuring(async () => {
+    const restoreStdin = _testSetStdinReader(() => '')
+    try {
+      await program.parseAsync(['node', 'test', 'scroll-search', ...args])
+    } finally {
+      restoreStdin()
+      process.exitCode = 0
+    }
+  })
 
   let result: unknown
   // Prefer stderr (error results) over stdout; parse whichever has content
@@ -104,14 +64,14 @@ async function runCommand (args: string[], deps: ScrollSearchDeps): Promise<{ re
 
 describe('scroll-search command', () => {
   it('creates a command named scroll-search', () => {
-    const { transport } = mockTransport([])
+    const { transport } = searchTransport([])
     const cmd = createScrollSearchCommand(makeDeps(transport))
     assert.equal(cmd.name(), 'scroll-search')
   })
 
   it('fetches all documents across scroll pages', async () => {
     const output = captureOutput()
-    const { transport, requests } = mockTransport([
+    const { transport, requests } = searchTransport([
       // Initial search response
       {
         _scroll_id: 'scroll-1',
@@ -151,7 +111,7 @@ describe('scroll-search command', () => {
 
   it('respects --max-docs limit', async () => {
     const output = captureOutput()
-    const { transport } = mockTransport([
+    const { transport } = searchTransport([
       {
         _scroll_id: 'scroll-1',
         hits: { hits: [{ _source: { a: 1 } }, { _source: { a: 2 } }, { _source: { a: 3 } }] }
@@ -170,7 +130,7 @@ describe('scroll-search command', () => {
 
   it('passes scroll and size parameters to initial search', async () => {
     const output = captureOutput()
-    const { transport, requests } = mockTransport([
+    const { transport, requests } = searchTransport([
       { _scroll_id: 'scroll-1', hits: { hits: [] } },
       {}
     ])
@@ -187,7 +147,7 @@ describe('scroll-search command', () => {
 
   it('wraps --query value under "query" in the request body', async () => {
     const output = captureOutput()
-    const { transport, requests } = mockTransport([
+    const { transport, requests } = searchTransport([
       { _scroll_id: 'scroll-1', hits: { hits: [] } },
       {}
     ])
@@ -207,7 +167,7 @@ describe('scroll-search command', () => {
     writeFileSync(filePath, '{"query":{"match_all":{}},"sort":[{"_doc":"asc"}]}')
 
     const output = captureOutput()
-    const { transport, requests } = mockTransport([
+    const { transport, requests } = searchTransport([
       { _scroll_id: 'scroll-1', hits: { hits: [] } },
       {}
     ])
@@ -223,7 +183,7 @@ describe('scroll-search command', () => {
 
   it('clears scroll context on completion', async () => {
     const output = captureOutput()
-    const { transport, requests } = mockTransport([
+    const { transport, requests } = searchTransport([
       { _scroll_id: 'scroll-abc', hits: { hits: [{ _source: { a: 1 } }] } },
       { _scroll_id: 'scroll-abc', hits: { hits: [] } },
       {} // DELETE response
@@ -283,7 +243,7 @@ describe('scroll-search command', () => {
 
   it('returns all documents in a single JSON object when --json is active', async () => {
     const output = captureOutput()
-    const { transport } = mockTransport([
+    const { transport } = searchTransport([
       {
         _scroll_id: 'scroll-1',
         hits: { hits: [{ _source: { id: 1 } }, { _source: { id: 2 } }] }
@@ -311,7 +271,7 @@ describe('scroll-search command', () => {
 
   it('respects --max-docs in --json mode', async () => {
     const output = captureOutput()
-    const { transport } = mockTransport([
+    const { transport } = searchTransport([
       {
         _scroll_id: 'scroll-1',
         hits: { hits: [{ _source: { a: 1 } }, { _source: { a: 2 } }, { _source: { a: 3 } }] }
@@ -332,7 +292,7 @@ describe('scroll-search command', () => {
 
   it('writes summary to stderr', async () => {
     const output = captureOutput()
-    const { transport } = mockTransport([
+    const { transport } = searchTransport([
       { _scroll_id: 'scroll-1', hits: { hits: [{ _source: { a: 1 } }] } },
       { _scroll_id: 'scroll-1', hits: { hits: [] } },
       {}
@@ -349,7 +309,7 @@ describe('scroll-search command', () => {
 
   it('warns on stderr when --json is used without explicit --max-docs', async () => {
     const output = captureOutput()
-    const { transport } = mockTransport([
+    const { transport } = searchTransport([
       { _scroll_id: 'scroll-1', hits: { hits: [{ _source: { a: 1 } }] } },
       { hits: { hits: [] } },
       {}
@@ -366,7 +326,7 @@ describe('scroll-search command', () => {
 
   it('does not warn when --json is used with explicit --max-docs', async () => {
     const output = captureOutput()
-    const { transport } = mockTransport([
+    const { transport } = searchTransport([
       { _scroll_id: 'scroll-1', hits: { hits: [{ _source: { a: 1 } }] } },
       { hits: { hits: [] } },
       {}
@@ -383,7 +343,7 @@ describe('scroll-search command', () => {
 
   it('does not warn in NDJSON mode (no --json) even without --max-docs', async () => {
     const output = captureOutput()
-    const { transport } = mockTransport([
+    const { transport } = searchTransport([
       { _scroll_id: 'scroll-1', hits: { hits: [{ _source: { a: 1 } }] } },
       { hits: { hits: [] } },
       {}
@@ -400,7 +360,7 @@ describe('scroll-search command', () => {
 
   it('does not warn when ELASTIC_NO_WARN=1 is set', async () => {
     const output = captureOutput()
-    const { transport } = mockTransport([
+    const { transport } = searchTransport([
       { _scroll_id: 'scroll-1', hits: { hits: [{ _source: { a: 1 } }] } },
       { hits: { hits: [] } },
       {}

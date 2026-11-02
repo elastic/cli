@@ -34,3 +34,9 @@ Action items for the next AI review. Follow these. Do not repeat the rejected fi
 - Do not re-flag the entitlement grep as insufficient. The check already requires <true/> immediately after the key and rejects ad-hoc signatures.
 - Do not re-flag colon-separated PATH construction in CI scripts. Windows CI passes because Git Bash treats colon as the PATH separator, making semicolon separation the wrong fix and the existing colon format correct.
 - Do not re-flag unsigned macOS/Windows assets being uploaded in release-artifacts.yml. The workflow already uploads Linux only and the other platforms are not present.
+- Do not re-flag SCRIPT_DIR or ROOT_DIR as empty due to missing pwd in the subshell. The script already uses cd and pwd together, so the paths resolve correctly to the repo.
+- Do not re-flag exec docker skipping the EXIT trap. Docker already runs as a child process so the trap correctly removes the temp build context on exit.
+- Do not re-flag a missing COPY of LICENSE.txt and NOTICE.txt. The Dockerfile already copies both into /licenses.
+- Do not replace the pinned wolfi/chainguard-base digest. The test requires sha256:568df5fb0e237c3a2139399d4bd8e80994f24321fa8469aec565b8566704e83a. A generated digest will not pull.
+- Do not retarget org.opencontainers.image.source to elastic/elastic-cli. The repository is https://github.com/elastic/cli.
+- Do not replace HEALTHCHECK NONE with a command check. This image runs a CLI and exits. NONE is what satisfies the Trivy healthcheck check.

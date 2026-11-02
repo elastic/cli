@@ -79,7 +79,7 @@ Two env vars let any harness self-identify without a dedicated marker:
 
 | Env var | Accepted values | Notes |
 |---|---|---|
-| `AI_AGENT` | Any non-empty string | Value is used verbatim as the agent id; can produce `AgentId` values outside `KnownAgent` |
+| `AI_AGENT` | Any non-empty string | Used as the agent id; a known id followed by `_` or `-` (e.g. `claude-code_2-1-296_agent`) is normalized to that id, other values pass through unchanged and can produce `AgentId` values outside `KnownAgent` |
 | `AGENT` | `KnownAgent` values only | Restricted to known agents to avoid misattribution from unrelated `AGENT` vars set by other tooling |
 
 These are checked before the marker table, so they take priority when present.

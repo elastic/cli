@@ -95,6 +95,7 @@ try {
   const staticConfig = join(tmpDir, ".elasticrc.yml")
   writeFileSync(staticConfig, [
     'current_context: bench',
+    'detect_version: false',
     'contexts:',
     '  bench:',
     '    elasticsearch:',

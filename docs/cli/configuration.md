@@ -20,6 +20,8 @@ The CLI organizes connection settings into named contexts. Each context can cont
 
 One context can be set as the current context. The CLI uses it when a command doesn't specify another context with `--use-context <name>`.
 
+To keep an agent in the current context, set `allow_context_override: false` on that context. The CLI then rejects `--use-context` with `command_blocked`. This does not reject `--config-file` or `ELASTIC_CLI_CONFIG_FILE`.
+
 Contexts are stored in the CLI configuration file. You can edit this file directly or use `elastic config` to update it.
 
 ### Edit the configuration file
@@ -32,6 +34,8 @@ The CLI looks for a config file in your home directory. The following file names
 4. `.elasticrc.yml`
 
 Place your config at `~/.elasticrc.yml` (recommended). To use a file in a different location, pass `--config-file <path>` or set the `ELASTIC_CLI_CONFIG_FILE` environment variable. The flag takes precedence over the environment variable.
+
+`elastic config` and `--save-as` write to the file the CLI loads: the one found by this search, or the one you select with `--config-file` or `ELASTIC_CLI_CONFIG_FILE`. If no config file exists, the CLI creates `~/.elasticrc.yml`. When the target is a `.json` file, the CLI writes JSON instead of YAML.
 
 ```yaml
 current_context: local <1>
@@ -108,6 +112,25 @@ elastic --use-context staging status
 ```
 
 The command reports a result for each configured service (`elasticsearch`, `kibana`, or `cloud`) in the selected context.
+
+## Supported versions and version filtering [versions]
+
+The CLI supports {{serverless-full}} and any 9.x version of the {{stack}}.
+
+The first time you run an `elastic stack` (or `es`/`kb`) command targeting an {{es}} or {{kib}} instance that has no version set in the configuration file, or a version has not been checked in at least 30 days, it auto-detects the version running and filters commands and fields to match:
+
+* For a 9.x version, it hides APIs and fields introduced in a later minor version, and those that exist only in {{serverless-short}}.
+* For `serverless`, it hides APIs and fields that are not supported by {{serverless-short}}.
+
+The detected version is stored in your configuration file. Refer to the `version` property in the [configuration file reference](./configuration_reference.md#service-block) for the stored format, when it is refreshed, and when detection is skipped.
+
+Filtering never blocks you:
+
+* If the CLI cannot detect the version, because detection failed or is turned off, all APIs supported by both {{serverless-full}} and hosted clusters will be available.
+* If detection fails, for example because the cluster is unreachable, the CLI prints a warning and records the attempt so it does not slow down every command. It tries again after 1 hour. If an earlier detected version exists, the CLI keeps using it and tries again after 30 days.
+* If you upgrade your cluster, all existing APIs will still work. Newly added APIs and fields won't be supported until the CLI is upgraded and the `version` value is set appropriately in the configuration file.
+
+If detection picks the wrong version, set `version` to a string such as `"9.1"` or `serverless` in the service block to pin it. To turn detection off, set `detect_version: false` at the top level. To see what was detected, run `elastic status` and read `version.value` under the service in your configuration file.
 
 ## Credential-safe project creation
 ```{applies_to}

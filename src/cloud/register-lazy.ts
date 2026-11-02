@@ -13,8 +13,8 @@
  * resolution they trigger are NOT loaded at module evaluation time, keeping
  * startup heap bounded.
  *
- * When the user invokes any actual cloud sub-command, the stub-swap mechanism
- * below loads the full command tree on demand.
+ * When the user invokes any actual cloud sub-command, `cli.ts` passes
+ * `targetSubNamespace` and the full command tree is loaded eagerly instead.
  */
 
 import { Command } from 'commander'
@@ -23,9 +23,8 @@ import type { OpaqueCommandHandle } from '../factory-core.ts'
 import { PROMOTED_NAMESPACES } from './constants.ts'
 
 /**
- * Returns a lightweight `cloud` command group whose sub-trees are stub
- * `Command` objects.  Stubs swap themselves for the real tree on first
- * invocation (any action or option processing).
+ * Returns a lightweight `cloud` command group whose sub-trees are empty stub
+ * `Command` objects, enough to render `cloud --help`.
  *
  * When `targetSubNamespace` is set (forwarded from `cli.ts` via `LoadOptions`),
  * the full tree is loaded eagerly so help shows real sub-commands.

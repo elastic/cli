@@ -36,6 +36,8 @@ export interface Requires {
   stack: boolean | null
   /** Serverless project types this definition may run against. Absent means any. */
   serverlessProject?: ServerlessProject[]
+  /** Minimum stack version (MAJOR.MINOR.PATCH) the definition's features need. Absent means any. */
+  stackSince?: string
 }
 
 /**

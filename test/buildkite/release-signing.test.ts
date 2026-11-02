@@ -5,9 +5,10 @@
 
 import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
 import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, chmod } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { delimiter, join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
@@ -46,7 +47,8 @@ describe('pack-sign.sh', () => {
     const archive = bashPath(join(out, 'elastic-macos-arm64.tar.gz'))
     const listing = run('bash', ['-c', 'tar -tzf "$1"', 'tar', archive])
     assert.equal(listing.status, 0, listing.stderr)
-    assert.equal(listing.stdout.trim(), 'elastic-macos-arm64')
+    assert.match(listing.stdout, /^elastic-macos-arm64\/?$/m)
+    assert.match(listing.stdout, /^elastic-macos-arm64\/elastic-macos-arm64$/m)
     assert.equal(await readFile(join(out, 'elastic-windows-x64.exe'), 'utf8'), 'exe-x64')
     await rm(dir, { recursive: true })
   })
@@ -315,6 +317,7 @@ describe('release.yml publish step', () => {
   it('downloads final artifacts onto the fresh agent', async () => {
     const yml = await readFile(new URL('../../.buildkite/release.yml', import.meta.url), 'utf8')
     const publish = yml.slice(yml.indexOf('key: publish-release'))
+    assert.match(publish, /if: build\.tag != null && build\.tag =~ \/\^v\//)
     assert.match(publish, /buildkite-agent artifact download "final\/\*" \./)
     const verify = yml.slice(yml.indexOf('key: verify-macos'), yml.indexOf('key: publish-release'))
     assert.match(verify, /buildkite-agent artifact download "final\/elastic-macos-\*" \./)
@@ -387,6 +390,50 @@ describe('publish-release.sh', () => {
     })
     assert.notEqual(noToken.status, 0)
     assert.match(noToken.stderr, /GH_TOKEN or GITHUB_TOKEN must be set/)
+    await rm(dir, { recursive: true })
+  })
+})
+
+describe('release-build.sh', () => {
+  it('compiles when bun is installed and bunx is not', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'release-build-'))
+    const bin = join(dir, 'bin')
+    const log = join(dir, 'bun-log')
+    await mkdir(bin)
+    await writeFile(join(bin, 'bun'), `#!/usr/bin/env bash
+printf '%s\\n' "$@" >> "$BUN_LOG"
+if [[ "$1" == --version ]]; then
+  printf '%s\\n' "$BUN_VERSION"
+  exit 0
+fi
+if [[ "$1" == build ]]; then
+  prev=""
+  for arg in "$@"; do
+    if [[ "$prev" == --outfile ]]; then printf 'bin' > "$arg"; fi
+    prev=$arg
+  done
+fi
+exit 0
+`)
+    await chmod(join(bin, 'bun'), 0o755)
+    const kept = (process.env.PATH ?? '').split(delimiter).filter(dir => {
+      return !['bun', 'bunx', 'bun.exe', 'bunx.exe', 'bun.cmd', 'bunx.cmd'].some(name => existsSync(join(dir, name)))
+    })
+    const result = spawnSync('bash', [join(scripts, 'release-build.sh')], {
+      cwd: dir,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        PATH: `${bin}${delimiter}${kept.join(delimiter)}`,
+        BUN_VERSION: '1.3.14',
+        BUN_LOG: bashPath(log),
+      },
+    })
+    assert.equal(result.status, 0, result.stderr || result.error?.message)
+    const calls = await readFile(log, 'utf8')
+    assert.match(calls, /^x\ntsc\n-b\npackages\/config-resolver\n/m)
+    assert.match(calls, /^x\ntsc\n-b\npackages\/agent-env\n/m)
+    assert.equal(result.stderr.includes('bunx: command not found'), false)
     await rm(dir, { recursive: true })
   })
 })

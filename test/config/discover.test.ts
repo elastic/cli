@@ -8,7 +8,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { hasConfigSource, ENV_CONFIG_FILE } from '../../src/config/discover.ts'
+import { hasConfigSource, homeDir, ENV_CONFIG_FILE } from '../../src/config/discover.ts'
 
 describe('hasConfigSource', () => {
   const originalEnv = process.env[ENV_CONFIG_FILE]
@@ -47,6 +47,26 @@ describe('hasConfigSource', () => {
     try {
       setHome(home)
       assert.equal(await hasConfigSource(), false)
+    } finally {
+      await rm(home, { recursive: true })
+    }
+  })
+})
+
+describe('homeDir', () => {
+  const originalHome = process.env.HOME
+  const originalUserProfile = process.env.USERPROFILE
+
+  afterEach(() => {
+    restore('HOME', originalHome)
+    restore('USERPROFILE', originalUserProfile)
+  })
+
+  it('reads the home env var at call time, not a cached os.homedir()', async () => {
+    const home = await mkdtemp(join(tmpdir(), 'elastic-cli-home-'))
+    try {
+      setHome(home)
+      assert.equal(homeDir(), home)
     } finally {
       await rm(home, { recursive: true })
     }

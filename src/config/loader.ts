@@ -11,7 +11,7 @@
  * 2. Structural validation of the outer config shape (without resolving expressions)
  * 3. Resolve context name (default or --use-context override)
  * 4. Resolve expressions only in the active context and commands section
- * 5. Validate active context with full Zod schemas
+ * 5. Validate active context with ContextSchema
  * 6. Return typed ResolvedConfig to command handlers
  *
  * Only the active context's expressions are resolved, so inactive contexts
@@ -29,7 +29,7 @@ import { readFile, stat } from 'node:fs/promises'
 import { extname } from 'node:path'
 import { parse as parseYaml } from 'yaml'
 // ./schema (ajv) and @elastic/config-resolver are imported lazily in loadConfig so the help path skips them
-import { ENV_CONFIG_FILE, discoverConfigFile } from './discover.ts'
+import { ENV_CONFIG_FILE, findConfigFile } from './discover.ts'
 import { hasInlineSecrets, type RawConfig } from './writer.ts'
 import type { ConfigFile, ResolvedConfig, ResolvedContext } from './types.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './profiles.ts'
@@ -168,6 +168,7 @@ export function resolveContext (config: ConfigFile, contextName: string, profile
 
   if (config.banner != null) result.banner = config.banner
   if (config.telemetry != null) result.telemetry = config.telemetry
+  if (config.detect_version != null) result.detect_version = config.detect_version
   return result
 }
 
@@ -216,6 +217,7 @@ function resolveHelpConfig (raw: unknown, contextName: string | undefined, profi
     ...(typeof defaultProfile === 'string' && (BUILT_IN_PROFILES as readonly string[]).includes(defaultProfile) && { default_profile: defaultProfile as BuiltInProfile }),
     ...(r['banner'] != null && { banner: r['banner'] as NonNullable<ConfigFile['banner']> }),
     ...(r['telemetry'] != null && { telemetry: r['telemetry'] as NonNullable<ConfigFile['telemetry']> }),
+    ...(r['detect_version'] != null && { detect_version: r['detect_version'] as NonNullable<ConfigFile['detect_version']> }),
   }
   // unvalidated policy reaches hideBlockedCommands, which assumes the schema's shapes
   const wellFormed = isWellFormedPolicy(r['commands']) && isWellFormedPolicy(ctx.commands)
@@ -285,7 +287,9 @@ export interface LoadConfigOptions {
 // Tests can call clearConfigCache() between cases to prevent state leakage.
 // ---------------------------------------------------------------------------
 
-let _cachedConfig: LoadConfigResult | undefined
+// Keyed on the effective options so a call with a different config file, context,
+// or profile never reuses another call's result.
+let _cachedConfig: { key: string, value: LoadConfigResult } | undefined
 
 /** Clears the in-process config cache. Intended for test cleanup only. */
 export function clearConfigCache (): void {
@@ -324,7 +328,8 @@ export type LoadConfigResult = LoadConfigOk | LoadConfigErr
 export async function loadConfig (options: LoadConfigOptions = {}): Promise<LoadConfigResult> {
   const { configPath, contextName, profileName, refresh = false, skipContextResolve = false } = options
 
-  if (!refresh && !skipContextResolve && _cachedConfig !== undefined) return _cachedConfig
+  const cacheKey = JSON.stringify([configPath, contextName, profileName, process.env[ENV_CONFIG_FILE]])
+  if (!refresh && !skipContextResolve && _cachedConfig?.key === cacheKey) return _cachedConfig.value
 
   // Validate profileName early (before any I/O) so the error is immediate and clear
   if (profileName != null && !(BUILT_IN_PROFILES as readonly string[]).includes(profileName)) {
@@ -337,14 +342,7 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
   let raw: unknown
   let resolvedPath: string | null
   try {
-    const envConfigFile = process.env[ENV_CONFIG_FILE]
-    if (configPath != null) {
-      resolvedPath = configPath
-    } else if (envConfigFile != null && envConfigFile.length > 0) {
-      resolvedPath = envConfigFile
-    } else {
-      resolvedPath = await discoverConfigFile()
-    }
+    resolvedPath = await findConfigFile(configPath)
 
     if (resolvedPath == null) {
       return {
@@ -359,7 +357,8 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     raw = await loadConfigFile(resolvedPath)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    const missing = /ENOENT|no such file|not found/i.test(message)
+    // Match on errno, not message text: YAML/JSON parse errors quote file content, which may say "not found".
+    const missing = (err as NodeJS.ErrnoException).code === 'ENOENT'
     return {
       ok: false,
       error: {
@@ -395,6 +394,19 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
   }
 
   const { current_context, contexts, commands: rawCommands, default_profile: rawDefaultProfile } = structural.data
+
+  if (contextName != null && contextName !== current_context) {
+    const current = contexts[current_context]
+    if (current != null && current['allow_context_override'] === false) {
+      return {
+        ok: false,
+        error: {
+          code: 'command_blocked',
+          message: `context "${current_context}" does not allow --use-context`,
+        },
+      }
+    }
+  }
 
   // Step 3: resolve context name (--use-context override or current_context from file)
   const resolvedContextName = contextName ?? current_context
@@ -459,6 +471,7 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     ...(defaultProfile != null && { default_profile: defaultProfile }),
     ...(structural.data.banner != null && { banner: structural.data.banner }),
     ...(structural.data.telemetry != null && { telemetry: structural.data.telemetry }),
+    ...(structural.data.detect_version != null && { detect_version: structural.data.detect_version }),
   }
   let result: LoadConfigResult
   try {
@@ -467,6 +480,6 @@ export async function loadConfig (options: LoadConfigOptions = {}): Promise<Load
     const message = err instanceof Error ? err.message : String(err)
     result = { ok: false, error: { message } }
   }
-  _cachedConfig = result
+  _cachedConfig = { key: cacheKey, value: result }
   return result
 }

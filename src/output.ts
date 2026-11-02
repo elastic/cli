@@ -5,6 +5,7 @@
 
 import Table from 'cli-table3'
 import type { JsonValue } from './factory.ts'
+import { isPlainObject } from './lib/type-guards.ts'
 
 /** Next-command hint after 401/403. JSON errors put this in `error.hint`. */
 export const AUTH_FAILURE_HINT =
@@ -100,6 +101,10 @@ export function renderText(value: JsonValue): string {
   return JSON.stringify(value, null, 2) + '\n'
 }
 
+function withHint (message: string, err: Record<string, JsonValue>): string {
+  return typeof err.hint === 'string' ? `${message}\n${err.hint}` : message
+}
+
 /**
  * Extracts a concise human-readable message from a handler error payload.
  *
@@ -115,21 +120,16 @@ export function renderText(value: JsonValue): string {
  *   that message
  * - **Fallback**: `"unknown error (code: <code>)"`
  */
-function withHint (message: string, err: Record<string, JsonValue>): string {
-  return typeof err.hint === 'string' ? `${message}\n${err.hint}` : message
-}
-
 export function formatHandlerError (value: JsonValue): string {
   const err = (value as Record<string, JsonValue>).error as Record<string, JsonValue>
   const code = err.code as string
 
   if (code === 'transport_error' || code === 'auth_required' || code === 'not_found') {
     const body = err.body
-    if (body !== null && typeof body === 'object' && !Array.isArray(body)) {
-      const nested = (body as Record<string, JsonValue>).error
-      if (nested !== null && typeof nested === 'object' && !Array.isArray(nested)) {
-        const t = (nested as Record<string, JsonValue>).type
-        const r = (nested as Record<string, JsonValue>).reason
+    if (isPlainObject(body)) {
+      const nested = body.error
+      if (isPlainObject(nested)) {
+        const { type: t, reason: r } = nested
         if (typeof t === 'string' && typeof r === 'string') return withHint(`${t}: ${r}`, err)
       }
       if (typeof nested === 'string') return withHint(nested, err)

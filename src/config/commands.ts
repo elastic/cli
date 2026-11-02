@@ -76,9 +76,9 @@ const PLAIN_FIELDS: PlainField[] = [
  * Pulls the `--config-file` flag out of the command's parsed options and
  * feeds it to the shared {@link resolveConfigPath}.
  */
-function configPathFromOptions (options: Record<string, string | number | boolean>): string {
+async function configPathFromOptions (options: Record<string, string | number | boolean>): Promise<string> {
   const flag = options['config-file']
-  return resolveConfigPath(typeof flag === 'string' ? flag : undefined)
+  return await resolveConfigPath(typeof flag === 'string' ? flag : undefined)
 }
 
 /** Sets a dotted path on an object immutably, creating intermediate objects as needed. */
@@ -230,7 +230,7 @@ interface CommandSummary {
 }
 
 async function handleContextList (options: Record<string, string | number | boolean>): Promise<JsonValue> {
-  const path = configPathFromOptions(options)
+  const path = await configPathFromOptions(options)
   const config = await readRawConfig(path)
   const names = Object.keys(config.contexts)
   return {
@@ -246,7 +246,7 @@ async function handleContextAdd (parsed: {
 }): Promise<JsonValue> {
   const { options, arg } = parsed
   const name = requireName(arg, 'context name')
-  const path = configPathFromOptions(options)
+  const path = await configPathFromOptions(options)
   const force = options.force === true
   const inlineSecrets = options['inline-secrets'] === true
 
@@ -292,7 +292,7 @@ async function handleContextRemove (parsed: {
 }): Promise<JsonValue> {
   const { options, arg } = parsed
   const name = requireName(arg, 'context name')
-  const path = configPathFromOptions(options)
+  const path = await configPathFromOptions(options)
   const force = options.force === true
 
   const config = await readRawConfig(path)
@@ -336,7 +336,7 @@ async function handleContextEdit (parsed: {
 }): Promise<JsonValue> {
   const { options, arg } = parsed
   const name = requireName(arg, 'context name')
-  const path = configPathFromOptions(options)
+  const path = await configPathFromOptions(options)
   const inlineSecrets = options['inline-secrets'] === true
 
   const config = await readRawConfig(path)
@@ -399,7 +399,7 @@ async function handleContextEdit (parsed: {
 }
 
 async function handleCurrentContextGet (options: Record<string, string | number | boolean>): Promise<JsonValue> {
-  const path = configPathFromOptions(options)
+  const path = await configPathFromOptions(options)
   const config = await readRawConfig(path)
   if (!config.current_context) {
     return errorResult('no_current_context', 'no current_context is set')
@@ -413,7 +413,7 @@ async function handleCurrentContextSet (parsed: {
 }): Promise<JsonValue> {
   const { options, arg } = parsed
   const name = requireName(arg, 'context name')
-  const path = configPathFromOptions(options)
+  const path = await configPathFromOptions(options)
   const config = await readRawConfig(path)
   if (!(name in config.contexts)) {
     const available = Object.keys(config.contexts).join(', ') || '(none)'
@@ -449,26 +449,23 @@ function errorResult (code: string, message: string): JsonValue {
  * so `ContextSchema` can validate the *shape* without actually resolving
  * secrets. The placeholder is a valid non-empty string.
  */
-function resolveForValidation (ctx: RawContext): unknown {
-  return walk(ctx) as unknown
-  function walk (v: unknown): unknown {
-    if (typeof v === 'string') return v.includes('$(') ? 'placeholder' : v
-    if (Array.isArray(v)) return v.map(walk)
-    if (v != null && typeof v === 'object') {
-      const out: Record<string, unknown> = {}
-      for (const [k, val] of Object.entries(v)) out[k] = walk(val)
-      return out
-    }
-    return v
+function resolveForValidation (v: unknown): unknown {
+  if (typeof v === 'string') return v.includes('$(') ? 'placeholder' : v
+  if (Array.isArray(v)) return v.map(resolveForValidation)
+  if (v != null && typeof v === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [k, val] of Object.entries(v)) out[k] = resolveForValidation(val)
+    return out
   }
+  return v
 }
 
 /**
- * Opens $EDITOR on a single-context YAML fragment. On clean exit, returns
+ * Opens $VISUAL / $EDITOR on a single-context YAML fragment. On clean exit, returns
  * the parsed context; on cancel / empty / error, returns null.
  */
-async function editInEditor (name: string, original: RawContext): Promise<RawContext | null> {
-  const editor = process.env.EDITOR ?? process.env.VISUAL ?? (process.platform === 'win32' ? 'notepad' : 'vi')
+export async function editInEditor (name: string, original: RawContext): Promise<RawContext | null> {
+  const editor = process.env.VISUAL || process.env.EDITOR || (process.platform === 'win32' ? 'notepad' : 'vi')
   const header =
     `# Editing context "${name}" -- save and exit to apply, or exit with an error to cancel.\n` +
     `# Any $(...) expressions are preserved as-is.\n` +
@@ -476,11 +473,17 @@ async function editInEditor (name: string, original: RawContext): Promise<RawCon
   const body = stringifyYaml(original, { lineWidth: 0 })
 
   const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-edit-'))
-  const path = join(dir, `${name}.yml`)
+  // Fixed name: the context name must never reach the filesystem path or shell string.
+  const path = join(dir, 'context.yml')
   try {
     await writeFile(path, header + body, { encoding: 'utf-8', mode: 0o600 })
     const exitCode = await new Promise<number>((resolve, reject) => {
-      const child = spawn(editor, [path], { stdio: 'inherit', shell: true })
+      // shell: true so EDITOR="code --wait" works; Node does not quote args, so quote the path ourselves.
+      // cmd.exe expands %VAR% even inside quotes, so on Windows pass the path via env (expanded once, not re-scanned).
+      const win = process.platform === 'win32'
+      const quoted = win ? '"%ELASTIC_CLI_EDIT_FILE%"' : `'${path.replaceAll("'", `'\\''`)}'`
+      const env = win ? { ...process.env, ELASTIC_CLI_EDIT_FILE: path } : process.env
+      const child = spawn(`${editor} ${quoted}`, { stdio: 'inherit', shell: true, env })
       child.on('exit', code => resolve(code ?? 0))
       child.on('error', reject)
     })
@@ -503,7 +506,7 @@ async function editInEditor (name: string, original: RawContext): Promise<RawCon
 const CONFIG_FILE_OPT = {
   long: 'config-file',
   type: 'string' as const,
-  description: 'path to the config file to edit (defaults to ~/.elasticrc.yml)',
+  description: 'path to the config file to edit (defaults to the discovered ~/.elasticrc* file)',
 }
 
 function fieldOptions (): Array<{ long: string; type: 'string'; description: string }> {

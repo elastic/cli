@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Cloud control plane API: Get a Security project (GET /api/v1/serverless/projects/security/{id})
 # Id for {id} is derived from security-projects.list-security-projects.
-# TODO: verify the response path in the `set` step against a live API.
 ---
 "security-projects get-security-project":
   - do:

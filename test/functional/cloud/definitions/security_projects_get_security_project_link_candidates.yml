@@ -1,0 +1,12 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get Security project link candidates (GET /api/v1/serverless/projects/security/{id}/link-candidates)
+# Id for {id} is derived from security-projects.list-security-projects.
+---
+"security-projects get-security-project-link-candidates":
+  - do:
+      security-projects.list-security-projects: {}
+  - set: {projects.0.id: id}
+  - do:
+      security-projects.get-security-project-link-candidates:
+        id: $id
