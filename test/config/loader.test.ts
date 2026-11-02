@@ -6,10 +6,12 @@
 import { describe, it, before, after, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { chmod, mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { loadConfigFile, discoverConfigFile, resolveContext, resolveEffectiveCommands, loadConfig, clearConfigCache, _testResetLooseInlineSecretWarning } from '../../src/config/loader.ts'
 import type { ConfigFile, ResolvedConfig } from '../../src/config/types.ts'
+import { capture } from '../helpers/capture.ts'
+import { tmpConfig } from '../helpers/tmp-config.ts'
 
 afterEach(() => clearConfigCache())
 
@@ -216,18 +218,13 @@ describe('loadConfig -- default current_context', () => {
 // ---------------------------------------------------------------------------
 
 describe('loadConfig -- inline secret permission warning', () => {
-  it('emits the loose-permission inline-secret warning once per process', { skip: process.platform === 'win32' }, async () => {
+  it('emits the loose-permission inline-secret warning once per process', { skip: process.platform === 'win32' }, async (t) => {
     const tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-warning-'))
     const configPath = join(tmpDir, '.elasticrc.yml')
     await writeFile(configPath, VALID_CONFIG_YAML)
     await chmod(configPath, 0o644)
 
-    const originalWrite = process.stderr.write.bind(process.stderr)
-    const chunks: string[] = []
-    process.stderr.write = ((chunk: string | Uint8Array) => {
-      chunks.push(typeof chunk === 'string' ? chunk : chunk.toString())
-      return true
-    }) as typeof process.stderr.write
+    const { stderr: chunks } = capture(t)
 
     _testResetLooseInlineSecretWarning()
     try {
@@ -236,13 +233,35 @@ describe('loadConfig -- inline secret permission warning', () => {
       assert.equal(first.ok, true)
       assert.equal(second.ok, true)
     } finally {
-      process.stderr.write = originalWrite
       _testResetLooseInlineSecretWarning()
       await rm(tmpDir, { recursive: true })
     }
 
     const warnings = chunks.join('').match(/contains inline secrets/g) ?? []
     assert.equal(warnings.length, 1)
+  })
+
+  it('does not emit the warning on the skipContextResolve (help) path', { skip: process.platform === 'win32' }, async (t) => {
+    const tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-warning-'))
+    const configPath = join(tmpDir, '.elasticrc.yml')
+    await writeFile(configPath, VALID_CONFIG_YAML)
+    await chmod(configPath, 0o644)
+
+    const { stderr: chunks } = capture(t)
+
+    _testResetLooseInlineSecretWarning()
+    try {
+      const help = await loadConfig({ configPath, skipContextResolve: true, refresh: true })
+      assert.equal(help.ok, true)
+      assert.equal(chunks.join(''), '')
+      const full = await loadConfig({ configPath, refresh: true })
+      assert.equal(full.ok, true)
+    } finally {
+      _testResetLooseInlineSecretWarning()
+      await rm(tmpDir, { recursive: true })
+    }
+
+    assert.equal((chunks.join('').match(/contains inline secrets/g) ?? []).length, 1)
   })
 })
 
@@ -321,6 +340,17 @@ describe('loadConfig -- --config-file override', () => {
     assert.match(result.error.message, /elastic config context add/)
   })
 
+  it('classifies a YAML parse error mentioning "not found" as config_error', async () => {
+    // yaml embeds the offending source line in its message, so file content can leak "not found" into it
+    const badPath = join(tmpDir, 'bad-yaml.yml')
+    await writeFile(badPath, 'key: [not found\n')
+    const result = await loadConfig({ configPath: badPath })
+    assert.ok(!result.ok)
+    if (result.ok) return
+    assert.equal(result.error.code, 'config_error')
+    assert.doesNotMatch(result.error.message, /elastic config context add/)
+  })
+
   it('names the next command when current_context is empty', async () => {
     const emptyPath = join(tmpDir, 'empty-context.yml')
     await writeFile(emptyPath, 'current_context: ""\ncontexts: {}\n')
@@ -335,37 +365,20 @@ describe('loadConfig -- --config-file override', () => {
 // ---------------------------------------------------------------------------
 
 describe('loadConfig -- ELASTIC_CLI_CONFIG_FILE env var', () => {
-  let tmpDir: string
-  let envConfigPath: string
-  before(async () => {
-    tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-envvar-'))
-    envConfigPath = join(tmpDir, 'env-config.yml')
-    await writeFile(envConfigPath, VALID_CONFIG_YAML)
-  })
-  after(async () => rm(tmpDir, { recursive: true }))
-
-  it('loads config from ELASTIC_CLI_CONFIG_FILE when set', async () => {
-    const original = process.env['ELASTIC_CLI_CONFIG_FILE']
-    try {
-      process.env['ELASTIC_CLI_CONFIG_FILE'] = envConfigPath
-      const result = await loadConfig({})
-      assert.ok(result.ok, `loadConfig should succeed via env var`)
-      if (!result.ok) return
-      assert.deepEqual(result.value, {
-        context: {
-          elasticsearch: { url: 'http://localhost:9200', auth: { username: 'elastic', password: 'changeme' } },
-          kibana: { url: 'http://localhost:5601', auth: { api_key: 'kb-key-123' } },
-        },
-      } satisfies ResolvedConfig)
-    } finally {
-      if (original === undefined) delete process.env['ELASTIC_CLI_CONFIG_FILE']
-      else process.env['ELASTIC_CLI_CONFIG_FILE'] = original
-    }
+  it('loads config from ELASTIC_CLI_CONFIG_FILE when set', async (t) => {
+    await tmpConfig(t, VALID_CONFIG_YAML)
+    const result = await loadConfig({})
+    assert.ok(result.ok, `loadConfig should succeed via env var`)
+    if (!result.ok) return
+    assert.deepEqual(result.value, {
+      context: {
+        elasticsearch: { url: 'http://localhost:9200', auth: { username: 'elastic', password: 'changeme' } },
+        kibana: { url: 'http://localhost:5601', auth: { api_key: 'kb-key-123' } },
+      },
+    } satisfies ResolvedConfig)
   })
 
-  it('--config-file flag takes precedence over ELASTIC_CLI_CONFIG_FILE', async () => {
-    const otherDir = await mkdtemp(join(tmpdir(), 'elastic-cli-other-'))
-    const flagConfigPath = join(otherDir, 'flag-config.yml')
+  it('--config-file flag takes precedence over ELASTIC_CLI_CONFIG_FILE', async (t) => {
     const envYaml = `
 current_context: local
 contexts:
@@ -384,33 +397,20 @@ contexts:
       auth:
         api_key: flag-key
 `.trimStart()
-    await writeFile(envConfigPath, envYaml)
+    const envConfigPath = await tmpConfig(t, envYaml)
+    const flagConfigPath = join(dirname(envConfigPath), 'flag-config.yml')
     await writeFile(flagConfigPath, flagYaml)
 
-    const original = process.env['ELASTIC_CLI_CONFIG_FILE']
-    try {
-      process.env['ELASTIC_CLI_CONFIG_FILE'] = envConfigPath
-      const result = await loadConfig({ configPath: flagConfigPath })
-      assert.ok(result.ok)
-      if (!result.ok) return
-      assert.equal(result.value.context.elasticsearch!.url, 'http://flag-host:9200')
-    } finally {
-      if (original === undefined) delete process.env['ELASTIC_CLI_CONFIG_FILE']
-      else process.env['ELASTIC_CLI_CONFIG_FILE'] = original
-      await rm(otherDir, { recursive: true })
-    }
+    const result = await loadConfig({ configPath: flagConfigPath })
+    assert.ok(result.ok)
+    if (!result.ok) return
+    assert.equal(result.value.context.elasticsearch!.url, 'http://flag-host:9200')
   })
 
-  it('returns error when ELASTIC_CLI_CONFIG_FILE points to nonexistent file', async () => {
-    const original = process.env['ELASTIC_CLI_CONFIG_FILE']
-    try {
-      process.env['ELASTIC_CLI_CONFIG_FILE'] = '/nonexistent/config.yml'
-      const result = await loadConfig({})
-      assert.ok(!result.ok)
-    } finally {
-      if (original === undefined) delete process.env['ELASTIC_CLI_CONFIG_FILE']
-      else process.env['ELASTIC_CLI_CONFIG_FILE'] = original
-    }
+  it('returns error when ELASTIC_CLI_CONFIG_FILE points to nonexistent file', async (t) => {
+    await tmpConfig(t)
+    const result = await loadConfig({})
+    assert.ok(!result.ok)
   })
 })
 
@@ -795,6 +795,110 @@ contexts:
   })
 })
 
+describe('loadConfig -- skipContextResolve (registration/help fast path)', () => {
+  let tmpDir: string
+  before(async () => { tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-skip-')) })
+  after(async () => { await rm(tmpDir, { recursive: true, force: true }) })
+
+  async function load (yaml: string, extra: Parameters<typeof loadConfig>[0] = {}): Promise<Awaited<ReturnType<typeof loadConfig>>> {
+    const configPath = join(tmpDir, 'skip.yml')
+    await writeFile(configPath, yaml)
+    return loadConfig({ configPath, skipContextResolve: true, refresh: true, ...extra })
+  }
+
+  it('returns version hints without resolving expressions or validating the url', async () => {
+    const result = await load(`
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      version: "9.2"
+      url: $(cmd:exit 1)
+      auth:
+        api_key: $(cmd:exit 1)
+`.trimStart())
+    assert.ok(result.ok, !result.ok ? result.error.message : '')
+    assert.equal(result.value.context.elasticsearch?.version, '9.2')
+  })
+
+  it('honours contextName over current_context', async () => {
+    const result = await load(`
+current_context: a
+contexts:
+  a: { elasticsearch: { version: "9.1" } }
+  b: { kibana: { version: "9.3" } }
+`.trimStart(), { contextName: 'b' })
+    assert.ok(result.ok, !result.ok ? result.error.message : '')
+    assert.equal(result.contextName, 'b')
+    assert.equal(result.value.context.kibana?.version, '9.3')
+    assert.equal(result.value.context.elasticsearch, undefined)
+  })
+
+  it('threads command policy, default_profile, banner and telemetry', async () => {
+    const result = await load(`
+current_context: a
+default_profile: stack
+banner: false
+telemetry: false
+commands:
+  blocked: [es.delete]
+contexts:
+  a: { elasticsearch: { version: "9.1" } }
+`.trimStart())
+    assert.ok(result.ok, !result.ok ? result.error.message : '')
+    assert.deepEqual(result.value.commands, { profile: 'stack', blocked: ['es.delete'] })
+    assert.equal(result.value.banner, false)
+    assert.equal(result.value.telemetry, false)
+  })
+
+  it('ignores an unknown default_profile', async () => {
+    const result = await load(`
+current_context: a
+default_profile: bogus
+contexts:
+  a: { elasticsearch: { version: "9.1" } }
+`.trimStart())
+    assert.ok(result.ok, !result.ok ? result.error.message : '')
+    assert.equal(result.value.commands, undefined)
+  })
+
+  it('does not populate the result cache', async () => {
+    const yaml = 'current_context: a\ncontexts:\n  a: { elasticsearch: { version: "9.1" } }\n'
+    await load(yaml)
+    const full = await loadConfig({ configPath: join(tmpDir, 'skip.yml') })
+    assert.ok(!full.ok, 'cached fast-path result must not satisfy a full load (url/auth missing)')
+  })
+
+  for (const [label, yaml] of [
+    ['a non-object file', '- a\n- b\n'],
+    ['missing contexts', 'current_context: a\n'],
+    ['array contexts', 'current_context: a\ncontexts: [a]\n'],
+    ['missing current_context', 'contexts:\n  a: { elasticsearch: { version: "9.1" } }\n'],
+    ['an empty active context', 'current_context: a\ncontexts:\n  a:\n'],
+    ['unknown current_context', 'current_context: z\ncontexts:\n  a: { elasticsearch: { version: "9.1" } }\n'],
+    ['non-array commands.allowed', 'current_context: a\ncommands: { allowed: 5 }\ncontexts:\n  a: { elasticsearch: { version: "9.1" } }\n'],
+    ['non-string commands.blocked entries', 'current_context: a\ncontexts:\n  a:\n    elasticsearch: { version: "9.1" }\n    commands: { blocked: [1] }\n'],
+    ['an unknown commands.profile', 'current_context: a\ncommands: { profile: bogus }\ncontexts:\n  a: { elasticsearch: { version: "9.1" } }\n'],
+    ['an unknown per-context commands.profile', 'current_context: a\ncontexts:\n  a:\n    elasticsearch: { version: "9.1" }\n    commands: { profile: bogus }\n'],
+    ['commands.profile with allowed', 'current_context: a\ncommands: { profile: stack, allowed: [ping] }\ncontexts:\n  a: { elasticsearch: { version: "9.1" } }\n'],
+    ['commands.allowed with blocked', 'current_context: a\ncontexts:\n  a:\n    elasticsearch: { version: "9.1" }\n    commands: { allowed: [ping], blocked: [ping] }\n'],
+    ['empty commands.allowed', 'current_context: a\ncommands: { allowed: [] }\ncontexts:\n  a: { elasticsearch: { version: "9.1" } }\n'],
+  ] as const) {
+    it(`fails open (error result, no throw) for ${label}`, async () => {
+      const result = await load(yaml)
+      assert.ok(!result.ok)
+    })
+  }
+
+  it('returns an error for an invalid profile/allowed combination', async () => {
+    const result = await load(
+      'current_context: a\ncommands: { allowed: [ping] }\ncontexts:\n  a: { elasticsearch: { version: "9.1" } }\n',
+      { profileName: 'stack' }
+    )
+    assert.ok(!result.ok)
+  })
+})
+
 describe('security: executable config formats are rejected', () => {
   let tmpDir: string
   before(async () => {
@@ -938,5 +1042,153 @@ describe('security: executable config formats are rejected', () => {
       assert.ok(found!.endsWith('.elasticrc.yml'))
       await rm(dir, { recursive: true })
     })
+  })
+})
+
+describe('loadConfig -- allow_context_override', () => {
+  const lockedYaml = `
+current_context: agent
+contexts:
+  agent:
+    elasticsearch:
+      url: http://127.0.0.1:9
+      auth:
+        api_key: read-only-key
+    commands:
+      allowed:
+        - status
+    allow_context_override: false
+  admin:
+    elasticsearch:
+      url: http://127.0.0.1:9
+      auth:
+        api_key: admin-key
+`.trimStart()
+
+  let tmpDir: string
+  let lockedPath: string
+  let originalEnv: string | undefined
+
+  before(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'elastic-cli-lock-'))
+    lockedPath = join(tmpDir, 'repro.yml')
+    await writeFile(lockedPath, lockedYaml)
+    await chmod(lockedPath, 0o600)
+  })
+  after(async () => rm(tmpDir, { recursive: true }))
+  before(() => { originalEnv = process.env['ELASTIC_CLI_CONFIG_FILE'] })
+  after(() => {
+    if (originalEnv === undefined) delete process.env['ELASTIC_CLI_CONFIG_FILE']
+    else process.env['ELASTIC_CLI_CONFIG_FILE'] = originalEnv
+  })
+
+  async function withLockedEnv<T> (fn: () => Promise<T>): Promise<T> {
+    process.env['ELASTIC_CLI_CONFIG_FILE'] = lockedPath
+    return fn()
+  }
+
+  it('loads the locked context when no override flag is passed', async () => {
+    const result = await withLockedEnv(() => loadConfig({}))
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    assert.equal(result.contextName, 'agent')
+    assert.equal(result.value.context.elasticsearch?.auth && 'api_key' in result.value.context.elasticsearch.auth
+      ? result.value.context.elasticsearch.auth.api_key
+      : undefined, 'read-only-key')
+  })
+
+  it('rejects --use-context, including odd spellings of the name', async () => {
+    for (const name of ['admin', '../', '?#']) {
+      const result = await withLockedEnv(() => loadConfig({ contextName: name }))
+      assert.equal(result.ok, false, `expected lock to reject ${JSON.stringify(name)}`)
+      if (result.ok) return
+      assert.equal(result.error.code, 'command_blocked')
+      assert.match(result.error.message, /does not allow --use-context/)
+      assert.equal(result.error.message.includes('admin-key'), false)
+    }
+  })
+
+  it('allows --use-context when it names the current context', async () => {
+    const result = await withLockedEnv(() => loadConfig({ contextName: 'agent' }))
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    assert.equal(result.contextName, 'agent')
+  })
+
+  it('loads a different --config-file even when the baseline context is locked', async () => {
+    const other = join(tmpDir, 'admin.yml')
+    await writeFile(other, VALID_CONFIG_YAML)
+    await chmod(other, 0o600)
+    const result = await withLockedEnv(() => loadConfig({ configPath: other }))
+    assert.equal(result.ok, true, result.ok ? '' : result.error.message)
+    if (!result.ok) return
+    assert.equal(result.contextName, 'local')
+
+    for (const configPath of ['../escaped.yml', 'bad?#.yml', '']) {
+      const missing = await withLockedEnv(() => loadConfig({ configPath }))
+      assert.equal(missing.ok, false, `expected ${JSON.stringify(configPath)} to fail open`)
+      if (missing.ok) return
+      assert.notEqual(missing.error.code, 'command_blocked')
+    }
+  })
+
+  it('does not lock a context that is not current', async () => {
+    const path = join(tmpDir, 'admin-locked.yml')
+    await writeFile(path, `
+current_context: agent
+contexts:
+  agent:
+    elasticsearch:
+      url: http://127.0.0.1:9
+      auth:
+        api_key: read-only-key
+  admin:
+    elasticsearch:
+      url: http://127.0.0.1:9
+      auth:
+        api_key: admin-key
+    allow_context_override: false
+`.trimStart())
+    await chmod(path, 0o600)
+    process.env['ELASTIC_CLI_CONFIG_FILE'] = path
+    const result = await loadConfig({ contextName: 'admin' })
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    assert.equal(result.contextName, 'admin')
+  })
+
+  it('allows --use-context when allow_context_override is true', async () => {
+    const yaml = lockedYaml.replace('allow_context_override: false', 'allow_context_override: true')
+    const path = join(tmpDir, 'unlocked.yml')
+    await writeFile(path, yaml)
+    await chmod(path, 0o600)
+    process.env['ELASTIC_CLI_CONFIG_FILE'] = path
+    const result = await loadConfig({ contextName: 'admin' })
+    assert.equal(result.ok, true)
+    if (!result.ok) return
+    assert.equal(result.contextName, 'admin')
+  })
+
+  it('applies --use-context to the selected file, not the locked baseline', async () => {
+    const other = join(tmpDir, 'other-with-context.yml')
+    await writeFile(other, `
+current_context: local
+contexts:
+  local:
+    elasticsearch:
+      url: http://127.0.0.1:9
+      auth:
+        api_key: a
+  admin:
+    elasticsearch:
+      url: http://127.0.0.1:9
+      auth:
+        api_key: b
+`.trimStart())
+    await chmod(other, 0o600)
+    const result = await withLockedEnv(() => loadConfig({ configPath: other, contextName: 'admin' }))
+    assert.equal(result.ok, true, result.ok ? '' : result.error.message)
+    if (!result.ok) return
+    assert.equal(result.contextName, 'admin')
   })
 })

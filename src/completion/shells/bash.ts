@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { DIRECTIVE_NO_SPACE } from '../enumerate.ts'
+
 /**
  * Bash completion wrapper for the `elastic` CLI.
  *
@@ -54,7 +56,7 @@ _elastic_complete() {
   done
 
   # Bit 1: do not append a trailing space (used for --flag= form).
-  if (( (directive & 1) != 0 )); then
+  if (( (directive & ${DIRECTIVE_NO_SPACE}) != 0 )); then
     compopt -o nospace 2>/dev/null
   fi
 

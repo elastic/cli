@@ -56,6 +56,20 @@ describe('buildRequestParams', () => {
     assert.equal(result.path, '/my-index')
   })
 
+  it('rejects a missing required path parameter instead of dropping its segment', () => {
+    // --no-validate skips the schema, so the builder is the last guard: without it
+    // DELETE /_snapshot/backups/{snapshot} would become DELETE /_snapshot/backups.
+    const input = schema(
+      { repository: { type: 'string', 'x-found-in': 'path' }, snapshot: { type: 'string', 'x-found-in': 'path' } },
+      ['repository', 'snapshot']
+    )
+    const def = makeDefinition({ method: 'DELETE', path: '/_snapshot/{repository}/{snapshot}', input })
+    assert.throws(
+      () => buildRequestParams(def, parsedResult({ repository: 'backups' }), args(input)),
+      { code: 'input_error', message: 'missing required path parameter "snapshot"' }
+    )
+  })
+
   it('interpolates multiple path parameters from parsed.input', () => {
     const input = schema(
       {
@@ -324,6 +338,28 @@ describe('buildRequestParams', () => {
     const result = buildRequestParams(def, parsedResult({ index: 'test-index', id: 'doc1', document: { title: 'hello' } }), args(input))
     assert.equal(result.method, 'PUT', 'should keep PUT when id is provided')
     assert.equal(result.path, '/test-index/_doc/doc1')
+  })
+
+  describe('POST endpoints that also accept GET', () => {
+    const input = {
+      ...schema({ query: { type: 'object', description: 'Query', 'x-found-in': 'body' } }),
+      'x-urls': [{ path: '/_cat/count', methods: ['POST', 'GET'] }],
+    }
+    const def = makeDefinition({ method: 'POST', path: '/_cat/count', input })
+
+    it('uses GET without a body, since stacks before 9.3 reject POST /_cat/count', () => {
+      assert.equal(buildRequestParams(def, parsedResult(), args(input)).method, 'GET')
+    })
+
+    it('keeps POST with a body', () => {
+      assert.equal(buildRequestParams(def, parsedResult({ query: { match_all: {} } }), args(input)).method, 'POST')
+    })
+
+    it('keeps POST when GET is not listed', () => {
+      const postOnly = { ...input, 'x-urls': [{ path: '/_cat/count', methods: ['POST'] }] }
+      const result = buildRequestParams(makeDefinition({ method: 'POST', path: '/_cat/count', input: postOnly }), parsedResult(), args(postOnly))
+      assert.equal(result.method, 'POST')
+    })
   })
 
   it('NDJSON format applies to msearch searches field', () => {

@@ -5,6 +5,11 @@
 
 import Table from 'cli-table3'
 import type { JsonValue } from './factory.ts'
+import { colorsEnabled, stripAnsi } from './lib/colors.ts'
+import { isPlainObject } from './lib/type-guards.ts'
+
+// Re-exported so existing consumers and tests can keep importing from output.ts.
+export { colorsEnabled, stripAnsi }
 
 /** Next-command hint after 401/403. JSON errors put this in `error.hint`. */
 export const AUTH_FAILURE_HINT =
@@ -12,26 +17,6 @@ export const AUTH_FAILURE_HINT =
 
 /** A flat object whose values are all JSON primitives — renderable as a table row. */
 type FlatRecord = Record<string, string | number | boolean | null>
-
-/** Strips ANSI SGR escape sequences. Exported for tests guarding the no-ANSI contract. */
-export function stripAnsi (value: string): string {
-  // eslint-disable-next-line no-control-regex
-  return value.replace(/\u001B\[[\d;]*m/g, '')
-}
-
-/**
- * Returns true when ANSI colors may be emitted for the given TTY state.
- *
- * `NO_COLOR` (set to any value) always wins. `FORCE_COLOR` (set to anything
- * except `'0'`) forces colors on, otherwise colors follow the TTY state.
- * Mirrors the banner logic in `src/lib/logo.ts`.
- */
-export function colorsEnabled (isTTY: boolean): boolean {
-  if (process.env.NO_COLOR !== undefined) return false
-  const force = process.env.FORCE_COLOR
-  if (force !== undefined && force !== '0') return true
-  return isTTY
-}
 
 /** Returns true when `val` is a non-null, non-array object with only primitive values. */
 function isFlatObject(val: JsonValue): val is FlatRecord {
@@ -164,6 +149,10 @@ export function renderText(value: JsonValue, opts?: { plain?: boolean }): string
   return JSON.stringify(value, null, 2) + '\n'
 }
 
+function withHint (message: string, err: Record<string, JsonValue>): string {
+  return typeof err.hint === 'string' ? `${message}\n${err.hint}` : message
+}
+
 /**
  * Extracts a concise human-readable message from a handler error payload.
  *
@@ -179,21 +168,16 @@ export function renderText(value: JsonValue, opts?: { plain?: boolean }): string
  *   that message
  * - **Fallback**: `"unknown error (code: <code>)"`
  */
-function withHint (message: string, err: Record<string, JsonValue>): string {
-  return typeof err.hint === 'string' ? `${message}\n${err.hint}` : message
-}
-
 export function formatHandlerError (value: JsonValue): string {
   const err = (value as Record<string, JsonValue>).error as Record<string, JsonValue>
   const code = err.code as string
 
   if (code === 'transport_error' || code === 'auth_required' || code === 'not_found') {
     const body = err.body
-    if (body !== null && typeof body === 'object' && !Array.isArray(body)) {
-      const nested = (body as Record<string, JsonValue>).error
-      if (nested !== null && typeof nested === 'object' && !Array.isArray(nested)) {
-        const t = (nested as Record<string, JsonValue>).type
-        const r = (nested as Record<string, JsonValue>).reason
+    if (isPlainObject(body)) {
+      const nested = body.error
+      if (isPlainObject(nested)) {
+        const { type: t, reason: r } = nested
         if (typeof t === 'string' && typeof r === 'string') return withHint(`${t}: ${r}`, err)
       }
       if (typeof nested === 'string') return withHint(nested, err)

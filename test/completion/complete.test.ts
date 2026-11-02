@@ -4,12 +4,15 @@
  */
 
 import { describe, it, beforeEach, afterEach } from 'node:test'
+import type { TestContext } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   buildCompletionTree,
   handleComplete,
   buildCompleteCommand,
 } from '../../src/completion/complete.ts'
+import { capture } from '../helpers/capture.ts'
+import { tmpConfig } from '../helpers/tmp-config.ts'
 
 function bufferedWriter (): { write: (chunk: string) => void; chunks: string[] } {
   const chunks: string[] = []
@@ -27,23 +30,11 @@ function parseOutput (output: string): { candidates: string[]; directive: number
 }
 
 
-async function withConfig (yamlLines: string[], fn: () => Promise<void>) {
-  const { mkdtemp, writeFile, rm } = await import('node:fs/promises')
-  const { tmpdir } = await import('node:os')
-  const { join } = await import('node:path')
-  const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-test-'))
-  const path = join(dir, 'config.yml')
-  await writeFile(path, yamlLines.join('\n'))
-  const originalEnv = process.env['ELASTIC_CLI_CONFIG_FILE']
-  process.env['ELASTIC_CLI_CONFIG_FILE'] = path
-  try {
-    await fn()
-  } finally {
-    if (originalEnv != null) process.env['ELASTIC_CLI_CONFIG_FILE'] = originalEnv
-    else delete process.env['ELASTIC_CLI_CONFIG_FILE']
-    await rm(dir, { recursive: true })
-  }
+async function withConfig (t: TestContext, yamlLines: string[], fn: () => Promise<void>) {
+  await tmpConfig(t, yamlLines.join('\n'))
+  await fn()
 }
+
 describe('buildCompletionTree -- top-level commands', () => {
   it('registers version + every visible top-level group as stubs by default', async () => {
     const root = await buildCompletionTree([])
@@ -122,8 +113,8 @@ describe('buildCompletionTree -- lazy loading', () => {
 
 describe('handleComplete -- policy enforcement', () => {
 
-  it('hides top-level groups blocked by commands.blocked', async () => {
-    await withConfig([
+  it('hides top-level groups blocked by commands.blocked', async (t) => {
+    await withConfig(t, [
       'current_context: local',
       'commands:',
       '  blocked:',
@@ -148,8 +139,8 @@ describe('handleComplete -- policy enforcement', () => {
     })
   })
 
-  it('applies blocked commands without resolving active-context expressions', async () => {
-    await withConfig([
+  it('applies blocked commands without resolving active-context expressions', async (t) => {
+    await withConfig(t, [
       'current_context: local',
       'commands:',
       '  blocked:',
@@ -218,8 +209,8 @@ describe('handleComplete -- stdout protocol', () => {
 
 describe('handleComplete -- dynamic context name completion', () => {
 
-  it('emits context names from the configured file', async () => {
-    await withConfig([
+  it('emits context names from the configured file', async (t) => {
+    await withConfig(t, [
       'current_context: local',
       'contexts:',
       '  local:',
@@ -247,45 +238,30 @@ describe('buildCompleteCommand', () => {
     assert.equal((cmd as unknown as any)._hidden, true)
   })
 
-  it('routes parseAsync via the action handler and writes to the default sink', async () => {
+  it('routes parseAsync via the action handler and writes to the default sink', async (t) => {
     // Exercises both the action callback in buildCompleteCommand AND the
-    // defaultWriter branch in handleComplete (no writer override). We
-    // forward-write so the test runner's own progress lines still appear.
+    // defaultWriter branch in handleComplete (no writer override).
     const cmd = buildCompleteCommand()
     const origArgv = process.argv
-    const origWrite = process.stdout.write.bind(process.stdout)
-    const captured: string[] = []
-    process.stdout.write = ((c: string | Uint8Array, ...rest: unknown[]) => {
-      if (typeof c === 'string') captured.push(c)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (origWrite as any)(c, ...rest)
-    }) as typeof process.stdout.write
+    const { stdout: captured } = capture(t)
     process.argv = ['node', 'cli.js', '__complete', '--', '']
     try {
       await cmd.parseAsync([''], { from: 'user' })
     } finally {
       process.argv = origArgv
-      process.stdout.write = origWrite
     }
     assert.match(captured.join(''), /:\d+/, 'expected the trailing directive line')
   })
 
-  it('falls back to the variadic positional words when "--" is absent', async () => {
+  it('falls back to the variadic positional words when "--" is absent', async (t) => {
     const cmd = buildCompleteCommand()
     const origArgv = process.argv
-    const origWrite = process.stdout.write.bind(process.stdout)
-    const captured: string[] = []
-    process.stdout.write = ((c: string | Uint8Array, ...rest: unknown[]) => {
-      if (typeof c === 'string') captured.push(c)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (origWrite as any)(c, ...rest)
-    }) as typeof process.stdout.write
+    const { stdout: captured } = capture(t)
     process.argv = ['node', 'cli.js', '__complete']
     try {
       await cmd.parseAsync([], { from: 'user' })
     } finally {
       process.argv = origArgv
-      process.stdout.write = origWrite
     }
     assert.match(captured.join(''), /:\d+/)
   })
@@ -304,8 +280,8 @@ describe('buildCompletionTree -- kb lazy loading', () => {
 
 describe('handleComplete -- loadCompletionCommandPolicy edge cases', () => {
 
-  it('returns all top-level groups when current_context is missing from contexts', async () => {
-    await withConfig([
+  it('returns all top-level groups when current_context is missing from contexts', async (t) => {
+    await withConfig(t, [
       'current_context: nonexistent',
       'contexts:',
       '  local:',
@@ -321,8 +297,8 @@ describe('handleComplete -- loadCompletionCommandPolicy edge cases', () => {
     })
   })
 
-  it('returns all top-level groups when default_profile is invalid', async () => {
-    await withConfig([
+  it('returns all top-level groups when default_profile is invalid', async (t) => {
+    await withConfig(t, [
       'current_context: local',
       'default_profile: 123',
       'contexts:',
@@ -338,8 +314,8 @@ describe('handleComplete -- loadCompletionCommandPolicy edge cases', () => {
     })
   })
 
-  it('returns all top-level groups when root commands block field is invalid', async () => {
-    await withConfig([
+  it('returns all top-level groups when root commands block field is invalid', async (t) => {
+    await withConfig(t, [
       'current_context: local',
       'commands:',
       '  blocked: not-an-array',
@@ -356,8 +332,8 @@ describe('handleComplete -- loadCompletionCommandPolicy edge cases', () => {
     })
   })
 
-  it('returns all top-level groups when context commands block field is invalid', async () => {
-    await withConfig([
+  it('returns all top-level groups when context commands block field is invalid', async (t) => {
+    await withConfig(t, [
       'current_context: local',
       'contexts:',
       '  local:',

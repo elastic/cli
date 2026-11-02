@@ -17,7 +17,7 @@ function color256(n: number): string {
 
 type ColorLevel = 0 | 1 | 2 | 3
 
-import { colorsEnabled } from '../output.ts'
+import { colorsEnabled } from './colors.ts'
 
 function isTTY(): boolean {
   return !!process.stdout.isTTY

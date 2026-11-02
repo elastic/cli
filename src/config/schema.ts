@@ -4,12 +4,13 @@
  */
 
 import { validateWithJsonSchema } from '../lib/ajv-validate.ts'
+import { parseVersionHint } from '../lib/availability.ts'
 import { BUILT_IN_PROFILES, type BuiltInProfile } from './profiles.ts'
 import type {
   Auth,
   ServiceBlock,
+  VersionedServiceBlock,
   Context,
-  ConfigFile,
   CommandPolicy,
 } from './types.ts'
 
@@ -20,12 +21,12 @@ import type {
  * 1. Auth schemas: `oneOf` union (api_key | basic) -- the variant is inferred from present fields
  * 2. ServiceBlock schema: url + auth
  * 3. Context schema: at least one service block (elasticsearch/kibana/cloud)
- * 4. ConfigFile root schema: current_context + contexts map + cross-field checks
+ * 4. Structural schema: outer config shape (current_context + contexts map)
  *
  * Unknown fields are stripped by the `strip*` helpers rather than by the schemas
- * themselves. Cross-field business rules (at-least-one-service, non-empty contexts
- * map, valid current_context key, URL scheme) are enforced in `safeParse` because
- * they cannot be expressed as plain JSON Schema constraints with useful messages.
+ * themselves. Cross-field business rules (at-least-one-service, URL scheme,
+ * version format) are enforced in `ContextSchema.safeParse` because they cannot
+ * be expressed as plain JSON Schema constraints with useful messages.
  */
 
 // ---------------------------------------------------------------------------
@@ -92,6 +93,19 @@ function urlError (url: unknown, path: string): FieldError | undefined {
   return undefined
 }
 
+/** Verifies a version hint is a valid semver (major.minor[.patch]) or the literal "serverless". */
+function versionError (version: unknown, path: string): FieldError | undefined {
+  if (version === undefined) return undefined
+  if (version != null && typeof version === 'object') {
+    const { value, checked_ts: ts } = version as Record<string, unknown>
+    if (typeof ts === 'string' && Number.isNaN(Date.parse(ts))) return { path: `${path}.checked_ts`, message: 'must be an ISO 8601 datetime' }
+    return versionError(value, `${path}.value`)
+  }
+  if (typeof version !== 'string') return undefined // shape errors are AJV's job
+  if (parseVersionHint(version) != null) return undefined
+  return { path, message: 'must be a semver version (e.g. "9.2" or "9.2.3") or "serverless"' }
+}
+
 /** Collects URL errors for every service block present on a context. */
 function contextUrlErrors (raw: unknown, prefix: string): FieldError[] {
   if (raw == null || typeof raw !== 'object') return []
@@ -106,6 +120,19 @@ function contextUrlErrors (raw: unknown, prefix: string): FieldError[] {
   return errors
 }
 
+/** Collects version errors for every service block present on a context. */
+function contextVersionErrors (raw: unknown, prefix: string): FieldError[] {
+  if (raw == null || typeof raw !== 'object') return []
+  const r = raw as Record<string, unknown>
+  const errors: FieldError[] = []
+  for (const service of ['elasticsearch', 'kibana'] as const) {
+    const block = r[service]
+    if (block == null || typeof block !== 'object') continue
+    const err = versionError((block as Record<string, unknown>)['version'], `${prefix}.${service}.version`)
+    if (err != null) errors.push(err)
+  }
+  return errors
+}
 
 // ---------------------------------------------------------------------------
 // JSON Schemas (no additionalProperties — we strip manually)
@@ -140,6 +167,23 @@ const serviceBlockSchema: Record<string, unknown> = {
   required: ['url'],
 }
 
+const versionedServiceBlockSchema: Record<string, unknown> = {
+  ...serviceBlockSchema,
+  properties: {
+    ...(serviceBlockSchema['properties'] as Record<string, unknown>),
+    version: {
+      anyOf: [
+        { type: 'string', minLength: 1 },
+        {
+          type: 'object',
+          properties: { value: { type: 'string', minLength: 1 }, checked_ts: { type: 'string', minLength: 1 } },
+          required: ['checked_ts'],
+        },
+      ],
+    },
+  },
+}
+
 const commandPolicySchema: Record<string, unknown> = {
   type: 'object',
   properties: {
@@ -156,28 +200,12 @@ const commandPolicySchema: Record<string, unknown> = {
 const contextSchema: Record<string, unknown> = {
   type: 'object',
   properties: {
-    elasticsearch: serviceBlockSchema,
-    kibana: serviceBlockSchema,
+    elasticsearch: versionedServiceBlockSchema,
+    kibana: versionedServiceBlockSchema,
     cloud: serviceBlockSchema,
     commands: commandPolicySchema,
+    allow_context_override: { type: 'boolean' },
   },
-}
-
-const configFileSchema: Record<string, unknown> = {
-  type: 'object',
-  properties: {
-    current_context: { type: 'string', minLength: 1 },
-    contexts: {
-      type: 'object',
-      additionalProperties: contextSchema,
-      minProperties: 1,
-    },
-    commands: commandPolicySchema,
-    default_profile: { type: 'string', enum: [...BUILT_IN_PROFILES] },
-    banner: { type: 'boolean' },
-    telemetry: { type: 'boolean' },
-  },
-  required: ['current_context', 'contexts'],
 }
 
 const structuralConfigSchema: Record<string, unknown> = {
@@ -193,6 +221,7 @@ const structuralConfigSchema: Record<string, unknown> = {
     default_profile: {},
     banner: { type: 'boolean' },
     telemetry: { type: 'boolean' },
+    detect_version: { type: 'boolean' },
   },
   required: ['current_context', 'contexts'],
 }
@@ -222,6 +251,17 @@ function stripServiceBlock (raw: unknown): ServiceBlock | undefined {
   return out
 }
 
+function stripVersionedServiceBlock (raw: unknown): VersionedServiceBlock | undefined {
+  const out: VersionedServiceBlock | undefined = stripServiceBlock(raw)
+  const version = (raw as Record<string, unknown> | undefined)?.['version']
+  if (out != null && typeof version === 'string') out.version = version
+  else if (out != null && version != null && typeof version === 'object') {
+    const { value, checked_ts: ts } = version as Record<string, unknown>
+    if (typeof ts === 'string') out.version = { ...(typeof value === 'string' && { value }), checked_ts: ts }
+  }
+  return out
+}
+
 function stripCommandPolicy (raw: unknown): CommandPolicy | undefined {
   if (raw == null || typeof raw !== 'object') return undefined
   const r = raw as Record<string, unknown>
@@ -239,11 +279,11 @@ function stripContext (raw: unknown): Context | undefined {
   const r = raw as Record<string, unknown>
   const out: Context = {}
   if (r['elasticsearch'] != null) {
-    const v = stripServiceBlock(r['elasticsearch'])
+    const v = stripVersionedServiceBlock(r['elasticsearch'])
     if (v != null) out.elasticsearch = v
   }
   if (r['kibana'] != null) {
-    const v = stripServiceBlock(r['kibana'])
+    const v = stripVersionedServiceBlock(r['kibana'])
     if (v != null) out.kibana = v
   }
   if (r['cloud'] != null) {
@@ -254,53 +294,15 @@ function stripContext (raw: unknown): Context | undefined {
     const v = stripCommandPolicy(r['commands'])
     if (v != null) out.commands = v
   }
+  if (typeof r['allow_context_override'] === 'boolean') {
+    out.allow_context_override = r['allow_context_override']
+  }
   return out
 }
 
 // ---------------------------------------------------------------------------
 // Exported schema objects — each exposes safeParse()
 // ---------------------------------------------------------------------------
-
-/** API key authentication credentials. */
-export const ApiKeyAuthSchema = {
-  safeParse (input: unknown): ParseResult<Auth> {
-    const r = validate(apiKeyAuthSchema, input)
-    if (!r.ok) return { success: false, errors: r.errors }
-    const d = r.data as Record<string, unknown>
-    return { success: true, data: { api_key: d['api_key'] as string } }
-  },
-}
-
-/** Basic (username + password) authentication credentials. */
-export const BasicAuthSchema = {
-  safeParse (input: unknown): ParseResult<Auth> {
-    const r = validate(basicAuthSchema, input)
-    if (!r.ok) return { success: false, errors: r.errors }
-    const d = r.data as Record<string, unknown>
-    return { success: true, data: { username: d['username'] as string, password: d['password'] as string } as Auth }
-  },
-}
-
-/** Union of all supported auth variants. */
-export const AuthSchema = {
-  safeParse (input: unknown): ParseResult<Auth> {
-    const r = validate(authSchema, input)
-    if (!r.ok) return { success: false, errors: r.errors }
-    return { success: true, data: stripAuth(r.data)! }
-  },
-}
-
-/** Endpoint URL and authentication credentials for a single service. */
-export const ServiceBlockSchema = {
-  safeParse (input: unknown): ParseResult<ServiceBlock> {
-    const r = validate(serviceBlockSchema, input)
-    if (!r.ok) return { success: false, errors: r.errors }
-    const block = stripServiceBlock(r.data)!
-    const err = urlError(block.url, '.url')
-    if (err != null) return { success: false, errors: [err] }
-    return { success: true, data: block }
-  },
-}
 
 /**
  * Policy controlling which commands are permitted to run.
@@ -341,53 +343,9 @@ export const ContextSchema = {
     }
     const urlErrors = contextUrlErrors(r.data, '')
     if (urlErrors.length > 0) return { success: false, errors: urlErrors }
+    const versionErrors = contextVersionErrors(r.data, '')
+    if (versionErrors.length > 0) return { success: false, errors: versionErrors }
     return { success: true, data: ctx }
-  },
-}
-
-/**
- * The root configuration file structure.
- *
- * `default_profile` sets a fallback profile for all contexts that don't
- * specify their own `commands.profile`. It is overridden by a per-context
- * `commands.profile` and by the `--profile` CLI flag.
- *
- * `commands` is the root-level policy; per-context `commands` takes precedence.
- */
-export const ConfigFileSchema = {
-  safeParse (input: unknown): ParseResult<ConfigFile> {
-    const r = validate(configFileSchema, input)
-    if (!r.ok) return { success: false, errors: r.errors }
-    const raw = r.data as Record<string, unknown>
-    const cfg: ConfigFile = {
-      current_context: raw['current_context'] as string,
-      contexts: {},
-    }
-    if (typeof raw['banner'] === 'boolean') cfg.banner = raw['banner']
-    if (typeof raw['telemetry'] === 'boolean') cfg.telemetry = raw['telemetry']
-    if (typeof raw['default_profile'] === 'string' && (BUILT_IN_PROFILES as readonly string[]).includes(raw['default_profile'])) {
-      cfg.default_profile = raw['default_profile'] as BuiltInProfile
-    }
-    // Parse contexts
-    for (const [key, val] of Object.entries(raw['contexts'] as Record<string, unknown>)) {
-      const ctx = stripContext(val)
-      if (ctx != null) cfg.contexts[key] = ctx
-    }
-    // Cross-field checks
-    if (!(cfg.current_context in cfg.contexts)) {
-      return { success: false, errors: [{ path: '.current_context', message: 'must reference an existing context key' }] }
-    }
-    for (const [key, ctx] of Object.entries(cfg.contexts)) {
-      if (ctx.elasticsearch == null && ctx.kibana == null && ctx.cloud == null) {
-        return { success: false, errors: [{ path: `.contexts.${key}`, message: 'at least one service block required' }] }
-      }
-      const urlErrors = contextUrlErrors((raw['contexts'] as Record<string, unknown>)[key], `.contexts.${key}`)
-      if (urlErrors.length > 0) return { success: false, errors: urlErrors }
-    }
-    if (raw['commands'] != null) {
-      cfg.commands = stripCommandPolicy(raw['commands'])!
-    }
-    return { success: true, data: cfg }
   },
 }
 
@@ -404,6 +362,7 @@ export const StructuralConfigSchema = {
     default_profile?: unknown
     banner?: boolean
     telemetry?: boolean
+    detect_version?: boolean
   }> {
     const r = validate(structuralConfigSchema, input)
     if (!r.ok) return { success: false, errors: r.errors }
@@ -417,6 +376,7 @@ export const StructuralConfigSchema = {
         ...(raw['default_profile'] !== undefined && { default_profile: raw['default_profile'] }),
         ...(raw['banner'] !== undefined && { banner: raw['banner'] as boolean }),
         ...(raw['telemetry'] !== undefined && { telemetry: raw['telemetry'] as boolean }),
+        ...(raw['detect_version'] !== undefined && { detect_version: raw['detect_version'] as boolean }),
       },
     }
   },

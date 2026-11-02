@@ -10,26 +10,17 @@ import {
   ERROR_CODES,
   EXIT_CODES,
   classifyConfigLoadError,
+  configLoadErrorCode,
   formatExitCodesHelp,
   formatTopicsHelp,
 } from '../../src/help/catalog.ts'
 import { registerHelpCommand } from '../../src/help/register.ts'
+import { captureDuring } from '../helpers/capture.ts'
 
 async function captured (fn: () => void | Promise<void>): Promise<{ stdout: string, stderr: string, exitCode: number | undefined }> {
-  const stdout: string[] = []
-  const stderr: string[] = []
-  const origOut = process.stdout.write.bind(process.stdout)
-  const origErr = process.stderr.write.bind(process.stderr)
   const origExit = process.exitCode
-  process.stdout.write = ((chunk: unknown) => { if (typeof chunk === 'string') stdout.push(chunk); return true }) as typeof process.stdout.write
-  process.stderr.write = ((chunk: unknown) => { if (typeof chunk === 'string') stderr.push(chunk); return true }) as typeof process.stderr.write
   process.exitCode = undefined
-  try {
-    await fn()
-  } finally {
-    process.stdout.write = origOut
-    process.stderr.write = origErr
-  }
+  const { stdout, stderr } = await captureDuring(fn)
   const exitCode = process.exitCode
   process.exitCode = origExit
   return { stdout: stdout.join(''), stderr: stderr.join(''), exitCode }
@@ -52,6 +43,14 @@ describe('classifyConfigLoadError', () => {
   it('maps parse and validation failures to config_invalid', () => {
     assert.equal(classifyConfigLoadError('contexts.local: required'), 'config_invalid')
     assert.equal(classifyConfigLoadError('Unknown profile "nope"'), 'config_invalid')
+  })
+})
+
+describe('configLoadErrorCode', () => {
+  it('keeps command_blocked and otherwise classifies the message', () => {
+    assert.equal(configLoadErrorCode({ code: 'command_blocked', message: 'context "agent" does not allow --use-context' }), 'command_blocked')
+    assert.equal(configLoadErrorCode({ message: 'No configuration file found.' }), 'missing_config')
+    assert.equal(configLoadErrorCode({ code: 'config_unresolved', message: 'Failed to resolve config expressions' }), 'config_invalid')
   })
 })
 

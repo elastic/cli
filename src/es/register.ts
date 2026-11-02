@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Command } from 'commander'
 import type { defineCommand as _DefCmd } from '../factory.ts'
 import { defineGroup } from '../factory-core.ts'
 import type { OpaqueCommandHandle } from '../factory-core.ts'
@@ -14,6 +13,10 @@ import type { SchemaArgDefinition } from '../lib/json-schema-args.ts'
 import { formatTextResponse } from '../output.ts'
 import { apiManifest } from './apis.ts'
 import type { EsApiMeta } from './apis.ts'
+import type { AvailabilityTarget } from '../lib/availability.ts'
+import { isAvailable, parseVersionHint } from '../lib/availability.ts'
+import { getResolvedConfig } from '../config/store.ts'
+import { buildStubLeaf } from '../lib/lazy-leaf.ts'
 
 let _dc: typeof _DefCmd | null = null
 async function getDefineCommand (): Promise<typeof _DefCmd> {
@@ -52,9 +55,11 @@ function applyHelpGroup (handle: OpaqueCommandHandle, group: string): OpaqueComm
 function buildLeafHandle (
   def: EsApiDefinition,
   defSchemaArgs: Map<EsApiDefinition, SchemaArgDefinition[]>,
-  defineCommand: typeof _DefCmd
+  defineCommand: typeof _DefCmd,
+  target?: AvailabilityTarget
 ): OpaqueCommandHandle {
   const schemaArgs = defSchemaArgs.get(def) ?? []
+  const intent = def.intent ?? inferIntentFromHttp(def.method)
   const config: Parameters<typeof _DefCmd>[0] = {
     name: def.name,
     description: def.description,
@@ -64,9 +69,8 @@ function buildLeafHandle (
       const { createEsHandler } = await import('./handler.js')
       return createEsHandler(def, schemaArgs)(parsed)
     },
-    ...(def.intent != null || inferIntentFromHttp(def.method) != null
-      ? { intent: def.intent ?? inferIntentFromHttp(def.method)! }
-      : {}),
+    ...(intent != null ? { intent } : {}),
+    ...(target !== undefined ? { target } : {}),
   }
   if (def.responseType === 'text') {
     config.formatOutput = formatTextResponse
@@ -86,39 +90,19 @@ function buildLeafHandle (
 }
 
 /**
- * Builds a lightweight stub leaf command: just name + description, no options,
- * and an action that lazy-loads the real definition on demand. The stub is used
- * for commands the user has NOT asked to invoke - Commander still shows them in
- * group-level help, but we never pay the cost of resolving their input schemas.
+ * Builds a stub leaf for a command the user has NOT asked to invoke. The fallback
+ * load only runs if the sniffer missed this leaf.
  */
-function buildStubLeaf (meta: EsApiMeta): OpaqueCommandHandle {
-  const cmd = new Command(meta.name)
-  cmd.description(meta.description)
-  cmd.allowUnknownOption(true)
-  cmd.action(async () => {
-    // Sniffing must have missed this leaf (shouldn't normally happen - the
-    // sniffer covers every direct-leaf and namespaced-leaf form). Fall back to
-    // loading the definition on demand, swapping the stub for the real leaf,
-    // and re-entering Commander parse so options dispatch correctly.
+function buildEsStubLeaf (meta: EsApiMeta, target?: AvailabilityTarget): OpaqueCommandHandle {
+  return buildStubLeaf(meta, async () => {
     const { loadEsApi } = await import('./apis.js')
     const def = await loadEsApi(meta)
     const schemaArgs = validateApiDefinition(def)
     const defSchemaArgs = new Map<EsApiDefinition, SchemaArgDefinition[]>()
     defSchemaArgs.set(def, schemaArgs)
     const dc = await getDefineCommand()
-    const real = buildLeafHandle(def, defSchemaArgs, dc)
-    const parent = cmd.parent
-    if (parent != null) {
-      // Commander's `commands` array is typed readonly but mutated internally;
-      // splice directly to swap the stub for the real leaf.
-      const list = parent.commands as Command[]
-      const idx = list.indexOf(cmd)
-      if (idx >= 0) list.splice(idx, 1)
-      parent.addCommand(real)
-      await parent.parseAsync(process.argv)
-    }
+    return buildLeafHandle(def, defSchemaArgs, dc, target)
   })
-  return cmd
 }
 
 /**
@@ -167,6 +151,10 @@ function sniffInvokedNamespace (argv: readonly string[]): string | null {
 interface RegisterLazyOptions {
   /** argv for sniffing the invoked leaf; defaults to `process.argv`. */
   argv?: readonly string[]
+  /** Manifest override, primarily for testing. Defaults to the real `apiManifest`. */
+  manifest?: readonly EsApiMeta[]
+  /** Availability target; when present, commands not matching the target are excluded. */
+  target?: AvailabilityTarget
 }
 
 /**
@@ -193,11 +181,20 @@ export async function registerEsCommands (
  * a stub that lazy-loads on demand if the sniff missed.
  *
  * Keeps startup heap bounded - see #171.
+ *
+ * When `opts.target` is absent, the target is resolved from the active context's
+ * `elasticsearch.version` in the resolved config store (populated by the early
+ * config load in `cli.ts` before command registration).
  */
 export async function registerEsCommandsLazy (
   opts: RegisterLazyOptions = {}
 ): Promise<OpaqueCommandHandle> {
-  return buildLazyTree(apiManifest, opts.argv ?? process.argv)
+  let target = opts.target
+  if (target === undefined) {
+    const version = getResolvedConfig()?.context.elasticsearch?.version
+    if (version != null) target = parseVersionHint(version) ?? undefined
+  }
+  return buildLazyTree(opts.manifest ?? apiManifest, opts.argv ?? process.argv, target)
 }
 
 /**
@@ -281,7 +278,8 @@ async function buildEagerTree (definitions: EsApiDefinition[]): Promise<OpaqueCo
  * identifies an invoked leaf, eagerly replaces that leaf's stub with its full
  * `defineCommand`. All other leaves remain stubs.
  */
-async function buildLazyTree (manifest: readonly EsApiMeta[], argv: readonly string[]): Promise<OpaqueCommandHandle> {
+async function buildLazyTree (rawManifest: readonly EsApiMeta[], argv: readonly string[], target?: AvailabilityTarget): Promise<OpaqueCommandHandle> {
+  const manifest = rawManifest.filter((m) => isAvailable((m as unknown as Record<string, unknown>)['availability'], target))
   const invoked = sniffInvokedLeaf(argv, manifest)
   // The namespace the user is targeting (may or may not have a specific leaf).
   // We only fully expand leaf stubs for this namespace; all others get an empty
@@ -322,9 +320,9 @@ async function buildLazyTree (manifest: readonly EsApiMeta[], argv: readonly str
     if (invoked != null && invokedDef != null && m === invoked) {
       // Only load factory.ts (defineCommand) when a specific leaf is actually invoked.
       const dc = await getDefineCommand()
-      return buildLeafHandle(invokedDef, invokedSchemaArgs, dc)
+      return buildLeafHandle(invokedDef, invokedSchemaArgs, dc, target)
     }
-    return buildStubLeaf(m)
+    return buildEsStubLeaf(m, target)
   }
 
   const topLevelNames = new Set<string>()

@@ -11,6 +11,7 @@ requires:
 setup:
   - do:
       security-lists-api.create_list_index:
+        ignore: [409]
 ---
 teardown:
   - do:

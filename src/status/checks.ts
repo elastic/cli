@@ -104,7 +104,12 @@ async function pingService (
   }
   if (!response.ok) return { ok: false, error: classifyHttp(response.status), status: response.status }
 
-  const text = await response.text()
+  let text: string
+  try {
+    text = await response.text()
+  } catch (err) {
+    return { ok: false, error: classifyNetwork(err) }
+  }
   if (text.length === 0) return { ok: true, body: {} }
   try {
     return { ok: true, body: JSON.parse(text) }
@@ -231,4 +236,33 @@ export async function checkCloud (
   const result = await pingService(block.url, '/api/v1/user', block.auth, fetchFn)
   if (!result.ok) return { ok: false, url: block.url, error: result.error }
   return { ok: true, url: block.url }
+}
+
+/** Outcome of {@link sniffVersion}: the detected version string or a classified error. */
+export type SniffResult = { ok: true, value: string } | { ok: false, error: string }
+
+/**
+ * Detects a service's version: `GET /` for Elasticsearch, `GET /api/status` for Kibana.
+ *
+ * Returns `serverless` when the response self-identifies via `version.build_flavor`,
+ * otherwise the leading `MAJOR.MINOR[.PATCH]` of `version.number` (prerelease suffixes dropped).
+ */
+export async function sniffVersion (
+  service: 'elasticsearch' | 'kibana',
+  block: ServiceBlock,
+  fetchFn: typeof fetch = globalThis.fetch,
+): Promise<SniffResult> {
+  const path = service === 'elasticsearch' ? '/' : '/api/status'
+  const result = await pingService(block.url, path, block.auth, fetchFn)
+  if (!result.ok) return { ok: false, error: result.error }
+
+  const unexpected: SniffResult = { ok: false, error: 'unexpected response' }
+  const body = result.body as { version?: { build_flavor?: unknown, number?: unknown } } | null
+  const version = body?.version
+  if (version == null || typeof version !== 'object') return unexpected
+  if (version.build_flavor === 'serverless') return { ok: true, value: 'serverless' }
+  if (typeof version.number !== 'string') return unexpected
+
+  const semver = /^\d+\.\d+(\.\d+)?/.exec(version.number)
+  return semver == null ? unexpected : { ok: true, value: semver[0] }
 }

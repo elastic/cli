@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Cloud control plane API: Get the tags for a Deployment (GET /api/v1/deployments/{deployment_id}/tags)
 # Id for {deployment_id} is derived from deployments.list-deployments.
-# TODO: verify the response path in the `set` step against a live API.
 ---
 "deployments get-deployment-tags":
   - do:

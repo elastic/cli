@@ -8,29 +8,13 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import type { EsClient, EsRequestParams } from '../../../src/lib/es-client.ts'
+import type { EsClient } from '../../../src/lib/es-client.ts'
 import { createBulkIngestCommand } from '../../../src/es/helpers/bulk-ingest.ts'
 import type { BulkIngestDeps } from '../../../src/es/helpers/bulk-ingest.ts'
 import { _testSetStdinReader } from '../../../src/factory.ts'
 import { Command } from 'commander'
-
-/** Creates a mock transport that records requests and returns configurable responses. */
-function mockTransport (responses: Array<{ errors: boolean, items: Array<Record<string, { status: number }>> }>): {
-  transport: EsClient
-  requests: Array<{ params: EsRequestParams, opts?: { headers?: Record<string, string> } }>
-} {
-  const requests: Array<{ params: EsRequestParams, opts?: { headers?: Record<string, string> } }> = []
-  let callIndex = 0
-  const transport = {
-    request: async (params: EsRequestParams, opts?: { headers?: Record<string, string> }) => {
-      requests.push({ params, opts })
-      const response = responses[callIndex] ?? responses[responses.length - 1]
-      callIndex++
-      return response
-    }
-  } as unknown as EsClient
-  return { transport, requests }
-}
+import { captureDuring } from '../../helpers/capture.ts'
+import { mockTransport } from '../../helpers/transport.ts'
 
 function makeDeps (transport: EsClient): BulkIngestDeps {
   return { getEsClient: () => transport }
@@ -59,29 +43,15 @@ async function runCommand (args: string[], deps: BulkIngestDeps): Promise<unknow
   program.option('--json', 'output as JSON')
   program.addCommand(cmd)
 
-  // Capture stdout and stderr
-  const origStdoutWrite = process.stdout.write.bind(process.stdout)
-  const origStderrWrite = process.stderr.write.bind(process.stderr)
-  const stdoutChunks: string[] = []
-  const stderrChunks: string[] = []
-  process.stdout.write = ((chunk: string) => {
-    if (typeof chunk === 'string') stdoutChunks.push(chunk)
-    return true
-  }) as typeof process.stdout.write
-  process.stderr.write = ((chunk: string) => {
-    if (typeof chunk === 'string') stderrChunks.push(chunk)
-    return true
-  }) as typeof process.stderr.write
-
-  const restoreStdin = _testSetStdinReader(() => '')
-  try {
-    await program.parseAsync(['node', 'test', 'bulk-ingest', ...args])
-  } finally {
-    restoreStdin()
-    process.stdout.write = origStdoutWrite
-    process.stderr.write = origStderrWrite
-    process.exitCode = 0
-  }
+  const { stdout: stdoutChunks, stderr: stderrChunks } = await captureDuring(async () => {
+    const restoreStdin = _testSetStdinReader(() => '')
+    try {
+      await program.parseAsync(['node', 'test', 'bulk-ingest', ...args])
+    } finally {
+      restoreStdin()
+      process.exitCode = 0
+    }
+  })
 
   // Prefer stderr (error results) over stdout; parse whichever has content.
   // Each process.stdout/stderr.write() call is its own array entry, and each

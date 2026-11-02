@@ -6,6 +6,8 @@
 requires:
   serverless: true
   stack: true
+  # Snooze schedule API 404s on 9.0 (added in 9.1).
+  stack_since: 9.1.0
 ---
 teardown:
   - do:

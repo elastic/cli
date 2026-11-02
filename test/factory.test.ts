@@ -21,6 +21,7 @@ import { setResolvedConfig, _testResetConfig } from '../src/config/store.ts'
 import { YamlResponse } from '../src/lib/yaml-response.ts'
 import { formatTextResponse } from '../src/output.ts'
 import { Command } from 'commander'
+import { captureDuring } from './helpers/capture.ts'
 
 /** Build a JSON Schema for test use. */
 function jsonSchema(
@@ -1685,6 +1686,109 @@ describe('defineCommand', () => {
       assert.deepEqual(input.query, { term: 'canyon' })
     })
 
+    it('rejects malformed JSON on an object body flag before the handler runs', async () => {
+      const schema = jsonSchema({
+        index: { type: 'string', 'x-found-in': 'path' },
+        document: { type: 'object', 'x-found-in': 'body' },
+      })
+      let handlerCalled = false
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: schema,
+        handler: () => { handlerCalled = true; return {} },
+      })
+      const err = await captureErrAsync(cmd, ['--index', 'test-idx', '--document', '{"name":"Alice"invalid}'])
+      assert.equal(handlerCalled, false)
+      assert.match(err, /--document: invalid JSON:/)
+    })
+
+    it('rejects empty, path, and query-like garbage on object flags', async () => {
+      const schema = jsonSchema({
+        document: { type: 'object', 'x-found-in': 'body' },
+      })
+      for (const raw of ['', '   ', '../', '?#', '{', 'not-json']) {
+        let handlerCalled = false
+        const cmd = defineCommand({
+          name: 'index',
+          description: 'Index a document',
+          input: schema,
+          handler: () => { handlerCalled = true; return {} },
+        })
+        const err = await captureErrAsync(cmd, ['--document', raw])
+        assert.equal(handlerCalled, false, `handler ran for ${JSON.stringify(raw)}`)
+        assert.match(err, /--document: invalid JSON:/, `expected invalid JSON for ${JSON.stringify(raw)}`)
+      }
+    })
+
+    it('keeps a plain string on a typeless object property', async () => {
+      const schema = jsonSchema({
+        document: { 'x-found-in': 'body', 'x-body-root': true },
+      })
+      const received: unknown[] = []
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: schema,
+        handler: (parsed) => { received.push(parsed.input); return {} },
+      })
+      for (const raw of ['foo', '../', '?#']) {
+        received.length = 0
+        await invokeAsync(cmd, ['--document', raw])
+        assert.equal((received[0] as Record<string, unknown>).document, raw)
+      }
+    })
+
+    it('rejects broken JSON on a typeless object property', async () => {
+      const schema = jsonSchema({
+        document: { 'x-found-in': 'body' },
+      })
+      for (const raw of ['{"name":"Alice"invalid}', '{', '"unterminated']) {
+        let handlerCalled = false
+        const cmd = defineCommand({
+          name: 'index',
+          description: 'Index a document',
+          input: schema,
+          handler: () => { handlerCalled = true; return {} },
+        })
+        const err = await captureErrAsync(cmd, ['--document', raw])
+        assert.equal(handlerCalled, false, `handler ran for ${JSON.stringify(raw)}`)
+        assert.match(err, /--document: invalid JSON:/, `expected invalid JSON for ${JSON.stringify(raw)}`)
+      }
+    })
+
+    it('still accepts a valid object flag with surrounding whitespace', async () => {
+      const schema = jsonSchema({
+        document: { type: 'object', 'x-found-in': 'body' },
+      })
+      const received: unknown[] = []
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: schema,
+        handler: (parsed) => { received.push(parsed.input); return {} },
+      })
+      await invokeAsync(cmd, ['--document', '  {"name":"Alice"}  '])
+      assert.deepEqual((received[0] as Record<string, unknown>).document, { name: 'Alice' })
+    })
+
+    it('emits input_validation_failed for malformed object JSON when --json is set', async () => {
+      const schema = jsonSchema({
+        document: { type: 'object', 'x-found-in': 'body' },
+      })
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: schema,
+        handler: () => ({}),
+      })
+      const { stderr, exitCode } = await invokeCapturingStreams(cmd, ['--json'], ['--document', '{"name":"Alice"invalid}'])
+      const parsed = JSON.parse(stderr) as { error: { code: string, message: string } }
+      assert.equal(parsed.error.code, 'input_validation_failed')
+      assert.match(parsed.error.message, /--document: invalid JSON:/)
+      assert.equal(exitCode, 1)
+    })
+
     it('still validates path and query params strictly', async () => {
       const schema = jsonSchema({
         index: { type: 'string', 'x-found-in': 'path' },
@@ -2056,13 +2160,6 @@ describe('defineCommand', () => {
   })
 
   describe('handler return value and output', () => {
-    async function captureOutput(fn: () => Promise<void>): Promise<string> {
-      let out = ''
-      const restore = patchWrite(process.stdout, (s) => { out += s })
-      try { await fn() } finally { restore() }
-      return out
-    }
-
     async function invokeUnderRoot(cmd: OpaqueCommandHandle, rootArgv: string[], cmdArgv: string[]): Promise<string> {
       const { Command } = await import('commander')
       const prog = new Command('elastic')
@@ -2070,7 +2167,7 @@ describe('defineCommand', () => {
       prog.addCommand(cmd)
       prog.exitOverride()
       cmd.exitOverride()
-      return captureOutput(() => prog.parseAsync([...rootArgv, cmd.name(), ...cmdArgv], { from: 'user' }))
+      return stdoutDuring(() => prog.parseAsync([...rootArgv, cmd.name(), ...cmdArgv], { from: 'user' }))
     }
 
     it('factory writes handler return value as compact JSON when --json', async () => {
@@ -2239,16 +2336,128 @@ describe('defineCommand', () => {
     })
 
   })
+
+  describe('--no-validate', () => {
+    it('appears in help text for commands with an input schema', () => {
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: { type: 'object', properties: { index: { type: 'string' } } },
+        handler: () => ({}),
+      })
+      assert.match(cmd.helpInformation(), /--no-validate/)
+    })
+
+    it('allows invalid input through when set', async () => {
+      let receivedInput: unknown
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: {
+          type: 'object',
+          properties: { refresh: { type: 'string', enum: ['true', 'false', 'wait_for'] } },
+        },
+        handler: ({ input }) => { receivedInput = input; return {} },
+      })
+      const { writeFileSync } = await import('fs')
+      const { tmpdir } = await import('os')
+      const { join } = await import('path')
+      const filePath = join(tmpdir(), `no-validate-test-${Date.now()}.json`)
+      writeFileSync(filePath, JSON.stringify({ refresh: 'unknown_value' }))
+      await invokeUnderRoot(cmd, [], ['--no-validate', '--input-file', filePath])
+      assert.deepEqual(receivedInput, { refresh: 'unknown_value' })
+    })
+
+    it('outputs validation error without --no-validate', async () => {
+      const cmd = defineCommand({
+        name: 'index',
+        description: 'Index a document',
+        input: {
+          type: 'object',
+          properties: { refresh: { type: 'string', enum: ['true', 'false', 'wait_for'] } },
+        },
+        handler: () => ({}),
+      })
+      const { writeFileSync } = await import('fs')
+      const { tmpdir } = await import('os')
+      const { join } = await import('path')
+      const filePath = join(tmpdir(), `no-validate-test-${Date.now()}.json`)
+      writeFileSync(filePath, JSON.stringify({ refresh: 'unknown_value' }))
+      const err = await captureErrAsync(cmd, ['--input-file', filePath])
+      assert.match(err, /input validation failed/)
+    })
+
+    it('throws at definition time when user defines a --no-validate option', () => {
+      assert.throws(
+        () => defineCommand({
+          name: 'test',
+          description: 'Test',
+          options: [{ long: 'no-validate', description: 'Skip', type: 'boolean' }],
+          handler: () => ({}),
+        }),
+        (e: unknown) => {
+          assert.ok(e instanceof Error)
+          assert.match(e.message, /--no-validate is reserved/)
+          return true
+        },
+      )
+    })
+
+    it('throws at definition time when user defines a --validate option', () => {
+      assert.throws(
+        () => defineCommand({
+          name: 'test',
+          description: 'Test',
+          options: [{ long: 'validate', description: 'Skip', type: 'boolean' }],
+          handler: () => ({}),
+        }),
+        (e: unknown) => {
+          assert.ok(e instanceof Error)
+          assert.match(e.message, /--validate is reserved/)
+          return true
+        },
+      )
+    })
+
+    it('dry-run with --no-validate reports validation skipped in text mode', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-dryrun-noval-'))
+      const filePath = join(tmpDir, 'input.json')
+      writeFileSync(filePath, JSON.stringify({ index: 'logs' }))
+      try {
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Search',
+          input: jsonSchema({ index: { type: 'string' } }, ['index']),
+          handler: () => ({}),
+        })
+        const out = await invokeUnderRoot(cmd, [], ['--dry-run', '--no-validate', '--input-file', filePath])
+        assert.match(out, /validation skipped/)
+      } finally {
+        rmSync(tmpDir, { recursive: true })
+      }
+    })
+
+    it('dry-run with --no-validate includes validationSkipped in JSON output', async () => {
+      const tmpDir = mkdtempSync(join(tmpdir(), 'elastic-cli-dryrun-noval-json-'))
+      const filePath = join(tmpDir, 'input.json')
+      writeFileSync(filePath, JSON.stringify({ index: 'logs' }))
+      try {
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Search',
+          input: jsonSchema({ index: { type: 'string' } }, ['index']),
+          handler: () => ({}),
+        })
+        const out = await invokeUnderRoot(cmd, ['--json'], ['--dry-run', '--no-validate', '--input-file', filePath])
+        assert.deepEqual(JSON.parse(out), { success: true, validationSkipped: true })
+      } finally {
+        rmSync(tmpDir, { recursive: true })
+      }
+    })
+  })
 })
 
 describe('text output rendering', () => {
-  async function captureOutput(fn: () => Promise<unknown>): Promise<string> {
-    let out = ''
-    const restore = patchWrite(process.stdout, (s) => { out += s })
-    try { await fn() } finally { restore() }
-    return out
-  }
-
   async function invokeText(cmd: OpaqueCommandHandle, cmdArgv: string[] = []): Promise<string> {
     const { Command } = await import('commander')
     const prog = new Command('elastic')
@@ -2256,7 +2465,7 @@ describe('text output rendering', () => {
     prog.addCommand(cmd)
     prog.exitOverride()
     cmd.exitOverride()
-    return captureOutput(() => prog.parseAsync([cmd.name(), ...cmdArgv], { from: 'user' }))
+    return stdoutDuring(() => prog.parseAsync([cmd.name(), ...cmdArgv], { from: 'user' }))
   }
 
   describe('formatOutput callback', () => {
@@ -2325,7 +2534,7 @@ describe('text output rendering', () => {
       prog.addCommand(cmd)
       prog.exitOverride()
       cmd.exitOverride()
-      await captureOutput(() => prog.parseAsync(['--json', cmd.name()], { from: 'user' }))
+      await stdoutDuring(() => prog.parseAsync(['--json', cmd.name()], { from: 'user' }))
       assert.equal(called, false, 'formatOutput must not be called in JSON mode')
     })
 
@@ -2342,7 +2551,7 @@ describe('text output rendering', () => {
       prog.addCommand(cmd)
       prog.exitOverride()
       cmd.exitOverride()
-      const out = await captureOutput(() => prog.parseAsync(['--json', cmd.name()], { from: 'user' }))
+      const out = await stdoutDuring(() => prog.parseAsync(['--json', cmd.name()], { from: 'user' }))
       assert.deepEqual(JSON.parse(out), { ok: true })
     })
   })
@@ -4075,27 +4284,14 @@ async function captureErrAsync(handle: OpaqueCommandHandle, argv: string[]): Pro
   return err
 }
 
-/**
- * Temporarily captures string writes to a process stream, returning a restore fn.
- * Non-string chunks (e.g. the node:test v8 reporter's serialized Buffers) are
- * forwarded to the real stream so the test-runner IPC channel is never corrupted
- * when this runs inside a spawned test subprocess.
- */
-function patchWrite (stream: NodeJS.WriteStream, sink: (s: string) => void): () => void {
-  const orig = stream.write.bind(stream)
-  stream.write = (chunk: unknown, ...args: unknown[]) => {
-    if (typeof chunk === 'string') { sink(chunk); return true }
-    return Reflect.apply(orig, stream, [chunk, ...args]) as boolean
-  }
-  return () => { stream.write = orig }
+/** captures everything written to process.stdout during fn(); rejects if fn does */
+async function stdoutDuring(fn: () => unknown): Promise<string> {
+  return (await captureDuring(fn)).stdout.join('')
 }
 
 /** captures everything written to process.stdout during fn(), even if fn throws */
 async function captureStdout(fn: () => Promise<unknown>): Promise<string> {
-  let out = ''
-  const restore = patchWrite(process.stdout, (s) => { out += s })
-  try { await fn() } catch { /* swallow — caller inspects captured output */ } finally { restore() }
-  return out
+  return stdoutDuring(async () => { try { await fn() } catch { /* swallow — caller inspects captured output */ } })
 }
 
 /** mounts a command under a root program with --json and captures stdout */
@@ -4111,24 +4307,20 @@ async function invokeUnderRoot(cmd: OpaqueCommandHandle, rootArgv: string[], cmd
 
 /** captures stdout, stderr, and exitCode separately */
 async function captureStreams(fn: () => Promise<void>): Promise<{ stdout: string, stderr: string, exitCode: number }> {
-  let stdout = ''
-  let stderr = ''
-  let exitCode: number
+  let exitCode = 0
   const origExitCode = process.exitCode
   process.exitCode = 0
-  const restoreOut = patchWrite(process.stdout, (s) => { stdout += s })
-  const restoreErr = patchWrite(process.stderr, (s) => { stderr += s })
-  try {
-    await fn()
-  } catch {
-    /* swallow -- caller inspects captured output */
-  } finally {
-    exitCode = process.exitCode ?? 0
-    restoreOut()
-    restoreErr()
-    process.exitCode = origExitCode as typeof process.exitCode
-  }
-  return { stdout, stderr, exitCode }
+  const { stdout, stderr } = await captureDuring(async () => {
+    try {
+      await fn()
+    } catch {
+      /* swallow -- caller inspects captured output */
+    } finally {
+      exitCode = process.exitCode ?? 0
+      process.exitCode = origExitCode as typeof process.exitCode
+    }
+  })
+  return { stdout: stdout.join(''), stderr: stderr.join(''), exitCode }
 }
 
 /** mounts a command under a root program and captures stdout, stderr, exitCode */
@@ -4145,6 +4337,131 @@ async function invokeCapturingStreams(
   cmd.exitOverride()
   return captureStreams(() => prog.parseAsync([...rootArgv, cmd.name(), ...cmdArgv], { from: 'user' }))
 }
+
+describe('JSON schema in help output -- availability filtering', () => {
+  async function captureJsonHelp (cmd: OpaqueCommandHandle): Promise<Record<string, unknown>> {
+    const prog = new Command('elastic')
+    prog.option('--json', 'output as JSON')
+    prog.addCommand(cmd as unknown as InstanceType<typeof Command>)
+    prog.exitOverride()
+    ;(cmd as unknown as InstanceType<typeof Command>).exitOverride()
+    let out = ''
+    ;(cmd as unknown as InstanceType<typeof Command>).configureOutput({ writeOut: (s: string) => { out += s } })
+    try {
+      await prog.parseAsync(['--json', cmd.name(), '--help'], { from: 'user' })
+    } catch { /* exitOverride on --help */ }
+    return JSON.parse(out) as Record<string, unknown>
+  }
+
+  it('no target → all properties present in schema output', async () => {
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: {
+        type: 'object',
+        properties: {
+          index: { type: 'string', 'x-availability': { stack: {} } },
+          size: { type: 'number', 'x-availability': { serverless: {} } },
+        },
+      },
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    const props = schema['properties'] as Record<string, unknown>
+    assert.ok('index' in props, 'stack prop must appear with no target')
+    assert.ok('size' in props, 'serverless prop must appear with no target')
+  })
+
+  it('serverless target → excluded stack-only properties absent from schema output', async () => {
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: {
+        type: 'object',
+        properties: {
+          index: { type: 'string', 'x-availability': { stack: {} } },
+          size: { type: 'number', 'x-availability': { serverless: {} } },
+        },
+        required: ['index', 'size'],
+      },
+      target: 'serverless' as import('../src/lib/availability.ts').AvailabilityTarget,
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    const props = schema['properties'] as Record<string, unknown>
+    assert.ok(!('index' in props), 'stack-only prop must be absent for serverless target')
+    assert.ok('size' in props, 'serverless prop must remain for serverless target')
+  })
+
+  it('with target → required array pruned for excluded properties', async () => {
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: {
+        type: 'object',
+        properties: {
+          index: { type: 'string', 'x-availability': { stack: {} } },
+          size: { type: 'number', 'x-availability': { serverless: {} } },
+        },
+        required: ['index', 'size'],
+      },
+      target: 'serverless' as import('../src/lib/availability.ts').AvailabilityTarget,
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    const required = schema['required'] as string[]
+    assert.ok(Array.isArray(required))
+    assert.ok(!required.includes('index'), 'excluded prop must be pruned from required')
+    assert.ok(required.includes('size'), 'available prop must remain in required')
+  })
+
+  it('with target → JSON input containing an unavailable property is rejected, handler not called', async () => {
+    const restore = _testSetStdinReader(() => JSON.stringify({ index: 'x', size: 5 }))
+    try {
+      const received: ParsedResult[] = []
+      const cmd = defineCommand({
+        name: 'search',
+        description: 'Search',
+        input: {
+          type: 'object',
+          properties: {
+            index: { type: 'string', 'x-availability': { stack: {} } },
+            size: { type: 'number', 'x-availability': { serverless: {} } },
+          },
+          additionalProperties: false,
+        },
+        target: 'serverless' as import('../src/lib/availability.ts').AvailabilityTarget,
+        handler: (parsed) => { received.push(parsed); return {} },
+      })
+      const err = await captureErrAsync(cmd, ['--input-file', '-'])
+      assert.match(err, /input validation failed/i)
+      assert.equal(received.length, 0)
+    } finally {
+      restore()
+    }
+  })
+
+  it('stack target → version-gated properties absent from schema output', async () => {
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: {
+        type: 'object',
+        properties: {
+          knn: { type: 'object', 'x-availability': { stack: { since: '9.4.0' } } },
+          query: { type: 'object', 'x-availability': { stack: { since: '7.0.0' } } },
+        },
+      },
+      target: [9, 2] as import('../src/lib/availability.ts').AvailabilityTarget,
+      handler: () => ({}),
+    })
+    const schema = await captureJsonHelp(cmd)
+    const props = schema['properties'] as Record<string, unknown>
+    assert.ok(!('knn' in props), 'future version prop must be absent for target 9.2')
+    assert.ok('query' in props, 'old version prop must remain for target 9.2')
+  })
+})
+
 
 describe('error result detection', () => {
   it('error result in JSON mode goes to stderr with non-zero exit', async () => {
@@ -4390,14 +4707,7 @@ describe('YAML response rendering', () => {
     prog.addCommand(cmd)
     prog.exitOverride()
     cmd.exitOverride()
-    let out = ''
-    const restore = patchWrite(process.stdout, (s) => { out += s })
-    try {
-      await prog.parseAsync([...rootArgv, cmd.name()], { from: 'user' })
-    } finally {
-      restore()
-    }
-    return out
+    return stdoutDuring(() => prog.parseAsync([...rootArgv, cmd.name()], { from: 'user' }))
   }
 
   const yamlBody = 'apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: agent\n'

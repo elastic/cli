@@ -1,0 +1,12 @@
+# Copyright Elasticsearch B.V. and contributors
+# SPDX-License-Identifier: Apache-2.0
+# Cloud control plane API: Get VectorDB project link candidates (GET /api/v1/serverless/projects/vectordb/{id}/link-candidates)
+# Id for {id} is derived from vectordb-projects.list-vector-dbprojects.
+---
+"vectordb-projects get-vector-dbproject-link-candidates":
+  - do:
+      vectordb-projects.list-vector-dbprojects: {}
+  - set: {dbprojects.0.id: id}
+  - do:
+      vectordb-projects.get-vector-dbproject-link-candidates:
+        id: $id

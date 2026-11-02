@@ -2,6 +2,7 @@
  * Copyright Elasticsearch B.V. and contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+import type { AvailabilityTarget } from './lib/availability.ts'
 
 /**
  * Lightweight core of the command factory — contains types and functions needed
@@ -81,7 +82,7 @@ export interface CommandConfig {
   handler: (parsed: ParsedResult) => HandlerResult | Promise<HandlerResult>
   /** JSON Schema object for structured input (properties carry `x-found-in` routing). */
   input?: Record<string, unknown>
-  formatOutput?: (result: JsonValue, parsed: ParsedResult) => string
+  formatOutput?: (result: JsonValue, parsed: ParsedResult) => string | Promise<string>
   intent?: CommandIntent
   /**
    * Marks a command as read-only (GET/HEAD). When the input schema is also
@@ -90,6 +91,11 @@ export interface CommandConfig {
   readOnly?: boolean
   /** Applied to JSON input (stdin or --input-file) before schema validation. */
   inputTransform?: (input: unknown) => unknown
+  /**
+   * Availability target used to filter properties from the input schema in flags and --help --json.
+   * When absent, all properties are shown (today's full-superset behavior).
+   */
+  target?: AvailabilityTarget
 }
 
 /** Configuration for a command group (namespace). */

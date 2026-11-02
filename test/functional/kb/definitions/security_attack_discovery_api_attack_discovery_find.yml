@@ -6,6 +6,8 @@
 requires:
   serverless: true
   stack: true
+  # Missing on older stacks (404/500); x-state carries no version, so gate here.
+  stack_since: 9.2.0
   serverless_project: security
 ---
 "security-attack-discovery-api find attack discoveries":

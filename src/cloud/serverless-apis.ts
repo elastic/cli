@@ -4,44 +4,35 @@
  */
 
 import type { CloudApiDefinition } from './types.ts'
+import { requireSchemaModule } from '../lib/json-schema-refs.ts'
+import { serverlessManifest } from '@elastic/schemas/serverless/tools/manifest.js'
 
 /** Lazily loaded cache of all Serverless API definitions. */
 let _allServerlessApis: CloudApiDefinition[] | null = null
 
 /**
  * Returns all Serverless API definitions, lazy-loading the per-namespace
- * modules from `@elastic/schemas` on first call.
+ * modules from `@elastic/schemas` on first call. The set of modules is
+ * derived from the unique `namespaceFile` values in `serverlessManifest` so
+ * new namespaces are picked up automatically on upgrade.
  */
 export async function loadServerlessApis (): Promise<CloudApiDefinition[]> {
   if (_allServerlessApis != null) return _allServerlessApis
 
-  const [
-    { elasticsearchProjectsDefinitions },
-    { linkedCandidateProjectsDefinitions },
-    { linkedProjectsDefinitions },
-    { observabilityProjectsDefinitions },
-    { regionsDefinitions },
-    { securityProjectsDefinitions },
-    { trafficFiltersDefinitions },
-  ] = await Promise.all([
-    import('@elastic/schemas/serverless/tools/apis/elasticsearch-projects.js'),
-    import('@elastic/schemas/serverless/tools/apis/linked-candidate-projects.js'),
-    import('@elastic/schemas/serverless/tools/apis/linked-projects.js'),
-    import('@elastic/schemas/serverless/tools/apis/observability-projects.js'),
-    import('@elastic/schemas/serverless/tools/apis/regions.js'),
-    import('@elastic/schemas/serverless/tools/apis/security-projects.js'),
-    import('@elastic/schemas/serverless/tools/apis/traffic-filters.js'),
-  ])
+  const namespaceFiles = [...new Set(serverlessManifest.map(e => e.namespaceFile))]
 
-  _allServerlessApis = [
-    ...elasticsearchProjectsDefinitions,
-    ...linkedCandidateProjectsDefinitions,
-    ...linkedProjectsDefinitions,
-    ...observabilityProjectsDefinitions,
-    ...regionsDefinitions,
-    ...securityProjectsDefinitions,
-    ...trafficFiltersDefinitions,
-  ] as CloudApiDefinition[]
+  const modules = await Promise.all(
+    namespaceFiles.map(nf => requireSchemaModule(`@elastic/schemas/serverless/tools/apis/${nf}.js`))
+  )
+
+  _allServerlessApis = modules.flatMap((mod, i) => {
+    const nf = namespaceFiles[i]!
+    const defKey = Object.keys(mod as Record<string, unknown>).find(
+      k => Array.isArray((mod as Record<string, unknown>)[k]) && k.endsWith('Definitions')
+    )
+    if (defKey == null) throw new Error(`serverless module ${nf}.js has no *Definitions array export`)
+    return (mod as Record<string, unknown[]>)[defKey] as CloudApiDefinition[]
+  })
 
   return _allServerlessApis
 }

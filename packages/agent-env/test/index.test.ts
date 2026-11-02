@@ -46,6 +46,26 @@ describe('detectAgent', () => {
     assert.equal(detectAgent(0.95, { TERM_PROGRAM: 'iTerm.app' }), null)
   })
 
+  it('normalizes a versioned AI_AGENT to the known agent id', () => {
+    const d = detectAgent(0.95, { AI_AGENT: 'claude-code_2-1-296_agent' })
+    assert.deepEqual(d, { agent: 'claude-code', confidence: 1 })
+  })
+
+  it('normalizes a hyphen-suffixed AI_AGENT to the known agent id', () => {
+    const d = detectAgent(0.95, { AI_AGENT: 'claude-code-2-1-296-agent' })
+    assert.deepEqual(d, { agent: 'claude-code', confidence: 1 })
+  })
+
+  it('reads the model var for a versioned AI_AGENT', () => {
+    const d = detectAgent(0.95, { AI_AGENT: 'claude-code_2-1-296_agent', ANTHROPIC_MODEL: 'claude-opus-4' })
+    assert.equal(d?.agent, 'claude-code')
+    assert.deepEqual(d?.llm, { model: 'claude-opus-4', vendor: 'anthropic' })
+  })
+
+  it('does not normalize AI_AGENT values that merely share a prefix', () => {
+    assert.equal(detectAgent(0.95, { AI_AGENT: 'pipeline' })?.agent, 'pipeline')
+  })
+
   it('supports the universal AI_AGENT opt-in for any agent id', () => {
     assert.equal(detectAgent(0.95, { AI_AGENT: 'devin' })?.agent, 'devin')
   })
@@ -78,7 +98,7 @@ describe('detectAgent', () => {
   })
 
   it('accepts AI_AGENT values that are Object prototype property names (detection)', () => {
-    // AI_AGENT accepts any non-empty string verbatim; prototype-name values like
+    // Unmatched AI_AGENT values pass through unchanged; prototype-name values like
     // 'constructor' are valid agent ids from detectAgent's perspective.
     // The ag= segment guard (Object.hasOwn) lives in meta.ts agentMetaOf.
     const d = detectAgent(0.95, { AI_AGENT: 'constructor' })

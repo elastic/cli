@@ -563,3 +563,172 @@ describe('registerEsCommands - REST-style body (#360)', () => {
     assert.ok(!err.includes('input validation failed'), `unexpected validation error: ${err}`)
   })
 })
+
+// ---------------------------------------------------------------------------
+// registerEsCommandsLazy — availability filtering
+// ---------------------------------------------------------------------------
+
+import type { EsApiMeta } from '../../src/es/apis.ts'
+import type { AvailabilityTarget } from '../../src/lib/availability.ts'
+
+describe('registerEsCommandsLazy — availability filtering', () => {
+  function fakeMeta (name: string, xAvailability?: unknown): EsApiMeta {
+    return {
+      id: `test.${name}`, name, namespace: null, description: `${name} desc`, namespaceFile: 'fake',
+      ...(xAvailability !== undefined ? { availability: xAvailability } : {}),
+    } as unknown as EsApiMeta
+  }
+
+  it('no target → all manifest entries appear in the command tree', async () => {
+    const manifest = [
+      fakeMeta('cmd-stack', { stack: {} }),
+      fakeMeta('cmd-svl', { serverless: {} }),
+    ]
+    const handle = await registerEsCommandsLazy({
+      argv: ['node', 'elastic', 'es'],
+      manifest,
+    })
+    const names = handle.commands.map((c) => c.name())
+    assert.ok(names.includes('cmd-stack'), 'stack cmd must appear with no target')
+    assert.ok(names.includes('cmd-svl'), 'serverless cmd must appear with no target')
+  })
+
+  it('serverless target → omits stack-only commands', async () => {
+    const manifest = [
+      fakeMeta('cmd-stack', { stack: {} }),
+      fakeMeta('cmd-svl', { serverless: {} }),
+    ]
+    const target: AvailabilityTarget = 'serverless'
+    const handle = await registerEsCommandsLazy({
+      argv: ['node', 'elastic', 'es'],
+      manifest,
+      target,
+    })
+    const names = handle.commands.map((c) => c.name())
+    assert.ok(!names.includes('cmd-stack'), 'stack-only cmd must be filtered for serverless target')
+    assert.ok(names.includes('cmd-svl'), 'serverless cmd must remain for serverless target')
+  })
+
+  it('stack target → omits serverless-only commands', async () => {
+    const manifest = [
+      fakeMeta('cmd-stack', { stack: {} }),
+      fakeMeta('cmd-svl', { serverless: {} }),
+    ]
+    const target: AvailabilityTarget = [9, 0]
+    const handle = await registerEsCommandsLazy({
+      argv: ['node', 'elastic', 'es'],
+      manifest,
+      target,
+    })
+    const names = handle.commands.map((c) => c.name())
+    assert.ok(names.includes('cmd-stack'), 'stack cmd must remain for stack target')
+    assert.ok(!names.includes('cmd-svl'), 'serverless-only cmd must be filtered for stack target')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Milestone 4: registerEsCommandsLazy — reads target from resolved config
+// ---------------------------------------------------------------------------
+
+import { setResolvedConfig, _testResetConfig } from '../../src/config/store.ts'
+import type { ResolvedConfig } from '../../src/config/types.ts'
+
+describe('registerEsCommandsLazy — target from resolved config', () => {
+  beforeEach(() => _testResetConfig())
+  afterEach(() => _testResetConfig())
+
+  function fakeConfigWithVersion (version: string | undefined): ResolvedConfig {
+    return {
+      context: {
+        elasticsearch: {
+          url: 'http://localhost:9200',
+          auth: { api_key: 'test-key' },
+          ...(version !== undefined ? { version } : {}),
+        },
+      },
+    }
+  }
+
+  function fakeMeta4 (name: string, xAvailability?: unknown): EsApiMeta {
+    return {
+      id: `m4.${name}`, name, namespace: null, description: `${name} desc`, namespaceFile: 'fake',
+      ...(xAvailability !== undefined ? { availability: xAvailability } : {}),
+    } as unknown as EsApiMeta
+  }
+
+  it('uses elasticsearch.version from config as target when opts.target is absent', async () => {
+    setResolvedConfig(fakeConfigWithVersion('9.2'))
+    const manifest = [
+      fakeMeta4('cmd-stack', { stack: {} }),
+      fakeMeta4('cmd-svl', { serverless: {} }),
+    ]
+    const handle = await registerEsCommandsLazy({ argv: ['node', 'elastic', 'es'], manifest })
+    const names = handle.commands.map((c) => c.name())
+    assert.ok(names.includes('cmd-stack'), 'stack cmd must appear for stack 9.2 target')
+    assert.ok(!names.includes('cmd-svl'), 'serverless-only cmd must be excluded for stack 9.2 target')
+  })
+
+  it('explicit opts.target takes precedence over config version', async () => {
+    setResolvedConfig(fakeConfigWithVersion('9.2'))
+    const manifest = [
+      fakeMeta4('cmd-stack', { stack: {} }),
+      fakeMeta4('cmd-svl', { serverless: {} }),
+    ]
+    const handle = await registerEsCommandsLazy({
+      argv: ['node', 'elastic', 'es'],
+      manifest,
+      target: 'serverless',
+    })
+    const names = handle.commands.map((c) => c.name())
+    assert.ok(!names.includes('cmd-stack'), 'stack-only cmd must be excluded when explicit target is serverless')
+    assert.ok(names.includes('cmd-svl'), 'serverless cmd must appear when explicit target is serverless')
+  })
+
+  it('no version in config → no target → full manifest shown', async () => {
+    setResolvedConfig(fakeConfigWithVersion(undefined))
+    const manifest = [
+      fakeMeta4('cmd-stack', { stack: {} }),
+      fakeMeta4('cmd-svl', { serverless: {} }),
+    ]
+    const handle = await registerEsCommandsLazy({ argv: ['node', 'elastic', 'es'], manifest })
+    const names = handle.commands.map((c) => c.name())
+    assert.ok(names.includes('cmd-stack'), 'stack cmd must appear with no version target')
+    assert.ok(names.includes('cmd-svl'), 'serverless cmd must appear with no version target')
+  })
+
+  it('flag with stack.since 9.4.0 is hidden when config version is 9.2', async () => {
+    setResolvedConfig(fakeConfigWithVersion('9.2'))
+    const handle = await registerEsCommandsLazy({
+      argv: ['node', 'elastic', 'es', 'esql', 'query'],
+    })
+    const esqlNs = handle.commands.find((c) => c.name() === 'esql')
+    const queryCmd = esqlNs?.commands.find((c) => c.name() === 'query')
+    assert.ok(queryCmd != null, 'esql query must be registered')
+    const flags = queryCmd.options.map((o) => o.long ?? '')
+    assert.ok(!flags.includes('--time-zone'), '--time-zone (since 9.4.0) must be hidden for config version 9.2')
+    assert.ok(flags.includes('--query'), '--query must remain visible (no version restriction)')
+  })
+
+  it('flag with stack.since 9.4.0 is shown when config version is 9.4', async () => {
+    setResolvedConfig(fakeConfigWithVersion('9.4'))
+    const handle = await registerEsCommandsLazy({
+      argv: ['node', 'elastic', 'es', 'esql', 'query'],
+    })
+    const esqlNs = handle.commands.find((c) => c.name() === 'esql')
+    const queryCmd = esqlNs?.commands.find((c) => c.name() === 'query')
+    assert.ok(queryCmd != null, 'esql query must be registered')
+    const flags = queryCmd.options.map((o) => o.long ?? '')
+    assert.ok(flags.includes('--time-zone'), '--time-zone (since 9.4.0) must be shown for config version 9.4')
+  })
+
+  it('stack-only flag hidden for serverless config (search.rank has no serverless key)', async () => {
+    setResolvedConfig(fakeConfigWithVersion('serverless'))
+    const handle = await registerEsCommandsLazy({
+      argv: ['node', 'elastic', 'es', 'search'],
+    })
+    const searchCmd = handle.commands.find((c) => c.name() === 'search')
+    assert.ok(searchCmd != null, 'search must be registered')
+    const flags = searchCmd.options.map((o) => o.long ?? '')
+    assert.ok(!flags.includes('--rank'), '--rank (stack-only, no serverless key) must be hidden for serverless config')
+  })
+})

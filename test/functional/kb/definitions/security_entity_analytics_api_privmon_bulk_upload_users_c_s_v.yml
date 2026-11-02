@@ -9,6 +9,8 @@
 requires:
   serverless: true
   stack: true
+  # 404/500 before 9.2; 9.2 returns stats.successful instead of stats.uploaded.
+  stack_since: 9.3.0
   serverless_project: security
 ---
 setup:

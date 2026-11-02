@@ -5,13 +5,14 @@
 
 import { describe, it, afterEach, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Command } from 'commander'
 import { registerStatusCommand, runStatusChecks, _testSetFetch } from '../../src/status/register.ts'
 import { clearConfigCache } from '../../src/config/loader.ts'
 import type { ResolvedContext } from '../../src/config/types.ts'
+import { captureDuring } from '../helpers/capture.ts'
 
 const SAMPLE_HEALTH = JSON.stringify({ status: 'green', number_of_nodes: 3 })
 const SAMPLE_KIBANA = JSON.stringify({
@@ -44,23 +45,12 @@ function makeProgram (): InstanceType<typeof Command> {
 interface CapturedOutput { stdout: string, stderr: string, exitCode: number | undefined }
 
 async function captured (run: () => Promise<void>): Promise<CapturedOutput> {
-  const stdoutChunks: string[] = []
-  const stderrChunks: string[] = []
-  const origStdout = process.stdout.write.bind(process.stdout)
-  const origStderr = process.stderr.write.bind(process.stderr)
   const origExit = process.exitCode
-  process.stdout.write = ((chunk: unknown) => { if (typeof chunk === 'string') stdoutChunks.push(chunk); return true }) as typeof process.stdout.write
-  process.stderr.write = ((chunk: unknown) => { if (typeof chunk === 'string') stderrChunks.push(chunk); return true }) as typeof process.stderr.write
   process.exitCode = undefined
-  try {
-    await run()
-  } finally {
-    process.stdout.write = origStdout
-    process.stderr.write = origStderr
-  }
+  const { stdout, stderr } = await captureDuring(run)
   const exitCode = process.exitCode
   process.exitCode = origExit
-  return { stdout: stdoutChunks.join(''), stderr: stderrChunks.join(''), exitCode }
+  return { stdout: stdout.join(''), stderr: stderr.join(''), exitCode }
 }
 
 describe('runStatusChecks', () => {
@@ -285,6 +275,42 @@ describe('elastic status -- command', () => {
       assert.equal(out.exitCode, 1)
     } finally {
       restore()
+    }
+  })
+
+  it('emits command_blocked when a locked context is overridden', async () => {
+    const prev = process.env['ELASTIC_CLI_CONFIG_FILE']
+    await writeConfig([
+      'current_context: agent',
+      'contexts:',
+      '  agent:',
+      '    elasticsearch:',
+      '      url: http://es-agent',
+      '      auth: { api_key: k }',
+      '    allow_context_override: false',
+      '  admin:',
+      '    elasticsearch:',
+      '      url: http://es-admin',
+      '      auth: { api_key: k }',
+    ].join('\n'))
+    await chmod(configPath, 0o600)
+    process.env['ELASTIC_CLI_CONFIG_FILE'] = configPath
+    try {
+      const out = await captured(async () => {
+        const prog = makeProgram()
+        await prog.parseAsync(
+          ['--use-context', 'admin', '--json', 'status'],
+          { from: 'user' },
+        )
+      })
+      const parsed = JSON.parse(out.stderr) as { error: { code: string, message: string } }
+      assert.equal(parsed.error.code, 'command_blocked')
+      assert.match(parsed.error.message, /does not allow --use-context/)
+      assert.equal(out.exitCode, 1)
+      assert.equal(out.stdout, '')
+    } finally {
+      if (prev === undefined) delete process.env['ELASTIC_CLI_CONFIG_FILE']
+      else process.env['ELASTIC_CLI_CONFIG_FILE'] = prev
     }
   })
 

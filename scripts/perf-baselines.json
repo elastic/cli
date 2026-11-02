@@ -1,0 +1,27 @@
+{
+  "_comment": "Mean startup time (ms) per command. Trend signal only; the PR gate uses --compare A/B. Regenerate with: scripts/perf-check --update-baseline",
+  "commands": [
+    "elastic",
+    "elastic --help",
+    "elastic es --help",
+    "elastic es",
+    "elastic cloud --help",
+    "elastic cloud",
+    "elastic kb --help",
+    "elastic kb",
+    "elastic es indices --help",
+    "elastic es indices update-aliases --help"
+  ],
+  "baselines_ms": {
+    "elastic": 73.3,
+    "elastic --help": 73.9,
+    "elastic es --help": 137.2,
+    "elastic es": 163.1,
+    "elastic cloud --help": 88.3,
+    "elastic cloud": 85.3,
+    "elastic kb --help": 138.6,
+    "elastic kb": 138.6,
+    "elastic es indices --help": 127.5,
+    "elastic es indices update-aliases --help": 238.8
+  }
+}
