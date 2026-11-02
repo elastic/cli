@@ -358,11 +358,37 @@ async function registerHelp (firstArg: string | undefined, earlyConfig: LoadConf
   }
 }
 
+const HELP_VALUE_OPTS = new Set([
+  '--config-file', '--use-context', '--command-profile', '--output-fields', '--output-template',
+])
+
+/** True when `--help` or `-h` appears before the extension name on the command line. */
+function helpPrecedesExtension (name: string): boolean {
+  let sawHelp = false
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]
+    if (arg === '--') return false
+    if (arg === '--help' || arg === '-h') {
+      sawHelp = true
+      continue
+    }
+    if (arg != null && arg.startsWith('--') && arg.includes('=')) continue
+    if (arg != null && HELP_VALUE_OPTS.has(arg)) {
+      i++
+      continue
+    }
+    if (arg != null && arg.startsWith('-')) continue
+    return sawHelp && arg === name
+  }
+  return false
+}
+
 /** Runs an installed extension named by an unrecognized first argument, then exits. Returns when there is none. */
 async function dispatchExtension (firstArg: string | undefined): Promise<void> {
-  // --help/-h after an extension name belongs to the extension. A built-in
-  // name still prints that command's help, and a bare `elastic --help` has no firstArg.
-  if (firstArg == null || program.commands.some(c => c.name() === firstArg)) return
+  // --help/-h after an extension name belongs to the extension. A help flag
+  // before the name stays CLI help, so `elastic --help <ext>` does not run it.
+  // A built-in name still prints that command's help. Bare `elastic --help` has no firstArg.
+  if (firstArg == null || helpPrecedesExtension(firstArg) || program.commands.some(c => c.name() === firstArg)) return
   const { findExtension } = await import('./extension/store.ts')
   const ext = await findExtension(firstArg)
   if (ext == null) return
