@@ -6,8 +6,8 @@
 /**
  * Extracts CLI argument definitions from a plain JSON Schema object.
  *
- * Replaces the Zod-based schema-args.ts. Works with JSON Schema objects
- * as produced by @elastic/schemas (properties carry `x-found-in` routing).
+ * Works with JSON Schema objects as produced by @elastic/schemas (properties
+ * carry `x-found-in` routing).
  */
 
 import type { AvailabilityTarget } from './availability.ts'

@@ -8,6 +8,7 @@ import assert from 'node:assert/strict'
 import { createAskCommand } from '../../src/docs/ask.ts'
 import { _testSetStdinReader } from '../../src/factory.ts'
 import type { AskStreamEvent } from '../../src/docs/client.ts'
+import { capture } from '../helpers/capture.ts'
 
 function streamFrom (chunks: string[]): () => AsyncGenerator<AskStreamEvent> {
   return async function* () {
@@ -109,30 +110,24 @@ describe('createAskCommand', () => {
     }
   })
 
-  it('returns structured JSON with buffered answer when --json is active', async () => {
-    const captured: string[] = []
-    const origWrite = process.stdout.write
-    process.stdout.write = ((s: unknown) => { if (typeof s === 'string') captured.push(s); return true }) as typeof process.stdout.write
+  it('returns structured JSON with buffered answer when --json is active', async (t) => {
+    const { stdout: captured } = capture(t)
+    const cmd = createAskCommand({
+      docsAskStream: streamFrom(['chunk1', ' chunk2']),
+      stdout: { write: () => true },
+      stderr: { write: () => true },
+    })
+    cmd.option('--json', 'output as JSON')
+    cmd.exitOverride()
+    cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
+    const restoreStdin = _testSetStdinReader(() => '')
     try {
-      const cmd = createAskCommand({
-        docsAskStream: streamFrom(['chunk1', ' chunk2']),
-        stdout: { write: () => true },
-        stderr: { write: () => true },
-      })
-      cmd.option('--json', 'output as JSON')
-      cmd.exitOverride()
-      cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
-      const restoreStdin = _testSetStdinReader(() => '')
-      try {
-        await cmd.parseAsync(['--question', 'what is elasticsearch', '--json'], { from: 'user' })
-      } finally { restoreStdin() }
+      await cmd.parseAsync(['--question', 'what is elasticsearch', '--json'], { from: 'user' })
+    } finally { restoreStdin() }
 
-      const output = captured.join('')
-      const parsed = JSON.parse(output)
-      assert.equal(parsed.answer, 'chunk1 chunk2')
-    } finally {
-      process.stdout.write = origWrite
-    }
+    const output = captured.join('')
+    const parsed = JSON.parse(output)
+    assert.equal(parsed.answer, 'chunk1 chunk2')
   })
 
   it('stringifies non-Error thrown values into the docs_error message', async () => {

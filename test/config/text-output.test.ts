@@ -10,6 +10,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { Command } from 'commander'
 import { registerConfigCommands } from '../../src/config/commands.ts'
+import { captureDuring } from '../helpers/capture.ts'
 
 /**
  * Runs a config sub-command in-process (text mode), capturing stdout and
@@ -21,30 +22,13 @@ async function runCapture (args: string[]): Promise<{ stdout: string; stderr: st
   prog.addCommand(group)
   prog.exitOverride()
   group.exitOverride()
-  let stdout = ''
-  let stderr = ''
-  const origOut = process.stdout.write.bind(process.stdout)
-  const origErr = process.stderr.write.bind(process.stderr)
   const origExitCode = process.exitCode
-  // The factory writes plain strings; the test runner flushes Buffer chunks
-  // to stdout between awaits. Capture only strings and pass Buffers through
-  // so the runner's reporting protocol is not corrupted.
-  process.stdout.write = ((chunk: unknown, ...rest: unknown[]) => {
-    if (typeof chunk === 'string') { stdout += chunk; return true }
-    return origOut(chunk as Uint8Array, ...(rest as []))
-  }) as typeof process.stdout.write
-  process.stderr.write = ((chunk: unknown, ...rest: unknown[]) => {
-    if (typeof chunk === 'string') { stderr += chunk; return true }
-    return origErr(chunk as Uint8Array, ...(rest as []))
-  }) as typeof process.stderr.write
   try {
-    await prog.parseAsync(['config', ...args], { from: 'user' })
+    const { stdout, stderr } = await captureDuring(() => prog.parseAsync(['config', ...args], { from: 'user' }))
+    return { stdout: stdout.join(''), stderr: stderr.join('') }
   } finally {
-    process.stdout.write = origOut
-    process.stderr.write = origErr
     process.exitCode = origExitCode
   }
-  return { stdout, stderr }
 }
 
 async function runText (args: string[]): Promise<string> {

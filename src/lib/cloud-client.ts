@@ -5,9 +5,10 @@
 
 import type { HttpMethod } from '../cloud/types.ts'
 import { getResolvedConfig } from '../config/store.ts'
-import { isLoopbackUrl } from './is-loopback-host.ts'
 import { clientHeaders } from './meta.ts'
 import { YamlResponse, isYamlContentType } from './yaml-response.ts'
+import { HttpResponseError } from './http-errors.ts'
+import { buildUrl, readText, send, warnIfPlaintext } from './http-core.ts'
 
 /**
  * Parameters for a single Cloud API request.
@@ -34,28 +35,20 @@ export class CloudClient {
   constructor(baseUrl: string, apiKey: string) {
     this.baseUrl = baseUrl.replace(/\/+$/, '')
     this.apiKey = apiKey
-    if (this.baseUrl.startsWith('http://') && !isLoopbackUrl(this.baseUrl)) {
-      process.stderr.write('Warning: using plaintext HTTP. Credentials will be sent unencrypted.\n')
-    }
+    warnIfPlaintext(this.baseUrl)
   }
 
   /**
    * Sends an HTTP request to the Cloud API and returns the parsed JSON response.
    *
-   * @throws {Error} on non-2xx responses, including the status code and response body
+   * @throws {HttpResponseError} on non-2xx responses
+   * @throws {ConnectionError} when the request never reached the server
    */
   async request(params: CloudRequestParams): Promise<unknown> {
     const path = process.env['ELASTIC_CLOUD_ADMIN_API'] === 'true'
       ? params.path.replace('/api/v1/serverless/', '/api/v1/admin/serverless/')
       : params.path
-    let url = `${this.baseUrl}${path}`
-
-    if (params.querystring != null && Object.keys(params.querystring).length > 0) {
-      const pieces = Object.entries(params.querystring)
-        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-        .join('&')
-      url += `?${pieces}`
-    }
+    const url = buildUrl(this.baseUrl, path, params.querystring)
 
     const headers: Record<string, string> = {
       ...clientHeaders(),
@@ -70,15 +63,15 @@ export class CloudClient {
       init.body = JSON.stringify(params.body)
     }
 
-    const response = await this._fetch(url, init)
+    const response = await send(this._fetch, url, init)
 
     if (!response.ok) {
-      const text = await response.text()
-      throw new Error(`Cloud API error ${response.status}: ${text}`)
+      const text = await readText(response)
+      throw new HttpResponseError(response.status, text, `Cloud API error ${response.status}: ${text}`)
     }
 
     const contentType = response.headers.get('content-type') ?? ''
-    const text = await response.text()
+    const text = await readText(response)
     if (text.length === 0) return {}
     // YAML bodies are wrapped so the output layer prints them verbatim by default and parses
     // them to JSON only under `--json`.

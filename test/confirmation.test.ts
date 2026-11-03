@@ -8,6 +8,7 @@ import assert from 'node:assert/strict'
 import { Command } from 'commander'
 import { defineCommand, ttyRequiredError, _testSetConfirmReader, _testSetIsTTY, _testSetStdinReader } from '../src/factory.ts'
 import type { OpaqueCommandHandle } from '../src/factory.ts'
+import { capture } from './helpers/capture.ts'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -257,7 +258,7 @@ describe('confirmation guard', { concurrency: false }, () => {
     beforeEach(() => { restore = _testSetIsTTY(false) })
     afterEach(() => { restore() })
 
-    it('--dry-run skips confirmation and exits early', async () => {
+    it('--dry-run skips confirmation and exits early', async (t) => {
       let handlerCalled = false
       const cmd = defineCommand({
         name: 'delete',
@@ -266,16 +267,10 @@ describe('confirmation guard', { concurrency: false }, () => {
         input: { type: 'object', properties: {} },
         handler: () => { handlerCalled = true; return {} },
       })
-      let stdout = ''
-      const origWrite = process.stdout.write.bind(process.stdout)
-      process.stdout.write = (s: string | Uint8Array) => { stdout += s; return true }
-      try {
-        await invokeAsync(cmd, [], ['--dry-run'])
-      } finally {
-        process.stdout.write = origWrite
-      }
+      const out = capture(t)
+      await invokeAsync(cmd, [], ['--dry-run'])
       assert.equal(handlerCalled, false)
-      assert.match(stdout, /dry run/)
+      assert.match(out.stdout.join(''), /dry run/)
     })
   })
 })

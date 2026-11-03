@@ -118,33 +118,15 @@ function spawnOpts (timeoutMs: number, input?: string): SpawnSyncOptionsWithStri
   return opts
 }
 
-// ---------------------------------------------------------------------------
-// Test seams
-// ---------------------------------------------------------------------------
-
-let _execSync: typeof execSync = execSync
-let _spawnSync: typeof spawnSync = spawnSync
-let _platform: string = process.platform
-
-/** @internal */
-export function _testSetExecSync (fn: typeof execSync): () => void {
-  const prev = _execSync
-  _execSync = fn
-  return () => { _execSync = prev }
-}
-
-/** @internal */
-export function _testSetSpawnSync (fn: typeof spawnSync): () => void {
-  const prev = _spawnSync
-  _spawnSync = fn
-  return () => { _spawnSync = prev }
-}
-
-/** @internal */
-export function _testSetPlatform (p: string): () => void {
-  const prev = _platform
-  _platform = p
-  return () => { _platform = prev }
+/**
+ * Injectable process hooks for {@link getSecretStore} and the store classes.
+ * Each field defaults to the real process.
+ */
+export interface SecretStoreDeps {
+  execSync?: typeof execSync
+  spawnSync?: typeof spawnSync
+  /** Selects the candidate stores. Defaults to `process.platform`. */
+  platform?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -154,6 +136,13 @@ export function _testSetPlatform (p: string): () => void {
 abstract class ShellSecretStore implements SecretStore {
   abstract kind: SecretStoreKind
   private availability: boolean | undefined
+  protected readonly execSync: typeof execSync
+  protected readonly spawnSync: typeof spawnSync
+
+  constructor (deps: SecretStoreDeps = {}) {
+    this.execSync = deps.execSync ?? execSync
+    this.spawnSync = deps.spawnSync ?? spawnSync
+  }
 
   async isAvailable (): Promise<boolean> {
     if (this.availability !== undefined) return this.availability
@@ -176,13 +165,13 @@ class MacOSKeychainStore extends ShellSecretStore {
   kind = 'keychain' as const
 
   protected probe (): void {
-    _execSync('security -h', execOpts(2_000))
+    this.execSync('security -h', execOpts(2_000))
   }
 
   async put (service: string, account: string, secret: string): Promise<void> {
     validateServiceAccount(service, account, this.kind)
     try {
-      const result = _spawnSync(
+      const result = this.spawnSync(
         SETSID_PERL,
         [
           '-e', SETSID_SCRIPT,
@@ -210,7 +199,7 @@ class MacOSKeychainStore extends ShellSecretStore {
   async delete (service: string, account: string): Promise<void> {
     validateServiceAccount(service, account, this.kind)
     try {
-      _execSync(
+      this.execSync(
         `security delete-generic-password -s ${shellEscape(service)} -a ${shellEscape(account)}`,
         execOpts(5_000)
       )
@@ -229,13 +218,13 @@ class LinuxSecretServiceStore extends ShellSecretStore {
   kind = 'secret_service' as const
 
   protected probe (): void {
-    _execSync('secret-tool --version', execOpts(2_000))
+    this.execSync('secret-tool --version', execOpts(2_000))
   }
 
   async put (service: string, account: string, secret: string): Promise<void> {
     validateServiceAccount(service, account, this.kind)
     try {
-      _execSync(
+      this.execSync(
         `secret-tool store --label=${shellEscape(`elastic-cli:${service}:${account}`)} service ${shellEscape(service)} account ${shellEscape(account)}`,
         execOpts(5_000, secret)
       )
@@ -248,7 +237,7 @@ class LinuxSecretServiceStore extends ShellSecretStore {
   async delete (service: string, account: string): Promise<void> {
     validateServiceAccount(service, account, this.kind)
     try {
-      _execSync(
+      this.execSync(
         `secret-tool clear service ${shellEscape(service)} account ${shellEscape(account)}`,
         execOpts(5_000)
       )
@@ -267,7 +256,7 @@ class PassStore extends ShellSecretStore {
   kind = 'pass' as const
 
   protected probe (): void {
-    _execSync('pass version', execOpts(2_000))
+    this.execSync('pass version', execOpts(2_000))
   }
 
   private passPath (service: string, account: string): string {
@@ -280,7 +269,7 @@ class PassStore extends ShellSecretStore {
     try {
       // `pass insert -m -f <path>` reads a multi-line password from stdin and
       // overwrites any existing entry without prompting.
-      _execSync(`pass insert -m -f ${shellEscape(path)}`, execOpts(5_000, secret + '\n'))
+      this.execSync(`pass insert -m -f ${shellEscape(path)}`, execOpts(5_000, secret + '\n'))
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       throw new Error(`pass write failed for "${path}": ${message}`, { cause: err })
@@ -291,7 +280,7 @@ class PassStore extends ShellSecretStore {
     validateServiceAccount(service, account, this.kind)
     const path = this.passPath(service, account)
     try {
-      _execSync(`pass rm -f ${shellEscape(path)}`, execOpts(5_000))
+      this.execSync(`pass rm -f ${shellEscape(path)}`, execOpts(5_000))
     } catch {
       // Idempotent.
     }
@@ -309,7 +298,7 @@ class WindowsCredentialManagerStore extends ShellSecretStore {
   protected probe (): void {
     // CredentialManager is a community PowerShell module. Probe for
     // `Get-Command New-StoredCredential` — cheaper than loading the module.
-    _execSync(
+    this.execSync(
       psEncodedCommand('if (-not (Get-Command New-StoredCredential -ErrorAction SilentlyContinue)) { exit 1 }'),
       execOpts(5_000)
     )
@@ -327,7 +316,7 @@ class WindowsCredentialManagerStore extends ShellSecretStore {
       `$secure = ConvertTo-SecureString -String ([Console]::In.ReadToEnd().TrimEnd(@([char]"\`n", [char]"\`r"))) -AsPlainText -Force; ` +
       `New-StoredCredential -Target '${target}' -UserName '${user}' -SecurePassword $secure -Persist LocalMachine | Out-Null`
     try {
-      _execSync(psEncodedCommand(expression), execOpts(10_000, secret))
+      this.execSync(psEncodedCommand(expression), execOpts(10_000, secret))
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       throw new Error(`Credential Manager write failed for service="${service}", account="${account}": ${message}`, { cause: err })
@@ -338,7 +327,7 @@ class WindowsCredentialManagerStore extends ShellSecretStore {
     validateServiceAccount(service, account, this.kind)
     const target = this.target(service, account).replace(/'/g, "''")
     try {
-      _execSync(
+      this.execSync(
         psEncodedCommand(`Remove-StoredCredential -Target '${target}' -ErrorAction SilentlyContinue`),
         execOpts(10_000)
       )
@@ -380,24 +369,24 @@ class NoopStore implements SecretStore {
  *
  * Falls back to a {@link NoopStore} if none are available.
  */
-export async function getSecretStore (): Promise<SecretStore> {
-  const candidates = candidatesForPlatform(_platform)
+export async function getSecretStore (deps: SecretStoreDeps = {}): Promise<SecretStore> {
+  const candidates = candidatesForPlatform(deps.platform ?? process.platform, deps)
   for (const store of candidates) {
     if (await store.isAvailable()) return store
   }
   return new NoopStore()
 }
 
-function candidatesForPlatform (platform: string): SecretStore[] {
+function candidatesForPlatform (platform: string, deps: SecretStoreDeps): SecretStore[] {
   switch (platform) {
     case 'darwin':
-      return [new MacOSKeychainStore()]
+      return [new MacOSKeychainStore(deps)]
     case 'linux':
-      return [new LinuxSecretServiceStore(), new PassStore()]
+      return [new LinuxSecretServiceStore(deps), new PassStore(deps)]
     case 'win32':
-      return [new WindowsCredentialManagerStore()]
+      return [new WindowsCredentialManagerStore(deps)]
     default:
-      return [new PassStore()]
+      return [new PassStore(deps)]
   }
 }
 

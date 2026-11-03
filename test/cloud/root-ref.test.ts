@@ -8,6 +8,8 @@ import assert from 'node:assert/strict'
 import { loadCloudApis } from '../../src/cloud/apis.ts'
 import { buildCloudJsonSchema } from '../../src/cloud/types.ts'
 import { buildCloudRequestParams } from '../../src/cloud/request-builder.ts'
+import { createCloudHandler } from '../../src/cloud/handler.ts'
+import type { CloudClient, CloudRequestParams } from '../../src/lib/cloud-client.ts'
 import { extractSchemaArgs } from '../../src/lib/json-schema-args.ts'
 import type { ParsedResult } from '../../src/factory.ts'
 import { validateWithJsonSchema } from '../../src/lib/ajv-validate.ts'
@@ -35,12 +37,14 @@ describe('root-$ref cloud input schemas', () => {
     assert.ok(args.some((a) => a.schemaKey === 'keys'), 'expected a "keys" arg to be derived')
   })
 
-  it('buildCloudRequestParams includes the body for the delete-api-keys DELETE request', async () => {
+  it('the handler sends the body for the delete-api-keys DELETE request', async () => {
     const def = await findDef('delete-api-keys')
     const parsed: ParsedResult = { options: {}, input: { keys: ['k1', 'k2'] } }
-    const result = buildCloudRequestParams(def, parsed)
-    assert.equal(result.method, 'DELETE')
-    assert.deepEqual(result.body, { keys: ['k1', 'k2'] })
+    const sent: CloudRequestParams[] = []
+    const client = { request: async (p: CloudRequestParams) => { sent.push(p); return {} } } as unknown as CloudClient
+    await createCloudHandler(def, { getCloudClient: () => client, buildCloudRequestParams })(parsed)
+    assert.equal(sent[0]?.method, 'DELETE')
+    assert.deepEqual(sent[0]?.body, { keys: ['k1', 'k2'] })
   })
 
   it('resolves properties for a POST-body root-$ref command too (create-extension)', async () => {

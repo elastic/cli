@@ -8,28 +8,13 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import type { EsClient, EsRequestParams } from '../../../src/lib/es-client.ts'
+import type { EsClient } from '../../../src/lib/es-client.ts'
 import { createMsearchCommand } from '../../../src/es/helpers/msearch.ts'
 import type { MsearchDeps } from '../../../src/es/helpers/msearch.ts'
 import { _testSetStdinReader } from '../../../src/factory.ts'
 import { Command } from 'commander'
-
-function mockTransport (responses: Array<{ responses: unknown[] }>): {
-  transport: EsClient
-  requests: Array<{ params: EsRequestParams, opts?: { headers?: Record<string, string> } }>
-} {
-  const requests: Array<{ params: EsRequestParams, opts?: { headers?: Record<string, string> } }> = []
-  let callIndex = 0
-  const transport = {
-    request: async (params: EsRequestParams, opts?: { headers?: Record<string, string> }) => {
-      requests.push({ params, opts })
-      const response = responses[callIndex] ?? responses[responses.length - 1]
-      callIndex++
-      return response
-    }
-  } as unknown as EsClient
-  return { transport, requests }
-}
+import { captureDuring } from '../../helpers/capture.ts'
+import { mockTransport } from '../../helpers/transport.ts'
 
 function makeDeps (transport: EsClient): MsearchDeps {
   return { getEsClient: () => transport }
@@ -42,31 +27,17 @@ async function runCommand (args: string[], deps: MsearchDeps): Promise<unknown> 
   program.option('--json', 'output as JSON')
   program.addCommand(cmd)
 
-  // Capture stdout and stderr
-  const origStdoutWrite = process.stdout.write.bind(process.stdout)
-  const origStderrWrite = process.stderr.write.bind(process.stderr)
-  const stdoutChunks: string[] = []
-  const stderrChunks: string[] = []
-  process.stdout.write = ((chunk: string) => {
-    if (typeof chunk === 'string') stdoutChunks.push(chunk)
-    return true
-  }) as typeof process.stdout.write
-  process.stderr.write = ((chunk: string) => {
-    if (typeof chunk === 'string') stderrChunks.push(chunk)
-    return true
-  }) as typeof process.stderr.write
-
-  const restoreStdin = _testSetStdinReader(() => '')
-  try {
-    await program.parseAsync(['node', 'test', 'msearch', ...args])
-  } catch {
-    // Commander exitOverride throws on errors; output is already captured in stderr
-  } finally {
-    restoreStdin()
-    process.stdout.write = origStdoutWrite
-    process.stderr.write = origStderrWrite
-    process.exitCode = 0
-  }
+  const { stdout: stdoutChunks, stderr: stderrChunks } = await captureDuring(async () => {
+    const restoreStdin = _testSetStdinReader(() => '')
+    try {
+      await program.parseAsync(['node', 'test', 'msearch', ...args])
+    } catch {
+      // Commander exitOverride throws on errors; output is already captured in stderr
+    } finally {
+      restoreStdin()
+      process.exitCode = 0
+    }
+  })
 
   // The test runner may inject internal protocol bytes into stdout.
   // Try each chunk individually (last-to-first) to find valid JSON.

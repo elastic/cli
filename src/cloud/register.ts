@@ -168,7 +168,7 @@ function buildServerlessTypeGroup (
       (cmd as Command)
         .option('--save-as <name>', 'store returned credentials in the OS keychain and upsert a context of this name')
         .option('--credentials-file <path>', 'write credentials to a standalone YAML config fragment at this path (0600)')
-        .option('--config-file <path>', 'override the config file written by --save-as (defaults to ~/.elasticrc.yml)')
+        .option('--config-file <path>', 'override the config file written by --save-as (defaults to the discovered ~/.elasticrc* file)')
         .option('--force', 'overwrite an existing context (--save-as) or file (--credentials-file)')
         .option('--show-credentials', 'print credentials in plain text (default: redacted)')
     }

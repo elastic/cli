@@ -73,13 +73,11 @@
     "cross-spawn": "^7.0.6",
     "csv-parse": "^7.0.2",
     "marked": "^18.0.0",
-    "marked-terminal": "^7.3.0",
     "yaml": "^2.8.3"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/cross-spawn": "6.0.6",
-    "@types/marked-terminal": "6.1.1",
     "@types/node": "25.9.4",
     "eslint": "10.6.0",
     "license-checker": "25.0.1",
@@ -89,10 +87,7 @@
     "typescript-eslint": "8.62.1"
   },
   "overrides": {
-    "fast-uri": "^4.2.3",
-    "marked-terminal": {
-      "marked": "$marked"
-    }
+    "fast-uri": "^4.2.3"
   },
   "bundleDependencies": [
     "@elastic/config-resolver",
