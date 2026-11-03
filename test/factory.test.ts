@@ -4375,7 +4375,8 @@ async function captureStreams(fn: () => Promise<void>): Promise<{ stdout: string
       /* swallow -- caller inspects captured output */
     } finally {
       exitCode = process.exitCode ?? 0
-      process.exitCode = origExitCode as typeof process.exitCode
+      // Bun ignores `process.exitCode = undefined`, which would leak this command's exit code.
+      process.exitCode = origExitCode ?? 0
     }
   })
   return { stdout: stdout.join(''), stderr: stderr.join(''), exitCode }
