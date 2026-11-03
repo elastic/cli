@@ -83,8 +83,8 @@ compile_linux() {
       rm -rf "${tmp}"
     fi
     bun install
-    bunx tsc -b packages/config-resolver
-    bunx tsc -b packages/agent-env
+    bun x tsc -b packages/config-resolver
+    bun x tsc -b packages/agent-env
     bun scripts/generate-schema-loaders.mjs
     bun build src/bun-entry.ts --compile --minify --bytecode --format esm \
       --outfile "${dest}/elastic-linux-x64" --target bun-linux-x64

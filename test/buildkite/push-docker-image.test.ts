@@ -57,7 +57,7 @@ if [[ "$1" == --version ]]; then
   printf '%s\\n' "$BUN_VERSION"
   exit 0
 fi
-if [[ "$1" == install || "$1" == scripts/generate-schema-loaders.mjs ]]; then
+if [[ "$1" == x || "$1" == install || "$1" == scripts/generate-schema-loaders.mjs ]]; then
   exit 0
 fi
 if [[ "$1" == build ]]; then
@@ -70,8 +70,7 @@ if [[ "$1" == build ]]; then
 fi
 exit 1
 `)
-  await writeFile(join(bin, 'bunx'), '#!/usr/bin/env bash\nexit 0\n')
-  for (const name of ['docker', 'vault', 'bun', 'bunx']) {
+  for (const name of ['docker', 'vault', 'bun']) {
     await chmod(join(bin, name), 0o755)
   }
   return { bin, dockerLog, dockerStdin, vaultLog, bunLog }
@@ -183,6 +182,7 @@ describe('push-docker-image.sh', () => {
       })
       assert.equal(result.status, 0, result.stderr)
       const compiled = await readFile(bunLog, 'utf8')
+      assert.match(compiled, /^x\n/m)
       assert.match(compiled, /--target\nbun-linux-x64/)
       assert.match(compiled, /--target\nbun-linux-arm64/)
       assert.equal((await readFile(dockerLog, 'utf8')).includes('s3cret'), false)
