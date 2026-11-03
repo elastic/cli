@@ -5,7 +5,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, writeFile, readFile, chmod, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, writeFile, readFile, chmod, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -29,6 +29,7 @@ async function fakes (dir: string) {
   await mkdir(bin)
   const dockerLog = join(dir, 'docker-log')
   const dockerStdin = join(dir, 'docker-stdin')
+  const dockerCfg = join(dir, 'docker-cfg')
   const vaultLog = join(dir, 'vault-log')
   const bunLog = join(dir, 'bun-log')
   await writeFile(join(bin, 'docker'), `#!/usr/bin/env bash
@@ -40,8 +41,19 @@ if [[ "$1" == login ]]; then
   cat > "$DOCKER_STDIN"
 fi
 if [[ "$*" == *inspect* ]]; then
+  format=""
+  prev=""
+  for arg in "$@"; do
+    if [[ "$prev" == --format ]]; then format=$arg; fi
+    prev=$arg
+  done
+  if [[ "$format" != '{{.Manifest.Digest}}' ]]; then
+    echo "unexpected inspect format: $format" >&2
+    exit 1
+  fi
   printf '%s\\n' "$INSPECT_DIGEST"
 fi
+printf '%s' "\${DOCKER_CONFIG:-}" > "$DOCKER_CFG"
 `)
   await writeFile(join(bin, 'vault'), `#!/usr/bin/env bash
 printf '%s\\n' "$@" >> "$VAULT_LOG"
@@ -73,7 +85,7 @@ exit 1
   for (const name of ['docker', 'vault', 'bun']) {
     await chmod(join(bin, name), 0o755)
   }
-  return { bin, dockerLog, dockerStdin, vaultLog, bunLog }
+  return { bin, dockerLog, dockerStdin, dockerCfg, vaultLog, bunLog }
 }
 
 function run (cwd: string, args: string[], env: NodeJS.ProcessEnv) {
@@ -104,7 +116,7 @@ describe('push-docker-image.sh', () => {
   it('logs in with the password on stdin and pushes both arches', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'push-image-'))
     try {
-      const { bin, dockerLog, dockerStdin, vaultLog } = await fakes(dir)
+      const { bin, dockerLog, dockerStdin, dockerCfg, vaultLog } = await fakes(dir)
       const amd64 = join(dir, 'amd64')
       const arm64 = join(dir, 'arm64')
       await writeFile(amd64, 'a')
@@ -113,6 +125,7 @@ describe('push-docker-image.sh', () => {
         PATH: `${bin}${delimiter}${process.env.PATH}`,
         DOCKER_LOG: bashPath(dockerLog),
         DOCKER_STDIN: bashPath(dockerStdin),
+        DOCKER_CFG: bashPath(dockerCfg),
         VAULT_LOG: bashPath(vaultLog),
         VAULT_PASSWORD: 's3cret',
         INSPECT_DIGEST: digest,
@@ -129,6 +142,10 @@ describe('push-docker-image.sh', () => {
       assert.match(calls[1], /buildx\nbuild\n--push[\s\S]*docker\.elastic\.co\/clients\/elastic-cli:0\.6\.0-amd64[\s\S]*linux\/amd64/)
       assert.match(calls[2], /docker\.elastic\.co\/clients\/elastic-cli:0\.6\.0-arm64[\s\S]*linux\/arm64/)
       assert.match(calls[3], /imagetools\ncreate\n--tag\ndocker\.elastic\.co\/clients\/elastic-cli:0\.6\.0\n/)
+      assert.match(calls[4], /imagetools\ninspect\n--format\n\{\{\.Manifest\.Digest\}\}/)
+      const cfg = await readFile(dockerCfg, 'utf8')
+      assert.notEqual(cfg, '')
+      await assert.rejects(stat(cfg))
       assert.equal(
         await readFile(join(dir, 'elastic-cli-container-images-digest.txt'), 'utf8'),
         `docker.elastic.co/clients/elastic-cli@${digest}\n`,
@@ -150,7 +167,7 @@ describe('push-docker-image.sh', () => {
         VAULT_LOG: bashPath(vaultLog),
         VAULT_PASSWORD: 's3cret',
       }
-      for (const version of ['../', '1.2.3;touch /tmp/pwn', '?#', 'v']) {
+      for (const version of ['../', '1.2.3;touch /tmp/pwn', '?#', 'v', '1.2.3+build.1']) {
         const result = run(dir, [version, bashPath(binary), bashPath(binary)], env)
         assert.notEqual(result.status, 0, version)
       }
@@ -166,11 +183,12 @@ describe('push-docker-image.sh', () => {
   it('compiles both linux binaries when only the tag is set', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'push-image-'))
     try {
-      const { bin, dockerLog, dockerStdin, bunLog } = await fakes(dir)
+      const { bin, dockerLog, dockerStdin, dockerCfg, bunLog } = await fakes(dir)
       const result = run(dir, [], {
         PATH: `${bin}${delimiter}${process.env.PATH}`,
         DOCKER_LOG: bashPath(dockerLog),
         DOCKER_STDIN: bashPath(dockerStdin),
+        DOCKER_CFG: bashPath(dockerCfg),
         VAULT_LOG: join(dir, 'vault-log'),
         VAULT_PASSWORD: 's3cret',
         BUN_LOG: bashPath(bunLog),
@@ -186,6 +204,35 @@ describe('push-docker-image.sh', () => {
       assert.match(compiled, /--target\nbun-linux-x64/)
       assert.match(compiled, /--target\nbun-linux-arm64/)
       assert.equal((await readFile(dockerLog, 'utf8')).includes('s3cret'), false)
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('does not log in when compile fails', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'push-image-'))
+    try {
+      const { bin, dockerLog, vaultLog, bunLog } = await fakes(dir)
+      await writeFile(join(bin, 'bun'), `#!/usr/bin/env bash
+printf '%s\\n' "$@" >> "$BUN_LOG"
+if [[ "$1" == --version ]]; then
+  printf '%s\\n' "$BUN_VERSION"
+  exit 0
+fi
+exit 1
+`)
+      await chmod(join(bin, 'bun'), 0o755)
+      const result = run(dir, [], {
+        PATH: `${bin}${delimiter}${process.env.PATH}`,
+        DOCKER_LOG: bashPath(dockerLog),
+        VAULT_LOG: bashPath(vaultLog),
+        BUN_LOG: bashPath(bunLog),
+        BUN_VERSION: '1.3.14',
+        BUILDKITE_TAG: 'v0.6.0',
+      })
+      assert.notEqual(result.status, 0)
+      await assert.rejects(readFile(dockerLog, 'utf8'))
+      await assert.rejects(readFile(vaultLog, 'utf8'))
     } finally {
       await rm(dir, { recursive: true, force: true })
     }
@@ -214,13 +261,14 @@ describe('push-docker-image.sh', () => {
   it('rejects an image digest that is not sha256', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'push-image-'))
     try {
-      const { bin, dockerLog, dockerStdin } = await fakes(dir)
+      const { bin, dockerLog, dockerStdin, dockerCfg } = await fakes(dir)
       const binary = join(dir, 'elastic')
       await writeFile(binary, 'bin')
       const result = run(dir, ['0.6.0', bashPath(binary), bashPath(binary)], {
         PATH: `${bin}${delimiter}${process.env.PATH}`,
         DOCKER_LOG: bashPath(dockerLog),
         DOCKER_STDIN: bashPath(dockerStdin),
+        DOCKER_CFG: bashPath(dockerCfg),
         VAULT_LOG: join(dir, 'vault-log'),
         VAULT_PASSWORD: 's3cret',
         INSPECT_DIGEST: 'not-a-digest',

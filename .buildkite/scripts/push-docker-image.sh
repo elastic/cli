@@ -26,7 +26,8 @@ else
 fi
 
 version=${version#v}
-if [[ -z "$version" || "$version" == *..* || ! "$version" =~ ^[A-Za-z0-9._+-]+$ ]]; then
+# Docker tags reject '+', so semver build metadata is out.
+if [[ -z "$version" || "$version" == *..* || ! "$version" =~ ^[A-Za-z0-9._-]+$ ]]; then
   echo "invalid version: $version" >&2
   exit 1
 fi
@@ -42,14 +43,6 @@ if ! command -v docker >/dev/null 2>&1; then
   echo "docker is required on the release agent" >&2
   exit 1
 fi
-
-password=$(vault read -field=password "$secret_path")
-if [[ -z "$password" ]]; then
-  echo "empty devtoolsmachine password" >&2
-  exit 1
-fi
-
-printf '%s' "$password" | docker login --username devtoolsmachine --password-stdin docker.elastic.co
 
 compile_linux() {
   local dest=$PWD
@@ -99,6 +92,20 @@ if [[ -z "$amd64" ]]; then
   compile_linux
 fi
 
+# Login lives in a private config so a reused agent does not keep the password.
+docker_config=$(mktemp -d)
+trap 'rm -rf "$docker_config"' EXIT
+export DOCKER_CONFIG="$docker_config"
+
+password=$(vault read -field=password "$secret_path")
+if [[ -z "$password" ]]; then
+  echo "empty devtoolsmachine password" >&2
+  exit 1
+fi
+
+printf '%s' "$password" | docker login --username devtoolsmachine --password-stdin docker.elastic.co
+unset password
+
 push_arch() {
   local platform=$1
   local binary=$2
@@ -115,7 +122,7 @@ docker buildx imagetools create \
   "$image:$version-amd64" \
   "$image:$version-arm64"
 
-digest=$(docker buildx imagetools inspect --format '{{.Digest}}' "$image:$version")
+digest=$(docker buildx imagetools inspect --format '{{.Manifest.Digest}}' "$image:$version")
 digest=${digest//\"/}
 digest=${digest//$'\n'/}
 if [[ ! "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]; then
