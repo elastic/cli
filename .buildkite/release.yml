@@ -124,3 +124,15 @@ steps:
     command: |
       buildkite-agent artifact download "final/*" .
       .buildkite/scripts/publish-release.sh
+
+  # Not a dependency of signing or publish. Those steps still run if this fails.
+  - label: "push cli image"
+    key: push-image
+    if: build.tag =~ /^v/
+    agents:
+      provider: gcp
+      image: family/core-ubuntu-2204
+      machineType: n2-standard-4
+    artifact_paths:
+      - elastic-cli-container-images-digest.txt
+    command: .buildkite/scripts/push-docker-image.sh
