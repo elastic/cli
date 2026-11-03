@@ -124,10 +124,10 @@ function createMsearchHandler (deps: MsearchDeps = defaultDeps) {
       const allResponses: JsonValue[] = []
       await runWithConcurrency(batches, concurrency, async (batch) => {
         const ndjsonBody = buildMsearchNdjsonBody(batch, index)
-        const result = await transport.request<MsearchResponse>(
+        const result = await transport.request(
           { method: 'POST', path, body: ndjsonBody },
           { headers: { 'content-type': 'application/x-ndjson' } }
-        )
+        ) as MsearchResponse
         if (result.responses != null) allResponses.push(...result.responses)
         return result
       })

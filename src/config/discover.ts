@@ -22,6 +22,15 @@ export const CONFIG_FILE_NAMES = ['.elasticrc', '.elasticrc.json', '.elasticrc.y
 export const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
 
 /**
+ * Returns the home directory used for both config discovery and config writes,
+ * so the two can never resolve different homes.
+ */
+export function homeDir (): string {
+  // ponytail: read env directly so tests can override HOME/USERPROFILE at runtime (Bun caches homedir())
+  return (platform() === 'win32' ? process.env.USERPROFILE : process.env.HOME) ?? homedir()
+}
+
+/**
  * Searches a single directory for the first readable config file.
  *
  * Checks each file name in {@link CONFIG_FILE_NAMES} order. Returns the
@@ -30,8 +39,7 @@ export const ENV_CONFIG_FILE = 'ELASTIC_CLI_CONFIG_FILE'
  * @param dir - Directory to search. Defaults to the user's home directory.
  */
 export async function discoverConfigFile (dir?: string): Promise<string | null> {
-  // ponytail: read env directly so tests can override HOME/USERPROFILE at runtime (Bun caches homedir())
-  const searchDir = dir ?? (platform() === 'win32' ? process.env.USERPROFILE : process.env.HOME) ?? homedir()
+  const searchDir = dir ?? homeDir()
   for (const name of CONFIG_FILE_NAMES) {
     const candidate = join(searchDir, name)
     try {

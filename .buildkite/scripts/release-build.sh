@@ -40,8 +40,8 @@ fi
 
 echo "Using bun $(bun --version)"
 bun install
-bunx tsc -b packages/config-resolver
-bunx tsc -b packages/agent-env
+bun x tsc -b packages/config-resolver
+bun x tsc -b packages/agent-env
 bun scripts/generate-schema-loaders.mjs
 
 compile() {

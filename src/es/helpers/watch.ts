@@ -166,11 +166,11 @@ function createWatchHandler (deps: WatchDeps = defaultDeps) {
     } else {
       // Anchor to the most recent document so we only see documents created after now.
       try {
-        const anchorResult = await transport.request<SearchResponse>({
+        const anchorResult = await transport.request({
           method: 'POST',
           path: `/${encodedIndex}/_search`,
           body: { ...baseQueryBody, sort: [{ [sort_field]: 'desc' }, { _id: 'desc' }], size: 1 },
-        })
+        }) as SearchResponse
         const lastHit = anchorResult.hits?.hits?.[0]
         if (lastHit?.sort != null) {
           searchAfter = lastHit.sort
@@ -196,7 +196,7 @@ function createWatchHandler (deps: WatchDeps = defaultDeps) {
       while (running) {
         try {
           const body = buildSearchBody(baseQueryBody, sort_field, size, searchAfter, fromTimestamp)
-          const result = await transport.request<SearchResponse>({ method: 'POST', path: `/${encodedIndex}/_search`, body })
+          const result = await transport.request({ method: 'POST', path: `/${encodedIndex}/_search`, body }) as SearchResponse
           const hits = result.hits?.hits ?? []
 
           for (const hit of hits) {

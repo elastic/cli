@@ -12,6 +12,7 @@ import { loadEsApisInFile } from '../../src/es/apis.ts'
 import { registerEsCommands } from '../../src/es/register.ts'
 import { _testSetStdinReader } from '../../src/factory.ts'
 import type { OpaqueCommandHandle } from '../../src/factory.ts'
+import { captureDuring } from '../helpers/capture.ts'
 
 /**
  * Regression coverage for the real `stack es search` command's input schema:
@@ -37,15 +38,8 @@ async function captureStdout (handle: OpaqueCommandHandle, argv: string[]): Prom
   prog.addCommand(handle)
   prog.exitOverride()
   handle.exitOverride()
-  let out = ''
-  const orig = process.stdout.write.bind(process.stdout)
-  process.stdout.write = (chunk: unknown) => { if (typeof chunk === 'string') out += chunk; return true }
-  try {
-    await prog.parseAsync(['--json', handle.name(), ...argv], { from: 'user' })
-  } finally {
-    process.stdout.write = orig
-  }
-  return out
+  const { stdout } = await captureDuring(() => prog.parseAsync(['--json', handle.name(), ...argv], { from: 'user' }))
+  return stdout.join('')
 }
 
 describe('stack es search -- input validation parity across sources (#relaxFields)', () => {

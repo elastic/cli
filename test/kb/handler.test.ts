@@ -9,6 +9,7 @@ import { createKbHandler } from '../../src/kb/handler.ts'
 import { buildKibanaRequestParams } from '../../src/kb/request-builder.ts'
 import { missingConfigError, kibanaApiError } from '../../src/kb/errors.ts'
 import type { KbApiDefinition } from '../../src/kb/types.ts'
+import { HttpResponseError } from '../../src/lib/http-errors.ts'
 import type { KibanaClient, KibanaRequestParams } from '../../src/lib/kibana-client.ts'
 import type { ParsedResult } from '../../src/factory.ts'
 
@@ -46,7 +47,7 @@ describe('missingConfigError', () => {
 
 describe('kibanaApiError', () => {
   it('extracts status_code from a KibanaClient error message', () => {
-    const res = kibanaApiError(new Error('Kibana API error 404: {"message":"not found"}')) as {
+    const res = kibanaApiError(new HttpResponseError(404, '{"message":"not found"}')) as {
       error: { code: string; status_code: number; message: string }
     }
     assert.equal(res.error.code, 'kibana_api_error')
@@ -56,7 +57,7 @@ describe('kibanaApiError', () => {
   })
 
   it('points 403 at status and context edit', () => {
-    const res = kibanaApiError(new Error('Kibana API error 403: {"message":"forbidden"}')) as {
+    const res = kibanaApiError(new HttpResponseError(403, '{"message":"forbidden"}')) as {
       error: { code: string; status_code: number; message: string; hint?: string }
     }
     assert.equal(res.error.status_code, 403)
@@ -79,7 +80,7 @@ describe('kibanaApiError', () => {
   })
 
   it('adds error.hint on 401 naming status', () => {
-    const res = kibanaApiError(new Error('Kibana API error 401: {"message":"unauthorized"}')) as {
+    const res = kibanaApiError(new HttpResponseError(401, '{"message":"unauthorized"}')) as {
       error: { hint?: string }
     }
     assert.match(res.error.hint ?? '', /elastic status/)
@@ -87,7 +88,7 @@ describe('kibanaApiError', () => {
   })
 
   it('does not add error.hint on 404', () => {
-    const res = kibanaApiError(new Error('Kibana API error 404: {"message":"not found"}')) as {
+    const res = kibanaApiError(new HttpResponseError(404, '{"message":"not found"}')) as {
       error: { hint?: string }
     }
     assert.equal(res.error.hint, undefined)
@@ -116,13 +117,34 @@ describe('createKbHandler', () => {
   it('returns kibana_api_error when client.request throws', async () => {
     const handler = createKbHandler(listDef(), {
       getKibanaClient: () => ({
-        request: async () => { throw new Error('Kibana API error 403: forbidden') },
+        request: async () => { throw new HttpResponseError(403, 'forbidden') },
       } as unknown as KibanaClient),
       buildKibanaRequestParams: () => ({ method: 'GET', path: '/test' }),
     })
     const result = await handler(parsed()) as { error: { code: string; status_code: number } }
     assert.equal(result.error.code, 'kibana_api_error')
     assert.equal(result.error.status_code, 403)
+  })
+
+  it('derives routing args from def.input once, at creation', async () => {
+    const def: KbApiDefinition = {
+      ...listDef(),
+      path: '/api/spaces/space/{id}',
+      input: { type: 'object', properties: { id: { type: 'string', 'x-found-in': 'path' } } },
+    }
+    const seen: unknown[] = []
+    const handler = createKbHandler(def, {
+      getKibanaClient: () => stubClient({}),
+      buildKibanaRequestParams: (_d, _p, args) => {
+        seen.push(args)
+        return { method: 'GET', path: '/test' }
+      },
+    })
+    await handler(parsed())
+    await handler(parsed())
+    assert.equal(seen.length, 2)
+    assert.strictEqual(seen[0], seen[1])
+    assert.deepEqual((seen[0] as Array<{ schemaKey: string, foundIn: string }>).map((a) => [a.schemaKey, a.foundIn]), [['id', 'path']])
   })
 
   it('returns input_error when request building rejects a path param', async () => {

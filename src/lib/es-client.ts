@@ -6,8 +6,9 @@
 import { getResolvedConfig } from '../config/store.ts'
 import { buildAuthHeader, type ApiKeyOrBasicAuth } from './auth.ts'
 import { clientHeaders } from './meta.ts'
-import { isLoopbackUrl } from './is-loopback-host.ts'
 import { YamlResponse, isYamlContentType } from './yaml-response.ts'
+import { HttpResponseError } from './http-errors.ts'
+import { buildUrl, readText, send, warnIfPlaintext } from './http-core.ts'
 
 /** Parameters for a single Elasticsearch API request. */
 export interface EsRequestParams {
@@ -20,29 +21,8 @@ export interface EsRequestParams {
   bulkBody?: string
 }
 
-/** Thrown when Elasticsearch responds with a non-2xx status; carries the status code and body. */
-export class EsResponseError extends Error {
-  statusCode: number
-  body: unknown
-
-  constructor (statusCode: number, body: unknown) {
-    const message = body != null && typeof body === 'object' && 'error' in body
-      ? JSON.stringify((body as Record<string, unknown>).error)
-      : String(body)
-    super(message)
-    this.name = 'EsResponseError'
-    this.statusCode = statusCode
-    this.body = body
-  }
-}
-
-/** Thrown when the request never reached Elasticsearch (DNS, TLS, refused connection). */
-export class EsConnectionError extends Error {
-  constructor (message: string) {
-    super(message)
-    this.name = 'EsConnectionError'
-  }
-}
+/** Elasticsearch names for the shared HTTP error classes. */
+export { HttpResponseError as EsResponseError, ConnectionError as EsConnectionError } from './http-errors.ts'
 
 /**
  * Lightweight HTTP client for Elasticsearch APIs.
@@ -62,24 +42,11 @@ export class EsClient {
   constructor (url: string, auth?: ApiKeyOrBasicAuth) {
     this.baseUrl = url.replace(/\/+$/, '')
     this.authHeader = buildAuthHeader(auth)
-    if (this.baseUrl.startsWith('http://') && !isLoopbackUrl(this.baseUrl)) {
-      process.stderr.write('Warning: using plaintext HTTP. Credentials will be sent unencrypted.\n')
-    }
+    warnIfPlaintext(this.baseUrl)
   }
 
-  async request<T = unknown>(
-    params: EsRequestParams,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<T> {
-    let url = `${this.baseUrl}${params.path}`
-
-    if (params.querystring != null && Object.keys(params.querystring).length > 0) {
-      const pieces = Object.entries(params.querystring)
-        .filter(([, v]) => v !== undefined)
-        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-        .join('&')
-      if (pieces.length > 0) url += `?${pieces}`
-    }
+  async request (params: EsRequestParams, opts?: { headers?: Record<string, string> }): Promise<unknown> {
+    const url = buildUrl(this.baseUrl, params.path, params.querystring)
 
     const headers: Record<string, string> = {
       ...clientHeaders(),
@@ -105,47 +72,42 @@ export class EsClient {
 
     const isHead = params.method.toUpperCase() === 'HEAD'
 
-    let response: Response
-    try {
-      const method = fetchBody !== undefined && params.method.toUpperCase() === 'GET' ? 'POST' : params.method
-      response = await this._fetch(url, {
-        method,
-        headers,
-        ...(fetchBody !== undefined && { body: fetchBody }),
-        redirect: 'error',
-      })
-    } catch (err) {
-      throw new EsConnectionError(err instanceof Error ? err.message : String(err))
-    }
+    const method = fetchBody !== undefined && params.method.toUpperCase() === 'GET' ? 'POST' : params.method
+    const response = await send(this._fetch, url, {
+      method,
+      headers,
+      ...(fetchBody !== undefined && { body: fetchBody }),
+      redirect: 'error',
+    })
 
     if (isHead) {
-      if (response.ok) return true as T
-      if (response.status === 404) return false as T
+      if (response.ok) return true
+      if (response.status === 404) return false
     }
 
     if (!response.ok) {
-      const text = await response.text()
+      const text = await readText(response)
       let body: unknown
       try {
         body = JSON.parse(text)
       } catch {
         body = text
       }
-      throw new EsResponseError(response.status, body)
+      throw new HttpResponseError(response.status, body)
     }
 
     const contentType = response.headers.get('content-type') ?? ''
-    const text = await response.text()
-    if (text.length === 0) return {} as T
+    const text = await readText(response)
+    if (text.length === 0) return {}
     if (contentType.includes('application/json') || contentType.includes('application/x-ndjson')) {
-      return JSON.parse(text) as T
+      return JSON.parse(text)
     }
     // YAML bodies are wrapped so the output layer prints them verbatim by default and parses
     // them to JSON only under `--json`.
     if (isYamlContentType(contentType)) {
-      return new YamlResponse(text) as unknown as T
+      return new YamlResponse(text)
     }
-    return text as unknown as T
+    return text
   }
 
   /** @internal test seam — replaces the fetch implementation for unit tests */
@@ -175,14 +137,7 @@ export function getEsClient (): EsClient {
     )
   }
 
-  const { url, auth } = es
-
-  let typedAuth: { api_key: string } | { username: string; password: string } | undefined
-  if (auth != null) {
-    typedAuth = 'api_key' in auth ? { api_key: auth.api_key } : { username: auth.username, password: auth.password }
-  }
-
-  _client = new EsClient(url, typedAuth)
+  _client = new EsClient(es.url, es.auth)
   return _client
 }
 
