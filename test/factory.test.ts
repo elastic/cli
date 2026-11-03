@@ -299,6 +299,24 @@ describe('defineCommand', () => {
         assert.equal(received.length, 0)
         assert.match(err, /--message/)
       })
+
+      it('emits input_validation_failed JSON when the positional and its flag are both given with --json', async () => {
+        const received: ParsedResult[] = []
+        const cmd = defineCommand({
+          name: 'ask',
+          description: 'Ask',
+          input: jsonSchema({ message: { type: 'string' } }, ['message']),
+          positionalArg: { name: 'message', description: 'Message', required: false, inputKey: 'message' },
+          handler: (parsed) => { received.push(parsed); return {} },
+        })
+        const { stdout, stderr, exitCode } = await invokeCapturingStreams(cmd, ['--json'], ['one', '--message', 'two'])
+        assert.equal(received.length, 0)
+        assert.equal(stdout, '')
+        assert.deepEqual(JSON.parse(stderr), {
+          error: { code: 'input_validation_failed', message: 'pass message either as an argument or as --message, not both' },
+        })
+        assert.equal(exitCode, 1)
+      })
     })
 
     it('sets parsed.arg to undefined when no positionalArg is declared', async () => {
@@ -3115,15 +3133,12 @@ describe('isCommandAllowed', () => {
     assert.equal(isCommandAllowed('cloud.hosted.deployments.list', { profile: 'stack' }), true)
     assert.equal(isCommandAllowed('cloud.serverless.projects.search.list', { profile: 'stack' }), true)
     assert.equal(isCommandAllowed('anything.at.all', { profile: 'stack' }), true)
+    assert.equal(isCommandAllowed('nightshift.ask', { profile: 'stack' }), false)
   })
 
   it('profile serverless and default: allow nightshift commands', () => {
     assert.equal(isCommandAllowed('nightshift.ask', { profile: 'serverless' }), true)
     assert.equal(isCommandAllowed('nightshift.ask', { profile: 'default' }), true)
-  })
-
-  it('profile stack: blocks nightshift commands, which only apply to observability serverless', () => {
-    assert.equal(isCommandAllowed('nightshift.ask', { profile: 'stack' }), false)
   })
 
   it('profile stack: an extra blocked entry still applies', () => {

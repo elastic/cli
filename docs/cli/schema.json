@@ -120811,14 +120811,14 @@
               "summary": "The user message to send to the agent."
             }
           ],
-          "summary": "Ask the Nightshift investigation agent a question and get its answer",
+          "summary": "Ask the Nightshift assistant a question and get its answer",
           "intent": {
             "requiresAuth": true
           }
         }
       ],
       "namespaces": [],
-      "summary": "Ask the Nightshift investigation agent",
+      "summary": "Ask the Nightshift assistant",
       "options": [
         {
           "role": "flag",

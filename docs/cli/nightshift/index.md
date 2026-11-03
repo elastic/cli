@@ -1,8 +1,10 @@
 ## Description
 
-Ask the Nightshift investigation agent a question and get its answer back in a single response.
-This is `elastic kb agent-builder post-chat-message` with the agent fixed to `nightshift.investigation`.
-Intended for Serverless Observability projects: requires {{kib}} 9.6+ with the `agentBuilder:experimentalFeatures` advanced setting enabled, and the `stack` command profile hides and blocks it.
+Ask the Nightshift assistant a question and get its answer back in a single response, without starting an investigation.
+This is `elastic kb agent-builder post-chat-message` with the agent fixed to `nightshift.assistant`.
+
+Nightshift is only available on {{serverless-short}} Observability projects, with the `agentBuilder:experimentalFeatures` advanced setting enabled.
+The command is hidden when the context's `kibana.version` [hint](../configuration.md#versions) is a {{stack}} version, and the `stack` command profile blocks it.
 
 ```bash
 elastic nightshift ask "Why did checkout latency spike at 14:00?"

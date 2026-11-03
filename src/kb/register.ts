@@ -55,6 +55,10 @@ export interface KbPresetOptions {
   fixed: Record<string, JsonValue>
   /** Input field that may also be passed as the command's positional argument. */
   positional?: string
+  /** Availability target; when set, no command is built if the endpoint is unavailable for it. */
+  target?: AvailabilityTarget
+  /** Narrows the endpoint's availability to these deployment flavors. */
+  flavors?: ReadonlyArray<'stack' | 'serverless'>
 }
 
 /**
@@ -63,11 +67,23 @@ export interface KbPresetOptions {
  * schema, request builder, or handler.
  *
  * @param deps - test seam forwarded to `createKbHandler`; production callers omit it
- * @throws {Error} if `apiId` is not in the manifest, or a fixed or positional field is not in its input schema
+ * @returns the command, or `null` when the endpoint is unavailable for `opts.target`
+ * @throws {Error} if `apiId` is not in the manifest, a fixed or positional field is not in its
+ *   input schema, or a flavor is not in its availability
  */
-export async function buildKbPresetCommand (opts: KbPresetOptions, deps?: KbHandlerDeps): Promise<OpaqueCommandHandle> {
+export async function buildKbPresetCommand (opts: KbPresetOptions, deps?: KbHandlerDeps): Promise<OpaqueCommandHandle | null> {
   const meta = kbApiManifest.find(m => m.id === opts.apiId)
   if (meta == null) throw new Error(`unknown Kibana API ${JSON.stringify(opts.apiId)}`)
+  let availability = (meta as unknown as Record<string, unknown>)['availability'] as Record<string, unknown> | undefined
+  if (opts.flavors != null) {
+    for (const flavor of opts.flavors) {
+      if (availability == null || !(flavor in availability)) {
+        throw new Error(`flavor ${JSON.stringify(flavor)} is not in the availability of ${opts.apiId}`)
+      }
+    }
+    availability = Object.fromEntries(opts.flavors.map(flavor => [flavor, availability![flavor]]))
+  }
+  if (!isAvailable(availability, opts.target)) return null
   const def = await loadKbApi(meta)
   const properties = { ...(def.input?.['properties'] as Record<string, unknown> | undefined) }
   for (const key of Object.keys(opts.fixed)) {
@@ -90,7 +106,7 @@ export async function buildKbPresetCommand (opts: KbPresetOptions, deps?: KbHand
       // Generated schemas allow unknown keys; a pinned field supplied via JSON must error, not be overridden.
       input: { ...def.input, properties, required, additionalProperties: false },
     },
-    undefined,
+    opts.target,
     {
       handler: async (parsed) => await handler({ ...parsed, input: { ...(parsed.input as Record<string, unknown> | undefined), ...opts.fixed } }),
       ...(positional != null
@@ -126,6 +142,12 @@ function sniffInvokedLeaf (argv: readonly string[], manifest: readonly KbApiMeta
   return null
 }
 
+/** Resolves the availability target from the active context's `kibana.version` hint, if any. */
+export function resolveKbTarget (): AvailabilityTarget | undefined {
+  const version = getResolvedConfig()?.context.kibana?.version
+  return version != null ? parseVersionHint(version) ?? undefined : undefined
+}
+
 export interface RegisterLazyOptions {
   argv?: readonly string[]
   /** Availability target; when present, commands and flags not matching the target are excluded. */
@@ -143,11 +165,7 @@ export async function registerKbCommandsLazy (
   opts: RegisterLazyOptions = {}
 ): Promise<OpaqueCommandHandle> {
   const argv = opts.argv ?? process.argv
-  let target = opts.target
-  if (target === undefined) {
-    const version = getResolvedConfig()?.context.kibana?.version
-    if (version != null) target = parseVersionHint(version) ?? undefined
-  }
+  const target = opts.target ?? resolveKbTarget()
   const manifest = kbApiManifest.filter(m =>
     isAvailable((m as unknown as Record<string, unknown>)['availability'], target)
   )

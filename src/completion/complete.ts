@@ -202,7 +202,7 @@ export async function buildCompletionTree (rewrittenWords: readonly string[]): P
     const { NAMESPACES } = await import('../namespaces.ts')
     root.addCommand(await NAMESPACES.find(ns => ns.name === 'nightshift')!.load())
   } else {
-    root.addCommand(defineGroup({ name: 'nightshift', description: 'Ask the Nightshift investigation agent' }))
+    root.addCommand(defineGroup({ name: 'nightshift', description: 'Ask the Nightshift assistant' }))
   }
 
   // `config` — deep-load on exact match, stub otherwise.

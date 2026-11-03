@@ -66,7 +66,7 @@ describe('buildKbPresetCommand', () => {
       apiId: CHAT_MESSAGE,
       name: 'ask',
       description: 'Ask the agent',
-      fixed: { agent_id: 'nightshift.investigation' },
+      fixed: { agent_id: 'nightshift.assistant' },
     })
     assert.equal(cmd.name(), 'ask')
     assert.equal(cmd.description(), 'Ask the agent')
@@ -83,7 +83,7 @@ describe('buildKbPresetCommand', () => {
       apiId: CHAT_MESSAGE,
       name: 'ask',
       description: 'Ask the agent',
-      fixed: { agent_id: 'nightshift.investigation' },
+      fixed: { agent_id: 'nightshift.assistant' },
     }, recordingDeps(sent))
     const { stdout } = await run(cmd, ['--message', 'why is checkout slow?', '--conversation-id', 'c1'])
     assert.equal(sent.length, 1)
@@ -92,7 +92,7 @@ describe('buildKbPresetCommand', () => {
     assert.deepEqual(sent[0]!.body, {
       message: 'why is checkout slow?',
       conversation_id: 'c1',
-      agent_id: 'nightshift.investigation',
+      agent_id: 'nightshift.assistant',
     })
     assert.match(stdout, /hi/)
   })
@@ -103,12 +103,12 @@ describe('buildKbPresetCommand', () => {
       apiId: CHAT_MESSAGE,
       name: 'ask',
       description: 'Ask the agent',
-      fixed: { agent_id: 'nightshift.investigation' },
+      fixed: { agent_id: 'nightshift.assistant' },
       positional: 'message',
     }, recordingDeps(sent))
     await run(cmd, ['why is checkout slow?'])
     assert.equal(sent.length, 1)
-    assert.deepEqual(sent[0]!.body, { message: 'why is checkout slow?', agent_id: 'nightshift.investigation' })
+    assert.deepEqual(sent[0]!.body, { message: 'why is checkout slow?', agent_id: 'nightshift.assistant' })
   })
 
   it('throws when the positional field is not part of the generated input schema', async () => {
@@ -126,7 +126,7 @@ describe('buildKbPresetCommand', () => {
       apiId: CHAT_MESSAGE,
       name: 'ask',
       description: 'Ask the agent',
-      fixed: { agent_id: 'nightshift.investigation' },
+      fixed: { agent_id: 'nightshift.assistant' },
     }, recordingDeps(sent))
     const { stderr } = await run(cmd, ['--input-file', filePath])
     assert.equal(sent.length, 0)
@@ -138,6 +138,39 @@ describe('buildKbPresetCommand', () => {
       buildKbPresetCommand({ apiId: 'agent-builder.does-not-exist', name: 'ask', description: 'x', fixed: {} }),
       /agent-builder\.does-not-exist/
     )
+  })
+
+  describe('availability', () => {
+    const base = { apiId: CHAT_MESSAGE, name: 'ask', description: 'Ask the agent', fixed: {} }
+
+    it('returns null when the target stack version predates the endpoint', async () => {
+      assert.equal(await buildKbPresetCommand({ ...base, target: [9, 5] }), null)
+    })
+
+    it('builds the command when the target stack version has the endpoint', async () => {
+      assert.ok(await buildKbPresetCommand({ ...base, target: [9, 6] }) != null)
+    })
+
+    it('builds the command without a target', async () => {
+      assert.ok(await buildKbPresetCommand(base) != null)
+    })
+
+    it('with flavors: [serverless], returns null for any stack target', async () => {
+      assert.equal(await buildKbPresetCommand({ ...base, flavors: ['serverless'], target: [9, 6] }), null)
+      assert.equal(await buildKbPresetCommand({ ...base, flavors: ['serverless'], target: [10, 0] }), null)
+    })
+
+    it('with flavors: [serverless], builds the command for a serverless target or no target', async () => {
+      assert.ok(await buildKbPresetCommand({ ...base, flavors: ['serverless'], target: 'serverless' }) != null)
+      assert.ok(await buildKbPresetCommand({ ...base, flavors: ['serverless'] }) != null)
+    })
+
+    it('throws when a flavor is not in the endpoint availability', async () => {
+      await assert.rejects(
+        buildKbPresetCommand({ ...base, flavors: ['serverless', 'cloud' as 'serverless'] }),
+        /cloud/
+      )
+    })
   })
 
   it('throws when a fixed field is not part of the generated input schema', async () => {
