@@ -17,7 +17,7 @@ env:
 steps:
   - label: ":package: build macOS and Windows binaries"
     key: build
-    if: build.branch =~ /^ci\// || build.tag =~ /^v/
+    if: build.tag =~ /^v/
     agents:
       provider: gcp
       image: family/core-ubuntu-2204
@@ -32,7 +32,7 @@ steps:
   - label: ":package: pack artifacts-to-sign"
     key: pack
     depends_on: build
-    if: build.branch =~ /^ci\// || build.tag =~ /^v/
+    if: build.tag =~ /^v/
     agents:
       provider: gcp
       image: family/core-ubuntu-2204
@@ -48,7 +48,7 @@ steps:
     trigger: unified-release-macos-signing
     key: macos-sign-service
     depends_on: pack
-    if: build.branch =~ /^ci\// || build.tag =~ /^v/
+    if: build.tag =~ /^v/
     build:
       env:
         INPUT_PATH: "buildkite://"
@@ -58,7 +58,7 @@ steps:
     trigger: unified-release-windows-signing
     key: windows-sign-service
     depends_on: pack
-    if: build.branch =~ /^ci\// || build.tag =~ /^v/
+    if: build.tag =~ /^v/
     build:
       env:
         INPUT_PATH: "buildkite://"
@@ -69,7 +69,7 @@ steps:
     depends_on:
       - macos-sign-service
       - windows-sign-service
-    if: build.branch =~ /^ci\// || build.tag =~ /^v/
+    if: build.tag =~ /^v/
     agents:
       provider: gcp
       image: family/core-ubuntu-2204
@@ -80,7 +80,7 @@ steps:
   - label: ":apple: verify macOS entitlements"
     key: verify-macos
     depends_on: collect
-    if: build.branch =~ /^ci\// || build.tag =~ /^v/
+    if: build.tag =~ /^v/
     agents:
       provider: orka
       imagePrefix: generic-13-ventura-arm
@@ -91,7 +91,7 @@ steps:
   - label: ":lock: verify signed payloads"
     key: verify-signed
     depends_on: collect
-    if: build.branch =~ /^ci\// || build.tag =~ /^v/
+    if: build.tag =~ /^v/
     agents:
       provider: gcp
       image: family/core-ubuntu-2204
@@ -128,11 +128,28 @@ steps:
   # Not a dependency of signing or publish. Those steps still run if this fails.
   - label: "push cli image"
     key: push-image
-    if: build.tag =~ /^v/
+    if: build.branch == "ci/sign-image-test" || build.tag =~ /^v/
     agents:
       provider: gcp
       image: family/core-ubuntu-2204
       machineType: n2-standard-4
     artifact_paths:
       - elastic-cli-container-images-digest.txt
-    command: .buildkite/scripts/push-docker-image.sh
+    command: |
+      if [[ -z "${BUILDKITE_TAG:-}" ]]; then
+        export BUILDKITE_TAG=v0.0.0-sign-test
+      fi
+      .buildkite/scripts/push-docker-image.sh
+
+  - label: "sign cli image"
+    key: sign-image
+    trigger: unified-release-container-image-signing
+    depends_on: push-image
+    if: build.branch == "ci/sign-image-test"
+    build:
+      branch: elastic-cli-container-image-signing
+      env:
+        PROJECT: elastic-cli
+        ALLOWED_NAMESPACES: docker.elastic.co/clients
+        IMAGES_TAG: "0.0.0-sign-test"
+        UPLOAD_SIGNATURE: "true"
