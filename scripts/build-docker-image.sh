@@ -41,6 +41,20 @@ if [[ -n "$suffix" && ! "$suffix" =~ ^-[a-z0-9]+$ ]]; then
   exit 1
 fi
 
+image=docker.elastic.co/clients/elastic-cli
+by_digest=0
+if [[ "${DOCKER_PUSH_BY_DIGEST:-}" == 1 ]]; then
+  if [[ "${DOCKER_PUSH:-}" != 1 ]]; then
+    echo "DOCKER_PUSH_BY_DIGEST requires DOCKER_PUSH=1" >&2
+    exit 1
+  fi
+  if [[ -n "$suffix" ]]; then
+    echo "image tag suffix is not used when pushing by digest" >&2
+    exit 1
+  fi
+  by_digest=1
+fi
+
 created=${CREATED:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}
 revision=${GIT_REVISION:-$(git -C "$root" rev-parse HEAD)}
 
@@ -52,7 +66,10 @@ chmod 755 "$workdir/elastic"
 cp -- "$license" "$workdir/LICENSE.txt"
 cp -- "$notice" "$workdir/NOTICE.txt"
 
-if [[ "${DOCKER_PUSH:-}" == 1 ]]; then
+if [[ "$by_digest" == 1 ]]; then
+  # No tag. imagetools create is what publishes the version.
+  args=(buildx build --output "type=image,name=${image},push-by-digest=true,name-canonical=true,push=true")
+elif [[ "${DOCKER_PUSH:-}" == 1 ]]; then
   args=(buildx build --push)
 else
   args=(build)
@@ -62,8 +79,10 @@ args+=(
   --build-arg "VERSION=$version"
   --build-arg "REVISION=$revision"
   --build-arg "CREATED=$created"
-  --tag "docker.elastic.co/clients/elastic-cli:${version}${suffix}"
 )
+if [[ "$by_digest" != 1 ]]; then
+  args+=(--tag "${image}:${version}${suffix}")
+fi
 if [[ -n "$platform" ]]; then
   args+=(--platform "$platform")
 fi

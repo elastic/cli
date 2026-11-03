@@ -15,6 +15,8 @@ const root = fileURLToPath(new URL('../..', import.meta.url))
 const script = join(root, '.buildkite/scripts/push-docker-image.sh')
 const releaseYml = join(root, '.buildkite/release.yml')
 const digest = 'sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+const amdDigest = `sha256:${'a'.repeat(64)}`
+const armDigest = `sha256:${'b'.repeat(64)}`
 
 function bashPath (p: string): string {
   if (process.platform !== 'win32') return p
@@ -40,6 +42,23 @@ async function fakes (dir: string) {
 if [[ "$1" == login ]]; then
   cat > "$DOCKER_STDIN"
 fi
+if [[ -n "\${DOCKER_CFG:-}" ]]; then
+  printf '%s' "\${DOCKER_CONFIG:-}" > "$DOCKER_CFG"
+fi
+if [[ "$1" == buildx && "$2" == version ]]; then
+  if [[ "\${FAIL_BUILDX:-}" == 1 ]]; then
+    echo "no buildx" >&2
+    exit 1
+  fi
+  exit 0
+fi
+if [[ "$*" == *push-by-digest=true* ]]; then
+  if [[ "$*" == *linux/arm64* ]]; then
+    printf '%s\\n' "${armDigest}"
+  else
+    printf '%s\\n' "${amdDigest}"
+  fi
+fi
 if [[ "$*" == *inspect* ]]; then
   format=""
   prev=""
@@ -53,7 +72,6 @@ if [[ "$*" == *inspect* ]]; then
   fi
   printf '%s\\n' "$INSPECT_DIGEST"
 fi
-printf '%s' "\${DOCKER_CONFIG:-}" > "$DOCKER_CFG"
 `)
   await writeFile(join(bin, 'vault'), `#!/usr/bin/env bash
 printf '%s\\n' "$@" >> "$VAULT_LOG"
@@ -138,11 +156,16 @@ describe('push-docker-image.sh', () => {
       assert.equal(await readFile(dockerStdin, 'utf8'), 's3cret')
       assert.match(await readFile(vaultLog, 'utf8'), /secret\/ci\/elastic-cli\/devtoolsmachine/)
       const calls = log.split('---\n').filter(Boolean)
-      assert.match(calls[0], /^login\n--username\ndevtoolsmachine\n--password-stdin\ndocker\.elastic\.co\n/)
-      assert.match(calls[1], /buildx\nbuild\n--push[\s\S]*docker\.elastic\.co\/clients\/elastic-cli:0\.6\.0-amd64[\s\S]*linux\/amd64/)
-      assert.match(calls[2], /docker\.elastic\.co\/clients\/elastic-cli:0\.6\.0-arm64[\s\S]*linux\/arm64/)
-      assert.match(calls[3], /imagetools\ncreate\n--tag\ndocker\.elastic\.co\/clients\/elastic-cli:0\.6\.0\n/)
-      assert.match(calls[4], /imagetools\ninspect\n--format\n\{\{\.Manifest\.Digest\}\}/)
+      assert.match(calls[0], /^buildx\nversion\n/)
+      assert.match(calls[1], /^login\n--username\ndevtoolsmachine\n--password-stdin\ndocker\.elastic\.co\n/)
+      assert.match(calls[2], /buildx\nbuild\n--output\ntype=image,name=docker\.elastic\.co\/clients\/elastic-cli,push-by-digest=true,name-canonical=true,push=true[\s\S]*linux\/amd64/)
+      assert.match(calls[3], /push-by-digest=true[\s\S]*linux\/arm64/)
+      assert.equal(log.includes(':0.6.0-amd64'), false)
+      assert.equal(log.includes(':0.6.0-arm64'), false)
+      assert.match(calls[4], new RegExp(
+        `imagetools\\ncreate\\n--tag\\ndocker\\.elastic\\.co\\/clients\\/elastic-cli:0\\.6\\.0\\n--tag\\ndocker\\.elastic\\.co\\/clients\\/elastic-cli:latest\\ndocker\\.elastic\\.co\\/clients\\/elastic-cli@${amdDigest}\\ndocker\\.elastic\\.co\\/clients\\/elastic-cli@${armDigest}`,
+      ))
+      assert.match(calls[5], /imagetools\ninspect\n--format\n\{\{\.Manifest\.Digest\}\}/)
       const cfg = await readFile(dockerCfg, 'utf8')
       assert.notEqual(cfg, '')
       await assert.rejects(stat(cfg))
@@ -231,7 +254,8 @@ exit 1
         BUILDKITE_TAG: 'v0.6.0',
       })
       assert.notEqual(result.status, 0)
-      await assert.rejects(readFile(dockerLog, 'utf8'))
+      assert.match(await readFile(dockerLog, 'utf8'), /^buildx\nversion\n/)
+      assert.doesNotMatch(await readFile(dockerLog, 'utf8'), /login/)
       await assert.rejects(readFile(vaultLog, 'utf8'))
     } finally {
       await rm(dir, { recursive: true, force: true })
@@ -252,7 +276,9 @@ exit 1
       })
       assert.notEqual(result.status, 0)
       assert.match(await readFile(vaultLog, 'utf8'), /devtoolsmachine/)
-      await assert.rejects(readFile(dockerLog, 'utf8'))
+      const docker = await readFile(dockerLog, 'utf8')
+      assert.match(docker, /^buildx\nversion\n/)
+      assert.doesNotMatch(docker, /login/)
     } finally {
       await rm(dir, { recursive: true, force: true })
     }
@@ -277,6 +303,53 @@ exit 1
       })
       assert.notEqual(result.status, 0)
       await assert.rejects(readFile(join(dir, 'elastic-cli-container-images-digest.txt'), 'utf8'))
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('does not move latest for a prerelease', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'push-image-'))
+    try {
+      const { bin, dockerLog, dockerStdin, dockerCfg } = await fakes(dir)
+      const binary = join(dir, 'elastic')
+      await writeFile(binary, 'bin')
+      const result = run(dir, ['0.6.0-rc.1', bashPath(binary), bashPath(binary)], {
+        PATH: `${bin}${delimiter}${process.env.PATH}`,
+        DOCKER_LOG: bashPath(dockerLog),
+        DOCKER_STDIN: bashPath(dockerStdin),
+        DOCKER_CFG: bashPath(dockerCfg),
+        VAULT_LOG: join(dir, 'vault-log'),
+        VAULT_PASSWORD: 's3cret',
+        INSPECT_DIGEST: digest,
+        CREATED: '2020-01-02T03:04:05Z',
+        GIT_REVISION: 'abc123',
+      })
+      assert.equal(result.status, 0, result.stderr)
+      const log = await readFile(dockerLog, 'utf8')
+      assert.match(log, /elastic-cli:0\.6\.0-rc\.1\n/)
+      assert.equal(log.includes('elastic-cli:latest'), false)
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('stops before vault when buildx is missing', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'push-image-'))
+    try {
+      const { bin, dockerLog, vaultLog } = await fakes(dir)
+      const binary = join(dir, 'elastic')
+      await writeFile(binary, 'bin')
+      const result = run(dir, ['0.6.0', bashPath(binary), bashPath(binary)], {
+        PATH: `${bin}${delimiter}${process.env.PATH}`,
+        DOCKER_LOG: bashPath(dockerLog),
+        VAULT_LOG: bashPath(vaultLog),
+        VAULT_PASSWORD: 's3cret',
+        FAIL_BUILDX: '1',
+      })
+      assert.notEqual(result.status, 0)
+      assert.match(result.stderr, /docker buildx is required/)
+      await assert.rejects(readFile(vaultLog, 'utf8'))
     } finally {
       await rm(dir, { recursive: true, force: true })
     }

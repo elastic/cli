@@ -43,6 +43,10 @@ if ! command -v docker >/dev/null 2>&1; then
   echo "docker is required on the release agent" >&2
   exit 1
 fi
+if ! docker buildx version >/dev/null 2>&1; then
+  echo "docker buildx is required on the release agent" >&2
+  exit 1
+fi
 
 compile_linux() {
   local dest=$PWD
@@ -109,18 +113,27 @@ unset password
 push_arch() {
   local platform=$1
   local binary=$2
-  local arch=$3
-  DOCKER_PUSH=1 IMAGE_TAG_SUFFIX="-$arch" \
-    "$root/scripts/build-docker-image.sh" "$version" "$binary" "$platform"
+  local raw digest
+  raw=$(DOCKER_PUSH=1 DOCKER_PUSH_BY_DIGEST=1 \
+    "$root/scripts/build-docker-image.sh" "$version" "$binary" "$platform")
+  digest=$(printf '%s\n' "$raw" | grep -oE 'sha256:[a-f0-9]{64}' | tail -n 1) || true
+  if [[ ! "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+    echo "unexpected arch digest: $raw" >&2
+    exit 1
+  fi
+  printf '%s\n' "$digest"
 }
 
-push_arch linux/amd64 "$amd64" amd64
-push_arch linux/arm64 "$arm64" arm64
+amd64_digest=$(push_arch linux/amd64 "$amd64")
+arm64_digest=$(push_arch linux/arm64 "$arm64")
 
-docker buildx imagetools create \
-  --tag "$image:$version" \
-  "$image:$version-amd64" \
-  "$image:$version-arm64"
+create_args=(buildx imagetools create --tag "$image:$version")
+# Major and minor aliases go stale. latest tracks a stable x.y.z only.
+if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  create_args+=(--tag "$image:latest")
+fi
+create_args+=("$image@$amd64_digest" "$image@$arm64_digest")
+docker "${create_args[@]}"
 
 digest=$(docker buildx imagetools inspect --format '{{.Manifest.Digest}}' "$image:$version")
 digest=${digest//\"/}
