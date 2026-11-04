@@ -26,6 +26,13 @@
       "type": "boolean",
       "required": false,
       "summary": "output as JSON"
+    },
+    {
+      "role": "flag",
+      "name": "no-color",
+      "type": "boolean",
+      "required": false,
+      "summary": "disable ANSI colors (same as NO_COLOR=1)"
     }
   ],
   "environment": {

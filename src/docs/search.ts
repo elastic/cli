@@ -5,6 +5,7 @@
 
 import { defineCommand } from '../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../factory.ts'
+import { colorsEnabled } from '../lib/colors.ts'
 import { docsSearch, stripHtmlTags } from './client.ts'
 
 function resultSummary (aiShortSummary: string | undefined, description: string): string {
@@ -31,7 +32,7 @@ function experimentalBanner (command: string, isTTY: boolean): string {
   const text =
     `Warning: "${command}" is experimental and in active development.\n` +
     `         Not yet suited for scripts or automation. Pass --accept-experimental to suppress this warning.\n\n`
-  return isTTY ? `\x1b[33m${text}\x1b[0m` : text
+  return colorsEnabled(isTTY) ? `\x1b[33m${text}\x1b[0m` : text
 }
 
 export function createSearchCommand (deps: SearchDeps = defaultDeps): OpaqueCommandHandle {

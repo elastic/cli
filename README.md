@@ -48,6 +48,10 @@ elastic es search --index my-index
 elastic cloud hosted deployments list-deployments
 ```
 
+When stdout is piped, tables render as TSV and status markers become `ok`/`fail`.
+Set `NO_COLOR` (or pass `--no-color`) to disable ANSI colors; `FORCE_COLOR=1`
+forces them on.
+
 ## Documentation
 
 | Topic | Page |

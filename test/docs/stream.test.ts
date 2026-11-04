@@ -173,4 +173,21 @@ describe('startSpinner', () => {
     // stop emits a final \r + clear sequence
     assert.ok(writes.some((w) => w.includes('\r')))
   })
+
+  it('omits ANSI escapes under NO_COLOR', async () => {
+    const prev = process.env.NO_COLOR
+    process.env.NO_COLOR = '1'
+    try {
+      const writes: string[] = []
+      const handle = startSpinner({ write: (s: string) => { writes.push(s); return true } }, 'Working…')
+      await new Promise((r) => setTimeout(r, 120))
+      handle.stop()
+      assert.ok(writes.length >= 1)
+      // eslint-disable-next-line no-control-regex
+      assert.ok(writes.every((w) => !/\u001B/.test(w)), `unexpected escape, got: ${JSON.stringify(writes)}`)
+    } finally {
+      if (prev === undefined) delete process.env.NO_COLOR
+      else process.env.NO_COLOR = prev
+    }
+  })
 })

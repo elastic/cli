@@ -48,9 +48,11 @@ function cloudSummary (s: CloudCheck): string {
  * Renders a {@link StatusResult} as a multi-line human-readable string.
  *
  * Services absent from the active context are omitted from the table. The
- * output always ends with a trailing newline.
+ * output always ends with a trailing newline. With `opts.plain` (piped
+ * output or `NO_COLOR`), the ✓/✗ glyphs become `ok`/`fail` words so the
+ * output stays parseable without Unicode or color support.
  */
-export function formatStatusText (result: StatusResult): string {
+export function formatStatusText (result: StatusResult, opts?: { plain?: boolean }): string {
   const rows: Row[] = []
   const s = result.services
   if (s.elasticsearch != null) {
@@ -68,8 +70,9 @@ export function formatStatusText (result: StatusResult): string {
 
   const header = `Context: ${result.context}\n\n`
   if (rows.length === 0) return header
+  const mark = (ok: boolean): string => opts?.plain === true ? (ok ? 'ok' : 'fail') : (ok ? '✓' : '✗')
   const lines = rows.map((r) =>
-    `  ${r.label.padEnd(labelW)}  ${r.url.padEnd(urlW)}  ${r.ok ? '✓' : '✗'}  ${r.summary}`
+    `  ${r.label.padEnd(labelW)}  ${r.url.padEnd(urlW)}  ${mark(r.ok)}  ${r.summary}`
   )
   return header + lines.join('\n') + '\n'
 }

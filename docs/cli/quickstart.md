@@ -100,6 +100,12 @@ elastic --use-context quickstart es cat indices
 
 The output displays index health, status, document counts, and storage sizes in a table. You've now installed the CLI, configured a reusable connection, and run read-only {{es}} API operations.
 
+## Colors and machine-readable output
+
+ANSI colors follow the terminal: on for TTYs, off otherwise. Set `NO_COLOR` (any value) to disable colors, or `FORCE_COLOR=1` to force them. The `--no-color` flag is an alias for `NO_COLOR=1`.
+
+When stdout is piped and `--json` is absent, tables render as TSV and status markers become `ok`/`fail` words instead of checkmarks, so scripts and agents can parse the output.
+
 ## Next steps
 
 - Explore available {{es}} commands with `elastic es --help`.
