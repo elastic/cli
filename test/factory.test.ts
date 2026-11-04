@@ -248,6 +248,77 @@ describe('defineCommand', () => {
       assert.equal(received[0].arg, 'ingest pipelines')
     })
 
+    describe('with inputKey', () => {
+      // Commands with an input schema read stdin when it is not a TTY; on Windows CI that read never ends.
+      let origIsTTY: boolean | undefined
+      beforeEach(() => {
+        origIsTTY = process.stdin.isTTY
+        Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true, writable: true })
+      })
+      afterEach(() => {
+        Object.defineProperty(process.stdin, 'isTTY', { value: origIsTTY, configurable: true, writable: true })
+      })
+
+      it('fills the named input field from the positional value before validation', async () => {
+        const received: ParsedResult[] = []
+        const cmd = defineCommand({
+          name: 'ask',
+          description: 'Ask',
+          input: jsonSchema({ message: { type: 'string' }, topic: { type: 'string' } }, ['message']),
+          positionalArg: { name: 'message', description: 'Message', required: false, inputKey: 'message' },
+          handler: (parsed) => { received.push(parsed); return {} },
+        })
+        await invokeAsync(cmd, ['why is it slow?', '--topic', 'checkout'])
+        assert.equal(received.length, 1)
+        assert.deepEqual(received[0].input, { message: 'why is it slow?', topic: 'checkout' })
+      })
+
+      it('still accepts the input field as a flag when the positional is omitted', async () => {
+        const received: ParsedResult[] = []
+        const cmd = defineCommand({
+          name: 'ask',
+          description: 'Ask',
+          input: jsonSchema({ message: { type: 'string' } }, ['message']),
+          positionalArg: { name: 'message', description: 'Message', required: false, inputKey: 'message' },
+          handler: (parsed) => { received.push(parsed); return {} },
+        })
+        await invokeAsync(cmd, ['--message', 'hi'])
+        assert.deepEqual(received[0].input, { message: 'hi' })
+      })
+
+      it('errors when the positional and its flag are both given', async () => {
+        const received: ParsedResult[] = []
+        const cmd = defineCommand({
+          name: 'ask',
+          description: 'Ask',
+          input: jsonSchema({ message: { type: 'string' } }, ['message']),
+          positionalArg: { name: 'message', description: 'Message', required: false, inputKey: 'message' },
+          handler: (parsed) => { received.push(parsed); return {} },
+        })
+        const err = await captureErrAsync(cmd, ['one', '--message', 'two'])
+        assert.equal(received.length, 0)
+        assert.match(err, /--message/)
+      })
+
+      it('emits input_validation_failed JSON when the positional and its flag are both given with --json', async () => {
+        const received: ParsedResult[] = []
+        const cmd = defineCommand({
+          name: 'ask',
+          description: 'Ask',
+          input: jsonSchema({ message: { type: 'string' } }, ['message']),
+          positionalArg: { name: 'message', description: 'Message', required: false, inputKey: 'message' },
+          handler: (parsed) => { received.push(parsed); return {} },
+        })
+        const { stdout, stderr, exitCode } = await invokeCapturingStreams(cmd, ['--json'], ['one', '--message', 'two'])
+        assert.equal(received.length, 0)
+        assert.equal(stdout, '')
+        assert.deepEqual(JSON.parse(stderr), {
+          error: { code: 'input_validation_failed', message: 'pass message either as an argument or as --message, not both' },
+        })
+        assert.equal(exitCode, 1)
+      })
+    })
+
     it('sets parsed.arg to undefined when no positionalArg is declared', async () => {
       const received: ParsedResult[] = []
       const cmd = defineCommand({
@@ -3058,10 +3129,22 @@ describe('isCommandAllowed', () => {
     assert.equal(isCommandAllowed('stack.es.search', { profile: 'default' }), true)
   })
 
-  it('profile stack: allows all commands (no restriction)', () => {
+  it('profile stack: allows all commands except serverless-only ones', () => {
     assert.equal(isCommandAllowed('cloud.hosted.deployments.list', { profile: 'stack' }), true)
     assert.equal(isCommandAllowed('cloud.serverless.projects.search.list', { profile: 'stack' }), true)
     assert.equal(isCommandAllowed('anything.at.all', { profile: 'stack' }), true)
+    assert.equal(isCommandAllowed('nightshift.ask', { profile: 'stack' }), false)
+  })
+
+  it('profile serverless and default: allow nightshift commands', () => {
+    assert.equal(isCommandAllowed('nightshift.ask', { profile: 'serverless' }), true)
+    assert.equal(isCommandAllowed('nightshift.ask', { profile: 'default' }), true)
+  })
+
+  it('profile stack: an extra blocked entry still applies', () => {
+    const policy = { profile: 'stack' as const, blocked: ['stack.es.ml.*'] }
+    assert.equal(isCommandAllowed('stack.es.ml.get-records', policy), false)
+    assert.equal(isCommandAllowed('stack.es.search', policy), true)
   })
 
   it('profile + blocked: profile allows but blocked further restricts', () => {
@@ -4292,7 +4375,8 @@ async function captureStreams(fn: () => Promise<void>): Promise<{ stdout: string
       /* swallow -- caller inspects captured output */
     } finally {
       exitCode = process.exitCode ?? 0
-      process.exitCode = origExitCode as typeof process.exitCode
+      // Bun ignores `process.exitCode = undefined`, which would leak this command's exit code.
+      process.exitCode = origExitCode ?? 0
     }
   })
   return { stdout: stdout.join(''), stderr: stderr.join(''), exitCode }
