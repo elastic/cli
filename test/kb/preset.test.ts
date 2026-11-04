@@ -8,6 +8,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { Command } from 'commander'
 import { buildKbPresetCommand } from '../../src/kb/register.ts'
 import { buildKibanaRequestParams } from '../../src/kb/request-builder.ts'
 import type { KibanaClient, KibanaRequestParams } from '../../src/lib/kibana-client.ts'
@@ -138,6 +139,73 @@ describe('buildKbPresetCommand', () => {
       buildKbPresetCommand({ apiId: 'agent-builder.does-not-exist', name: 'ask', description: 'x', fixed: {} }),
       /agent-builder\.does-not-exist/
     )
+  })
+
+  describe('experimental', () => {
+    const base = { apiId: CHAT_MESSAGE, name: 'ask', description: 'Ask the agent', fixed: { agent_id: 'nightshift.assistant' } }
+    const BANNER = /Warning: "nightshift ask" is experimental and subject to significant changes before it reaches a stable state\.[\s\S]*--accept-experimental/
+
+    async function build (sent: KibanaRequestParams[]) {
+      const cmd = await buildKbPresetCommand({ ...base, experimental: { label: 'nightshift ask' } }, recordingDeps(sent))
+      assert.ok(cmd != null)
+      return cmd
+    }
+
+    it('warns on stderr and still sends the request', async () => {
+      const sent: KibanaRequestParams[] = []
+      const { stdout, stderr } = await run(await build(sent), ['--message', 'hi'])
+      assert.match(stderr, BANNER)
+      assert.doesNotMatch(stdout, /experimental/)
+      assert.equal(sent.length, 1)
+      assert.deepEqual(sent[0]!.body, { message: 'hi', agent_id: 'nightshift.assistant' })
+    })
+
+    it('colors the warning only when stderr is a TTY', async () => {
+      const origIsTTY = process.stderr.isTTY
+      const setTTY = (value: boolean | undefined) => Object.defineProperty(process.stderr, 'isTTY', { value, configurable: true, writable: true })
+      try {
+        setTTY(true)
+        const tty = await run(await build([]), ['--message', 'hi'])
+        assert.ok(tty.stderr.startsWith('\x1b[33mWarning: "nightshift ask" is experimental'), 'Expected ANSI yellow color code')
+        assert.ok(tty.stderr.includes('\x1b[0m'), 'Expected ANSI reset code')
+        setTTY(false)
+        const plain = await run(await build([]), ['--message', 'hi'])
+        assert.match(plain.stderr, BANNER)
+        assert.ok(!plain.stderr.includes('\x1b['), 'Expected no ANSI codes')
+      } finally {
+        setTTY(origIsTTY)
+      }
+    })
+
+    it('--accept-experimental suppresses the warning and is not sent to Kibana', async () => {
+      const sent: KibanaRequestParams[] = []
+      const { stderr } = await run(await build(sent), ['--message', 'hi', '--accept-experimental'])
+      assert.doesNotMatch(stderr, /experimental/)
+      assert.deepEqual(sent[0]!.body, { message: 'hi', agent_id: 'nightshift.assistant' })
+    })
+
+    it('--json suppresses the warning', async () => {
+      const sent: KibanaRequestParams[] = []
+      const root = new Command('elastic').option('--json', 'output as JSON').addCommand(await build(sent))
+      const { stderr } = await run(root, ['--json', 'ask', '--message', 'hi'])
+      assert.doesNotMatch(stderr, /experimental/)
+      assert.equal(sent.length, 1)
+    })
+
+    it('does not warn when validation fails before the request', async () => {
+      const sent: KibanaRequestParams[] = []
+      const { stderr } = await run(await build(sent), [])
+      assert.doesNotMatch(stderr, /is experimental/)
+      assert.equal(sent.length, 0)
+    })
+
+    it('non-experimental presets have no flag and no warning', async () => {
+      const cmd = await buildKbPresetCommand(base, recordingDeps([]))
+      assert.ok(cmd != null)
+      assert.equal(longFlags(cmd).includes('--accept-experimental'), false)
+      const { stderr } = await run(cmd, ['--message', 'hi'])
+      assert.doesNotMatch(stderr, /experimental/)
+    })
   })
 
   describe('availability', () => {

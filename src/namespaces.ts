@@ -136,6 +136,7 @@ export const NAMESPACES: NamespaceEntry[] = [
         positional: 'message',
         // Nightshift agents only exist on Serverless Observability projects.
         flavors: ['serverless'],
+        experimental: { label: 'nightshift ask' },
         ...(target !== undefined ? { target } : {}),
       })
       return defineGroup(

@@ -120822,6 +120822,13 @@
       "options": [
         {
           "role": "flag",
+          "name": "accept-experimental",
+          "type": "boolean",
+          "required": false,
+          "summary": "Acknowledge that this command is experimental and may change significantly; suppresses the warning"
+        },
+        {
+          "role": "flag",
           "name": "conversation-id",
           "type": "string",
           "required": false,

@@ -28,7 +28,7 @@ import { buildStubLeaf } from '../lib/lazy-leaf.ts'
 function buildLeafHandle (
   def: KbApiDefinition,
   target?: AvailabilityTarget,
-  overrides: Pick<CommandConfig, 'positionalArg'> & { handler?: CommandConfig['handler'] } = {}
+  overrides: Pick<CommandConfig, 'positionalArg' | 'options'> & { handler?: CommandConfig['handler'] } = {}
 ): OpaqueCommandHandle {
   validateKbApiDefinition(def)
   const intent = def.intent ?? inferIntentFromHttp(def.method)
@@ -39,6 +39,7 @@ function buildLeafHandle (
     readOnly: def.method === 'GET' || def.method === 'HEAD',
     handler: overrides.handler ?? createKbHandler(def),
     ...(overrides.positionalArg !== undefined ? { positionalArg: overrides.positionalArg } : {}),
+    ...(overrides.options !== undefined ? { options: overrides.options } : {}),
     ...(intent != null ? { intent } : {}),
     ...(def.responseType === 'text' ? { formatOutput: formatTextResponse } : {}),
     ...(target !== undefined ? { target } : {}),
@@ -59,6 +60,18 @@ export interface KbPresetOptions {
   target?: AvailabilityTarget
   /** Narrows the endpoint's availability to these deployment flavors. */
   flavors?: ReadonlyArray<'stack' | 'serverless'>
+  /**
+   * Marks the command experimental: it warns on stderr before sending the request unless
+   * `--accept-experimental` or `--json` is passed. `label` names the command in the warning.
+   */
+  experimental?: { label: string }
+}
+
+function experimentalBanner (label: string, isTTY: boolean): string {
+  const text =
+    `Warning: "${label}" is experimental and subject to significant changes before it reaches a stable state.\n` +
+    '         Pass --accept-experimental to suppress this warning.\n\n'
+  return isTTY ? `\x1b[33m${text}\x1b[0m` : text
 }
 
 /**
@@ -98,6 +111,7 @@ export async function buildKbPresetCommand (opts: KbPresetOptions, deps?: KbHand
     ? (def.input['required'] as string[]).filter(key => !(key in opts.fixed))
     : []
   const handler = createKbHandler(def, deps)
+  const experimental = opts.experimental
   return buildLeafHandle(
     {
       ...def,
@@ -108,7 +122,21 @@ export async function buildKbPresetCommand (opts: KbPresetOptions, deps?: KbHand
     },
     opts.target,
     {
-      handler: async (parsed) => await handler({ ...parsed, input: { ...(parsed.input as Record<string, unknown> | undefined), ...opts.fixed } }),
+      handler: async (parsed) => {
+        if (experimental != null && parsed.options['accept-experimental'] !== true && parsed.options['json'] !== true) {
+          process.stderr.write(experimentalBanner(experimental.label, process.stderr.isTTY === true))
+        }
+        return await handler({ ...parsed, input: { ...(parsed.input as Record<string, unknown> | undefined), ...opts.fixed } })
+      },
+      ...(experimental != null
+        ? {
+            options: [{
+              long: 'accept-experimental',
+              type: 'boolean' as const,
+              description: 'Acknowledge that this command is experimental and may change significantly; suppresses the warning',
+            }],
+          }
+        : {}),
       ...(positional != null
         ? {
             positionalArg: {
