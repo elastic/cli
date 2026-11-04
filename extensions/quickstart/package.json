@@ -1,0 +1,22 @@
+{
+  "name": "elastic-quickstart",
+  "version": "0.0.0",
+  "description": "elastic CLI extension: guided zero-to-one Vector DB onboarding",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "elastic-quickstart": "./bin/elastic-quickstart.ts"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}
