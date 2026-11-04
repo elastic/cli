@@ -120670,7 +120670,7 @@
               "name": "accept-experimental",
               "type": "boolean",
               "required": false,
-              "summary": "Acknowledge that this command is experimental and may be removed; suppresses the warning"
+              "summary": "Acknowledge that this command is experimental and may change or be removed; suppresses the warning"
             },
             {
               "role": "flag",
@@ -120719,7 +120719,7 @@
               "name": "accept-experimental",
               "type": "boolean",
               "required": false,
-              "summary": "Acknowledge that this command is experimental and may be removed; suppresses the warning"
+              "summary": "Acknowledge that this command is experimental and may change or be removed; suppresses the warning"
             },
             {
               "role": "flag",
@@ -120825,7 +120825,7 @@
           "name": "accept-experimental",
           "type": "boolean",
           "required": false,
-          "summary": "Acknowledge that this command is experimental and may change significantly; suppresses the warning"
+          "summary": "Acknowledge that this command is experimental and may change or be removed; suppresses the warning"
         },
         {
           "role": "flag",

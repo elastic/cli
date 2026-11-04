@@ -17,6 +17,8 @@ import type { AvailabilityTarget } from '../lib/availability.ts'
 import { isAvailable, parseVersionHint } from '../lib/availability.ts'
 import { getResolvedConfig } from '../config/store.ts'
 import { buildStubLeaf } from '../lib/lazy-leaf.ts'
+import { ACCEPT_EXPERIMENTAL_OPTION, warnIfExperimental } from '../lib/experimental.ts'
+import type { ExperimentalNotice } from '../lib/experimental.ts'
 
 // Every Kibana definition passes `validateKbApiDefinition` as of @elastic/schemas 0.5.1;
 // the five upstream path-param defects that used to need an allowlist here are fixed.
@@ -62,16 +64,9 @@ export interface KbPresetOptions {
   flavors?: ReadonlyArray<'stack' | 'serverless'>
   /**
    * Marks the command experimental: it warns on stderr before sending the request unless
-   * `--accept-experimental` or `--json` is passed. `label` names the command in the warning.
+   * `--accept-experimental` or `--json` is passed.
    */
-  experimental?: { label: string }
-}
-
-function experimentalBanner (label: string, isTTY: boolean): string {
-  const text =
-    `Warning: "${label}" is experimental and subject to significant changes before it reaches a stable state.\n` +
-    '         Pass --accept-experimental to suppress this warning.\n\n'
-  return isTTY ? `\x1b[33m${text}\x1b[0m` : text
+  experimental?: ExperimentalNotice
 }
 
 /**
@@ -123,20 +118,10 @@ export async function buildKbPresetCommand (opts: KbPresetOptions, deps?: KbHand
     opts.target,
     {
       handler: async (parsed) => {
-        if (experimental != null && parsed.options['accept-experimental'] !== true && parsed.options['json'] !== true) {
-          process.stderr.write(experimentalBanner(experimental.label, process.stderr.isTTY === true))
-        }
+        if (experimental != null) warnIfExperimental(parsed, experimental)
         return await handler({ ...parsed, input: { ...(parsed.input as Record<string, unknown> | undefined), ...opts.fixed } })
       },
-      ...(experimental != null
-        ? {
-            options: [{
-              long: 'accept-experimental',
-              type: 'boolean' as const,
-              description: 'Acknowledge that this command is experimental and may change significantly; suppresses the warning',
-            }],
-          }
-        : {}),
+      ...(experimental != null ? { options: [ACCEPT_EXPERIMENTAL_OPTION] } : {}),
       ...(positional != null
         ? {
             positionalArg: {

@@ -146,7 +146,7 @@ describe('buildKbPresetCommand', () => {
     const BANNER = /Warning: "nightshift ask" is experimental and subject to significant changes before it reaches a stable state\.[\s\S]*--accept-experimental/
 
     async function build (sent: KibanaRequestParams[]) {
-      const cmd = await buildKbPresetCommand({ ...base, experimental: { label: 'nightshift ask' } }, recordingDeps(sent))
+      const cmd = await buildKbPresetCommand({ ...base, experimental: { label: 'nightshift ask', status: 'subject to significant changes before it reaches a stable state' } }, recordingDeps(sent))
       assert.ok(cmd != null)
       return cmd
     }
