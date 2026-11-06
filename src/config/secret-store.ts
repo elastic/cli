@@ -218,32 +218,33 @@ class LinuxSecretServiceStore extends ShellSecretStore {
   kind = 'secret_service' as const
 
   protected probe (): void {
-    this.execSync('secret-tool --version', execOpts(2_000))
+    // secret-tool has no --version. No args prints usage and exits 2, which
+    // still means the binary ran. A missing binary sets error (ENOENT).
+    const result = this.spawnSync('secret-tool', [], spawnOpts(2_000))
+    if (result.error != null || result.status == null) {
+      throw result.error ?? new Error('secret-tool probe failed')
+    }
   }
 
   async put (service: string, account: string, secret: string): Promise<void> {
     validateServiceAccount(service, account, this.kind)
-    try {
-      this.execSync(
-        `secret-tool store --label=${shellEscape(`elastic-cli:${service}:${account}`)} service ${shellEscape(service)} account ${shellEscape(account)}`,
-        execOpts(5_000, secret)
+    const result = this.spawnSync(
+      'secret-tool',
+      ['store', `--label=elastic-cli:${service}:${account}`, 'service', service, 'account', account],
+      spawnOpts(5_000, secret)
+    )
+    if (result.error != null || result.status !== 0) {
+      const detail = String(result.stderr || result.stdout || result.error?.message || `exit ${result.status}`).trim()
+      throw new Error(
+        `Secret Service write failed for service="${service}", account="${account}": ${redactSecret(detail, secret)}`
       )
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      throw new Error(`Secret Service write failed for service="${service}", account="${account}": ${message}`, { cause: err })
     }
   }
 
   async delete (service: string, account: string): Promise<void> {
     validateServiceAccount(service, account, this.kind)
-    try {
-      this.execSync(
-        `secret-tool clear service ${shellEscape(service)} account ${shellEscape(account)}`,
-        execOpts(5_000)
-      )
-    } catch {
-      // Idempotent.
-    }
+    // Idempotent: a missing entry or a locked keyring is not a delete failure.
+    this.spawnSync('secret-tool', ['clear', 'service', service, 'account', account], spawnOpts(5_000))
   }
 
   resolverExpr (service: string, account: string): string {
@@ -342,6 +343,73 @@ class WindowsCredentialManagerStore extends ShellSecretStore {
   }
 }
 
+/** Every probed store rejected the write. Callers store the secret inline. */
+export class NoWritableSecretStore extends Error {
+  constructor () {
+    super('No OS secret store accepted the secret')
+    this.name = 'NoWritableSecretStore'
+  }
+}
+
+/**
+ * Tries each candidate's `put`. A failed `secret-tool` write (binary present,
+ * no D-Bus session) moves on to `pass`. When none accept the secret, throws
+ * {@link NoWritableSecretStore} so the caller can write it inline.
+ * A lone keychain or credential-manager store is not wrapped; its errors still propagate.
+ */
+class FallbackStore implements SecretStore {
+  kind: SecretStoreKind
+  private readonly failed = new Set<SecretStore>()
+  private chosen: SecretStore | undefined
+
+  constructor (private readonly candidates: SecretStore[]) {
+    this.kind = candidates[0]?.kind ?? 'none'
+  }
+
+  async isAvailable (): Promise<boolean> {
+    for (const store of this.candidates) {
+      if (this.failed.has(store)) continue
+      if (await store.isAvailable()) return true
+    }
+    return false
+  }
+
+  async put (service: string, account: string, secret: string): Promise<void> {
+    for (const store of this.candidates) {
+      if (this.failed.has(store)) continue
+      if (!(await store.isAvailable())) continue
+      try {
+        await store.put(service, account, secret)
+        this.chosen = store
+        this.kind = store.kind
+        return
+      } catch (err) {
+        if (err instanceof Error && err.message.startsWith('Invalid ')) throw err
+        this.failed.add(store)
+      }
+    }
+    throw new NoWritableSecretStore()
+  }
+
+  async delete (service: string, account: string): Promise<void> {
+    for (const store of this.candidates) {
+      try {
+        await store.delete(service, account)
+      } catch {
+        // Idempotent.
+      }
+    }
+  }
+
+  resolverExpr (service: string, account: string): string {
+    const store = this.chosen ?? this.candidates[0]
+    if (store == null) {
+      throw new Error('No OS secret store is available: cannot produce a resolver expression')
+    }
+    return store.resolverExpr(service, account)
+  }
+}
+
 class NoopStore implements SecretStore {
   kind = 'none' as const
   async isAvailable (): Promise<boolean> { return false }
@@ -372,9 +440,33 @@ class NoopStore implements SecretStore {
 export async function getSecretStore (deps: SecretStoreDeps = {}): Promise<SecretStore> {
   const candidates = candidatesForPlatform(deps.platform ?? process.platform, deps)
   for (const store of candidates) {
-    if (await store.isAvailable()) return store
+    if (!(await store.isAvailable())) continue
+    // secret-tool on PATH is not a working keyring. Keep later candidates
+    // (pass) unprobed until a write fails.
+    if (store.kind === 'secret_service') return new FallbackStore(candidates)
+    return store
   }
   return new NoopStore()
+}
+
+/**
+ * Stores `secret` and returns the resolver expression. Returns undefined when
+ * every candidate rejected the write, so the caller can keep the value inline.
+ * Validation errors and keychain failures still throw.
+ */
+export async function putSecret (
+  store: SecretStore,
+  service: string,
+  account: string,
+  secret: string,
+): Promise<string | undefined> {
+  try {
+    await store.put(service, account, secret)
+    return store.resolverExpr(service, account)
+  } catch (err) {
+    if (err instanceof NoWritableSecretStore) return undefined
+    throw err
+  }
 }
 
 function candidatesForPlatform (platform: string, deps: SecretStoreDeps): SecretStore[] {

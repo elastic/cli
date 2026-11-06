@@ -9,6 +9,7 @@ import { spawnSync, type execSync as ExecSyncFn, type spawnSync as SpawnSyncFn }
 import { fileURLToPath } from 'node:url'
 import {
   getSecretStore,
+  NoWritableSecretStore,
   _testStores,
 } from '../../src/config/secret-store.ts'
 
@@ -74,24 +75,70 @@ describe('getSecretStore', () => {
   })
 
   it('falls back to a noop store when no candidate is available', async () => {
-    const { fn } = makeExec([
-      { match: 'secret-tool --version', result: new Error('not found') },
+    const missing = Object.assign(new Error('not found'), { code: 'ENOENT' })
+    const { fn: spawn } = makeSpawn([
+      { match: 'secret-tool', result: { error: missing } },
+    ])
+    const { fn: exec } = makeExec([
       { match: 'pass version', result: new Error('not found') },
     ])
 
-    const store = await getSecretStore({ platform: 'linux', execSync: fn })
+    const store = await getSecretStore({ platform: 'linux', execSync: exec, spawnSync: spawn })
     assert.equal(store.kind, 'none')
     assert.equal(await store.isAvailable(), false)
   })
 
-  it('prefers secret_service over pass on linux', async () => {
-    const { fn, calls } = makeExec([
-      { match: 'secret-tool --version', result: 'Secret Tool 0.21\n' },
+  it('treats secret-tool usage exit 2 as available and does not pass --version', async () => {
+    const { fn: spawn, calls } = makeSpawn([
+      { match: 'secret-tool', result: { status: 2, stderr: 'usage: secret-tool store --label=label attribute value' } },
+    ])
+    const { fn: exec, calls: execCalls } = makeExec([
+      { match: 'pass version', result: new Error('not found') },
     ])
 
-    const store = await getSecretStore({ platform: 'linux', execSync: fn })
+    const store = await getSecretStore({ platform: 'linux', execSync: exec, spawnSync: spawn })
     assert.equal(store.kind, 'secret_service')
-    assert.equal(calls.some(c => c.cmd.startsWith('pass')), false)
+    assert.equal(calls[0]?.file, 'secret-tool')
+    assert.deepEqual(calls[0]?.args, [])
+    assert.equal(calls.some(c => c.args.includes('--version')), false)
+    assert.equal(execCalls.some(c => c.cmd.startsWith('pass')), false)
+    assert.equal(await store.isAvailable(), true)
+  })
+
+  it('falls through to pass when secret-tool rejects the write', async () => {
+    const { fn: spawn } = makeSpawn([
+      { match: 'secret-tool store', result: { status: 1, stderr: 'no D-Bus session' } },
+      { match: 'secret-tool', result: { status: 2, stderr: 'usage: secret-tool' } },
+    ])
+    const { fn: exec, calls } = makeExec([
+      { match: 'pass version', result: '' },
+      { match: 'pass insert', result: '' },
+    ])
+
+    const store = await getSecretStore({ platform: 'linux', execSync: exec, spawnSync: spawn })
+    await store.put('elastic-cli', 'acct?#x', 'hunter2')
+    assert.equal(store.kind, 'pass')
+    assert.equal(store.resolverExpr('elastic-cli', 'acct?#x'), '$(pass:elastic-cli/acct?#x)')
+    assert.ok(calls.some(c => c.cmd.includes('pass insert')))
+    assert.equal(calls.some(c => c.cmd.includes('hunter2')), false)
+  })
+
+  it('reports no writable store when secret-tool and pass both reject the write', async () => {
+    const { fn: spawn } = makeSpawn([
+      { match: 'secret-tool store', result: { status: 1, stderr: 'no D-Bus session' } },
+      { match: 'secret-tool', result: { status: 2, stderr: 'usage: secret-tool' } },
+    ])
+    const { fn: exec } = makeExec([
+      { match: 'pass version', result: '' },
+      { match: 'pass insert', result: new Error('pass is not initialized') },
+    ])
+
+    const store = await getSecretStore({ platform: 'linux', execSync: exec, spawnSync: spawn })
+    await assert.rejects(
+      () => store.put('elastic-cli', 'acct', 'hunter2'),
+      NoWritableSecretStore
+    )
+    assert.equal(await store.isAvailable(), false)
   })
 
   it('uses credential_manager on win32 when CredentialManager module is present', async () => {
@@ -228,15 +275,31 @@ sys.exit(os.waitstatus_to_exitcode(status))
 })
 
 describe('LinuxSecretServiceStore', () => {
-  it('put passes secret via stdin (input option) and uses store attributes', async () => {
-    const { fn, calls } = makeExec([{ match: 'secret-tool store', result: '' }])
-    const store = new _testStores.LinuxSecretServiceStore({ execSync: fn })
-    await store.put('elastic-cli', 'prod:es.api_key', 'hunter2')
-    const put = calls.find(c => c.cmd.includes('secret-tool store'))!
+  it('put passes the secret on stdin and keeps it out of argv', async () => {
+    const { fn, calls } = makeSpawn([{ match: 'secret-tool store' }])
+    const store = new _testStores.LinuxSecretServiceStore({ spawnSync: fn })
+    await store.put('elastic-cli', 'prod?#es', 'hunter2')
+    const put = calls[0]
     assert.ok(put)
+    assert.equal(put.file, 'secret-tool')
+    assert.deepEqual(put.args, [
+      'store',
+      '--label=elastic-cli:elastic-cli:prod?#es',
+      'service',
+      'elastic-cli',
+      'account',
+      'prod?#es',
+    ])
+    assert.equal(put.args.includes('hunter2'), false)
     assert.equal((put.options as { input?: string }).input, 'hunter2')
-    assert.match(put.cmd, /service 'elastic-cli'/)
-    assert.match(put.cmd, /account 'prod:es.api_key'/)
+  })
+
+  it('rejects a service that contains a slash before spawning', async () => {
+    const { fn, calls } = makeSpawn([])
+    const store = new _testStores.LinuxSecretServiceStore({ spawnSync: fn })
+    await assert.rejects(() => store.put('../etc', 'acct', 'x'), /must not contain/)
+    await assert.rejects(() => store.put('svc', '', 'x'), /must not be empty/)
+    assert.equal(calls.length, 0)
   })
 
   it('resolverExpr produces a secret_service: expression', () => {

@@ -35,7 +35,7 @@ import {
   resolveConfigPath,
   type RawContext,
 } from './writer.ts'
-import { getSecretStore, type SecretStore } from './secret-store.ts'
+import { getSecretStore, putSecret, type SecretStore } from './secret-store.ts'
 import { ContextSchema } from './schema.ts'
 
 const KEYCHAIN_SERVICE = 'elastic-cli'
@@ -167,14 +167,21 @@ async function applyFieldUpdates (
   for (const { field, value } of updates.secrets) {
     const account = `${contextName}:${field.path.join('.')}`
     if (useStore && store != null) {
-      await store.put(KEYCHAIN_SERVICE, account, value)
-      const expr = store.resolverExpr(KEYCHAIN_SERVICE, account)
-      ctx = setPath(ctx, field.path, expr)
-      secretsLog.push({ path: field.path.join('.'), storage: store.kind as Exclude<SecretStore['kind'], 'none'> })
-    } else {
-      ctx = setPath(ctx, field.path, value)
-      secretsLog.push({ path: field.path.join('.'), storage: 'inline' })
+      const expr = await putSecret(store, KEYCHAIN_SERVICE, account, value)
+      if (expr != null) {
+        ctx = setPath(ctx, field.path, expr)
+        secretsLog.push({ path: field.path.join('.'), storage: store.kind as Exclude<SecretStore['kind'], 'none'> })
+        continue
+      }
+      if (!warnings.some(w => w.startsWith('No OS secret store'))) {
+        warnings.push(
+          'No OS secret store is available; secrets will be written inline to the config file. ' +
+          'The file will be chmod 0600 on Unix. Pass --inline-secrets to suppress this warning.'
+        )
+      }
     }
+    ctx = setPath(ctx, field.path, value)
+    secretsLog.push({ path: field.path.join('.'), storage: 'inline' })
   }
 
   return { context: ctx as RawContext, secretsLog, warnings }

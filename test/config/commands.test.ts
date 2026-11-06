@@ -6,9 +6,10 @@
 import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { chmod, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
+import { parse as parseYaml } from 'yaml'
 
 const CLI = resolve('dist/cli.js')
 
@@ -235,5 +236,68 @@ describe('elastic config context add (home config discovery)', () => {
     assert.equal(res.exitCode, 0, res.stderr)
     assert.match(await readFile(join(home, '.elasticrc.yml'), 'utf-8'), /fresh/)
     await rm(join(home, '.elasticrc.yml'))
+  })
+})
+
+describe('elastic config secret store fallback', { skip: process.platform !== 'linux' }, () => {
+  async function binDir (passVersionStatus: string): Promise<string> {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-secret-bin-'))
+    await writeFile(join(dir, 'secret-tool'), '#!/bin/sh\nif [ "$1" = "store" ]; then exit 1; fi\nexit 2\n')
+    await writeFile(join(dir, 'pass'), `#!/bin/sh\nif [ "$1" = "version" ]; then exit ${passVersionStatus}; fi\nif [ "$1" = "insert" ]; then exit 0; fi\nexit 1\n`)
+    await chmod(join(dir, 'secret-tool'), 0o755)
+    await chmod(join(dir, 'pass'), 0o755)
+    return dir
+  }
+
+  async function addWith (bin: string, name: string, apiKey: string) {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-secret-cfg-'))
+    const cfg = join(dir, 'cfg.yml')
+    const res = run(
+      ['config', 'context', 'add', name, '--config-file', cfg, '--es-url', 'http://localhost:9200', '--es-api-key', apiKey],
+      { PATH: `${bin}:${process.env.PATH ?? ''}` }
+    )
+    return { dir, cfg, res }
+  }
+
+  it('falls through to pass when secret-tool rejects the write', async () => {
+    const bin = await binDir('0')
+    const apiKey = 'hunter2?#'
+    const { dir, cfg, res } = await addWith(bin, 'linsec', apiKey)
+    try {
+      assert.equal(res.exitCode, 0, res.stderr)
+      const secrets = (res.json as { secrets: Array<{ path: string, storage: string }> }).secrets
+      assert.deepEqual(secrets, [{ path: 'elasticsearch.auth.api_key', storage: 'pass' }])
+      const yaml = await readFile(cfg, 'utf-8')
+      const parsed = parseYaml(yaml) as { contexts: Record<string, { elasticsearch: { auth: { api_key: string } } }> }
+      assert.equal(parsed.contexts.linsec.elasticsearch.auth.api_key, '$(pass:elastic-cli/linsec:elasticsearch.auth.api_key)')
+      assert.equal(yaml.includes(apiKey), false)
+      const noStore = res.stderr.split('\n').filter(l => l.includes('No OS secret store'))
+      assert.equal(noStore.length, 0)
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+      await rm(bin, { recursive: true, force: true })
+    }
+  })
+
+  it('writes the secret inline when secret-tool and pass both reject it', async () => {
+    const bin = await binDir('1')
+    const apiKey = 'hunter2?#'
+    const { dir, cfg, res } = await addWith(bin, 'nosec', apiKey)
+    try {
+      assert.equal(res.exitCode, 0, res.stderr)
+      const body = res.json as { secrets: Array<{ path: string, storage: string }>, warnings: string[] }
+      assert.deepEqual(body.secrets, [{ path: 'elasticsearch.auth.api_key', storage: 'inline' }])
+      const noStore = body.warnings.filter(w => w.startsWith('No OS secret store'))
+      assert.equal(noStore.length, 1)
+      const yaml = await readFile(cfg, 'utf-8')
+      const parsed = parseYaml(yaml) as { contexts: Record<string, { elasticsearch: { auth: { api_key: string } } }> }
+      assert.equal(parsed.contexts.nosec.elasticsearch.auth.api_key, apiKey)
+      assert.equal(yaml.includes('$(pass:'), false)
+      const st = await stat(cfg)
+      assert.equal(st.mode & 0o777, 0o600)
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+      await rm(bin, { recursive: true, force: true })
+    }
   })
 })
