@@ -371,6 +371,10 @@ describe('registerEsCommands - help groups', () => {
     const helpers = handle.commands.find((c) => c.name() === 'helpers')
     assert.ok(helpers != null)
     assert.equal(helpers.helpGroup(), 'Helpers')
+    assert.deepEqual(
+      helpers.commands.map((c) => c.name()).sort(),
+      ['bulk-ingest', 'msearch', 'scroll-search', 'watch']
+    )
   })
 
   it('known root-level commands are assigned to their domain group', async () => {

@@ -266,8 +266,10 @@ async function buildEagerTree (definitions: EsApiDefinition[]): Promise<OpaqueCo
     rootHandles.push(h)
   }
 
-  // Stub for helpers; actual helpers sub-commands are loaded on demand via stub-swap.
-  const helpersGroup = defineGroup({ name: 'helpers', description: 'High-level helper commands for common Elasticsearch workflows' })
+  // Schema generation and other eager callers need the real helper commands.
+  // The lazy tree keeps an empty group until `es helpers` is the invocation.
+  const { registerHelperCommands } = await import('./helpers/register.js')
+  const helpersGroup = registerHelperCommands()
   applyHelpGroup(helpersGroup, 'Helpers')
 
   return defineGroup({ name: 'es', description: 'Interact with the Elasticsearch API' }, ...namespaceHandles, ...rootHandles, helpersGroup)
