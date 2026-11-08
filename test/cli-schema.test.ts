@@ -84,4 +84,15 @@ describe('cli schema', () => {
     assert.equal(routing?.repeatable, true)
     assert.equal(routing?.separator, undefined)
   })
+
+  it('emits the es helpers sub-commands instead of an empty stub', async () => {
+    const { code, stdout, stderr } = await runCliSchema()
+    assert.equal(code, 0, stderr)
+
+    const schema = JSON.parse(stdout) as { namespaces: CliNamespace[] }
+    for (const name of ['scroll-search', 'bulk-ingest', 'msearch', 'watch']) {
+      const cmd = findCommand(schema.namespaces, ['stack', 'es', 'helpers'], name)
+      assert.ok(cmd != null, `expected helpers/${name} in cli-schema output`)
+    }
+  })
 })
