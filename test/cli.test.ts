@@ -866,6 +866,9 @@ describe('elastic CLI -- extension dispatch honors global config flags', { skip:
     ['-- before the extension name (args forwarded)', ['--use-context', 'b', '--', 'dumpenv', '--use-context', 'a'], 'URL=http://b.example:9200 ARGS=--use-context a'],
     ['--json before the extension name', ['--json', 'dumpenv', 'x'], 'URL=http://a.example:9200 ARGS=x'],
     ['--json after the extension name (forwarded)', ['dumpenv', '--json', 'x'], 'URL=http://a.example:9200 ARGS=--json x'],
+    ['--help after the extension name', ['dumpenv', '--help'], 'URL=http://a.example:9200 ARGS=--help'],
+    ['-h after the extension name', ['dumpenv', '-h'], 'URL=http://a.example:9200 ARGS=-h'],
+    ['--help after the name with a leading context flag', ['--use-context', 'b', 'dumpenv', '--help'], 'URL=http://b.example:9200 ARGS=--help'],
     // An unknown profile fails the config load, so no credentials reach the extension.
     ['--command-profile before the extension name', ['--command-profile', 'bogus', 'dumpenv', 'x'], 'URL= ARGS=x'],
   ]
@@ -878,6 +881,42 @@ describe('elastic CLI -- extension dispatch honors global config flags', { skip:
       })
     })
   }
+
+  it('--help before the extension name shows root help', async () => {
+    await withExtension(async (dir) => {
+      const { code, stdout } = await runCli(['--help', 'dumpenv'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, ELASTIC_CLI_CONFIG_FILE: '' } })
+      assert.equal(code, 0)
+      assert.match(stdout, /^Usage: elastic/m)
+      assert.doesNotMatch(stdout, /ARGS=/)
+    })
+  })
+
+  it('-h before the extension name shows root help', async () => {
+    await withExtension(async (dir) => {
+      const { code, stdout } = await runCli(['-h', 'dumpenv'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, ELASTIC_CLI_CONFIG_FILE: '' } })
+      assert.equal(code, 0)
+      assert.match(stdout, /^Usage: elastic/m)
+      assert.doesNotMatch(stdout, /ARGS=/)
+    })
+  })
+
+  it('root --help does not run an installed extension', async () => {
+    await withExtension(async (dir) => {
+      const { code, stdout } = await runCli(['--help'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, ELASTIC_CLI_CONFIG_FILE: '' } })
+      assert.equal(code, 0)
+      assert.match(stdout, /^Usage: elastic/m)
+      assert.doesNotMatch(stdout, /ARGS=/)
+    })
+  })
+
+  it('a built-in command --help does not run an installed extension', async () => {
+    await withExtension(async (dir) => {
+      const { code, stdout } = await runCli(['version', '--help'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, ELASTIC_CLI_CONFIG_FILE: '' } })
+      assert.equal(code, 0)
+      assert.match(stdout, /version/i)
+      assert.doesNotMatch(stdout, /ARGS=/)
+    })
+  })
 
   it('--config-file before the extension name', async () => {
     await withExtension(async (dir, cfg) => {
