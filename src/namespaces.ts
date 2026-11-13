@@ -123,6 +123,32 @@ export const NAMESPACES: NamespaceEntry[] = [
     },
   },
   {
+    name: 'nightshift',
+    description: 'Ask the Nightshift assistant',
+    load: async (opts) => {
+      const { buildKbPresetCommand, resolveKbTarget } = await import('./kb/register.ts')
+      const target = opts?.eager === true ? undefined : resolveKbTarget()
+      const ask = await buildKbPresetCommand({
+        apiId: 'agent-builder.post-chat-message',
+        name: 'ask',
+        description: 'Ask the Nightshift assistant a question and get its answer',
+        fixed: { agent_id: 'nightshift.assistant' },
+        positional: 'message',
+        // Nightshift agents only exist on Serverless Observability projects.
+        flavors: ['serverless'],
+        experimental: {
+          label: 'nightshift ask',
+          status: 'subject to significant changes before it reaches a stable state',
+        },
+        ...(target !== undefined ? { target } : {}),
+      })
+      return defineGroup(
+        { name: 'nightshift', description: 'Ask the Nightshift assistant' },
+        ...(ask != null ? [ask] : []),
+      )
+    },
+  },
+  {
     name: 'config',
     description: 'Author and maintain the elastic config file',
     requiresContext: false,

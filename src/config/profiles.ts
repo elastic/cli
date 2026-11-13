@@ -13,8 +13,8 @@
  * Built-in profiles:
  * - `serverless` — only commands that work on Elastic Serverless. Hides
  *   `cloud hosted` and exposes `cloud serverless` + all stack commands.
- * - `stack`      — full surface including self-managed / hosted-only APIs.
- *                  Equivalent to having no policy (allow everything).
+ * - `stack`      — full surface including self-managed / hosted-only APIs,
+ *                  minus commands that only apply to Serverless projects.
  * - `default`    — alias for `serverless`; the most conservative baseline,
  *                  recommended for agents and LLM-based tooling.
  */
@@ -40,14 +40,17 @@ const STACK_ONLY_ES_NAMESPACES = [
   'watcher',
 ] as const
 
+/** Namespaces that only apply to Serverless projects (Nightshift: observability projects). */
+const SERVERLESS_ONLY_NAMESPACES = ['nightshift'] as const
+
 /**
  * Resolves a built-in profile to an effective allow/block policy.
  *
- * Returns `null` for `stack`, which means "no restriction" (allow everything).
- * Returns an object with `allowed` and `blocked` patterns for all other profiles.
+ * `allowed`, when present, is the complete allow-list; without it every command
+ * not matched by `blocked` is allowed.
  */
-export function resolveBuiltinProfile (name: BuiltInProfile): { allowed: readonly string[]; blocked?: readonly string[] } | null {
-  if (name === 'stack') return null
+export function resolveBuiltinProfile (name: BuiltInProfile): { allowed?: readonly string[]; blocked?: readonly string[] } {
+  if (name === 'stack') return { blocked: SERVERLESS_ONLY_NAMESPACES.map(ns => `${ns}.*`) }
 
   // `default` is an alias for `serverless`
   return {
@@ -64,6 +67,8 @@ export function resolveBuiltinProfile (name: BuiltInProfile): { allowed: readonl
 
       // All stack commands (Elasticsearch + Kibana)
       'stack.*',
+
+      ...SERVERLESS_ONLY_NAMESPACES.map(ns => `${ns}.*`),
 
       // Cloud cross-cutting namespaces (apply to both Hosted and Serverless)
       'cloud.trust.*',
