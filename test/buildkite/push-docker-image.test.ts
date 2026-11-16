@@ -17,6 +17,7 @@ const releaseYml = join(root, '.buildkite/release.yml')
 const digest = 'sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
 const amdDigest = `sha256:${'a'.repeat(64)}`
 const armDigest = `sha256:${'b'.repeat(64)}`
+const decoyDigest = `sha256:${'0'.repeat(64)}`
 
 function bashPath (p: string): string {
   if (process.platform !== 'win32') return p
@@ -33,10 +34,18 @@ async function fakes (dir: string) {
   const dockerStdin = join(dir, 'docker-stdin')
   const dockerCfg = join(dir, 'docker-cfg')
   const vaultLog = join(dir, 'vault-log')
-  const bunLog = join(dir, 'bun-log')
+  const ghLog = join(dir, 'gh-log')
+  const ghCount = join(dir, 'gh-count')
+  const sleepLog = join(dir, 'sleep-log')
   await writeFile(join(bin, 'docker'), `#!/usr/bin/env bash
 {
   printf '%s\\n' "$@"
+  if [[ "$1" == buildx && "$2" == build ]]; then
+    context="\${@: -1}"
+    if [[ -f "$context/elastic" ]]; then
+      printf 'CONTEXT:%s\\n' "$(cat "$context/elastic")"
+    fi
+  fi
   echo '---'
 } >> "$DOCKER_LOG"
 if [[ "$1" == login ]]; then
@@ -54,10 +63,11 @@ if [[ "$1" == buildx && "$2" == version ]]; then
 fi
 if [[ "$*" == *push-by-digest=true* ]]; then
   if [[ "$*" == *linux/arm64* ]]; then
-    printf '%s\\n' "${armDigest}"
+    printf '%s\\n' "${armDigest}" >&2
   else
-    printf '%s\\n' "${amdDigest}"
+    printf '%s\\n' "${amdDigest}" >&2
   fi
+  printf '%s\\n' "${decoyDigest}"
 fi
 if [[ "$*" == *inspect* ]]; then
   format=""
@@ -81,29 +91,44 @@ if [[ "$1" == read && "$2" == -field=password ]]; then
 fi
 exit 1
 `)
-  await writeFile(join(bin, 'bun'), `#!/usr/bin/env bash
-printf '%s\\n' "$@" >> "$BUN_LOG"
-if [[ "$1" == --version ]]; then
-  printf '%s\\n' "$BUN_VERSION"
+  await writeFile(join(bin, 'gh'), `#!/usr/bin/env bash
+printf '%s\\n' "$@" >> "$GH_LOG"
+if [[ "$1" != release || "$2" != download ]]; then
+  echo "unexpected gh: $*" >&2
+  exit 1
+fi
+dir=""
+prev=""
+for arg in "$@"; do
+  if [[ "$prev" == --dir ]]; then dir=$arg; fi
+  prev=$arg
+done
+count=0
+if [[ -f "$GH_COUNT" ]]; then count=$(cat "$GH_COUNT"); fi
+count=$((count + 1))
+printf '%s' "$count" > "$GH_COUNT"
+fails=\${GH_FAILS:-0}
+if [[ "$count" -le "$fails" ]]; then
+  echo "asset not found" >&2
+  exit 1
+fi
+if [[ "\${GH_LINK:-}" == 1 ]]; then
+  ln -s /etc/passwd "$dir/elastic-linux-x64"
+  ln -s /etc/passwd "$dir/elastic-linux-arm64"
   exit 0
 fi
-if [[ "$1" == x || "$1" == install || "$1" == scripts/generate-schema-loaders.mjs ]]; then
-  exit 0
-fi
-if [[ "$1" == build ]]; then
-  prev=""
-  for arg in "$@"; do
-    if [[ "$prev" == --outfile ]]; then printf 'bin' > "$arg"; fi
-    prev=$arg
-  done
-  exit 0
-fi
-exit 1
+if [[ "\${GH_AMD+x}" == x ]]; then printf '%s' "$GH_AMD" > "$dir/elastic-linux-x64"
+else printf '%s' amd-bytes > "$dir/elastic-linux-x64"; fi
+if [[ "\${GH_ARM+x}" == x ]]; then printf '%s' "$GH_ARM" > "$dir/elastic-linux-arm64"
+else printf '%s' arm-bytes > "$dir/elastic-linux-arm64"; fi
 `)
-  for (const name of ['docker', 'vault', 'bun']) {
+  await writeFile(join(bin, 'sleep'), `#!/usr/bin/env bash
+printf '%s\\n' "$@" >> "$SLEEP_LOG"
+`)
+  for (const name of ['docker', 'vault', 'gh', 'sleep']) {
     await chmod(join(bin, name), 0o755)
   }
-  return { bin, dockerLog, dockerStdin, dockerCfg, vaultLog, bunLog }
+  return { bin, dockerLog, dockerStdin, dockerCfg, vaultLog, ghLog, ghCount, sleepLog }
 }
 
 function run (cwd: string, args: string[], env: NodeJS.ProcessEnv) {
@@ -121,7 +146,9 @@ describe('release.yml image push', () => {
     const push = steps.find(step => step.includes('key: push-image'))
     assert.ok(push)
     assert.match(push, /if: build\.tag =~ \/\^v\//)
-    assert.match(push, /push-docker-image\.sh/)
+    assert.match(push, /push-docker-image\.sh --from-release/)
+    assert.match(push, /vault-github-token/)
+    assert.match(push, /gh-cli/)
     assert.doesNotMatch(push, /depends_on:/)
     for (const step of steps) {
       if (step.includes('key: push-image')) continue
@@ -162,6 +189,7 @@ describe('push-docker-image.sh', () => {
       assert.match(calls[3], /push-by-digest=true[\s\S]*linux\/arm64/)
       assert.equal(log.includes(':0.6.0-amd64'), false)
       assert.equal(log.includes(':0.6.0-arm64'), false)
+      assert.equal(log.includes(decoyDigest), false)
       assert.match(calls[4], new RegExp(
         `imagetools\\ncreate\\n--tag\\ndocker\\.elastic\\.co\\/clients\\/elastic-cli:0\\.6\\.0\\n--tag\\ndocker\\.elastic\\.co\\/clients\\/elastic-cli:latest\\ndocker\\.elastic\\.co\\/clients\\/elastic-cli@${amdDigest}\\ndocker\\.elastic\\.co\\/clients\\/elastic-cli@${armDigest}`,
       ))
@@ -203,58 +231,146 @@ describe('push-docker-image.sh', () => {
     }
   })
 
-  it('compiles both linux binaries when only the tag is set', async () => {
+  it('pushes the github release binaries', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'push-image-'))
     try {
-      const { bin, dockerLog, dockerStdin, dockerCfg, bunLog } = await fakes(dir)
-      const result = run(dir, [], {
+      const { bin, dockerLog, dockerStdin, dockerCfg, ghLog, sleepLog } = await fakes(dir)
+      const result = run(dir, ['--from-release'], {
         PATH: `${bin}${delimiter}${process.env.PATH}`,
         DOCKER_LOG: bashPath(dockerLog),
         DOCKER_STDIN: bashPath(dockerStdin),
         DOCKER_CFG: bashPath(dockerCfg),
+        GH_LOG: bashPath(ghLog),
+        GH_COUNT: bashPath(join(dir, 'gh-count')),
+        SLEEP_LOG: bashPath(sleepLog),
         VAULT_LOG: join(dir, 'vault-log'),
         VAULT_PASSWORD: 's3cret',
-        BUN_LOG: bashPath(bunLog),
-        BUN_VERSION: '1.3.14',
+        GH_TOKEN: 'gh-token',
+        GH_AMD: 'linux-amd64-bytes',
+        GH_ARM: 'linux-arm64-bytes',
         BUILDKITE_TAG: 'v0.6.0',
         INSPECT_DIGEST: digest,
         CREATED: '2020-01-02T03:04:05Z',
         GIT_REVISION: 'abc123',
       })
       assert.equal(result.status, 0, result.stderr)
-      const compiled = await readFile(bunLog, 'utf8')
-      assert.match(compiled, /^x\n/m)
-      assert.match(compiled, /--target\nbun-linux-x64/)
-      assert.match(compiled, /--target\nbun-linux-arm64/)
-      assert.equal((await readFile(dockerLog, 'utf8')).includes('s3cret'), false)
+      const gh = await readFile(ghLog, 'utf8')
+      assert.match(gh, /release\ndownload\nv0\.6\.0\n/)
+      assert.match(gh, /--pattern\nelastic-linux-x64\n--pattern\nelastic-linux-arm64\n/)
+      assert.equal(gh.includes('gh-token'), false)
+      assert.equal(result.stderr.includes('gh-token'), false)
+      const log = await readFile(dockerLog, 'utf8')
+      assert.match(log, /CONTEXT:linux-amd64-bytes\n/)
+      assert.match(log, /CONTEXT:linux-arm64-bytes\n/)
+      assert.equal(log.includes(decoyDigest), false)
+      assert.equal(log.includes('s3cret'), false)
+      await assert.rejects(readFile(sleepLog, 'utf8'))
     } finally {
       await rm(dir, { recursive: true, force: true })
     }
   })
 
-  it('does not log in when compile fails', async () => {
+  it('does not log in when the release assets never appear', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'push-image-'))
     try {
-      const { bin, dockerLog, vaultLog, bunLog } = await fakes(dir)
-      await writeFile(join(bin, 'bun'), `#!/usr/bin/env bash
-printf '%s\\n' "$@" >> "$BUN_LOG"
-if [[ "$1" == --version ]]; then
-  printf '%s\\n' "$BUN_VERSION"
-  exit 0
-fi
-exit 1
-`)
-      await chmod(join(bin, 'bun'), 0o755)
-      const result = run(dir, [], {
+      const { bin, dockerLog, vaultLog, ghLog, sleepLog } = await fakes(dir)
+      const result = run(dir, ['--from-release'], {
         PATH: `${bin}${delimiter}${process.env.PATH}`,
         DOCKER_LOG: bashPath(dockerLog),
+        GH_LOG: bashPath(ghLog),
+        GH_COUNT: bashPath(join(dir, 'gh-count')),
+        SLEEP_LOG: bashPath(sleepLog),
         VAULT_LOG: bashPath(vaultLog),
-        BUN_LOG: bashPath(bunLog),
-        BUN_VERSION: '1.3.14',
+        VAULT_PASSWORD: 's3cret',
+        GH_TOKEN: 'gh-token',
+        GH_FAILS: '60',
         BUILDKITE_TAG: 'v0.6.0',
       })
       assert.notEqual(result.status, 0)
+      assert.match(result.stderr, /linux release assets not on v0\.6\.0/)
       assert.match(await readFile(dockerLog, 'utf8'), /^buildx\nversion\n/)
+      assert.doesNotMatch(await readFile(dockerLog, 'utf8'), /login/)
+      const sleeps = (await readFile(sleepLog, 'utf8')).trim().split('\n')
+      assert.equal(sleeps.length, 60)
+      await assert.rejects(readFile(vaultLog, 'utf8'))
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('retries a missing release asset and then pushes', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'push-image-'))
+    try {
+      const { bin, dockerLog, dockerStdin, dockerCfg, ghCount, sleepLog } = await fakes(dir)
+      const result = run(dir, ['--from-release'], {
+        PATH: `${bin}${delimiter}${process.env.PATH}`,
+        DOCKER_LOG: bashPath(dockerLog),
+        DOCKER_STDIN: bashPath(dockerStdin),
+        DOCKER_CFG: bashPath(dockerCfg),
+        GH_LOG: bashPath(join(dir, 'gh-log')),
+        GH_COUNT: bashPath(ghCount),
+        SLEEP_LOG: bashPath(sleepLog),
+        VAULT_LOG: join(dir, 'vault-log'),
+        VAULT_PASSWORD: 's3cret',
+        GH_TOKEN: 'gh-token',
+        GH_FAILS: '1',
+        BUILDKITE_TAG: 'v0.6.0',
+        INSPECT_DIGEST: digest,
+        CREATED: '2020-01-02T03:04:05Z',
+        GIT_REVISION: 'abc123',
+      })
+      assert.equal(result.status, 0, result.stderr)
+      assert.equal(await readFile(ghCount, 'utf8'), '2')
+      assert.match(await readFile(sleepLog, 'utf8'), /^15\n/)
+      assert.match(await readFile(dockerLog, 'utf8'), /CONTEXT:amd-bytes\n/)
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('rejects a bad tag, a missing token, an empty asset, and a symlink before vault', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'push-image-'))
+    try {
+      const { bin, dockerLog, vaultLog, ghLog } = await fakes(dir)
+      const env = {
+        PATH: `${bin}${delimiter}${process.env.PATH}`,
+        DOCKER_LOG: bashPath(dockerLog),
+        GH_LOG: bashPath(ghLog),
+        GH_COUNT: bashPath(join(dir, 'gh-count')),
+        SLEEP_LOG: bashPath(join(dir, 'sleep-log')),
+        VAULT_LOG: bashPath(vaultLog),
+        VAULT_PASSWORD: 's3cret',
+        GH_TOKEN: 'gh-token',
+        GITHUB_TOKEN: '',
+      }
+      for (const tag of ['v../', 'v1.2.3;touch /tmp/pwn', 'v?#', 'v', 'v1.2.3+build.1']) {
+        const result = run(dir, ['--from-release'], { ...env, BUILDKITE_TAG: tag })
+        assert.notEqual(result.status, 0, tag)
+      }
+      const noToken = run(dir, ['--from-release'], {
+        ...env,
+        BUILDKITE_TAG: 'v0.6.0',
+        GH_TOKEN: '',
+        GITHUB_TOKEN: '',
+      })
+      assert.notEqual(noToken.status, 0)
+      assert.match(noToken.stderr, /GH_TOKEN or GITHUB_TOKEN must be set/)
+      await assert.rejects(readFile(ghLog, 'utf8'))
+      const empty = run(dir, ['--from-release'], {
+        ...env,
+        BUILDKITE_TAG: 'v0.6.0',
+        GH_AMD: '',
+      })
+      assert.notEqual(empty.status, 0)
+      assert.match(empty.stderr, /linux release asset missing/)
+      const linked = run(dir, ['--from-release'], {
+        ...env,
+        BUILDKITE_TAG: 'v0.6.0',
+        GH_AMD: 'amd-bytes',
+        GH_LINK: '1',
+      })
+      assert.notEqual(linked.status, 0)
+      assert.match(linked.stderr, /linux release asset missing/)
       assert.doesNotMatch(await readFile(dockerLog, 'utf8'), /login/)
       await assert.rejects(readFile(vaultLog, 'utf8'))
     } finally {

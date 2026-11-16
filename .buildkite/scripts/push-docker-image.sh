@@ -3,8 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Push docker.elastic.co/clients/elastic-cli for linux/amd64 and linux/arm64.
-# usage: push-docker-image.sh [<version> <amd64-binary> <arm64-binary>]
-# With no args, version is BUILDKITE_TAG and both linux binaries are compiled.
+# usage: push-docker-image.sh --from-release
+#        push-docker-image.sh <version> <amd64-binary> <arm64-binary>
+# --from-release downloads elastic-linux-x64 and elastic-linux-arm64 from the
+# GitHub release. Those are the binaries release-artifacts.yml smoke-tests.
 
 set -euo pipefail
 
@@ -12,16 +14,18 @@ root=$(cd "$(dirname "$0")/../.." && pwd)
 image=docker.elastic.co/clients/elastic-cli
 secret_path=${DEVTOOLSMACHINE_SECRET:-secret/ci/elastic-cli/devtoolsmachine}
 
-if [[ $# -eq 3 ]]; then
-  version=$1
-  amd64=$2
-  arm64=$3
-elif [[ $# -eq 0 ]]; then
+from_release=0
+if [[ $# -eq 1 && "$1" == --from-release ]]; then
+  from_release=1
   version=${BUILDKITE_TAG:?BUILDKITE_TAG must be set}
   amd64=""
   arm64=""
+elif [[ $# -eq 3 ]]; then
+  version=$1
+  amd64=$2
+  arm64=$3
 else
-  echo "usage: push-docker-image.sh [<version> <amd64-binary> <arm64-binary>]" >&2
+  echo "usage: push-docker-image.sh --from-release | <version> <amd64-binary> <arm64-binary>" >&2
   exit 1
 fi
 
@@ -48,57 +52,50 @@ if ! docker buildx version >/dev/null 2>&1; then
   exit 1
 fi
 
-compile_linux() {
-  local dest=$PWD
-  (
-    cd "$root"
-    : "${BUN_VERSION:?BUN_VERSION must be set}"
-    export BUN_INSTALL="${dest}/.bun"
-    export PATH="${BUN_INSTALL}/bin:${PATH}"
-    if ! command -v bun >/dev/null 2>&1 || [[ "$(bun --version)" != "${BUN_VERSION}" ]]; then
-      if [[ "$(uname -s)" != "Linux" ]]; then
-        echo "linux binaries are compiled on a Linux agent, got: $(uname -s)" >&2
-        exit 1
-      fi
-      case "$(uname -m)" in
-        x86_64) bun_install_target="bun-linux-x64" ;;
-        aarch64 | arm64) bun_install_target="bun-linux-aarch64" ;;
-        *)
-          echo "unsupported arch: $(uname -m)" >&2
-          exit 1
-          ;;
-      esac
-      if ! command -v unzip >/dev/null 2>&1; then
-        echo "unzip is required to install bun" >&2
-        exit 1
-      fi
-      tmp="$(mktemp -d)"
-      curl -fsSL "https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/${bun_install_target}.zip" -o "${tmp}/bun.zip"
-      unzip -q "${tmp}/bun.zip" -d "${tmp}"
-      mkdir -p "${BUN_INSTALL}/bin"
-      install -m 0755 "${tmp}/${bun_install_target}/bun" "${BUN_INSTALL}/bin/bun"
-      rm -rf "${tmp}"
-    fi
-    bun install
-    bun x tsc -b packages/config-resolver
-    bun x tsc -b packages/agent-env
-    bun scripts/generate-schema-loaders.mjs
-    bun build src/bun-entry.ts --compile --minify --bytecode --format esm \
-      --outfile "${dest}/elastic-linux-x64" --target bun-linux-x64
-    bun build src/bun-entry.ts --compile --minify --bytecode --format esm \
-      --outfile "${dest}/elastic-linux-arm64" --target bun-linux-arm64
-  )
-  amd64=${dest}/elastic-linux-x64
-  arm64=${dest}/elastic-linux-arm64
-}
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
 
-if [[ -z "$amd64" ]]; then
-  compile_linux
+if [[ "$from_release" == 1 ]]; then
+  token="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
+  if [[ -z "$token" ]]; then
+    echo "GH_TOKEN or GITHUB_TOKEN must be set" >&2
+    exit 1
+  fi
+  export GH_TOKEN="$token"
+  unset token
+  bins="$work/bins"
+  mkdir -p "$bins"
+  downloaded=0
+  for _ in $(seq 1 60); do
+    if gh release download "$BUILDKITE_TAG" \
+      --repo "${GH_REPO:-elastic/cli}" \
+      --dir "$bins" \
+      --clobber \
+      --pattern elastic-linux-x64 \
+      --pattern elastic-linux-arm64
+    then
+      downloaded=1
+      break
+    fi
+    sleep 15
+  done
+  if [[ "$downloaded" != 1 ]]; then
+    echo "linux release assets not on ${BUILDKITE_TAG}" >&2
+    exit 1
+  fi
+  amd64="$bins/elastic-linux-x64"
+  arm64="$bins/elastic-linux-arm64"
+  for f in "$amd64" "$arm64"; do
+    if [[ ! -f "$f" || -L "$f" || ! -s "$f" ]]; then
+      echo "linux release asset missing: $f" >&2
+      exit 1
+    fi
+  done
 fi
 
 # Login lives in a private config so a reused agent does not keep the password.
-docker_config=$(mktemp -d)
-trap 'rm -rf "$docker_config"' EXIT
+docker_config="$work/docker"
+mkdir -p "$docker_config"
 export DOCKER_CONFIG="$docker_config"
 
 password=$(vault read -field=password "$secret_path")
@@ -114,8 +111,9 @@ push_arch() {
   local platform=$1
   local binary=$2
   local raw digest
+  # buildx writes the digest on stderr. stdout is empty.
   raw=$(DOCKER_PUSH=1 DOCKER_PUSH_BY_DIGEST=1 \
-    "$root/scripts/build-docker-image.sh" "$version" "$binary" "$platform")
+    "$root/scripts/build-docker-image.sh" "$version" "$binary" "$platform" 2>&1 >/dev/null)
   digest=$(printf '%s\n' "$raw" | grep -oE 'sha256:[a-f0-9]{64}' | tail -n 1) || true
   if [[ ! "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]; then
     echo "unexpected arch digest: $raw" >&2

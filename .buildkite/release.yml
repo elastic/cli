@@ -126,6 +126,7 @@ steps:
       .buildkite/scripts/publish-release.sh
 
   # Not a dependency of signing or publish. Those steps still run if this fails.
+  # Binaries come from the GitHub release (release-artifacts.yml), after it smoke-tests x64.
   - label: "push cli image"
     key: push-image
     if: build.tag =~ /^v/
@@ -133,6 +134,10 @@ steps:
       provider: gcp
       image: family/core-ubuntu-2204
       machineType: n2-standard-4
+    plugins:
+      - elastic/vault-github-token#v0.2.1:
+      - elastic/gh-cli#v0.1.1:
+          version: "2.92.0"
     artifact_paths:
       - elastic-cli-container-images-digest.txt
-    command: .buildkite/scripts/push-docker-image.sh
+    command: .buildkite/scripts/push-docker-image.sh --from-release
