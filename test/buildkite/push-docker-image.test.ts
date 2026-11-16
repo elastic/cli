@@ -150,9 +150,19 @@ describe('release.yml image push', () => {
     assert.match(push, /vault-github-token/)
     assert.match(push, /gh-cli/)
     assert.doesNotMatch(push, /depends_on:/)
+    const sign = steps.find(step => step.includes('key: sign-image'))
+    assert.ok(sign)
+    assert.match(sign, /trigger: unified-release-container-image-signing/)
+    assert.match(sign, /depends_on: push-image/)
+    assert.match(sign, /if: build\.tag =~ \/\^v\//)
+    assert.match(sign, /IMAGES_TAG: "\$\{BUILDKITE_TAG\}"/)
+    assert.match(sign, /UPLOAD_SIGNATURE: "true"/)
+    assert.doesNotMatch(sign, /ALLOWED_NAMESPACES/)
+    assert.doesNotMatch(sign, /PROJECT:/)
     for (const step of steps) {
-      if (step.includes('key: push-image')) continue
+      if (step.includes('key: push-image') || step.includes('key: sign-image')) continue
       assert.doesNotMatch(step, /push-image/)
+      assert.doesNotMatch(step, /sign-image/)
     }
   })
 })

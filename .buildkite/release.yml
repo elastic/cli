@@ -141,3 +141,14 @@ steps:
     artifact_paths:
       - elastic-cli-container-images-digest.txt
     command: .buildkite/scripts/push-docker-image.sh --from-release
+
+  # Cosign annotation tag is the git tag. The image tag is that value without the leading v.
+  - label: "sign cli image"
+    key: sign-image
+    trigger: unified-release-container-image-signing
+    depends_on: push-image
+    if: build.tag =~ /^v/
+    build:
+      env:
+        IMAGES_TAG: "${BUILDKITE_TAG}"
+        UPLOAD_SIGNATURE: "true"
