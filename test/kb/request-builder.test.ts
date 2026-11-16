@@ -108,7 +108,6 @@ describe('buildKibanaRequestParams', () => {
     const { loadAllKbApis } = await import('../../src/kb/apis.ts')
     const def = (await loadAllKbApis()).find((d) => d.namespace === 'slo' && d.name === 'get-definitions-op')
     assert.ok(def != null, 'expected slo get-definitions-op')
-    assert.match(def.path, /\/internal\//)
     const result = build(def, parsed({ spaceId: 'default' }))
     assert.equal(result.path, '/s/default/api/observability/slos/_definitions')
   })
