@@ -3,7 +3,7 @@
 #
 # The bun binary needs glibc, so this is chainguard-base rather than wolfi/static.
 
-FROM docker.elastic.co/wolfi/chainguard-base:latest@sha256:568df5fb0e237c3a2139399d4bd8e80994f24321fa8469aec565b8566704e83a
+FROM docker.elastic.co/wolfi/chainguard-base:latest@sha256:c011f6b67cf51e390efd6fb07c6f4f310929daa299ab8ef169bab8027787497d
 
 ARG VERSION
 ARG REVISION
