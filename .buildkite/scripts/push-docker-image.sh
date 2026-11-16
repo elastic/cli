@@ -77,7 +77,8 @@ if [[ "$from_release" == 1 ]]; then
       downloaded=1
       break
     fi
-    sleep 15
+    # Git bash on Windows runs sleep.exe ahead of a PATH script named sleep.
+    "${RELEASE_DOWNLOAD_PAUSE:-sleep}" 15
   done
   if [[ "$downloaded" != 1 ]]; then
     echo "linux release assets not on ${BUILDKITE_TAG}" >&2
