@@ -13,6 +13,7 @@ import { NAMESPACES } from './namespaces.ts'
 import type { LoadConfigResult } from './config/loader.ts'
 import type { EarlyHints } from './config/early-scan.ts'
 import type { ResolvedConfig } from './config/types.ts'
+import { emitClaudePluginHint } from './lib/claude-plugin-hint.ts'
 
 // Argv pre-scan (single pass to detect flags, help, and operands)
 const argv = process.argv.slice(2)
@@ -396,6 +397,7 @@ async function dispatchExtension (firstArg: string | undefined): Promise<void> {
 }
 
 async function main (): Promise<void> {
+  emitClaudePluginHint()
   registerGlobalOptions()
   registerConfigHook()
   // after registerGlobalOptions: parseOptions must know which options take values.
