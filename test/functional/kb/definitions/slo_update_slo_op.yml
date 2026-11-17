@@ -34,14 +34,14 @@ teardown:
   - do:
       slo.delete_slo_op:
         space_id: default
-        slo_id: cli-ft-update-slo
+        id: cli-ft-update-slo
         ignore: [404]
 ---
 "slo update-slo-op":
   - do:
       slo.update_slo_op:
         space_id: default
-        slo_id: cli-ft-update-slo
+        id: cli-ft-update-slo
         body:
           name: CLI FT Updated SLO
   - match: {id: cli-ft-update-slo}

@@ -12,7 +12,7 @@ teardown:
   - do:
       slo.delete_slo_op:
         space_id: default
-        slo_id: cli-ft-create-slo
+        id: cli-ft-create-slo
         ignore: [404]
 ---
 "slo create-slo-op":
