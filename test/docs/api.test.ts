@@ -251,6 +251,35 @@ describe('docs api commands', () => {
     assert.equal(calls.length, 0)
   })
 
+  // The schema enforces these before any handler runs, so --dry-run rejects what a real run would.
+  for (const dryRun of [[], ['--dry-run']]) {
+    const mode = dryRun.length > 0 ? ' under --dry-run' : ''
+    for (const [name, create, argv] of [
+      ['search without a query', createApiSearchCommand, []],
+      ['search with a blank query', createApiSearchCommand, ['   ']],
+      ['search with --version but no --api', createApiSearchCommand, ['x', '--version', '9']],
+      ['get without an operation', createApiGetCommand, []],
+      ['get with a blank operation', createApiGetCommand, ['  ']],
+      ['get with both an endpoint and an operation id', createApiGetCommand, ['GET /_cluster/health', '--operation-id', 'cluster-health']],
+      ['list with --group but no api', createApiListCommand, ['--group', 'cluster']],
+      ['list with --page but no --group', createApiListCommand, ['elasticsearch', '--page', '2']],
+    ] as const) {
+      it(`rejects ${name}${mode} without calling the server`, async () => {
+        const { deps, calls } = fake({})
+        const { exitCode } = await run(create(deps), [...argv, ...dryRun])
+        assert.equal(exitCode, 1)
+        assert.equal(calls.length, 0)
+      })
+    }
+  }
+
+  it('accepts a valid query under --dry-run without calling the server', async () => {
+    const { deps, calls } = fake({})
+    const { exitCode } = await run(createApiGetCommand(deps), ['GET /_cluster/health', '--api', 'elasticsearch', '--dry-run'])
+    assert.equal(exitCode, 0)
+    assert.equal(calls.length, 0)
+  })
+
   it('--json passes the server reply through unchanged', async () => {
     const reply = { apis: [] }
     const { deps } = fake(reply)

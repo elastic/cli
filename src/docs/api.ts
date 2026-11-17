@@ -16,6 +16,8 @@ const defaultDeps: ApiDeps = { docsApi }
 
 // Schema keys are the docs API query parameters (`query` is sent as `q`); toKebabCase turns them into flags.
 const api = { type: 'string', description: "API key, e.g. 'elasticsearch' or 'kibana'. `elastic docs api list` lists the keys." }
+// A value that is more than whitespace.
+const nonBlank = { type: 'string', pattern: '\\S' }
 const version = { type: 'string', description: "API version: 'main' or a major such as '9'. Needs --api. Without it, the current version is used." }
 
 interface Operation { id: string; api: string; title: string; url: string; method: string; path: string; operationId: string; deprecated?: boolean }
@@ -37,8 +39,10 @@ interface ApiCommandConfig {
   name: string
   description: string
   properties: Record<string, unknown>
+  /** Further JSON Schema keywords on the input object, such as `required` or `oneOf`. */
+  rules?: Record<string, unknown>
   positionalArg: { name: string; description: string }
-  /** Maps the positional value onto query parameters. */
+  /** Maps the positional value onto input fields; the factory applies it before validation. */
   fromArg: (arg: string) => Record<string, unknown>
   /** Sends the one request; `call` GETs a path under `/_api/v1`. */
   request: (params: Record<string, unknown>, call: ApiDeps['docsApi']) => Promise<unknown>
@@ -49,11 +53,10 @@ function apiCommand (config: ApiCommandConfig, deps: ApiDeps): OpaqueCommandHand
   return defineCommand({
     name: config.name,
     description: config.description,
-    input: { type: 'object', properties: config.properties, additionalProperties: false },
-    positionalArg: { ...config.positionalArg, required: false },
+    input: { type: 'object', properties: config.properties, additionalProperties: false, ...config.rules },
+    positionalArg: { ...config.positionalArg, required: false, toInput: (arg) => config.fromArg(arg.trim()) },
     handler: async (parsed): Promise<JsonValue> => {
-      const arg = parsed.arg?.trim()
-      const params: Record<string, unknown> = { ...(parsed.input ?? {}), ...(arg != null && arg !== '' ? config.fromArg(arg) : {}) }
+      const params: Record<string, unknown> = { ...(parsed.input ?? {}) }
       try {
         return await config.request(params, deps.docsApi) as JsonValue
       } catch (err) {
@@ -73,19 +76,17 @@ export function createApiSearchCommand (deps: ApiDeps = defaultDeps): OpaqueComm
     name: 'search',
     description: 'Search the Elastic REST API reference for operations',
     properties: {
-      query: { type: 'string', description: "Words, an endpoint such as 'GET /_cluster/health', or a field path; end a field with '.' to list its children" },
+      query: { ...nonBlank, description: "Words, an endpoint such as 'GET /_cluster/health', or a field path; end a field with '.' to list its children" },
       api,
       version,
       include_deprecated: { type: 'boolean', description: 'Include deprecated operations' },
       page: { type: 'integer', minimum: 1, description: 'Page number', default: 1 },
       size: { type: 'integer', minimum: 1, maximum: 50, description: 'Results per page', default: 10 },
     },
+    rules: { required: ['query'], dependencies: { version: ['api'] } },
     positionalArg: { name: 'query', description: 'Words, an endpoint, or a field path' },
     fromArg: (query) => ({ query }),
-    request: async ({ query, ...params }, call) => {
-      if (typeof query !== 'string' || query.trim() === '') throw new Error('query is required')
-      return call('/api-operations', { q: query, ...params })
-    },
+    request: async ({ query, ...params }, call) => call('/api-operations', { q: query, ...params }),
     format: (reply) => {
       const results = reply['results'] as Array<{ operation: Operation; matchedFields?: Field[] }>
       if (results.length === 0) return 'No operations found.\n'
@@ -106,17 +107,18 @@ export function createApiGetCommand (deps: ApiDeps = defaultDeps): OpaqueCommand
     name: 'get',
     description: 'Get one operation from the Elastic REST API reference, with its parameters and fields',
     properties: {
-      endpoint: { type: 'string', description: "A route as you would call it, e.g. 'GET /my-index/_search'" },
-      operation_id: { type: 'string', description: "The OpenAPI operation id, e.g. 'cluster-health'" },
+      endpoint: { ...nonBlank, description: "A route as you would call it, e.g. 'GET /my-index/_search'" },
+      operation_id: { ...nonBlank, description: "The OpenAPI operation id, e.g. 'cluster-health'" },
       api,
       version,
       include_body: { type: 'boolean', description: 'Include the page body' },
     },
+    // Exactly one way to name the operation.
+    rules: { oneOf: [{ required: ['endpoint'] }, { required: ['operation_id'] }], dependencies: { version: ['api'] } },
     positionalArg: { name: 'operation', description: "An endpoint such as 'GET /_cluster/health', or an operation id" },
     // Operation ids never contain '/', endpoints always do.
     fromArg: (arg) => (arg.includes('/') ? { endpoint: arg } : { operation_id: arg }),
     request: async ({ endpoint, operation_id: operationId, api: key, version: ver, include_body: includeBody }, call) => {
-      if ((endpoint == null) === (operationId == null)) throw new Error('Pass exactly one of an operation id or an endpoint.')
       if (operationId != null && key != null) {
         return call(`/api-operations/${encodeURIComponent(`${String(key)}:${String(operationId)}`)}`, { version: ver, include_body: includeBody })
       }
@@ -154,13 +156,11 @@ export function createApiListCommand (deps: ApiDeps = defaultDeps): OpaqueComman
       page: { type: 'integer', minimum: 1, description: 'Page of a group listing' },
       size: { type: 'integer', minimum: 1, maximum: 50, description: 'Operations per page of a group listing (default 10)' },
     },
+    rules: { dependencies: { version: ['api'], group: ['api'], page: ['group'], size: ['group'] } },
     positionalArg: { name: 'api', description: 'API key; omit to list every API' },
     fromArg: (key) => ({ api: key }),
     request: async ({ api: key, group, version: ver, page, size }, call) => {
-      if (key == null) {
-        if (group != null || ver != null || page != null || size != null) throw new Error('--version, --group, --page and --size need --api.')
-        return call('/apis', {})
-      }
+      if (key == null) return call('/apis', {})
       if (group == null) return call(`/apis/${encodeURIComponent(String(key))}/groups`, { version: ver })
       return call('/api-operations', { api: key, version: ver, group, page, size })
     },

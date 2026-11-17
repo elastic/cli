@@ -121185,8 +121185,14 @@
                   "role": "flag",
                   "name": "query",
                   "type": "string",
-                  "required": false,
-                  "summary": "Words, an endpoint such as 'GET /_cluster/health', or a field path; end a field with '.' to list its children"
+                  "required": true,
+                  "summary": "Words, an endpoint such as 'GET /_cluster/health', or a field path; end a field with '.' to list its children",
+                  "validations": [
+                    {
+                      "kind": "regex",
+                      "pattern": "\\S"
+                    }
+                  ]
                 },
                 {
                   "role": "flag",
@@ -121263,14 +121269,26 @@
                   "name": "endpoint",
                   "type": "string",
                   "required": false,
-                  "summary": "A route as you would call it, e.g. 'GET /my-index/_search'"
+                  "summary": "A route as you would call it, e.g. 'GET /my-index/_search'",
+                  "validations": [
+                    {
+                      "kind": "regex",
+                      "pattern": "\\S"
+                    }
+                  ]
                 },
                 {
                   "role": "flag",
                   "name": "operation-id",
                   "type": "string",
                   "required": false,
-                  "summary": "The OpenAPI operation id, e.g. 'cluster-health'"
+                  "summary": "The OpenAPI operation id, e.g. 'cluster-health'",
+                  "validations": [
+                    {
+                      "kind": "regex",
+                      "pattern": "\\S"
+                    }
+                  ]
                 },
                 {
                   "role": "flag",

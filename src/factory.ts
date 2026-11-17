@@ -857,6 +857,11 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
     const positionalValue = config.positionalArg != null
       ? (cmd.processedArgs[0] as string | undefined)
       : undefined
+    const toInput = config.positionalArg?.toInput
+    if (merged !== undefined && positionalValue !== undefined && toInput != null) {
+      const given = typeof merged.input === 'object' && merged.input !== null ? merged.input : {}
+      merged.input = { ...toInput(positionalValue), ...given }
+    }
 
     const resolvedConfig = getResolvedConfig()
     enforceCommandPolicy(cmd, resolvedConfig?.commands, jsonFormat)

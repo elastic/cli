@@ -248,6 +248,55 @@ describe('defineCommand', () => {
       assert.equal(received[0].arg, 'ingest pipelines')
     })
 
+    describe('toInput', () => {
+      function searchCommand (received: ParsedResult[]): OpaqueCommandHandle {
+        const cmd = defineCommand({
+          name: 'search',
+          description: 'Search docs',
+          input: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'], additionalProperties: false },
+          positionalArg: { name: 'query', description: 'Search query', required: false, toInput: (query) => ({ query }) },
+          handler: (parsed) => { received.push(parsed); return {} },
+        })
+        cmd.exitOverride()
+        cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
+        return cmd
+      }
+
+      async function run (argv: string[]): Promise<{ received: ParsedResult[]; failed: boolean }> {
+        const received: ParsedResult[] = []
+        const restore = _testSetStdinReader(() => '')
+        let failed = false
+        try {
+          await searchCommand(received).parseAsync(argv, { from: 'user' })
+        } catch {
+          failed = true
+        } finally {
+          restore()
+          process.exitCode = 0
+        }
+        return { received, failed }
+      }
+
+      it('maps the positional value into the input before validation', async () => {
+        const { received, failed } = await run(['ingest pipelines'])
+        assert.equal(failed, false)
+        assert.deepEqual(received[0]?.input, { query: 'ingest pipelines' })
+      })
+
+      it('lets an explicit flag win over the positional value', async () => {
+        const { received } = await run(['positional', '--query', 'flag'])
+        assert.deepEqual(received[0]?.input, { query: 'flag' })
+      })
+
+      it('fails validation without the value, also under --dry-run, before the handler runs', async () => {
+        for (const argv of [[], ['--dry-run']]) {
+          const { received, failed } = await run(argv)
+          assert.equal(failed, true, argv.join(' '))
+          assert.equal(received.length, 0)
+        }
+      })
+    })
+
     it('sets parsed.arg to undefined when no positionalArg is declared', async () => {
       const received: ParsedResult[] = []
       const cmd = defineCommand({
