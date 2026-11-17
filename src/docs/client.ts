@@ -199,16 +199,16 @@ export function newUuid (): string {
 }
 
 /**
- * Query the API Explorer lookups of the docs API (`/_api/v1/api-reference`).
- * `path` is `/search`, `/operation`, or `/` (list); null and undefined params are dropped.
+ * GET the API operations resource of the docs API (`/_api/v1/api-operations`).
+ * `path` is appended as is, so callers encode any id in it; null and undefined params are dropped.
  * Throws with the server's `message` on a non-2xx reply.
  */
-export async function docsApiReference (path: string, params: Record<string, unknown>): Promise<unknown> {
+export async function docsApiOperations (path: string, params: Record<string, unknown>): Promise<unknown> {
   const qs = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {
     if (value != null) qs.set(key, String(value))
   }
-  const resp = await fetch(`${DOCS_BASE_URL}/_api/v1/api-reference${path}?${qs.toString()}`, {
+  const resp = await fetch(`${DOCS_BASE_URL}/_api/v1/api-operations${path}?${qs.toString()}`, {
     redirect: 'error',
     headers: { Accept: 'application/json', Cookie: DOCS_COOKIE },
   })

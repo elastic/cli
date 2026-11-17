@@ -5,20 +5,20 @@
 
 import { defineCommand, defineGroup } from '../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../factory.ts'
-import { docsApiReference } from './client.ts'
+import { docsApiOperations } from './client.ts'
 
 /** Injectable dependencies for the `docs api` commands. */
 export interface ApiDeps {
-  docsApiReference: typeof docsApiReference
+  docsApiOperations: typeof docsApiOperations
 }
 
-const defaultDeps: ApiDeps = { docsApiReference }
+const defaultDeps: ApiDeps = { docsApiOperations }
 
 // Schema keys are the docs API query parameters (`query` is sent as `q`); toKebabCase turns them into flags.
 const api = { type: 'string', description: "API key, e.g. 'elasticsearch' or 'kibana'. `elastic docs api list` lists the keys." }
 const version = { type: 'string', description: "API version: 'main' or a major such as '9'. Needs --api. Without it, the current version is used." }
 
-interface Operation { title: string; url: string; method: string; path: string; operationId: string; deprecated?: boolean }
+interface Operation { api: string; title: string; url: string; method: string; path: string; operationId: string; deprecated?: boolean }
 interface Field { path: string; type: string; location: string; description: string }
 
 function absUrl (url: string): string {
@@ -36,12 +36,12 @@ function fieldLine (f: Field): string {
 interface ApiCommandConfig {
   name: string
   description: string
-  /** Path under `/_api/v1/api-reference`. */
-  path: string
   properties: Record<string, unknown>
   positionalArg: { name: string; description: string }
   /** Maps the positional value onto query parameters. */
   fromArg: (arg: string) => Record<string, unknown>
+  /** Sends the request(s); `call` GETs a path under `/_api/v1/api-operations`. */
+  request: (params: Record<string, unknown>, call: ApiDeps['docsApiOperations']) => Promise<unknown>
   format: (reply: Record<string, unknown>) => string
 }
 
@@ -53,10 +53,9 @@ function apiCommand (config: ApiCommandConfig, deps: ApiDeps): OpaqueCommandHand
     positionalArg: { ...config.positionalArg, required: false },
     handler: async (parsed): Promise<JsonValue> => {
       const arg = parsed.arg?.trim()
-      const merged: Record<string, unknown> = { ...(parsed.input ?? {}), ...(arg != null && arg !== '' ? config.fromArg(arg) : {}) }
-      const { query, ...params } = merged
+      const params: Record<string, unknown> = { ...(parsed.input ?? {}), ...(arg != null && arg !== '' ? config.fromArg(arg) : {}) }
       try {
-        return await deps.docsApiReference(config.path, query === undefined ? params : { q: query, ...params }) as JsonValue
+        return await config.request(params, deps.docsApiOperations) as JsonValue
       } catch (err) {
         return { error: { code: 'docs_error', message: err instanceof Error ? err.message : String(err) } }
       }
@@ -73,7 +72,6 @@ export function createApiSearchCommand (deps: ApiDeps = defaultDeps): OpaqueComm
   return apiCommand({
     name: 'search',
     description: 'Search the Elastic REST API reference for operations',
-    path: '/search',
     properties: {
       query: { type: 'string', description: "Words, an endpoint such as 'GET /_cluster/health', or a field path; end a field with '.' to list its children" },
       api,
@@ -84,6 +82,10 @@ export function createApiSearchCommand (deps: ApiDeps = defaultDeps): OpaqueComm
     },
     positionalArg: { name: 'query', description: 'Words, an endpoint, or a field path' },
     fromArg: (query) => ({ query }),
+    request: async ({ query, ...params }, call) => {
+      if (typeof query !== 'string' || query.trim() === '') throw new Error('query is required')
+      return call('', { q: query, ...params })
+    },
     format: (reply) => {
       const results = reply['results'] as Array<{ operation: Operation; matchedFields?: Field[] }>
       if (results.length === 0) return 'No operations found.\n'
@@ -103,7 +105,6 @@ export function createApiGetCommand (deps: ApiDeps = defaultDeps): OpaqueCommand
   return apiCommand({
     name: 'get',
     description: 'Get one operation from the Elastic REST API reference, with its parameters and fields',
-    path: '/operation',
     properties: {
       endpoint: { type: 'string', description: "A route as you would call it, e.g. 'GET /my-index/_search'" },
       operation_id: { type: 'string', description: "The OpenAPI operation id, e.g. 'cluster-health'" },
@@ -114,6 +115,18 @@ export function createApiGetCommand (deps: ApiDeps = defaultDeps): OpaqueCommand
     positionalArg: { name: 'operation', description: "An endpoint such as 'GET /_cluster/health', or an operation id" },
     // Operation ids never contain '/', endpoints always do.
     fromArg: (arg) => (arg.includes('/') ? { endpoint: arg } : { operation_id: arg }),
+    request: async ({ endpoint, operation_id: operationId, api: key, version: ver, include_body: includeBody }, call) => {
+      if ((endpoint == null) === (operationId == null)) throw new Error('Pass exactly one of an operation id or an endpoint.')
+      if (operationId != null) {
+        return call(`/${encodeURIComponent(String(operationId))}`, { api: key, version: ver, include_body: includeBody })
+      }
+      // The collection lists every operation that serves the request; read the best one with its fields.
+      const { results } = await call('', { endpoint, api: key, version: ver }) as { results: Operation[] }
+      const [best, ...rest] = results
+      if (best == null) throw new Error(`No API operation matches ${String(endpoint)}${key != null ? ` in ${String(key)}` : ''}.`)
+      const detail = await call(`/${encodeURIComponent(best.operationId)}`, { api: best.api, version: ver, include_body: includeBody })
+      return { ...(detail as Record<string, unknown>), otherMatches: rest }
+    },
     format: (reply) => {
       const op = reply['operation'] as Operation & { description?: string }
       let out = `# ${op.title}\n` + opLine(op)
@@ -133,7 +146,6 @@ export function createApiListCommand (deps: ApiDeps = defaultDeps): OpaqueComman
   return apiCommand({
     name: 'list',
     description: 'List the Elastic REST APIs, or the operations of one API by group',
-    path: '/',
     properties: {
       api: { type: 'string', description: "API key, e.g. 'elasticsearch'. Omit to list every API." },
       version,
@@ -141,6 +153,11 @@ export function createApiListCommand (deps: ApiDeps = defaultDeps): OpaqueComman
     },
     positionalArg: { name: 'api', description: 'API key; omit to list every API' },
     fromArg: (key) => ({ api: key }),
+    request: async ({ api: key, ...params }, call) => {
+      if (key != null) return call('/groups', { api: key, ...params })
+      if (Object.keys(params).length > 0) throw new Error('--version and --group need --api.')
+      return call('/apis', {})
+    },
     format: (reply) => {
       if (Array.isArray(reply['apis'])) {
         return (reply['apis'] as Array<{ key: string; title: string; versions: string[] }>)
