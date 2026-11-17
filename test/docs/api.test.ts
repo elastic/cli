@@ -33,12 +33,30 @@ describe('docsApi', () => {
     assert.equal(calls[0]!.url, 'https://www.elastic.co/docs/_api/v1/api-operations?q=GET+%2F%7Bindex%7D%2F_search%3Fx%3D1%23y&api=elasticsearch&include_deprecated=true')
     assert.equal(calls[0]!.init.method, undefined)
     assert.equal(calls[0]!.init.redirect, 'error')
-    assert.deepEqual(calls[0]!.init.headers, { Accept: 'application/json', Cookie: 'feature_search_or_askai_enabled=true' })
+    assert.deepEqual(calls[0]!.init.headers, { Accept: 'application/json, application/problem+json', Cookie: 'feature_search_or_askai_enabled=true' })
   })
 
-  it('throws the server message of a rejection', async () => {
-    install(JSON.stringify({ errorType: 'operation_not_found', message: 'No API operation matches nope.' }), 404)
-    await assert.rejects(docsApi('/api-operations/elasticsearch%3Anope', {}), /^Error: docs api error \(404\): No API operation matches nope\.$/)
+  const problem = {
+    type: 'https://docs-v3-preview.elastic.dev/elastic/docs-builder/tree/main/data/api#operation-not-found',
+    title: 'API operation not found',
+    status: 404,
+    detail: 'No API operation matches nope in elasticsearch.',
+    traceId: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+  }
+
+  it('throws the detail of an RFC 9457 problem', async () => {
+    install(JSON.stringify(problem), 404)
+    await assert.rejects(docsApi('/api-operations/elasticsearch%3Anope', {}), /^Error: docs api error \(404\): No API operation matches nope in elasticsearch\.$/)
+  })
+
+  it('falls back to the title of a problem without a detail', async () => {
+    install(JSON.stringify({ ...problem, detail: undefined }), 404)
+    await assert.rejects(docsApi('/api-operations/elasticsearch%3Anope', {}), /^Error: docs api error \(404\): API operation not found$/)
+  })
+
+  it('keeps the status text for JSON that is not a problem', async () => {
+    install(JSON.stringify({ errorType: 'operation_not_found', message: 'old shape' }), 404)
+    await assert.rejects(docsApi('/apis', {}), /^Error: docs api error \(404\): (Not Found|request failed)$/)
   })
 
   it('drops an HTML error page and keeps the status', async () => {

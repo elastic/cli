@@ -201,7 +201,7 @@ export function newUuid (): string {
 /**
  * GET a path of the docs API under `/_api/v1`, such as `/api-operations` or `/apis`.
  * `path` is appended as is, so callers encode any id in it; null and undefined params are dropped.
- * Throws with the server's `message` on a non-2xx reply.
+ * Throws with the RFC 9457 problem's `detail` (or `title`) on a non-2xx reply.
  */
 export async function docsApi (path: string, params: Record<string, unknown>): Promise<unknown> {
   const qs = new URLSearchParams()
@@ -210,15 +210,17 @@ export async function docsApi (path: string, params: Record<string, unknown>): P
   }
   const resp = await fetch(`${DOCS_BASE_URL}/_api/v1${path}?${qs.toString()}`, {
     redirect: 'error',
-    headers: { Accept: 'application/json', Cookie: DOCS_COOKIE },
+    headers: { Accept: 'application/json, application/problem+json', Cookie: DOCS_COOKIE },
   })
   const text = await resp.text().catch(() => '')
   if (!resp.ok) {
-    // A CDN or site error page is HTML; only the docs API's JSON rejection carries a useful message.
+    // The docs API answers RFC 9457 problems (application/problem+json): `detail` explains this occurrence,
+    // `title` names its type. A CDN or site error page is HTML and carries neither.
     let message = resp.statusText || 'request failed'
     try {
-      const body = JSON.parse(text) as { message?: unknown }
-      if (typeof body.message === 'string') message = body.message
+      const problem = JSON.parse(text) as { detail?: unknown; title?: unknown }
+      if (typeof problem.detail === 'string' && problem.detail !== '') message = problem.detail
+      else if (typeof problem.title === 'string' && problem.title !== '') message = problem.title
     } catch {
       // keep the status text
     }
