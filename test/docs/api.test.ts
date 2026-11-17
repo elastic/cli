@@ -10,6 +10,7 @@ import { createApiGroup, createApiGetCommand, createApiListCommand, createApiSea
 import type { ApiDeps } from '../../src/docs/api.ts'
 import { _testSetStdinReader } from '../../src/factory.ts'
 import type { OpaqueCommandHandle } from '../../src/factory.ts'
+import { captureDuring } from '../helpers/capture.ts'
 
 const realFetch = globalThis.fetch
 
@@ -47,25 +48,21 @@ describe('docsApiReference', () => {
 })
 
 async function run (cmd: OpaqueCommandHandle, argv: string[], stdin = ''): Promise<{ stdout: string; exitCode: number }> {
-  let stdout = ''
-  const realWrite = process.stdout.write.bind(process.stdout)
-  process.stdout.write = ((s: string) => { stdout += s; return true }) as typeof process.stdout.write
   const restoreStdin = _testSetStdinReader(() => stdin)
   cmd.exitOverride()
   cmd.configureOutput({ writeOut: () => {}, writeErr: () => {} })
   let thrown = false
-  try {
-    await cmd.parseAsync(argv, { from: 'user' })
-  } catch {
-    // exitOverride turns validation failures into a thrown CommanderError
-    thrown = true
-  } finally {
-    process.stdout.write = realWrite
-    restoreStdin()
-  }
+  const captured = await captureDuring(async () => {
+    try {
+      await cmd.parseAsync(argv, { from: 'user' })
+    } catch {
+      // exitOverride turns validation failures into a thrown CommanderError
+      thrown = true
+    }
+  }).finally(restoreStdin)
   const exitCode = thrown ? 1 : Number(process.exitCode ?? 0)
   process.exitCode = 0
-  return { stdout, exitCode }
+  return { stdout: captured.stdout.join(''), exitCode }
 }
 
 function fake (reply: unknown): { deps: ApiDeps; calls: Array<{ path: string; params: Record<string, unknown> }> } {
