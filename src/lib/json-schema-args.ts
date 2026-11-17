@@ -143,8 +143,12 @@ function resolveType (
     let hasArray = false
     let resolvedType: SchemaArgDefinition['type'] = 'string'
     let hasExplicitString = false
+    let hasObject = false
+    let nestedPlainString = false
     for (const v of variants) {
-      const { type: t } = resolveType(v, defs)
+      const resolved = resolveType(v, defs)
+      if (resolved.plainStringOk === true) nestedPlainString = true
+      const t = resolved.type
       if (t === 'array') {
         hasArray = true
       } else if (t === 'string') {
@@ -153,6 +157,12 @@ function resolveType (
       } else if (!hasExplicitString && (resolvedType === 'string' || v.const === undefined)) {
         resolvedType = t
       }
+      if (t === 'object') hasObject = true
+    }
+    // Script and similar fields are an object or a plain string. Parse JSON
+    // when the flag looks like JSON, and keep a source string otherwise.
+    if (hasObject && (hasExplicitString || nestedPlainString)) {
+      return { type: 'object', acceptsArrayForm: hasArray, plainStringOk: true }
     }
     return { type: resolvedType, acceptsArrayForm: hasArray }
   }

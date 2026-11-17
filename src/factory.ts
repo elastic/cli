@@ -483,19 +483,32 @@ function mergeFlagsIntoInput (cmd: Command, jsonInput: unknown, schemaArgs: Sche
       }
     } else if (arg.type === 'object') {
       const text = raw as string
-      try {
-        const parsed = JSON.parse(text)
-        cliInput[arg.schemaKey] = parsed
-        if (arg.foundIn === 'body' || arg.foundIn === undefined) {
-          rawBodyValues[arg.schemaKey] = new RawJsonValue(text, parsed)
-        }
-      } catch {
-        // Typeless properties accept a plain string. A value that starts
-        // like JSON still has to parse, so malformed objects do not ship.
-        if (arg.plainStringOk === true && !/^\s*[{["]/.test(text)) {
-          cliInput[arg.schemaKey] = text
-        } else {
-          parseJsonContent(text, `--${arg.cliFlag}`, cmd)
+      // Sort stays on field:direction syntax unless the value is already JSON.
+      if (
+        arg.parseStyle === 'sort-pairs' &&
+        arg.foundIn === 'body' &&
+        !/^\s*[{[]/.test(text)
+      ) {
+        cliInput[arg.schemaKey] = parseSortPairs(text)
+        sortParsedKeys.add(arg.schemaKey)
+      } else {
+        try {
+          const parsed = JSON.parse(text)
+          cliInput[arg.schemaKey] = parsed
+          if (arg.foundIn === 'body' || arg.foundIn === undefined) {
+            rawBodyValues[arg.schemaKey] = new RawJsonValue(text, parsed)
+          }
+        } catch {
+          // Typeless properties, and object-or-string unions, accept a plain
+          // string. A value that starts like JSON still has to parse, so
+          // malformed objects do not ship.
+          if (arg.plainStringOk === true && arg.acceptsArrayForm === true && text.includes(',')) {
+            cliInput[arg.schemaKey] = text.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
+          } else if (arg.plainStringOk === true && !/^\s*[{["]/.test(text)) {
+            cliInput[arg.schemaKey] = text
+          } else {
+            parseJsonContent(text, `--${arg.cliFlag}`, cmd)
+          }
         }
       }
     } else if (
