@@ -900,6 +900,15 @@ describe('elastic CLI -- extension dispatch honors global config flags', { skip:
     })
   })
 
+  it('--help before -- still shows root help', async () => {
+    await withExtension(async (dir) => {
+      const { code, stdout } = await runCli(['--help', '--', 'dumpenv'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, ELASTIC_CLI_CONFIG_FILE: '' } })
+      assert.equal(code, 0)
+      assert.match(stdout, /^Usage: elastic/m)
+      assert.doesNotMatch(stdout, /ARGS=/)
+    })
+  })
+
   it('root --help does not run an installed extension', async () => {
     await withExtension(async (dir) => {
       const { code, stdout } = await runCli(['--help'], { cwd: dir, env: { HOME: dir, USERPROFILE: dir, ELASTIC_CLI_CONFIG_FILE: '' } })
