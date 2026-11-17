@@ -16,7 +16,7 @@ const defaultDeps: ApiDeps = { docsApiReference }
 
 // Schema keys are the docs API query parameters (`query` is sent as `q`); toKebabCase turns them into flags.
 const api = { type: 'string', description: "API key, e.g. 'elasticsearch' or 'kibana'. `elastic docs api list` lists the keys." }
-const version = { type: 'string', description: "API version: 'main' or a major such as '9'. Needs --api. Default: the current version." }
+const version = { type: 'string', description: "API version: 'main' or a major such as '9'. Needs --api. Without it, the current version is used." }
 
 interface Operation { title: string; url: string; method: string; path: string; operationId: string; deprecated?: boolean }
 interface Field { path: string; type: string; location: string; description: string }

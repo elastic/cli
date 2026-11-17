@@ -121200,7 +121200,7 @@
                   "name": "version",
                   "type": "string",
                   "required": false,
-                  "summary": "API version: 'main' or a major such as '9'. Needs --api. Default: the current version."
+                  "summary": "API version: 'main' or a major such as '9'. Needs --api. Without it, the current version is used."
                 },
                 {
                   "role": "flag",
@@ -121284,7 +121284,7 @@
                   "name": "version",
                   "type": "string",
                   "required": false,
-                  "summary": "API version: 'main' or a major such as '9'. Needs --api. Default: the current version."
+                  "summary": "API version: 'main' or a major such as '9'. Needs --api. Without it, the current version is used."
                 },
                 {
                   "role": "flag",
@@ -121325,7 +121325,7 @@
                   "name": "version",
                   "type": "string",
                   "required": false,
-                  "summary": "API version: 'main' or a major such as '9'. Needs --api. Default: the current version."
+                  "summary": "API version: 'main' or a major such as '9'. Needs --api. Without it, the current version is used."
                 },
                 {
                   "role": "flag",
