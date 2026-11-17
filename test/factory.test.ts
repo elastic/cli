@@ -2624,6 +2624,53 @@ describe('text output rendering', () => {
       assert.equal(out, JSON.stringify([{ name: 'foo', tags: ['a', 'b'] }], null, 2) + '\n')
     })
   })
+
+  describe('deprecated commands', () => {
+    it('marks the description in help output', () => {
+      const cmd = defineCommand({
+        name: 'old',
+        description: 'Do things',
+        deprecated: 'since 8.11.0',
+        handler: () => ({}),
+      })
+      assert.match(cmd.helpInformation(), /Do things \(deprecated: since 8\.11\.0\)/)
+    })
+
+    it('leaves the description alone without a note', () => {
+      const cmd = defineCommand({
+        name: 'new',
+        description: 'Do things',
+        handler: () => ({}),
+      })
+      assert.doesNotMatch(cmd.helpInformation(), /deprecated/)
+    })
+
+    it('warns on stderr when a deprecated command runs', async () => {
+      const cmd = defineCommand({
+        name: 'old',
+        description: 'Do things',
+        deprecated: 'since 8.11.0',
+        handler: () => ({ ok: true }),
+      })
+      const { stderr } = await invokeCapturingStreams(cmd, [], [])
+      assert.match(stderr, /Warning: old is deprecated: since 8\.11\.0\./)
+    })
+
+    it('marks deprecated flags in help output', async () => {
+      const cmd = defineCommand({
+        name: 'get',
+        description: 'Get things',
+        input: {
+          type: 'object',
+          properties: {
+            local: { type: 'boolean', description: 'Local only', 'x-deprecated': { since: '9.0.0' } },
+          },
+        },
+        handler: () => ({}),
+      })
+      assert.match(cmd.helpInformation(), /--local.*\(deprecated: since 9\.0\.0\)/)
+    })
+  })
 })
 
 describe('defineGroup', () => {

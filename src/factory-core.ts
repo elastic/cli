@@ -92,6 +92,11 @@ export interface CommandConfig {
   /** Applied to JSON input (stdin or --input-file) before schema validation. */
   inputTransform?: (input: unknown) => unknown
   /**
+   * Marks the command deprecated. Appends a marker to `--help` and prints a
+   * one-line stderr warning on every invocation. Never hides the command.
+   */
+  deprecated?: string
+  /**
    * Availability target used to filter properties from the input schema in flags and --help --json.
    * When absent, all properties are shown (today's full-superset behavior).
    */
