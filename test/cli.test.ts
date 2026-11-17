@@ -31,6 +31,7 @@ function makeProgram(): InstanceType<typeof Command> {
   prog.option('--config-file <path>', 'path to a config file (default: ~/.elasticrc.yml)')
   prog.option('--use-context <name>', 'override the active context from the config file')
   prog.option('--json', 'output as JSON')
+  prog.option('--no-color', 'disable ANSI colors (same as NO_COLOR=1)')
   return prog
 }
 
@@ -52,6 +53,13 @@ describe('elastic CLI -- global flags', () => {
     const opt = prog.options.find((o) => o.long === '--json')
     assert.ok(opt != null, 'expected --json option')
     assert.ok(!opt.required, '--json should be a boolean flag (no required value)')
+  })
+
+  it('registers --no-color as a boolean flag', () => {
+    const prog = makeProgram()
+    const opt = prog.options.find((o) => o.long === '--no-color')
+    assert.ok(opt != null, 'expected --no-color option')
+    assert.ok(!opt.required, '--no-color should be a boolean flag (no required value)')
   })
 
   it('registers --version as a boolean flag', () => {
@@ -686,6 +694,17 @@ describe('elastic CLI -- --help --json', () => {
       assert.equal(code, 0, `expected exit code 0, got ${code}`)
       assert.match(stdout, /^Usage: elastic/m, 'expected text help format')
       assert.throws(() => JSON.parse(stdout), 'text help should not be valid JSON')
+    } finally {
+      await rm(dir, { recursive: true })
+    }
+  })
+
+  it('`elastic --no-color --help` accepts the flag and lists it', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'elastic-cli-help-no-color-'))
+    try {
+      const { code, stdout } = await runCli(['--no-color', '--help'], { cwd: dir, env: { HOME: dir } })
+      assert.equal(code, 0, `expected exit code 0, got ${code}`)
+      assert.match(stdout, /--no-color/, 'expected --no-color in help output')
     } finally {
       await rm(dir, { recursive: true })
     }
