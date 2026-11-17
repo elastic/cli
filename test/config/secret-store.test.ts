@@ -75,7 +75,7 @@ describe('getSecretStore', () => {
 
   it('falls back to a noop store when no candidate is available', async () => {
     const { fn } = makeExec([
-      { match: 'secret-tool --version', result: new Error('not found') },
+      { match: 'command -v secret-tool', result: new Error('not found') },
       { match: 'pass version', result: new Error('not found') },
     ])
 
@@ -86,12 +86,13 @@ describe('getSecretStore', () => {
 
   it('prefers secret_service over pass on linux', async () => {
     const { fn, calls } = makeExec([
-      { match: 'secret-tool --version', result: 'Secret Tool 0.21\n' },
+      { match: 'command -v secret-tool', result: '/usr/bin/secret-tool\n' },
     ])
 
     const store = await getSecretStore({ platform: 'linux', execSync: fn })
     assert.equal(store.kind, 'secret_service')
     assert.equal(calls.some(c => c.cmd.startsWith('pass')), false)
+    assert.equal(calls.some(c => c.cmd.includes('--version')), false)
   })
 
   it('uses credential_manager on win32 when CredentialManager module is present', async () => {
@@ -228,6 +229,15 @@ sys.exit(os.waitstatus_to_exitcode(status))
 })
 
 describe('LinuxSecretServiceStore', () => {
+  it('probe uses command -v, not --version', async () => {
+    const { fn, calls } = makeExec([
+      { match: 'command -v secret-tool', result: '/usr/bin/secret-tool\n' },
+    ])
+    const store = new _testStores.LinuxSecretServiceStore({ execSync: fn })
+    assert.equal(await store.isAvailable(), true)
+    assert.deepEqual(calls.map(c => c.cmd), ['command -v secret-tool'])
+  })
+
   it('put passes secret via stdin (input option) and uses store attributes', async () => {
     const { fn, calls } = makeExec([{ match: 'secret-tool store', result: '' }])
     const store = new _testStores.LinuxSecretServiceStore({ execSync: fn })

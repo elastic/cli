@@ -218,7 +218,8 @@ class LinuxSecretServiceStore extends ShellSecretStore {
   kind = 'secret_service' as const
 
   protected probe (): void {
-    this.execSync('secret-tool --version', execOpts(2_000))
+    // secret-tool has no --version; it prints usage and exits 2 (#664).
+    this.execSync('command -v secret-tool', execOpts(2_000))
   }
 
   async put (service: string, account: string, secret: string): Promise<void> {
