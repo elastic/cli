@@ -183,6 +183,16 @@ function resolveType (
   if (rawType === 'object') return { type: 'object', acceptsArrayForm: false }
   if (rawType === 'string') return { type: 'string', acceptsArrayForm: false }
 
+  // A bare const is a literal (`-1`, `0`), not a free-form value. Duration is
+  // `string | -1 | 0` with no type on the consts; treating those as objects
+  // makes the union an object flag and drops plain duration strings.
+  if (rawType === undefined && prop.const !== undefined) {
+    const kind = typeof prop.const
+    if (kind === 'number') return { type: 'number', acceptsArrayForm: false }
+    if (kind === 'boolean') return { type: 'boolean', acceptsArrayForm: false }
+    return { type: 'string', acceptsArrayForm: false }
+  }
+
   // No type declared at all (e.g. `document`, `doc`): the spec accepts any JSON
   // value, including a plain string. Parse JSON when the value looks like it,
   // and keep the raw string otherwise.

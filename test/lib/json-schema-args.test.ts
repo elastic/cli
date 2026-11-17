@@ -286,6 +286,35 @@ describe('resolveType via $defs dereferencing', () => {
     assert.equal(args[0]?.plainStringOk, undefined)
   })
 
+  it('keeps string type when duration consts omit an explicit type', () => {
+    const s = schema({
+      wait_for_completion_timeout: {
+        anyOf: [
+          { type: 'string' },
+          { const: -1 },
+          { const: 0 },
+        ],
+        'x-found-in': 'body',
+      },
+    })
+    const args = extractSchemaArgs(s)
+    assert.equal(args[0]?.type, 'string')
+    assert.equal(args[0]?.plainStringOk, undefined)
+  })
+
+  it('keeps sql query duration fields as strings', async () => {
+    const defs = await loadEsApisInFile('sql.query')
+    const def = defs.find((d) => d.name === 'query')
+    assert.ok(def?.input != null)
+    const args = extractSchemaArgs(def.input)
+    for (const key of ['keep_alive', 'wait_for_completion_timeout']) {
+      const arg = args.find((a) => a.schemaKey === key)
+      assert.equal(arg?.type, 'string', key)
+      assert.equal(arg?.plainStringOk, undefined, key)
+      assert.equal(arg?.foundIn, 'body', key)
+    }
+  })
+
   it('parses an object-or-string union as JSON and still accepts a plain string', () => {
     const s = schema({
       script: {
