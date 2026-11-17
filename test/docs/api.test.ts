@@ -28,9 +28,9 @@ describe('docsApi', () => {
 
   it('GETs the path with encoded params, dropping null and undefined', async () => {
     const calls = install(JSON.stringify({ totalHits: 1, results: [] }))
-    const reply = await docsApi('/api-operations', { q: 'GET /{index}/_search?x=1#y', api: 'elasticsearch', version: undefined, include_deprecated: true, size: null })
+    const reply = await docsApi('/apis/elasticsearch/operations', { q: 'GET /{index}/_search?x=1#y', version: undefined, include_deprecated: true, size: null })
     assert.deepEqual(reply, { totalHits: 1, results: [] })
-    assert.equal(calls[0]!.url, 'https://www.elastic.co/docs/_api/v1/api-operations?q=GET+%2F%7Bindex%7D%2F_search%3Fx%3D1%23y&api=elasticsearch&include_deprecated=true')
+    assert.equal(calls[0]!.url, 'https://www.elastic.co/docs/_api/v1/apis/elasticsearch/operations?q=GET+%2F%7Bindex%7D%2F_search%3Fx%3D1%23y&include_deprecated=true')
     assert.equal(calls[0]!.init.method, undefined)
     assert.equal(calls[0]!.init.redirect, 'error')
     assert.deepEqual(calls[0]!.init.headers, { Accept: 'application/json, application/problem+json', Cookie: 'feature_search_or_askai_enabled=true' })
@@ -46,12 +46,12 @@ describe('docsApi', () => {
 
   it('throws the detail of an RFC 9457 problem', async () => {
     install(JSON.stringify(problem), 404)
-    await assert.rejects(docsApi('/api-operations/elasticsearch%3Anope', {}), /^Error: docs api error \(404\): No API operation matches nope in elasticsearch\.$/)
+    await assert.rejects(docsApi('/apis/elasticsearch/operations/nope', {}), /^Error: docs api error \(404\): No API operation matches nope in elasticsearch\.$/)
   })
 
   it('falls back to the title of a problem without a detail', async () => {
     install(JSON.stringify({ ...problem, detail: undefined }), 404)
-    await assert.rejects(docsApi('/api-operations/elasticsearch%3Anope', {}), /^Error: docs api error \(404\): API operation not found$/)
+    await assert.rejects(docsApi('/apis/elasticsearch/operations/nope', {}), /^Error: docs api error \(404\): API operation not found$/)
   })
 
   it('keeps the status text for JSON that is not a problem', async () => {
@@ -89,54 +89,54 @@ function fake (...replies: unknown[]): { deps: ApiDeps; calls: Array<{ path: str
   return { calls, deps: { docsApi: async (path, params) => { calls.push({ path, params }); return replies[Math.min(calls.length, replies.length) - 1] } } }
 }
 
-const op = { id: 'elasticsearch:cluster-health', api: 'elasticsearch', title: 'Get cluster health', url: '/docs/api/doc/elasticsearch/operation/operation-cluster-health', method: 'GET', path: '/_cluster/health', operationId: 'cluster-health', endpoints: [] }
+const op = { api: 'elasticsearch', title: 'Get cluster health', url: '/docs/api/doc/elasticsearch/operation/operation-cluster-health', method: 'GET', path: '/_cluster/health', operationId: 'cluster-health', endpoints: [] }
 
 describe('docs api commands', () => {
   it('groups search, get and list under api', () => {
     assert.deepEqual(createApiGroup().commands.map((c) => c.name()), ['search', 'get', 'list'])
   })
 
-  it('search sends the positional query as q with its flags to the collection', async () => {
+  it('search sends the positional query as q with its flags to the API\'s operations', async () => {
     const { deps, calls } = fake({ query: 'health', totalHits: 1, results: [{ operation: op, score: 1, matchedFields: [] }] })
     const { stdout, exitCode } = await run(createApiSearchCommand(deps), ['GET /_cluster/health', '--api', 'elasticsearch', '--include-deprecated', '--size', '5'])
     assert.equal(exitCode, 0)
-    assert.deepEqual(calls, [{ path: '/api-operations', params: { q: 'GET /_cluster/health', api: 'elasticsearch', include_deprecated: true, size: 5, page: 1 } }])
+    assert.deepEqual(calls, [{ path: '/apis/elasticsearch/operations', params: { q: 'GET /_cluster/health', include_deprecated: true, size: 5, page: 1 } }])
     assert.match(stdout, /GET {4}\/_cluster\/health {2}\(cluster-health\)/)
     assert.match(stdout, /https:\/\/www\.elastic\.co\/docs\/api\/doc\/elasticsearch\/operation\/operation-cluster-health/)
   })
 
   it('search rejects an out-of-range page size before calling the server', async () => {
     const { deps, calls } = fake({})
-    const { exitCode } = await run(createApiSearchCommand(deps), ['x', '--size', '0'])
+    const { exitCode } = await run(createApiSearchCommand(deps), ['x', '--api', 'elasticsearch', '--size', '0'])
     assert.equal(exitCode, 1)
     assert.equal(calls.length, 0)
   })
 
   it('search rejects an unknown key in JSON input', async () => {
     const { deps, calls } = fake({})
-    const { exitCode } = await run(createApiSearchCommand(deps), [], '{"query":"x","bogus":1}')
+    const { exitCode } = await run(createApiSearchCommand(deps), [], '{"query":"x","api":"elasticsearch","bogus":1}')
     assert.equal(exitCode, 1)
     assert.equal(calls.length, 0)
   })
 
-  it('get with an endpoint reads every match with its fields in one request', async () => {
-    const other = { ...op, id: 'kibana:kibana-health', api: 'kibana', operationId: 'kibana-health', path: '/api/health' }
+  it('get with an endpoint reads every match in the API with its fields in one request', async () => {
+    const other = { ...op, operationId: 'indices-get', path: '/{index}' }
     const level = { name: 'level', path: 'level', type: 'string', location: 'query', description: 'Detail level' }
     const { deps, calls } = fake({ totalHits: 2, results: [{ operation: op, versions: ['9'], fields: [level], body: 'Body' }, { operation: other, versions: [], fields: [] }] })
-    const { stdout, exitCode } = await run(createApiGetCommand(deps), ['GET /_cluster/health', '--include-body'])
+    const { stdout, exitCode } = await run(createApiGetCommand(deps), ['GET /_cluster/health', '--api', 'elasticsearch', '--include-body'])
     assert.equal(exitCode, 0)
-    assert.deepEqual(calls, [{ path: '/api-operations', params: { endpoint: 'GET /_cluster/health', operation_id: undefined, api: undefined, version: undefined, view: 'full', include_body: true } }])
+    assert.deepEqual(calls, [{ path: '/apis/elasticsearch/operations', params: { endpoint: 'GET /_cluster/health', version: undefined, view: 'full', include_body: true } }])
     assert.match(stdout, /# Get cluster health/)
     assert.match(stdout, /query {4}level <string> Detail level/)
     assert.match(stdout, /\nBody\n/)
-    assert.match(stdout, /Other matches:\nGET {4}\/api\/health {2}\(kibana-health\)/)
+    assert.match(stdout, /Other matches:\nGET {4}\/\{index\} {2}\(indices-get\)/)
   })
 
-  it('get --json returns one operation shape for a lookup through the collection', async () => {
+  it('get --json returns one operation shape for an endpoint lookup', async () => {
     const { deps } = fake({ totalHits: 1, results: [{ operation: op, versions: ['9'], fields: [] }] })
     const cmd = createApiGetCommand(deps)
     cmd.option('--json')
-    const { stdout } = await run(cmd, ['cluster-health', '--json'])
+    const { stdout } = await run(cmd, ['GET /_cluster/health', '--api', 'elasticsearch', '--json'])
     assert.deepEqual(JSON.parse(stdout), { operation: op, versions: ['9'], fields: [], body: null, otherMatches: [] })
   })
 
@@ -152,31 +152,25 @@ describe('docs api commands', () => {
     const { deps, calls } = fake({ operation: op, versions: [], fields: [], otherMatches: [] })
     const { exitCode } = await run(createApiGetCommand(deps), ['cluster-health', '--api', 'elasticsearch', '--version', '9'])
     assert.equal(exitCode, 0)
-    assert.deepEqual(calls, [{ path: '/api-operations/elasticsearch%3Acluster-health', params: { version: '9', include_body: undefined } }])
+    assert.deepEqual(calls, [{ path: '/apis/elasticsearch/operations/cluster-health', params: { version: '9', include_body: undefined } }])
   })
 
-  it('get without an api looks the operation id up across APIs', async () => {
-    const { deps, calls } = fake({ totalHits: 1, results: [{ operation: op, versions: [], fields: [] }] })
-    await run(createApiGetCommand(deps), ['cluster-health'])
-    assert.deepEqual(calls[0], { path: '/api-operations', params: { endpoint: undefined, operation_id: 'cluster-health', api: undefined, version: undefined, view: 'full', include_body: undefined } })
-  })
-
-  it('get encodes the id into one path segment', async () => {
+  it('get encodes the api key and the operation id into one path segment each', async () => {
     const { deps, calls } = fake({ operation: op, versions: [], fields: [], otherMatches: [] })
     await run(createApiGetCommand(deps), ['--operation-id', '../x?y=1#z', '--api', 'a/b'])
-    assert.equal(calls[0]!.path, '/api-operations/a%2Fb%3A..%2Fx%3Fy%3D1%23z')
+    assert.equal(calls[0]!.path, '/apis/a%2Fb/operations/..%2Fx%3Fy%3D1%23z')
   })
 
   it('get rejects both an operation id and an endpoint without calling the server', async () => {
     const { deps, calls } = fake({})
-    const { exitCode } = await run(createApiGetCommand(deps), ['--operation-id', 'a', '--endpoint', 'GET /b'])
+    const { exitCode } = await run(createApiGetCommand(deps), ['--operation-id', 'a', '--endpoint', 'GET /b', '--api', 'elasticsearch'])
     assert.equal(exitCode, 1)
     assert.equal(calls.length, 0)
   })
 
   it('get reports a server error with exit code 1', async () => {
     const cmd = createApiGetCommand({ docsApi: async () => { throw new Error('No API operation matches nope.') } })
-    const { stdout, exitCode } = await run(cmd, ['nope'])
+    const { stdout, exitCode } = await run(cmd, ['nope', '--api', 'elasticsearch'])
     assert.equal(exitCode, 1)
     assert.equal(stdout, '')
   })
@@ -190,7 +184,7 @@ describe('docs api commands', () => {
 
   it('search reports no results', async () => {
     const { deps } = fake({ query: 'x', totalHits: 0, results: [] })
-    assert.equal((await run(createApiSearchCommand(deps), ['x'])).stdout, 'No operations found.\n')
+    assert.equal((await run(createApiSearchCommand(deps), ['x', '--api', 'elasticsearch'])).stdout, 'No operations found.\n')
   })
 
   it('get prints the description, body, deprecation and other matches', async () => {
@@ -213,7 +207,7 @@ describe('docs api commands', () => {
     const { deps } = fake({ query: 'x', totalHits: 3, results: [] })
     const cmd = createApiSearchCommand(deps)
     cmd.option('--output-fields <fields>')
-    const { stdout } = await run(cmd, ['x', '--output-fields', 'totalHits'])
+    const { stdout } = await run(cmd, ['x', '--api', 'elasticsearch', '--output-fields', 'totalHits'])
     assert.deepEqual(JSON.parse(stdout), { totalHits: 3 })
   })
 
@@ -234,7 +228,7 @@ describe('docs api commands', () => {
   it('list with a group lists its operations a page at a time', async () => {
     const { deps, calls } = fake({ totalHits: 12, results: [{ operation: op }] })
     const { stdout } = await run(createApiListCommand(deps), ['elasticsearch', '--group', 'cluster', '--page', '2'])
-    assert.deepEqual(calls[0], { path: '/api-operations', params: { api: 'elasticsearch', version: undefined, group: 'cluster', page: 2, size: undefined } })
+    assert.deepEqual(calls[0], { path: '/apis/elasticsearch/operations', params: { version: undefined, group: 'cluster', page: 2, size: undefined } })
     assert.match(stdout, /^GET {4}\/_cluster\/health {2}\(cluster-health\)\n.*\n1 of 12 operations\n$/)
   })
 
@@ -257,10 +251,12 @@ describe('docs api commands', () => {
     for (const [name, create, argv] of [
       ['search without a query', createApiSearchCommand, []],
       ['search with a blank query', createApiSearchCommand, ['   ']],
-      ['search with --version but no --api', createApiSearchCommand, ['x', '--version', '9']],
+      ['search without --api', createApiSearchCommand, ['x']],
+      ['search with a blank --api', createApiSearchCommand, ['x', '--api', ' ']],
       ['get without an operation', createApiGetCommand, []],
       ['get with a blank operation', createApiGetCommand, ['  ']],
-      ['get with both an endpoint and an operation id', createApiGetCommand, ['GET /_cluster/health', '--operation-id', 'cluster-health']],
+      ['get with both an endpoint and an operation id', createApiGetCommand, ['GET /_cluster/health', '--operation-id', 'cluster-health', '--api', 'elasticsearch']],
+      ['get without --api', createApiGetCommand, ['cluster-health']],
       ['list with --group but no api', createApiListCommand, ['--group', 'cluster']],
       ['list with --page but no --group', createApiListCommand, ['elasticsearch', '--page', '2']],
     ] as const) {

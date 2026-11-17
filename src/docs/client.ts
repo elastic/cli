@@ -199,7 +199,7 @@ export function newUuid (): string {
 }
 
 /**
- * GET a path of the docs API under `/_api/v1`, such as `/api-operations` or `/apis`.
+ * GET a path of the docs API under `/_api/v1`, such as `/apis` or `/apis/{api}/operations`.
  * `path` is appended as is, so callers encode any id in it; null and undefined params are dropped.
  * Throws with the RFC 9457 problem's `detail` (or `title`) on a non-2xx reply.
  */

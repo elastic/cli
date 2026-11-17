@@ -15,12 +15,19 @@ export interface ApiDeps {
 const defaultDeps: ApiDeps = { docsApi }
 
 // Schema keys are the docs API query parameters (`query` is sent as `q`); toKebabCase turns them into flags.
-const api = { type: 'string', description: "API key, e.g. 'elasticsearch' or 'kibana'. `elastic docs api list` lists the keys." }
 // A value that is more than whitespace.
 const nonBlank = { type: 'string', pattern: '\\S' }
-const version = { type: 'string', description: "API version: 'main' or a major such as '9'. Needs --api. Without it, the current version is used." }
+// Every operation lookup names its API: most operation ids and many routes exist in several APIs
+// (elasticsearch and elasticsearch-serverless share most of theirs), so a lookup across APIs could only guess.
+const api = { ...nonBlank, description: "API key, e.g. 'elasticsearch' or 'kibana'. `elastic docs api list` lists the keys." }
+const version = { type: 'string', description: "API version: 'main' or a major such as '9'. Without it, the current version is used." }
 
-interface Operation { id: string; api: string; title: string; url: string; method: string; path: string; operationId: string; deprecated?: boolean }
+interface Operation { api: string; title: string; url: string; method: string; path: string; operationId: string; deprecated?: boolean }
+/** The path of one API's operations, with the key encoded into one segment. */
+function operationsOf (key: unknown): string {
+  return `/apis/${encodeURIComponent(String(key))}/operations`
+}
+
 interface Field { path: string; type: string; location: string; description: string }
 
 function absUrl (url: string): string {
@@ -83,10 +90,10 @@ export function createApiSearchCommand (deps: ApiDeps = defaultDeps): OpaqueComm
       page: { type: 'integer', minimum: 1, description: 'Page number', default: 1 },
       size: { type: 'integer', minimum: 1, maximum: 50, description: 'Results per page', default: 10 },
     },
-    rules: { required: ['query'], dependencies: { version: ['api'] } },
+    rules: { required: ['query', 'api'] },
     positionalArg: { name: 'query', description: 'Words, an endpoint, or a field path' },
     fromArg: (query) => ({ query }),
-    request: async ({ query, ...params }, call) => call('/api-operations', { q: query, ...params }),
+    request: async ({ query, api: key, ...params }, call) => call(operationsOf(key), { q: query, ...params }),
     format: (reply) => {
       const results = reply['results'] as Array<{ operation: Operation; matchedFields?: Field[] }>
       if (results.length === 0) return 'No operations found.\n'
@@ -114,20 +121,21 @@ export function createApiGetCommand (deps: ApiDeps = defaultDeps): OpaqueCommand
       include_body: { type: 'boolean', description: 'Include the page body' },
     },
     // Exactly one way to name the operation.
-    rules: { oneOf: [{ required: ['endpoint'] }, { required: ['operation_id'] }], dependencies: { version: ['api'] } },
+    rules: { required: ['api'], oneOf: [{ required: ['endpoint'] }, { required: ['operation_id'] }] },
     positionalArg: { name: 'operation', description: "An endpoint such as 'GET /_cluster/health', or an operation id" },
     // Operation ids never contain '/', endpoints always do.
     fromArg: (arg) => (arg.includes('/') ? { endpoint: arg } : { operation_id: arg }),
     request: async ({ endpoint, operation_id: operationId, api: key, version: ver, include_body: includeBody }, call) => {
-      if (operationId != null && key != null) {
-        return call(`/api-operations/${encodeURIComponent(`${String(key)}:${String(operationId)}`)}`, { version: ver, include_body: includeBody })
+      if (operationId != null) {
+        return call(`${operationsOf(key)}/${encodeURIComponent(String(operationId))}`, { version: ver, include_body: includeBody })
       }
-      // Without an API key, or for an endpoint, the full view returns every match with its fields, best first.
-      const { results } = await call('/api-operations', {
-        endpoint, operation_id: operationId, api: key, version: ver, view: 'full', include_body: includeBody,
+      // Inside one API, a route made only of parameters, such as /{index}, can still serve several operations:
+      // the full view returns them with their fields, best route first.
+      const { results } = await call(operationsOf(key), {
+        endpoint, version: ver, view: 'full', include_body: includeBody,
       }) as { results: Array<{ operation: Operation; versions: string[]; fields: Field[]; body?: string | null }> }
       const [best, ...rest] = results
-      if (best == null) throw new Error(`No API operation matches ${String(endpoint ?? operationId)}${key != null ? ` in ${String(key)}` : ''}.`)
+      if (best == null) throw new Error(`No API operation matches ${String(endpoint)} in ${String(key)}.`)
       return { operation: best.operation, versions: best.versions, fields: best.fields, body: best.body ?? null, otherMatches: rest.map((r) => r.operation) }
     },
     format: (reply) => {
@@ -162,7 +170,7 @@ export function createApiListCommand (deps: ApiDeps = defaultDeps): OpaqueComman
     request: async ({ api: key, group, version: ver, page, size }, call) => {
       if (key == null) return call('/apis', {})
       if (group == null) return call(`/apis/${encodeURIComponent(String(key))}/groups`, { version: ver })
-      return call('/api-operations', { api: key, version: ver, group, page, size })
+      return call(operationsOf(key), { version: ver, group, page, size })
     },
     format: (reply) => {
       if (Array.isArray(reply['apis'])) {

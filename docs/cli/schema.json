@@ -121198,15 +121198,21 @@
                   "role": "flag",
                   "name": "api",
                   "type": "string",
-                  "required": false,
-                  "summary": "API key, e.g. 'elasticsearch' or 'kibana'. `elastic docs api list` lists the keys."
+                  "required": true,
+                  "summary": "API key, e.g. 'elasticsearch' or 'kibana'. `elastic docs api list` lists the keys.",
+                  "validations": [
+                    {
+                      "kind": "regex",
+                      "pattern": "\\S"
+                    }
+                  ]
                 },
                 {
                   "role": "flag",
                   "name": "version",
                   "type": "string",
                   "required": false,
-                  "summary": "API version: 'main' or a major such as '9'. Needs --api. Without it, the current version is used."
+                  "summary": "API version: 'main' or a major such as '9'. Without it, the current version is used."
                 },
                 {
                   "role": "flag",
@@ -121294,15 +121300,21 @@
                   "role": "flag",
                   "name": "api",
                   "type": "string",
-                  "required": false,
-                  "summary": "API key, e.g. 'elasticsearch' or 'kibana'. `elastic docs api list` lists the keys."
+                  "required": true,
+                  "summary": "API key, e.g. 'elasticsearch' or 'kibana'. `elastic docs api list` lists the keys.",
+                  "validations": [
+                    {
+                      "kind": "regex",
+                      "pattern": "\\S"
+                    }
+                  ]
                 },
                 {
                   "role": "flag",
                   "name": "version",
                   "type": "string",
                   "required": false,
-                  "summary": "API version: 'main' or a major such as '9'. Needs --api. Without it, the current version is used."
+                  "summary": "API version: 'main' or a major such as '9'. Without it, the current version is used."
                 },
                 {
                   "role": "flag",
@@ -121343,7 +121355,7 @@
                   "name": "version",
                   "type": "string",
                   "required": false,
-                  "summary": "API version: 'main' or a major such as '9'. Needs --api. Without it, the current version is used."
+                  "summary": "API version: 'main' or a major such as '9'. Without it, the current version is used."
                 },
                 {
                   "role": "flag",
