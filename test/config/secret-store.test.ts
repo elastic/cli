@@ -84,9 +84,23 @@ describe('getSecretStore', () => {
     assert.equal(await store.isAvailable(), false)
   })
 
+  it('falls through to pass when secret-tool is present but unusable', async () => {
+    const { fn, calls } = makeExec([
+      { match: 'command -v secret-tool', result: '/usr/bin/secret-tool\n' },
+      { match: 'secret-tool store', result: new Error('Cannot autolaunch D-Bus without X11 $DISPLAY') },
+      { match: 'pass version', result: 'v1.7.4\n' },
+    ])
+
+    const store = await getSecretStore({ platform: 'linux', execSync: fn })
+    assert.equal(store.kind, 'pass')
+    assert.equal(calls.some(c => c.cmd.includes('--version')), false)
+  })
+
   it('prefers secret_service over pass on linux', async () => {
     const { fn, calls } = makeExec([
       { match: 'command -v secret-tool', result: '/usr/bin/secret-tool\n' },
+      { match: 'secret-tool store', result: '' },
+      { match: 'secret-tool clear', result: '' },
     ])
 
     const store = await getSecretStore({ platform: 'linux', execSync: fn })
@@ -229,13 +243,28 @@ sys.exit(os.waitstatus_to_exitcode(status))
 })
 
 describe('LinuxSecretServiceStore', () => {
-  it('probe uses command -v, not --version', async () => {
+  it('probe uses command -v plus a store/clear round trip, not --version', async () => {
     const { fn, calls } = makeExec([
       { match: 'command -v secret-tool', result: '/usr/bin/secret-tool\n' },
+      { match: 'secret-tool store', result: '' },
+      { match: 'secret-tool clear', result: '' },
     ])
     const store = new _testStores.LinuxSecretServiceStore({ execSync: fn })
     assert.equal(await store.isAvailable(), true)
-    assert.deepEqual(calls.map(c => c.cmd), ['command -v secret-tool'])
+    assert.equal(calls[0]?.cmd, 'command -v secret-tool')
+    assert.match(calls[1]?.cmd ?? '', /secret-tool store/)
+    assert.match(calls[2]?.cmd ?? '', /secret-tool clear/)
+    assert.equal(calls.some(c => c.cmd.includes('--version')), false)
+  })
+
+  it('probe is unavailable when the round trip store fails', async () => {
+    const { fn } = makeExec([
+      { match: 'command -v secret-tool', result: '/usr/bin/secret-tool\n' },
+      { match: 'secret-tool store', result: new Error('Cannot autolaunch D-Bus without X11 $DISPLAY') },
+      { match: 'secret-tool clear', result: '' },
+    ])
+    const store = new _testStores.LinuxSecretServiceStore({ execSync: fn })
+    assert.equal(await store.isAvailable(), false)
   })
 
   it('put passes secret via stdin (input option) and uses store attributes', async () => {

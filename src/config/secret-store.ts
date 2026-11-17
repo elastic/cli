@@ -219,7 +219,27 @@ class LinuxSecretServiceStore extends ShellSecretStore {
 
   protected probe (): void {
     // secret-tool has no --version; it prints usage and exits 2 (#664).
+    // Presence alone is not enough: a headless session can have the binary
+    // without a usable D-Bus keyring, which would block falling through to
+    // `pass`. Round-trip a throwaway entry to prove the service works.
     this.execSync('command -v secret-tool', execOpts(2_000))
+    const service = 'elastic-cli-probe'
+    const account = `probe-${process.pid}`
+    try {
+      this.execSync(
+        `secret-tool store --label=${shellEscape(`${service}:${account}`)} service ${shellEscape(service)} account ${shellEscape(account)}`,
+        execOpts(2_000, 'probe')
+      )
+    } finally {
+      try {
+        this.execSync(
+          `secret-tool clear service ${shellEscape(service)} account ${shellEscape(account)}`,
+          execOpts(2_000)
+        )
+      } catch {
+        // Best-effort cleanup; a failed store already marks us unavailable.
+      }
+    }
   }
 
   async put (service: string, account: string, secret: string): Promise<void> {
