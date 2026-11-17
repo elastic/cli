@@ -121163,7 +121163,188 @@
           }
         }
       ],
-      "namespaces": [],
+      "namespaces": [
+        {
+          "segment": "api",
+          "commands": [
+            {
+              "path": [
+                "docs",
+                "api"
+              ],
+              "name": "search",
+              "parameters": [
+                {
+                  "role": "positional",
+                  "name": "query",
+                  "type": "string",
+                  "required": false,
+                  "summary": "Words, an endpoint, or a field path"
+                },
+                {
+                  "role": "flag",
+                  "name": "query",
+                  "type": "string",
+                  "required": false,
+                  "summary": "Words, an endpoint such as 'GET /_cluster/health', or a field path; end a field with '.' to list its children"
+                },
+                {
+                  "role": "flag",
+                  "name": "api",
+                  "type": "string",
+                  "required": false,
+                  "summary": "API key, e.g. 'elasticsearch' or 'kibana'. `elastic docs api list` lists the keys."
+                },
+                {
+                  "role": "flag",
+                  "name": "version",
+                  "type": "string",
+                  "required": false,
+                  "summary": "API version: 'main' or a major such as '9'. Needs --api. Default: the current version."
+                },
+                {
+                  "role": "flag",
+                  "name": "include-deprecated",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "Include deprecated operations"
+                },
+                {
+                  "role": "flag",
+                  "name": "page",
+                  "type": "number",
+                  "required": false,
+                  "summary": "Page number",
+                  "defaultValue": "1",
+                  "validations": [
+                    {
+                      "kind": "range",
+                      "min": "1"
+                    }
+                  ]
+                },
+                {
+                  "role": "flag",
+                  "name": "size",
+                  "type": "number",
+                  "required": false,
+                  "summary": "Results per page",
+                  "defaultValue": "10",
+                  "validations": [
+                    {
+                      "kind": "range",
+                      "min": "1",
+                      "max": "50"
+                    }
+                  ]
+                }
+              ],
+              "summary": "Search the Elastic REST API reference for operations",
+              "intent": {
+                "requiresAuth": false
+              }
+            },
+            {
+              "path": [
+                "docs",
+                "api"
+              ],
+              "name": "get",
+              "parameters": [
+                {
+                  "role": "positional",
+                  "name": "operation",
+                  "type": "string",
+                  "required": false,
+                  "summary": "An endpoint such as 'GET /_cluster/health', or an operation id"
+                },
+                {
+                  "role": "flag",
+                  "name": "endpoint",
+                  "type": "string",
+                  "required": false,
+                  "summary": "A route as you would call it, e.g. 'GET /my-index/_search'"
+                },
+                {
+                  "role": "flag",
+                  "name": "operation-id",
+                  "type": "string",
+                  "required": false,
+                  "summary": "The OpenAPI operation id, e.g. 'cluster-health'"
+                },
+                {
+                  "role": "flag",
+                  "name": "api",
+                  "type": "string",
+                  "required": false,
+                  "summary": "API key, e.g. 'elasticsearch' or 'kibana'. `elastic docs api list` lists the keys."
+                },
+                {
+                  "role": "flag",
+                  "name": "version",
+                  "type": "string",
+                  "required": false,
+                  "summary": "API version: 'main' or a major such as '9'. Needs --api. Default: the current version."
+                },
+                {
+                  "role": "flag",
+                  "name": "include-body",
+                  "type": "boolean",
+                  "required": false,
+                  "summary": "Include the page body"
+                }
+              ],
+              "summary": "Get one operation from the Elastic REST API reference, with its parameters and fields",
+              "intent": {
+                "requiresAuth": false
+              }
+            },
+            {
+              "path": [
+                "docs",
+                "api"
+              ],
+              "name": "list",
+              "parameters": [
+                {
+                  "role": "positional",
+                  "name": "api",
+                  "type": "string",
+                  "required": false,
+                  "summary": "API key; omit to list every API"
+                },
+                {
+                  "role": "flag",
+                  "name": "api",
+                  "type": "string",
+                  "required": false,
+                  "summary": "API key, e.g. 'elasticsearch'. Omit to list every API."
+                },
+                {
+                  "role": "flag",
+                  "name": "version",
+                  "type": "string",
+                  "required": false,
+                  "summary": "API version: 'main' or a major such as '9'. Needs --api. Default: the current version."
+                },
+                {
+                  "role": "flag",
+                  "name": "group",
+                  "type": "string",
+                  "required": false,
+                  "summary": "Only the operations of this group, e.g. 'cluster'"
+                }
+              ],
+              "summary": "List the Elastic REST APIs, or the operations of one API by group",
+              "intent": {
+                "requiresAuth": false
+              }
+            }
+          ],
+          "namespaces": [],
+          "summary": "Search, read, and list operations in the Elastic REST API reference"
+        }
+      ],
       "summary": "Search, read, and ask questions about Elastic documentation",
       "options": [
         {

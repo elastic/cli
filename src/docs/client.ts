@@ -197,3 +197,32 @@ export function stripHtmlTags (s: string): string {
 export function newUuid (): string {
   return crypto.randomUUID()
 }
+
+/**
+ * Query the API Explorer lookups of the docs API (`/_api/v1/api-reference`).
+ * `path` is `/search`, `/operation`, or `/` (list); null and undefined params are dropped.
+ * Throws with the server's `message` on a non-2xx reply.
+ */
+export async function docsApiReference (path: string, params: Record<string, unknown>): Promise<unknown> {
+  const qs = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value != null) qs.set(key, String(value))
+  }
+  const resp = await fetch(`${DOCS_BASE_URL}/_api/v1/api-reference${path}?${qs.toString()}`, {
+    redirect: 'error',
+    headers: { Accept: 'application/json', Cookie: DOCS_COOKIE },
+  })
+  const text = await resp.text().catch(() => '')
+  if (!resp.ok) {
+    // A CDN or site error page is HTML; only the docs API's JSON rejection carries a useful message.
+    let message = resp.statusText || 'request failed'
+    try {
+      const body = JSON.parse(text) as { message?: unknown }
+      if (typeof body.message === 'string') message = body.message
+    } catch {
+      // keep the status text
+    }
+    throw new Error(`docs api error (${resp.status}): ${message}`)
+  }
+  return JSON.parse(text) as unknown
+}
