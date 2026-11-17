@@ -5,20 +5,20 @@
 
 import { defineCommand, defineGroup } from '../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../factory.ts'
-import { docsApiOperations } from './client.ts'
+import { docsApi } from './client.ts'
 
 /** Injectable dependencies for the `docs api` commands. */
 export interface ApiDeps {
-  docsApiOperations: typeof docsApiOperations
+  docsApi: typeof docsApi
 }
 
-const defaultDeps: ApiDeps = { docsApiOperations }
+const defaultDeps: ApiDeps = { docsApi }
 
 // Schema keys are the docs API query parameters (`query` is sent as `q`); toKebabCase turns them into flags.
 const api = { type: 'string', description: "API key, e.g. 'elasticsearch' or 'kibana'. `elastic docs api list` lists the keys." }
 const version = { type: 'string', description: "API version: 'main' or a major such as '9'. Needs --api. Without it, the current version is used." }
 
-interface Operation { api: string; title: string; url: string; method: string; path: string; operationId: string; deprecated?: boolean }
+interface Operation { id: string; api: string; title: string; url: string; method: string; path: string; operationId: string; deprecated?: boolean }
 interface Field { path: string; type: string; location: string; description: string }
 
 function absUrl (url: string): string {
@@ -40,8 +40,8 @@ interface ApiCommandConfig {
   positionalArg: { name: string; description: string }
   /** Maps the positional value onto query parameters. */
   fromArg: (arg: string) => Record<string, unknown>
-  /** Sends the request(s); `call` GETs a path under `/_api/v1/api-operations`. */
-  request: (params: Record<string, unknown>, call: ApiDeps['docsApiOperations']) => Promise<unknown>
+  /** Sends the one request; `call` GETs a path under `/_api/v1`. */
+  request: (params: Record<string, unknown>, call: ApiDeps['docsApi']) => Promise<unknown>
   format: (reply: Record<string, unknown>) => string
 }
 
@@ -55,7 +55,7 @@ function apiCommand (config: ApiCommandConfig, deps: ApiDeps): OpaqueCommandHand
       const arg = parsed.arg?.trim()
       const params: Record<string, unknown> = { ...(parsed.input ?? {}), ...(arg != null && arg !== '' ? config.fromArg(arg) : {}) }
       try {
-        return await config.request(params, deps.docsApiOperations) as JsonValue
+        return await config.request(params, deps.docsApi) as JsonValue
       } catch (err) {
         return { error: { code: 'docs_error', message: err instanceof Error ? err.message : String(err) } }
       }
@@ -84,7 +84,7 @@ export function createApiSearchCommand (deps: ApiDeps = defaultDeps): OpaqueComm
     fromArg: (query) => ({ query }),
     request: async ({ query, ...params }, call) => {
       if (typeof query !== 'string' || query.trim() === '') throw new Error('query is required')
-      return call('', { q: query, ...params })
+      return call('/api-operations', { q: query, ...params })
     },
     format: (reply) => {
       const results = reply['results'] as Array<{ operation: Operation; matchedFields?: Field[] }>
@@ -117,15 +117,16 @@ export function createApiGetCommand (deps: ApiDeps = defaultDeps): OpaqueCommand
     fromArg: (arg) => (arg.includes('/') ? { endpoint: arg } : { operation_id: arg }),
     request: async ({ endpoint, operation_id: operationId, api: key, version: ver, include_body: includeBody }, call) => {
       if ((endpoint == null) === (operationId == null)) throw new Error('Pass exactly one of an operation id or an endpoint.')
-      if (operationId != null) {
-        return call(`/${encodeURIComponent(String(operationId))}`, { api: key, version: ver, include_body: includeBody })
+      if (operationId != null && key != null) {
+        return call(`/api-operations/${encodeURIComponent(`${String(key)}:${String(operationId)}`)}`, { version: ver, include_body: includeBody })
       }
-      // The collection lists every operation that serves the request; read the best one with its fields.
-      const { results } = await call('', { endpoint, api: key, version: ver }) as { results: Operation[] }
+      // Without an API key, or for an endpoint, the full view returns every match with its fields, best first.
+      const { results } = await call('/api-operations', {
+        endpoint, operation_id: operationId, api: key, version: ver, view: 'full', include_body: includeBody,
+      }) as { results: Array<{ operation: Operation; versions: string[]; fields: Field[]; body?: string | null }> }
       const [best, ...rest] = results
-      if (best == null) throw new Error(`No API operation matches ${String(endpoint)}${key != null ? ` in ${String(key)}` : ''}.`)
-      const detail = await call(`/${encodeURIComponent(best.operationId)}`, { api: best.api, version: ver, include_body: includeBody })
-      return { ...(detail as Record<string, unknown>), otherMatches: rest }
+      if (best == null) throw new Error(`No API operation matches ${String(endpoint ?? operationId)}${key != null ? ` in ${String(key)}` : ''}.`)
+      return { operation: best.operation, versions: best.versions, fields: best.fields, body: best.body ?? null, otherMatches: rest.map((r) => r.operation) }
     },
     format: (reply) => {
       const op = reply['operation'] as Operation & { description?: string }
@@ -141,36 +142,38 @@ export function createApiGetCommand (deps: ApiDeps = defaultDeps): OpaqueCommand
   }, deps)
 }
 
-/** `elastic docs api list`: list the REST APIs, or the operations of one API by group. */
+/** `elastic docs api list`: list the REST APIs, the groups of one API, or the operations of one group. */
 export function createApiListCommand (deps: ApiDeps = defaultDeps): OpaqueCommandHandle {
   return apiCommand({
     name: 'list',
-    description: 'List the Elastic REST APIs, or the operations of one API by group',
+    description: 'List the Elastic REST APIs, the groups of one API, or the operations of one group',
     properties: {
       api: { type: 'string', description: "API key, e.g. 'elasticsearch'. Omit to list every API." },
       version,
-      group: { type: 'string', description: "Only the operations of this group, e.g. 'cluster'" },
+      group: { type: 'string', description: "List the operations of this group, e.g. 'cluster'. Without it, the API's groups are counted." },
+      page: { type: 'integer', minimum: 1, description: 'Page of a group listing' },
+      size: { type: 'integer', minimum: 1, maximum: 50, description: 'Operations per page of a group listing (default 10)' },
     },
     positionalArg: { name: 'api', description: 'API key; omit to list every API' },
     fromArg: (key) => ({ api: key }),
-    request: async ({ api: key, ...params }, call) => {
-      if (key != null) return call('/groups', { api: key, ...params })
-      if (Object.keys(params).length > 0) throw new Error('--version and --group need --api.')
-      return call('/apis', {})
+    request: async ({ api: key, group, version: ver, page, size }, call) => {
+      if (key == null) {
+        if (group != null || ver != null || page != null || size != null) throw new Error('--version, --group, --page and --size need --api.')
+        return call('/apis', {})
+      }
+      if (group == null) return call(`/apis/${encodeURIComponent(String(key))}/groups`, { version: ver })
+      return call('/api-operations', { api: key, version: ver, group, page, size })
     },
     format: (reply) => {
       if (Array.isArray(reply['apis'])) {
         return (reply['apis'] as Array<{ key: string; title: string; versions: string[] }>)
           .map((a) => `${a.key.padEnd(24)}${a.title}  [${a.versions.join(', ')}]\n`).join('')
       }
-      const groups = reply['groups'] as Array<{ name: string; count: number; operations?: Operation[] }>
-      let out = ''
-      for (const g of groups) {
-        out += `${g.name} (${g.count})\n`
-        if (g.operations != null) out += g.operations.map((o) => '  ' + opLine(o).replace('\n  ', '\n    ')).join('') + '\n'
+      if (Array.isArray(reply['results'])) {
+        const results = reply['results'] as Array<{ operation: Operation }>
+        return results.map((r) => opLine(r.operation)).join('') + `${results.length} of ${String(reply['totalHits'])} operations\n`
       }
-      if (typeof reply['note'] === 'string') out += `\n${reply['note']}\n`
-      return out
+      return (reply['groups'] as Array<{ name: string; count: number }>).map((g) => `${g.name} (${g.count})\n`).join('')
     },
   }, deps)
 }

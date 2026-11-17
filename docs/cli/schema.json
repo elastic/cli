@@ -121332,10 +121332,37 @@
                   "name": "group",
                   "type": "string",
                   "required": false,
-                  "summary": "Only the operations of this group, e.g. 'cluster'"
+                  "summary": "List the operations of this group, e.g. 'cluster'. Without it, the API's groups are counted."
+                },
+                {
+                  "role": "flag",
+                  "name": "page",
+                  "type": "number",
+                  "required": false,
+                  "summary": "Page of a group listing",
+                  "validations": [
+                    {
+                      "kind": "range",
+                      "min": "1"
+                    }
+                  ]
+                },
+                {
+                  "role": "flag",
+                  "name": "size",
+                  "type": "number",
+                  "required": false,
+                  "summary": "Operations per page of a group listing (default 10)",
+                  "validations": [
+                    {
+                      "kind": "range",
+                      "min": "1",
+                      "max": "50"
+                    }
+                  ]
                 }
               ],
-              "summary": "List the Elastic REST APIs, or the operations of one API by group",
+              "summary": "List the Elastic REST APIs, the groups of one API, or the operations of one group",
               "intent": {
                 "requiresAuth": false
               }
