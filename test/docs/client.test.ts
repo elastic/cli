@@ -108,6 +108,17 @@ describe('docs client utilities', () => {
       assert.ok(captured[0].url.includes('size=5'))
     })
 
+    it('sends only an Accept header, with no cookie now that the CDN no longer gates the API', async () => {
+      const captured: FetchArgs[] = []
+      installFetch(async (args) => {
+        captured.push(args)
+        return new Response(JSON.stringify({ results: [], totalResults: 0, pageNumber: 1, pageSize: 5, pageCount: 0 }), { status: 200 })
+      })
+
+      await docsSearch('hello')
+      assert.deepEqual(captured[0]!.init?.headers, { Accept: 'application/json' })
+    })
+
     it('throws with status and body on non-ok response', async () => {
       installFetch(async () => new Response('upstream broken', { status: 503, statusText: 'Service Unavailable' }))
       await assert.rejects(
@@ -250,6 +261,22 @@ describe('docs client utilities', () => {
 
   describe('docsAskStream', () => {
     afterEach(restoreFetch)
+
+    it('posts the message with JSON and event-stream headers and no cookie', async () => {
+      const captured: FetchArgs[] = []
+      installFetch(async (args) => {
+        captured.push(args)
+        return new Response(sseStream(['data: {"type":"conversation_end"}\n\n']), { status: 200 })
+      })
+
+      const events = []
+      for await (const ev of docsAskStream('hi', 'cid')) events.push(ev)
+      assert.deepEqual(events, [])
+      assert.equal(captured[0]!.url, 'https://www.elastic.co/docs/_api/v1/ask-ai/stream')
+      assert.equal(captured[0]!.init?.method, 'POST')
+      assert.deepEqual(captured[0]!.init?.headers, { 'Content-Type': 'application/json', Accept: 'text/event-stream' })
+      assert.equal(captured[0]!.init?.body, JSON.stringify({ message: 'hi', conversationId: 'cid' }))
+    })
 
     it('throws with body on non-ok response', async () => {
       installFetch(async () => new Response('denied', { status: 403 }))
