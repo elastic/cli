@@ -34,11 +34,11 @@ teardown:
   - do:
       slo.delete_slo_op:
         space_id: default
-        slo_id: cli-ft-disable-slo
+        id: cli-ft-disable-slo
         ignore: [404]
 ---
 "slo disable-slo-op":
   - do:
       slo.disable_slo_op:
         space_id: default
-        slo_id: cli-ft-disable-slo
+        id: cli-ft-disable-slo

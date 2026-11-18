@@ -32,17 +32,17 @@ setup:
   - do:
       slo.disable_slo_op:
         space_id: default
-        slo_id: cli-ft-enable-slo
+        id: cli-ft-enable-slo
 ---
 teardown:
   - do:
       slo.delete_slo_op:
         space_id: default
-        slo_id: cli-ft-enable-slo
+        id: cli-ft-enable-slo
         ignore: [404]
 ---
 "slo enable-slo-op":
   - do:
       slo.enable_slo_op:
         space_id: default
-        slo_id: cli-ft-enable-slo
+        id: cli-ft-enable-slo

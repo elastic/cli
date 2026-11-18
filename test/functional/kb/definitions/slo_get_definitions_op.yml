@@ -34,7 +34,7 @@ teardown:
   - do:
       slo.delete_slo_op:
         space_id: default
-        slo_id: cli-ft-get-definitions
+        id: cli-ft-get-definitions
         ignore: [404]
 ---
 "slo get-definitions-op":

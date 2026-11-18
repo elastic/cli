@@ -12,7 +12,7 @@ teardown:
   - do:
       slo.delete_slo_op:
         space_id: default
-        slo_id: cli-ft-find-slo
+        id: cli-ft-find-slo
         ignore: [404]
 ---
 "slo find-slos-op":

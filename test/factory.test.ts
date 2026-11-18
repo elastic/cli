@@ -3608,6 +3608,43 @@ describe('repeated flags', () => {
     assert.deepEqual(captured, { fields: ['title', 'status'] })
   })
 
+  it('object-or-string body flag parses a JSON object and keeps a plain string', async () => {
+    const schema = jsonSchema({
+      script: { anyOf: [{ type: 'object' }, { type: 'string' }], 'x-found-in': 'body' },
+    })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'update-by-query',
+      description: 'Update by query',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    const script = { source: 'ctx._source.age++', lang: 'painless' }
+    await invokeAsync(cmd, ['--script', JSON.stringify(script)])
+    assert.deepEqual(captured, { script })
+
+    await invokeAsync(cmd, ['--script', 'ctx._source.age++'])
+    assert.deepEqual(captured, { script: 'ctx._source.age++' })
+  })
+
+  it('object-or-string sort flag still parses field:direction pairs', async () => {
+    const schema = jsonSchema({
+      sort: {
+        anyOf: [{ type: 'string' }, { type: 'object' }, { type: 'array', items: { type: 'string' } }],
+        'x-found-in': 'body',
+      },
+    })
+    let captured: unknown
+    const cmd = defineCommand({
+      name: 'search',
+      description: 'Search',
+      input: schema,
+      handler: (parsed) => { captured = parsed.input; return {} },
+    })
+    await invokeAsync(cmd, ['--sort', 'views:desc,timestamp:asc'])
+    assert.deepEqual(captured, { sort: [{ views: 'desc' }, { timestamp: 'asc' }] })
+  })
+
   it('single-value union(string, array) body arg stays a string', async () => {
     const schema = jsonSchema({
       fields: { anyOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }], 'x-found-in': 'body' },

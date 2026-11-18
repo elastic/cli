@@ -12,7 +12,7 @@ teardown:
   - do:
       slo.delete_slo_op:
         space_id: default
-        slo_id: cli-ft-get-snapshot-slo
+        id: cli-ft-get-snapshot-slo
         ignore: [404]
 ---
 "slo get-snapshot-op":
@@ -41,6 +41,6 @@ teardown:
   - do:
       slo.get_snapshot_op:
         space_id: default
-        slo_id: cli-ft-get-snapshot-slo
+        id: cli-ft-get-snapshot-slo
         at: "2025-01-01T00:00:00.000Z"
   - is_true: results

@@ -7,6 +7,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import type { SchemaArgDefinition } from '../../src/lib/json-schema-args.ts'
 import { toKebabCase, extractSchemaArgs, buildFlagKeyMap, validateSchemaArgs } from '../../src/lib/json-schema-args.ts'
+import { loadEsApisInFile } from '../../src/es/apis.ts'
 
 // Helper: build a minimal JSON Schema for testing
 function schema (
@@ -282,6 +283,72 @@ describe('resolveType via $defs dereferencing', () => {
     }
     const args = extractSchemaArgs(s)
     assert.equal(args[0]?.type, 'string')
+    assert.equal(args[0]?.plainStringOk, undefined)
+  })
+
+  it('keeps string type when duration consts omit an explicit type', () => {
+    const s = schema({
+      wait_for_completion_timeout: {
+        anyOf: [
+          { type: 'string' },
+          { const: -1 },
+          { const: 0 },
+        ],
+        'x-found-in': 'body',
+      },
+    })
+    const args = extractSchemaArgs(s)
+    assert.equal(args[0]?.type, 'string')
+    assert.equal(args[0]?.plainStringOk, undefined)
+  })
+
+  it('keeps sql query duration fields as strings', async () => {
+    const defs = await loadEsApisInFile('sql.query')
+    const def = defs.find((d) => d.name === 'query')
+    assert.ok(def?.input != null)
+    const args = extractSchemaArgs(def.input)
+    for (const key of ['keep_alive', 'wait_for_completion_timeout']) {
+      const arg = args.find((a) => a.schemaKey === key)
+      assert.equal(arg?.type, 'string', key)
+      assert.equal(arg?.plainStringOk, undefined, key)
+      assert.equal(arg?.foundIn, 'body', key)
+    }
+  })
+
+  it('parses an object-or-string union as JSON and still accepts a plain string', () => {
+    const s = schema({
+      script: {
+        anyOf: [{ type: 'object' }, { type: 'string' }],
+        'x-found-in': 'body',
+      },
+    })
+    const args = extractSchemaArgs(s)
+    assert.equal(args[0]?.type, 'object')
+    assert.equal(args[0]?.plainStringOk, true)
+    assert.equal(args[0]?.acceptsArrayForm, undefined)
+  })
+
+  it('keeps array form on an object-or-string union that also accepts an array', () => {
+    const s = schema({
+      source: {
+        anyOf: [{ type: 'object' }, { type: 'string' }, { type: 'array', items: { type: 'string' } }],
+        'x-found-in': 'body',
+      },
+    })
+    const args = extractSchemaArgs(s)
+    assert.equal(args[0]?.type, 'object')
+    assert.equal(args[0]?.plainStringOk, true)
+    assert.equal(args[0]?.acceptsArrayForm, true)
+  })
+
+  it('classifies the real update-by-query script field as an object that accepts a source string', async () => {
+    const defs = await loadEsApisInFile('update_by_query')
+    const def = defs.find((d) => d.name === 'update-by-query')
+    assert.ok(def?.input != null)
+    const arg = extractSchemaArgs(def.input).find((a) => a.schemaKey === 'script')
+    assert.equal(arg?.type, 'object')
+    assert.equal(arg?.plainStringOk, true)
+    assert.equal(arg?.foundIn, 'body')
   })
 })
 
