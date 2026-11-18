@@ -358,9 +358,18 @@ async function registerHelp (firstArg: string | undefined, earlyConfig: LoadConf
   }
 }
 
+/** True when `--help` or `-h` appears before the extension name on the command line. */
+function helpPrecedesExtension (name: string): boolean {
+  const h = argv.findIndex(a => a === '--help' || a === '-h')
+  return h >= 0 && h < argv.indexOf(name)
+}
+
 /** Runs an installed extension named by an unrecognized first argument, then exits. Returns when there is none. */
 async function dispatchExtension (firstArg: string | undefined): Promise<void> {
-  if (wantsHelp || firstArg == null || program.commands.some(c => c.name() === firstArg)) return
+  // --help/-h after an extension name belongs to the extension. A help flag
+  // before the name stays CLI help, so `elastic --help <ext>` does not run it.
+  // A built-in name still prints that command's help. Bare `elastic --help` has no firstArg.
+  if (firstArg == null || helpPrecedesExtension(firstArg) || program.commands.some(c => c.name() === firstArg)) return
   const { findExtension } = await import('./extension/store.ts')
   const ext = await findExtension(firstArg)
   if (ext == null) return
@@ -370,9 +379,10 @@ async function dispatchExtension (firstArg: string | undefined): Promise<void> {
   // Global flags before the extension name, and context flags leading its args, pick the
   // context the extension gets credentials for (#738). passThroughOptions stops parsing at
   // the extension's first own arg; output flags after the name and anything from `--` on
-  // are the extension's and are forwarded untouched.
-  const before = new Command().passThroughOptions()
-  const after = new Command().passThroughOptions()
+  // are the extension's and are forwarded untouched. Help is disabled so --help/-h are
+  // forwarded instead of being swallowed as this parser's own help option.
+  const before = new Command().helpOption(false).passThroughOptions()
+  const after = new Command().helpOption(false).passThroughOptions()
   for (const o of program.options) {
     before.addOption(o)
     if (o.long === '--config-file' || o.long === '--use-context' || o.long === '--command-profile') after.addOption(o)
