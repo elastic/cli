@@ -33,7 +33,7 @@ describe('docsApi', () => {
     assert.equal(calls[0]!.url, 'https://www.elastic.co/docs/_api/v1/apis/elasticsearch/operations?q=GET+%2F%7Bindex%7D%2F_search%3Fx%3D1%23y&include_deprecated=true')
     assert.equal(calls[0]!.init.method, undefined)
     assert.equal(calls[0]!.init.redirect, 'error')
-    assert.deepEqual(calls[0]!.init.headers, { Accept: 'application/json, application/problem+json', Cookie: 'feature_search_or_askai_enabled=true' })
+    assert.deepEqual(calls[0]!.init.headers, { Accept: 'application/json, application/problem+json' })
   })
 
   const problem = {

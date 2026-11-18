@@ -210,7 +210,7 @@ export async function docsApi (path: string, params: Record<string, unknown>): P
   }
   const resp = await fetch(`${DOCS_BASE_URL}/_api/v1${path}?${qs.toString()}`, {
     redirect: 'error',
-    headers: { Accept: 'application/json, application/problem+json', Cookie: DOCS_COOKIE },
+    headers: { Accept: 'application/json, application/problem+json' },
   })
   const text = await resp.text().catch(() => '')
   if (!resp.ok) {
