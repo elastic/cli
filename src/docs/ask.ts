@@ -7,6 +7,7 @@ import { defineCommand } from '../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../factory.ts'
 import { docsAskStream, newUuid, type AskStreamEvent } from './client.ts'
 import { startSpinner, streamAnswer } from './stream.ts'
+import { ACCEPT_EXPERIMENTAL_OPTION, warnIfExperimental } from '../lib/experimental.ts'
 
 export interface AskDeps {
   docsAskStream: (message: string, conversationId: string) => AsyncGenerator<AskStreamEvent>
@@ -27,34 +28,23 @@ const inputSchema: Record<string, unknown> = {
   },
 }
 
-function experimentalBanner (isTTY: boolean): string {
-  const text =
-    'Warning: "docs ask" is experimental and in active development.\n' +
-    '         Not yet suited for scripts or automation. Pass --accept-experimental to suppress this warning.\n\n'
-  return isTTY ? `\x1b[33m${text}\x1b[0m` : text
-}
-
 export function createAskCommand (deps: AskDeps = defaultDeps): OpaqueCommandHandle {
   return defineCommand({
     name: 'ask',
     description: 'Ask a question about Elastic documentation using AI (single answer)',
     input: inputSchema,
     positionalArg: { name: 'question', description: 'Question to ask', required: false },
-    options: [
-      {
-        long: 'accept-experimental',
-        type: 'boolean',
-        description: 'Acknowledge that this command is experimental and may be removed; suppresses the warning',
-      },
-    ],
+    options: [ACCEPT_EXPERIMENTAL_OPTION],
     handler: async (parsed): Promise<JsonValue> => {
       const inp = parsed.input as { question?: string } | undefined
       const question = (parsed.arg ?? inp?.question ?? '').trim()
       if (question === '') return { error: { code: 'missing_input', message: 'Pass --question <text> (or a positional question).' } }
 
-      if (parsed.options['accept-experimental'] !== true && parsed.options['json'] !== true) {
-        deps.stderr.write(experimentalBanner(process.stderr.isTTY === true))
-      }
+      warnIfExperimental(parsed, {
+        label: 'docs ask',
+        status: 'in active development',
+        advice: 'Not yet suited for scripts or automation.',
+      }, deps.stderr)
 
       const conversationId = newUuid()
       const interactive = process.stderr.isTTY === true && parsed.options['json'] !== true

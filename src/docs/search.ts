@@ -6,6 +6,7 @@
 import { defineCommand } from '../factory.ts'
 import type { OpaqueCommandHandle, JsonValue } from '../factory.ts'
 import { docsSearch, stripHtmlTags } from './client.ts'
+import { ACCEPT_EXPERIMENTAL_OPTION, warnIfExperimental } from '../lib/experimental.ts'
 
 function resultSummary (aiShortSummary: string | undefined, description: string): string {
   return (aiShortSummary != null && aiShortSummary !== '') ? aiShortSummary : stripHtmlTags(description)
@@ -27,30 +28,19 @@ const inputSchema: Record<string, unknown> = {
   },
 }
 
-function experimentalBanner (command: string, isTTY: boolean): string {
-  const text =
-    `Warning: "${command}" is experimental and in active development.\n` +
-    `         Not yet suited for scripts or automation. Pass --accept-experimental to suppress this warning.\n\n`
-  return isTTY ? `\x1b[33m${text}\x1b[0m` : text
-}
-
 export function createSearchCommand (deps: SearchDeps = defaultDeps): OpaqueCommandHandle {
   return defineCommand({
     name: 'search',
     description: 'Search Elastic documentation',
     input: inputSchema,
     positionalArg: { name: 'query', description: 'Search terms', required: false },
-    options: [
-      {
-        long: 'accept-experimental',
-        type: 'boolean',
-        description: 'Acknowledge that this command is experimental and may be removed; suppresses the warning',
-      },
-    ],
+    options: [ACCEPT_EXPERIMENTAL_OPTION],
     handler: async (parsed): Promise<JsonValue> => {
-      if (parsed.options['accept-experimental'] !== true && parsed.options['json'] !== true) {
-        deps.stderr.write(experimentalBanner('docs search', process.stderr.isTTY === true))
-      }
+      warnIfExperimental(parsed, {
+        label: 'docs search',
+        status: 'in active development',
+        advice: 'Not yet suited for scripts or automation.',
+      }, deps.stderr)
       const inp = parsed.input as { query?: string; page?: number; size?: number } | undefined
       const query = (parsed.arg ?? inp?.query ?? '').trim()
       if (query === '') return { error: { code: 'missing_input', message: 'query is required' } }

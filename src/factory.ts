@@ -455,7 +455,10 @@ interface MergedInput {
 }
 
 /** Merges schema-derived CLI flag values over the JSON input; flags win. */
-function mergeFlagsIntoInput (cmd: Command, jsonInput: unknown, schemaArgs: SchemaArgDefinition[], allRaw: OptionValues): MergedInput {
+function mergeFlagsIntoInput (
+  cmd: Command, jsonInput: unknown, schemaArgs: SchemaArgDefinition[], allRaw: OptionValues,
+  positionalArg?: CommandConfig['positionalArg'],
+): MergedInput {
   let inputValue = jsonInput
   const rawBodyValues: Record<string, RawJsonValue> = {}
   const sortParsedKeys = new Set<string>()
@@ -524,6 +527,16 @@ function mergeFlagsIntoInput (cmd: Command, jsonInput: unknown, schemaArgs: Sche
       // string, number (already coerced by parseArg), enum
       cliInput[arg.schemaKey] = raw
     }
+  }
+
+  const positionalKey = positionalArg?.inputKey
+  const positionalInput = cmd.processedArgs[0] as string | undefined
+  if (positionalKey != null && positionalInput !== undefined) {
+    if (positionalKey in cliInput) {
+      const flag = schemaArgs.find((a) => a.schemaKey === positionalKey)?.cliFlag ?? positionalKey
+      return cmd.error(`pass ${positionalArg!.name} either as an argument or as --${flag}, not both`)
+    }
+    cliInput[positionalKey] = positionalInput
   }
 
   if (Object.keys(cliInput).length > 0) {
@@ -851,7 +864,7 @@ export function defineCommand (config: CommandConfig): OpaqueCommandHandle {
     const jsonFormat = allRaw.json
     const options = collectOptions(optDefs, allRaw)
     const merged = isJsonSchemaInput(config.input)
-      ? mergeFlagsIntoInput(cmd, readInput(cmd, config), schemaArgs, allRaw)
+      ? mergeFlagsIntoInput(cmd, readInput(cmd, config), schemaArgs, allRaw, config.positionalArg)
       : undefined
 
     const positionalValue = config.positionalArg != null
