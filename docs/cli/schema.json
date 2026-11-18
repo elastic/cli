@@ -49,6 +49,16 @@
         "name": "ELASTIC_CLI_TELEMETRY",
         "required": false,
         "description": "Set to a falsey value (false/0/no/off) to turn off collection of anonymous telemetry; overrides the config telemetry field"
+      },
+      {
+        "name": "CLAUDECODE",
+        "required": false,
+        "description": "Set by Claude Code; when present (and --json is not), the CLI writes a one-line plugin install hint on stderr"
+      },
+      {
+        "name": "CLAUDE_CODE_CHILD_SESSION",
+        "required": false,
+        "description": "Set by Claude Code child sessions; same plugin install hint as CLAUDECODE"
       }
     ],
     "configFiles": [
