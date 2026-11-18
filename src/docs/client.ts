@@ -4,8 +4,6 @@
  */
 
 const DOCS_BASE_URL = 'https://www.elastic.co/docs'
-const DOCS_COOKIE = 'feature_search_or_askai_enabled=true'
-
 export interface DocsProduct {
   id: string
   displayName: string
@@ -40,7 +38,7 @@ export async function docsSearch (query: string, page = 1, size = 5): Promise<Do
   const url = `${DOCS_BASE_URL}/_api/v1/search?${params.toString()}`
 
   const resp = await fetch(url, {
-    headers: { Accept: 'application/json', Cookie: DOCS_COOKIE }
+    headers: { Accept: 'application/json' }
   })
 
   if (!resp.ok) {
@@ -120,7 +118,6 @@ export async function* docsAskStream (message: string, conversationId: string): 
     headers: {
       'Content-Type': 'application/json',
       Accept: 'text/event-stream',
-      Cookie: DOCS_COOKIE,
     },
     body: JSON.stringify({ message, conversationId }),
   })
