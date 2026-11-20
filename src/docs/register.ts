@@ -8,6 +8,7 @@ import type { OpaqueCommandHandle } from '../factory.ts'
 import { createSearchCommand } from './search.ts'
 import { createAskCommand } from './ask.ts'
 import { createReadCommand } from './read.ts'
+import { createApiGroup } from './api.ts'
 
 export function registerDocsCommands (): OpaqueCommandHandle {
   return defineGroup(
@@ -15,5 +16,6 @@ export function registerDocsCommands (): OpaqueCommandHandle {
     createSearchCommand(),
     createAskCommand(),
     createReadCommand(),
+    createApiGroup(),
   )
 }

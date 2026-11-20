@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { STATUS_CODES } from 'node:http'
+
 const DOCS_BASE_URL = 'https://www.elastic.co/docs'
 export interface DocsProduct {
   id: string
@@ -193,4 +195,35 @@ export function stripHtmlTags (s: string): string {
  */
 export function newUuid (): string {
   return crypto.randomUUID()
+}
+
+/**
+ * GET a path of the docs API under `/_api/v1`, such as `/apis` or `/apis/{api}/operations`.
+ * `path` is appended as is, so callers encode any id in it; null and undefined params are dropped.
+ * Throws with the RFC 9457 problem's `detail` (or `title`) on a non-2xx reply.
+ */
+export async function docsApi (path: string, params: Record<string, unknown>): Promise<unknown> {
+  const qs = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value != null) qs.set(key, String(value))
+  }
+  const resp = await fetch(`${DOCS_BASE_URL}/_api/v1${path}?${qs.toString()}`, {
+    redirect: 'error',
+    headers: { Accept: 'application/json, application/problem+json' },
+  })
+  const text = await resp.text().catch(() => '')
+  if (!resp.ok) {
+    // The docs API answers RFC 9457 problems (application/problem+json): `detail` explains this occurrence,
+    // `title` names its type. A CDN or site error page is HTML and carries neither, and HTTP/2 has no status text.
+    let message = resp.statusText || STATUS_CODES[resp.status] || 'request failed'
+    try {
+      const problem = JSON.parse(text) as { detail?: unknown; title?: unknown }
+      if (typeof problem.detail === 'string' && problem.detail !== '') message = problem.detail
+      else if (typeof problem.title === 'string' && problem.title !== '') message = problem.title
+    } catch {
+      // keep the status text
+    }
+    throw new Error(`docs api error (${resp.status}): ${message}`)
+  }
+  return JSON.parse(text) as unknown
 }
