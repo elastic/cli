@@ -75,7 +75,7 @@ describe('getSecretStore', () => {
 
   it('falls back to a noop store when no candidate is available', async () => {
     const { fn } = makeExec([
-      { match: 'secret-tool --version', result: new Error('not found') },
+      { match: 'command -v secret-tool', result: new Error('not found') },
       { match: 'pass version', result: new Error('not found') },
     ])
 
@@ -84,14 +84,29 @@ describe('getSecretStore', () => {
     assert.equal(await store.isAvailable(), false)
   })
 
+  it('falls through to pass when secret-tool is present but unusable', async () => {
+    const { fn, calls } = makeExec([
+      { match: 'command -v secret-tool', result: '/usr/bin/secret-tool\n' },
+      { match: 'secret-tool store', result: new Error('Cannot autolaunch D-Bus without X11 $DISPLAY') },
+      { match: 'pass version', result: 'v1.7.4\n' },
+    ])
+
+    const store = await getSecretStore({ platform: 'linux', execSync: fn })
+    assert.equal(store.kind, 'pass')
+    assert.equal(calls.some(c => c.cmd.includes('--version')), false)
+  })
+
   it('prefers secret_service over pass on linux', async () => {
     const { fn, calls } = makeExec([
-      { match: 'secret-tool --version', result: 'Secret Tool 0.21\n' },
+      { match: 'command -v secret-tool', result: '/usr/bin/secret-tool\n' },
+      { match: 'secret-tool store', result: '' },
+      { match: 'secret-tool clear', result: '' },
     ])
 
     const store = await getSecretStore({ platform: 'linux', execSync: fn })
     assert.equal(store.kind, 'secret_service')
     assert.equal(calls.some(c => c.cmd.startsWith('pass')), false)
+    assert.equal(calls.some(c => c.cmd.includes('--version')), false)
   })
 
   it('uses credential_manager on win32 when CredentialManager module is present', async () => {
@@ -228,6 +243,30 @@ sys.exit(os.waitstatus_to_exitcode(status))
 })
 
 describe('LinuxSecretServiceStore', () => {
+  it('probe uses command -v plus a store/clear round trip, not --version', async () => {
+    const { fn, calls } = makeExec([
+      { match: 'command -v secret-tool', result: '/usr/bin/secret-tool\n' },
+      { match: 'secret-tool store', result: '' },
+      { match: 'secret-tool clear', result: '' },
+    ])
+    const store = new _testStores.LinuxSecretServiceStore({ execSync: fn })
+    assert.equal(await store.isAvailable(), true)
+    assert.equal(calls[0]?.cmd, 'command -v secret-tool')
+    assert.match(calls[1]?.cmd ?? '', /secret-tool store/)
+    assert.match(calls[2]?.cmd ?? '', /secret-tool clear/)
+    assert.equal(calls.some(c => c.cmd.includes('--version')), false)
+  })
+
+  it('probe is unavailable when the round trip store fails', async () => {
+    const { fn } = makeExec([
+      { match: 'command -v secret-tool', result: '/usr/bin/secret-tool\n' },
+      { match: 'secret-tool store', result: new Error('Cannot autolaunch D-Bus without X11 $DISPLAY') },
+      { match: 'secret-tool clear', result: '' },
+    ])
+    const store = new _testStores.LinuxSecretServiceStore({ execSync: fn })
+    assert.equal(await store.isAvailable(), false)
+  })
+
   it('put passes secret via stdin (input option) and uses store attributes', async () => {
     const { fn, calls } = makeExec([{ match: 'secret-tool store', result: '' }])
     const store = new _testStores.LinuxSecretServiceStore({ execSync: fn })

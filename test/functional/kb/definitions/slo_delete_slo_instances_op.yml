@@ -34,7 +34,7 @@ teardown:
   - do:
       slo.delete_slo_op:
         space_id: default
-        slo_id: cli-ft-delete-slo-instances
+        id: cli-ft-delete-slo-instances
         ignore: [404]
 ---
 "slo delete-slo-instances-op":

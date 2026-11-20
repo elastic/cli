@@ -143,8 +143,12 @@ function resolveType (
     let hasArray = false
     let resolvedType: SchemaArgDefinition['type'] = 'string'
     let hasExplicitString = false
+    let hasObject = false
+    let nestedPlainString = false
     for (const v of variants) {
-      const { type: t } = resolveType(v, defs)
+      const resolved = resolveType(v, defs)
+      if (resolved.plainStringOk === true) nestedPlainString = true
+      const t = resolved.type
       if (t === 'array') {
         hasArray = true
       } else if (t === 'string') {
@@ -153,6 +157,12 @@ function resolveType (
       } else if (!hasExplicitString && (resolvedType === 'string' || v.const === undefined)) {
         resolvedType = t
       }
+      if (t === 'object') hasObject = true
+    }
+    // Script and similar fields are an object or a plain string. Parse JSON
+    // when the flag looks like JSON, and keep a source string otherwise.
+    if (hasObject && (hasExplicitString || nestedPlainString)) {
+      return { type: 'object', acceptsArrayForm: hasArray, plainStringOk: true }
     }
     return { type: resolvedType, acceptsArrayForm: hasArray }
   }
@@ -172,6 +182,16 @@ function resolveType (
   if (rawType === 'integer' || rawType === 'number') return { type: 'number', acceptsArrayForm: false }
   if (rawType === 'object') return { type: 'object', acceptsArrayForm: false }
   if (rawType === 'string') return { type: 'string', acceptsArrayForm: false }
+
+  // A bare const is a literal (`-1`, `0`), not a free-form value. Duration is
+  // `string | -1 | 0` with no type on the consts; treating those as objects
+  // makes the union an object flag and drops plain duration strings.
+  if (rawType === undefined && prop.const !== undefined) {
+    const kind = typeof prop.const
+    if (kind === 'number') return { type: 'number', acceptsArrayForm: false }
+    if (kind === 'boolean') return { type: 'boolean', acceptsArrayForm: false }
+    return { type: 'string', acceptsArrayForm: false }
+  }
 
   // No type declared at all (e.g. `document`, `doc`): the spec accepts any JSON
   // value, including a plain string. Parse JSON when the value looks like it,

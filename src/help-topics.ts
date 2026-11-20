@@ -39,6 +39,8 @@ ELASTIC_CLI_TELEMETRY     false/0/no/off disables anonymous telemetry (overrides
 ELASTIC_NO_BANNER         1 hides the startup logo
 NO_COLOR                  set (any value) disables color on the logo
 ELASTIC_CLOUD_ADMIN_API   Override the Cloud admin API base URL
+CLAUDECODE                Set by Claude Code; CLI writes a plugin hint on stderr (skipped with --json)
+CLAUDE_CODE_CHILD_SESSION Set by Claude Code child sessions; same plugin hint as CLAUDECODE
 
 Secrets
 

@@ -36,7 +36,7 @@ teardown:
   - do:
       slo.delete_slo_op:
         space_id: default
-        slo_id: cli-ft-delete-rollup-slo
+        id: cli-ft-delete-rollup-slo
         ignore: [404]
 ---
 "slo delete-rollup-data-op":

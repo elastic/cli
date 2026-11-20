@@ -59,6 +59,8 @@ describe('help topics', () => {
     assert.match(HELP_TOPICS.environment, /ELASTIC_CLI_TELEMETRY/)
     assert.match(HELP_TOPICS.environment, /ELASTIC_NO_BANNER/)
     assert.match(HELP_TOPICS.environment, /NO_COLOR/)
+    assert.match(HELP_TOPICS.environment, /CLAUDECODE/)
+    assert.match(HELP_TOPICS.environment, /CLAUDE_CODE_CHILD_SESSION/)
     assert.match(HELP_TOPICS.environment, /\.elasticrc\.yml/)
     assert.match(HELP_TOPICS.environment, /keychain/)
     assert.match(HELP_TOPICS.environment, /allow_context_override: false/)

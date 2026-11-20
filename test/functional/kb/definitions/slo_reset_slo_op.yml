@@ -34,12 +34,12 @@ teardown:
   - do:
       slo.delete_slo_op:
         space_id: default
-        slo_id: cli-ft-reset-slo
+        id: cli-ft-reset-slo
         ignore: [404]
 ---
 "slo reset-slo-op":
   - do:
       slo.reset_slo_op:
         space_id: default
-        slo_id: cli-ft-reset-slo
+        id: cli-ft-reset-slo
   - match: {id: cli-ft-reset-slo}

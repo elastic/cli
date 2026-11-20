@@ -79,6 +79,47 @@ const testDefs: EsApiDefinition[] = [
 ]
 
 describe('generateScript', () => {
+  it('emits plain duration strings that sit next to other body fields', () => {
+    const content = [
+      '---',
+      '"async":',
+      '  - do:',
+      '      sql.query:',
+      '        body:',
+      '          query: "SELECT 1"',
+      '          keep_on_completion: true',
+      '          wait_for_completion_timeout: "0s"',
+      '          keep_alive: "1d"',
+      '',
+    ].join('\n')
+    const defs: EsApiDefinition[] = [...testDefs, {
+      name: 'query',
+      namespace: 'sql',
+      description: 'SQL query',
+      method: 'POST',
+      path: '/_sql',
+      input: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', 'x-found-in': 'body' },
+          keep_on_completion: { type: 'boolean', 'x-found-in': 'body' },
+          wait_for_completion_timeout: {
+            anyOf: [{ type: 'string' }, { const: -1 }, { const: 0 }],
+            'x-found-in': 'body',
+          },
+          keep_alive: {
+            anyOf: [{ type: 'string' }, { const: -1 }, { const: 0 }],
+            'x-found-in': 'body',
+          },
+        },
+      },
+    }]
+    const result = generateScript(parseTestFile(content, 'sql/10_basic.yml'), defs)
+    assert.match(result.script, /--wait-for-completion-timeout 0s/)
+    assert.match(result.script, /--keep-alive 1d/)
+    assert.match(result.script, /--keep-on-completion true/)
+  })
+
   it('generates valid bash with shebang and set -euo', () => {
     const content = readFileSync(join(fixturesDir, 'get.yml'), 'utf-8')
     const testFile = parseTestFile(content, 'get.yml')
