@@ -56,12 +56,12 @@ describe('docsApi', () => {
 
   it('keeps the status text for JSON that is not a problem', async () => {
     install(JSON.stringify({ errorType: 'operation_not_found', message: 'old shape' }), 404)
-    await assert.rejects(docsApi('/apis', {}), /^Error: docs api error \(404\): (Not Found|request failed)$/)
+    await assert.rejects(docsApi('/apis', {}), /^Error: docs api error \(404\): Not Found$/)
   })
 
   it('drops an HTML error page and keeps the status', async () => {
     install('<html>forbidden</html>', 403)
-    await assert.rejects(docsApi('/apis', {}), /^Error: docs api error \(403\): (Forbidden|request failed)$/)
+    await assert.rejects(docsApi('/apis', {}), /^Error: docs api error \(403\): Forbidden$/)
   })
 })
 
@@ -216,6 +216,15 @@ describe('docs api commands', () => {
     const { stdout } = await run(createApiListCommand(deps), [])
     assert.deepEqual(calls[0], { path: '/apis', params: {} })
     assert.match(stdout, /elasticsearch\s+Elasticsearch API {2}\[main, 9\]/)
+  })
+
+  it('list keeps a space between an API key longer than the column and its title', async () => {
+    const { deps } = fake({ apis: [
+      { key: 'es', title: 'Short', url: '/x', versions: ['main'] },
+      { key: 'elasticsearch-serverless', title: 'Elasticsearch Serverless API', url: '/x', versions: ['main'] },
+    ] })
+    const { stdout } = await run(createApiListCommand(deps), [])
+    assert.equal(stdout, 'es                        Short  [main]\nelasticsearch-serverless  Elasticsearch Serverless API  [main]\n')
   })
 
   it('list with a key counts the API\'s groups', async () => {

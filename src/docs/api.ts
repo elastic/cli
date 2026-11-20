@@ -174,8 +174,9 @@ export function createApiListCommand (deps: ApiDeps = defaultDeps): OpaqueComman
     },
     format: (reply) => {
       if (Array.isArray(reply['apis'])) {
-        return (reply['apis'] as Array<{ key: string; title: string; versions: string[] }>)
-          .map((a) => `${a.key.padEnd(24)}${a.title}  [${a.versions.join(', ')}]\n`).join('')
+        const apis = reply['apis'] as Array<{ key: string; title: string; versions: string[] }>
+        const width = Math.max(0, ...apis.map((a) => a.key.length)) + 2
+        return apis.map((a) => `${a.key.padEnd(width)}${a.title}  [${a.versions.join(', ')}]\n`).join('')
       }
       if (Array.isArray(reply['results'])) {
         const results = reply['results'] as Array<{ operation: Operation }>
