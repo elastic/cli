@@ -14,13 +14,15 @@ export interface ApiDeps {
 
 const defaultDeps: ApiDeps = { docsApi }
 
-// Schema keys are the docs API query parameters (`query` is sent as `q`); toKebabCase turns them into flags.
+// Schema keys are the docs API query parameters (`query` is sent as `q`, `api_version` as `version`);
+// toKebabCase turns them into flags.
 // A value that is more than whitespace.
 const nonBlank = { type: 'string', pattern: '\\S' }
 // Every operation lookup names its API: most operation ids and many routes exist in several APIs
 // (elasticsearch and elasticsearch-serverless share most of theirs), so a lookup across APIs could only guess.
 const api = { ...nonBlank, description: "API key, e.g. 'elasticsearch' or 'kibana'. `elastic docs api list` lists the keys." }
-const version = { type: 'string', description: "API version: 'main' or a major such as '9'. Without it, the current version is used." }
+// Not --version: `elastic --version` prints the CLI's own version.
+const apiVersion = { type: 'string', description: "API version: 'main' or a major such as '9'. Without it, the current version is used." }
 
 interface Operation { api: string; title: string; url: string; method: string; path: string; operationId: string; deprecated?: boolean }
 /** The path of one API's operations, with the key encoded into one segment. */
@@ -85,7 +87,7 @@ export function createApiSearchCommand (deps: ApiDeps = defaultDeps): OpaqueComm
     properties: {
       query: { ...nonBlank, description: "Words, an endpoint such as 'GET /_cluster/health', or a field path; end a field with '.' to list its children" },
       api,
-      version,
+      api_version: apiVersion,
       include_deprecated: { type: 'boolean', description: 'Include deprecated operations' },
       page: { type: 'integer', minimum: 1, description: 'Page number', default: 1 },
       size: { type: 'integer', minimum: 1, maximum: 50, description: 'Results per page', default: 10 },
@@ -93,7 +95,7 @@ export function createApiSearchCommand (deps: ApiDeps = defaultDeps): OpaqueComm
     rules: { required: ['query', 'api'] },
     positionalArg: { name: 'query', description: 'Words, an endpoint, or a field path' },
     fromArg: (query) => ({ query }),
-    request: async ({ query, api: key, ...params }, call) => call(operationsOf(key), { q: query, ...params }),
+    request: async ({ query, api: key, api_version: version, ...params }, call) => call(operationsOf(key), { q: query, version, ...params }),
     format: (reply) => {
       const results = reply['results'] as Array<{ operation: Operation; matchedFields?: Field[] }>
       if (results.length === 0) return 'No operations found.\n'
@@ -117,7 +119,7 @@ export function createApiGetCommand (deps: ApiDeps = defaultDeps): OpaqueCommand
       endpoint: { ...nonBlank, description: "A route as you would call it, e.g. 'GET /my-index/_search'" },
       operation_id: { ...nonBlank, description: "The OpenAPI operation id, e.g. 'cluster-health'" },
       api,
-      version,
+      api_version: apiVersion,
       include_body: { type: 'boolean', description: 'Include the page body' },
     },
     // Exactly one way to name the operation.
@@ -125,7 +127,7 @@ export function createApiGetCommand (deps: ApiDeps = defaultDeps): OpaqueCommand
     positionalArg: { name: 'operation', description: "An endpoint such as 'GET /_cluster/health', or an operation id" },
     // Operation ids never contain '/', endpoints always do.
     fromArg: (arg) => (arg.includes('/') ? { endpoint: arg } : { operation_id: arg }),
-    request: async ({ endpoint, operation_id: operationId, api: key, version: ver, include_body: includeBody }, call) => {
+    request: async ({ endpoint, operation_id: operationId, api: key, api_version: ver, include_body: includeBody }, call) => {
       if (operationId != null) {
         return call(`${operationsOf(key)}/${encodeURIComponent(String(operationId))}`, { version: ver, include_body: includeBody })
       }
@@ -158,16 +160,16 @@ export function createApiListCommand (deps: ApiDeps = defaultDeps): OpaqueComman
     name: 'list',
     description: 'List the Elastic REST APIs, the groups of one API, or the operations of one group',
     properties: {
-      api: { type: 'string', description: "API key, e.g. 'elasticsearch'. Omit to list every API." },
-      version,
+      api: { ...nonBlank, description: "API key, e.g. 'elasticsearch'. Omit to list every API." },
+      api_version: apiVersion,
       group: { type: 'string', description: "List the operations of this group, e.g. 'cluster'. Without it, the API's groups are counted." },
       page: { type: 'integer', minimum: 1, description: 'Page of a group listing' },
       size: { type: 'integer', minimum: 1, maximum: 50, description: 'Operations per page of a group listing (default 10)' },
     },
-    rules: { dependencies: { version: ['api'], group: ['api'], page: ['group'], size: ['group'] } },
+    rules: { dependencies: { api_version: ['api'], group: ['api'], page: ['group'], size: ['group'] } },
     positionalArg: { name: 'api', description: 'API key; omit to list every API' },
     fromArg: (key) => ({ api: key }),
-    request: async ({ api: key, group, version: ver, page, size }, call) => {
+    request: async ({ api: key, group, api_version: ver, page, size }, call) => {
       if (key == null) return call('/apis', {})
       if (group == null) return call(`/apis/${encodeURIComponent(String(key))}/groups`, { version: ver })
       return call(operationsOf(key), { version: ver, group, page, size })

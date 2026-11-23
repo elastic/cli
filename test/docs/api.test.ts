@@ -59,6 +59,11 @@ describe('docsApi', () => {
     await assert.rejects(docsApi('/apis', {}), /^Error: docs api error \(404\): Not Found$/)
   })
 
+  it('names a 2xx reply that is not JSON instead of throwing a SyntaxError', async () => {
+    install('<html>maintenance</html>', 200)
+    await assert.rejects(docsApi('/apis', {}), /^Error: docs api error \(200\): the reply is not JSON$/)
+  })
+
   it('drops an HTML error page and keeps the status', async () => {
     install('<html>forbidden</html>', 403)
     await assert.rejects(docsApi('/apis', {}), /^Error: docs api error \(403\): Forbidden$/)
@@ -100,7 +105,7 @@ describe('docs api commands', () => {
     const { deps, calls } = fake({ query: 'health', totalHits: 1, results: [{ operation: op, score: 1, matchedFields: [] }] })
     const { stdout, exitCode } = await run(createApiSearchCommand(deps), ['GET /_cluster/health', '--api', 'elasticsearch', '--include-deprecated', '--size', '5'])
     assert.equal(exitCode, 0)
-    assert.deepEqual(calls, [{ path: '/apis/elasticsearch/operations', params: { q: 'GET /_cluster/health', include_deprecated: true, size: 5, page: 1 } }])
+    assert.deepEqual(calls, [{ path: '/apis/elasticsearch/operations', params: { q: 'GET /_cluster/health', version: undefined, include_deprecated: true, size: 5, page: 1 } }])
     assert.match(stdout, /GET {4}\/_cluster\/health {2}\(cluster-health\)/)
     assert.match(stdout, /https:\/\/www\.elastic\.co\/docs\/api\/doc\/elasticsearch\/operation\/operation-cluster-health/)
   })
@@ -150,7 +155,7 @@ describe('docs api commands', () => {
 
   it('get with an operation id and an api reads the operation by its id', async () => {
     const { deps, calls } = fake({ operation: op, versions: [], fields: [], otherMatches: [] })
-    const { exitCode } = await run(createApiGetCommand(deps), ['cluster-health', '--api', 'elasticsearch', '--version', '9'])
+    const { exitCode } = await run(createApiGetCommand(deps), ['cluster-health', '--api', 'elasticsearch', '--api-version', '9'])
     assert.equal(exitCode, 0)
     assert.deepEqual(calls, [{ path: '/apis/elasticsearch/operations/cluster-health', params: { version: '9', include_body: undefined } }])
   })
@@ -247,9 +252,19 @@ describe('docs api commands', () => {
     assert.equal(calls[0]!.path, '/apis/..%2Fx/groups')
   })
 
-  it('list rejects --version without an api key', async () => {
+  it('search and list send --api-version as the version query parameter', async () => {
+    const search = fake({ totalHits: 0, results: [] })
+    await run(createApiSearchCommand(search.deps), ['health', '--api', 'elasticsearch', '--api-version', '9'])
+    assert.equal(search.calls[0]!.params['version'], '9')
+    assert.equal('api_version' in search.calls[0]!.params, false)
+    const list = fake({ groups: [] })
+    await run(createApiListCommand(list.deps), ['elasticsearch', '--api-version', '8'])
+    assert.deepEqual(list.calls[0], { path: '/apis/elasticsearch/groups', params: { version: '8' } })
+  })
+
+  it('list rejects --api-version without an api key', async () => {
     const { deps, calls } = fake({})
-    const { exitCode } = await run(createApiListCommand(deps), ['--version', '9'])
+    const { exitCode } = await run(createApiListCommand(deps), ['--api-version', '9'])
     assert.equal(exitCode, 1)
     assert.equal(calls.length, 0)
   })
@@ -268,6 +283,9 @@ describe('docs api commands', () => {
       ['get without --api', createApiGetCommand, ['cluster-health']],
       ['list with --group but no api', createApiListCommand, ['--group', 'cluster']],
       ['list with --page but no --group', createApiListCommand, ['elasticsearch', '--page', '2']],
+      ['list with a blank api', createApiListCommand, [' ']],
+      ['list with a blank --api', createApiListCommand, ['--api', '']],
+      ['get with --version, the CLI\'s own flag', createApiGetCommand, ['cluster-health', '--api', 'elasticsearch', '--version', '9']],
     ] as const) {
       it(`rejects ${name}${mode} without calling the server`, async () => {
         const { deps, calls } = fake({})

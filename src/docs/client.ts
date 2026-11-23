@@ -225,5 +225,10 @@ export async function docsApi (path: string, params: Record<string, unknown>): P
     }
     throw new Error(`docs api error (${resp.status}): ${message}`)
   }
-  return JSON.parse(text) as unknown
+  try {
+    return JSON.parse(text) as unknown
+  } catch {
+    // A CDN or maintenance page can answer 200 with HTML.
+    throw new Error(`docs api error (${resp.status}): the reply is not JSON`)
+  }
 }

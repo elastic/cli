@@ -123263,7 +123263,7 @@
                 },
                 {
                   "role": "flag",
-                  "name": "version",
+                  "name": "api-version",
                   "type": "string",
                   "required": false,
                   "summary": "API version: 'main' or a major such as '9'. Without it, the current version is used."
@@ -123365,7 +123365,7 @@
                 },
                 {
                   "role": "flag",
-                  "name": "version",
+                  "name": "api-version",
                   "type": "string",
                   "required": false,
                   "summary": "API version: 'main' or a major such as '9'. Without it, the current version is used."
@@ -123402,11 +123402,17 @@
                   "name": "api",
                   "type": "string",
                   "required": false,
-                  "summary": "API key, e.g. 'elasticsearch'. Omit to list every API."
+                  "summary": "API key, e.g. 'elasticsearch'. Omit to list every API.",
+                  "validations": [
+                    {
+                      "kind": "regex",
+                      "pattern": "\\S"
+                    }
+                  ]
                 },
                 {
                   "role": "flag",
-                  "name": "version",
+                  "name": "api-version",
                   "type": "string",
                   "required": false,
                   "summary": "API version: 'main' or a major such as '9'. Without it, the current version is used."
