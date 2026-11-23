@@ -78,7 +78,16 @@ export interface CommandConfig {
   name: string
   description: string
   options?: OptionDefinition[]
-  positionalArg?: { name: string; description: string; required?: boolean }
+  positionalArg?: {
+    name: string
+    description: string
+    required?: boolean
+    /**
+     * Maps the positional value onto schema input fields before validation, so the schema can require them and
+     * `--dry-run` rejects what a real run would. Flags and JSON input win over the fields it sets.
+     */
+    toInput?: (value: string) => Record<string, unknown>
+  }
   handler: (parsed: ParsedResult) => HandlerResult | Promise<HandlerResult>
   /** JSON Schema object for structured input (properties carry `x-found-in` routing). */
   input?: Record<string, unknown>
